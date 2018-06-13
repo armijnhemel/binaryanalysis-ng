@@ -1,0 +1,550 @@
+#!/usr/bin/python3
+
+## Binary Analysis Next Generation (BANG!)
+##
+## Gets a file and unpacks contents using standard functionality in Python 3
+## or some custom code and writes the contents to a temporary directory.
+##
+## Copyright 2018 - Armijn Hemel
+## Licensed under the terms of the GNU General Public License version 3
+## SPDX-License-Identifier: GPL-3.0-only
+
+import sys, os, struct, multiprocessing, argparse, configparser, datetime
+import tempfile, subprocess, re, hashlib, stat, shutil, string
+import math, pickle, json
+
+## import some module for collecting statistics and information about
+## the run time environment of the tool, plus of runs, and so on.
+import logging, platform
+
+## import the local file with unpacking methods
+import bangunpack
+
+## store a few standard signatures
+signatures = {
+              'webp':           b'WEBP',
+              'wav':            b'WAVE',
+             }
+
+## some signatures do not start at the beginning of the file
+signaturesoffset = {
+                     'webp':    8,
+               '      wav':     8,
+                   }
+
+## keep a list of signatures to the (built in) functions
+signaturetofunction = { 'webp': bangunpack.unpackWebP,
+                        'wav': bangunpack.unpackWAV,
+                      }
+
+## a lookup table to map signatures to a name for
+## pretty printing.
+signatureprettyprint = {
+                       }
+
+## store the maximum look ahead window. This is unlikely to matter, but
+## just in case.
+maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
+maxsignaturesoffset = max(signaturesoffset.values()) + maxsignaturelength
+
+## Process a single file.
+## This method has the following parameters:
+##
+## * scanfilequeue :: a queue where files to scan will be fetched from
+## * resultqueue :: a queue where results will be written to
+## * maxsearchbytes :: an integer that defines the maximum amount of bytes
+##   that are read to be searched for magic signatures
+## * unpackdirectory :: the absolute path of the top level directory in which files
+##   will be unpacked
+## * temporary directory :: the absolute path of a directory in which temporary
+##   files will be written
+##
+## Each file will be in the scan queue and have the following data associated with
+## it:
+##
+## * file name (absolutepath)
+## * set of labels (set by parent, either empty or containing hints from unpacking)
+##
+## For every file a set of labels describing the file (such as 'binary' or 'graphics')
+## will be stored. These labels can be used to feed extra information to the unpacking
+## process, such as preventing scans from running.
+def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, temporarydirectory):
+        lenunpackdirectory = len(unpackdirectory) + 1
+        synthesizedminimum = 10
+
+        while True:
+                ## grab a new file from the scanning queue
+                (checkfile, labels) = scanfilequeue.get()
+
+                ## Check if the file is a directory
+                if os.path.isdir(checkfile):
+                        scanfilequeue.task_done()
+                        continue
+
+                ## store the results of the file
+                ## At minimum store:
+                ## * file name (relative to the top level unpack directory))
+                ## * labels
+                fileresult = {'fullfilename': checkfile}
+                fileresult['filename'] = checkfile[lenunpackdirectory:]
+
+                ## First perform all kinds of checks to prevent the file being scanned.
+                ## Check if the file is a symbolic link
+                if os.path.islink(checkfile):
+                        labels.append('symbolic link')
+                        fileresult['labels'] = labels
+                        resultqueue.put(fileresult)
+                        scanfilequeue.task_done()
+                        continue
+
+                ## Check if the file is a socket
+                if stat.S_ISSOCK(os.stat(checkfile).st_mode):
+                        labels.append('socket')
+                        fileresult['labels'] = labels
+                        resultqueue.put(fileresult)
+                        scanfilequeue.task_done()
+                        continue
+
+                ## Check if the file is a FIFO
+                if stat.S_ISFIFO(os.stat(checkfile).st_mode):
+                        labels.append('fifo')
+                        fileresult['labels'] = labels
+                        resultqueue.put(fileresult)
+                        scanfilequeue.task_done()
+                        continue
+
+                ## Check if the file is a block device
+                if stat.S_ISBLK(os.stat(checkfile).st_mode):
+                        labels.append('block device')
+                        fileresult['labels'] = labels
+                        resultqueue.put(fileresult)
+                        scanfilequeue.task_done()
+                        continue
+
+                ## Check if the file is a character device
+                if stat.S_ISCHR(os.stat(checkfile).st_mode):
+                        labels.append('character device')
+                        fileresult['labels'] = labels
+                        resultqueue.put(fileresult)
+                        scanfilequeue.task_done()
+                        continue
+
+                filesize = os.stat(checkfile).st_size
+
+                ## Don't scan an empty file
+                if filesize == 0:
+                        labels.append('empty')
+                        fileresult['labels'] = labels
+                        fileresult['filesize'] = 0
+                        resultqueue.put(fileresult)
+                        scanfilequeue.task_done()
+                        continue
+
+                ## compute various checksums of the file
+                checksumresults = {}
+
+                for hashtocompute in ['sha256', 'md5', 'sha1']:
+                        checksumresults[hashtocompute] = hashlib.new(hashtocompute)
+
+                scanfile = open(checkfile, 'rb')
+                scanfile.seek(0)
+                readsize = 10000000
+                hashingdata = scanfile.read(readsize)
+
+                while hashingdata != b'':
+                        for h in checksumresults:
+                                checksumresults[h].update(hashingdata)
+                        hashingdata = scanfile.read(readsize)
+                scanfile.close()
+
+                for f in checksumresults:
+                        fileresult[f] = checksumresults[f].hexdigest()
+
+                fileresult['unpackedfiles'] = []
+
+                ## store the last known position in the file with successfully
+                ## unpacked data
+                lastunpackedoffset = -1
+
+                ## remove any duplicate labels
+                labels = list(set(labels))
+
+                needsunpacking = True
+                unpackedrange = []
+
+                istext = True
+
+                ## keep a counter per signature for the unpacking directory names
+                counterspersignature = {}
+
+                ## open the file in binary mode
+                scanfile = open(checkfile, 'rb')
+                scanfile.seek(max(lastunpackedoffset, 0))
+
+                offsetinfile = scanfile.tell()
+                scanbytes = scanfile.read(maxsearchbytes)
+                if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
+                        istext = False
+
+                while True:
+                        candidateoffsetsfound = set()
+                        for s in signatures:
+                                res = re.finditer(re.escape(signatures[s]), scanbytes)
+                                if res != None:
+                                        for r in res:
+                                                if s in signaturesoffset:
+                                                        ## skip files that aren't big enough if the signature
+                                                        ## is not at the start of the data to be carved (example:
+                                                        ## ISO9660).
+                                                        if r.start() + offsetinfile - signaturesoffset[s] < 0:
+                                                                continue
+                                                offset = r.start()
+
+                                                if s in signaturesoffset:
+                                                        candidateoffsetsfound.add((offset + offsetinfile - signaturesoffset[s], s))
+                                                else:
+                                                        candidateoffsetsfound.add((offset + offsetinfile, s))
+
+                        ## see if any data can be unpacked
+                        for s in (sorted(candidateoffsetsfound)):
+                                if s[0] < lastunpackedoffset:
+                                        continue
+                                ## first see if there actually is a method to unpack
+                                ## this type of file
+                                if not s[1] in signaturetofunction:
+                                        continue
+                                ## always first change to the original cwd
+                                os.chdir(unpackdirectory)
+
+                                ## then create an unpacking directory
+                                if not s[1] in counterspersignature:
+                                        namecounter = 1
+                                else:
+                                        namecounter = counterspersignature[s[1]] + 1
+                                while True:
+                                        dataunpackdirectory = "%s-%s-%d" % (checkfile, signatureprettyprint.get(s[1], s[1]), namecounter)
+                                        try:
+                                                os.mkdir(dataunpackdirectory)
+                                                break
+                                        except:
+                                                namecounter += 1
+
+                                ## The result of the scan is:
+                                ## * the status of the scan (successful or not)
+                                ## * the length of the data
+                                ## * list of files that were unpacked, if any, plus labels for the unpacked files
+                                ## * labels that were added, if any
+                                ## * errors that were encountered, if any
+                                logging.debug("TRYING %s %s at offset: %d" % (checkfile, s[1], s[0]))
+                                try:
+                                        unpackresult = signaturetofunction[s[1]](checkfile, s[0], dataunpackdirectory, temporarydirectory)
+                                except AttributeError as e:
+                                        os.rmdir(dataunpackdirectory)
+                                        continue
+                                (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = unpackresult
+                                if not unpackstatus:
+                                        ## No data could be unpacked for some reason, so check the status first
+                                        logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, s[1], s[0], unpackerror['reason']))
+                                        #print(s[1], unpackerror)
+                                        #sys.stdout.flush()
+                                        ## unpackerror contains:
+                                        ## * offset in the file where the error occured (integer)
+                                        ## * reason of the error (human readable)
+                                        ## * flag to indicate if it is a fatal error (boolean)
+                                        ##
+                                        ## Fatal errors should lead to the program stopping execution.
+                                        ## remove the directory, so first change the permissions of
+                                        ## all the files so they can be safely
+                                        if unpackerror['fatal']:
+                                                pass
+                                        ## clean up any data that might have been left behind
+                                        dirwalk = os.walk(dataunpackdirectory)
+
+                                        for direntries in dirwalk:
+                                                ## make sure all subdirectories and files can be accessed
+                                                for subdir in direntries[1]:
+                                                        subdirname = os.path.join(direntries[0], subdir)
+                                                        if not os.path.islink(subdirname):
+                                                                os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                                                for filename in direntries[2]:
+                                                        fullfilename = os.path.join(direntries[0], filename)
+                                                        if not os.path.islink(fullfilename):
+                                                                os.chmod(fullfilename, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                                        shutil.rmtree(dataunpackdirectory)
+                                        continue
+
+                                logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, s[1], s[0], unpackedlength))
+
+                                ## store the name counter, but only after data was
+                                ## unpacked successfully.
+                                counterspersignature[s[1]] = namecounter
+
+                                if s[0] == 0 and unpackedlength == filesize:
+                                        labels += unpackedlabels
+                                        labels = list(set(labels))
+                                        ## if unpackedfilesandlabels is empty, then no files were unpacked
+                                        ## likely because the whole file was the result and didn't
+                                        ## contain any files (it was not a container or compresed file)
+                                        if len(unpackedfilesandlabels) == 0:
+                                                os.rmdir(dataunpackdirectory)
+
+                                ## store the range of the unpacked data
+                                unpackedrange.append((s[0], s[0] + unpackedlength))
+
+                                ## add a lot of information about the unpacked files
+                                report = {}
+                                report['offset'] = s[0]
+                                report['signature'] = s[1]
+                                report['type'] = signatureprettyprint.get(s[1], s[1])
+                                report['size'] = unpackedlength
+                                report['files'] = []
+                                ## set unpackdirectory, but only if needed
+                                if len(unpackedfilesandlabels) != 0:
+                                        report['unpackdirectory'] = dataunpackdirectory[lenunpackdirectory:]
+
+                                for un in unpackedfilesandlabels:
+                                        (unpackedfile, unpackedlabel) = un
+
+                                        ## TODO: make relative wrt unpackdir
+                                        report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
+
+                                        ## add the data, plus possibly any label
+                                        scanfilequeue.put((unpackedfile, unpackedlabel))
+
+                                fileresult['unpackedfiles'].append(report)
+
+                                ## skip over all of the indexes that are essentially false positives now
+                                lastunpackedoffset = s[0] + unpackedlength
+                                needsunpacking = False
+
+                        ## check if the end of file has been reached, if so exit
+                        if scanfile.tell() == filesize:
+                                break
+
+                        ## see where to start reading next.
+                        if scanfile.tell() < lastunpackedoffset:
+                                ## If data has already been unpacked it can be skipped.
+                                scanfile.seek(lastunpackedoffset)
+                        else:
+                                ## use an overlap
+                                scanfile.seek(-maxsignaturesoffset, 1)
+                        offsetinfile = scanfile.tell()
+
+                        scanbytes = scanfile.read(maxsearchbytes)
+
+                        if istext:
+                                if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
+                                        istext = False
+                scanfile.close()
+
+                if istext:
+                        labels.append('text')
+                else:
+                        labels.append('binary')
+
+                fileresult['labels'] = list(set(labels))
+                fileresult['filesize'] = filesize
+                print(json.dumps(fileresult))
+                sys.stdout.flush()
+                resultqueue.put(fileresult)
+                scanfilequeue.task_done()
+
+def main(argv):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("-f", "--file", action="store", dest="checkfile", help="path to file to check", metavar="FILE")
+        parser.add_argument("-c", "--config", action="store", dest="cfg", help="path to configuration file", metavar="FILE")
+        args = parser.parse_args()
+
+        ## sanity checks for the file to scan
+        if args.checkfile == None:
+                parser.error("No file to scan provided, exiting")
+
+        ## the file to scan should exist ...
+        if not os.path.exists(args.checkfile):
+                parser.error("File %s does not exist, exiting." % args.checkfile)
+
+        ## ... and should be a real file
+        if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
+                parser.error("%s is not a regular file, exiting." % args.checkfile)
+
+        ## sanity checks for the configuration file
+        if args.cfg == None:
+                parser.error("No configuration file provided, exiting")
+
+        ## the configuration file should exist ...
+        if not os.path.exists(args.cfg):
+                parser.error("File %s does not exist, exiting." % args.cfg)
+
+        ## ... and should be a real file
+        if not stat.S_ISREG(os.stat(args.cfg).st_mode):
+                parser.error("%s is not a regular file, exiting." % args.cfg)
+
+        filesize = os.stat(args.checkfile).st_size
+
+        ## Don't scan an empty file
+        if filesize == 0:
+                print("File to scan is empty, exiting", file=sys.stderr)
+                sys.exit(1)
+
+        ## read the configuration file. This is in Windows INI format.
+        config = configparser.ConfigParser()
+
+        try:
+                configfile = open(args.cfg, 'r')
+                config.readfp(configfile)
+        except:
+                print("Cannot open configuration file, exiting", file=sys.stderr)
+                sys.exit(1)
+
+        ## set a few default values
+        baseunpackdirectory = ''
+        temporarydirectory = None
+
+        ## then process each individual section and extract configuration options
+        for section in config.sections():
+                if section == 'configuration':
+                        ## The base unpack directory is where the unpacked files will be written.
+                        ## This is mandatory.
+                        try:
+                                baseunpackdirectory = config.get(section, 'baseunpackdirectory')
+                        except Exception:
+                                break
+                        ## The temporary directory is where temporary files will be written.
+                        ## This is optional. If not set the system's temporary directory
+                        ## (usually /tmp ) will be used.
+                        try:
+                                temporarydirectory = config.get(section, 'temporarydirectory')
+                        except Exception:
+                                pass
+
+                        ## The number of threads to be created to scan the files recursively,
+                        ## next to the main thread. Defaults to "all availabe threads" (number
+                        ## of CPUs on a machine).
+                        try:
+                                threads = min(int(config.get(section, 'threads')), multiprocessing.cpu_count())
+                                ## if 0 or a negative number was configured, then use all available threads
+                                if threads < 1:
+                                        threads = multiprocessing.cpu_count()
+                        except Exception:
+                                ## use all available threads by default
+                                threads = multiprocessing.cpu_count()
+
+        configfile.close()
+
+        ## Check if the base unpack directory was declared.
+        if baseunpackdirectory == '':
+                print("Base unpack directory not declared in configuration file, exiting", file=sys.stderr)
+                sys.exit(1)
+
+        ## Check if the base unpack directory exists
+        if not os.path.exists(baseunpackdirectory):
+                print("Base unpack directory %s does not exist, exiting" % baseunpackdirectory, file=sys.stderr)
+                sys.exit(1)
+
+        if not os.path.isdir(baseunpackdirectory):
+                print("Base unpack directory %s is not a directory, exiting" % baseunpackdirectory, file=sys.stderr)
+                sys.exit(1)
+
+        ## Check if the base unpack directory can be written to
+        try:
+                testfile = tempfile.mkstemp(dir=baseunpackdirectory)
+                os.unlink(testfile[1])
+        except:
+                print("Base unpack directory %s cannot be written to, exiting" % baseunpackdirectory, file=sys.stderr)
+                sys.exit(1)
+
+        ## Check if the temporary directory is actually an existing directory,
+        ## but only if it was defined in the configuration file.
+        if temporarydirectory != None:
+                if not os.path.exists(temporarydirectory):
+                        print("Temporary directory %s does not exist, exiting" % temporarydirectory, file=sys.stderr)
+                        sys.exit(1)
+
+                if not os.path.isdir(temporarydirectory):
+                        print("Temporary directory %s is not a directory, exiting" % temporarydirectory, file=sys.stderr)
+                        sys.exit(1)
+
+                ## Check if the temporary directory can be written to
+                try:
+                        testfile = tempfile.mkstemp(dir=temporarydirectory)
+                        os.unlink(testfile[1])
+                except:
+                        print("Temporary directory %s cannot be written to, exiting" % temporarydirectory, file=sys.stderr)
+                        sys.exit(1)
+
+        ## create a directory for the scan
+        scandirectory = tempfile.mkdtemp(prefix='bang-scan-', dir=baseunpackdirectory)
+
+        ## now create a directory structure inside the scandirectory:
+        ## unpack/ -- this is where all the unpacked data will be stored
+        ## results/ -- this is where files describing the unpacked data will be stored
+        ## logs/ -- this is where logs from the scan will be stored
+        unpackdirectory = os.path.join(scandirectory, "unpack")
+        os.mkdir(unpackdirectory)
+        
+        resultsdirectory = os.path.join(scandirectory, "results")
+        os.mkdir(resultsdirectory)
+
+        logdirectory = os.path.join(scandirectory, "logs")
+        os.mkdir(logdirectory)
+
+        ## create a log file inside the log directory
+        logging.basicConfig(filename=os.path.join(logdirectory, 'unpack.log'),level=logging.DEBUG, format='%(asctime)s %(message)s')
+        logging.info("Started scanning %s" % args.checkfile)
+
+        ## first determine how many bytes should be scanned for known signatures
+        ## using a sliding window. This should not be set too large for performance
+        ## reasons.
+        readsize = 2000000
+
+        processmanager = multiprocessing.Manager()
+
+        processmanager = multiprocessing.Manager()
+
+        ## first create two queues: one for scanning files, the other one for
+        ## reporting results.
+        scanfilequeue = processmanager.JoinableQueue(maxsize=0)
+        resultqueue = processmanager.JoinableQueue(maxsize=0)
+        processes = []
+
+        ## copy the file that needs to be scanned to the temporary
+        ## directory.
+        try:
+                shutil.copy(args.checkfile, unpackdirectory)
+        except:
+                print("Could not copy %s to scanning directory %s" % (args.checkfile, unpackdirectory), file=sys.stderr)
+                sys.exit(1)
+
+        ## The scan queue will be used to put files into that need to be scanned and
+        ## processes. New files wil keep being added to it while results are being
+        ## unpacked recursively.
+        ## Initially one file will be in this queue, namely the first file.
+        ## After files are unpacked they will be added to the queue, as they
+        ## can be scanned in a trivially parallel way.
+
+        ## Create a list of labels to pass around. The first element is tagged
+        ## as 'root', as it is the root of the unpacking tree.
+        labels = ['root']
+        scanfilequeue.put((os.path.join(unpackdirectory, os.path.basename(args.checkfile)), labels))
+
+        ## create processes for unpacking archives
+        for i in range(0,threads):
+                p = multiprocessing.Process(target=processfile, args=(scanfilequeue, resultqueue, readsize, unpackdirectory, temporarydirectory))
+                processes.append(p)
+
+        ## then start all the processes
+        for p in processes:
+                p.start()
+
+        ## wait for the queues to be empty.
+        scanfilequeue.join()
+
+        ## Done processing, terminate processes that were created
+        for p in processes:
+                p.terminate()
+
+        ## The end.
+        logging.info("Finished scanning %s" % args.checkfile)
+
+if __name__ == "__main__":
+        main(sys.argv)
