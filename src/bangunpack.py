@@ -13,8 +13,8 @@
 ## https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 ##
 ## Copyright 2018 - Armijn Hemel
-## Licensed under the terms of the GNU General Public License version 3
-## SPDX-License-Identifier: GPL-3.0-only
+## Licensed under the terms of the GNU Affero General Public License version 3
+## SPDX-License-Identifier: AGPL-3.0-only
 
 import sys, os, struct, shutil
 

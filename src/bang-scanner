@@ -6,8 +6,8 @@
 ## or some custom code and writes the contents to a temporary directory.
 ##
 ## Copyright 2018 - Armijn Hemel
-## Licensed under the terms of the GNU General Public License version 3
-## SPDX-License-Identifier: GPL-3.0-only
+## Licensed under the terms of the GNU Affero General Public License version 3
+## SPDX-License-Identifier: AGPL-3.0-only
 
 import sys, os, struct, multiprocessing, argparse, configparser, datetime
 import tempfile, subprocess, re, hashlib, stat, shutil, string
