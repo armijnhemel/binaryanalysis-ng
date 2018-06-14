@@ -24,6 +24,7 @@ import bangunpack
 signatures = {
               'webp':           b'WEBP',
               'wav':            b'WAVE',
+              'png':            b'\x89PNG\x0d\x0a\x1a\x0a',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -35,6 +36,7 @@ signaturesoffset = {
 ## keep a list of signatures to the (built in) functions
 signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'wav': bangunpack.unpackWAV,
+                        'png': bangunpack.unpackPNG,
                       }
 
 ## a lookup table to map signatures to a name for
