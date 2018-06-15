@@ -2,12 +2,12 @@
 
 ## Binary Analysis Next Generation (BANG!)
 ##
-## Gets a file and unpacks contents using standard functionality in Python 3
-## or some custom code and writes the contents to a temporary directory.
-##
 ## Copyright 2018 - Armijn Hemel
 ## Licensed under the terms of the GNU Affero General Public License version 3
 ## SPDX-License-Identifier: AGPL-3.0-only
+##
+## Gets a file and unpacks contents using standard functionality in Python 3
+## or some custom code and writes the contents to a temporary directory.
 
 import sys, os, struct, multiprocessing, argparse, configparser, datetime
 import tempfile, subprocess, re, hashlib, stat, shutil, string
@@ -25,6 +25,7 @@ signatures = {
               'webp':           b'WEBP',
               'wav':            b'WAVE',
               'png':            b'\x89PNG\x0d\x0a\x1a\x0a',
+              'gzip':           b'\x1f\x8b\x08',     # RFC 1952 says x08 is the only compression method allowed
              }
 
 ## some signatures do not start at the beginning of the file
@@ -37,6 +38,7 @@ signaturesoffset = {
 signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'wav': bangunpack.unpackWAV,
                         'png': bangunpack.unpackPNG,
+                        'gzip': bangunpack.unpackGzip,
                       }
 
 ## a lookup table to map signatures to a name for
