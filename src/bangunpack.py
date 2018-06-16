@@ -11,10 +11,12 @@
 ##  1. WebP
 ##  2. WAV
 ##  3. ANI
-##  4. PNG
-##  5. gzip
-##  6. BMP
+##  4. gzip
+##  5. BMP
 ##
+## Unpackers needing external Python libraries or other tools
+##
+##  1. PNG (needs PIL)
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
 ## post:
@@ -22,6 +24,9 @@
 ## https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
 import sys, os, struct, shutil, binascii, zlib, subprocess
+
+## some external packages that are needed
+import PIL.Image
 
 ## Each unpacker has a specific interface:
 ##
@@ -315,6 +320,14 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         ## There has to be exactly 1 IEND chunk (section 5.6)
         if endoffilereached:
                 if offset == 0 and unpackedsize == filesize:
+                        ## now load the file into PIL as an extra sanity check
+                        try:
+                                testimg = PIL.Image.open(checkfile)
+                                testimg.load()
+                        except Exception as e:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
                         checkfile.close()
                         labels += ['png', 'graphics']
                         if animated:
@@ -328,6 +341,16 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
                 outfile.close()
                 checkfile.close()
+
+                ## now load the file into PIL as an extra sanity check
+                try:
+                        testimg = PIL.Image.open(outfilename)
+                        testimg.load()
+                except:
+                        os.unlink(outfilename)
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
                 if animated:
                         unpackedfilesandlabels.append((outfilename, ['png', 'graphics', 'animated', 'apng', 'unpacked']))
                 else:
