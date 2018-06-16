@@ -10,7 +10,10 @@
 ##
 ##  1. WebP
 ##  2. WAV
-##  3. gzip
+##  3. ANI
+##  4. PNG
+##  5. gzip
+##  6. BMP
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -18,7 +21,7 @@
 ##
 ## https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
-import sys, os, struct, shutil, binascii, zlib
+import sys, os, struct, shutil, binascii, zlib, subprocess
 
 ## Each unpacker has a specific interface:
 ##
@@ -572,3 +575,96 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
                 labels += ['gzip', 'compressed']
 
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## https://en.wikipedia.org/wiki/BMP_file_format
+def unpackBMP(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+
+        ## first check if the data is large enough
+        ## BMP header is 14 bytes, smallest DIB header is 12 bytes
+        ## https://en.wikipedia.org/wiki/BMP_file_format#Bitmap_file_header
+        if filesize - offset < 26:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 26 bytes'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize = 0
+        checkfile = open(filename, 'rb')
+        ## skip over the magic
+        checkfile.seek(offset+2)
+        unpackedsize += 2
+
+        ## then extract the declared size of the BMP
+        checkbytes = checkfile.read(4)
+        bmpsize = int.from_bytes(checkbytes, byteorder='little')
+        if offset + bmpsize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for BMP file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## skip over 4 bytes of reserved data and read the offset of the BMP data
+        checkfile.seek(4,os.SEEK_CUR)
+        unpackedsize += 4
+        checkbytes = checkfile.read(4)
+        bmpoffset = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+        ## the BMP cannot be outside the file
+        if offset + bmpoffset > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for BMP'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## read the first two bytes of the DIB header (DIB header size) as an extra sanity check.
+        ## There are actually just a few supported values:
+        ## https://en.wikipedia.org/wiki/BMP_file_format#DIB_header_(bitmap_information_header)
+        checkbytes = checkfile.read(2)
+        dibheadersize = int.from_bytes(checkbytes, byteorder='little')
+        if not dibheadersize in set([12, 64, 16, 40, 52, 56, 108, 124]):
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid DIB header'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## check if the header size is inside the file
+        if offset + 14 + dibheadersize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for DIB header'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## the BMP data offset is from the start of the BMP file. It cannot be inside
+        ## the BMP header (14 bytes) or the DIB header (variable).
+        if bmpoffset < dibheadersize + 14:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP data offset'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        if shutil.which('bmptopnm') == None:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'bmptopnm program not found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## then reset the file pointer, read all the data and feed it
+        ## to bmptopnm for validation.
+        checkfile.seek(offset)
+        checkbytes = checkfile.read(bmpsize)
+        checkfile.close()
+        p = subprocess.Popen(['bmptopnm'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outputmsg, errormsg) = p.communicate(checkbytes)
+        if p.returncode != 0:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## check if the file was the whole file
+        if offset == 0 and filesize == bmpsize:
+                labels.append('bmp')
+                labels.append('graphics')
+                return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## carve the file. The data has already been read.
+        outfilename = os.path.join(unpackdir, "unpacked.bmp")
+        outfile = open(outfilename, 'wb')
+        outfile.write(checkbytes)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, ['bmp', 'graphics', 'unpacked']))
+        return (True, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
