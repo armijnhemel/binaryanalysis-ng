@@ -27,6 +27,10 @@ signatures = {
               'png':            b'\x89PNG\x0d\x0a\x1a\x0a',
               'gzip':           b'\x1f\x8b\x08',     # RFC 1952 says x08 is the only compression method allowed
               'bmp':            b'BM',               # https://en.wikipedia.org/wiki/BMP_file_format
+              'xz':             b'\xfd\x37\x7a\x58\x5a\x00',
+              'lzma_var1':      b'\x5d\x00\x00',
+              'lzma_var2':      b'\x6d\x00\x00',     # used in OpenWrt
+              'lzma_var3':      b'\x6c\x00\x00',     # some routers, like ZyXEL NBG5615, use this
              }
 
 ## some signatures do not start at the beginning of the file
@@ -41,11 +45,17 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'png': bangunpack.unpackPNG,
                         'gzip': bangunpack.unpackGzip,
                         'bmp': bangunpack.unpackBMP,
+                        'xz': bangunpack.unpackXZ,
+                        'lzma_var1': bangunpack.unpackLZMA,
+                        'lzma_var2': bangunpack.unpackLZMA,
+                        'lzma_var3': bangunpack.unpackLZMA,
                       }
 
 ## a lookup table to map signatures to a name for
 ## pretty printing.
-signatureprettyprint = {
+signatureprettyprint = { 'lzma_var1': 'lzma',
+                         'lzma_var2': 'lzma',
+                         'lzma_var3': 'lzma',
                        }
 
 ## store the maximum look ahead window. This is unlikely to matter, but
