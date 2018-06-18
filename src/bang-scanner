@@ -37,7 +37,7 @@ signatures = {
 ## some signatures do not start at the beginning of the file
 signaturesoffset = {
                      'webp':    8,
-               '      wav':     8,
+                     'wav':     8,
                    }
 
 ## keep a list of signatures to the (built in) functions
