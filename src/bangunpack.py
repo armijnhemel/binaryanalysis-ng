@@ -27,7 +27,7 @@
 ##
 ## https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
-import sys, os, struct, shutil, binascii, zlib, subprocess
+import sys, os, struct, shutil, binascii, zlib, subprocess, lzma
 
 ## some external packages that are needed
 import PIL.Image
