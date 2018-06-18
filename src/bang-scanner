@@ -31,6 +31,7 @@ signatures = {
               'lzma_var1':      b'\x5d\x00\x00',
               'lzma_var2':      b'\x6d\x00\x00',     # used in OpenWrt
               'lzma_var3':      b'\x6c\x00\x00',     # some routers, like ZyXEL NBG5615, use this
+              'timezone':       b'TZif',             # man 5 tzfile
              }
 
 ## some signatures do not start at the beginning of the file
@@ -49,6 +50,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'lzma_var1': bangunpack.unpackLZMA,
                         'lzma_var2': bangunpack.unpackLZMA,
                         'lzma_var3': bangunpack.unpackLZMA,
+                        'timezone': bangunpack.unpackTimeZone,
                       }
 
 ## a lookup table to map signatures to a name for

@@ -15,6 +15,7 @@
 ##  5. BMP
 ##  6. LZMA
 ##  7. XZ
+##  8. timezone files
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -840,3 +841,424 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
 ## XZ unpacking works just like LZMA unpacking
 def unpackXZ(filename, offset, unpackdir, temporarydirectory):
         return unpackLZMAWrapper(filename, offset, unpackdir, '.xz', 'xz', 'XZ', -1)
+
+## timezone files
+## Format is documented in the Linux man pages:
+##
+## man 5 tzfile
+##
+## or an up to date version:
+##
+## http://man7.org/linux/man-pages/man5/tzfile.5.html
+##
+## in case the distribution man page does not cover version
+## 3 of the timezone file format.
+def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        if filesize - offset < 44:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## open the file and skip the offset
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset+4)
+        unpackedsize += 4
+
+        ## read the version
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'\x00':
+                version = 0
+        elif checkbytes == b'\x32':
+                version = 2
+        elif checkbytes == b'\x33':
+                version = 3
+        else:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid version'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 1
+
+        ## then 15 NUL bytes
+        checkbytes = checkfile.read(15)
+        if checkbytes != b'\x00' * 15:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved bytes not 0'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 15
+
+        ## then the number of UT/local indicators in "standard byte order" (big endian)
+        checkbytes = checkfile.read(4)
+        ut_indicators = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        ## then the number of standard/wall indicators
+        checkbytes = checkfile.read(4)
+        standard_indicators = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        ## the number of leap seconds for which data entries are stored
+        checkbytes = checkfile.read(4)
+        leap_cnt = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        ## the number of transition times for which data entries are stored
+        checkbytes = checkfile.read(4)
+        transition_times = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        ## the number of local time types (must not be zero)
+        checkbytes = checkfile.read(4)
+        local_times = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+        if local_times == 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'local of times set to not-permitted 0'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## the number of bytes of timezone abbreviation strings
+        checkbytes = checkfile.read(4)
+        tz_abbrevation_bytes = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        for i in range(0, transition_times):
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for transition time'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+        ## then a number of bytes, each serving as an index into
+        ## the next field.
+        for i in range(0, transition_times):
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for transition time'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+                if ord(checkbytes) > local_times:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid index for transition time'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## now read a bunch of ttinfo entries
+        for i in range(0, local_times):
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo GMT offsets'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+                ## then the DST flag byte
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo DST info'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if not (ord(checkbytes) == 0 or ord(checkbytes) == 1):
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for ttinfo DST info'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+
+                ## then the abbreviation index, which points into the
+                ## abbrevation strings, so cannot be larger than than tz_abbrevation_bytes
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo abbreviation index'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if ord(checkbytes) > tz_abbrevation_bytes:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for ttinfo abbreviation index'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+
+        ## then the abbrevation strings, as indicated by tz_abbrevation_bytes
+        checkbytes = checkfile.read(tz_abbrevation_bytes)
+        if len(checkbytes) != tz_abbrevation_bytes:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for abbreviation bytes'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += tz_abbrevation_bytes
+
+        ## then 2 pairs of 4 bytes for each of the leap second entries
+        for i in range(0, leap_cnt):
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for leap seconds'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for leap seconds'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+        ## then one byte for each of the standard/wall indicators
+        for i in range(0, standard_indicators):
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for standard indicator'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+
+        ## then one byte for each of the UT/local indicators
+        for i in range(0, ut_indicators):
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for UT indicator'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+
+        ## This is the end for version 0 timezone files
+        if version == 0:
+                if offset == 0 and unpackedsize == filesize:
+                        checkfile.close()
+                        labels.append('resource')
+                        labels.append('timezone')
+                        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                ## else carve the file
+                outfilename = os.path.join(unpackdir, "unpacked-from-timezone")
+                outfile = open(outfilename, 'wb')
+                os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+                outfile.close()
+                unpackedfilesandlabels.append((outfilename, ['timezone', 'resource', 'unpacked']))
+                checkfile.close()
+                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## Then continue with version 2 data. The header is identical to the
+        ## version 1 header.
+        if offset + unpackedsize + 44 > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for version 2 timezone header'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## first check the header
+        checkbytes = checkfile.read(4)
+        if checkbytes != b'TZif':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid magic for version 2 header'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## read the version
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'\x32':
+                newversion = 2
+        elif checkbytes == b'\x33':
+                newversion = 3
+        else:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid version'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## The version has to be identical to the previously declard version
+        if version != newversion:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'versions in headers don\'t match'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 1
+
+        ## then 15 NUL bytes
+        checkbytes = checkfile.read(15)
+        if checkbytes != b'\x00' * 15:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved bytes not 0'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 15
+
+        ## then the number of UT/local indicators in "standard byte order" (big endian)
+        checkbytes = checkfile.read(4)
+        ut_indicators = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        ## then the number of standard/wall indicators
+        checkbytes = checkfile.read(4)
+        standard_indicators = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        ## the number of leap seconds for which data entries are stored
+        checkbytes = checkfile.read(4)
+        leap_cnt = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        ## the number of transition times for which data entries are stored
+        checkbytes = checkfile.read(4)
+        transition_times = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        ## the number of local time types (must not be zero)
+        checkbytes = checkfile.read(4)
+        local_times = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+        if local_times == 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'local of times set to not-permitted 0'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## the number of bytes of timezone abbreviation strings
+        checkbytes = checkfile.read(4)
+        tz_abbrevation_bytes = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        for i in range(0, transition_times):
+                checkbytes = checkfile.read(8)
+                if len(checkbytes) != 8:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for transition time'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 8
+
+        ## then a number of bytes, each serving as an index into
+        ## the next field.
+        for i in range(0, transition_times):
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for transition time'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+                if ord(checkbytes) > local_times:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid index for transition time'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## now read a bunch of ttinfo entries
+        for i in range(0, local_times):
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo GMT offsets'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+                ## then the DST flag byte
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo DST info'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if not (ord(checkbytes) == 0 or ord(checkbytes) == 1):
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for ttinfo DST info'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+
+                ## then the abbreviation index, which points into the
+                ## abbrevation strings, so cannot be larger than tz_abbrevation_bytes
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo abbreviation index'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if ord(checkbytes) > tz_abbrevation_bytes:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for ttinfo abbreviation index'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+
+        ## then the abbrevation strings, as indicated by tz_abbrevation_bytes
+        checkbytes = checkfile.read(tz_abbrevation_bytes)
+        if len(checkbytes) != tz_abbrevation_bytes:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for abbreviation bytes'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += tz_abbrevation_bytes
+
+        ## then 2 pairs of 4 bytes for each of the leap second entries
+        for i in range(0, leap_cnt):
+                checkbytes = checkfile.read(8)
+                if len(checkbytes) != 8:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for leap seconds'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 8
+
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for leap seconds'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+        ## then one byte for each of the standard/wall indicators
+        for i in range(0, standard_indicators):
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for standard indicator'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+
+        ## then one byte for each of the UT/local indicators
+        for i in range(0, ut_indicators):
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for UT indicator'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+
+        ## next comes a POSIX-TZ-environment-variable-style string (possibly empty)
+        ## enclosed between newlines
+        checkbytes = checkfile.read(1)
+        if len(checkbytes) != 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for POSIX TZ environment style string'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        if checkbytes != b'\n':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for POSIX TZ environment style string'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 1
+
+        ## read until an enclosing newline is found
+        ## valid chars can be found in the tzset(3) manpage
+        ##
+        ## $ man 3 tzset
+        ##
+        ## and is basically a subset of string.printable (no spaces,
+        ## and less punctuation)
+        ## The version 3 extensions are simply a change to this string
+        ## so it is already covered.
+        while True:
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'enclosing newline for POSIX TZ environment style string not found'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+                if checkbytes == b'\n':
+                        break
+                if not chr(ord(checkbytes)) in string.printable or chr(ord(checkbytes)) in string.whitespace:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid character in POSIX TZ environment style string'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        if offset == 0 and unpackedsize == filesize:
+                checkfile.close()
+                labels.append('resource')
+                labels.append('timezone')
+                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## else carve the file
+        outfilename = os.path.join(unpackdir, "unpacked-from-timezone")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, ['timezone', 'resource', 'unpacked']))
+        checkfile.close()
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
