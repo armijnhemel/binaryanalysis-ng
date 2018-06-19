@@ -34,6 +34,7 @@ signatures = {
               'timezone':       b'TZif',             # man 5 tzfile
               'tar_posix':      b'ustar\x00',        # /usr/share/magic
               'tar_gnu':        b'ustar\x20\x20\x00', # /usr/share/magic
+              'ar':             b'!<arch>',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -57,6 +58,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'timezone': bangunpack.unpackTimeZone,
                         'tar_posix': bangunpack.unpackTar,
                         'tar_gnu': bangunpack.unpackTar,
+                        'ar': bangunpack.unpackAr,
                       }
 
 ## a lookup table to map signatures to a name for

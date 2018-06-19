@@ -9,6 +9,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * Python 3.6.x or higher
 * netpbm-progs
 * pillow (drop in replacement for PIL, http://python-pillow.github.io/ )
+* GNU binutils (for 'ar')
 
 ## Invocation
 

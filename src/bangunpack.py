@@ -1382,3 +1382,59 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
                 labels.append('archive')
 
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Unix portable archiver
+## https://en.wikipedia.org/wiki/Ar_%28Unix%29
+## https://sourceware.org/binutils/docs/binutils/ar.html
+def unpackAr(filename, offset, unpackdir, temporarydirectory):
+
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+
+        unpackedsize = 0
+
+        if offset != 0:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Currently only works on whole files'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        if shutil.which('ar') == None:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'ar program not found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## first test the file to see if it is a valid file
+        p = subprocess.Popen(['ar', 't', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (standard_out, standard_error) = p.communicate()
+        if p.returncode != 0:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ar file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## then extract the file
+        p = subprocess.Popen(['ar', 'x', filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=unpackdir)
+        (outputmsg, errormsg) = p.communicate()
+        if p.returncode != 0:
+                foundfiles = os.listdir(unpackdir)
+                ## try to remove any files that were left behind
+                for f in foundfiles:
+                        if os.path.isdir(os.path.join(unpackdir, f)):
+                                shutil.rmtree(os.path.join(unpackdir, f))
+                        else:
+                                os.unlink(os.path.join(unpackdir, f))
+
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ar file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        foundfiles = os.listdir(unpackdir)
+        labels += ['archive', 'ar']
+
+        foundfiles = os.listdir(unpackdir)
+        for f in foundfiles:
+               outputfilename = os.path.join(unpackdir, f)
+               unpackedfilesandlabels.append((outputfilename, []))
+               if f == 'debian-binary':
+                       if filename.lower().endswith('.deb') or filename.lower().endswith('.udeb'):
+                               labels.append('debian')
+                               labels.append('deb')
+
+        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
