@@ -32,12 +32,16 @@ signatures = {
               'lzma_var2':      b'\x6d\x00\x00',     # used in OpenWrt
               'lzma_var3':      b'\x6c\x00\x00',     # some routers, like ZyXEL NBG5615, use this
               'timezone':       b'TZif',             # man 5 tzfile
+              'tar_posix':      b'ustar\x00',        # /usr/share/magic
+              'tar_gnu':        b'ustar\x20\x20\x00', # /usr/share/magic
              }
 
 ## some signatures do not start at the beginning of the file
 signaturesoffset = {
                      'webp':    8,
                      'wav':     8,
+                     'tar_posix': 0x101,
+                     'tar_gnu': 0x101,
                    }
 
 ## keep a list of signatures to the (built in) functions
@@ -51,6 +55,8 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'lzma_var2': bangunpack.unpackLZMA,
                         'lzma_var3': bangunpack.unpackLZMA,
                         'timezone': bangunpack.unpackTimeZone,
+                        'tar_posix': bangunpack.unpackTar,
+                        'tar_gnu': bangunpack.unpackTar,
                       }
 
 ## a lookup table to map signatures to a name for
@@ -58,6 +64,8 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
 signatureprettyprint = { 'lzma_var1': 'lzma',
                          'lzma_var2': 'lzma',
                          'lzma_var3': 'lzma',
+                         'tar_posix': 'tar',
+                         'tar_gnu': 'tar',
                        }
 
 ## store the maximum look ahead window. This is unlikely to matter, but

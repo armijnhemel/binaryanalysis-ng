@@ -16,6 +16,7 @@
 ##  6. LZMA
 ##  7. XZ
 ##  8. timezone files
+##  9. tar
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -27,7 +28,7 @@
 ##
 ## https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
-import sys, os, struct, shutil, binascii, zlib, subprocess, lzma
+import sys, os, struct, shutil, binascii, zlib, subprocess, lzma, tarfile, stat
 
 ## some external packages that are needed
 import PIL.Image
@@ -1261,4 +1262,123 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         outfile.close()
         unpackedfilesandlabels.append((outfilename, ['timezone', 'resource', 'unpacked']))
         checkfile.close()
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## unpacker for tar files. Uses the standard Python library.
+## https://docs.python.org/3/library/tarfile.html
+def unpackTar(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## tar is a concatenation of files. It could be that a tar file has been cut
+        ## halfway but it might still be possible to extract some data.
+        ## Use a file object so it is possible to start tar unpacking at arbitrary
+        ## positions in the file.
+        checkfile = open(filename, 'rb')
+
+        ## seek to the offset where the tar is supposed to start. According to
+        ## the documentation it should be opened at offset 0, but this works
+        ## too.
+        checkfile.seek(offset)
+        unpacktar = tarfile.open(fileobj=checkfile, mode='r')
+
+        ## record if something was unpacked and if something went wrong
+        tarunpacked = False
+        tarerror = False
+
+        ## keep track of which file names were already
+        ## unpacked. Files with the same name can be stored in a tar file
+        ## as it is just a concetanation of files.
+        ##
+        ## Test tar files with the same file twice are easily made:
+        ##
+        ## $ tar cf test.tar /path/to/file
+        ## $ tar --append -f test.tar /path/to/file
+        unpackedtarfilenames = set()
+
+        while True:
+                ## store the name of the file unpacked. This is needed to clean
+                ## up if something has gone wrong.
+                tounpack = ''
+                oldunpackedsize = checkfile.tell() - offset
+                try:
+                        unpacktarinfo = unpacktar.next()
+                        if unpacktarinfo == None:
+                                break
+                        ## don't unpack block devices, character devices or FIFO
+                        ## https://docs.python.org/3/library/tarfile.html#tarfile.TarInfo.isdev
+                        if unpacktarinfo.isdev():
+                                continue
+                        tounpack = unpacktarinfo.name
+                        unpacktar.extract(unpacktarinfo, path=unpackdir, set_attrs=False)
+                        unpackedsize = checkfile.tell() - offset
+                        tarunpacked = True
+                        unpackedname = os.path.join(unpackdir,unpacktarinfo.name)
+
+                        ## TODO: rename files properly with minimum chance of clashes
+                        if unpackedname in unpackedtarfilenames:
+                                pass
+
+
+                        unpackedtarfilenames.add(unpackedname)
+                        if unpacktarinfo.isreg() or unpacktarinfo.isdir():
+                                ## tar changes permissions after unpacking, so change them
+                                ## back to something a bit more sensible
+                                os.chmod(unpackedname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                                if not os.path.isdir(unpackedname):
+                                        unpackedfilesandlabels.append((os.path.join(unpackdir, unpacktarinfo.name), []))
+                        elif unpacktarinfo.issym():
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, unpacktarinfo.name), ['symbolic link']))
+                        tounpack = ''
+                except Exception as e:
+                        unpackedsize = oldunpackedsize
+                        tarerror = True
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': str(e)}
+                        if tounpack != '':
+                                unpackedname = os.path.join(unpackdir,unpackedname)
+                                if not os.path.islink(unpackedname):
+                                        os.chmod(unpackedname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                                if os.path.isdir(unpackedname) and not os.path.islink(unpackedname):
+                                        shutil.rmtree(unpackedname)
+                                else:
+                                        os.unlink(unpackedname)
+                        break
+
+        ## first close the TarInfo object, then the underlying fileobj
+        unpacktar.close()
+        if not tarunpacked:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'Not a valid tar file'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## tar has finished, meaning it should also have read the termination
+        ## blocks for the tar file, so set the unpacked size to just after where
+        ## the tar module finished.
+        unpackedsize = checkfile.tell() - offset
+
+        ## Data was unpacked from the file, so the data up until now is definitely a tar,
+        ## but is the rest of the file also part of the tar or of something else?
+        ## Example: GNU tar tends to pad files with up to 20 blocks (512 bytes each) filled
+        ## with 0x00 although this depends on the command line settings.
+        ## This can be checked with GNU tar by inspecting the file with the options
+        ## "itvRf" to the tar command:
+        ##
+        ## $ tar itvRf /path/to/tar/file
+        ##
+        ## These padding bytes are not read by Python's tarfile module and need to
+        if unpackedsize % 512 == 0:
+                 while offset + unpackedsize < filesize:
+                         checkbytes = checkfile.read(512)
+                         if len(checkbytes) != 512:
+                                 break
+                         if checkbytes != b'\x00' * 512:
+                                 break
+                         unpackedsize += 512
+        if offset == 0 and unpackedsize == filesize:
+                labels.append('tar')
+                labels.append('archive')
+
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
