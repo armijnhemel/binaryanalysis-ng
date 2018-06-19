@@ -21,6 +21,7 @@
 ## Unpackers needing external Python libraries or other tools
 ##
 ##  1. PNG (needs PIL)
+##  2. ar (needs binutils)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
