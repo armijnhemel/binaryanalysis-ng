@@ -12,17 +12,17 @@
 ##  2. WAV
 ##  3. ANI
 ##  4. gzip
-##  5. BMP
-##  6. LZMA
-##  7. XZ
-##  8. timezone files
-##  9. tar
+##  5. LZMA
+##  6. XZ
+##  7. timezone files
+##  8. tar
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
 ##  1. PNG (needs PIL)
 ##  2. ar (needs binutils)
 ##  3. squashfs (needs squashfs-tools)
+##  4. BMP (needs netpbm-progs)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
