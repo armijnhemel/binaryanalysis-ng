@@ -35,6 +35,8 @@ signatures = {
               'tar_posix':      b'ustar\x00',        # /usr/share/magic
               'tar_gnu':        b'ustar\x20\x20\x00', # /usr/share/magic
               'ar':             b'!<arch>',
+              'squashfs_var1':  b'sqsh',
+              'squashfs_var2':  b'hsqs',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -59,6 +61,8 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'tar_posix': bangunpack.unpackTar,
                         'tar_gnu': bangunpack.unpackTar,
                         'ar': bangunpack.unpackAr,
+                        'squashfs_var1': bangunpack.unpackSquashfs,
+                        'squashfs_var2': bangunpack.unpackSquashfs,
                       }
 
 ## a lookup table to map signatures to a name for
@@ -68,6 +72,8 @@ signatureprettyprint = { 'lzma_var1': 'lzma',
                          'lzma_var3': 'lzma',
                          'tar_posix': 'tar',
                          'tar_gnu': 'tar',
+                         'squashfs_var1': 'squashfs',
+                         'squashfs_var2': 'squashfs',
                        }
 
 ## store the maximum look ahead window. This is unlikely to matter, but

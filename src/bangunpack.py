@@ -22,6 +22,7 @@
 ##
 ##  1. PNG (needs PIL)
 ##  2. ar (needs binutils)
+##  3. squashfs (needs squashfs-tools)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -30,6 +31,7 @@
 ## https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
 import sys, os, struct, shutil, binascii, zlib, subprocess, lzma, tarfile, stat
+import tempfile
 
 ## some external packages that are needed
 import PIL.Image
@@ -1439,3 +1441,159 @@ def unpackAr(filename, offset, unpackdir, temporarydirectory):
                                labels.append('deb')
 
         return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Unpacking for squashfs
+## There are many different flavours of squashfs and configurations
+## differ per Linux distribution.
+## This is for the "vanilla" squashfs
+def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+
+        unpackedsize = 0
+
+        if shutil.which('unsquashfs') == None:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsquashfs program not found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## need at least a header, plus version
+        ## see /usr/share/magic
+        if filesize - offset < 30:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset)
+
+        ## sanity checks for the squashfs header.
+        ## First determine the endianness of the file system.
+        checkbytes = checkfile.read(4)
+        if checkbytes == b'hsqs':
+                bigendian = False
+        else:
+                bigendian = True
+
+        ## then skip to the version, as this is an effective way to filter
+        ## false positives.
+        checkfile.seek(offset+28)
+        checkbytes = checkfile.read(2)
+        if bigendian:
+                majorversion = int.from_bytes(checkbytes, byteorder='big')
+        else:
+                majorversion = int.from_bytes(checkbytes, byteorder='little')
+
+        ## So far only squashfs 1-4 have been released (June 2018)
+        if majorversion == 0 or majorversion > 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid squashfs version'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+
+        ## The location of the size of the squashfs file system depends on
+        ## the major version of the file. These values can be found in /usr/share/magic
+        ## or in the squashfs-tools source code ( squashfs_compat.h and squashfs_fs.h )
+        if majorversion == 4:
+                checkfile.seek(offset+40)
+                checkbytes = checkfile.read(8)
+                if len(checkbytes) != 8:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data to read size'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if bigendian:
+                        squashfssize = int.from_bytes(checkbytes, byteorder='big')
+                else:
+                        squashfssize = int.from_bytes(checkbytes, byteorder='little')
+        elif majorversion == 3:
+                checkfile.seek(offset+63)
+                checkbytes = checkfile.read(8)
+                if len(checkbytes) != 8:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data to read size'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if bigendian:
+                        squashfssize = int.from_bytes(checkbytes, byteorder='big')
+                else:
+                        squashfssize = int.from_bytes(checkbytes, byteorder='little')
+        elif majorversion == 2:
+                checkfile.seek(offset+8)
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data to read size'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if bigendian:
+                        squashfssize = int.from_bytes(checkbytes, byteorder='big')
+                else:
+                        squashfssize = int.from_bytes(checkbytes, byteorder='little')
+
+        ## file size sanity check
+        if offset + squashfssize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'file system cannot extend past file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## then create a temporary file and copy the data into the temporary file
+        ## but only if offset != 0
+        if offset != 0:
+                temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+                ## depending on the variant of squashfs a file size can be determined
+                ## meaning less data needs to be copied.
+                os.sendfile(temporaryfile[0], checkfile.fileno(), offset, filesize - offset)
+                os.fdopen(temporaryfile[0]).close()
+        checkfile.close()
+
+        ## unpack in a temporary directory, as unsquashfs expects
+        ## to create the directory itself, but the unpacking directory
+        ## already exists.
+        squashfsunpackdirectory = tempfile.mkdtemp(dir=temporarydirectory)
+
+        if offset != 0:
+                p = subprocess.Popen(['unsquashfs', temporaryfile[1]], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=squashfsunpackdirectory)
+        else:
+                p = subprocess.Popen(['unsquashfs', filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=squashfsunpackdirectory)
+        (outputmsg, errormsg) = p.communicate()
+
+        if offset != 0:
+                os.unlink(temporaryfile[1])
+
+        if p.returncode != 0:
+                shutil.rmtree(squashfsunpackdirectory)
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid squashfs file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## move contents of the unpacked file system
+        foundfiles = os.listdir(squashfsunpackdirectory)
+        if len(foundfiles) == 1:
+                if foundfiles[0] == 'squashfs-root':
+                        os.chdir(os.path.join(squashfsunpackdirectory, 'squashfs-root'))
+                else:
+                        os.chdir(squashfsunpackdirectory)
+                listoffiles = os.listdir()
+                for l in listoffiles:
+                        shutil.move(l, unpackdir,copy_function=local_copy2)
+
+        ## clean up the temporary directory
+        shutil.rmtree(squashfsunpackdirectory)
+
+        ## now add everything that was unpacked
+        dirwalk = os.walk(unpackdir)
+        for direntries in dirwalk:
+                ## make sure all subdirectories and files can be accessed
+                for subdir in direntries[1]:
+                        subdirname = os.path.join(direntries[0], subdir)
+                        if not os.path.islink(subdirname):
+                                os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                for filename in direntries[2]:
+                        fullfilename = os.path.join(direntries[0], filename)
+                        unpackedfilesandlabels.append((fullfilename, []))
+
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'Not a valid Squashfs'}
+        return (True, squashfssize, unpackedfilesandlabels, labels, unpackingerror)
+
+## a wrapper around shutil.copy2 to copy symbolic links instead of
+## following them and copying the data. This is used in squashfs unpacking
+## amongst others.
+def local_copy2(src, dest):
+        return shutil.copy2(src, dest, follow_symlinks=False)
