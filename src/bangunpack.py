@@ -1583,10 +1583,11 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
         dirwalk = os.walk(unpackdir)
         for direntries in dirwalk:
                 ## make sure all subdirectories and files can be accessed
-                for subdir in direntries[1]:
-                        subdirname = os.path.join(direntries[0], subdir)
-                        if not os.path.islink(subdirname):
-                                os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                for filename in direntries[1]:
+                        fullfilename = os.path.join(direntries[0], filename)
+                        if not os.path.islink(fullfilename):
+                                os.chmod(fullfilename, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                        unpackedfilesandlabels.append((fullfilename, []))
                 for filename in direntries[2]:
                         fullfilename = os.path.join(direntries[0], filename)
                         unpackedfilesandlabels.append((fullfilename, []))
