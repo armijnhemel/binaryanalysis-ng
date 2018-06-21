@@ -115,17 +115,20 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                 ## grab a new file from the scanning queue
                 (checkfile, labels) = scanfilequeue.get()
 
-                ## Check if the file is a directory
-                if os.path.isdir(checkfile):
-                        scanfilequeue.task_done()
-                        continue
-
                 ## store the results of the file
                 ## At minimum store:
                 ## * file name (relative to the top level unpack directory))
                 ## * labels
                 fileresult = {'fullfilename': checkfile}
                 fileresult['filename'] = checkfile[lenunpackdirectory:]
+
+                ## Check if the file is a directory
+                if os.path.isdir(checkfile):
+                        labels.append('directory')
+                        fileresult['labels'] = labels
+                        resultqueue.put(fileresult)
+                        scanfilequeue.task_done()
+                        continue
 
                 ## First perform all kinds of checks to prevent the file being scanned.
                 ## Check if the file is a symbolic link
