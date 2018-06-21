@@ -17,6 +17,7 @@
 ##  7. timezone files
 ##  8. tar
 ##  9. Apple Double encoded files
+## 10. ICC (colour profile)
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -1702,3 +1703,168 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
         checkfile.close()
         unpackedfilesandlabels.append((outfilename, ['appledouble', 'resource', 'unpacked']))
         return (True, maxoffset, unpackedfilesandlabels, labels, unpackingerror)
+
+## ICC color profile
+## Specifications: www.color.org/specification/ICC1v43_2010-12.pdf
+## chapter 7.
+##
+## There are references throughout the code to ICC.1:2010, plus section
+## numbers.
+##
+## Older specifications: http://www.color.org/icc_specs2.xalter
+##
+## Test files in package "colord" on for example Fedora
+def unpackICC(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## ICC.1:2010, section 7.1
+        if filesize - offset < 128:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ICC file'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset)
+
+        ## Then analyze the rest of the file
+        ## all numbers are big endian (ICC.1:2010, 7.1.2)
+
+        ## first the profile size, ICC.1:2010, 7.2.2
+        ## The ICC file can never be bigger than the profile size
+        checkbytes = checkfile.read(4)
+        profilesize = int.from_bytes(checkbytes, byteorder='big')
+        if offset + profilesize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not enough data'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## CMM field ICC.1:2010, 7.2.3, skip for now, as valid information
+        ## is in an online registry at www.color.org, so checks cannot
+        ## be hardcoded.
+        checkfile.seek(4,os.SEEK_CUR)
+        unpackedsize += 4
+
+        ## profile version field, ICC.1:2010, 7.2.4, skip for now
+        checkfile.seek(4,os.SEEK_CUR)
+        unpackedsize += 4
+
+        ## profile/device class field, ICC.1:2010 7.2.5
+        checkbytes = checkfile.read(4)
+        if not checkbytes in [b'scnr', b'mntr', b'prtr', b'link', b'spac', b'abst', b'nmcl']:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid profile/device class field'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## data colour space field, ICC.1:2010, 7.2.6
+        checkbytes = checkfile.read(4)
+        if not checkbytes in [b'XYZ ', b'Lab ', b'Luv ', b'YCbr', b'Yxy ', b'RGB ', b'GRAY', b'HSV ', b'HLS ', b'CMYK', b'CMY ', b'2CLR', b'3CLR', b'4CLR', b'5CLR', b'6CLR', b'7CLR', b'8CLR', b'9CLR', b'ACLR', b'BCLR', b'CCLR', b'DCLR', b'ECLR', b'FCLR']:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid profile/device class field'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## PCS field, ICC.1:2010, 7.2.7, skip for now
+        checkfile.seek(4,os.SEEK_CUR)
+        unpackedsize += 4
+
+        ## date and time, ICC.1:2010, 7.2.8, skip for now
+        checkfile.seek(12,os.SEEK_CUR)
+        unpackedsize += 12
+
+        ## signature, ICC.1:2010, 7.2.9, already read, so skip
+        checkfile.seek(4,os.SEEK_CUR)
+        unpackedsize += 4
+
+        ## primary platform field, ICC.1:2010, 7.2.10
+        checkbytes = checkfile.read(4)
+        if not checkbytes in [b'APPL', b'MSFT', b'SGI ', b'SUNW', b'\x00\x00\x00\x00']:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid profile/device class field'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## last 28 bytes of header should be 0x00, ICC.1:2010, 7.2.19
+        checkfile.seek(offset+100)
+        unpackedsize = 100
+        checkbytes = checkfile.read(28)
+
+        if not checkbytes == b'\x00' * 28:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved bytes not \\x00'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## skip to the tag table, ICC.1:2010, 7.3
+        checkfile.seek(offset+128)
+        unpackedsize = 128
+
+        ## the first 4 bytes are the tag count, ICC.1:2010 7.3.2
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no tag table'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        tagcount = int.from_bytes(checkbytes, byteorder='big')
+        ## each tag is 12 bytes
+        if offset + unpackedsize + 4 + tagcount * 12 > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for tag table'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        maxtagoffset = 0
+        for n in range(0,tagcount):
+                checkbytes = checkfile.read(12)
+                ## first four bytes for a tag are the tag signature, ICC.1:2010 7.3.3
+                ## skip for now.
+
+                ## next four bytes are the offset of the data, ICC.1:2010 7.3.4
+                icctagoffset = int.from_bytes(checkbytes[4:8], byteorder='big')
+
+                ## tag offset has to be on a 4 byte boundary
+                if icctagoffset%4 != 0:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid tag offset'}
+                        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+                if offset + icctagoffset > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'offset outside of file'}
+                        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+                ## then the size of the data, ICC.1:2010 7.3.5
+                icctagsize = int.from_bytes(checkbytes[8:12], byteorder='big')
+                if offset + icctagoffset + icctagsize > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+                ## add padding if necessary
+                if icctagsize % 4 != 0:
+                        icctagsize += 4 - (icctagsize % 4)
+                unpackedsize += 12
+
+                maxtagoffset = max(maxtagoffset, offset + icctagoffset + icctagsize)
+
+                ## the tag offset cannot be outside of the declared profile size
+                if maxtagoffset - offset >  profilesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid tag offset'}
+                        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+        if offset == 0 and maxtagoffset == filesize:
+                checkfile.close()
+                labels.append('icc')
+                labels.append('resource')
+                return (True, offset+maxtagoffset, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## else carve the file. It is anonymous, so just give it a name
+        outfilename = os.path.join(unpackdir, "unpacked.icc")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxtagoffset - offset)
+        outfile.close()
+        checkfile.close()
+        unpackedfilesandlabels.append((outfilename, ['icc', 'resource', 'unpacked']))
+        return (True, maxtagoffset-offset, unpackedfilesandlabels, labels, unpackingerror)
