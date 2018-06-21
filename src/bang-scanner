@@ -37,6 +37,7 @@ signatures = {
               'ar':             b'!<arch>',
               'squashfs_var1':  b'sqsh',
               'squashfs_var2':  b'hsqs',
+              'appledouble':    b'\x00\x05\x16\x07',  # https://tools.ietf.org/html/rfc1740 Appendix B
              }
 
 ## some signatures do not start at the beginning of the file
@@ -63,6 +64,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'ar': bangunpack.unpackAr,
                         'squashfs_var1': bangunpack.unpackSquashfs,
                         'squashfs_var2': bangunpack.unpackSquashfs,
+                        'appledouble': bangunpack.unpackAppleDouble,
                       }
 
 ## a lookup table to map signatures to a name for

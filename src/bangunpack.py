@@ -16,6 +16,7 @@
 ##  6. XZ
 ##  7. timezone files
 ##  8. tar
+##  9. Apple Double encoded files
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -1597,3 +1598,107 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
 ## amongst others.
 def local_copy2(src, dest):
         return shutil.copy2(src, dest, follow_symlinks=False)
+
+## https://tools.ietf.org/html/rfc1740
+## file format is described in appendices A & B
+## test files: any ZIP file unpacked on MacOS X which
+## has a directory called "__MACOSX"
+## Files starting with ._ are likely AppleDouble encoded
+def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        checkfile = open(filename, 'rb')
+        ## skip over the offset
+        checkfile.seek(offset+4)
+        unpackedsize += 4
+
+        ## then the version number, skip
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a valid Apple Double file'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## then 16 filler bytes, all 0x00
+        checkbytes = checkfile.read(16)
+        if len(checkbytes) != 16:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough filler bytes'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 16
+
+        ## then the number of entries
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no number of entries'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## the number of entries, 0 or more, immediately
+        ## following the header
+        appledoubleentries = int.from_bytes(checkbytes, byteorder='big')
+
+        ## store maximum offset, because the RFC says:
+        ## "The entries in the AppleDouble Header file can appear in any order"
+        maxoffset = -1
+
+        for i in range(0,appledoubleentries):
+                ## first the entry id, which cannot be 0
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'incomplete entry'}
+                        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+                if int.from_bytes(checkbytes, byteorder='big') == 0:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no valid entry id'}
+                        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+                ## then the offset
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'incomplete entry'}
+                        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+                ## offset cannot be outside of the file
+                entryoffset = int.from_bytes(checkbytes, byteorder='big')
+                if offset + entryoffset > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+                ## then the size
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'incomplete entry'}
+                        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+                ## data cannot be outside of the file
+                entrysize = int.from_bytes(checkbytes, byteorder='big')
+                if offset + entryoffset + entrysize> filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+                maxoffset = max(maxoffset, entrysize + entryoffset)
+
+        ## the entire file is the Apple Double file
+        if offset == 0 and maxoffset == filesize:
+                checkfile.close()
+                labels.append('resource')
+                labels.append('appledouble')
+                return (True, maxoffset, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## else carve the file. It is anonymous, so just give it a name
+        outfilename = os.path.join(unpackdir, "unpacked-from-appledouble")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
+        outfile.close()
+        checkfile.close()
+        unpackedfilesandlabels.append((outfilename, ['appledouble', 'resource', 'unpacked']))
+        return (True, maxoffset, unpackedfilesandlabels, labels, unpackingerror)
