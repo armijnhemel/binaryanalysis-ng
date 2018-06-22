@@ -11,11 +11,11 @@
 
 import sys, os, struct, multiprocessing, argparse, configparser, datetime
 import tempfile, subprocess, re, hashlib, stat, shutil, string
-import math, pickle, json
+import math, pickle, json, copy, queue
 
 ## import some module for collecting statistics and information about
-## the run time environment of the tool, plus of runs, and so on.
-import logging, platform
+## the run time environment of the tool, plus of runs.
+import logging, platform, getpass
 
 ## import the local file with unpacking methods
 import bangunpack
@@ -516,6 +516,9 @@ def main(argv):
                         print("Temporary directory %s cannot be written to, exiting" % temporarydirectory, file=sys.stderr)
                         sys.exit(1)
 
+        ## Now the real scanning starts.
+        scandate = datetime.datetime.utcnow()
+
         ## create a directory for the scan
         scandirectory = tempfile.mkdtemp(prefix='bang-scan-', dir=baseunpackdirectory)
 
@@ -588,16 +591,66 @@ def main(argv):
         ## wait for the queues to be empty.
         scanfilequeue.join()
 
+        ## There is one result for each file in the result
+        ## queue, which need to be merged into a structure
+        ## matching the directory tree that was unpacked. The name
+        ## of each file that is unpacked serves as key into
+        ## the structure.
+        scantree = {}
+
+        while True:
+                try:
+                        fileresult = resultqueue.get_nowait()
+                        if 'filename' in fileresult:
+                                scantree[fileresult['filename']] = copy.deepcopy(fileresult)
+                        resultqueue.task_done()
+                except queue.Empty as e:
+                        ## Queue is empty
+                        break
+
+        resultqueue.join()
+
         ## Done processing, terminate processes that were created
         for p in processes:
                 p.terminate()
 
+        scandatefinished = datetime.datetime.utcnow()
+
         ## move the file "STARTED" to "FINISHED" to easily identify
         ## active (or crashed) scans
         shutil.move(os.path.join(scandirectory, "STARTED"), os.path.join(scandirectory, "FINISHED"))
-
-        ## set mtime and atime to now
         os.utime(os.path.join(scandirectory, "FINISHED"))
+
+        ## now store the scan tree results with other data
+        scanresult = {}
+        scanresult['scantree'] = scantree
+
+        ## statistics about this particular session
+        scanresult['session'] = {}
+        scanresult['session']['start'] = scandate
+        scanresult['session']['stop'] = scandatefinished
+        scanresult['session']['duration'] = (scandatefinished - scandate).total_seconds()
+        scanresult['session']['user'] = getpass.getuser()
+
+        ## some information about the platform
+        scanresult['platform'] = {}
+        scanresult['platform']['machine'] = platform.machine()
+        scanresult['platform']['architecture'] = platform.architecture()[0]
+        scanresult['platform']['processor'] = platform.processor()
+        scanresult['platform']['node'] = platform.node()
+        scanresult['platform']['system'] = platform.system()
+        scanresult['platform']['release'] = platform.release()
+        scanresult['platform']['libc'] = platform.libc_ver()[0]
+        scanresult['platform']['libcversion'] = platform.libc_ver()[1]
+
+        ## some information about the used Python version
+        scanresult['python'] = {}
+        scanresult['python']['version'] = platform.python_version()
+        scanresult['python']['implementation'] = platform.python_implementation()
+
+        picklefile = open(os.path.join(scandirectory, 'bang.pickle'), 'wb')
+        pickle.dump(scanresult, picklefile)
+        picklefile.close()
 
         ## The end.
         logging.info("Finished scanning %s" % args.checkfile)
