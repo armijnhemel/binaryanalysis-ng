@@ -39,6 +39,7 @@ signatures = {
               'squashfs_var2':  b'hsqs',
               'appledouble':    b'\x00\x05\x16\x07',  # https://tools.ietf.org/html/rfc1740 Appendix B
               'icc':            b'acsp',             # http://www.color.org/specification/ICC1v43_2010-12.pdf, section 7.2
+              'zip':            b'\x50\x4b\x03\04',  # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
              }
 
 ## some signatures do not start at the beginning of the file
@@ -68,6 +69,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'squashfs_var2': bangunpack.unpackSquashfs,
                         'appledouble': bangunpack.unpackAppleDouble,
                         'icc': bangunpack.unpackICC,
+                        'zip': bangunpack.unpackZip,
                       }
 
 ## a lookup table to map signatures to a name for

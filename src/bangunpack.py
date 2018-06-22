@@ -18,6 +18,7 @@
 ##  8. tar
 ##  9. Apple Double encoded files
 ## 10. ICC (colour profile)
+## 11. ZIP (store, deflate, bzip2, but lzma needs some more testing)
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -33,7 +34,7 @@
 ## https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
 import sys, os, struct, shutil, binascii, zlib, subprocess, lzma, tarfile, stat
-import tempfile
+import tempfile, zipfile
 
 ## some external packages that are needed
 import PIL.Image
@@ -1869,3 +1870,565 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
         checkfile.close()
         unpackedfilesandlabels.append((outfilename, ['icc', 'resource', 'unpacked']))
         return (True, maxtagoffset-offset, unpackedfilesandlabels, labels, unpackingerror)
+
+## https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
+## Documenting version 6.3.4
+## This method first verifies a file to see where the ZIP data
+## starts and where it ends.
+def unpackZip(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## the ZIP file format is described in section 4.3.6
+        ## the header is at least 30 bytes
+        if filesize < 30:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        encrypted = False
+        zip64 = False
+
+        ## skip over the (local) magic
+        ## and process like section 4.3.7
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset)
+        maxzipversion = 90
+
+        seencentraldirectory = False
+        inlocal = True
+        seenzip64endofcentraldir = False
+
+        ## store the local file names to check if they appear in the
+        ## central directory in the same order (optional)
+        localfiles = []
+        centraldirectoryfiles = []
+
+        ## First there are file entries, followed by a central
+        ## directory, possibly with other headers following/preceding
+        while True:
+                ## first read the header
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ZIP entry header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                ## process everything that is not a local file header
+                if checkbytes != b'\x50\x4b\x03\x04':
+                        inlocal = False
+                        unpackedsize += 4
+
+                        ## archive decryption header
+                        ## archive data extra field (section 4.3.11)
+                        if checkbytes == b'\x50\x4b\x06\x08':
+                                checkbytes = checkfile.read(4)
+                                if len(checkbytes) != 4:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for archive decryption header field'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                unpackedsize += 4
+                                archivedecryptionsize = int.from_bytes(checkbytes, byteorder='little')
+                                if checkfile.tell() + archivedecryptionsize > filesize:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for archive decryption header field'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                checkfile.seek(archivedecryptionsize, os.SEEK_CUR)
+                                unpackedsize += archivedecryptionsize
+                        ## check for the start of the central directory (section 4.3.12)
+                        elif checkbytes == b'\x50\x4b\x01\02':
+                                seencentraldirectory = True
+                                if checkfile.tell() + 46 > filesize:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for end of central directory'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                                ## skip 24 bytes in the header to the file name and extra field
+                                checkfile.seek(24,os.SEEK_CUR)
+                                unpackedsize += 24
+
+                                ## read the file name
+                                checkbytes = checkfile.read(2)
+                                filenamelength = int.from_bytes(checkbytes, byteorder='little')
+                                unpackedsize += 2
+
+                                ## read the extra field length
+                                checkbytes = checkfile.read(2)
+                                extrafieldlength = int.from_bytes(checkbytes, byteorder='little')
+                                unpackedsize += 2
+                                if extrafieldlength != 0:
+                                        if extrafieldlength < 4:
+                                                checkfile.close()
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for extra field in central directory'}
+                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                                ## read the file comment length
+                                checkbytes = checkfile.read(2)
+                                filecommentlength = int.from_bytes(checkbytes, byteorder='little')
+                                unpackedsize += 2
+
+                                ## skip 12 bytes in the central directory header
+                                checkfile.seek(12,os.SEEK_CUR)
+                                unpackedsize += 12
+
+                                ## read the file name
+                                checkbytes = checkfile.read(filenamelength)
+                                if len(checkbytes) != filenamelength:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for file name in central directory'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                unpackedsize += filenamelength
+                                centraldirectoryfiles.append(checkbytes)
+
+                                if extrafieldlength != 0:
+                                        ## read the extra field
+                                        checkbytes = checkfile.read(extrafieldlength)
+                                        if len(checkbytes) != extrafieldlength:
+                                                checkfile.close()
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for extra field in central directory'}
+                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                        unpackedsize += extrafieldlength
+
+                                if filecommentlength != 0:
+                                        ## read the file comment
+                                        checkbytes = checkfile.read(filecommentlength)
+                                        if len(checkbytes) != filecommentlength:
+                                                checkfile.close()
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for extra field in central directory'}
+                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                        unpackedsize += filecommentlength
+
+                        ## check for digital signatures (section 4.3.13)
+                        elif checkbytes == b'\x50\x4b\x05\x05':
+                                checkbytes = checkfile.read(2)
+                                if len(checkbytes) != 2:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for digital signature size field'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                unpackedsize += 2
+                                digitalsignaturesize = int.from_bytes(checkbytes, byteorder='little')
+                                if checkfile.tell() + digitalsignaturesize > filesize:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for digital signature'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                checkfile.seek(digitalsignaturesize, os.SEEK_CUR)
+                                unpackedsize += digitalsignaturesize
+
+                        ## check for ZIP64 end of central directory (section 4.3.14)
+                        elif checkbytes == b'\x50\x4b\x06\x06':
+                                if not seencentraldirectory:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'ZIP64 end of cental directory, but no central directory header'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                seenzip64endofcentraldir = True
+
+                                ## first read the size of the ZIP64 end of central directory (section 4.3.14.1)
+                                checkbytes = checkfile.read(8)
+                                if len(checkbytes) != 8:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ZIP64 end of central directory header'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                                zip64endofcentraldirectorylength = int.from_bytes(checkbytes, byteorder='little')
+                                if checkfile.tell() + zip64endofcentraldirectorylength > filesize:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ZIP64 end of central directory'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                unpackedsize += 8
+
+                                ## now skip over the rest of the data in the ZIP64 end of central directory
+                                checkfile.seek(zip64endofcentraldirectorylength, os.SEEK_CUR)
+                                unpackedsize += zip64endofcentraldirectorylength
+
+                        ## check for ZIP64 end of central directory locator (section 4.3.15)
+                        elif checkbytes == b'\x50\x4b\x06\x07':
+                                if not seenzip64endofcentraldir:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'ZIP64 end of cental directory locator, but no ZIP64 end of central directory'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                if checkfile.tell() + 16 > filesize:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ZIP64 end of central directory locator'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                ## skip over the data
+                                checkfile.seek(16, os.SEEK_CUR)
+                                unpackedsize += 16
+
+                        ## check for of central directory (section 4.3.16)
+                        elif checkbytes == b'\x50\x4b\x05\x06':
+                                if not seencentraldirectory:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'end of cental directory, but no central directory header'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                                if checkfile.tell() + 18 > filesize:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for end of central directory header'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                                ## skip 16 bytes of the header
+                                checkfile.seek(16,os.SEEK_CUR)
+                                unpackedsize += 16
+
+                                ## read the ZIP comment length
+                                checkbytes = checkfile.read(2)
+                                zipcommentlength = int.from_bytes(checkbytes, byteorder='little')
+                                unpackedsize += 2
+                                if zipcommentlength != 0:
+                                        ## read the file comment
+                                        checkbytes = checkfile.read(zipcommentlength)
+                                        if len(checkbytes) != zipcommentlength:
+                                                checkfile.close()
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for extra field in central directory'}
+                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                        unpackedsize += zipcommentlength
+                                ## end of ZIP file reached, so break out of the loop
+                                break
+                        elif checkbytes == b'PK\x07\x08':
+                                if checkfile.tell() + 12 > filesize:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for data descriptor'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                checkfile.seek(12,os.SEEK_CUR)
+                        else:
+                                break
+                        continue
+
+                ## continue with the local file headers instead
+                if checkbytes == b'\x50\x4b\x03\x04' and not inlocal:
+                        ## this should totally not happen in a valid
+                        ## ZIP file: local file headers should not be
+                        ## interleaved with other headers.
+                        break
+
+                unpackedsize += 4
+
+                ## minimal version needed. According to 4.4.3.2 the minimal version is
+                ## 1.0 and the latest is 6.3. As new versions of PKZIP could be released
+                ## this check should not be too strict.
+                checkbytes = checkfile.read(2)
+                if len(checkbytes) != 2:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for local file header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                minversion = int.from_bytes(checkbytes, byteorder='little')
+                if minversion < 10:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid ZIP version'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if minversion > maxzipversion:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid ZIP version'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 2
+
+                ## then the "general purpose bit flag" (section 4.4.4)
+                checkbytes = checkfile.read(2)
+                if len(checkbytes) != 2:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for general bit flag in local file header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                generalbitflag = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += 2
+
+                ## check if the file is encrypted. If so it should be labeled
+                ## as such, but not be unpacked.
+                ## generalbitflag & 0x40 == 0x40 would be a check for
+                ## strong encryption, but that has different length encryption
+                ## headers and right now there are no test files for it, so
+                ## leave it for now.
+                if generalbitflag & 0x01 == 0x01:
+                        encrypted = True
+
+                datadescriptor = False
+                ## see if there is a data descriptor for regular files (this
+                ## won't be set for directories)
+                if generalbitflag & 0x08 == 0x08:
+                        datadescriptor = True
+
+                ## then the compression method (section 4.4.5)
+                checkbytes = checkfile.read(2)
+                if len(checkbytes) != 2:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for compression method in local file header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                compressionmethod = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += 2
+
+                ## skip over the time fields (section 4.4.6)
+                checkfile.seek(4, os.SEEK_CUR)
+                if checkfile.tell() + 4 > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for time fields in local file header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+                ## skip over the CRC32 (section 4.4.7)
+                if checkfile.tell() + 4 > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for CRC32 in local file header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                checkfile.seek(4, os.SEEK_CUR)
+                unpackedsize += 4
+
+                ## compressed size (section 4.4.8)
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for compressed size in local file header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                compressedsize = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += 4
+
+                ## uncompressed size (section 4.4.9)
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for uncompressed size file header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                uncompressedsize = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += 4
+
+                ## then the file name length (section 4.4.10)
+                checkbytes = checkfile.read(2)
+                if len(checkbytes) != 2:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for filename length in local file header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                filenamelength = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += 2
+
+                ## and the extra field length (section 4.4.11)
+                checkbytes = checkfile.read(2)
+                if len(checkbytes) != 2:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for extra field length in local file header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                extrafieldlength = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += 2
+                if extrafieldlength != 0:
+                        ## The extra fields are at least 4 bytes (section 4.5.1)
+                        if extrafieldlength < 4:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for extra field'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                localfilename = checkfile.read(filenamelength)
+                if len(localfilename) != filenamelength:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for file name in local file header'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                localfiles.append(localfilename)
+                unpackedsize += filenamelength
+
+                ## then check the extra field. The most important is to check for any
+                ## ZIP64 extension, as it contains updated values for the compressed
+                ## size and uncompressed size (section 4.5)
+                if extrafieldlength != 0:
+                        extrafields = checkfile.read(extrafieldlength)
+                        extrafieldcounter = 0
+                        while extrafieldcounter + 4 < extrafieldlength:
+                                ## section 4.6.1
+                                extrafieldheaderid = int.from_bytes(extrafields[extrafieldcounter:extrafieldcounter+2], byteorder='little')
+                                extrafieldheaderlength = int.from_bytes(extrafields[extrafieldcounter+2:extrafieldcounter+4], byteorder='little')
+                                extrafieldcounter += 4
+                                if checkfile.tell() + extrafieldheaderlength > filesize:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for extra field'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                if extrafieldheaderid == 0x001:
+                                        ## ZIP64, section 4.5.3
+                                        ## according to 4.4.3.2 PKZIP 4.5 or later is needed to
+                                        ## unpack ZIP64 files.
+                                        if minversion < 45:
+                                                checkfile.close()
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong minimal needed version for ZIP64'}
+                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                        zip64uncompressedsize = int.from_bytes(extrafields[extrafieldcounter:extrafieldcounter+8], byteorder='little')
+                                        zip64compressedsize = int.from_bytes(extrafields[extrafieldcounter+8:extrafieldcounter+16], byteorder='little')
+                                        if compressedsize == 0xffffffff:
+                                                compressedsize = zip64compressedsize
+                                        if uncompressedsize == 0xffffffff:
+                                                uncompressedsize = zip64uncompressedsize
+                                extrafieldcounter += extrafieldheaderlength
+                        unpackedsize += extrafieldlength
+
+                ## some sanity checks: file name, extra field and compressed size
+                ## cannot extend past the file size
+                locallength = 30 + filenamelength + extrafieldlength + compressedsize
+                if offset + locallength > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'data cannot be outside file'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                ## keep track if a data descriptor was searched and found
+                ## This is needed if the length of the compressed size is set
+                ## to 0, which can happen in certain cases (section 4.4.4, bit 3)
+                ddfound = False
+                ddsearched = False
+
+                if not localfilename.endswith(b'/') and compressedsize == 0:
+                        ## in case the length is not known it is very difficult
+                        ## to see where the data ends so it is needed to search for
+                        ## a signature. This can either be:
+                        ## * data descriptor header
+                        ## * local file header
+                        ## * central directory header
+                        while True:
+                                curpos = checkfile.tell()
+                                tmppos = -1
+                                checkbytes = checkfile.read(50000)
+                                if checkbytes == b'':
+                                        break
+                                if datadescriptor:
+                                        ddpos = checkbytes.find(b'PK\x07\x08')
+                                        if ddpos != -1:
+                                                if tmppos == -1:
+                                                      tmppos = ddpos
+                                                ddsearched = True
+                                                ddfound = True
+                                localheaderpos = checkbytes.find(b'PK\x03\x04')
+                                if localheaderpos != -1:
+                                        if tmppos == -1:
+                                                tmppos = localheaderpos
+                                        else:
+                                                tmppos = min(localheaderpos, tmppos)
+                                centraldirpos = checkbytes.find(b'PK\x01\x02')
+                                if centraldirpos != -1:
+                                        if tmppos == -1:
+                                                tmppos = centraldirpos
+                                        else:
+                                                tmppos = min(centraldirpos, tmppos)
+                                if tmppos != -1:
+                                        checkfile.seek(curpos + tmppos)
+                                        break
+                                ## have a small overlap the size of a possible header
+                                checkfile.seek(-4, os.SEEK_CUR)
+                else:
+                        if checkfile.tell() + compressedsize > filesize:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for compressed data'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        checkfile.seek(checkfile.tell() + compressedsize)
+
+                unpackedsize = checkfile.tell() - offset
+
+                ## data descriptor follows the file data
+                if datadescriptor and ddsearched and ddfound:
+                        possiblesignature = checkfile.read(4)
+                        if possiblesignature == b'PK\x07\x08':
+                                ddcrc = checkfile.read(4)
+                        else:
+                                ddcrc = possiblesignature
+                        ddcompressedsize = checkfile.read(4)
+                        if len(ddcompressedsize) != 4:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for compressed data field'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        unpackedsize += 4
+                        checkbytes = checkfile.read(4)
+                        if len(checkbytes) != 4:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for uncompressed data field'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        dduncompressedsize = int.from_bytes(checkbytes, byteorder='little')
+                        if uncompressedsize != 0:
+                                ## possibly do an extra sanity check here with the
+                                ## compressed and/or uncompressed size fields
+                                pass
+
+        if not seencentraldirectory:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no central directory found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## there should be as many entries in the local headers as in the central directory
+        if len(localfiles) != len(centraldirectoryfiles):
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'mismatch between local file headers and central directory'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## compute the difference between the local files and the ones in the central directory
+        if len(set(localfiles).intersection(set(centraldirectoryfiles))) != len(set(localfiles)):
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'mismatch between names in local file headers and central directory'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+
+        unpackedsize = checkfile.tell() - offset
+        if not encrypted:
+                ## if the ZIP file is at the end of the file then the ZIP module
+                ## from Python will do a lot of the heavy lifting.
+                ## Malformed ZIP files that need a workaround exist:
+                ## https://bugzilla.redhat.com/show_bug.cgi?id=907442
+                if checkfile.tell() == filesize:
+                        carved = False
+                else:
+                        ## else carve the file from the larger ZIP first
+                        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+                        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+                        os.fdopen(temporaryfile[0]).close()
+                        carved = True
+                if not carved:
+                        ## seek to the right offset, even though that's
+                        ## not even necessary.
+                        checkfile.seek(offset)
+                try:
+                        if not carved:
+                                unpackzipfile = zipfile.ZipFile(checkfile)
+                        else:
+                                unpackzipfile = zipfile.ZipFile(temporaryfile[1])
+                        zipfiles = unpackzipfile.namelist()
+                        zipinfolist = unpackzipfile.infolist()
+                        oldcwd = os.getcwd()
+                        os.chdir(unpackdir)
+
+                        ## check if there have been directories stored
+                        ## as regular files.
+                        faultyzipfiles = []
+                        for z in zipinfolist:
+                                if z.file_size == 0 and not z.is_dir() and z.external_attr & 0x10 == 0x10:
+                                        faultyzipfiles.append(z)
+                        if len(faultyzipfiles) == 0:
+                                unpackzipfile.extractall()
+                        else:
+                                for z in zipinfolist:
+                                        if z in faultyzipfiles:
+                                               ## create the directory
+                                               os.makedirs(os.path.join(unpackdir, z.filename), exist_ok=True)
+                                        else:
+                                               unpackzipfile.extract(z)
+                        os.chdir(oldcwd)
+                        unpackzipfile.close()
+                        checkfile.close()
+                        for i in zipinfolist:
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, i.filename), []))
+                        if offset == 0 and not carved:
+                                labels.append('compressed')
+                                labels.append('zip')
+                        if carved:
+                                os.unlink(temporaryfile[1])
+                        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                except zipfile.BadZipFile:
+                        if carved:
+                                os.unlink(temporaryfile[1])
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'Not a valid ZIP file'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## it is an encrypted file
+        if offset == 0 and checkfile.tell() == filesize:
+                labels.append('compressed')
+                labels.append('zip')
+                labels.append('encrypted')
+                return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## else carve the file
+        targetfilename = os.path.join(unpackdir, 'encrypted.zip')
+        targetfile = open(targetfilename, 'wb')
+        os.sendfile(targetfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        targetfile.close()
+        checkfile.close()
+        unpackedfilesandlabels.append((targetfilename, ['encrypted', 'zip', 'unpacked']))
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
