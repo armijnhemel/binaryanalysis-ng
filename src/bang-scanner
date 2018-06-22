@@ -519,6 +519,11 @@ def main(argv):
         ## create a directory for the scan
         scandirectory = tempfile.mkdtemp(prefix='bang-scan-', dir=baseunpackdirectory)
 
+        ## create an empty file "STARTED" to easily identify
+        ## active (or crashed) scans.
+        startedfile = open(os.path.join(scandirectory, "STARTED"), 'wb')
+        startedfile.close()
+
         ## now create a directory structure inside the scandirectory:
         ## unpack/ -- this is where all the unpacked data will be stored
         ## results/ -- this is where files describing the unpacked data will be stored
@@ -586,6 +591,13 @@ def main(argv):
         ## Done processing, terminate processes that were created
         for p in processes:
                 p.terminate()
+
+        ## move the file "STARTED" to "FINISHED" to easily identify
+        ## active (or crashed) scans
+        shutil.move(os.path.join(scandirectory, "STARTED"), os.path.join(scandirectory, "FINISHED"))
+
+        ## set mtime and atime to now
+        os.utime(os.path.join(scandirectory, "FINISHED"))
 
         ## The end.
         logging.info("Finished scanning %s" % args.checkfile)
