@@ -19,6 +19,7 @@
 ##  9. Apple Double encoded files
 ## 10. ICC (colour profile)
 ## 11. ZIP (store, deflate, bzip2, but lzma needs some more testing)
+## 12. bzip2
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -34,7 +35,7 @@
 ## https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
 import sys, os, struct, shutil, binascii, zlib, subprocess, lzma, tarfile, stat
-import tempfile, zipfile
+import tempfile, zipfile, bz2
 
 ## some external packages that are needed
 import PIL.Image
@@ -2431,4 +2432,91 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
         targetfile.close()
         checkfile.close()
         unpackedfilesandlabels.append((targetfilename, ['encrypted', 'zip', 'unpacked']))
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Derived from public bzip2 specifications
+## and Python module documentation
+def unpackBzip2(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        if filesize - offset < 10:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 10 bytes'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize = 0
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset)
+
+        ## Extract one 900k block of data as an extra sanity check.
+        ## First create a bzip2 decompressor
+        bz2decompressor = bz2.BZ2Decompressor()
+        bz2data = checkfile.read(900000)
+
+        ## then try to decompress the data.
+        try:
+                unpackeddata = bz2decompressor.decompress(bz2data)
+        except Exception:
+                ## no data could be successfully unpacked, so close the file and exit.
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid bzip2 file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## set the name of the file in case it is "anonymous data"
+        ## otherwise just imitate whatever bunzip2 does. If the file has a
+        ## name recorded in the file it will be renamed later.
+        if filename.endswith('.bz2'):
+                outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
+        else:
+                outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
+
+        ## data has been unpacked, so open a file and write the data to it.
+        ## unpacked, or if all data has been unpacked
+        outfile = open(outfilename, 'wb')
+        outfile.write(unpackeddata)
+
+        unpackedsize += len(bz2data) - len(bz2decompressor.unused_data)
+
+        ## there is still some data left to be unpacked, so
+        ## continue unpacking, as described in the Python documentation:
+        ## https://docs.python.org/3/library/bz2.html#incremental-de-compression
+        ## read some more data in chunks of 10 MB
+        datareadsize = 10000000
+        bz2data = checkfile.read(datareadsize)
+        while bz2data != b'':
+                try:
+                        unpackeddata = bz2decompressor.decompress(bz2data)
+                except EOFError as e:
+                        break
+                except Exception as e:
+                        ## clean up
+                        outfile.close()
+                        os.unlink(os.path.join(unpackdir, outfilename))
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid bzip2 file, use bzip2recover?'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                outfile.write(unpackeddata)
+                ## there is no more compressed data
+                unpackedsize += len(bz2data) - len(bz2decompressor.unused_data)
+                if bz2decompressor.unused_data != b'':
+                        break
+                bz2data = checkfile.read(datareadsize)
+
+        checkfile.close()
+        outfile.close()
+
+        if offset == 0 and unpackedsize == os.stat(filename).st_size:
+                ## in case the file name ends in either bz2 or tbz2 (tar) rename the file
+                ## to mimic the behaviour of "bunzip2"
+                if filename.lower().endswith('.bz2'):
+                        newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
+                        shutil.move(outfilename, newoutfilename)
+                        outfilename = newoutfilename
+                elif filename.lower().endswith('.tbz2'):
+                        newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-5]) + ".tar"
+                        shutil.move(outfilename, newoutfilename)
+                        outfilename = newoutfilename
+                labels += ['bzip2', 'compressed']
+        unpackedfilesandlabels.append((outfilename, []))
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
