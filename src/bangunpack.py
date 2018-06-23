@@ -20,6 +20,7 @@
 ## 10. ICC (colour profile)
 ## 11. ZIP (store, deflate, bzip2, but lzma needs some more testing)
 ## 12. bzip2
+## 13. XAR
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
