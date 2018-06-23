@@ -41,6 +41,7 @@ signatures = {
               'icc':            b'acsp',             # http://www.color.org/specification/ICC1v43_2010-12.pdf, section 7.2
               'zip':            b'\x50\x4b\x03\04',  # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
               'bzip2':          b'BZh',              # https://en.wikipedia.org/wiki/Bzip2#File_format
+              'xar':            b'\x78\x61\x72\x21', # https://github.com/mackyle/xar/wiki/xarformat
              }
 
 ## some signatures do not start at the beginning of the file
@@ -72,6 +73,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'icc': bangunpack.unpackICC,
                         'zip': bangunpack.unpackZip,
                         'bzip2': bangunpack.unpackBzip2,
+                        'xar': bangunpack.unpackXAR,
                       }
 
 ## a lookup table to map signatures to a name for

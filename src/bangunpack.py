@@ -2520,3 +2520,395 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory):
                 labels += ['bzip2', 'compressed']
         unpackedfilesandlabels.append((outfilename, []))
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Derived from specifications at:
+## https://github.com/mackyle/xar/wiki/xarformat
+##
+## Basically XAR is a header, a zlib compressed XML file describing where to find
+## files and how they were compressed, and then the actual data (perhaps compressed).
+## Compression depends on the options provided and the version of XAR being
+## used. Fedora's standard version uses:
+##
+## * none
+## * gzip (default, but it is actually zlib's DEFLATE)
+## * bzip2
+##
+## Other versions (from Git) can also use:
+## * xz
+## * lzma
+def unpackXAR(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+
+        if filesize - offset < 28:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'Too small for XAR file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize = 0
+        checkfile = open(filename, 'rb')
+
+        ## skip over the file magic
+        checkfile.seek(offset+4)
+        unpackedsize += 4
+
+        ## read the size field
+        checkbytes = checkfile.read(2)
+        headersize = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 2
+
+        ## read the version field
+        checkbytes = checkfile.read(2)
+        unpackedsize += 2
+
+        ## read the toc_length_compressed field
+        checkbytes = checkfile.read(8)
+        toc_length_compressed = int.from_bytes(checkbytes, byteorder='big')
+
+        ## check that the table of contents (toc) is actually inside the file
+        if offset + headersize + toc_length_compressed > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'file too small'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 8
+
+        ## read the toc_length_uncompressed field. Use this for sanity checking.
+        checkbytes = checkfile.read(8)
+        unpackedsize += 8
+        toc_length_uncompressed = int.from_bytes(checkbytes, byteorder='big')
+
+        ## read the cksum_alg field. In case it is 3 do some extra sanity checks.
+        checkbytes = checkfile.read(4)
+        checksumalgorithm = int.from_bytes(checkbytes, byteorder='big')
+        if checksumalgorithm == 3:
+                if filesize - offset < 32:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'file too small'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                if headersize < 32:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'header too small'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                if headersize % 4 != 0:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'header not 4 byte aligned'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        else:
+                ## all the other checksum algorithms have a 28 byte header
+                if headersize != 28:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong header size'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## skip over the entire header
+        checkfile.seek(offset+headersize)
+        unpackedsize = headersize
+
+        ## read the table of contents
+        checkbytes = checkfile.read(toc_length_compressed)
+        ## now decompress the table of contents
+        try:
+                toc = zlib.decompress(checkbytes)
+        except:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cannot decompress table of contents'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if len(toc) != toc_length_uncompressed:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table of contents length does not match header'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## the toc is an XML file, so parse it
+        try:
+                tocdom = xml.dom.minidom.parseString(toc)
+        except:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table of contents is not valid XML'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## The interesting information is in the <file> element. As these
+        ## can be nested (to resemble a directory tree) each element has
+        ## to be looked at separately to see if there are any child elements
+        ## that have files or other directories.
+
+        ## The top level element should be <xar>
+        if tocdom.documentElement.tagName != 'xar':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table of contents is not a valid TOC for XAR'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## there should be one single node called "toc". If not, it
+        ## is a malformed XAR table of contents.
+        havevalidtoc = False
+        for i in tocdom.documentElement.childNodes:
+                ## the childnodes of the element could also
+                ## include text nodes, which are not interesting
+                if i.nodeType == xml.dom.Node.ELEMENT_NODE:
+                        if i.tagName == 'toc':
+                                havevalidtoc = True
+                                tocnode = i
+                                break
+
+        if not havevalidtoc:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table of contents is not a valid TOC for XAR'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize += toc_length_compressed
+
+        ## Then further traverse the DOM
+        ## Since each element only has relative path information it is necessary to keep track of
+        ## the directory structure.
+
+        maxoffset = -1
+
+        ## store the nodes to traverse from the DOM in a deque, and then pop from the
+        ## left as it is much more efficient then using a list for that.
+        ## First fill up the deque with the top level file nodes.
+        nodestotraverse = collections.deque()
+        for i in tocnode.childNodes:
+                if i.nodeType == xml.dom.Node.ELEMENT_NODE:
+                        if i.tagName == 'file':
+                                nodestotraverse.append((i, ''))
+                        elif i.tagName == 'checksum':
+                                ## top level checksum should have a size field and offset
+                                for ic in i.childNodes:
+                                        if ic.nodeType == xml.dom.Node.ELEMENT_NODE:
+                                                if ic.tagName == 'offset':
+                                                        ## traverse the child nodes
+                                                        for dd in ic.childNodes:
+                                                                if dd.nodeType == xml.dom.Node.TEXT_NODE:
+                                                                        checksumoffset = dd.data.strip()
+                                                elif ic.tagName == 'size':
+                                                        ## traverse the child nodes
+                                                        for dd in ic.childNodes:
+                                                                if dd.nodeType == xml.dom.Node.TEXT_NODE:
+                                                                        checksumsize = dd.data.strip()
+                                try:
+                                        checksumoffset = int(checksumoffset)
+                                        checksumsize = int(checksumsize)
+                                except:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'XML bogus values'}
+                                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                                ## the checksum cannot be outside of the file
+                                if offset + unpackedsize + checksumoffset + checksumsize > filesize:
+                                        targetfile.close()
+                                        os.unlink(targetfilename)
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                                maxoffset = max(maxoffset, offset + unpackedsize + checksumoffset + checksumsize)
+
+        while len(nodestotraverse) != 0:
+                (nodetoinspect, nodecwd) = nodestotraverse.popleft()
+
+                ## then inspect the contents of the node. Since it is not
+                ## guaranteed in which order the elements appear in the XML
+                ## file some information has to be kept first.
+                nodename = None
+                nodetype = None
+                nodedata = None
+                childfilenodes = []
+                for i in nodetoinspect.childNodes:
+                        if i.nodeType == xml.dom.Node.ELEMENT_NODE:
+                                if i.tagName == 'type':
+                                        ## first find out if it is a file, or a directory
+                                        for cn in i.childNodes:
+                                                if cn.nodeType == xml.dom.Node.TEXT_NODE:
+                                                        nodetype = cn.data.strip()
+                                        ## something went wrong here
+                                        if nodetype == None:
+                                                checkfile.close()
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'missing file type in TOC'}
+                                                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                                elif i.tagName == 'name':
+                                        ## grab the name of the entry and store it in
+                                        ## nodename.
+                                        for cn in i.childNodes:
+                                                if cn.nodeType == xml.dom.Node.TEXT_NODE:
+                                                        nodename = cn.data.strip()
+                                elif i.tagName == 'file':
+                                        ## add children to be processed
+                                        childfilenodes.append(i)
+                                elif i.tagName == 'data':
+                                        ## any data that might be there for the file
+                                        nodedata = i
+
+                ## remove any superfluous / characters. This should not happen with XAR
+                ## but just in case...
+                while nodename.startswith('/'):
+                        nodename = nodename[1:]
+
+                if nodetype == 'directory':
+                        os.makedirs(os.path.join(unpackdir, nodecwd, nodename))
+                elif nodetype == 'file':
+                        ## first create the file
+                        targetfilename = os.path.join(unpackdir, nodecwd, nodename)
+                        targetfile = open(targetfilename, 'wb')
+                        if nodedata != None:
+                                ## extract the data for the file:
+                                ## * compression method (called "encoding")
+                                ## * offset
+                                ## * length
+                                ## * archived checksum + type (compressed data)
+                                ## * extracted checksum + type (uncompressed data)
+                                compressionmethod = None
+                                datalength = 0 ## compressed
+                                datasize = 0 ## uncompressed
+                                dataoffset = 0
+                                archivedchecksum = None
+                                archivedchecksumtype = None
+                                extractedchecksum = None
+                                extractedchecksumtype = None
+                                for d in nodedata.childNodes:
+                                        if d.nodeType == xml.dom.Node.ELEMENT_NODE:
+                                                if d.tagName == 'encoding':
+                                                        ## encoding is stored as an attribute
+                                                        compressionstyle = d.getAttribute('style')
+                                                        if 'gzip' in compressionstyle:
+                                                                compressionmethod = 'gzip'
+                                                        elif 'bzip2' in compressionstyle:
+                                                                compressionmethod = 'bzip2'
+                                                        elif 'lzma' in compressionstyle:
+                                                                compressionmethod = 'lzma'
+                                                        elif 'xz' in compressionstyle:
+                                                                compressionmethod = 'xz'
+                                                        elif 'application/octet-stream' in compressionstyle:
+                                                                compressionmethod = 'none'
+                                                elif d.tagName == 'offset':
+                                                        ## traverse the child nodes
+                                                        for dd in d.childNodes:
+                                                                if dd.nodeType == xml.dom.Node.TEXT_NODE:
+                                                                        dataoffset = dd.data.strip()
+                                                elif d.tagName == 'length':
+                                                        ## traverse the child nodes
+                                                        for dd in d.childNodes:
+                                                                if dd.nodeType == xml.dom.Node.TEXT_NODE:
+                                                                        datalength = dd.data.strip()
+                                                elif d.tagName == 'size':
+                                                        ## traverse the child nodes
+                                                        for dd in d.childNodes:
+                                                                if dd.nodeType == xml.dom.Node.TEXT_NODE:
+                                                                        datasize = dd.data.strip()
+                                                elif d.tagName == 'archived-checksum':
+                                                        archivedchecksumtype = d.getAttribute('style')
+                                                        ## traverse the child nodes
+                                                        for dd in d.childNodes:
+                                                                if dd.nodeType == xml.dom.Node.TEXT_NODE:
+                                                                        archivedchecksum = dd.data.strip()
+                                                elif d.tagName == 'extracted-checksum':
+                                                        extractedchecksumtype = d.getAttribute('style')
+                                                        ## traverse the child nodes
+                                                        for dd in d.childNodes:
+                                                                if dd.nodeType == xml.dom.Node.TEXT_NODE:
+                                                                        extractedchecksum = dd.data.strip()
+                                ## first some sanity checks
+                                try:
+                                        dataoffset = int(dataoffset)
+                                        datalength = int(datalength)
+                                except:
+                                        targetfile.close()
+                                        os.unlink(targetfilename)
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'bogus XML values'}
+                                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+                                ## more sanity checks
+                                ## the file cannot be outside of the file
+                                if offset + unpackedsize + dataoffset + datalength > filesize:
+                                        targetfile.close()
+                                        os.unlink(targetfilename)
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+                                checkhash = None
+
+                                ## create a hashing object for the uncompressed file
+                                if extractedchecksumtype in hashlib.algorithms_available:
+                                        checkhash = hashlib.new(extractedchecksumtype)
+
+                                ## seek to the beginning of the file
+                                checkfile.seek(offset+unpackedsize+dataoffset)
+                                if compressionmethod == 'none':
+                                        ## if no compression is used just write the bytes to the
+                                        ## target file immediately.
+                                        bytesread = 0
+                                        ## write in chunks of 10 MB
+                                        maxbytestoread = 10000000
+                                        while bytesread != datalength:
+                                                checkbytes = checkfile.read(min(maxbytestoread, datalength-bytesread))
+                                                targetfile.write(checkbytes)
+                                                bytesread += len(checkbytes)
+                                else:
+                                        try:
+                                                if compressionmethod == 'gzip':
+                                                        decompressor = zlib.decompressobj()
+                                                elif compressionmethod == 'bzip2':
+                                                        decompressor = bz2.BZ2Decompressor()
+                                                elif compressionmethod == 'lzma':
+                                                        decompressor = lzma.LZMADecompressor()
+                                                elif compressionmethod == 'xz':
+                                                        decompressor = lzma.LZMADecompressor()
+                                                else:
+                                                        targetfile.close()
+                                                        os.unlink(targetfilename)
+                                                        checkfile.close()
+                                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'compression method not supported'}
+                                                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+                                                bytesread = 0
+                                                ## read in chunks of 10 MB
+                                                maxbytestoread = 10000000
+                                                while bytesread != datalength:
+                                                        checkbytes = checkfile.read(min(maxbytestoread, datalength-bytesread))
+                                                        ## decompress the data and write it to the target file
+                                                        decompressedbytes = decompressor.decompress(checkbytes)
+                                                        targetfile.write(decompressedbytes)
+                                                        targetfile.flush()
+                                                        bytesread += len(checkbytes)
+                                                        if checkhash != None:
+                                                                checkhash.update(decompressedbytes)
+
+                                                ## there shouldn't be any unused data
+                                                if decompressor.unused_data != b'':
+                                                        targetfile.close()
+                                                        os.unlink(targetfilename)
+                                                        checkfile.close()
+                                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'broken data'}
+                                                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+                                                ## if there is a checksum compare it to the one that was
+                                                ## stored in the file.
+                                                if checkhash != None:
+                                                        if extractedchecksum != checkhash.hexdigest():
+                                                                targetfile.close()
+                                                                os.unlink(targetfilename)
+                                                                checkfile.close()
+                                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'checksum mismatch'}
+                                                                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+                                        except Exception as e:
+                                                targetfile.close()
+                                                os.unlink(targetfilename)
+                                                checkfile.close()
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'broken data'}
+                                                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                                unpackedfilesandlabels.append((targetfilename, []))
+                        else:
+                                ## empty files have no data section associated with it
+                                unpackedfilesandlabels.append((targetfilename, ['empty']))
+                        targetfile.close()
+                        maxoffset = max(maxoffset, offset + unpackedsize + dataoffset + datalength)
+
+                ## then finally add all of the childnodes
+                ## which is only happening for subdirectories anyway
+                for cn in childfilenodes:
+                        nodestotraverse.append((cn, os.path.join(nodecwd, nodename)))
+
+        checkfile.close()
+        if offset == 0 and maxoffset == filesize:
+                labels += ['archive', 'xar']
+        return (True, maxoffset - offset, unpackedfilesandlabels, labels, unpackingerror)
