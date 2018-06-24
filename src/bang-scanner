@@ -42,6 +42,8 @@ signatures = {
               'zip':            b'\x50\x4b\x03\04',  # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
               'bzip2':          b'BZh',              # https://en.wikipedia.org/wiki/Bzip2#File_format
               'xar':            b'\x78\x61\x72\x21', # https://github.com/mackyle/xar/wiki/xarformat
+              'gif87':          b'GIF87a',           # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+              'gif89':          b'GIF89a',           # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
              }
 
 ## some signatures do not start at the beginning of the file
@@ -74,6 +76,8 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'zip': bangunpack.unpackZip,
                         'bzip2': bangunpack.unpackBzip2,
                         'xar': bangunpack.unpackXAR,
+                        'gif87': bangunpack.unpackGIF,
+                        'gif89': bangunpack.unpackGIF,
                       }
 
 ## a lookup table to map signatures to a name for
@@ -85,6 +89,8 @@ signatureprettyprint = { 'lzma_var1': 'lzma',
                          'tar_gnu': 'tar',
                          'squashfs_var1': 'squashfs',
                          'squashfs_var2': 'squashfs',
+                         'gif87': 'gif',
+                         'gif89': 'gif',
                        }
 
 ## store the maximum look ahead window. This is unlikely to matter, but
