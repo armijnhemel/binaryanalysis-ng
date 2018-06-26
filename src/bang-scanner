@@ -44,6 +44,7 @@ signatures = {
               'xar':            b'\x78\x61\x72\x21', # https://github.com/mackyle/xar/wiki/xarformat
               'gif87':          b'GIF87a',           # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
               'gif89':          b'GIF89a',           # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+              'iso9660':        b'CD001',            # ECMA 119
              }
 
 ## some signatures do not start at the beginning of the file
@@ -53,6 +54,7 @@ signaturesoffset = {
                      'tar_posix': 0x101,
                      'tar_gnu': 0x101,
                      'icc':     36,
+                     'iso9660': 32769,
                    }
 
 ## keep a list of signatures to the (built in) functions
@@ -78,6 +80,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'xar': bangunpack.unpackXAR,
                         'gif87': bangunpack.unpackGIF,
                         'gif89': bangunpack.unpackGIF,
+                        'iso9660': bangunpack.unpackISO9660,
                       }
 
 ## a lookup table to map signatures to a name for
