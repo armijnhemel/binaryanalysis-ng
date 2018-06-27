@@ -45,6 +45,7 @@ signatures = {
               'gif87':          b'GIF87a',           # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
               'gif89':          b'GIF89a',           # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
               'iso9660':        b'CD001',            # ECMA 119
+              'lzip':           b'LZIP',             # http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
              }
 
 ## some signatures do not start at the beginning of the file
@@ -81,6 +82,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'gif87': bangunpack.unpackGIF,
                         'gif89': bangunpack.unpackGIF,
                         'iso9660': bangunpack.unpackISO9660,
+                        'lzip': bangunpack.unpackLzip,
                       }
 
 ## a lookup table to map signatures to a name for
