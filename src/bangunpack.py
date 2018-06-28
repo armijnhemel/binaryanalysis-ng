@@ -31,6 +31,7 @@
 ##  3. squashfs (needs squashfs-tools)
 ##  4. BMP (needs netpbm-progs)
 ##  5. GIF (needs PIL)
+##  6. JPEG (needs PIL)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
