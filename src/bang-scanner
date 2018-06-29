@@ -47,6 +47,7 @@ signatures = {
               'iso9660':        b'CD001',            # ECMA 119
               'lzip':           b'LZIP',             # http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
               'jpeg':           b'\xff\xd8',
+              'woff':           b'wOFF',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -85,6 +86,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'iso9660': bangunpack.unpackISO9660,
                         'lzip': bangunpack.unpackLzip,
                         'jpeg': bangunpack.unpackJPEG,
+                        'woff': bangunpack.unpackWOFF,
                       }
 
 ## a lookup table to map signatures to a name for
