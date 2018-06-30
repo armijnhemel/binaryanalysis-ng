@@ -26,6 +26,7 @@
 ## 16. WOFF
 ## 17. TrueType fonts
 ## 18. OpenType fonts
+## 19. Vim swap files (whole file only)
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -5283,3 +5284,59 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
         requiredtables = set([b'cmap', b'head', b'hhea', b'hmtx', b'maxp', b'name', b'OS/2', b'post'])
 
         return unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 'otf', 'OpenType')
+
+## method to see if a file is a Vim swap file
+## These always start with a certain header, including a page size.
+##
+## struct block0 in memline.c (Vim source code) describes the on disk format
+## Various other structs (data block, pointer block) are also described
+## in this file.
+def unpackVimSwapfile(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset)
+        checkbytes = checkfile.read(6)
+        if len(checkbytes) != 6:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        if checkbytes != b'b0VIM\x20':
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid Vim swap file header'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        checkfile.seek(12)
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for page size'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        pagesize = int.from_bytes(checkbytes, byteorder='little')
+
+        ## TODO: enable carving.
+        if filesize % pagesize != 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid Vim swap file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## then step through the blocks and check the first two
+        ## characters of each block. There are two types of blocks: data
+        ## blocks and pointer blocks.
+        for i in range(1,filesize//pagesize):
+                checkfile.seek(i*pagesize)
+                checkbytes = checkfile.read(2)
+                if not checkbytes in [b'tp', b'ad']:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a valid Vim swap file block identifier'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## else consider it a Vim swap file
+        labels.append('binary')
+        labels.append('vim swap')
+        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)

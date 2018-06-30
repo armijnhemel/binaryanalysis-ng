@@ -106,6 +106,18 @@ signatureprettyprint = { 'lzma_var1': 'lzma',
                          'gif89': 'gif',
                        }
 
+## extensions to unpacking functions. This should only be
+## used for files with a known extension that cannot be
+## reliably recognized any other way.
+## One example is the Android sparse data format (TODO).
+## These extensions should be lower case
+extensiontofunction = { '.swp': bangunpack.unpackVimSwapfile,
+                      }
+
+
+extensionprettyprint = { '.swp': 'vimswapfile',
+                       }
+
 ## store the maximum look ahead window. This is unlikely to matter, but
 ## just in case.
 maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
@@ -241,60 +253,21 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
 
                 istext = True
 
-                ## keep a counter per signature for the unpacking directory names
-                counterspersignature = {}
+                ## Now try to unpack the files. There are a few categories:
+                ##
+                ## 1. a known extension, without a known magic header. This is for for
+                ## example Android sparse data image formats, or several other Android
+                ## or Google formats (Chrome PAK, etc.)
+                ##
+                ## 2. blobs, searching for known magic headers and carving them from
+                ## blobs, or regular files.
 
-                ## open the file in binary mode
-                scanfile = open(checkfile, 'rb')
-                scanfile.seek(max(lastunpackedoffset, 0))
-
-                offsetinfile = scanfile.tell()
-                scanbytes = scanfile.read(maxsearchbytes)
-                if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
-                        istext = False
-
-                while True:
-                        candidateoffsetsfound = set()
-                        for s in signatures:
-                                res = re.finditer(re.escape(signatures[s]), scanbytes)
-                                if res != None:
-                                        for r in res:
-                                                if s in signaturesoffset:
-                                                        ## skip files that aren't big enough if the signature
-                                                        ## is not at the start of the data to be carved (example:
-                                                        ## ISO9660).
-                                                        if r.start() + offsetinfile - signaturesoffset[s] < 0:
-                                                                continue
-                                                offset = r.start()
-
-                                                if s in signaturesoffset:
-                                                        candidateoffsetsfound.add((offset + offsetinfile - signaturesoffset[s], s))
-                                                else:
-                                                        candidateoffsetsfound.add((offset + offsetinfile, s))
-
-                        ## see if any data can be unpacked
-                        for s in (sorted(candidateoffsetsfound)):
-                                if s[0] < lastunpackedoffset:
-                                        continue
-                                ## first see if there actually is a method to unpack
-                                ## this type of file
-                                if not s[1] in signaturetofunction:
-                                        continue
-                                ## always first change to the original cwd
-                                os.chdir(unpackdirectory)
-
-                                ## then create an unpacking directory
-                                if not s[1] in counterspersignature:
-                                        namecounter = 1
-                                else:
-                                        namecounter = counterspersignature[s[1]] + 1
-                                while True:
-                                        dataunpackdirectory = "%s-%s-%d" % (checkfile, signatureprettyprint.get(s[1], s[1]), namecounter)
-                                        try:
-                                                os.mkdir(dataunpackdirectory)
-                                                break
-                                        except:
-                                                namecounter += 1
+                ## first process files with a known extension, but where
+                ## there is no clear magic header.
+                for e in extensiontofunction:
+                        if checkfile.lower().endswith(e):
+                                dataunpackdirectory = "%s-%s-%d" % (checkfile, extensionprettyprint[e], 1)
+                                os.mkdir(dataunpackdirectory)
 
                                 ## The result of the scan is:
                                 ## * the status of the scan (successful or not)
@@ -302,18 +275,16 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                 ## * list of files that were unpacked, if any, plus labels for the unpacked files
                                 ## * labels that were added, if any
                                 ## * errors that were encountered, if any
-                                logging.debug("TRYING %s %s at offset: %d" % (checkfile, s[1], s[0]))
                                 try:
-                                        unpackresult = signaturetofunction[s[1]](checkfile, s[0], dataunpackdirectory, temporarydirectory)
-                                except AttributeError as e:
+                                        unpackresult = extensiontofunction[e](checkfile, 0, dataunpackdirectory, temporarydirectory)
+                                except AttributeError as ex:
                                         os.rmdir(dataunpackdirectory)
                                         continue
+
                                 (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = unpackresult
                                 if not unpackstatus:
                                         ## No data could be unpacked for some reason, so check the status first
-                                        logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, s[1], s[0], unpackerror['reason']))
-                                        #print(s[1], unpackerror)
-                                        #sys.stdout.flush()
+                                        logging.debug("FAIL %s known extension %s: %s" % (checkfile, e, unpackerror['reason']))
                                         ## unpackerror contains:
                                         ## * offset in the file where the error occured (integer)
                                         ## * reason of the error (human readable)
@@ -340,70 +311,201 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                         shutil.rmtree(dataunpackdirectory)
                                         continue
 
-                                logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, s[1], s[0], unpackedlength))
-
-                                ## store the name counter, but only after data was
-                                ## unpacked successfully.
-                                counterspersignature[s[1]] = namecounter
-
-                                if s[0] == 0 and unpackedlength == filesize:
-                                        labels += unpackedlabels
-                                        labels = list(set(labels))
-                                        ## if unpackedfilesandlabels is empty, then no files were unpacked
-                                        ## likely because the whole file was the result and didn't
-                                        ## contain any files (it was not a container or compresed file)
-                                        if len(unpackedfilesandlabels) == 0:
-                                                os.rmdir(dataunpackdirectory)
+                                logging.info("SUCCESS %s %s at offset: 0, length: %d" % (checkfile, e, unpackedlength))
+                                if unpackedlength != filesize:
+                                        lastunpackedoffset = unpackedlength
 
                                 ## store the range of the unpacked data
-                                unpackedrange.append((s[0], s[0] + unpackedlength))
+                                unpackedrange.append((0, unpackedlength))
 
-                                ## add a lot of information about the unpacked files
-                                report = {}
-                                report['offset'] = s[0]
-                                report['signature'] = s[1]
-                                report['type'] = signatureprettyprint.get(s[1], s[1])
-                                report['size'] = unpackedlength
-                                report['files'] = []
-                                ## set unpackdirectory, but only if needed
-                                if len(unpackedfilesandlabels) != 0:
-                                        report['unpackdirectory'] = dataunpackdirectory[lenunpackdirectory:]
+                                ## store any labels that were passed as a result and
+                                ## add them to the current list of labels
+                                labels += unpackedlabels
+                                labels = list(set(labels))
+
+                                ## if unpackedfilesandlabels is empty, then no files were unpacked
+                                ## likely because the whole file was the result and didn't
+                                ## contain any files (it was not a container or compresed file)
+                                if len(unpackedfilesandlabels) == 0:
+                                        os.rmdir(dataunpackdirectory)
 
                                 for un in unpackedfilesandlabels:
                                         (unpackedfile, unpackedlabel) = un
-
-                                        ## TODO: make relative wrt unpackdir
-                                        report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
-
                                         ## add the data, plus possibly any label
                                         scanfilequeue.put((unpackedfile, unpackedlabel))
 
-                                fileresult['unpackedfiles'].append(report)
+                                ## whole file has already been unpacked, so no need for
+                                ## further scanning.
+                                if unpackedlength == filesize:
+                                        needsunpacking = False
 
-                                ## skip over all of the indexes that are essentially false positives now
-                                lastunpackedoffset = s[0] + unpackedlength
-                                needsunpacking = False
-
-                        ## check if the end of file has been reached, if so exit
-                        if scanfile.tell() == filesize:
-                                break
-
-                        ## see where to start reading next.
-                        if scanfile.tell() < lastunpackedoffset:
-                                ## If data has already been unpacked it can be skipped.
-                                scanfile.seek(lastunpackedoffset)
-                        else:
-                                ## use an overlap
-                                scanfile.seek(-maxsignaturesoffset, 1)
-                        offsetinfile = scanfile.tell()
-
-                        scanbytes = scanfile.read(maxsearchbytes)
-
-                        if istext:
-                                if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
+                                if 'binary' in labels:
                                         istext = False
 
-                scanfile.close()
+                if needsunpacking:
+                        ## keep a counter per signature for the unpacking directory names
+                        counterspersignature = {}
+
+                        ## open the file in binary mode
+                        scanfile = open(checkfile, 'rb')
+                        scanfile.seek(max(lastunpackedoffset, 0))
+
+                        offsetinfile = scanfile.tell()
+                        scanbytes = scanfile.read(maxsearchbytes)
+                        if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
+                                istext = False
+
+                        while True:
+                                candidateoffsetsfound = set()
+                                for s in signatures:
+                                        res = re.finditer(re.escape(signatures[s]), scanbytes)
+                                        if res != None:
+                                                for r in res:
+                                                        if s in signaturesoffset:
+                                                                ## skip files that aren't big enough if the signature
+                                                                ## is not at the start of the data to be carved (example:
+                                                                ## ISO9660).
+                                                                if r.start() + offsetinfile - signaturesoffset[s] < 0:
+                                                                        continue
+                                                        offset = r.start()
+
+                                                        if s in signaturesoffset:
+                                                                candidateoffsetsfound.add((offset + offsetinfile - signaturesoffset[s], s))
+                                                        else:
+                                                                candidateoffsetsfound.add((offset + offsetinfile, s))
+
+                                ## see if any data can be unpacked
+                                for s in (sorted(candidateoffsetsfound)):
+                                        if s[0] < lastunpackedoffset:
+                                                continue
+                                        ## first see if there actually is a method to unpack
+                                        ## this type of file
+                                        if not s[1] in signaturetofunction:
+                                                continue
+                                        ## always first change to the original cwd
+                                        os.chdir(unpackdirectory)
+
+                                        ## then create an unpacking directory
+                                        if not s[1] in counterspersignature:
+                                                namecounter = 1
+                                        else:
+                                                namecounter = counterspersignature[s[1]] + 1
+                                        while True:
+                                                dataunpackdirectory = "%s-%s-%d" % (checkfile, signatureprettyprint.get(s[1], s[1]), namecounter)
+                                                try:
+                                                        os.mkdir(dataunpackdirectory)
+                                                        break
+                                                except:
+                                                        namecounter += 1
+
+                                        ## The result of the scan is:
+                                        ## * the status of the scan (successful or not)
+                                        ## * the length of the data
+                                        ## * list of files that were unpacked, if any, plus labels for the unpacked files
+                                        ## * labels that were added, if any
+                                        ## * errors that were encountered, if any
+                                        logging.debug("TRYING %s %s at offset: %d" % (checkfile, s[1], s[0]))
+                                        try:
+                                                unpackresult = signaturetofunction[s[1]](checkfile, s[0], dataunpackdirectory, temporarydirectory)
+                                        except AttributeError as e:
+                                                os.rmdir(dataunpackdirectory)
+                                                continue
+                                        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = unpackresult
+                                        if not unpackstatus:
+                                                ## No data could be unpacked for some reason, so check the status first
+                                                logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, s[1], s[0], unpackerror['reason']))
+                                                #print(s[1], unpackerror)
+                                                #sys.stdout.flush()
+                                                ## unpackerror contains:
+                                                ## * offset in the file where the error occured (integer)
+                                                ## * reason of the error (human readable)
+                                                ## * flag to indicate if it is a fatal error (boolean)
+                                                ##
+                                                ## Fatal errors should lead to the program stopping execution.
+                                                ## remove the directory, so first change the permissions of
+                                                ## all the files so they can be safely
+                                                if unpackerror['fatal']:
+                                                        pass
+                                                ## clean up any data that might have been left behind
+                                                dirwalk = os.walk(dataunpackdirectory)
+
+                                                for direntries in dirwalk:
+                                                        ## make sure all subdirectories and files can be accessed
+                                                        for subdir in direntries[1]:
+                                                                subdirname = os.path.join(direntries[0], subdir)
+                                                                if not os.path.islink(subdirname):
+                                                                        os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                                                        for filename in direntries[2]:
+                                                                fullfilename = os.path.join(direntries[0], filename)
+                                                                if not os.path.islink(fullfilename):
+                                                                        os.chmod(fullfilename, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                                                shutil.rmtree(dataunpackdirectory)
+                                                continue
+
+                                        logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, s[1], s[0], unpackedlength))
+
+                                        ## store the name counter, but only after data was
+                                        ## unpacked successfully.
+                                        counterspersignature[s[1]] = namecounter
+
+                                        if s[0] == 0 and unpackedlength == filesize:
+                                                labels += unpackedlabels
+                                                labels = list(set(labels))
+                                                ## if unpackedfilesandlabels is empty, then no files were unpacked
+                                                ## likely because the whole file was the result and didn't
+                                                ## contain any files (it was not a container or compresed file)
+                                                if len(unpackedfilesandlabels) == 0:
+                                                        os.rmdir(dataunpackdirectory)
+
+                                        ## store the range of the unpacked data
+                                        unpackedrange.append((s[0], s[0] + unpackedlength))
+
+                                        ## add a lot of information about the unpacked files
+                                        report = {}
+                                        report['offset'] = s[0]
+                                        report['signature'] = s[1]
+                                        report['type'] = signatureprettyprint.get(s[1], s[1])
+                                        report['size'] = unpackedlength
+                                        report['files'] = []
+                                        ## set unpackdirectory, but only if needed
+                                        if len(unpackedfilesandlabels) != 0:
+                                                report['unpackdirectory'] = dataunpackdirectory[lenunpackdirectory:]
+
+                                        for un in unpackedfilesandlabels:
+                                                (unpackedfile, unpackedlabel) = un
+
+                                                ## TODO: make relative wrt unpackdir
+                                                report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
+
+                                                ## add the data, plus possibly any label
+                                                scanfilequeue.put((unpackedfile, unpackedlabel))
+
+                                        fileresult['unpackedfiles'].append(report)
+
+                                        ## skip over all of the indexes that are essentially false positives now
+                                        lastunpackedoffset = s[0] + unpackedlength
+                                        needsunpacking = False
+
+                                ## check if the end of file has been reached, if so exit
+                                if scanfile.tell() == filesize:
+                                        break
+
+                                ## see where to start reading next.
+                                if scanfile.tell() < lastunpackedoffset:
+                                        ## If data has already been unpacked it can be skipped.
+                                        scanfile.seek(lastunpackedoffset)
+                                else:
+                                        ## use an overlap
+                                        scanfile.seek(-maxsignaturesoffset, 1)
+                                offsetinfile = scanfile.tell()
+
+                                scanbytes = scanfile.read(maxsearchbytes)
+
+                                if istext:
+                                        if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
+                                                istext = False
+
+                        scanfile.close()
 
                 ## Now carve any unpacked data from the file and
                 ## put it back into the scanning queue to see if something
