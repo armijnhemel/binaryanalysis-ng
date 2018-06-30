@@ -48,6 +48,8 @@ signatures = {
               'lzip':           b'LZIP',             # http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
               'jpeg':           b'\xff\xd8',
               'woff':           b'wOFF',
+              'opentype':       b'OTTO',
+              'truetype':       b'\x00\x01\x00\x00',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -87,6 +89,8 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'lzip': bangunpack.unpackLzip,
                         'jpeg': bangunpack.unpackJPEG,
                         'woff': bangunpack.unpackWOFF,
+                        'opentype': bangunpack.unpackOpenTypeFont,
+                        'truetype': bangunpack.unpackTrueTypeFont,
                       }
 
 ## a lookup table to map signatures to a name for
