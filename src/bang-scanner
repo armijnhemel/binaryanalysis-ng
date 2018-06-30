@@ -402,7 +402,47 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                         if istext:
                                 if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
                                         istext = False
+
                 scanfile.close()
+
+                ## Now carve any unpacked data from the file and
+                ## put it back into the scanning queue to see if something
+                ## could be unpacked.
+                ##
+                ## It also makes it easier for doing a "post mortem".
+                if unpackedrange != []:
+                        ## first check if the first entry covers the entire file
+                        if not (unpackedrange[0][0] == 0 and unpackedrange[0][1] == filesize):
+                                synthesizedcounter = 1
+                                startoffset = 0
+                                scanfile = open(checkfile, 'rb')
+                                scanfile.seek(0)
+                                ## then try to see if the any useful data can be uncarved.
+                                ## Add an artifical entry for the end of the file
+                                for u in unpackedrange + [(filesize, filesize)]:
+                                        if u[0] > startoffset:
+                                                #if u[0] - startoffset < synthesizedminimum:
+                                                #        startoffset = u[1]
+                                                #        continue
+                                                dataunpackdirectory = "%s-%s-%d" % (checkfile, "synthesized", synthesizedcounter)
+                                                try:
+                                                        os.mkdir(dataunpackdirectory)
+                                                except:
+                                                        break
+                                                synthesizedcounter += 1
+
+                                                outfilename = os.path.join(dataunpackdirectory, "unpacked")
+                                                outfile = open(outfilename, 'wb')
+                                                os.sendfile(outfile.fileno(), scanfile.fileno(), startoffset, u[0] - startoffset)
+                                                outfile.close()
+                                                startoffset = u[1]+1
+
+                                                unpackedlabel = ['synthesized']
+
+                                                ## add the data, plus labels, to the queue
+                                                scanfilequeue.put((outfilename, unpackedlabel))
+                                        startoffset = u[1]
+                                scanfile.close()
 
                 if istext:
                         labels.append('text')
