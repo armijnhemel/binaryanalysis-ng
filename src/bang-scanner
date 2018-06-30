@@ -248,8 +248,17 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                 ## remove any duplicate labels
                 labels = list(set(labels))
 
-                needsunpacking = True
-                unpackedrange = []
+                ## check for a dummy value to see if the file has already been unpacked
+                ## if so, simply report and skip the unpacking, but move on to just
+                ## running the per file scans.
+                if 'unpacked' in labels:
+                        labels.remove('unpacked')
+                        needsunpacking = False
+                        lastunpackedoffset = filesize
+                        unpackedrange = [(0, filesize)]
+                else:
+                        needsunpacking = True
+                        unpackedrange = []
 
                 istext = True
 
