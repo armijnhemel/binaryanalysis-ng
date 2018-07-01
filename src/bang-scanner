@@ -109,13 +109,15 @@ signatureprettyprint = { 'lzma_var1': 'lzma',
 ## extensions to unpacking functions. This should only be
 ## used for files with a known extension that cannot be
 ## reliably recognized any other way.
-## One example is the Android sparse data format (TODO).
+## One example is the Android sparse data format.
 ## These extensions should be lower case
 extensiontofunction = { '.swp': bangunpack.unpackVimSwapfile,
+                        '.new.dat': bangunpack.unpackAndroidSparseData,
                       }
 
 
 extensionprettyprint = { '.swp': 'vimswapfile',
+                         '.new.dat': 'androidsparsedata',
                        }
 
 ## store the maximum look ahead window. This is unlikely to matter, but
@@ -272,7 +274,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                 ## blobs, or regular files.
 
                 ## first process files with a known extension, but where
-                ## there is no clear magic header.
+                ## there is no clear magic header. A prime example is the
+                ## Android sparse data image format (system.new.dat and friends)
                 for e in extensiontofunction:
                         if checkfile.lower().endswith(e):
                                 dataunpackdirectory = "%s-%s-%d" % (checkfile, extensionprettyprint[e], 1)
