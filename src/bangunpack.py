@@ -28,11 +28,12 @@
 ## 18. OpenType fonts
 ## 19. Vim swap files (whole file only)
 ## 20. Android sparse data image
+## 21. Android backup files
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
 ##  1. PNG/APNG (needs PIL)
-##  2. ar (needs binutils)
+##  2. ar/deb (needs binutils)
 ##  3. squashfs (needs squashfs-tools)
 ##  4. BMP (needs netpbm-progs)
 ##  5. GIF (needs PIL)
@@ -45,7 +46,7 @@
 ## https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
 import sys, os, struct, shutil, binascii, zlib, subprocess, lzma, tarfile, stat
-import tempfile, zipfile, bz2, collections, math
+import tempfile, zipfile, bz2, collections, math, copy
 
 ## some external packages that are needed
 import PIL.Image
@@ -5516,3 +5517,105 @@ def unpackAndroidSparseData(filename, offset, unpackdir, temporarydirectory):
         labels += ['androidsparsedata']
         unpackedfilesandlabels.append((outputfilename, []))
         return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+
+## Android backup files
+##
+## Description of the format here:
+##
+## https://nelenkov.blogspot.nl/2012/06/unpacking-android-backups.html
+## http://web.archive.org/web/20180425072922/https://nelenkov.blogspot.nl/2012/06/unpacking-android-backups.html
+##
+## header + zlib compressed data
+## zlib compressed data contains a POSIX tar file
+def unpackAndroidBackup(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        checkfile = open(filename, 'rb')
+
+        ## skip over the offset
+        checkfile.seek(offset+15)
+        unpackedsize += 15
+
+        ## Then read the version number. Only support version 1 right now.
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if checkbytes != b'1\n':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported Android backup version'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## Then read the compression flag.
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if checkbytes != b'1\n':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported Android backup version'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## Then read the encryption flag. Only "none" is supported, so read 5 bytes (including newline)
+        checkbytes = checkfile.read(5)
+        if len(checkbytes) != 5:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if checkbytes != b'none\n':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'decryption not supported'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 5
+
+        ## create a temporary file to write the results to
+        ## then create a zlib decompression object
+        tempbackupfile = tempfile.mkstemp(dir=temporarydirectory)
+        decompressobj = zlib.decompressobj()
+
+        ## read 1 MB chunks
+        chunksize = 1024*1024
+        checkbytes = checkfile.read(chunksize)
+        try:
+                while checkbytes != b'':
+                        ## uncompress the data, and write to an output file
+                        os.write(tempbackupfile[0], decompressobj.decompress(checkbytes))
+                        unpackedsize += len(checkbytes) - len(decompressobj.unused_data)
+                        if len(decompressobj.unused_data) != 0:
+                                break
+                        checkbytes = checkfile.read(chunksize)
+        except Exception as ex:
+                os.fdopen(tempbackupfile[0]).close()
+                os.unlink(tempbackupfile[1])
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid compression'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        os.fdopen(tempbackupfile[0]).close()
+        checkfile.close()
+
+        tarfilesize = os.stat(tempbackupfile[1]).st_size
+
+        ## now unpack the tar ball
+        tarresult = unpackTar(tempbackupfile[1], 0, unpackdir, temporarydirectory)
+
+        ## cleanup
+        os.unlink(tempbackupfile[1])
+        if not tarresult[0]:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'corrupt tar inside Android backup file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if not tarfilesize == tarresult[1]:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'corrupt tar inside Android backup file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## add the labels and pass on the results from the tar unpacking
+        labels.append('android backup')
+        return (True, unpackedsize, copy.deepcopy(tarresult[2]), labels, unpackingerror)

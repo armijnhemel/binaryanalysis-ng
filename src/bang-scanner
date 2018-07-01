@@ -50,6 +50,7 @@ signatures = {
               'woff':           b'wOFF',
               'opentype':       b'OTTO',
               'truetype':       b'\x00\x01\x00\x00',
+              'android_backup':      b'ANDROID BACKUP\n',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -91,6 +92,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'woff': bangunpack.unpackWOFF,
                         'opentype': bangunpack.unpackOpenTypeFont,
                         'truetype': bangunpack.unpackTrueTypeFont,
+                        'android_backup': bangunpack.unpackAndroidBackup,
                       }
 
 ## a lookup table to map signatures to a name for
