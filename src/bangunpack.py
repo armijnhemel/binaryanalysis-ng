@@ -1886,6 +1886,11 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
 ## Documenting version 6.3.4
 ## This method first verifies a file to see where the ZIP data
 ## starts and where it ends.
+##
+## Python's zipfile module starts looking at the end of the file
+## for a central directory. If multiple ZIP files have been concatenated
+## and the last ZIP file is at the end, then only this ZIP file
+## will be unpacked by Python's zipfile module.
 def unpackZip(filename, offset, unpackdir, temporarydirectory):
         filesize = os.stat(filename).st_size
         unpackedfilesandlabels = []
