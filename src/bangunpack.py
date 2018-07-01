@@ -2308,10 +2308,19 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                                 tmppos = min(localheaderpos, tmppos)
                                 centraldirpos = checkbytes.find(b'PK\x01\x02')
                                 if centraldirpos != -1:
+                                        oldtmppos = tmppos
                                         if tmppos == -1:
                                                 tmppos = centraldirpos
                                         else:
                                                 tmppos = min(centraldirpos, tmppos)
+                                        ## extra sanity check: see if the
+                                        ## file names are the same
+                                        origpos = checkfile.tell()
+                                        checkfile.seek(curpos + tmppos + 42)
+                                        checkfn = checkfile.read(filenamelength)
+                                        if localfilename !=  checkfn:
+                                                tmppos = oldtmppos
+                                        checkfile.seek(origpos)
                                 if tmppos != -1:
                                         checkfile.seek(curpos + tmppos)
                                         break
