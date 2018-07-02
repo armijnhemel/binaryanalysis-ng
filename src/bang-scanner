@@ -383,6 +383,55 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                                         continue
                                                         offset = r.start()
 
+                                                        ## first perform a few sanity checks to prevent false positives for
+                                                        ## the built in unpack functions in BANG, as function calls are
+                                                        ## expensive so prevent them as much as possible.
+                                                        ##
+                                                        ## Included are checks for:
+                                                        ##
+                                                        ## * LZMA
+                                                        ## * bzip2
+                                                        if s in ['lzma_var1', 'lzma_var2', 'lzma_var3']:
+                                                                ## header of LZMA files is 13 bytes
+                                                                if filesize - (offset + offsetinfile) < 13:
+                                                                        continue
+                                                                ## Only do this if there are enough bytes left to test on, otherwise
+                                                                ## let the sliding window do its work
+                                                                if len(scanbytes) - offset >= 13:
+
+                                                                        ## bytes 5 - 13 are the size field. It could be that
+                                                                        ## it is undefined, but if it is defined then check
+                                                                        ## if it is too large or too small.
+
+                                                                        if scanbytes[offset+5:offset+13] != b'\xff\xff\xff\xff\xff\xff\xff\xff':
+                                                                                lzmaunpackedsize = int.from_bytes(scanbytes[offset+5:offset+13], byteorder='little')
+                                                                                if lzmaunpackedsize == 0:
+                                                                                        continue
+
+                                                                                ## XZ Utils cannot unpack or create files with size of 256 GiB or more
+                                                                                if lzmaunpackedsize > 274877906944:
+                                                                                        continue
+                                                        elif s == 'bzip2':
+                                                                ## first some sanity checks consisting of header checks:
+                                                                ## * block size
+                                                                ## * magic
+                                                                ## Only do this if there are enough bytes left to test on, otherwise
+                                                                ## let the sliding window do its work
+                                                                if len(scanbytes) - offset >= 10:
+                                                                        ## the byte indicating the block size has to be in the range 1 - 9
+                                                                        try:
+                                                                                blocksize = int(scanbytes[offset+3])
+                                                                        except:
+                                                                                continue
+                                                                        ## block size byte cannot be 0
+                                                                        if blocksize == 0:
+                                                                                continue
+                                                                        ## then check if the file is a stream or not. If so, some more
+                                                                        ## checks can be made (bzip2 source code decompress.c, line 224)
+                                                                        if scanbytes[offset+4] != b'\x17':
+                                                                                if scanbytes[offset+4:offset+10] != b'\x31\x41\x59\x26\x53\x59':
+                                                                                        continue
+
                                                         if s in signaturesoffset:
                                                                 candidateoffsetsfound.add((offset + offsetinfile - signaturesoffset[s], s))
                                                         else:
