@@ -2320,11 +2320,11 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                         else:
                                                 tmppos = min(centraldirpos, tmppos)
                                         ## extra sanity check: see if the
-                                        ## file names are the same
+                                        ## file name is known
                                         origpos = checkfile.tell()
                                         checkfile.seek(curpos + tmppos + 42)
                                         checkfn = checkfile.read(filenamelength)
-                                        if localfilename !=  checkfn:
+                                        if not checkfn in localfiles:
                                                 tmppos = oldtmppos
                                         checkfile.seek(origpos)
                                 if tmppos != -1:
