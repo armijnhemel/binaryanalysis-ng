@@ -455,7 +455,16 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                                         if (gzipbyte >> 7 & 1) == 1:
                                                                                 ## reserved
                                                                                 continue
+                                                        elif s == 'png':
+                                                                ## minimum size of PNG files is 57 bytes
+                                                                if filesize - (offsetinfile + offset) < 57:
+                                                                        continue
+                                                                if len(scanbytes) - offset >= 13:
+                                                                        ## bytes 8 - 11 are always the same in every PNG
+                                                                        if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x0d':
+                                                                                continue
 
+                                                        ## default
                                                         if s in signaturesoffset:
                                                                 candidateoffsetsfound.add((offset + offsetinfile - signaturesoffset[s], s))
                                                         else:
