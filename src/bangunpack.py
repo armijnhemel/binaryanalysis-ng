@@ -29,6 +29,7 @@
 ## 19. Vim swap files (whole file only)
 ## 20. Android sparse data image
 ## 21. Android backup files
+## 22. ICO (MS Windows icons)
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -5619,3 +5620,135 @@ def unpackAndroidBackup(filename, offset, unpackdir, temporarydirectory):
         ## add the labels and pass on the results from the tar unpacking
         labels.append('android backup')
         return (True, unpackedsize, copy.deepcopy(tarresult[2]), labels, unpackingerror)
+
+## https://en.wikipedia.org/wiki/ICO_%28file_format%29
+def unpackICO(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## header is 6 bytes
+        if offset + 6 > filesize:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for ICO header'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## open the file, skip the magic and read the number of images
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset+4)
+        unpackedsize += 4
+
+        ## read the number of images
+        checkbytes = checkfile.read(2)
+        numberofimages = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 2
+
+        ## there has to be at least 1 image
+        if numberofimages == 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no images defined'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## each ICONDIRENTRY in the ICONDIR is 16 bytes
+        if offset + unpackedsize + numberofimages*16 > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for ICONDIR entries'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## store an in memory representation of the icon dir
+        icondir = {}
+
+        maxoffset = -1
+        iconcounter = 1
+        for i in range(0, numberofimages):
+                ## read the image width
+                checkbytes = checkfile.read(1)
+                imagewidth = ord(checkbytes)
+                if imagewidth == 0:
+                        imagewidth = 256
+                unpackedsize += 1
+
+                ## read the image height
+                checkbytes = checkfile.read(1)
+                imageheight = ord(checkbytes)
+                if imageheight == 0:
+                        imageheight = 256
+                unpackedsize += 1
+
+                ## skip 6 bytes
+                checkfile.seek(6, os.SEEK_CUR)
+                unpackedsize += 6
+
+                ## read the size of the image
+                checkbytes = checkfile.read(4)
+                imagesize = int.from_bytes(checkbytes, byteorder='little')
+
+                ## image size cannot be 0
+                if imagesize == 0:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'wrong size for image data'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+                ## then read the offset of the data
+                checkbytes = checkfile.read(4)
+                imageoffset = int.from_bytes(checkbytes, byteorder='little')
+
+                ## image cannot be outside of the file
+                if offset + imageoffset + imagesize > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'image outside of file'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                ## offset cannot be inside the header
+                if imageoffset < checkfile.tell() - offset:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'wrong offset for image data'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+                ## store the maximum offset of the end of each entry in the
+                ## ICO. These will most likely be sequential, but maybe not.
+                maxoffset = max(maxoffset, offset + imageoffset + imagesize)
+
+                ## store the old offset
+                oldoffset = checkfile.tell()
+
+                ## jump to the location of the image data
+                checkfile.seek(offset + imageoffset)
+                checkbytes = checkfile.read(8)
+                if checkbytes == b'\x89PNG\x0d\x0a\x1a\x0a':
+                        ## the file is a PNG
+                        icondir[iconcounter] = {'type': 'png', 'offset': imageoffset, 'size': imagesize, 'width': imagewidth, 'height': imageheight}
+                else:
+                        ## the file is a BMP
+                        ## check the DIB header
+                        dibheadersize = int.from_bytes(checkbytes[:2], byteorder='little')
+                        if not dibheadersize in set([12, 64, 16, 40, 52, 56, 108, 124]):
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid DIB header size'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        icondir[iconcounter] = {'type': 'bmp', 'offset': imageoffset, 'size': imagesize, 'width': imagewidth, 'height': imageheight}
+
+                ## finally return to the old offset
+                checkfile.seek(oldoffset)
+                iconcounter += 1
+
+        unpackedsize = maxoffset - offset
+
+        if offset == 0 and unpackedsize == filesize:
+                labels.append('graphics')
+                labels.append('ico')
+                labels.append('resource')
+                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## else carve the file
+        outfilename = os.path.join(unpackdir, "unpacked.ico")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        checkfile.close()
+
+        unpackedfilesandlabels.append((outfilename, ['ico', 'graphics', 'resource', 'unpacked']))
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)

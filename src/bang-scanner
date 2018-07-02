@@ -51,6 +51,7 @@ signatures = {
               'opentype':       b'OTTO',
               'truetype':       b'\x00\x01\x00\x00',
               'android_backup':      b'ANDROID BACKUP\n',
+              'ico':            b'\x00\x00\x01\x00',  # https://en.wikipedia.org/wiki/ICO_%28file_format%29
              }
 
 ## some signatures do not start at the beginning of the file
@@ -93,6 +94,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'opentype': bangunpack.unpackOpenTypeFont,
                         'truetype': bangunpack.unpackTrueTypeFont,
                         'android_backup': bangunpack.unpackAndroidBackup,
+                        'ico': bangunpack.unpackICO,
                       }
 
 ## a lookup table to map signatures to a name for
@@ -455,6 +457,29 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                                         if (gzipbyte >> 7 & 1) == 1:
                                                                                 ## reserved
                                                                                 continue
+                                                        elif s == 'ico':
+                                                                ## check the number of images
+                                                                if filesize - (offset + offsetinfile) < 22:
+                                                                        continue
+                                                                numberofimages = int.from_bytes(scanbytes[offset+4:offset+6], byteorder='little')
+                                                                if numberofimages == 0:
+                                                                        continue
+
+                                                                # images cannot be outside of the file
+                                                                if offsetinfile + offset + 6 + numberofimages * 16 > filesize:
+                                                                        continue
+
+                                                                ## Then check the first image, as this is where most
+                                                                ## false positives happen.
+                                                                imagesize = int.from_bytes(scanbytes[offset+14:offset+18], byteorder='little')
+                                                                if imagesize == 0:
+                                                                        continue
+
+                                                                ## ICO cannot be outside of the file
+                                                                imageoffset = int.from_bytes(scanbytes[offset+18:offset+22], byteorder='little')
+
+                                                                if offsetinfile + offset + imageoffset + imagesize > filesize:
+                                                                        continue
                                                         elif s == 'png':
                                                                 ## minimum size of PNG files is 57 bytes
                                                                 if filesize - (offsetinfile + offset) < 57:
