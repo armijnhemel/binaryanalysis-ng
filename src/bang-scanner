@@ -431,6 +431,30 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                                         if scanbytes[offset+4] != b'\x17':
                                                                                 if scanbytes[offset+4:offset+10] != b'\x31\x41\x59\x26\x53\x59':
                                                                                         continue
+                                                        elif s == 'gzip':
+                                                                ## first some sanity checks consisting of header checks
+                                                                ##
+                                                                ## RFC 1952 http://www.zlib.org/rfc-gzip.html describes the flags, but omits the "encrytion" flag (bit 5)
+                                                                ##
+                                                                ## Python 3's zlib module does not support:
+                                                                ## * continuation of multi-part gzip (bit 2)
+                                                                ## * encrypt (bit 5)
+                                                                ##
+                                                                ## RFC 1952 says that bit 6 and 7 should not be set
+                                                                if len(scanbytes) - offset >= 4:
+                                                                        gzipbyte = scanbytes[offset+3]
+                                                                        if (gzipbyte >> 2 & 1) == 1:
+                                                                                ## continuation of multi-part gzip
+                                                                                continue
+                                                                        if (gzipbyte >> 5 & 1) == 1:
+                                                                                ## encrypted
+                                                                                continue
+                                                                        if (gzipbyte >> 6 & 1) == 1:
+                                                                                ## reserved
+                                                                                continue
+                                                                        if (gzipbyte >> 7 & 1) == 1:
+                                                                                ## reserved
+                                                                                continue
 
                                                         if s in signaturesoffset:
                                                                 candidateoffsetsfound.add((offset + offsetinfile - signaturesoffset[s], s))
