@@ -52,6 +52,8 @@ signatures = {
               'truetype':       b'\x00\x01\x00\x00',
               'android_backup':      b'ANDROID BACKUP\n',
               'ico':            b'\x00\x00\x01\x00',  # https://en.wikipedia.org/wiki/ICO_%28file_format%29
+              'gnu_message_catalog_le': b'\xde\x12\x04\x95',    # /usr/share/magic
+              'gnu_message_catalog_be': b'\x95\x04\x12\xde',    # /usr/share/magic
              }
 
 ## some signatures do not start at the beginning of the file
@@ -95,6 +97,8 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'truetype': bangunpack.unpackTrueTypeFont,
                         'android_backup': bangunpack.unpackAndroidBackup,
                         'ico': bangunpack.unpackICO,
+                        'gnu_message_catalog_le': bangunpack.unpackGNUMessageCatalog,
+                        'gnu_message_catalog_be': bangunpack.unpackGNUMessageCatalog,
                       }
 
 ## a lookup table to map signatures to a name for

@@ -31,6 +31,7 @@
 ## 21. Android backup files
 ## 22. ICO (MS Windows icons)
 ## 23. Chrome PAK (version 4 & 5, only if offset starts at 0)
+## 24. GNU message catalog
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -5934,3 +5935,153 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
 
         labels.append('binary')
         return (True, endoffile - offset, unpackedfilesandlabels, labels, unpackingerror)
+
+## The on disk format for GNU message catalog files is described here:
+## https://www.gnu.org/software/gettext/manual/gettext.html#index-file-format_002c-_002emo
+##
+## The extension for these files is often '.mo'
+def unpackGNUMessageCatalog(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## header has at least 20 bytes
+        if filesize - offset < 20:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for GNU message catalog header'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        bigendian = False
+
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset)
+        ## first check the header to see if the file is big endian
+        ## or little endian.
+        checkbytes = checkfile.read(4)
+        if checkbytes == b'\x95\x04\x12\xde':
+                bigendian = True
+        unpackedsize += 4
+
+        ## then the version. The "major version" can only be 0 or 1
+        checkbytes = checkfile.read(4)
+        if bigendian:
+                version = int.from_bytes(checkbytes, byteorder='big')
+        else:
+                version = int.from_bytes(checkbytes, byteorder='little')
+        if (version >> 16) > 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unknown GNU message catalog version number'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## then the message count
+        checkbytes = checkfile.read(4)
+        if bigendian:
+                message_count = int.from_bytes(checkbytes, byteorder='big')
+        else:
+                message_count = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        ## followed by the offset of the id of the original strings
+        checkbytes = checkfile.read(4)
+        if bigendian:
+                textoffsets = int.from_bytes(checkbytes, byteorder='big')
+        else:
+                textoffsets = int.from_bytes(checkbytes, byteorder='little')
+
+        ## the offset for the original strings cannot be outside of the file
+        if offset + textoffsets > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for start of original texts'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## followed by the offset of the id of the translations
+        checkbytes = checkfile.read(4)
+        if bigendian:
+                translationoffsets = int.from_bytes(checkbytes, byteorder='big')
+        else:
+                translationoffsets = int.from_bytes(checkbytes, byteorder='little')
+
+        ## the offset for the translations cannot be outside of the file
+        if offset + translationoffsets > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for start of original texts'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        maxoffset = checkfile.tell()
+
+        ## now verify if the locations of the original strings and
+        ## the translations are valid.
+        for i in range(0,message_count):
+                ## Check ids, first the location of the original
+                checkfile.seek(offset+textoffsets+i*8)
+                checkbytes = checkfile.read(8)
+                if len(checkbytes) != 8:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+textoffsets, 'fatal': False, 'reason': 'not enough data for message entry'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                if bigendian:
+                        ## not sure if this is correct
+                        (messagelength, messageoffset) = struct.unpack('>II', checkbytes)
+                else:
+                        (messagelength, messageoffset) = struct.unpack('<II', checkbytes)
+
+                ## end of the original string cannot be outside of the file
+                if offset + messageoffset + messagelength > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+textoffsets, 'fatal': False, 'reason': 'not enough data for message entry'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                maxoffset = max(maxoffset, checkfile.tell(), offset + messageoffset + messagelength)
+
+                ## then the location of the translation
+                checkfile.seek(offset+translationoffsets+i*8)
+                checkbytes = checkfile.read(8)
+                if len(checkbytes) != 8:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+textoffsets, 'fatal': False, 'reason': 'not enough data for message entry'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if bigendian:
+                        (messagelength, messageoffset) = struct.unpack('>II', checkbytes)
+                else:
+                        (messagelength, messageoffset) = struct.unpack('<II', checkbytes)
+
+                ## end of the translated string cannot be outside of the file
+                if offset + messageoffset + messagelength > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+textoffsets, 'fatal': False, 'reason': 'not enough data for message entry'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                checkfile.seek(offset+messageoffset)
+                checkbytes = checkfile.read(messagelength)
+
+                ## is it NUL terminated? If not read an extra byte and check if it is NUL
+                if not checkbytes[-1] == b'\x00':
+                        checkbytes = checkfile.read(1)
+                        if checkbytes != b'\x00':
+                                checkfile.close()
+                                unpackingerror = {'offset': offset+textoffsets, 'fatal': False, 'reason': 'entry not NUL terminated'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                maxoffset = max(maxoffset, checkfile.tell())
+
+        unpackedsize = checkfile.tell() - offset
+
+        ## see if the whole file is a GNU message catalog
+        if offset == 0 and unpackedsize == filesize:
+                checkfile.close()
+                labels.append('binary')
+                labels.append('resource')
+                labels.append('GNU message catalog')
+                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## else carve the file
+        outfilename = os.path.join(unpackdir, "unpacked-from-message-catalog")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, ['binary', 'resource', 'GNU message catalog', 'unpacked']))
+        checkfile.close()
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
