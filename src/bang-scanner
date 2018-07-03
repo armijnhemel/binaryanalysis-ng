@@ -9,13 +9,33 @@
 ## Gets a file and unpacks contents using standard functionality in Python 3
 ## or some custom code and writes the contents to a temporary directory.
 
-import sys, os, struct, multiprocessing, argparse, configparser, datetime
-import tempfile, subprocess, re, hashlib, stat, shutil, string
-import math, pickle, json, copy, queue
+import sys
+import os
+import stat
+import shutil
+import struct
+import argparse
+import configparser
+import datetime
+import tempfile
+import re
+import hashlib
+import string
+import math
+import pickle
+import json
+import copy
+import subprocess
+
+## import modules needed for multiprocessing
+import multiprocessing
+import queue
 
 ## import some module for collecting statistics and information about
 ## the run time environment of the tool, plus of runs.
-import logging, platform, getpass
+import logging
+import platform
+import getpass
 
 ## import the local file with unpacking methods
 import bangunpack
