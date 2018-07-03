@@ -3886,7 +3886,6 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                                                 os.chdir(os.path.dirname(outfilename))
                                                                 os.symlink(symlinktarget, outfilename)
                                                                 os.chdir(olddir)
-                                                                pass
                                                         unpackedfilesandlabels.append((outfilename, ['symbolic link']))
                                                         createfile = False
 
