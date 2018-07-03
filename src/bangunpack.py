@@ -30,6 +30,7 @@
 ## 20. Android sparse data image
 ## 21. Android backup files
 ## 22. ICO (MS Windows icons)
+## 23. Chrome PAK (version 4 & 5, only if offset starts at 0)
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -5752,3 +5753,184 @@ def unpackICO(filename, offset, unpackdir, temporarydirectory):
 
         unpackedfilesandlabels.append((outfilename, ['ico', 'graphics', 'resource', 'unpacked']))
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Chrome PAK
+## http://dev.chromium.org/developers/design-documents/linuxresourcesandlocalizedstrings (version 4)
+## https://chromium.googlesource.com/chromium/src/tools/grit/+/master/grit/format/data_pack.py (version 5)
+def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## minimum for version 4: version + number of resources + encoding +  2 zero bytes + end of last file = 15
+        ## minimum for version 5: version + encoding + 3 padding bytes + number of resources + number of aliases = 12
+        if filesize < 12:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'file too small'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset)
+
+        ## first the version number
+        checkbytes = checkfile.read(4)
+        pakversion = int.from_bytes(checkbytes, byteorder='little')
+        if pakversion != 4 and pakversion != 5:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'unsupported .pak version (can only process version 4 or 5)'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        if pakversion == 4:
+                ## then the number of resources in the file
+                checkbytes = checkfile.read(4)
+                paknumberofresources = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += 4
+
+                ## then the encoding
+                checkbytes = checkfile.read(1)
+                pakencoding = ord(checkbytes)
+                unpackedsize += 1
+
+                ## then all the resources
+                for p in range(0, paknumberofresources):
+                        ## resource id
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for resource id'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        unpackedsize += 2
+
+                        checkbytes = checkfile.read(4)
+                        if len(checkbytes) != 4:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for resource offset'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        resourceoffset = int.from_bytes(checkbytes, byteorder='little')
+                        if resourceoffset + offset > filesize:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'resource offset outside file'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        unpackedsize += 4
+
+                ## two zero bytes
+                checkbytes = checkfile.read(2)
+                if len(checkbytes) != 2:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for zero bytes'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if checkbytes != b'\x00\x00':
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'incorrect value for zero bytes'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 2
+
+                ## the "end of file" value
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for end of file'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                endoffile = int.from_bytes(checkbytes, byteorder='little')
+
+                if endoffile + offset > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'end of file cannot be outside of file'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        elif pakversion == 5:
+                ## read the encoding
+                checkbytes = checkfile.read(1)
+                pakencoding = ord(checkbytes)
+                unpackedsize += 1
+
+                ## skip three bytes
+                checkfile.seek(3, os.SEEK_CUR)
+                unpackedsize += 3
+
+                ## then the number of resources
+                checkbytes = checkfile.read(2)
+                paknumberofresources = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += 2
+
+                ## then the number of aliases
+                checkbytes = checkfile.read(2)
+                paknumberofaliases = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += 2
+
+                ## then all the resources
+                for p in range(0, paknumberofresources):
+                        ## resource id
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for resource id'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        unpackedsize += 2
+
+                        checkbytes = checkfile.read(4)
+                        if len(checkbytes) != 4:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for resource offset'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        resourceoffset = int.from_bytes(checkbytes, byteorder='little')
+                        if resourceoffset + offset > filesize:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'resource offset outside file'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        unpackedsize += 4
+
+                ## extra entry at the end with the end of file
+                checkbytes = checkfile.read(2)
+                if len(checkbytes) != 2:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for resource id'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 2
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for end of file'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                endoffile = int.from_bytes(checkbytes, byteorder='little')
+
+                ## then all the aliases
+                for p in range(0, paknumberofaliases):
+                        ## resource id
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for resource id'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        unpackedsize += 2
+
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for resource offset'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        aliasresourceoffset = int.from_bytes(checkbytes, byteorder='little')
+                        if aliasresourceoffset + offset > filesize:
+                                checkfile.close()
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'resource offset outside file'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        unpackedsize += 4
+
+        if endoffile + offset == filesize:
+                checkfile.close()
+                labels.append('binary')
+                labels.append('resource')
+                labels.append('pak')
+                return (True, endoffile - offset, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## else carve the file
+        outfilename = os.path.join(unpackdir, "unpacked-from-pak")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, endoffile - offset)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, ['binary', 'resource', 'pak', 'unpacked']))
+        checkfile.close()
+
+        labels.append('binary')
+        return (True, endoffile - offset, unpackedfilesandlabels, labels, unpackingerror)

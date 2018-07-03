@@ -117,11 +117,13 @@ signatureprettyprint = { 'lzma_var1': 'lzma',
 ## These extensions should be lower case
 extensiontofunction = { '.swp': bangunpack.unpackVimSwapfile,
                         '.new.dat': bangunpack.unpackAndroidSparseData,
+                        '.pak': bangunpack.unpackChromePak,
                       }
 
 
 extensionprettyprint = { '.swp': 'vimswapfile',
                          '.new.dat': 'androidsparsedata',
+                         '.pak': 'pak',
                        }
 
 ## store the maximum look ahead window. This is unlikely to matter, but
