@@ -76,6 +76,7 @@ signatures = {
               'gnu_message_catalog_be': b'\x95\x04\x12\xde',    # /usr/share/magic
               'cab':                  b'MSCF\x00\x00\x00\x00',    # /usr/share/magic
               'sgi':            b'\x01\xda',         # https://media.xiph.org/svt/SGIIMAGESPEC
+              'aiff':           b'FORM',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -123,6 +124,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'gnu_message_catalog_be': bangunpack.unpackGNUMessageCatalog,
                         'cab': bangunpack.unpackCab,
                         'sgi': bangunpack.unpackSGI,
+                        'aiff': bangunpack.unpackAIFF,
                       }
 
 ## a lookup table to map signatures to a name for
