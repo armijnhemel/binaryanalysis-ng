@@ -41,6 +41,7 @@
 ##  4. BMP (needs netpbm-progs)
 ##  5. GIF (needs PIL)
 ##  6. JPEG (needs PIL)
+##  7. Microsoft Cabinet archives (requires cabextract)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -6097,4 +6098,85 @@ def unpackGNUMessageCatalog(filename, offset, unpackdir, temporarydirectory):
         outfile.close()
         unpackedfilesandlabels.append((outfilename, ['binary', 'resource', 'GNU message catalog', 'unpacked']))
         checkfile.close()
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## https://en.wikipedia.org/wiki/Cabinet_(file_format)
+##
+## Microsoft has documented the file format here:
+##
+## https://msdn.microsoft.com/en-us/library/bb267310.aspx#struct_spec
+##
+## but is currently not under the open specification promise
+def unpackCab(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## there are 33 bytes for all mandatory cab headers
+        if filesize < 33:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## open the file and skip the magic and reserved field
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset+8)
+        unpackedsize += 8
+
+        ## check the filesize
+        checkbytes = checkfile.read(4)
+        cabinetsize = int.from_bytes(checkbytes, byteorder='little')
+        if cabinetsize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'defined cabinet size larger than file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        if shutil.which('cabextract') == None:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cabextract program not found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        havetmpfile = False
+        if not (offset == 0 and filesize == cabinetsize):
+                temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+                os.sendfile(temporaryfile[0], checkfile.fileno(), offset, cabinetsize)
+                os.fdopen(temporaryfile[0]).close()
+                havetmpfile = True
+
+        checkfile.close()
+        if havetmpfile:
+                p = subprocess.Popen(['cabextract', '-d', unpackdir, temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+                p = subprocess.Popen(['cabextract', '-d', unpackdir, filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        (outputmsg, errormsg) = p.communicate()
+        if p.returncode != 0:
+                if havetmpfile:
+                        os.unlink(temporaryfile[1])
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid cab file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        checkfile.close()
+
+        unpackedsize = cabinetsize - offset
+
+        dirwalk = os.walk(unpackdir)
+        for direntries in dirwalk:
+                ## make sure all subdirectories and files can be accessed
+                for subdir in direntries[1]:
+                        subdirname = os.path.join(direntries[0], subdir)
+                        if not os.path.islink(subdirname):
+                                os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                for filename in direntries[2]:
+                        fullfilename = os.path.join(direntries[0], filename)
+                        unpackedfilesandlabels.append((fullfilename, []))
+
+        if not havetmpfile:
+                labels.append('cab')
+                labels.append('archive')
+
+        ## cleanup
+        if havetmpfile:
+                os.unlink(temporaryfile[1])
+
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
