@@ -75,6 +75,7 @@ signatures = {
               'gnu_message_catalog_le': b'\xde\x12\x04\x95',    # /usr/share/magic
               'gnu_message_catalog_be': b'\x95\x04\x12\xde',    # /usr/share/magic
               'cab':                  b'MSCF\x00\x00\x00\x00',    # /usr/share/magic
+              'sgi':            b'\x01\xda',         # https://media.xiph.org/svt/SGIIMAGESPEC
              }
 
 ## some signatures do not start at the beginning of the file
@@ -121,6 +122,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'gnu_message_catalog_le': bangunpack.unpackGNUMessageCatalog,
                         'gnu_message_catalog_be': bangunpack.unpackGNUMessageCatalog,
                         'cab': bangunpack.unpackCab,
+                        'sgi': bangunpack.unpackSGI,
                       }
 
 ## a lookup table to map signatures to a name for
@@ -484,6 +486,20 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                                                 continue
                                                                         if (gzipbyte >> 7 & 1) == 1:
                                                                                 ## reserved
+                                                                                continue
+                                                        elif s == 'sgi':
+                                                                ## header of SGI files is 512 bytes
+                                                                if filesize - (offset + offsetinfile) < 512:
+                                                                        continue
+                                                                if len(scanbytes) - offset >= 3:
+                                                                        ## storage format
+                                                                        if not (scanbytes[offset+2] == 0 or scanbytes[offset+2] == 1):
+                                                                                continue
+                                                                        ## BPC
+                                                                        if not (scanbytes[offset+3] == 1 or scanbytes[offset+3] == 2):
+                                                                                continue
+                                                                        ## dummy values, last 404 bytes of the header are 0x00
+                                                                        if not scanbytes[offset+108:offset+512] == b'\x00' * 404:
                                                                                 continue
                                                         elif s == 'ico':
                                                                 ## check the number of images
