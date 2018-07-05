@@ -77,6 +77,7 @@ signatures = {
               'cab':                  b'MSCF\x00\x00\x00\x00',    # /usr/share/magic
               'sgi':            b'\x01\xda',         # https://media.xiph.org/svt/SGIIMAGESPEC
               'aiff':           b'FORM',
+              'terminfo':       b'\x1a\x01',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -125,6 +126,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'cab': bangunpack.unpackCab,
                         'sgi': bangunpack.unpackSGI,
                         'aiff': bangunpack.unpackAIFF,
+                        'terminfo': bangunpack.unpackTerminfo,
                       }
 
 ## a lookup table to map signatures to a name for
