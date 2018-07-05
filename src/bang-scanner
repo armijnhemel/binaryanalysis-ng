@@ -427,6 +427,10 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                         ##
                                                         ## * LZMA
                                                         ## * bzip2
+                                                        ## * gzip
+                                                        ## * SGI images
+                                                        ## * ICO
+                                                        ## * PNG
                                                         if s in ['lzma_var1', 'lzma_var2', 'lzma_var3']:
                                                                 ## header of LZMA files is 13 bytes
                                                                 if filesize - (offset + offsetinfile) < 13:
