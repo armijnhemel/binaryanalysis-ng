@@ -78,6 +78,7 @@ signatures = {
               'sgi':            b'\x01\xda',         # https://media.xiph.org/svt/SGIIMAGESPEC
               'aiff':           b'FORM',
               'terminfo':       b'\x1a\x01',
+              'rzip':           b'RZIP',             # /usr/share/magic
              }
 
 ## some signatures do not start at the beginning of the file
@@ -127,6 +128,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'sgi': bangunpack.unpackSGI,
                         'aiff': bangunpack.unpackAIFF,
                         'terminfo': bangunpack.unpackTerminfo,
+                        'rzip': bangunpack.unpackRzip,
                       }
 
 ## a lookup table to map signatures to a name for
