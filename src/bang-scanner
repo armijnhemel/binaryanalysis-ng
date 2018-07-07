@@ -433,6 +433,7 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                         ## * SGI images
                                                         ## * ICO
                                                         ## * PNG
+                                                        ## * TrueType and OpenType fonts
                                                         if s in ['lzma_var1', 'lzma_var2', 'lzma_var3']:
                                                                 ## header of LZMA files is 13 bytes
                                                                 if filesize - (offset + offsetinfile) < 13:
@@ -542,6 +543,20 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                                         ## bytes 8 - 11 are always the same in every PNG
                                                                         if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x0d':
                                                                                 continue
+
+                                                        elif s == 'truetype' or s == 'opentype':
+                                                                if filesize - (offsetinfile + offset) < 12:
+                                                                        continue
+                                                                ## two simple sanity checks: number of tables and search range
+                                                                numtables = int.from_bytes(scanbytes[offset+4:offset+6], byteorder='big')
+
+                                                                if numtables == 0:
+                                                                        continue
+
+                                                                ## then the search range
+                                                                searchrange = int.from_bytes(scanbytes[offset+6:offset+8], byteorder='big')
+                                                                if pow(2, int(math.log2(numtables)))*16 != searchrange:
+                                                                        continue
 
                                                         ## default
                                                         if s in signaturesoffset:
