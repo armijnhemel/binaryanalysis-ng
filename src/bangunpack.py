@@ -37,6 +37,7 @@
 ## 27. terminfo (little endian, including ncurses extension, does not
 ##     recognize some wide character versions)
 ## 28. RZIP
+## 29. AU (Sun/NeXT audio)
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
