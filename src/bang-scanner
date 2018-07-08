@@ -430,6 +430,7 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                         ## * LZMA
                                                         ## * bzip2
                                                         ## * gzip
+                                                        ## * BMP
                                                         ## * SGI images
                                                         ## * ICO
                                                         ## * PNG
@@ -497,6 +498,14 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                                                 continue
                                                                         if (gzipbyte >> 7 & 1) == 1:
                                                                                 ## reserved
+                                                                                continue
+                                                        elif s == 'bmp':
+                                                                ## header of BMP files is 26 bytes
+                                                                if filesize - (offset + offsetinfile) < 26:
+                                                                        continue
+                                                                if len(scanbytes) - offset >= 6:
+                                                                        bmpsize = int.from_bytes(scanbytes[offset+2:offset+6], byteorder='little')
+                                                                        if offsetinfile + offset + bmpsize > filesize:
                                                                                 continue
                                                         elif s == 'sgi':
                                                                 ## header of SGI files is 512 bytes
