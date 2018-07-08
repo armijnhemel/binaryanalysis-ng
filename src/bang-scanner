@@ -79,6 +79,7 @@ signatures = {
               'aiff':           b'FORM',
               'terminfo':       b'\x1a\x01',
               'rzip':           b'RZIP',             # /usr/share/magic
+              'au':             b'.snd',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -129,6 +130,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'aiff': bangunpack.unpackAIFF,
                         'terminfo': bangunpack.unpackTerminfo,
                         'rzip': bangunpack.unpackRzip,
+                        'au': bangunpack.unpackAU,
                       }
 
 ## a lookup table to map signatures to a name for

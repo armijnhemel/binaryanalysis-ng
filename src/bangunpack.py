@@ -6857,3 +6857,93 @@ def unpackRzip(filename, offset, unpackdir, temporarydirectory):
                 unpackedfilesandlabels.append((outfilename, []))
 
                 return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Derived from specifications at:
+## https://en.wikipedia.org/wiki/Au_file_format
+##
+## Test files in any recent Python 3 distribution in Lib/test/audiodata/
+def unpackAU(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+
+        if filesize - offset < 24:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'Too small for AU file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize = 0
+        checkfile = open(filename, 'rb')
+
+        ## skip over the header
+        checkfile.seek(offset+4)
+        checkbytes = checkfile.read(4)
+        dataoffset = int.from_bytes(checkbytes, byteorder='big')
+        if dataoffset % 8 != 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'data offset not divisible by 8'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if offset + dataoffset > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'data offset cannot be outside of file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 8
+
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        ## only support files that have the data size embedded in the header
+        if checkbytes != '\xff\xff\xff\xff':
+                datasize = int.from_bytes(checkbytes, byteorder='big')
+
+                ## According to Wikipedia and the OpenGroup just a limited number
+                ## of encodings are in use
+                checkbytes = checkfile.read(4)
+                encoding = int.from_bytes(checkbytes, byteorder='big')
+                if not encoding in set([1,2,3,4,5,6,7,8,9,10,11,12,13,18,19,20,21,23,24,25,26,27]):
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong encoding value'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 4
+
+                ## skip over sample rate
+                checkbytes = checkfile.read(4)
+                unpackedsize += 4
+
+                ## skip over channels
+                checkbytes = checkfile.read(4)
+                unpackedsize += 4
+
+                ## there is an optional information chunk, ignore for now
+                ## the data offset has to follow the header
+                if dataoffset < checkfile.tell() - offset:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'data offset cannot start inside header'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                checkfile.seek(offset + dataoffset)
+                unpackedsize = dataoffset
+
+                ## there has to be enough data for the audio
+                if offset + dataoffset + datasize > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'AU data cannot be outside of file'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+                ## finally the data, just skip over it
+                unpackedsize += datasize
+                if offset == 0 and unpackedsize == filesize:
+                        checkfile.close()
+                        labels += ['audio', 'au']
+                        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                ## else carve the file. It is anonymous, so give it a name
+                outfilename = os.path.join(unpackdir, "unpacked-au")
+                outfile = open(outfilename, 'wb')
+                os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+                outfile.close()
+                checkfile.close()
+                unpackedfilesandlabels.append((outfilename, ['audio', 'au', 'unpacked']))
+                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Cannot determine size for AU file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
