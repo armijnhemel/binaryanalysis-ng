@@ -2000,11 +2000,6 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                 checkbytes = checkfile.read(2)
                                 extrafieldlength = int.from_bytes(checkbytes, byteorder='little')
                                 unpackedsize += 2
-                                if extrafieldlength != 0:
-                                        if extrafieldlength < 4:
-                                                checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for extra field in central directory'}
-                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
                                 ## read the file comment length
                                 checkbytes = checkfile.read(2)
@@ -2185,6 +2180,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                         encrypted = True
 
                 datadescriptor = False
+
                 ## see if there is a data descriptor for regular files (this
                 ## won't be set for directories)
                 if generalbitflag & 0x08 == 0x08:
@@ -2243,19 +2239,16 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 unpackedsize += 2
 
                 ## and the extra field length (section 4.4.11)
+                ## There does not necessarily have to be any useful data in
+                ## the extra field.
                 checkbytes = checkfile.read(2)
                 if len(checkbytes) != 2:
                         checkfile.close()
                         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for extra field length in local file header'}
                         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
                 extrafieldlength = int.from_bytes(checkbytes, byteorder='little')
+
                 unpackedsize += 2
-                if extrafieldlength != 0:
-                        ## The extra fields are at least 4 bytes (section 4.5.1)
-                        if extrafieldlength < 4:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for extra field'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
                 localfilename = checkfile.read(filenamelength)
                 if len(localfilename) != filenamelength:
@@ -2268,12 +2261,20 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 ## then check the extra field. The most important is to check for any
                 ## ZIP64 extension, as it contains updated values for the compressed
                 ## size and uncompressed size (section 4.5)
-                if extrafieldlength != 0:
+                if extrafieldlength > 0:
                         extrafields = checkfile.read(extrafieldlength)
+                if extrafieldlength > 4:
                         extrafieldcounter = 0
                         while extrafieldcounter + 4 < extrafieldlength:
                                 ## section 4.6.1
                                 extrafieldheaderid = int.from_bytes(extrafields[extrafieldcounter:extrafieldcounter+2], byteorder='little')
+
+                                ## often found in the first entry in JAR files and
+                                ## Android APK files, but not mandatory.
+                                ## http://hg.openjdk.java.net/jdk7/jdk7/jdk/file/00cd9dc3c2b5/src/share/classes/java/util/jar/JarOutputStream.java#l46
+                                if extrafieldheaderid == 0xcafe:
+                                        pass
+
                                 extrafieldheaderlength = int.from_bytes(extrafields[extrafieldcounter+2:extrafieldcounter+4], byteorder='little')
                                 extrafieldcounter += 4
                                 if checkfile.tell() + extrafieldheaderlength > filesize:
@@ -2312,6 +2313,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 ddsearched = False
 
                 if not localfilename.endswith(b'/') and compressedsize == 0:
+                        datastart = checkfile.tell()
                         ## in case the length is not known it is very difficult
                         ## to see where the data ends so it is needed to search for
                         ## a signature. This can either be:
@@ -2322,39 +2324,101 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                 curpos = checkfile.tell()
                                 tmppos = -1
                                 checkbytes = checkfile.read(50000)
+                                newcurpos = checkfile.tell()
                                 if checkbytes == b'':
                                         break
                                 if datadescriptor:
                                         ddpos = checkbytes.find(b'PK\x07\x08')
                                         if ddpos != -1:
-                                                if tmppos == -1:
-                                                      tmppos = ddpos
                                                 ddsearched = True
                                                 ddfound = True
+                                                ## sanity check
+                                                checkfile.seek(curpos + ddpos + 8)
+                                                tmpcompressedsize = int.from_bytes(checkfile.read(4), byteorder='little')
+                                                if curpos + ddpos - datastart == tmpcompressedsize:
+                                                        tmppos = ddpos
                                 localheaderpos = checkbytes.find(b'PK\x03\x04')
                                 if localheaderpos != -1:
-                                        if tmppos == -1:
-                                                tmppos = localheaderpos
+                                        ## In case the file that is stored is an empty
+                                        ## file, then there will be no data descriptor field
+                                        ## so just continue as normal.
+                                        if curpos + localheaderpos == datastart:
+                                                checkfile.seek(curpos)
+                                                break
+
+                                        ## if there is a data descriptor, then the 12
+                                        ## bytes preceding the next header are:
+                                        ## * crc32
+                                        ## * compressed size
+                                        ## * uncompressed size
+                                        ## section 4.3.9
+                                        if datadescriptor:
+                                                if curpos + localheaderpos - datastart > 12:
+                                                        checkfile.seek(curpos + localheaderpos - 8)
+                                                        tmpcompressedsize = int.from_bytes(checkfile.read(4), byteorder='little')
+                                                        ## and return to the original position
+                                                        checkfile.seek(newcurpos)
+                                                        if curpos + localheaderpos - datastart == tmpcompressedsize + 16:
+                                                                if tmppos == -1:
+                                                                        tmppos = localheaderpos
+                                                                else:
+                                                                        tmppos = min(localheaderpos, tmppos)
                                         else:
-                                                tmppos = min(localheaderpos, tmppos)
+                                                if tmppos == -1:
+                                                        tmppos = localheaderpos
+                                                else:
+                                                        tmppos = min(localheaderpos, tmppos)
+                                        checkfile.seek(newcurpos)
                                 centraldirpos = checkbytes.find(b'PK\x01\x02')
                                 if centraldirpos != -1:
-                                        oldtmppos = tmppos
-                                        if tmppos == -1:
-                                                tmppos = centraldirpos
+                                        ## In case the file that is stored is an empty
+                                        ## file, then there will be no data descriptor field
+                                        ## so just continue as normal.
+                                        if curpos + centraldirpos == datastart:
+                                                checkfile.seek(curpos)
+                                                break
+
+                                        ## if there is a data descriptor, then the 12
+                                        ## bytes preceding the next header are:
+                                        ## * crc32
+                                        ## * compressed size
+                                        ## * uncompressed size
+                                        ## section 4.3.9
+                                        if datadescriptor:
+                                                if curpos + centraldirpos - datastart > 12:
+                                                        checkfile.seek(curpos + centraldirpos - 8)
+                                                        tmpcompressedsize = int.from_bytes(checkfile.read(4), byteorder='little')
+                                                        ## and return to the original position
+                                                        checkfile.seek(newcurpos)
+                                                        if curpos + centraldirpos - datastart == tmpcompressedsize + 16:
+                                                                if tmppos == -1:
+                                                                        tmppos = centraldirpos
+                                                                else:
+                                                                        tmppos = min(centraldirpos, tmppos)
                                         else:
-                                                tmppos = min(centraldirpos, tmppos)
+                                                if tmppos == -1:
+                                                        tmppos = centraldirpos
+                                                else:
+                                                        tmppos = min(centraldirpos, tmppos)
+
+                                        checkfile.seek(newcurpos)
+
+                                        oldtmppos = tmppos
                                         ## extra sanity check: see if the
-                                        ## file name is known
+                                        ## file names are the same
                                         origpos = checkfile.tell()
                                         checkfile.seek(curpos + tmppos + 42)
                                         checkfn = checkfile.read(filenamelength)
-                                        if not checkfn in localfiles:
+                                        if localfilename != checkfn:
                                                 tmppos = oldtmppos
                                         checkfile.seek(origpos)
                                 if tmppos != -1:
+                                        indatasearch = True
+                                        datasearchreturnpos = curpos + tmppos + 1
+
                                         checkfile.seek(curpos + tmppos)
                                         break
+
                                 ## have a small overlap the size of a possible header
                                 checkfile.seek(-4, os.SEEK_CUR)
                 else:
@@ -2406,7 +2470,6 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'mismatch between names in local file headers and central directory'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
 
         unpackedsize = checkfile.tell() - offset
         if not encrypted:
