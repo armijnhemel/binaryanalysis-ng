@@ -2164,7 +2164,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                                 checkfile.close()
                                                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong magic for Android signing block'}
                                                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                        unpackedsize += androidsigningsize)
+                                        unpackedsize += androidsigningsize
                                 else:
                                         break
                         continue
