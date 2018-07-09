@@ -1943,6 +1943,10 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
         inlocal = True
         seenzip64endofcentraldir = False
 
+        ## store if there is an Android signing block:
+        ## https://source.android.com/security/apksigning/v2
+        androidsigning = False
+
         ## store the local file names to check if they appear in the
         ## central directory in the same order (optional)
         localfiles = []
@@ -1958,7 +1962,8 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ZIP entry header'}
                         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-                ## process everything that is not a local file header
+                ## process everything that is not a local file header, but either
+                ## a ZIP header or an Android signing signature.
                 if checkbytes != b'\x50\x4b\x03\x04':
                         inlocal = False
                         unpackedsize += 4
@@ -2130,7 +2135,38 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
                                 checkfile.seek(12,os.SEEK_CUR)
                         else:
-                                break
+                                ## then check to see if this is possibly an Android
+                                ## signing block
+                                ## https://source.android.com/security/apksigning/v2
+                                if androidsigning:
+                                        ## first go back four bytes
+                                        checkfile.seek(-4, os.SEEK_CUR)
+                                        unpackedsize -= 8
+
+                                        ## then read 8 bytes for the APK signing block size
+                                        checkbytes = checkfile.read(8)
+                                        if len(checkbytes) != 8:
+                                                checkfile.close()
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for Android signing block'}
+                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                        unpackedsize += 8
+                                        androidsigningsize = int.from_bytes(checkbytes, byteorder='little')
+                                        if checkfile.tell() + androidsigningsize > filesize:
+                                                checkfile.close()
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for Android signing block'}
+                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                                        ## then skip over the signing block, except the last 16 bytes
+                                        ## to have an extra sanity check
+                                        checkfile.seek(androidsigningsize - 16, os.SEEK_CUR)
+                                        checkbytes = checkfile.read(16)
+                                        if checkbytes != b'APK Sig Block 42':
+                                                checkfile.close()
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong magic for Android signing block'}
+                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                        unpackedsize += androidsigningsize)
+                                else:
+                                        break
                         continue
 
                 ## continue with the local file headers instead
@@ -2181,8 +2217,8 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
 
                 datadescriptor = False
 
-                ## see if there is a data descriptor for regular files (this
-                ## won't be set for directories)
+                ## see if there is a data descriptor for regular files in the general
+                ## purpose bit flag (this won't be set for directories)
                 if generalbitflag & 0x08 == 0x08:
                         datadescriptor = True
 
@@ -2338,7 +2374,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                                 if curpos + ddpos - datastart == tmpcompressedsize:
                                                         tmppos = ddpos
                                 localheaderpos = checkbytes.find(b'PK\x03\x04')
-                                if localheaderpos != -1:
+                                if localheaderpos != -1 and (localheaderpos < tmppos or tmppos == -1):
                                         ## In case the file that is stored is an empty
                                         ## file, then there will be no data descriptor field
                                         ## so just continue as normal.
@@ -2395,6 +2431,14 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                                                         tmppos = centraldirpos
                                                                 else:
                                                                         tmppos = min(centraldirpos, tmppos)
+                                                        else:
+                                                                if curpos + centraldirpos - datastart > 16:
+                                                                        checkfile.seek(curpos + centraldirpos - 16)
+                                                                        tmpbytes = checkfile.read(16)
+                                                                        if tmpbytes == b'APK Sig Block 42':
+                                                                                androidsigning = True
+                                                                        ## and (again) return to the original position
+                                                                        checkfile.seek(newcurpos)
                                         else:
                                                 if tmppos == -1:
                                                         tmppos = centraldirpos
@@ -2413,9 +2457,6 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                                 tmppos = oldtmppos
                                         checkfile.seek(origpos)
                                 if tmppos != -1:
-                                        indatasearch = True
-                                        datasearchreturnpos = curpos + tmppos + 1
-
                                         checkfile.seek(curpos + tmppos)
                                         break
 
