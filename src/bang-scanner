@@ -80,6 +80,8 @@ signatures = {
               'terminfo':       b'\x1a\x01',
               'rzip':           b'RZIP',             # /usr/share/magic
               'au':             b'.snd',
+              'jffs2_little_endian':  b'\x85\x19',          # /usr/share/magic
+              'jffs2_big_endian':     b'\x19\x85',          # /usr/share/magic
              }
 
 ## some signatures do not start at the beginning of the file
@@ -131,6 +133,8 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'terminfo': bangunpack.unpackTerminfo,
                         'rzip': bangunpack.unpackRzip,
                         'au': bangunpack.unpackAU,
+                        'jffs2_little_endian': bangunpack.unpackJFFS2,
+                        'jffs2_big_endian': bangunpack.unpackJFFS2,
                       }
 
 ## a lookup table to map signatures to a name for
@@ -144,6 +148,8 @@ signatureprettyprint = { 'lzma_var1': 'lzma',
                          'squashfs_var2': 'squashfs',
                          'gif87': 'gif',
                          'gif89': 'gif',
+                         'jffs2_little_endian': 'jffs2',
+                         'jffs2_big_endian': 'jffs2',
                        }
 
 ## extensions to unpacking functions. This should only be
