@@ -23,7 +23,7 @@
 ## 13. XAR
 ## 14. ISO9660 (including RockRidge and zisofs)
 ## 15. lzip
-## 16. WOFF
+## 16. WOFF (Web Open Font Format)
 ## 17. TrueType fonts
 ## 18. OpenType fonts
 ## 19. Vim swap files (whole file only)
@@ -36,9 +36,8 @@
 ## 26. AIFF/AIFF-C
 ## 27. terminfo (little endian, including ncurses extension, does not
 ##     recognize some wide character versions)
-## 28. RZIP
-## 29. AU (Sun/NeXT audio)
-## 30. JFFS (uncompressed, zlib, LZMA from OpenWrt)
+## 28. AU (Sun/NeXT audio)
+## 29. JFFS (uncompressed, zlib, LZMA from OpenWrt)
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -49,6 +48,7 @@
 ##  5. GIF (needs PIL)
 ##  6. JPEG (needs PIL)
 ##  7. Microsoft Cabinet archives (requires cabextract)
+##  8. RZIP (requires rzip)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
