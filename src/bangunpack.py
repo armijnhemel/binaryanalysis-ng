@@ -38,6 +38,7 @@
 ##     recognize some wide character versions)
 ## 28. AU (Sun/NeXT audio)
 ## 29. JFFS (uncompressed, zlib, LZMA from OpenWrt)
+## 30. CPIO (various flavours, little endian)
 ##
 ## Unpackers needing external Python libraries or other tools
 ##
@@ -7570,4 +7571,992 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
         if offset == 0 and filesize == unpackedsize:
                 labels.append('jffs2')
                 labels.append('file system')
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## An unpacker for various CPIO flavours.
+## A description of the CPIO format can be found in section 5 of the
+## cpio manpage on Linux:
+## man 5 cpio
+##
+## This unpacker allows partial unpacking of (corrupt) cpio archives
+## TODO: make partial unpacking optional
+## TODO: return better errors
+##
+## Some CPIO files, such as made on Solaris, that pack special
+## device files such as doors and event ports, might fail to
+## unpack on Linux.
+## See https://bugs.python.org/issue11016 for background information
+## about event ports, doors and whiteout files.
+def unpackCpio(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        encodingstotranslate = [ 'utf-8','ascii','latin-1','euc_jp', 'euc_jis_2004'
+                               , 'jisx0213', 'iso2022_jp', 'iso2022_jp_1', 'iso2022_jp_2'
+                               , 'iso2022_jp_2004', 'iso2022_jp_3', 'iso2022_jp_ext'
+                               , 'iso2022_kr','shift_jis','shift_jis_2004'
+                               , 'shift_jisx0213']
+
+        ## old binary format has a 26 byte header
+        ## portable ASCII format has a 76 byte header
+        ## new formats have a 110 byte header
+        if filesize - offset < 26:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for header'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset)
+
+        dataunpacked = False
+        trailerfound = False
+
+        ## chunksize for reading data for checksum
+        chunksize = 1024*1024
+
+        ## keep track of devices and inodes to properly process
+        ## hard links
+        devinodes = {}
+        counter = 0
+
+        ## now process each entry inside the CPIO file
+        ## store the CPIO type and use it as an extra check
+        ## as a CPIO file can only have one CPIO type. For
+        ## extreme weird edge cases this can be disabled.
+        cpiotype = None
+        stricttypecheck = True
+
+        ## keep track of where the latest successful
+        ## offset where data was unpacked was, since
+        ## it might be necessary to rewind in case data could
+        ## only be unpacked partially.
+        latestsuccessfuloffset = -1
+
+        while checkfile.tell() < filesize:
+                checkbytes = checkfile.read(6)
+                if len(checkbytes) != 6:
+                        break
+
+                if cpiotype == None:
+                        if not checkbytes.startswith(b'\xc7\x71'):
+                                cpiotype = checkbytes
+                        else:
+                                cpiotype = checkbytes[0:2]
+                elif stricttypecheck and cpiotype != checkbytes:
+                        if not checkbytes.startswith(b'\xc7\x71'):
+                                break
+
+                isdevice = False
+                possibletrailer = False
+
+                ## the header is a bit different based on the type
+                ## 070707 == portable ASCII format
+                ## 070701 == new ASCII format
+                ## 070702 == new CRC format
+                ## 0xc771 == old binary format, only little endian supported
+                if cpiotype.startswith(b'\xc7\x71'):
+                        ## first rewind 4 bytes
+                        checkfile.seek(-4, os.SEEK_CUR)
+                        unpackedsize += 2
+
+                        ## dev
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                break
+                        try:
+                                dev = int.from_bytes(checkbytes, byteorder='little')
+                        except:
+                                break
+                        unpackedsize += 2
+
+                        ## inode
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                break
+                        try:
+                                inode = int.from_bytes(checkbytes, byteorder='little')
+                        except:
+                                break
+                        ## every file, even special files, have an
+                        ## associated inode
+                        if inode == 0:
+                                possibletrailer = True
+                        unpackedsize += 2
+
+                        ## mode
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                break
+                        try:
+                                cpiomode = int.from_bytes(checkbytes, byteorder='little')
+                        except:
+                                break
+                        if not possibletrailer:
+                                if cpiomode == 0:
+                                        break
+                                ## only support whatever is defined in the CPIO man page
+                                if cpiomode < 0o0010000:
+                                        break
+
+                                ## some checks to filter out false positives
+                                modes = set()
+
+                                isdir = False
+                                if stat.S_ISDIR(cpiomode):
+                                        isdir = True
+                                modes.add(isdir)
+
+                                isfile = False
+                                if stat.S_ISREG(cpiomode):
+                                        if True in modes:
+                                                break
+                                        isfile = True
+                                modes.add(isfile)
+
+                                islink = False
+                                if stat.S_ISLNK(cpiomode):
+                                        if True in modes:
+                                                break
+                                        islink = True
+                                modes.add(islink)
+
+                                isdevice = False
+                                if (stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode)):
+                                        if True in modes:
+                                                break
+                                        isdevice = True
+                                modes.add(isdevice)
+
+                                isfifo = False
+                                if stat.S_ISFIFO(cpiomode):
+                                        if True in modes:
+                                                break
+                                        isfifo = True
+
+                                modes.add(isfifo)
+                                issocket = False
+                                if stat.S_ISSOCK(cpiomode):
+                                        if True in modes:
+                                                break
+                                        issocket = True
+                                modes.add(issocket)
+
+                                if not True in modes:
+                                        break
+
+                        unpackedsize += 2
+
+                        ## uid
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                break
+                        unpackedsize += 2
+
+                        ## gid
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                break
+                        unpackedsize += 2
+
+                        ## number of links
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                break
+                        try:
+                                nr_of_links = int.from_bytes(checkbytes, byteorder='little')
+                        except:
+                                break
+                        unpackedsize += 2
+
+                        ## there should always be at least 1 link
+                        if nr_of_links == 0 and not possibletrailer:
+                                break
+
+                        ## there should always be at least 2 links for directories
+                        if stat.S_ISDIR(cpiomode) and nr_of_links < 2 and not possibletrailer:
+                                break
+
+                        ## rdev
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                break
+                        try:
+                                rdev = int.from_bytes(checkbytes, byteorder='little')
+                        except:
+                                break
+                        ## "For all other entry types, it should be set to zero by writers and ignored by readers."
+                        #if rdev != 0:
+                        #        isdevice = True
+                        unpackedsize += 2
+
+                        ## mtime
+                        checkbytes = checkfile.read(4)
+                        if len(checkbytes) != 4:
+                                break
+                        unpackedsize += 4
+
+                        ## name size
+                        checkbytes = checkfile.read(2)
+                        if len(checkbytes) != 2:
+                                break
+                        try:
+                                namesize = int.from_bytes(checkbytes, byteorder='little')
+                        except:
+                                break
+                        ## not possible to have an empty name
+                        if namesize == 0:
+                                break
+                        unpackedsize += 2
+
+                        ## file size. This is a bit trickier, as it is not one
+                        ## integer, but two shorts, with the most significant
+                        ## first.
+                        checkbytes = checkfile.read(4)
+                        if len(checkbytes) != 4:
+                                break
+                        cpiodatasize = int.from_bytes(checkbytes[0:2], byteorder='little') * 65536
+                        cpiodatasize += int.from_bytes(checkbytes[2:4], byteorder='little')
+                        unpackedsize += 4
+
+                        ## data cannot be outside of the file
+                        if (offset + cpiodatasize + namesize) > filesize:
+                                break
+
+                        ## then read the file name
+                        checkbytes = checkfile.read(namesize)
+                        if len(checkbytes) != namesize:
+                                break
+                        if checkbytes == b'TRAILER!!!\x00':
+                                unpackedsize += namesize
+                                trailerfound = True
+
+                                ## if necessary add a padding byte
+                                if unpackedsize % 2 != 0:
+                                        padbytes = 1
+                                        checkbytes = checkfile.read(padbytes)
+                                        if len(checkbytes) != padbytes:
+                                                break
+                                        unpackedsize += padbytes
+                                break
+
+                        ## a real trailer would have been found, so if this point
+                        ## is reached, then the entry was not a trailer.
+                        if possibletrailer:
+                                break
+
+                        unpackedsize += namesize
+                        unpackname = checkbytes.split(b'\x00', 1)[0]
+                        if len(unpackname) == 0:
+                                break
+                        while os.path.isabs(unpackname):
+                                unpackname = unpackname[1:]
+                        if len(unpackname) == 0:
+                                break
+                        try:
+                                unpackname = unpackname.decode()
+                        except:
+                                break
+
+                        ## pad to even bytes
+                        if unpackedsize % 2 != 0:
+                                padbytes = 2 - unpackedsize%2
+                                checkbytes = checkfile.read(padbytes)
+                                if len(checkbytes) != padbytes:
+                                        break
+                                unpackedsize += padbytes
+                        checkfile.seek(offset+unpackedsize)
+
+                        ## then the data itself
+                        if isdevice:
+                                continue
+
+                        dataunpacked = True
+
+                        ## if it is a directory, then just create the directory
+                        if isdir:
+                                os.makedirs(os.path.join(unpackdir, unpackname), exist_ok=True)
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                                continue
+                        ## first symbolic links
+                        if islink:
+                                if offset + unpackedsize + cpiodatasize > filesize:
+                                        break
+                                unpackdirname = os.path.dirname(unpackname)
+                                if unpackdirname != '':
+                                        os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
+                                checkbytes = checkfile.read(cpiodatasize)
+
+                                ## first a hack for embedded 0x00 in data
+                                targetname = checkbytes.split(b'\x00', 1)[0]
+                                try:
+                                        targetname = targetname.decode()
+                                except:
+                                        break
+
+                                os.symlink(targetname, os.path.join(unpackdir, unpackname))
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), ['symbolic link']))
+                        ## then regular files
+                        elif isfile:
+                                if offset + unpackedsize + cpiodatasize > filesize:
+                                        break
+                                ## first create the directory structure if necessary
+                                unpackdirname = os.path.dirname(unpackname)
+                                if unpackdirname != '':
+                                        os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
+                                outfile = open(os.path.join(unpackdir, unpackname), 'wb')
+                                os.sendfile(outfile.fileno(), checkfile.fileno(), offset+unpackedsize, cpiodatasize)
+                                outfile.close()
+                                if not (inode, dev) in devinodes:
+                                        devinodes[(inode, dev)] = []
+                                devinodes[(inode, dev)].append(unpackname)
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                        unpackedsize += cpiodatasize
+
+                        ## pad to even bytes
+                        if unpackedsize % 2 != 0:
+                                padbytes = 2 - unpackedsize%2
+                                checkbytes = checkfile.read(padbytes)
+                                if len(checkbytes) != padbytes:
+                                        break
+                                unpackedsize += padbytes
+                        checkfile.seek(offset+unpackedsize)
+
+                elif cpiotype == b'070707':
+                        if filesize - offset < 76:
+                                if not dataunpacked:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for header'}
+                                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                                break
+                        unpackedsize += 6
+
+                        ## dev
+                        checkbytes = checkfile.read(6)
+                        if len(checkbytes) != 6:
+                                break
+                        try:
+                                dev = int(checkbytes, base=8)
+                        except:
+                                break
+                        unpackedsize += 6
+
+                        ## inode
+                        checkbytes = checkfile.read(6)
+                        if len(checkbytes) != 6:
+                                break
+                        try:
+                                inode = int(checkbytes, base=8)
+                        except:
+                                break
+                        if inode == 0:
+                                possibletrailer = True
+                        unpackedsize += 6
+
+                        ## mode
+                        checkbytes = checkfile.read(6)
+                        if len(checkbytes) != 6:
+                                break
+                        try:
+                                cpiomode = int(checkbytes, base=8)
+                        except:
+                                break
+                        if not possibletrailer:
+                                ## the mode for any entry cannot be 0
+                                if cpiomode == 0:
+                                        break
+                                ## only support whatever is defined in the CPIO man page
+                                if cpiomode < 0o0010000:
+                                        break
+
+                                ## some checks to filter out false positives
+                                modes = set()
+
+                                isdir = False
+                                if stat.S_ISDIR(cpiomode):
+                                        isdir = True
+                                modes.add(isdir)
+
+                                isfile = False
+                                if stat.S_ISREG(cpiomode):
+                                        if True in modes:
+                                                break
+                                        isfile = True
+                                modes.add(isfile)
+
+                                islink = False
+                                if stat.S_ISLNK(cpiomode):
+                                        if True in modes:
+                                                break
+                                        islink = True
+                                modes.add(islink)
+
+                                isdevice = False
+                                if (stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode)):
+                                        if True in modes:
+                                                break
+                                        isdevice = True
+                                modes.add(isdevice)
+
+                                isfifo = False
+                                if stat.S_ISFIFO(cpiomode):
+                                        if True in modes:
+                                                break
+                                        isfifo = True
+
+                                modes.add(isfifo)
+                                issocket = False
+                                if stat.S_ISSOCK(cpiomode):
+                                        if True in modes:
+                                                break
+                                        issocket = True
+                                modes.add(issocket)
+
+                                if not True in modes:
+                                        break
+                        unpackedsize += 6
+
+                        ## uid
+                        checkbytes = checkfile.read(6)
+                        if len(checkbytes) != 6:
+                                break
+                        unpackedsize += 6
+
+                        ## gid
+                        checkbytes = checkfile.read(6)
+                        if len(checkbytes) != 6:
+                                break
+                        unpackedsize += 6
+
+                        ## number of links
+                        checkbytes = checkfile.read(6)
+                        if len(checkbytes) != 6:
+                                break
+                        try:
+                                nr_of_links = int(checkbytes, base=8)
+                        except:
+                                break
+                        unpackedsize += 6
+
+                        ## there should always be at least 1 link
+                        if nr_of_links == 0 and not possibletrailer:
+                                break
+
+                        ## there should always be at least 2 links for directories
+                        if stat.S_ISDIR(cpiomode) and nr_of_links < 2 and not possibletrailer:
+                                break
+
+                        ## rdev
+                        checkbytes = checkfile.read(6)
+                        if len(checkbytes) != 6:
+                                break
+                        try:
+                                rdev = int(checkbytes, base=8)
+                        except:
+                                break
+                        ## "For all other entry types, it should be set to zero by writers and ignored by readers."
+                        #if rdev != 0:
+                        #        isdevice = True
+                        unpackedsize += 6
+
+                        ## check the cpio mode to see if there is a bogus
+                        ## value and this is actually not a cpio file
+                        if (stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode)) and not possibletrailer:
+                                isdevice = True
+
+                        ## mtime
+                        checkbytes = checkfile.read(11)
+                        if len(checkbytes) != 11:
+                                break
+                        unpackedsize += 11
+
+                        ## name size
+                        checkbytes = checkfile.read(6)
+                        if len(checkbytes) != 6:
+                                break
+                        try:
+                                namesize = int(checkbytes, base=8)
+                        except:
+                                break
+                        if namesize == 0:
+                                break
+                        unpackedsize += 6
+
+                        ## file size
+                        checkbytes = checkfile.read(11)
+                        if len(checkbytes) != 11:
+                                break
+                        try:
+                                cpiodatasize = int(checkbytes, base=8)
+                        except:
+                                break
+                        unpackedsize += 11
+
+                        ## data cannot be outside of the file
+                        if (offset + namesize + cpiodatasize) > filesize:
+                                break
+
+                        ## then read the file name
+                        checkbytes = checkfile.read(namesize)
+                        if len(checkbytes) != namesize:
+                                break
+                        if checkbytes == b'TRAILER!!!\x00':
+                                unpackedsize += namesize
+                                trailerfound = True
+                                break
+
+                        ## a real trailer would have been found, so if this point
+                        ## is reached, then the entry was not a trailer.
+                        if possibletrailer:
+                                break
+
+                        unpackedsize += namesize
+                        unpackname = checkbytes.split(b'\x00', 1)[0]
+                        if len(unpackname) == 0:
+                                break
+                        while os.path.isabs(unpackname):
+                                unpackname = unpackname[1:]
+                        if len(unpackname) == 0:
+                                break
+                        namedecoded = False
+                        for c in encodingstotranslate:
+                               try:
+                                      unpackname = unpackname.decode(c)
+                                      namedecoded = True
+                                      break
+                               except Exception as e:
+                                      pass
+                        if not namedecoded:
+                               break
+
+                        ## then the data itself
+                        if isdevice:
+                                continue
+
+                        dataunpacked = True
+
+                        ## if it is a directory, then just create the directory
+                        if isdir:
+                                os.makedirs(os.path.join(unpackdir, unpackname), exist_ok=True)
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                                continue
+                        ## first symbolic links
+                        if islink:
+                                if offset + unpackedsize + cpiodatasize > filesize:
+                                        break
+                                unpackdirname = os.path.dirname(unpackname)
+                                if unpackdirname != '':
+                                        os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
+                                checkbytes = checkfile.read(cpiodatasize)
+
+                                ## first a hack for embedded 0x00 in data
+                                targetname = checkbytes.split(b'\x00', 1)[0]
+                                try:
+                                        targetname = targetname.decode()
+                                except:
+                                        break
+
+                                os.symlink(targetname, os.path.join(unpackdir, unpackname))
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), ['symbolic link']))
+                        ## then regular files
+                        elif isfile:
+                                if offset + unpackedsize + cpiodatasize > filesize:
+                                        break
+                                ## first create the directory structure if necessary
+                                unpackdirname = os.path.dirname(unpackname)
+                                if unpackdirname != '':
+                                        os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
+                                outfile = open(os.path.join(unpackdir, unpackname), 'wb')
+                                os.sendfile(outfile.fileno(), checkfile.fileno(), offset+unpackedsize, cpiodatasize)
+                                outfile.close()
+                                if not (inode, dev) in devinodes:
+                                        devinodes[(inode, dev)] = []
+                                devinodes[(inode, dev)].append(unpackname)
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                        unpackedsize += cpiodatasize
+                        checkfile.seek(offset+unpackedsize)
+
+                elif cpiotype == b'070701' or b'070702':
+                        if filesize - offset < 110:
+                                if not dataunpacked:
+                                        checkfile.close()
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for header'}
+                                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                                break
+                        unpackedsize += 6
+
+                        ## inode
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        try:
+                                inode = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
+                        except:
+                                break
+                        ## all regular files have an inode. The exception would be the TRAILER
+                        ## in the CPIO file itself
+                        if inode == 0:
+                                possibletrailer = True
+                        unpackedsize += 8
+
+                        ## mode
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        try:
+                                cpiomode = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
+                        except:
+                                break
+                        if not possibletrailer:
+                                ## the mode for any entry cannot be 0
+                                if cpiomode == 0:
+                                        break
+                                ## only support whatever is defined in the CPIO man page
+                                if cpiomode < 0o0010000:
+                                        break
+
+                                ## some checks to filter out false positives
+                                modes = set()
+
+                                isdir = False
+                                if stat.S_ISDIR(cpiomode):
+                                        isdir = True
+                                modes.add(isdir)
+
+                                isfile = False
+                                if stat.S_ISREG(cpiomode):
+                                        if True in modes:
+                                                break
+                                        isfile = True
+                                modes.add(isfile)
+
+                                islink = False
+                                if stat.S_ISLNK(cpiomode):
+                                        if True in modes:
+                                                break
+                                        islink = True
+                                modes.add(islink)
+
+                                isdevice = False
+                                if (stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode)):
+                                        if True in modes:
+                                                break
+                                        isdevice = True
+                                modes.add(isdevice)
+
+                                isfifo = False
+                                if stat.S_ISFIFO(cpiomode):
+                                        if True in modes:
+                                                break
+                                        isfifo = True
+
+                                modes.add(isfifo)
+                                issocket = False
+                                if stat.S_ISSOCK(cpiomode):
+                                        if True in modes:
+                                                break
+                                        issocket = True
+                                modes.add(issocket)
+
+                                if not True in modes:
+                                        break
+                        unpackedsize += 8
+
+                        ## uid
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        unpackedsize += 8
+
+                        ## gid
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        unpackedsize += 8
+
+                        ## number of links
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        try:
+                                nr_of_links = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
+                        except:
+                                break
+                        unpackedsize += 8
+
+                        ## there should always be at least 1 link
+                        if nr_of_links == 0 and not possibletrailer:
+                                break
+
+                        ## there should always be at least 2 links for directories
+                        if stat.S_ISDIR(cpiomode) and nr_of_links < 2 and not possibletrailer:
+                                break
+
+                        ## mtime
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        unpackedsize += 8
+
+                        ## size of the cpio data.
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        try:
+                                cpiodatasize = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
+                        except:
+                                break
+                        unpackedsize += 8
+
+                        ## dev_major
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        try:
+                                devmajor = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
+                        except:
+                                break
+                        unpackedsize += 8
+
+                        ## dev_minor
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        try:
+                                devminor = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
+                        except:
+                                break
+                        unpackedsize += 8
+
+                        ## rdev_major
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        try:
+                                rdevmajor = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
+                        except:
+                                break
+                        ## "For all other entry types, it should be set to zero by writers and ignored by readers."
+                        ## Example: Glide3-20010520-13.i386.rpm from Red Hat 7.3
+                        #if rdevmajor != 0 and not possibletrailer:
+                        #        isdevice = True
+                        unpackedsize += 8
+
+                        ## rdev_minor
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        try:
+                                rdevminor = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
+                        except:
+                                break
+                        ## "For all other entry types, it should be set to zero by writers and ignored by readers."
+                        #if rdevminor != 0 and not possibletrailer:
+                        #        isdevice = True
+                        unpackedsize += 8
+
+                        ## check the cpio mode to see if there is a bogus
+                        ## value and this is actually not a cpio file
+                        if (stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode)) and not possibletrailer:
+                                isdevice = True
+
+                        ## name size
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        try:
+                                namesize = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
+                        except:
+                                break
+                        ## not possible to have an empty name
+                        if namesize == 0:
+                                break
+                        unpackedsize += 8
+
+                        ## c_check
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                                break
+                        try:
+                                cpiochecksum = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
+                        except:
+                                break
+                        if cpiotype == b'070701' and not possibletrailer:
+                                ## for new ASCII format the checksum is always 0
+                                if cpiochecksum != 0:
+                                        break
+                        unpackedsize += 8
+
+                        ## data cannot be outside of the file
+                        if offset + namesize + cpiodatasize > filesize:
+                                break
+
+                        ## then read the file name
+                        checkbytes = checkfile.read(namesize)
+                        if len(checkbytes) != namesize:
+                                break
+                        if checkbytes == b'TRAILER!!!\x00':
+                                ## end of the archive has been reached,
+                                ## pad if necessary so unpacked size is a
+                                ## multiple of 4 bytes.
+                                unpackedsize += namesize
+                                trailerfound = True
+                                if unpackedsize % 4 != 0:
+                                        padbytes = 4 - unpackedsize%4
+                                        checkbytes = checkfile.read(padbytes)
+                                        if len(checkbytes) != padbytes:
+                                                break
+                                        unpackedsize += padbytes
+                                break
+
+                        ## a real trailer would have been found, so if this point
+                        ## is reached, then the entry was not a trailer.
+                        if possibletrailer:
+                                break
+                        unpackedsize += namesize
+                        unpackname = checkbytes.split(b'\x00', 1)[0]
+                        if len(unpackname) == 0:
+                                break
+                        while os.path.isabs(unpackname):
+                                unpackname = unpackname[1:]
+                        if len(unpackname) == 0:
+                                break
+                        namedecoded = False
+                        for c in encodingstotranslate:
+                               try:
+                                      unpackname = unpackname.decode(c)
+                                      namedecoded = True
+                                      break
+                               except Exception as e:
+                                      pass
+                        if not namedecoded:
+                               break
+
+                        ## add padding bytes as the entry has to be on a 4 byte boundary
+                        if unpackedsize % 4 != 0:
+                                padbytes = 4 - unpackedsize%4
+                                checkbytes = checkfile.read(padbytes)
+                                if len(checkbytes) != padbytes:
+                                        break
+                                unpackedsize += padbytes
+
+                        ## then the data itself
+                        if isdevice:
+                                continue
+
+                        dataunpacked = True
+
+                        ## if it is a directory, then just create the directory
+                        if isdir:
+                                os.makedirs(os.path.join(unpackdir, unpackname), exist_ok=True)
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                                continue
+
+                        ## first symbolic links
+                        if islink:
+                                if offset + unpackedsize + cpiodatasize > filesize:
+                                        break
+                                unpackdirname = os.path.dirname(unpackname)
+                                if unpackdirname != '':
+                                        os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
+                                checkbytes = checkfile.read(cpiodatasize)
+
+                                ## first a hack for embedded 0x00 in data
+                                targetname = checkbytes.split(b'\x00', 1)[0]
+                                try:
+                                        targetname = targetname.decode()
+                                except:
+                                        break
+
+                                os.symlink(targetname, os.path.join(unpackdir, unpackname))
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), ['symbolic link']))
+                        ## then regular files
+                        elif isfile:
+                                if offset + unpackedsize + cpiodatasize > filesize:
+                                        break
+                                ## first create the directory structure if necessary
+                                unpackdirname = os.path.dirname(unpackname)
+                                if unpackdirname != '':
+                                        os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
+                                outfile = open(os.path.join(unpackdir, unpackname), 'wb')
+                                os.sendfile(outfile.fileno(), checkfile.fileno(), offset+unpackedsize, cpiodatasize)
+                                outfile.close()
+                                if not (inode, devmajor, devminor) in devinodes:
+                                        devinodes[(inode, devmajor, devminor)] = []
+                                devinodes[(inode, devmajor, devminor)].append(unpackname)
+                                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                                ## verify checksum
+                                if cpiotype == b'070702':
+                                        tmpchecksum = 0
+                                        outfile = open(os.path.join(unpackdir, unpackname), 'rb')
+                                        checkbytes = outfile.read(chunksize)
+                                        while checkbytes != b'':
+                                                for i in checkbytes:
+                                                        tmpchecksum += i
+                                                checkbytes = outfile.read(chunksize)
+                                                tmpchecksum = tmpchecksum & 0xffffffff
+                                        outfile.close()
+                                        if cpiochecksum != tmpchecksum:
+                                                break
+
+                        unpackedsize += cpiodatasize
+
+                        ## add padding bytes as the entry has to be on a 4 byte boundary
+                        if unpackedsize % 4 != 0:
+                                padbytes = 4 - unpackedsize%4
+                                checkbytes = checkfile.read(padbytes)
+                                if len(checkbytes) != padbytes:
+                                        break
+                                unpackedsize += padbytes
+                        checkfile.seek(offset+unpackedsize)
+                else:
+                        break
+
+        ## now recreate the hard links
+        for n in devinodes:
+                if cpiotype == b'\xc7\x71':
+                        ## in the old cpio type hard links
+                        ## always store the same data
+                        continue
+                if len(devinodes[n]) == 1:
+                        continue
+                target = None
+                for i in range(len(devinodes[n]),0,-1):
+                        if os.stat(os.path.join(unpackdir, devinodes[n][i-1])).st_size != 0:
+                                target = devinodes[n][i-1]
+                if target == None:
+                        continue
+                for i in range(len(devinodes[n]),0,-1):
+                        if devinodes[n][i-1] == target:
+                                continue
+                        linkname = os.path.join(unpackdir, devinodes[n][i-1])
+                        ## remove the empty file...
+                        os.unlink(linkname)
+                        ## ...and create hard link
+                        os.link(os.path.join(unpackdir, target), linkname)
+
+        ## no trailer was found
+        if not trailerfound:
+               checkfile.close()
+               if not dataunpacked:
+                      unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid CPIO file'}
+                      return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+               ## no trailer was found, but data was unpacked, so tag the archive
+               ## as corrupt and partially unpacked.
+               labels.append("corrupt")
+               labels.append("partially unpacked")
+        else:
+               ## cpio implementations tend to pad archives with
+               ## NUL bytes to a multiple of 512 bytes.
+               if unpackedsize % 512 != 0:
+                       paddingbytes = 512 - unpackedsize%512
+                       checkbytes = checkfile.read(paddingbytes)
+                       if len(checkbytes) == paddingbytes:
+                               if checkbytes == paddingbytes * b'\x00':
+                                       unpackedsize += paddingbytes
+
+        if offset == 0 and filesize == unpackedsize:
+                labels.append('cpio')
+                labels.append('archive')
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)

@@ -82,6 +82,10 @@ signatures = {
               'au':             b'.snd',
               'jffs2_little_endian':  b'\x85\x19',          # /usr/share/magic
               'jffs2_big_endian':     b'\x19\x85',          # /usr/share/magic
+              'cpio_old':       b'\xc7\x71',         # man 5 cpio
+              'cpio_portable':  b'070707',           # man 5 cpio
+              'cpio_newascii':  b'070701',           # man 5 cpio
+              'cpio_newcrc':    b'070702',           # man 5 cpio
              }
 
 ## some signatures do not start at the beginning of the file
@@ -135,6 +139,10 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'au': bangunpack.unpackAU,
                         'jffs2_little_endian': bangunpack.unpackJFFS2,
                         'jffs2_big_endian': bangunpack.unpackJFFS2,
+                        'cpio_old': bangunpack.unpackCpio,
+                        'cpio_portable': bangunpack.unpackCpio,
+                        'cpio_newascii': bangunpack.unpackCpio,
+                        'cpio_newcrc': bangunpack.unpackCpio,
                       }
 
 ## a lookup table to map signatures to a name for
@@ -150,6 +158,10 @@ signatureprettyprint = { 'lzma_var1': 'lzma',
                          'gif89': 'gif',
                          'jffs2_little_endian': 'jffs2',
                          'jffs2_big_endian': 'jffs2',
+                         'cpio_old': 'cpio',
+                         'cpio_portable': 'cpio',
+                         'cpio_newascii': 'cpio',
+                         'cpio_newcrc': 'cpio',
                        }
 
 ## extensions to unpacking functions. This should only be
