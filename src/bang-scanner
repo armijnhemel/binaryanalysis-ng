@@ -86,6 +86,7 @@ signatures = {
               'cpio_portable':  b'070707',           # man 5 cpio
               'cpio_newascii':  b'070701',           # man 5 cpio
               'cpio_newcrc':    b'070702',           # man 5 cpio
+              '7z':                   b'7z\xbc\xaf\x27\x1c',      # documentation in 7-Zip source code
              }
 
 ## some signatures do not start at the beginning of the file
@@ -143,6 +144,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'cpio_portable': bangunpack.unpackCpio,
                         'cpio_newascii': bangunpack.unpackCpio,
                         'cpio_newcrc': bangunpack.unpackCpio,
+                        '7z': bangunpack.unpack7z,
                       }
 
 ## a lookup table to map signatures to a name for

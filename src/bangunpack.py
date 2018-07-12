@@ -50,6 +50,7 @@
 ##  6. JPEG (needs PIL)
 ##  7. Microsoft Cabinet archives (requires cabextract)
 ##  8. RZIP (requires rzip)
+##  9. 7z (requires external tools), single frame(?)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -8559,4 +8560,130 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
         if offset == 0 and filesize == unpackedsize:
                 labels.append('cpio')
                 labels.append('archive')
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## https://en.wikipedia.org/wiki/7z
+## Inside the 7z distribution there is a file called
+##
+## DOC/7zFormat.txt
+##
+## that describes the file format.
+##
+## This unpacker can recognize 7z formats, but only if the 7z file consists
+## of a single frame.
+def unpack7z(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## a 7z signature header is at least 32 bytes
+        if filesize - offset < 32:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## open the file and skip the magic
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset + 6)
+        unpackedsize += 6
+
+        ## read the major version. This has been 0 for a long time.
+        majorversion = ord(checkfile.read(1))
+        if majorversion > 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid major version'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 1
+
+        ## read the minor version
+        minorversion = ord(checkfile.read(1))
+        unpackedsize += 1
+
+        ## read the CRC32 for the header
+        checkbytes = checkfile.read(4)
+        nextheadercrc = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        checkbytes = checkfile.read(20)
+        if len(checkbytes) != 20:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for header'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        crccomputed = binascii.crc32(checkbytes)
+
+        if nextheadercrc != crccomputed:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid header CRC'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## first try to find the offset of the next header and read
+        ## some metadata for it.
+        nextheaderoffset = int.from_bytes(checkbytes[0:8], byteorder='little')
+        nextheadersize = int.from_bytes(checkbytes[8:16], byteorder='little')
+        nextheadercrc = int.from_bytes(checkbytes[16:20], byteorder='little')
+
+        if checkfile.tell() + nextheaderoffset + nextheadersize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'next header offset outside file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## Then skip to the next offset
+        checkfile.seek(checkfile.tell() + nextheaderoffset)
+
+        ## extra sanity check: compute the header CRC for the
+        ## next header...
+        checkbytes = checkfile.read(nextheadersize)
+        computedcrc = binascii.crc32(checkbytes)
+
+        ## ...and compare it to the stored CRC
+        if computedcrc != nextheadercrc:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid next header CRC'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize = checkfile.tell() - offset
+
+        if shutil.which('7z') == None:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': '7z program not found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        havetmpfile = False
+        if not (offset == 0 and filesize == unpackedsize):
+                temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+                os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+                os.fdopen(temporaryfile[0]).close()
+                havetmpfile = True
+                checkfile.close()
+                p = subprocess.Popen(['7z', '-o%s' % unpackdir, '-y', 'x', temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        if offset == 0 and filesize == unpackedsize:
+                checkfile.close()
+                p = subprocess.Popen(['7z', '-o%s' % unpackdir, '-y', 'x', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        (outputmsg, errormsg) = p.communicate()
+        if p.returncode != 0:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid 7z file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        dirwalk = os.walk(unpackdir)
+        for direntries in dirwalk:
+                ## make sure all subdirectories and files can be accessed
+                for subdir in direntries[1]:
+                        subdirname = os.path.join(direntries[0], subdir)
+                        if not os.path.islink(subdirname):
+                                os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                for filename in direntries[2]:
+                        fullfilename = os.path.join(direntries[0], filename)
+                        unpackedfilesandlabels.append((fullfilename, []))
+
+        ## cleanup
+        if havetmpfile:
+                os.unlink(temporaryfile[1])
+        else:
+                labels.append('7z')
+                labels.append('compressed')
+                labels.append('archive')
+
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
