@@ -51,6 +51,7 @@
 ##  7. Microsoft Cabinet archives (requires cabextract)
 ##  8. RZIP (requires rzip)
 ##  9. 7z (requires external tools), single frame(?)
+## 10. Windows Compiled HTML Help (requires external tools, version 3 only)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -8685,5 +8686,142 @@ def unpack7z(filename, offset, unpackdir, temporarydirectory):
                 labels.append('7z')
                 labels.append('compressed')
                 labels.append('archive')
+
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Windows Compiled HTML help
+## https://en.wikipedia.org/wiki/Microsoft_Compiled_HTML_Help
+## http://web.archive.org/web/20021209123621/www.speakeasy.org/~russotto/chm/chmformat.html
+def unpackCHM(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## header has at least 56 bytes
+        if filesize < 56:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## open the file and skip the magic and the version number
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset+8)
+        unpackedsize += 8
+
+        ## total header length
+        checkbytes = checkfile.read(4)
+        chmheaderlength = int.from_bytes(checkbytes, byteorder='little')
+        if offset + chmheaderlength > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'declared header outside of file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## skip over the rest of the header
+        checkfile.seek(offset + 56)
+        unpackedsize = 56
+
+        ## the header section table
+        for i in range(0,2):
+                ## a section offset
+                checkbytes = checkfile.read(8)
+                if len(checkbytes) != 8:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for section offset'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                sectionoffset = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += 8
+
+                ## and a section size
+                checkbytes = checkfile.read(8)
+                if len(checkbytes) != 8:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for section size'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                sectionsize = int.from_bytes(checkbytes, byteorder='little')
+
+                ## sanity check: sections cannot be outside of the file
+                if offset + sectionoffset + sectionsize > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'sections outside of file'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 8
+
+        ## then the offset of content section 0, that isn't there in version 2, but
+        ## version 2 is not supported anyway.
+        checkbytes = checkfile.read(8)
+        if len(checkbytes) != 8:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for content section offset'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        contentsection0offset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + contentsection0offset > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'content section 0 outside of file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 8
+
+        ## then skip 8 bytes
+        checkfile.seek(8, os.SEEK_CUR)
+        unpackedsize += 8
+
+        ## read the file size
+        checkbytes = checkfile.read(8)
+        if len(checkbytes) != 8:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for file size'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        chmsize = int.from_bytes(checkbytes, byteorder='little')
+        if offset + chmsize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'declared CHM size larger than file size'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 8
+
+        if shutil.which('7z') == None:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': '7z program not found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid CHM file'}
+
+        unpackedsize = chmsize
+
+        havetmpfile = False
+        if not (offset == 0 and filesize == unpackedsize):
+                temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+                os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+                os.fdopen(temporaryfile[0]).close()
+                havetmpfile = True
+                checkfile.close()
+                p = subprocess.Popen(['7z', '-o%s' % unpackdir, '-y', 'x', temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        if offset == 0 and filesize == unpackedsize:
+                checkfile.close()
+                p = subprocess.Popen(['7z', '-o%s' % unpackdir, '-y', 'x', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        (outputmsg, errormsg) = p.communicate()
+        if p.returncode != 0:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid CHM file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        dirwalk = os.walk(unpackdir)
+        for direntries in dirwalk:
+                ## make sure all subdirectories and files can be accessed
+                for subdir in direntries[1]:
+                        subdirname = os.path.join(direntries[0], subdir)
+                        if not os.path.islink(subdirname):
+                                os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                for filename in direntries[2]:
+                        fullfilename = os.path.join(direntries[0], filename)
+                        unpackedfilesandlabels.append((fullfilename, []))
+
+        ## cleanup
+        if havetmpfile:
+                os.unlink(temporaryfile[1])
+        else:
+                labels.append('chm')
+                labels.append('compressed')
+                labels.append('resource')
 
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)

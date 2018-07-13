@@ -87,6 +87,7 @@ signatures = {
               'cpio_newascii':  b'070701',           # man 5 cpio
               'cpio_newcrc':    b'070702',           # man 5 cpio
               '7z':                   b'7z\xbc\xaf\x27\x1c',      # documentation in 7-Zip source code
+              'chm':                  b'ITSF\x03\x00\x00\x00',    # /usr/share/magic but only use a part and only support version 3
              }
 
 ## some signatures do not start at the beginning of the file
@@ -145,6 +146,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'cpio_newascii': bangunpack.unpackCpio,
                         'cpio_newcrc': bangunpack.unpackCpio,
                         '7z': bangunpack.unpack7z,
+                        'chm': bangunpack.unpackCHM,
                       }
 
 ## a lookup table to map signatures to a name for
