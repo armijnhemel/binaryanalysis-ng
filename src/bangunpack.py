@@ -8198,6 +8198,11 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                                 break
                         unpackedsize += 6
 
+                        ## look ahead to see if this is possibly a trailer
+                        checkbytes =  os.pread(checkfile.fileno(), 10, checkfile.tell() + 104)
+                        if checkbytes == b'TRAILER!!!':
+                                possibletrailer = True
+
                         ## inode
                         checkbytes = checkfile.read(8)
                         if len(checkbytes) != 8:
