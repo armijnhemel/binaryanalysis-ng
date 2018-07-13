@@ -1921,6 +1921,11 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
 ## for a central directory. If multiple ZIP files have been concatenated
 ## and the last ZIP file is at the end, then only this ZIP file
 ## will be unpacked by Python's zipfile module.
+##
+## A description of some of the underlying problems encountered
+## when writing this code can be found here:
+##
+## http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html
 def unpackZip(filename, offset, unpackdir, temporarydirectory):
         filesize = os.stat(filename).st_size
         unpackedfilesandlabels = []
