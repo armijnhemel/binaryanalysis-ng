@@ -111,6 +111,11 @@ import PIL.Image
 ## Uses the description of the WebP file format as described here:
 ##
 ## https://developers.google.com/speed/webp/docs/riff_container
+##
+## A blog post describing how this method was implemented can be
+## found here:
+##
+## http://binary-analysis.blogspot.com/2018/06/walkthrough-webp-file-format.html
 def unpackWebP(filename, offset, unpackdir, temporarydirectory):
         filesize = os.stat(filename).st_size
         unpackedfilesandlabels = []
