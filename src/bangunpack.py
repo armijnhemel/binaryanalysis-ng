@@ -7673,6 +7673,11 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                         checkfile.seek(-4, os.SEEK_CUR)
                         unpackedsize += 2
 
+                        ## look ahead to see if this is possibly a trailer
+                        checkbytes =  os.pread(checkfile.fileno(), 10, checkfile.tell() + 24)
+                        if checkbytes == b'TRAILER!!!':
+                                possibletrailer = True
+
                         ## dev
                         checkbytes = checkfile.read(2)
                         if len(checkbytes) != 2:
@@ -7784,10 +7789,6 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
 
                         ## there should always be at least 1 link
                         if nr_of_links == 0 and not possibletrailer:
-                                break
-
-                        ## there should always be at least 2 links for directories
-                        if stat.S_ISDIR(cpiomode) and nr_of_links < 2 and not possibletrailer:
                                 break
 
                         ## rdev
@@ -7944,6 +7945,11 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                                 break
                         unpackedsize += 6
 
+                        ## look ahead to see if this is possibly a trailer
+                        checkbytes =  os.pread(checkfile.fileno(), 10, checkfile.tell() + 70)
+                        if checkbytes == b'TRAILER!!!':
+                                possibletrailer = True
+
                         ## dev
                         checkbytes = checkfile.read(6)
                         if len(checkbytes) != 6:
@@ -7962,8 +7968,6 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                                 inode = int(checkbytes, base=8)
                         except:
                                 break
-                        if inode == 0:
-                                possibletrailer = True
                         unpackedsize += 6
 
                         ## mode
@@ -8053,10 +8057,6 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
 
                         ## there should always be at least 1 link
                         if nr_of_links == 0 and not possibletrailer:
-                                break
-
-                        ## there should always be at least 2 links for directories
-                        if stat.S_ISDIR(cpiomode) and nr_of_links < 2 and not possibletrailer:
                                 break
 
                         ## rdev
