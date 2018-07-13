@@ -12,6 +12,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * GNU binutils (for 'ar')
 * squashfs-tools (for 'unsquashfs')
 * cabextract
+* 7z
 
 ## Invocation
 
