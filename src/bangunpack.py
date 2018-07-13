@@ -8560,6 +8560,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 ## NUL bytes to a multiple of 512 bytes
                 ## but 256 is also used.
                 havepadding = False
+                padoffset = checkfile.tell()
                 for i in [512, 256]:
                         if unpackedsize % i != 0:
                                 paddingbytes = i - unpackedsize%i
@@ -8570,6 +8571,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                                         havepadding = True
                         if havepadding:
                                 break
+                        checkfile.seek(padoffset)
 
         if offset == 0 and filesize == unpackedsize:
                 labels.append('cpio')
