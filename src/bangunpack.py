@@ -8211,10 +8211,6 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                                 inode = int.from_bytes(binascii.unhexlify(checkbytes), byteorder='big')
                         except:
                                 break
-                        ## all regular files have an inode. The exception would be the TRAILER
-                        ## in the CPIO file itself
-                        if inode == 0:
-                                possibletrailer = True
                         unpackedsize += 8
 
                         ## mode
@@ -8304,10 +8300,6 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
 
                         ## there should always be at least 1 link
                         if nr_of_links == 0 and not possibletrailer:
-                                break
-
-                        ## there should always be at least 2 links for directories
-                        if stat.S_ISDIR(cpiomode) and nr_of_links < 2 and not possibletrailer:
                                 break
 
                         ## mtime
