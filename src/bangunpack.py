@@ -8560,13 +8560,19 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 labels.append("partially unpacked")
         else:
                 ## cpio implementations tend to pad archives with
-                ## NUL bytes to a multiple of 512 bytes.
-                if unpackedsize % 512 != 0:
-                        paddingbytes = 512 - unpackedsize%512
-                        checkbytes = checkfile.read(paddingbytes)
-                        if len(checkbytes) == paddingbytes:
-                                if checkbytes == paddingbytes * b'\x00':
-                                        unpackedsize += paddingbytes
+                ## NUL bytes to a multiple of 512 bytes
+                ## but 256 is also used.
+                havepadding = False
+                for i in [512, 256]:
+                        if unpackedsize % i != 0:
+                                paddingbytes = i - unpackedsize%i
+                                checkbytes = checkfile.read(paddingbytes)
+                                if len(checkbytes) == paddingbytes:
+                                        if checkbytes == paddingbytes * b'\x00':
+                                                unpackedsize += paddingbytes
+                                        havepadding = True
+                        if havepadding:
+                                break
 
         if offset == 0 and filesize == unpackedsize:
                 labels.append('cpio')
