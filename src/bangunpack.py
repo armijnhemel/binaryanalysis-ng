@@ -8550,23 +8550,23 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
 
         ## no trailer was found
         if not trailerfound:
-               checkfile.close()
-               if not dataunpacked:
-                      unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid CPIO file'}
-                      return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-               ## no trailer was found, but data was unpacked, so tag the archive
-               ## as corrupt and partially unpacked.
-               labels.append("corrupt")
-               labels.append("partially unpacked")
+                checkfile.close()
+                if not dataunpacked:
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid CPIO file'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                ## no trailer was found, but data was unpacked, so tag the archive
+                ## as corrupt and partially unpacked.
+                labels.append("corrupt")
+                labels.append("partially unpacked")
         else:
-               ## cpio implementations tend to pad archives with
-               ## NUL bytes to a multiple of 512 bytes.
-               if unpackedsize % 512 != 0:
-                       paddingbytes = 512 - unpackedsize%512
-                       checkbytes = checkfile.read(paddingbytes)
-                       if len(checkbytes) == paddingbytes:
-                               if checkbytes == paddingbytes * b'\x00':
-                                       unpackedsize += paddingbytes
+                ## cpio implementations tend to pad archives with
+                ## NUL bytes to a multiple of 512 bytes.
+                if unpackedsize % 512 != 0:
+                        paddingbytes = 512 - unpackedsize%512
+                        checkbytes = checkfile.read(paddingbytes)
+                        if len(checkbytes) == paddingbytes:
+                                if checkbytes == paddingbytes * b'\x00':
+                                        unpackedsize += paddingbytes
 
         if offset == 0 and filesize == unpackedsize:
                 labels.append('cpio')
