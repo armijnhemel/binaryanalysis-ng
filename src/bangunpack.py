@@ -6,7 +6,7 @@
 ## Licensed under the terms of the GNU Affero General Public License version 3
 ## SPDX-License-Identifier: AGPL-3.0-only
 ##
-## Native Python unpackers for:
+## Native Python unpackers/carvers for:
 ##
 ##  1. WebP
 ##  2. WAV
@@ -40,7 +40,7 @@
 ## 29. JFFS (uncompressed, zlib, LZMA from OpenWrt)
 ## 30. CPIO (various flavours, little endian)
 ##
-## Unpackers needing external Python libraries or other tools
+## Unpackers/carvers needing external Python libraries or other tools
 ##
 ##  1. PNG/APNG (needs PIL)
 ##  2. ar/deb (needs binutils)
@@ -52,6 +52,7 @@
 ##  8. RZIP (requires rzip)
 ##  9. 7z (requires external tools), single frame(?)
 ## 10. Windows Compiled HTML Help (requires external tools, version 3 only)
+## 11. Windows Imaging file format (requires external tools, single image only)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -8838,5 +8839,255 @@ def unpackCHM(filename, offset, unpackdir, temporarydirectory):
                 labels.append('chm')
                 labels.append('compressed')
                 labels.append('resource')
+
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Windows Imaging Format
+##
+## This format has been described by Microsoft here:
+##
+## https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-vista/cc749478(v=ws.10)
+##
+## but is currently not under the open specification promise
+##
+## Windows data types can be found here:
+## https://msdn.microsoft.com/en-us/library/windows/desktop/aa383751(v=vs.85).aspx
+def unpackWIM(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## a WIM signature header is at least 208 bytes
+        if filesize - offset < 208:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## open the file and skip the magic
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset + 8)
+        unpackedsize += 8
+
+        ## now read the size of the header
+        checkbytes = checkfile.read(4)
+        headersize = int.from_bytes(checkbytes, byteorder='little')
+        if headersize < 208:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid header size'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if offset + headersize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'declared header size bigger than file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## the WIM file format version, unused for now
+        checkbytes = checkfile.read(4)
+        wimversion = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        ## WIM flags, unused for now
+        checkbytes = checkfile.read(4)
+        wimflags = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        ## WIM compressed block size, can be 0, but most likely will be 32k
+        checkbytes = checkfile.read(4)
+        wimblocksize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        ## then the 16 byte WIM GUID
+        wimguid = checkfile.read(16)
+        unpackedsize += 16
+
+        ## the WIM part number. For a single file this should be 1.
+        checkbytes = checkfile.read(2)
+        wimpartnumber = int.from_bytes(checkbytes, byteorder='little')
+        if wimpartnumber != 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'cannot unpack multipart WIM'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## the total numbers of WIM parts
+        checkbytes = checkfile.read(2)
+        totalwimparts = int.from_bytes(checkbytes, byteorder='little')
+        if totalwimparts != 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'cannot unpack multipart WIM'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## the image count
+        checkbytes = checkfile.read(4)
+        wimimagecount = int.from_bytes(checkbytes, byteorder='little')
+        if wimimagecount != 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'cannot unpack multipart WIM'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## the resources offset table are stored in a reshdr_disk_short structure
+        checkbytes = checkfile.read(8)
+        reshdrflagssize = int.from_bytes(checkbytes, byteorder='little')
+        reshdrflags = reshdrflagssize >> 56
+
+        ## lower 7 bytes are the size
+        reshdrsize = reshdrflagssize & 72057594037927935
+        unpackedsize += 8
+
+        ## then the offset of the resource
+        checkbytes = checkfile.read(8)
+        resourceoffset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + resourceoffset + reshdrsize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'resource outside of file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 8
+
+        ## then the original size of the resource
+        checkbytes = checkfile.read(8)
+        resourceorigsize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 8
+
+        ## the XML data is also stored in a reshdr_disk_short structure
+        checkbytes = checkfile.read(8)
+        xmlhdrflagssize = int.from_bytes(checkbytes, byteorder='little')
+        xmlhdrflags = xmlhdrflagssize >> 56
+
+        ## lower 7 bytes are the size
+        xmlhdrsize = xmlhdrflagssize & 72057594037927935
+        unpackedsize += 8
+
+        ## then the offset of the xml
+        checkbytes = checkfile.read(8)
+        xmloffset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + xmloffset + xmlhdrsize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'resource outside of file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 8
+
+        ## then the original size of the XML
+        checkbytes = checkfile.read(8)
+        xmlorigsize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 8
+
+        ## any boot information is also stored in a reshdr_disk_short structure
+        checkbytes = checkfile.read(8)
+        boothdrflagssize = int.from_bytes(checkbytes, byteorder='little')
+        boothdrflags = boothdrflagssize >> 56
+
+        ## lower 7 bytes are the size
+        boothdrsize = boothdrflagssize & 72057594037927935
+        unpackedsize += 8
+
+        ## then the offset of the boot data
+        checkbytes = checkfile.read(8)
+        bootoffset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + bootoffset + boothdrsize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'resource outside of file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 8
+
+        ## then the original size of the boot data
+        checkbytes = checkfile.read(8)
+        bootorigsize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 8
+
+        ## the boot index
+        checkbytes = checkfile.read(4)
+        bootindex = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        ## the integrity table is also stored in a reshdr_disk_short structure
+        checkbytes = checkfile.read(8)
+        integrityhdrflagssize = int.from_bytes(checkbytes, byteorder='little')
+        integrityhdrflags = integrityhdrflagssize >> 56
+
+        ## lower 7 bytes are the size
+        integrityhdrsize = integrityhdrflagssize & 72057594037927935
+        unpackedsize += 8
+
+        ## then the offset of the boot data
+        checkbytes = checkfile.read(8)
+        integrityoffset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + integrityoffset + integrityhdrsize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'resource outside of file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 8
+
+        ## then the original size of the boot data
+        checkbytes = checkfile.read(8)
+        bootorigsize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 8
+
+        ## record the maximum offset
+        maxoffset = offset + max(unpackedsize, integrityoffset + integrityhdrsize, bootoffset + boothdrsize, xmloffset + xmlhdrsize, resourceoffset + reshdrsize)
+        unpackedsize = maxoffset - offset
+
+        ## extract and store the XML, as it might come in handy later
+        wimxml = None
+        if xmlhdrsize != 0:
+                checkfile.seek(offset + xmloffset)
+                checkbytes = checkfile.read(xmlhdrsize)
+                try:
+                        wimxml = checkbytes.decode('utf_16_le')
+                except:
+                        pass
+
+        ## extra sanity check: parse the XML if any was extracted
+        if wimxml != None:
+                try:
+                        xml.dom.minidom.parseString(wimxml)
+                except:
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid XML stored in WIM'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        if shutil.which('7z') == None:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': '7z program not found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        havetmpfile = False
+        if not (offset == 0 and filesize == unpackedsize):
+                temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+                os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+                os.fdopen(temporaryfile[0]).close()
+                havetmpfile = True
+                checkfile.close()
+                p = subprocess.Popen(['7z', '-o%s' % unpackdir, '-y', 'x', temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        if offset == 0 and filesize == unpackedsize:
+                checkfile.close()
+                p = subprocess.Popen(['7z', '-o%s' % unpackdir, '-y', 'x', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        (outputmsg, errormsg) = p.communicate()
+        if p.returncode != 0:
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid WIM file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        dirwalk = os.walk(unpackdir)
+        for direntries in dirwalk:
+                ## make sure all subdirectories and files can be accessed
+                for subdir in direntries[1]:
+                        subdirname = os.path.join(direntries[0], subdir)
+                        if not os.path.islink(subdirname):
+                                os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                for filename in direntries[2]:
+                        fullfilename = os.path.join(direntries[0], filename)
+                        unpackedfilesandlabels.append((fullfilename, []))
+
+        if not havetmpfile:
+                labels.append('mswim')
+                labels.append('compressed')
+                labels.append('archive')
+
+        ## cleanup
+        if havetmpfile:
+                os.unlink(temporaryfile[1])
 
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
