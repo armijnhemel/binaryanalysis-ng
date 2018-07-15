@@ -1,0 +1,15 @@
+This directory contains a number of test files for testing BANG. For each file type there are a number of variations:
+
+1. test file consists of one target file. For example: one GIF file, or one PNG file
+
+2. test file has data appended to it. For example: a GIF file with extra random bytes added to it
+
+3. test file has data in front. For example: a GIF file with extra random bytes before the start of the GIF.
+
+4. test file has two target files. For example: two GIF files that are concatenated.
+
+5. test file has data missing from the end. For example: GIF file with the last 100 bytes at the end cut off
+
+6. test file has data missing in the middle. For example: GIF file with 100 bytes in the middle cut.
+
+7. test file has data added in the middle. For example: GIF file with data in the middle added.
