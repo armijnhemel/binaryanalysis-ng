@@ -9091,3 +9091,99 @@ def unpackWIM(filename, offset, unpackdir, temporarydirectory):
                 os.unlink(temporaryfile[1])
 
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## https://www.fileformat.info/format/sunraster/egff.htm
+## This is not a perfect catch and Only some raster files
+## might be labeled as such.
+def unpackSunRaster(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        ## header has 8 fields, each 4 bytes
+        if filesize - offset < 32:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## open the file and skip over the header
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset+4)
+        unpackedsize += 4
+
+        ## skip width
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        ## skip height
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        ## skip depth
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        ## length without header and colormap, can be 0
+        checkbytes = checkfile.read(4)
+        ras_length = int.from_bytes(checkbytes, byteorder='big')
+        if ras_length == 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'raster files with length 0 defined not supported'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## check type. Typical values are 0, 1, 2, 3, 4, 5 and 0xffff
+        checkbytes = checkfile.read(4)
+        ras_type = int.from_bytes(checkbytes, byteorder='big')
+        if not ras_type in [0,1,2,3,4,5,0xffff]:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unknown raster type field'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        if ras_type != 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'only standard type is supported'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## check the color map type. Typical values are 0, 1, 2
+        checkbytes = checkfile.read(4)
+        ras_maptype = int.from_bytes(checkbytes, byteorder='big')
+        if not ras_maptype in [0,1,2]:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unknown color map type field'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## length of colormap
+        checkbytes = checkfile.read(4)
+        ras_maplength = int.from_bytes(checkbytes, byteorder='big')
+
+        ## check if the header + length of data + length of color map are inside the file
+        if 32 + offset + ras_maplength + ras_length > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for raster file'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## skip over the rest
+        unpackedsize += 4 + ras_maplength + ras_length
+
+        if offset == 0 and unpackedsize == filesize:
+                checkfile.close()
+                labels.append('sun raster')
+                labels.append('raster')
+                labels.append('binary')
+                labels.append('graphics')
+                return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## Carve the image.
+        ## first reset the file pointer
+        checkfile.seek(offset)
+        outfilename = os.path.join(unpackdir, "unpacked.rast")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        checkfile.close()
+        unpackedfilesandlabels.append((outfilename, ['binary', 'sun raster', 'raster', 'graphics', 'unpacked']))
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
