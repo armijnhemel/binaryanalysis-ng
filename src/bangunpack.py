@@ -39,6 +39,7 @@
 ## 28. AU (Sun/NeXT audio)
 ## 29. JFFS (uncompressed, zlib, LZMA from OpenWrt)
 ## 30. CPIO (various flavours, little endian)
+## 31. Sun Raster files (standard type only)
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
