@@ -3470,9 +3470,11 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
 ##
 ## IEEE P1282, Draft Version 1.12
 ## http://www.ymi.com/ymi/sites/default/files/pdf/Rockridge.pdf
+## http://web.archive.org/web/20170404043745/http://www.ymi.com/ymi/sites/default/files/pdf/Rockridge.pdf
 ##
 ## IEEE P1281 Draft Version 1.12
 ## http://www.ymi.com/ymi/sites/default/files/pdf/Systems%20Use%20P1281.pdf
+## http://web.archive.org/web/20170404132301/http://www.ymi.com/ymi/sites/default/files/pdf/Systems%20Use%20P1281.pdf
 ##
 ## The zisofs specific bits can be found at:
 ## http://libburnia-project.org/wiki/zisofs
@@ -3507,6 +3509,9 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
         havesusp = False
         haverockridge = False
         havezisofs = False
+
+        ## read all sectors, until there are none left, or
+        ## a volume set descriptor terminator is found
         while True:
                 checkbytes = checkfile.read(2048)
                 if len(checkbytes) != 2048:
@@ -3522,7 +3527,12 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
 
                 volumedescriptoroffset = checkfile.tell()
 
-                ## volume descriptor type
+                ## volume descriptor type (ECMA 119, section 8.1.1)
+                ## 0: boot record
+                ## 1: primary volume descriptor
+                ## 2: supplementary volume descriptor or an enhanced volume descriptor
+                ## 3: volume partition descriptor
+                ## 255: volume descriptor set terminator
                 if checkbytes[0] == 0:
                         ## boot record. There is no additional data here, except that
                         ## there could be a bootloader located here, which could be important
@@ -3543,10 +3553,13 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                         ## ECMA 119, 8.4.8
                         volume_space_size = int.from_bytes(checkbytes[80:84], byteorder='little')
 
+                        ## extra sanity check to see if little endian and big endian
+                        ## values match.
                         if int.from_bytes(checkbytes[128:130], byteorder='little') != int.from_bytes(checkbytes[130:132], byteorder='big'):
                                 checkfile.close()
                                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'endian mismatch'}
                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
                         ## ECMA 119, 8.4.12
                         logical_size = int.from_bytes(checkbytes[128:130], byteorder='little')
 
@@ -3613,8 +3626,10 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                         extenttoname = {}
                         extenttoparent = {}
 
-                        ## recursively walk all entries in the directory structure
-                        ## add: location of the extent, the size of the extent, location where to unpack, name
+                        ## recursively walk all entries/extents in the directory structure
+                        ## Keep these in a deque data structure for quick access
+                        ## For each extent to unpack add:
+                        ## location of the extent, the size of the extent, location where to unpack, name
                         extents = collections.deque()
                         extents.append((extent_location, root_directory_extent_length, unpackdir, ''))
 
@@ -3625,10 +3640,10 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
 
                         firstextentprocessed = False
 
-                        ## in case there is rock ridge or zisofs the first
+                        ## in case rock ridge or zisofs are used the first
                         ## directory entry in the first extent will contain
                         ## the SP System Use entry, which specifies how many
-                        ## bytes to skip (IEEE P1281, section 5.3)
+                        ## bytes need to be skipped by default (IEEE P1281, section 5.3)
                         suspskip = 0
 
                         ## then process all the extents with directory records. The
@@ -3852,7 +3867,6 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                                                                 checkfile.close()
                                                                                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid flag combination in alternate name field'}
                                                                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
 
                                                                         if sulength - 5 != 0:
                                                                                 ## the rest of the data is the component area
@@ -4190,6 +4204,12 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                 checkfile.close()
                                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no primary volume descriptor'}
                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                elif checkbytes[0] > 3 and checkbytes[0] < 255:
+                        ## reserved blocks, for future use, have never been
+                        ## implemented for ISO9660.
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no primary volume descriptor'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
                 unpackedsize += 2048
 
                 if haveterminator:
@@ -4197,7 +4217,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
 
         checkfile.close()
 
-        ## there should always be a terminator. If not, then it is not
+        ## there should always be at least one terminator. If not, then it is not
         ## a valid ISO file
         if not haveterminator:
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no volume terminator descriptor'}
