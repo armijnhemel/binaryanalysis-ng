@@ -40,6 +40,7 @@
 ## 29. JFFS (uncompressed, zlib, LZMA from OpenWrt)
 ## 30. CPIO (various flavours, little endian)
 ## 31. Sun Raster files (standard type only)
+## 32. Intel Hex (text files only)
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -9207,4 +9208,123 @@ def unpackSunRaster(filename, offset, unpackdir, temporarydirectory):
         outfile.close()
         checkfile.close()
         unpackedfilesandlabels.append((outfilename, ['binary', 'sun raster', 'raster', 'graphics', 'unpacked']))
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## https://en.wikipedia.org/wiki/Intel_HEX
+## For now it is assumed that only files that are completely text
+## files can be IHex files.
+def unpackIHex(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        allowbroken = False
+
+        ## open the file in text mode and process each line
+        checkfile = open(filename, 'r')
+        checkfile.seek(offset)
+
+        outfilename = os.path.join(unpackdir, "unpacked-from-ihex")
+        if filename.lower().endswith('.hex'):
+                outfilename = os.path.join(unpackdir, os.path.basename(filename[:-4]))
+        elif filename.lower().endswith('.ihex'):
+                outfilename = os.path.join(unpackdir, os.path.basename(filename[:-5]))
+
+        outfile = open(outfilename, 'wb')
+        endofihex = False
+        seenrecordtypes = set()
+
+        ## process each line until the end of the IHex data is read
+        try:
+                for line in checkfile:
+                        if not line.startswith(':'):
+                                ## there could possibly be comments, starting with '#'
+                                if line.startswith('#'):
+                                        unpackedsize += len(line)
+                                        continue
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'line does not start with :'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        ## minimum length for a line is:
+                        ## 1 + 2 + 4 + 2 + 2 = 11
+                        ## Each byte uses two characters. The start code uses 1 character.
+                        ## That means that each line has an uneven length.
+                        if len(line.strip()) < 11 or len(line.strip())%2 != 1:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes in line'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                        bytescount = int.from_bytes(bytes.fromhex(line[1:3]), byteorder='big')
+                        if 3 + bytescount + 2 > len(line.strip()):
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes in line'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                        ## the base address is from 3:7 and can be skipped
+                        ## the record type is next from 7:9
+                        recordtype = int.from_bytes(bytes.fromhex(line[7:9]), byteorder='big')
+                        if recordtype > 5:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid record type'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                        computedchecksum = 0
+
+                        ## record type 0 is data, record type 1 is end of data
+                        ## Other record types do not include any data.
+                        if recordtype == 1:
+                                endofihex = True
+                        elif recordtype == 0:
+                                try:
+                                        ihexdata = bytes.fromhex(line[9:9+bytescount*2])
+                                except ValueError:
+                                        checkfile.close()
+                                        outfile.close()
+                                        os.unlink(outfilename)
+                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cannot convert to hex'}
+                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                                outfile.write(ihexdata)
+                        seenrecordtypes.add(recordtype)
+
+                        unpackedsize += len(line)
+
+                        if endofihex:
+                                break
+        except UnicodeDecodeError:
+                checkfile.close()
+                outfile.close()
+                os.unlink(outfilename)
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a text file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        checkfile.close()
+        outfile.close()
+
+        if 4 in seenrecordtypes or 5 in seenrecordtypes:
+                if 3 in seenrecordtypes:
+                        os.unlink(outfilename)
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'incompatible record types combined'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## each valid IHex file has to have a terminator
+        if not endofihex and not allowbroken:
+                os.unlink(outfilename)
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no end of data found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedfilesandlabels.append((outfilename, []))
+        if offset == 0 and filesize == unpackedsize:
+                labels.append('text')
+                labels.append('ihex')
+
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)

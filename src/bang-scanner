@@ -188,13 +188,21 @@ signatureprettyprint = { 'lzma_var1': 'lzma',
 extensiontofunction = { '.swp': bangunpack.unpackVimSwapfile,
                         '.new.dat': bangunpack.unpackAndroidSparseData,
                         '.pak': bangunpack.unpackChromePak,
+                        '.ihex': bangunpack.unpackIHex,
+                        '.hex': bangunpack.unpackIHex,
                       }
 
 
 extensionprettyprint = { '.swp': 'vimswapfile',
                          '.new.dat': 'androidsparsedata',
                          '.pak': 'pak',
+                         '.ihex': 'ihex',
+                         '.hex': 'ihex',
                        }
+
+## certain unpacking functions if the whole file is text
+textonlyfunctions = { 'ihex': bangunpack.unpackIHex,
+                    }
 
 ## store the maximum look ahead window. This is unlikely to matter, but
 ## just in case.
@@ -351,6 +359,10 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                 ##
                 ## 2. blobs, searching for known magic headers and carving them from
                 ## blobs, or regular files.
+                ##
+                ## 3. text only files, where it is not immediately clear what is inside
+                ## and where the file possibly first has to be converted to a binary (examples:
+                ## Intel Hex).
 
                 ## first process files with a known extension, but where
                 ## there is no clear magic header. A prime example is the
@@ -788,6 +800,86 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                         labels.append('text')
                 else:
                         labels.append('binary')
+
+                ## no files were unpacked, so try to scan the entire file.
+                ## This happens for example with text only files like base64
+                ## or Intel hex (all ASCII only).
+                if needsunpacking:
+                        if 'text' in labels and unpackedrange == []:
+                                ## finally try all the "text only" functions
+                                for f in textonlyfunctions:
+                                        namecounter = 1
+                                        dataunpackdirectory = "%s-%s-%d" % (checkfile, f, namecounter)
+                                        while True:
+                                                try:
+                                                        os.mkdir(dataunpackdirectory)
+                                                        break
+                                                except:
+                                                        namecounter += 1
+
+                                        unpackresult = textonlyfunctions[f](checkfile, 0, dataunpackdirectory, temporarydirectory)
+                                        logging.debug("TRYING %s %s at offset: 0" % (checkfile, s[1]))
+                                        try:
+                                                unpackresult = textonlyfunctions[f](checkfile, 0, dataunpackdirectory, temporarydirectory)
+                                        except Exception as e:
+                                                os.rmdir(dataunpackdirectory)
+                                                continue
+                                        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = unpackresult
+                                        if not unpackstatus:
+                                                ## No data could be unpacked for some reason, so check the status first
+                                                logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, 0, unpackerror['offset'], unpackerror['reason']))
+                                                #print(s[1], unpackerror)
+                                                #sys.stdout.flush()
+                                                ## unpackerror contains:
+                                                ## * offset in the file where the error occured (integer)
+                                                ## * reason of the error (human readable)
+                                                ## * flag to indicate if it is a fatal error (boolean)
+                                                ##
+                                                ## Fatal errors should lead to the program stopping execution.
+                                                ## remove the directory, so first change the permissions of
+                                                ## all the files so they can be safely
+                                                if unpackerror['fatal']:
+                                                        pass
+                                                ## clean up any data that might have been left behind
+                                                dirwalk = os.walk(dataunpackdirectory)
+
+                                                for direntries in dirwalk:
+                                                        ## make sure all subdirectories and files can be accessed
+                                                        for subdir in direntries[1]:
+                                                                subdirname = os.path.join(direntries[0], subdir)
+                                                                if not os.path.islink(subdirname):
+                                                                        os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                                                        for filename in direntries[2]:
+                                                                fullfilename = os.path.join(direntries[0], filename)
+                                                                if not os.path.islink(fullfilename):
+                                                                        os.chmod(fullfilename, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                                                shutil.rmtree(dataunpackdirectory)
+                                                continue
+
+                                        logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, f, 0, unpackedlength))
+
+                                        ## add a lot of information about the unpacked files
+                                        report = {}
+                                        report['offset'] = 0
+                                        report['signature'] = f
+                                        report['type'] = f
+                                        report['size'] = unpackedlength
+                                        report['files'] = []
+
+                                        lastunpackedoffset = unpackedlength
+                                        unpackedrange.append((0, unpackedlength))
+
+                                        for un in unpackedfilesandlabels:
+                                                (unpackedfile, unpackedlabel) = un
+
+                                                ## TODO: make relative wrt unpackdir
+                                                report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
+
+                                                ## add the data, plus possibly any label
+                                                scanfilequeue.put((unpackedfile, unpackedlabel))
+
+                                        fileresult['unpackedfiles'].append(report)
+
 
                 ## now compute any TLSH hashes, but not for every file type
                 ## as it often does not make sense to compute TLSH.
