@@ -40,6 +40,14 @@ import getpass
 ## import the local file with unpacking methods
 import bangunpack
 
+## For proximity matching use the TLSH module. This is not a standard
+## module, so make it optional.
+try:
+        import tlsh
+        tlshscanning = True
+except Exception:
+        tlshscanning = False
+
 ## store a few standard signatures
 signatures = {
               'webp':           b'WEBP',
@@ -192,6 +200,9 @@ extensionprettyprint = { '.swp': 'vimswapfile',
 ## just in case.
 maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
 maxsignaturesoffset = max(signaturesoffset.values()) + maxsignaturelength
+
+## not all files should be scanned
+tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'file system'])
 
 ## Process a single file.
 ## This method has the following parameters:
@@ -777,6 +788,16 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                         labels.append('text')
                 else:
                         labels.append('binary')
+
+                ## now compute any TLSH hashes, but not for every file type
+                ## as it often does not make sense to compute TLSH.
+                if set(labels).intersection(tlshlabelsignore) == set():
+                        if filesize >= 256:
+                                scanfile = open(checkfile, 'rb')
+                                scanfile.seek(0)
+                                hashdata = scanfile.read()
+                                scanfile.close()
+                                fileresult['tlsh'] = tlsh.hash(hashdata)
 
                 fileresult['labels'] = list(set(labels))
                 fileresult['filesize'] = filesize
