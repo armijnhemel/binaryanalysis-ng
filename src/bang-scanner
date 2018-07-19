@@ -190,6 +190,7 @@ extensiontofunction = { '.swp': bangunpack.unpackVimSwapfile,
                         '.pak': bangunpack.unpackChromePak,
                         '.ihex': bangunpack.unpackIHex,
                         '.hex': bangunpack.unpackIHex,
+                        '.srec': bangunpack.unpackSREC,
                       }
 
 
@@ -198,10 +199,12 @@ extensionprettyprint = { '.swp': 'vimswapfile',
                          '.pak': 'pak',
                          '.ihex': 'ihex',
                          '.hex': 'ihex',
+                         '.srec': 'srec',
                        }
 
 ## certain unpacking functions if the whole file is text
 textonlyfunctions = { 'ihex': bangunpack.unpackIHex,
+                      'srec': bangunpack.unpackSREC,
                     }
 
 ## store the maximum look ahead window. This is unlikely to matter, but

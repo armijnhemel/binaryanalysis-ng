@@ -41,6 +41,7 @@
 ## 30. CPIO (various flavours, little endian)
 ## 31. Sun Raster files (standard type only)
 ## 32. Intel Hex (text files only)
+## 33. Motorola SREC (text files only)
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -9326,5 +9327,155 @@ def unpackIHex(filename, offset, unpackdir, temporarydirectory):
         if offset == 0 and filesize == unpackedsize:
                 labels.append('text')
                 labels.append('ihex')
+
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## https://en.wikipedia.org/wiki/SREC_(file_format)
+## For now it is assumed that only files that are completely text
+## files can be SREC files.
+def unpackSREC(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        allowbroken = False
+
+        ## open the file in text mode and process each line
+        checkfile = open(filename, 'r')
+        checkfile.seek(offset)
+
+        outfilename = os.path.join(unpackdir, "unpacked-from-srec")
+        if filename.lower().endswith('.srec'):
+                outfilename = os.path.join(unpackdir, os.path.basename(filename[:-5]))
+
+        outfile = open(outfilename, 'wb')
+
+        ## process each line until the end of the SREC data is read
+        seenheader = False
+        seenterminator = False
+        seenrecords = set()
+        try:
+                for line in checkfile:
+                        ## keep track
+                        isdata = False
+                        if not line.startswith('S'):
+                                ## there could possibly be comments, starting with ';',
+                                ## although this is discouraged.
+                                if line.startswith(';'):
+                                        unpackedsize += len(line)
+                                        continue
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'line does not start with S'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                        ## minimum length for a line is:
+                        ## 2 + 2 + 4 + 2 = 10
+                        ## Each byte uses two characters. The record type uses two characters.
+                        ## That means that each line has an even length.
+                        if len(line.strip()) < 10 or len(line.strip())%2 != 0:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes in line'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                        ## then the type. S0 is optional and has no data, S4 is
+                        ## reserved and S5 and S6 are not that interesting.
+                        if line[:2] == 'S1' or line[:2] == 'S2' or line[:2] == 'S3':
+                                isdata = True
+                        elif line[:2] == 'S7' or line[:2] == 'S8' or line[:2] == 'S9':
+                                seenterminator = True
+                        recordtype = line[:2]
+                        seenrecords.add(recordtype)
+
+                        ## then the byte count
+                        bytescount = int.from_bytes(bytes.fromhex(line[2:4]), byteorder='big')
+                        if bytescount < 3:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'bytecount too small'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        if 4 + bytescount * 2 != len(line.strip()):
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes in line'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                        ## skip the address field, or the count and read the data
+                        ## Depending on the record type the amount of bytes that
+                        ## the bytes count uses is different.
+                        try:
+                                if recordtype == 'S0':
+                                        ## metadata that should not be part of the file
+                                        srecdata = bytes.fromhex(line[8:8+(bytescount-3)*2])
+                                elif recordtype == 'S1':
+                                        srecdata = bytes.fromhex(line[8:8+(bytescount-3)*2])
+                                elif recordtype == 'S2':
+                                        srecdata = bytes.fromhex(line[10:10+(bytescount-4)*2])
+                                else:
+                                        srecdata = bytes.fromhex(line[12:12+(bytescount-5)*2])
+                        except ValueError:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cannot convert to hex'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                        ## write the unpacked data to a file, but only for the
+                        ## data records.
+                        if isdata:
+                                outfile.write(srecdata)
+                        unpackedsize += len(line.strip()) + len(checkfile.newlines)
+
+                        ## no need to continue if a terminator was found
+                        if seenterminator:
+                                break
+
+        except UnicodeDecodeError:
+                checkfile.close()
+                outfile.close()
+                os.unlink(outfilename)
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a text file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        checkfile.close()
+        outfile.close()
+
+        ## each valid SREC file has to have a terminator
+        if not seenterminator and not allowbroken:
+                os.unlink(outfilename)
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no terminator record found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## sanity checks for the records: only certain combinations are allowed
+        if 'S1' in seenrecords:
+                if 'S2' in seenrecords or 'S3' in seenrecords:
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'incompatible data records mixed'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if 'S7' in seenrecords or 'S8' in seenrecords:
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'incompatible terminator records mixed'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        elif 'S2' in seenrecords:
+                if 'S3' in seenrecords:
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'incompatible data records mixed'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if 'S7' in seenrecords or 'S9' in seenrecords:
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'incompatible terminator records mixed'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        elif 'S3' in seenrecords:
+                if 'S8' in seenrecords or 'S9' in seenrecords:
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'incompatible terminator records mixed'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedfilesandlabels.append((outfilename, []))
+        if offset == 0 and filesize == unpackedsize:
+                labels.append('text')
+                labels.append('srec')
 
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
