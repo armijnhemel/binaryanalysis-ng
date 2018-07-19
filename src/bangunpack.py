@@ -9297,7 +9297,7 @@ def unpackIHex(filename, offset, unpackdir, temporarydirectory):
                                 outfile.write(ihexdata)
                         seenrecordtypes.add(recordtype)
 
-                        unpackedsize += len(line)
+                        unpackedsize += len(line.strip()) + len(checkfile.newlines)
 
                         if endofihex:
                                 break
