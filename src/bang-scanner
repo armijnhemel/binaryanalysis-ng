@@ -820,7 +820,6 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                 except:
                                                         namecounter += 1
 
-                                        unpackresult = textonlyfunctions[f](checkfile, 0, dataunpackdirectory, temporarydirectory)
                                         logging.debug("TRYING %s %s at offset: 0" % (checkfile, s[1]))
                                         try:
                                                 unpackresult = textonlyfunctions[f](checkfile, 0, dataunpackdirectory, temporarydirectory)
