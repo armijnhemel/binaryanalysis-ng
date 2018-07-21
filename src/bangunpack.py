@@ -3115,7 +3115,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
         unpackingerror = {}
         unpackedsize = 0
 
-        ## a minimal GIF file is 6 + 6 + 6 + 1 + 19
+        ## a minimal GIF file is 6 + 6 + 6 + 1 = 19
         if filesize - offset < 19:
                 unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'incompatible terminator records mixed'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
