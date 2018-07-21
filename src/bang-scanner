@@ -99,6 +99,7 @@ signatures = {
               'mswim':          b'MSWIM\x00\x00\x00',       # /usr/share/magic
               'sunraster':      b'\x59\xa6\x6a\x95',  # https://www.fileformat.info/format/sunraster/egff.htm
               'ext2':           b'\x53\xef',          # /usr/share/magic
+              'rpm':            b'\xed\xab\xee\xdb',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -162,6 +163,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'mswim': bangunpack.unpackWIM,
                         'sunraster': bangunpack.unpackSunRaster,
                         'ext2': bangunpack.unpackExt2,
+                        'rpm': bangunpack.unpackRPM,
                       }
 
 ## a lookup table to map signatures to a name for
