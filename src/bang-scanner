@@ -1118,8 +1118,6 @@ def main(argv):
 
         processmanager = multiprocessing.Manager()
 
-        processmanager = multiprocessing.Manager()
-
         ## first create two queues: one for scanning files, the other one for
         ## reporting results.
         scanfilequeue = processmanager.JoinableQueue(maxsize=0)
