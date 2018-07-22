@@ -394,6 +394,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                         try:
                                 testimg = PIL.Image.open(checkfile)
                                 testimg.load()
+                                testimg.close()
                         except Exception as e:
                                 checkfile.close()
                                 unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
@@ -416,6 +417,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 try:
                         testimg = PIL.Image.open(outfilename)
                         testimg.load()
+                        testimg.close()
                 except:
                         os.unlink(outfilename)
                         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
@@ -3435,6 +3437,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                 try:
                         testimg = PIL.Image.open(checkfile)
                         testimg.load()
+                        testimg.close()
                 except:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid GIF data according to PIL'}
@@ -3455,6 +3458,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
         try:
                 testimg = PIL.Image.open(outfilename)
                 testimg.load()
+                testimg.close()
         except:
                 checkfile.close()
                 os.unlink(outfilename)
@@ -4839,6 +4843,7 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
                 try:
                         testimg = PIL.Image.open(checkfile)
                         testimg.load()
+                        testimg.close()
                 except:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
@@ -4859,6 +4864,7 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
         try:
                 testimg = PIL.Image.open(outfilename)
                 testimg.load()
+                testimg.close()
         except:
                 checkfile.close()
                 os.unlink(outfilename)
