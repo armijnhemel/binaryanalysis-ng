@@ -58,6 +58,7 @@
 ## 10. Windows Compiled HTML Help (requires external tools, version 3 only)
 ## 11. Windows Imaging file format (requires external tools, single image only)
 ## 12. ext2/3/4 (missing: symbolic link support)
+## 13. zstd (needs zstd package)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -10186,6 +10187,8 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
                         unpackresult = unpackXZ(filename, checkfile.tell(), unpackdir, temporarydirectory)
                 elif compressor == b'lzma':
                         unpackresult = unpackLZMA(filename, checkfile.tell(), unpackdir, temporarydirectory)
+                elif compressor == b'zstd':
+                        unpackresult = unpackZstd(filename, checkfile.tell(), unpackdir, temporarydirectory)
                 else:
                         ## gzip is default
                         unpackresult = unpackGzip(filename, checkfile.tell(), unpackdir, temporarydirectory)
@@ -10240,4 +10243,168 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
                 if payload == b'drpm':
                         labels.append('delta rpm')
 
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## zstd
+## https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md
+def unpackZstd(filename, offset, unpackdir, temporarydirectory):
+        filesize = os.stat(filename).st_size
+        unpackedfilesandlabels = []
+        labels = []
+        unpackingerror = {}
+        unpackedsize = 0
+
+        if shutil.which('zstd') == None:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'zstd program not found'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        checkfile = open(filename, 'rb')
+        ## skip the magic
+        checkfile.seek(offset+4)
+        unpackedsize += 4
+
+        ## then read the frame header descriptor as it might indicate whether or
+        ## not there is a size field
+        checkbytes = checkfile.read(1)
+        if len(checkbytes) != 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for zstd frame header'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        if ord(checkbytes) & 32 == 0:
+                single_segment = False
+        else:
+                single_segment = True
+
+        ## process the frame header descriptor to see how big the frame header is
+        frame_content_size_flag = ord(checkbytes) >> 6
+        if frame_content_size_flag == 3:
+                fcs_field_size = 8
+        elif frame_content_size_flag == 2:
+                fcs_field_size = 4
+        elif frame_content_size_flag == 1:
+                fcs_field_size = 2
+        else:
+                ## now it depends on the single_segment_flag
+                if not single_segment:
+                        fcs_field_size = 0
+                else:
+                        fcs_field_size = 1
+
+        ## reserved bit MUST 0
+        if ord(checkbytes) & 8 != 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved bit set'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## content checksum flag
+        content_checksum_set = False
+        if ord(checkbytes) & 4 == 4:
+                content_checksum_set = True
+
+        ## then did_field_size
+        if ord(checkbytes) & 3 == 0:
+                did_field_size = 0
+        elif ord(checkbytes) & 3 == 1:
+                did_field_size = 1
+        elif ord(checkbytes) & 3 == 2:
+                did_field_size = 2
+        elif ord(checkbytes) & 3 == 3:
+                did_field_size = 4
+
+        ## check to see if the window descriptor is present
+        if not single_segment:
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for window descriptor'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+
+        ## then read the dictionary
+        if did_field_size != 0:
+                checkbytes = checkfile.read(did_field_size)
+                if len(checkbytes) != did_field_size:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for dictionary'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += did_field_size
+
+        if fcs_field_size != 0:
+                checkbytes = checkfile.read(fcs_field_size)
+                if len(checkbytes) != fcs_field_size:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for frame content size'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                uncompressed_size = int.from_bytes(checkbytes, byteorder='little')
+                unpackedsize += fcs_field_size
+
+        ## then the blocks: each block starts with 3 bytes
+        while True:
+                lastblock = False
+                checkbytes = checkfile.read(3)
+                if len(checkbytes) != 3:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for frame'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                ## first check if it is the last block
+                if checkbytes[0] & 1 == 1:
+                        lastblock = True
+                blocksize = int.from_bytes(checkbytes, byteorder='little') >> 3
+                if checkfile.tell() + blocksize > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for frame'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                checkfile.seek(blocksize, os.SEEK_CUR)
+                if lastblock:
+                        break
+
+        if content_checksum_set:
+                ## lower 32 bytes of xxHash checksum of the original decompressed data
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for checksum'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize = checkfile.tell() - offset
+
+        ## zstd does not record the name of the file that was
+        ## compressed, so guess, or just set a name.
+        if offset == 0 and unpackedsize == filesize:
+                checkfile.close()
+                if filename.endswith(".zst"):
+                        outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
+                else:
+                        outfilename = os.path.join(unpackdir, "unpacked-by-zstd")
+                p = subprocess.Popen(['zstd', '-d', '-o', outfilename, filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                (outputmsg, errormsg) = p.communicate()
+                if p.returncode != 0:
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid zstd'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                if fcs_field_size != 0:
+                        if uncompressed_size != os.stat(outfilename).st_size:
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid checksum'}
+                                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                labels.append('zstd')
+                labels.append('compressed')
+        else:
+                tmpfilename = os.path.join(unpackdir, "unpacked-by-zstd.zst")
+                tmpfile = open(tmpfilename, 'wb')
+                os.sendfile(tmpfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+                tmpfile.close()
+                checkfile.close()
+                outfilename = tmpfilename[:-4]
+                p = subprocess.Popen(['zstd', '-d', '--rm', '-o', outfilename, tmpfilename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                (outputmsg, errormsg) = p.communicate()
+                if p.returncode != 0:
+                        os.unlink(tmpfilename)
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid zstd'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+                if fcs_field_size != 0:
+                        if uncompressed_size != os.stat(outfilename).st_size:
+                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid checksum'}
+                                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedfilesandlabels.append((outfilename, []))
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)

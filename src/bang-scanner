@@ -100,6 +100,7 @@ signatures = {
               'sunraster':      b'\x59\xa6\x6a\x95',  # https://www.fileformat.info/format/sunraster/egff.htm
               'ext2':           b'\x53\xef',          # /usr/share/magic
               'rpm':            b'\xed\xab\xee\xdb',
+              'zstd_08':        b'\x28\xb5\x2f\xfd',  # /usr/share/magic
              }
 
 ## some signatures do not start at the beginning of the file
@@ -164,6 +165,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'sunraster': bangunpack.unpackSunRaster,
                         'ext2': bangunpack.unpackExt2,
                         'rpm': bangunpack.unpackRPM,
+                        'zstd_08': bangunpack.unpackZstd,
                       }
 
 ## a lookup table to map signatures to a name for
@@ -183,6 +185,7 @@ signatureprettyprint = { 'lzma_var1': 'lzma',
                          'cpio_portable': 'cpio',
                          'cpio_newascii': 'cpio',
                          'cpio_newcrc': 'cpio',
+                         'zstd_08': 'zstd',
                        }
 
 ## extensions to unpacking functions. This should only be
