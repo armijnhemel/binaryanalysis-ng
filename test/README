@@ -13,3 +13,7 @@ This directory contains a number of test files for testing BANG. For each file t
 6. test file has data missing in the middle. For example: GIF file with 100 bytes in the middle cut.
 
 7. test file has data added in the middle. For example: GIF file with data in the middle added.
+
+License:
+
+original GIF file: Picture by Armijn Hemel, licensed under CC BY-SA 4.0
