@@ -959,6 +959,12 @@ def main(argv):
         baseunpackdirectory = ''
         temporarydirectory = None
 
+        ## some default values for the database.
+        postgresql_host = None
+        postgresql_port = None
+        usedatabase = True
+        dbconnectionerrorfatal = False
+
         ## then process each individual section and extract configuration options
         for section in config.sections():
                 if section == 'configuration':
@@ -987,8 +993,54 @@ def main(argv):
                         except Exception:
                                 ## use all available threads by default
                                 threads = multiprocessing.cpu_count()
+                elif section == 'database':
+                        ## The default mode is to continue without having a database and
+                        ## to just disable the functionality that requires a database, but
+                        ## this makes it harder to detect that a database might be down.
+                        try:
+                                connectionerrorfatal = config.get(section, 'dbconnectionerrorfatal')
+                                if connectionerrorfatal == 'yes':
+                                        dbconnectionerrorfatal = True
+                        except:
+                                pass
+
+                        ## Extract the minimally necessary information for PostgreSQL to
+                        ## be able to connect.
+                        try:
+                                postgresql_user = config.get(section, 'postgresql_user')
+                                postgresql_password = config.get(section, 'postgresql_password')
+                                postgresql_db = config.get(section, 'postgresql_db')
+                        except:
+                                usedatabase = False
+                                if dbconnectionerrorfatal:
+                                        print("Configuration file malformed: missing or wrong database information", file=sys.stderr)
+                                        configfile.close()
+                                        sys.exit(1)
+
+                        ## Extract some extra, optional, connection information
+                        try:
+                                postgresql_host = config.get(section, 'postgresql_host')
+                        except:
+                                pass
+                        try:
+                                postgresql_port = config.get(section, 'postgresql_port')
+                        except:
+                                pass
 
         configfile.close()
+
+        ## test the database. If the connection fails it depends on whether or not it should
+        ## be treated as a fatal error. If not, then continue without using any of the
+        ## database functionality.
+        try:
+                c = psycopg2.connect(database=postgresql_db, user=postgresql_user, password=postgresql_password, port=postgresql_port, host=postgresql_host)
+                c.close()
+        except Exception as e:
+                if dbconnectionerrorfatal:
+                        print("Configuration file malformed: missing or wrong database information", file=sys.stderr)
+                        configfile.close()
+                        sys.exit(1)
+                usedatabase = False
 
         ## Check if the base unpack directory was declared.
         if baseunpackdirectory == '':
