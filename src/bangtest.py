@@ -18,6 +18,7 @@ import pathlib
 import bangunpack
 
 basetestdir = '/home/armijn/git/binaryanalysis-ng/test'
+tmpdirectory = None
 
 ## a test class for testing GIFs
 class TestGIF(unittest.TestCase):
@@ -25,7 +26,7 @@ class TestGIF(unittest.TestCase):
     ## create a temporary directory and copy
     ## the test file to the temporary directory
     def setUp(self):
-        self.tempdir = tempfile.mkdtemp()
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
 
     ## remove the temporary directory
     def tearDown(self):
@@ -93,7 +94,7 @@ class TestPNG(unittest.TestCase):
     ## create a temporary directory and copy
     ## the test file to the temporary directory
     def setUp(self):
-        self.tempdir = tempfile.mkdtemp()
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
 
     ## remove the temporary directory
     def tearDown(self):
@@ -160,7 +161,7 @@ class TestJPEG(unittest.TestCase):
     ## create a temporary directory and copy
     ## the test file to the temporary directory
     def setUp(self):
-        self.tempdir = tempfile.mkdtemp()
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
 
     ## remove the temporary directory
     def tearDown(self):
