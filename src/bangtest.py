@@ -62,5 +62,12 @@ class TestGIF(unittest.TestCase):
         self.assertTrue(testres[0])
         self.assertEqual(testres[1], 7073713)
 
+    ## a test for the file being a single GIF with data in front
+    def testDataPrependedToGif(self):
+        filename = os.path.join(basetestdir, 'gif', 'test-cut-data-from-end.gif')
+        offset = 0
+        testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
 if __name__ == '__main__':
     unittest.main()
