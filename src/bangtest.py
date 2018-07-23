@@ -19,6 +19,7 @@ import bangunpack
 
 basetestdir = '/home/armijn/git/binaryanalysis-ng/test'
 
+## a test class for testing GIFs
 class TestGIF(unittest.TestCase):
 
     ## create a temporary directory and copy
@@ -30,10 +31,7 @@ class TestGIF(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-    ## now all the test cases. There could be warnings like:
-    ## ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpx6lhcr3a/unpacked.gif'>
-    ## which seem to be related to some pillow versions not correctly
-    ## closing files.
+    ## Now all the test cases.
 
     ## a test for the file being a single GIF
     def testFullfileIsGIF(self):
@@ -89,6 +87,27 @@ class TestGIF(unittest.TestCase):
         offset = 0
         testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
         self.assertFalse(testres[0])
+
+## a test class for testing PNG files
+class TestPNG(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single PNG
+    def testFullfileIsPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'test.png')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        self.assertTrue(testres[0])
+        self.assertEqual(testres[1], filesize)
 
 if __name__ == '__main__':
     unittest.main()
