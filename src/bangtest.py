@@ -155,5 +155,72 @@ class TestPNG(unittest.TestCase):
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
         self.assertFalse(testres[0])
 
+## a test class for testing JPEG files
+class TestJPEG(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single JPEG
+    def testFullfileIsJPEG(self):
+        filename = os.path.join(basetestdir, 'jpeg', 'test.jpg')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        self.assertTrue(testres[0])
+        self.assertEqual(testres[1], filesize)
+
+    ## a test for the file being a single JPEG with data appended to it
+    def testDataAppendedToJPEG(self):
+        filename = os.path.join(basetestdir, 'jpeg', 'test-add-random-data.jpg')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        self.assertTrue(testres[0])
+        self.assertEqual(testres[1], 4676767)
+
+    ## a test for the file being a single JPEG with data in front
+    def testDataPrependedToJPEG(self):
+        filename = os.path.join(basetestdir, 'jpeg', 'test-prepend-random-data.jpg')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        self.assertTrue(testres[0])
+        self.assertEqual(testres[1], 4676767)
+
+    ## a test for the file being a single JPEG with data cut from the end
+    def testDataCutFromEndJPEG(self):
+        filename = os.path.join(basetestdir, 'jpeg', 'test-cut-data-from-end.jpg')
+        offset = 0
+        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
+    ## a test for the file being a single JPEG with data cut from the middle
+    def testDataCutFromMiddleJPEG(self):
+        filename = os.path.join(basetestdir, 'jpeg', 'test-cut-data-from-middle.jpg')
+        offset = 0
+        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
+    ## a test for the file being a single JPEG with data added in the middle
+    def testDataAddedInMiddleJPEG(self):
+        filename = os.path.join(basetestdir, 'jpeg', 'test-data-added-to-middle.jpg')
+        offset = 0
+        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
+    ## a test for the file being a single JPEG with data replaced in the middle
+    def testDataReplacedInMiddleJPEG(self):
+        filename = os.path.join(basetestdir, 'jpeg', 'test-data-replaced-in-middle.jpg')
+        offset = 0
+        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
 if __name__ == '__main__':
     unittest.main()
