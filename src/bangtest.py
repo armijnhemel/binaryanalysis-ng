@@ -149,7 +149,7 @@ class TestPNG(unittest.TestCase):
         self.assertFalse(testres[0])
 
     ## a test for the file being a single PNG with data replaced in the middle
-    def testDataReplacedInMiddleGif(self):
+    def testDataReplacedInMiddlePNG(self):
         filename = os.path.join(basetestdir, 'png', 'test-data-replaced-in-middle.png')
         offset = 0
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
