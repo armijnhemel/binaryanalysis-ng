@@ -413,12 +413,17 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 outfile.close()
                 checkfile.close()
 
+                ## reopen as read only
+                outfile = open(outfilename, 'rb')
+
                 ## now load the file into PIL as an extra sanity check
                 try:
-                        testimg = PIL.Image.open(outfilename)
+                        testimg = PIL.Image.open(outfile)
                         testimg.load()
                         testimg.close()
+                        outfile.close()
                 except:
+                        outfile.close()
                         os.unlink(outfilename)
                         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
                         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
@@ -3454,17 +3459,23 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
         outfile = open(outfilename, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
+        checkfile.close()
+
+        ## reopen the file read only
+        outfile = open(outfilename, 'rb')
+
         ## now load the file into PIL as an extra sanity check
         try:
-                testimg = PIL.Image.open(outfilename)
+                testimg = PIL.Image.open(outfile)
                 testimg.load()
                 testimg.close()
+                outfile.close()
         except:
-                checkfile.close()
+                outfile.close()
                 os.unlink(outfilename)
                 unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid GIF data according to PIL'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        checkfile.close()
+
         outlabels = ['gif', 'graphics', 'unpacked']
         if animated:
                 outlabels.append('animated')
@@ -4859,20 +4870,24 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
         outfile = open(outfilename, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
+        checkfile.close()
+
+        ## open as read only
+        outfile = open(outfilename, 'rb')
 
         ## now load the file into PIL as an extra sanity check
         try:
-                testimg = PIL.Image.open(outfilename)
+                testimg = PIL.Image.open(outfile)
                 testimg.load()
                 testimg.close()
+                outfile.close()
         except:
-                checkfile.close()
+                outfile.close()
                 os.unlink(outfilename)
                 unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
         unpackedfilesandlabels.append((outfilename, ['jpeg', 'graphics', 'unpacked']))
-        checkfile.close()
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Derived from specifications at:
