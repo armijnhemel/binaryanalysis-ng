@@ -3542,7 +3542,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(2048)
                 if len(checkbytes) != 2048:
                         checkfile.close()
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough bytes'}
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough bytes for sector'}
                         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
                 ## each volume descriptor has a type and an identifier (ECMA 119, section 8.1)
@@ -3592,7 +3592,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                         ## sanity check: the ISO image cannot be outside of the file
                         if offset + volume_space_size * logical_size > filesize:
                                 checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'image cannot be outside of file'}
                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
                         ## according to https://wiki.osdev.org/ISO_9660 Linux does not
@@ -3608,13 +3608,13 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                         ## sanity check: the ISO image cannot be outside of the file
                         if offset + extent_location * logical_size > filesize:
                                 checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent location cannot be outside file'}
                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
                         ## sanity check: the ISO image cannot be outside of the declared size of the file
                         if extent_location * logical_size > volume_space_size * logical_size:
                                 checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent location cannot be larger than declared size'}
                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
                         ## extent size (ECMA 119, 9.1.4)
@@ -3622,13 +3622,13 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                         ## sanity check: the ISO image cannot be outside of the file
                         if offset + extent_location * logical_size + root_directory_extent_length > filesize:
                                 checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent cannot be outside fle'}
                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
                         ## sanity check: the ISO image cannot be outside of the declared size of the file
                         if extent_location * logical_size + root_directory_extent_length > volume_space_size * logical_size:
                                 checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent cannot be outside of declared size'}
                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
                         ## file flags (ECMA 119, 9.1.6)
@@ -3718,13 +3718,13 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                         ## sanity check: the ISO image cannot be outside of the file
                                         if offset + extent_location * logical_size > filesize:
                                                 checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent location cannot be outside file'}
                                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
                                         ## sanity check: the ISO image cannot be outside of the declared size of the file
                                         if extent_location * logical_size > volume_space_size * logical_size:
                                                 checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent location cannot be bigger than declared size'}
                                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
                                         ## extent size (ECMA 119, 9.1.4)
@@ -3732,7 +3732,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                         ## sanity check: the ISO image cannot be outside of the file
                                         if offset + extent_location * logical_size + directory_extent_length > filesize:
                                                 checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent cannot be outside file'}
                                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
                                         ## sanity check: the ISO image cannot be outside of the declared size of the file
@@ -3860,7 +3860,6 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                                                                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid flag combination in alternate name field'}
                                                                                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-
                                                                         if sulength - 5 != 0:
                                                                                 alternatename += system_use[suoffset+5:suoffset+sulength]
 
@@ -3937,7 +3936,8 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                                                         if symflags & 1 != 1:
                                                                                 symlinkcontinue = False
                                                                 elif signatureword == b'SF':
-                                                                        ## no need to process sparse file
+                                                                        ## no need to process sparse file as it doesn't
+                                                                        ## seem to be supported well in the real world
                                                                         pass
                                                                 elif signatureword == b'TF':
                                                                         ## don't process time field
@@ -3993,6 +3993,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                                                         ## as such.
                                                                         relocatedextents.add(extent_location)
 
+                                                                ## zisofs extension
                                                                 elif signatureword == b'ZF':
                                                                         havezisofs = True
                                                                         ## some sanity checks
