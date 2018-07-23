@@ -109,5 +109,51 @@ class TestPNG(unittest.TestCase):
         self.assertTrue(testres[0])
         self.assertEqual(testres[1], filesize)
 
+    ## a test for the file being a single PNG with data appended to it
+    def testDataAppendedToPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'test-add-random-data.png')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        self.assertTrue(testres[0])
+        self.assertEqual(testres[1], 6001452)
+
+    ## a test for the file being a single PNG with data in front
+    def testDataPrependedToPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'test-prepend-random-data.png')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        self.assertTrue(testres[0])
+        self.assertEqual(testres[1], 6001452)
+
+    ## a test for the file being a single PNG with data cut from the end
+    def testDataCutFromEndPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'test-cut-data-from-end.png')
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
+    ## a test for the file being a single PNG with data cut from the middle
+    def testDataCutFromMiddlePNG(self):
+        filename = os.path.join(basetestdir, 'png', 'test-cut-data-from-middle.png')
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
+    ## a test for the file being a single PNG with data added in the middle
+    def testDataAddedInMiddlePNG(self):
+        filename = os.path.join(basetestdir, 'png', 'test-data-added-to-middle.png')
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
+    ## a test for the file being a single PNG with data replaced in the middle
+    def testDataReplacedInMiddleGif(self):
+        filename = os.path.join(basetestdir, 'png', 'test-data-replaced-in-middle.png')
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
 if __name__ == '__main__':
     unittest.main()
