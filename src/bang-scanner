@@ -955,11 +955,13 @@ def main(argv):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
 
-    ## set a few default values
+    ## set a few default values that can be redefined
+    ## in the configuration file
     baseunpackdirectory = ''
     temporarydirectory = None
 
-    ## some default values for the database.
+    ## some default values for the database, possibly
+    ## overridden in the configuration file
     postgresql_host = None
     postgresql_port = None
     usedatabase = True
@@ -1213,6 +1215,7 @@ def main(argv):
     scanresult['python']['version'] = platform.python_version()
     scanresult['python']['implementation'] = platform.python_implementation()
 
+    ## write all results to a Python pickle
     picklefile = open(os.path.join(scandirectory, 'bang.pickle'), 'wb')
     pickle.dump(scanresult, picklefile)
     picklefile.close()
