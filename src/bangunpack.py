@@ -169,102 +169,102 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
 ## * ANI
 ## https://en.wikipedia.org/wiki/Resource_Interchange_File_Format
 def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, applicationheader, filesize):
-        labels = []
-        ## First check if the file size is 12 bytes or more. If not, then it is not a valid RIFF file
-        if filesize - offset < 12:
-                unpackingerror = {'offset': offset, 'reason': 'less than 12 bytes', 'fatal': False}
-                return (False, 0, [], labels, unpackingerror)
+    labels = []
+    ## First check if the file size is 12 bytes or more. If not, then it is not a valid RIFF file
+    if filesize - offset < 12:
+        unpackingerror = {'offset': offset, 'reason': 'less than 12 bytes', 'fatal': False}
+        return (False, 0, [], labels, unpackingerror)
 
-        unpackedsize = 0
+    unpackedsize = 0
 
-        ## Then open the file and read the first four bytes to see if they are "RIFF"
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset)
-        checkbytes = checkfile.read(4)
-        if checkbytes != b'RIFF':
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'reason': 'no valid RIFF header', 'fatal': False}
-                return (False, 0, [], labels, unpackingerror)
-        unpackedsize += 4
-
-        ## Then read four bytes and check the length (stored in little endian format)
-        checkbytes = checkfile.read(4)
-        rifflength = int.from_bytes(checkbytes, byteorder='little')
-        ## the data cannot go outside of the file
-        if rifflength + 8 > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'reason': 'wrong length', 'fatal': False}
-                return (False, 0, [], labels, unpackingerror)
-        unpackedsize += 4
-
-        ## Then read four bytes and check if they match the supplied header
-        checkbytes = checkfile.read(4)
-        if checkbytes != applicationheader:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'reason': 'no valid %s header' % applicationname, 'fatal': False}
-                return (False, 0, [], labels, unpackingerror)
-        unpackedsize += 4
-
-        ## then read chunks
-        while checkfile.tell() != offset + rifflength + 8:
-                haspadding = False
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset + unpackedsize, 'reason': 'no valid chunk header', 'fatal': False}
-                        return (False, 0, [], labels, unpackingerror)
-                if not checkbytes in validchunkfourcc:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset + unpackedsize, 'reason': 'no valid chunk FourCC %s' % checkbytes, 'fatal': False}
-                        return (False, 0, [], labels, unpackingerror)
-                unpackedsize += 4
-
-                ## then the chunk size
-                checkbytes = checkfile.read(4)
-                chunklength = int.from_bytes(checkbytes, byteorder='little')
-                if chunklength % 2 != 0:
-                        chunklength += 1
-                        haspadding = True
-                curpos = checkfile.tell()
-                if chunklength > filesize - curpos:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset + unpackedsize, 'reason': 'wrong chunk length', 'fatal': False}
-                        return (False, 0, [], labels, unpackingerror)
-                unpackedsize += 4
-
-                ## finally skip over the bytes in the file
-                if haspadding:
-                        checkfile.seek(curpos + chunklength-1)
-                        paddingbyte = checkfile.read(1)
-                        if not paddingbyte == b'\x00':
-                                checkfile.close()
-                                unpackingerror = {'offset': offset + unpackedsize, 'reason': 'wrong value for padding byte length', 'fatal': False}
-                                return (False, 0, [], labels, unpackingerror)
-                else:
-                        checkfile.seek(curpos + chunklength)
-                unpackedsize += chunklength
-
-        ## extra sanity check to see if the size of the unpacked data
-        ## matches the declared size from the header.
-        if unpackedsize != rifflength + 8:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'reason': 'unpacked size does not match declared size', 'fatal': False}
-                return (False, 0, [], labels, unpackingerror)
-
-        ## if the entire file is the RIFF file, then label it as such
-        if offset == 0 and unpackedsize == filesize:
-                checkfile.close()
-                labels.append('riff')
-                return (True, unpackedsize, [], labels, {})
-
-        ## else carve the file. It is anonymous, so just give it a name
-        outfilename = os.path.join(unpackdir, "unpacked-%s" % applicationname.lower())
-        outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-        outfile.close()
+    ## Then open the file and read the first four bytes to see if they are "RIFF"
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(4)
+    if checkbytes != b'RIFF':
         checkfile.close()
+        unpackingerror = {'offset': offset, 'reason': 'no valid RIFF header', 'fatal': False}
+        return (False, 0, [], labels, unpackingerror)
+    unpackedsize += 4
 
-        return(True, unpackedsize, [outfilename], labels, {})
+    ## Then read four bytes and check the length (stored in little endian format)
+    checkbytes = checkfile.read(4)
+    rifflength = int.from_bytes(checkbytes, byteorder='little')
+    ## the data cannot go outside of the file
+    if rifflength + 8 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'reason': 'wrong length', 'fatal': False}
+        return (False, 0, [], labels, unpackingerror)
+    unpackedsize += 4
+
+    ## Then read four bytes and check if they match the supplied header
+    checkbytes = checkfile.read(4)
+    if checkbytes != applicationheader:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'reason': 'no valid %s header' % applicationname, 'fatal': False}
+        return (False, 0, [], labels, unpackingerror)
+    unpackedsize += 4
+
+    ## then read chunks
+    while checkfile.tell() != offset + rifflength + 8:
+        haspadding = False
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset + unpackedsize, 'reason': 'no valid chunk header', 'fatal': False}
+            return (False, 0, [], labels, unpackingerror)
+        if not checkbytes in validchunkfourcc:
+            checkfile.close()
+            unpackingerror = {'offset': offset + unpackedsize, 'reason': 'no valid chunk FourCC %s' % checkbytes, 'fatal': False}
+            return (False, 0, [], labels, unpackingerror)
+        unpackedsize += 4
+
+        ## then the chunk size
+        checkbytes = checkfile.read(4)
+        chunklength = int.from_bytes(checkbytes, byteorder='little')
+        if chunklength % 2 != 0:
+            chunklength += 1
+            haspadding = True
+        curpos = checkfile.tell()
+        if chunklength > filesize - curpos:
+            checkfile.close()
+            unpackingerror = {'offset': offset + unpackedsize, 'reason': 'wrong chunk length', 'fatal': False}
+            return (False, 0, [], labels, unpackingerror)
+        unpackedsize += 4
+
+        ## finally skip over the bytes in the file
+        if haspadding:
+            checkfile.seek(curpos + chunklength-1)
+            paddingbyte = checkfile.read(1)
+            if not paddingbyte == b'\x00':
+                checkfile.close()
+                unpackingerror = {'offset': offset + unpackedsize, 'reason': 'wrong value for padding byte length', 'fatal': False}
+                return (False, 0, [], labels, unpackingerror)
+        else:
+            checkfile.seek(curpos + chunklength)
+        unpackedsize += chunklength
+
+    ## extra sanity check to see if the size of the unpacked data
+    ## matches the declared size from the header.
+    if unpackedsize != rifflength + 8:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'reason': 'unpacked size does not match declared size', 'fatal': False}
+        return (False, 0, [], labels, unpackingerror)
+
+    ## if the entire file is the RIFF file, then label it as such
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels.append('riff')
+        return (True, unpackedsize, [], labels, {})
+
+    ## else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked-%s" % applicationname.lower())
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    return(True, unpackedsize, [outfilename], labels, {})
 
 ## test files for ANI: http://www.anicursor.com/diercur.html
 ## http://fileformats.archiveteam.org/wiki/Windows_Animated_Cursor#Sample_files
@@ -678,96 +678,96 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
 
 ## https://en.wikipedia.org/wiki/BMP_file_format
 def unpackBMP(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
 
-        ## first check if the data is large enough
-        ## BMP header is 14 bytes, smallest DIB header is 12 bytes
-        ## https://en.wikipedia.org/wiki/BMP_file_format#Bitmap_file_header
-        if filesize - offset < 26:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 26 bytes'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    ## first check if the data is large enough
+    ## BMP header is 14 bytes, smallest DIB header is 12 bytes
+    ## https://en.wikipedia.org/wiki/BMP_file_format#Bitmap_file_header
+    if filesize - offset < 26:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 26 bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        unpackedsize = 0
-        checkfile = open(filename, 'rb')
-        ## skip over the magic
-        checkfile.seek(offset+2)
-        unpackedsize += 2
+    unpackedsize = 0
+    checkfile = open(filename, 'rb')
+    ## skip over the magic
+    checkfile.seek(offset+2)
+    unpackedsize += 2
 
-        ## then extract the declared size of the BMP
-        checkbytes = checkfile.read(4)
-        bmpsize = int.from_bytes(checkbytes, byteorder='little')
-        if offset + bmpsize > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for BMP file'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## skip over 4 bytes of reserved data and read the offset of the BMP data
-        checkfile.seek(4,os.SEEK_CUR)
-        unpackedsize += 4
-        checkbytes = checkfile.read(4)
-        bmpoffset = int.from_bytes(checkbytes, byteorder='little')
-        unpackedsize += 4
-        ## the BMP cannot be outside the file
-        if offset + bmpoffset > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for BMP'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## read the first two bytes of the DIB header (DIB header size) as an extra sanity check.
-        ## There are actually just a few supported values:
-        ## https://en.wikipedia.org/wiki/BMP_file_format#DIB_header_(bitmap_information_header)
-        checkbytes = checkfile.read(2)
-        dibheadersize = int.from_bytes(checkbytes, byteorder='little')
-        if not dibheadersize in set([12, 64, 16, 40, 52, 56, 108, 124]):
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid DIB header'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## check if the header size is inside the file
-        if offset + 14 + dibheadersize > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for DIB header'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## the BMP data offset is from the start of the BMP file. It cannot be inside
-        ## the BMP header (14 bytes) or the DIB header (variable).
-        if bmpoffset < dibheadersize + 14:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP data offset'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-
-        if shutil.which('bmptopnm') == None:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'bmptopnm program not found'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## then reset the file pointer, read all the data and feed it
-        ## to bmptopnm for validation.
-        checkfile.seek(offset)
-        checkbytes = checkfile.read(bmpsize)
+    ## then extract the declared size of the BMP
+    checkbytes = checkfile.read(4)
+    bmpsize = int.from_bytes(checkbytes, byteorder='little')
+    if offset + bmpsize > filesize:
         checkfile.close()
-        p = subprocess.Popen(['bmptopnm'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (outputmsg, errormsg) = p.communicate(checkbytes)
-        if p.returncode != 0:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for BMP file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## check if the file was the whole file
-        if offset == 0 and filesize == bmpsize:
-                labels.append('bmp')
-                labels.append('graphics')
-                return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+    ## skip over 4 bytes of reserved data and read the offset of the BMP data
+    checkfile.seek(4,os.SEEK_CUR)
+    unpackedsize += 4
+    checkbytes = checkfile.read(4)
+    bmpoffset = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+    ## the BMP cannot be outside the file
+    if offset + bmpoffset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for BMP'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## carve the file. The data has already been read.
-        outfilename = os.path.join(unpackdir, "unpacked.bmp")
-        outfile = open(outfilename, 'wb')
-        outfile.write(checkbytes)
-        outfile.close()
-        unpackedfilesandlabels.append((outfilename, ['bmp', 'graphics', 'unpacked']))
-        return (True, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## read the first two bytes of the DIB header (DIB header size) as an extra sanity check.
+    ## There are actually just a few supported values:
+    ## https://en.wikipedia.org/wiki/BMP_file_format#DIB_header_(bitmap_information_header)
+    checkbytes = checkfile.read(2)
+    dibheadersize = int.from_bytes(checkbytes, byteorder='little')
+    if not dibheadersize in set([12, 64, 16, 40, 52, 56, 108, 124]):
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid DIB header'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## check if the header size is inside the file
+    if offset + 14 + dibheadersize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for DIB header'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## the BMP data offset is from the start of the BMP file. It cannot be inside
+    ## the BMP header (14 bytes) or the DIB header (variable).
+    if bmpoffset < dibheadersize + 14:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP data offset'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    if shutil.which('bmptopnm') == None:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'bmptopnm program not found'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## then reset the file pointer, read all the data and feed it
+    ## to bmptopnm for validation.
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(bmpsize)
+    checkfile.close()
+    p = subprocess.Popen(['bmptopnm'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (outputmsg, errormsg) = p.communicate(checkbytes)
+    if p.returncode != 0:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## check if the file was the whole file
+    if offset == 0 and filesize == bmpsize:
+        labels.append('bmp')
+        labels.append('graphics')
+        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## carve the file. The data has already been read.
+    outfilename = os.path.join(unpackdir, "unpacked.bmp")
+    outfile = open(outfilename, 'wb')
+    outfile.write(checkbytes)
+    outfile.close()
+    unpackedfilesandlabels.append((outfilename, ['bmp', 'graphics', 'unpacked']))
+    return (True, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## wrapper for LZMA, with a few extra sanity checks based on LZMA format specifications.
 def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
