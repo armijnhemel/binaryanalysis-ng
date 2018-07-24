@@ -42,7 +42,7 @@
 ## 31. Sun Raster files (standard type only)
 ## 32. Intel Hex (text files only)
 ## 33. Motorola SREC (text files only)
-## 34. RPM (missing: delta RPM, zstd)
+## 34. RPM (missing: delta RPM)
 ## 35. Apple Icon Image
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
