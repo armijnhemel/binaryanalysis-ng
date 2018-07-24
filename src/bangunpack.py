@@ -43,6 +43,7 @@
 ## 32. Intel Hex (text files only)
 ## 33. Motorola SREC (text files only)
 ## 34. RPM (missing: delta RPM, zstd)
+## 35. Apple Icon Image
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -10437,4 +10438,79 @@ def unpackZstd(filename, offset, unpackdir, temporarydirectory):
                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     unpackedfilesandlabels.append((outfilename, []))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## https://en.wikipedia.org/wiki/Apple_Icon_Image_format
+def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    checkfile = open(filename, 'rb')
+    ## skip over the magic
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    ## file length is next
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for icon length'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    appleiconlength = int.from_bytes(checkbytes, byteorder='big')
+
+    ## data cannot be outside of file
+    if appleiconlength + offset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'icon cannot be outside of file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## then the actual icon data
+    while unpackedsize < appleiconlength:
+        ## first the icon type
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough icon data for icon type'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        icontype = checkbytes
+        unpackedsize += 4
+
+        ## then the icon data length (including type and length)
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough icon data'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        iconlength = int.from_bytes(checkbytes, byteorder='big')
+        ## icon length cannot be outside of the file. The length field includes
+        ## the type and length, and unpackedsize already has 4 bytes of the
+        ## type added, so subtract 4 in the check.
+        if offset + unpackedsize - 4 + iconlength > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'icon data outside of file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+        checkfile.seek(iconlength-8, os.SEEK_CUR)
+        unpackedsize += iconlength-8
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels.append('apple icon')
+        labels.append('graphics')
+        labels.append('resource')
+        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## Carve the image.
+    ## first reset the file pointer
+    checkfile.seek(offset)
+    outfilename = os.path.join(unpackdir, "unpacked.icns")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+    unpackedfilesandlabels.append((outfilename, ['apple icon', 'graphics', 'resource', 'unpacked']))
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)

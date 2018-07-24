@@ -101,6 +101,7 @@ signatures = {
               'ext2':           b'\x53\xef',          # /usr/share/magic
               'rpm':            b'\xed\xab\xee\xdb',
               'zstd_08':        b'\x28\xb5\x2f\xfd',  # /usr/share/magic
+              'apple_icon':     b'icns',              # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
              }
 
 ## some signatures do not start at the beginning of the file
@@ -166,6 +167,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'ext2': bangunpack.unpackExt2,
                         'rpm': bangunpack.unpackRPM,
                         'zstd_08': bangunpack.unpackZstd,
+                        'apple_icon': bangunpack.unpackAppleIcon,
                       }
 
 ## a lookup table to map signatures to a name for
