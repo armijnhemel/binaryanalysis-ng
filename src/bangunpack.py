@@ -6920,126 +6920,127 @@ def unpackTerminfo(filename, offset, unpackdir, temporarydirectory):
 ## https://rzip.samba.org/
 ## https://en.wikipedia.org/wiki/Rzip
 def unpackRzip(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        if filesize - offset < 10:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 10 bytes'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    if filesize - offset < 10:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 10 bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        if shutil.which('rzip') == None:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'rzip program not found'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if shutil.which('rzip') == None:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'rzip program not found'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        unpackedsize = 0
-        checkfile = open(filename, 'rb')
+    unpackedsize = 0
+    checkfile = open(filename, 'rb')
 
-        ## skip over the header
-        checkfile.seek(offset+4)
-        unpackedsize = 4
+    ## skip over the header
+    checkfile.seek(offset+4)
+    unpackedsize = 4
 
-        ## then read the major version
-        checkbytes = checkfile.read(1)
-        unpackedsize += 1
+    ## then read the major version
+    checkbytes = checkfile.read(1)
+    unpackedsize += 1
 
-        if ord(checkbytes) > 2:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid major version number %d' % ord(checkbytes)}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if ord(checkbytes) > 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid major version number %d' % ord(checkbytes)}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## then read the minor version
-        checkbytes = checkfile.read(1)
-        unpackedsize += 1
+    ## then read the minor version
+    checkbytes = checkfile.read(1)
+    unpackedsize += 1
 
-        ## then read the size of the uncompressed data
-        checkbytes = checkfile.read(4)
-        uncompressedsize = int.from_bytes(checkbytes, byteorder='big')
+    ## then read the size of the uncompressed data
+    checkbytes = checkfile.read(4)
+    uncompressedsize = int.from_bytes(checkbytes, byteorder='big')
 
-        ## check if there actually is bzip2 compressed data.
-        bzip2headerfound = False
+    ## check if there actually is bzip2 compressed data.
+    bzip2headerfound = False
+    while True:
         while True:
-                while True:
-                        oldpos = checkfile.tell()
-                        checkbytes = checkfile.read(200)
-                        if len(checkbytes) == 0:
-                               break
-                        bzip2pos = checkbytes.find(b'BZh')
-                        if bzip2pos != -1:
-                                bzip2pos += oldpos
-                                bzip2headerfound = True
-                                break
-                        if len(checkbytes) > 4:
-                                checkfile.seek(-4, os.SEEK_CUR)
+            oldpos = checkfile.tell()
+            checkbytes = checkfile.read(200)
+            if len(checkbytes) == 0:
+               break
+            bzip2pos = checkbytes.find(b'BZh')
+            if bzip2pos != -1:
+                bzip2pos += oldpos
+                bzip2headerfound = True
+                break
+            if len(checkbytes) > 4:
+                checkfile.seek(-4, os.SEEK_CUR)
 
-                ## no bzip2 data was found, so it is not a valid rzip file
-                if not bzip2headerfound:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no valid bzip2 header found'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        ## no bzip2 data was found, so it is not a valid rzip file
+        if not bzip2headerfound:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no valid bzip2 header found'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-                ## uncompress the bzip2 data
-                bzip2res = unpackBzip2(filename, bzip2pos, unpackdir, temporarydirectory, dryrun=True)
-                if not bzip2res[0]:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no valid bzip2 data'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        ## uncompress the bzip2 data
+        bzip2res = unpackBzip2(filename, bzip2pos, unpackdir, temporarydirectory, dryrun=True)
+        if not bzip2res[0]:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no valid bzip2 data'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-                checkfile.seek(bzip2pos + bzip2res[1])
-                unpackedsize = checkfile.tell() - offset
+        checkfile.seek(bzip2pos + bzip2res[1])
+        unpackedsize = checkfile.tell() - offset
 
-                ## check if there could be another block with bzip2 data
-                ## the data between the bzip2 blocks is 13 bytes (rzip source code,
-                ## file: stream.c, function: fill_buffer()
-                if filesize - (bzip2res[1] + bzip2pos) < 13:
-                        break
+        ## check if there could be another block with bzip2 data
+        ## the data between the bzip2 blocks is 13 bytes (rzip source code,
+        ## file: stream.c, function: fill_buffer()
+        if filesize - (bzip2res[1] + bzip2pos) < 13:
+            break
 
-                checkfile.seek(13, os.SEEK_CUR)
-                checkbytes = checkfile.read(3)
-                if checkbytes != b'BZh':
-                        break
+        checkfile.seek(13, os.SEEK_CUR)
+        checkbytes = checkfile.read(3)
+        if checkbytes != b'BZh':
+            break
 
-                checkfile.seek(-3, os.SEEK_CUR)
+        checkfile.seek(-3, os.SEEK_CUR)
 
-        if not filename.endswith('.rz'):
-                outfilename = os.path.join(unpackdir, "unpacked-from-rzip")
-        else:
-                outfilename = os.path.join(unpackdir, os.path.basename(filename[:-3]))
+    if not filename.endswith('.rz'):
+        outfilename = os.path.join(unpackdir, "unpacked-from-rzip")
+    else:
+        outfilename = os.path.join(unpackdir, os.path.basename(filename[:-3]))
 
-        if offset == 0 and unpackedsize == filesize:
-                checkfile.close()
-                p = subprocess.Popen(['rzip', '-k', '-d', filename, '-o', outfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
-                (outputmsg, errormsg) = p.communicate()
-                if p.returncode != 0:
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid RZIP file'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                if os.stat(outfilename).st_size != uncompressedsize:
-                        os.unlink(outfilename)
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'unpacked RZIP data does not match declared uncompressed size'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedfilesandlabels.append((outfilename, []))
-                labels.append('compressed')
-                labels.append('rzip')
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        p = subprocess.Popen(['rzip', '-k', '-d', filename, '-o', outfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+        (outputmsg, errormsg) = p.communicate()
+        if p.returncode != 0:
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid RZIP file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if os.stat(outfilename).st_size != uncompressedsize:
+            os.unlink(outfilename)
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'unpacked RZIP data does not match declared uncompressed size'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedfilesandlabels.append((outfilename, []))
+        labels.append('compressed')
+        labels.append('rzip')
 
-                return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
-        else:
-                temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
-                os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
-                os.fdopen(temporaryfile[0]).close()
-                checkfile.close()
-                p = subprocess.Popen(['rzip', '-d', temporaryfile[1], '-o', outfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
-                (outputmsg, errormsg) = p.communicate()
-                if p.returncode != 0:
-                        os.unlink(temporaryfile[1])
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid RZIP file'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                if os.stat(outfilename).st_size != uncompressedsize:
-                        os.unlink(outfilename)
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'unpacked RZIP data does not match declared uncompressed size'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedfilesandlabels.append((outfilename, []))
+        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
-                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    else:
+        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+        os.fdopen(temporaryfile[0]).close()
+        checkfile.close()
+        p = subprocess.Popen(['rzip', '-d', temporaryfile[1], '-o', outfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+        (outputmsg, errormsg) = p.communicate()
+        if p.returncode != 0:
+            os.unlink(temporaryfile[1])
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid RZIP file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if os.stat(outfilename).st_size != uncompressedsize:
+            os.unlink(outfilename)
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'unpacked RZIP data does not match declared uncompressed size'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedfilesandlabels.append((outfilename, []))
+
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Derived from specifications at:
 ## https://en.wikipedia.org/wiki/Au_file_format
