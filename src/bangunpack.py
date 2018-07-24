@@ -130,19 +130,19 @@ encodingstotranslate = [ 'utf-8','ascii','latin-1','euc_jp', 'euc_jis_2004'
 ##
 ## http://binary-analysis.blogspot.com/2018/06/walkthrough-webp-file-format.html
 def unpackWebP(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
 
-        ## a list of valid WebP chunk FourCC
-        ## also contains the deprecated FRGM
-        validchunkfourcc = set([b'ALPH', b'ANIM', b'ANMF', b'EXIF', b'FRGM', b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
-        (unpackstatus, unpackedsize, unpackedfiles, labels, error) = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP', filesize)
-        if unpackstatus:
-                if offset == 0 and unpackedsize == filesize:
-                        labels += ['webp', 'graphics']
-                for u in unpackedfiles:
-                        unpackedfilesandlabels.append((u, ['webp', 'graphics', 'unpacked']))
-        return (unpackstatus, unpackedsize, unpackedfilesandlabels, labels, error)
+    ## a list of valid WebP chunk FourCC
+    ## also contains the deprecated FRGM
+    validchunkfourcc = set([b'ALPH', b'ANIM', b'ANMF', b'EXIF', b'FRGM', b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
+    (unpackstatus, unpackedsize, unpackedfiles, labels, error) = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP', filesize)
+    if unpackstatus:
+        if offset == 0 and unpackedsize == filesize:
+            labels += ['webp', 'graphics']
+        for u in unpackedfiles:
+            unpackedfilesandlabels.append((u, ['webp', 'graphics', 'unpacked']))
+    return (unpackstatus, unpackedsize, unpackedfilesandlabels, labels, error)
 
 ## A verifier for the WAV file format.
 ## Uses the description of the WAV file format as described here:
@@ -150,18 +150,18 @@ def unpackWebP(filename, offset, unpackdir, temporarydirectory):
 ## https://sites.google.com/site/musicgapi/technical-documents/wav-file-format
 ## http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
 def unpackWAV(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
 
-        ## a list of valid WAV chunk FourCC
-        validchunkfourcc = set([b'LGWV', b'bext', b'cue ', b'data', b'fact', b'fmt ', b'inst', b'labl', b'list', b'ltxt', b'note', b'plst', b'smpl'])
-        (unpackstatus, unpackedsize, unpackedfiles, labels, error) = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
-        if unpackstatus:
-                if offset == 0 and unpackedsize == filesize:
-                        labels += ['wav', 'audio']
-                for u in unpackedfiles:
-                        unpackedfilesandlabels.append((u, ['wav', 'audio', 'unpacked']))
-        return (unpackstatus, unpackedsize, unpackedfilesandlabels, labels, error)
+    ## a list of valid WAV chunk FourCC
+    validchunkfourcc = set([b'LGWV', b'bext', b'cue ', b'data', b'fact', b'fmt ', b'inst', b'labl', b'list', b'ltxt', b'note', b'plst', b'smpl'])
+    (unpackstatus, unpackedsize, unpackedfiles, labels, error) = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
+    if unpackstatus:
+        if offset == 0 and unpackedsize == filesize:
+            labels += ['wav', 'audio']
+        for u in unpackedfiles:
+            unpackedfilesandlabels.append((u, ['wav', 'audio', 'unpacked']))
+    return (unpackstatus, unpackedsize, unpackedfilesandlabels, labels, error)
 
 ## An unpacker for RIFF. This is a helper method used by unpackers for:
 ## * WebP
@@ -269,18 +269,18 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
 ## test files for ANI: http://www.anicursor.com/diercur.html
 ## http://fileformats.archiveteam.org/wiki/Windows_Animated_Cursor#Sample_files
 def unpackANI(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
 
-        ## a list of valid ANI chunk FourCC
-        validchunkfourcc = set([b'IART', b'ICON', b'INAM', b'LIST', b'anih', b'rate', b'seq '])
-        (unpackstatus, unpackedsize, unpackedfiles, labels, error) = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', filesize)
-        if unpackstatus:
-                if offset == 0 and unpackedsize == filesize:
-                        labels += ['ani', 'graphics']
-                for u in unpackedfiles:
-                        unpackedfilesandlabels.append((u, ['ani', 'graphics', 'unpacked']))
-        return (unpackstatus, unpackedsize, unpackedfilesandlabels, labels, error)
+    ## a list of valid ANI chunk FourCC
+    validchunkfourcc = set([b'IART', b'ICON', b'INAM', b'LIST', b'anih', b'rate', b'seq '])
+    (unpackstatus, unpackedsize, unpackedfiles, labels, error) = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', filesize)
+    if unpackstatus:
+        if offset == 0 and unpackedsize == filesize:
+            labels += ['ani', 'graphics']
+        for u in unpackedfiles:
+            unpackedfilesandlabels.append((u, ['ani', 'graphics', 'unpacked']))
+    return (unpackstatus, unpackedsize, unpackedfilesandlabels, labels, error)
 
 ## PNG specifications can be found at:
 ##
@@ -771,40 +771,40 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
 
 ## wrapper for LZMA, with a few extra sanity checks based on LZMA format specifications.
 def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        if filesize - offset < 13:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough bytes'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    if filesize - offset < 13:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## There are many false positives for LZMA.
-        ## The file lzma-file-format.txt in XZ file distributions describe the
-        ## LZMA format. The first 13 bytes describe the header. The last
-        ## 8 bytes of the header describe the file size.
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset+5)
-        checkbytes = checkfile.read(8)
-        checkfile.close()
+    ## There are many false positives for LZMA.
+    ## The file lzma-file-format.txt in XZ file distributions describe the
+    ## LZMA format. The first 13 bytes describe the header. The last
+    ## 8 bytes of the header describe the file size.
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+5)
+    checkbytes = checkfile.read(8)
+    checkfile.close()
 
-        ## first check if an actual length of the *uncompressed* data is stored, or
-        ## if it is possibly stored as a stream. LZMA streams have 0xffffffff stored
-        ## in the length field.
-        ## http://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
-        if checkbytes != b'\xff\xff\xff\xff\xff\xff\xff\xff':
-                lzmaunpackedsize = int.from_bytes(checkbytes, byteorder='little')
-                if lzmaunpackedsize == 0:
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'declared size 0'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    ## first check if an actual length of the *uncompressed* data is stored, or
+    ## if it is possibly stored as a stream. LZMA streams have 0xffffffff stored
+    ## in the length field.
+    ## http://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
+    if checkbytes != b'\xff\xff\xff\xff\xff\xff\xff\xff':
+        lzmaunpackedsize = int.from_bytes(checkbytes, byteorder='little')
+        if lzmaunpackedsize == 0:
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'declared size 0'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-                ## XZ Utils cannot unpack or create files with size of 256 GiB or more
-                if lzmaunpackedsize > 274877906944:
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'declared size too big'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        else:
-                lzmaunpackedsize = -1
+        ## XZ Utils cannot unpack or create files with size of 256 GiB or more
+        if lzmaunpackedsize > 274877906944:
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'declared size too big'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    else:
+        lzmaunpackedsize = -1
 
-        return unpackLZMAWrapper(filename, offset, unpackdir, '.lzma', 'lzma', 'LZMA', lzmaunpackedsize)
+    return unpackLZMAWrapper(filename, offset, unpackdir, '.lzma', 'lzma', 'LZMA', lzmaunpackedsize)
 
 ## wrapper for both LZMA and XZ
 ## Uses standard Python code.
@@ -913,7 +913,7 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
 
 ## XZ unpacking works just like LZMA unpacking
 def unpackXZ(filename, offset, unpackdir, temporarydirectory):
-        return unpackLZMAWrapper(filename, offset, unpackdir, '.xz', 'xz', 'XZ', -1)
+    return unpackLZMAWrapper(filename, offset, unpackdir, '.xz', 'xz', 'XZ', -1)
 
 ## timezone files
 ## Format is documented in the Linux man pages:
@@ -1459,57 +1459,56 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
 ## https://en.wikipedia.org/wiki/Ar_%28Unix%29
 ## https://sourceware.org/binutils/docs/binutils/ar.html
 def unpackAr(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
 
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
+    unpackedsize = 0
 
-        unpackedsize = 0
+    if offset != 0:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Currently only works on whole files'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        if offset != 0:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Currently only works on whole files'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if shutil.which('ar') == None:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'ar program not found'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        if shutil.which('ar') == None:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'ar program not found'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## first test the file to see if it is a valid file
+    p = subprocess.Popen(['ar', 't', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (standard_out, standard_error) = p.communicate()
+    if p.returncode != 0:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ar file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## first test the file to see if it is a valid file
-        p = subprocess.Popen(['ar', 't', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (standard_out, standard_error) = p.communicate()
-        if p.returncode != 0:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ar file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## then extract the file
-        p = subprocess.Popen(['ar', 'x', filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=unpackdir)
-        (outputmsg, errormsg) = p.communicate()
-        if p.returncode != 0:
-                foundfiles = os.listdir(unpackdir)
-                ## try to remove any files that were left behind
-                for f in foundfiles:
-                        if os.path.isdir(os.path.join(unpackdir, f)):
-                                shutil.rmtree(os.path.join(unpackdir, f))
-                        else:
-                                os.unlink(os.path.join(unpackdir, f))
-
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ar file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
+    ## then extract the file
+    p = subprocess.Popen(['ar', 'x', filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=unpackdir)
+    (outputmsg, errormsg) = p.communicate()
+    if p.returncode != 0:
         foundfiles = os.listdir(unpackdir)
-        labels += ['archive', 'ar']
-
-        foundfiles = os.listdir(unpackdir)
+        ## try to remove any files that were left behind
         for f in foundfiles:
-               outputfilename = os.path.join(unpackdir, f)
-               unpackedfilesandlabels.append((outputfilename, []))
-               if f == 'debian-binary':
-                       if filename.lower().endswith('.deb') or filename.lower().endswith('.udeb'):
-                               labels.append('debian')
-                               labels.append('deb')
+            if os.path.isdir(os.path.join(unpackdir, f)):
+                shutil.rmtree(os.path.join(unpackdir, f))
+            else:
+                os.unlink(os.path.join(unpackdir, f))
 
-        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ar file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    foundfiles = os.listdir(unpackdir)
+    labels += ['archive', 'ar']
+
+    foundfiles = os.listdir(unpackdir)
+    for f in foundfiles:
+       outputfilename = os.path.join(unpackdir, f)
+       unpackedfilesandlabels.append((outputfilename, []))
+       if f == 'debian-binary':
+           if filename.lower().endswith('.deb') or filename.lower().endswith('.udeb'):
+               labels.append('debian')
+               labels.append('deb')
+
+    return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Unpacking for squashfs
 ## There are many different flavours of squashfs and configurations
