@@ -49,7 +49,7 @@
 ##  1. PNG/APNG (needs PIL)
 ##  2. ar/deb (needs binutils)
 ##  3. squashfs (needs squashfs-tools)
-##  4. BMP (needs netpbm-progs)
+##  4. BMP (needs PIL)
 ##  5. GIF (needs PIL)
 ##  6. JPEG (needs PIL)
 ##  7. Microsoft Cabinet archives (requires cabextract)
@@ -740,34 +740,46 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 2
 
-    if shutil.which('bmptopnm') == None:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'bmptopnm program not found'}
-        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if offset == 0 and bmpsize == filesize:
+        ## now load the file into PIL as an extra sanity check
+        try:
+            testimg = PIL.Image.open(checkfile)
+            testimg.load()
+            testimg.close()
+        except:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP according to PIL'}
+            return (False, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
+        checkfile.close()
 
-    ## then reset the file pointer, read all the data and feed it
-    ## to bmptopnm for validation.
-    checkfile.seek(offset)
-    checkbytes = checkfile.read(bmpsize)
-    checkfile.close()
-    p = subprocess.Popen(['bmptopnm'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (outputmsg, errormsg) = p.communicate(checkbytes)
-    if p.returncode != 0:
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP'}
-        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-    ## check if the file was the whole file
-    if offset == 0 and filesize == bmpsize:
         labels.append('bmp')
         labels.append('graphics')
-        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+        return (True, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
 
-    ## carve the file. The data has already been read.
+    ## else carve the file
     outfilename = os.path.join(unpackdir, "unpacked.bmp")
     outfile = open(outfilename, 'wb')
-    outfile.write(checkbytes)
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, bmpsize)
     outfile.close()
+    checkfile.close()
+
+    ## open as read only
+    outfile = open(outfilename, 'rb')
+
+    ## now load the file into PIL as an extra sanity check
+    try:
+        testimg = PIL.Image.open(outfile)
+        testimg.load()
+        testimg.close()
+        outfile.close()
+    except:
+        outfile.close()
+        os.unlink(outfilename)
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
     unpackedfilesandlabels.append((outfilename, ['bmp', 'graphics', 'unpacked']))
-    return (True, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## wrapper for LZMA, with a few extra sanity checks based on LZMA format specifications.
 def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
