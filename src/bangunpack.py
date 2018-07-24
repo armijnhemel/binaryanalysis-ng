@@ -1444,16 +1444,21 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
     ## the tar module finished.
     unpackedsize = checkfile.tell() - offset
 
-    ## Data was unpacked from the file, so the data up until now is definitely a tar,
-    ## but is the rest of the file also part of the tar or of something else?
-    ## Example: GNU tar tends to pad files with up to 20 blocks (512 bytes each) filled
-    ## with 0x00 although this depends on the command line settings.
+    ## Data was unpacked from the file, so the data up until now is
+    ## definitely a tar, but is the rest of the file also part of the tar
+    ## or of something else?
+    ##
+    ## Example: GNU tar tends to pad files with up to 20 blocks (512
+    ## bytes each) filled with 0x00 although this heavily depends on
+    ## the command line settings.
+    ##
     ## This can be checked with GNU tar by inspecting the file with the options
     ## "itvRf" to the tar command:
     ##
     ## $ tar itvRf /path/to/tar/file
     ##
-    ## These padding bytes are not read by Python's tarfile module and need to
+    ## These padding bytes are not read by Python's tarfile module and
+    ## need to be explicitly checked and flagged as part of the file
     if unpackedsize % 512 == 0:
          while offset + unpackedsize < filesize:
              checkbytes = checkfile.read(512)
