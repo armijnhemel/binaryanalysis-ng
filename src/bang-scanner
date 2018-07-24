@@ -43,10 +43,10 @@ import bangunpack
 ## For proximity matching use the TLSH module. This is not a standard
 ## module, so make it optional.
 try:
-        import tlsh
-        tlshscanning = True
+    import tlsh
+    tlshscanning = True
 except Exception:
-        tlshscanning = False
+    tlshscanning = False
 
 ## store a few standard signatures
 signatures = {
@@ -909,316 +909,316 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                 scanfilequeue.task_done()
 
 def main(argv):
-        parser = argparse.ArgumentParser()
-        parser.add_argument("-f", "--file", action="store", dest="checkfile", help="path to file to check", metavar="FILE")
-        parser.add_argument("-c", "--config", action="store", dest="cfg", help="path to configuration file", metavar="FILE")
-        args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file", action="store", dest="checkfile", help="path to file to check", metavar="FILE")
+    parser.add_argument("-c", "--config", action="store", dest="cfg", help="path to configuration file", metavar="FILE")
+    args = parser.parse_args()
 
-        ## sanity checks for the file to scan
-        if args.checkfile == None:
-                parser.error("No file to scan provided, exiting")
+    ## sanity checks for the file to scan
+    if args.checkfile == None:
+        parser.error("No file to scan provided, exiting")
 
-        ## the file to scan should exist ...
-        if not os.path.exists(args.checkfile):
-                parser.error("File %s does not exist, exiting." % args.checkfile)
+    ## the file to scan should exist ...
+    if not os.path.exists(args.checkfile):
+        parser.error("File %s does not exist, exiting." % args.checkfile)
 
-        ## ... and should be a real file
-        if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
-                parser.error("%s is not a regular file, exiting." % args.checkfile)
+    ## ... and should be a real file
+    if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
+        parser.error("%s is not a regular file, exiting." % args.checkfile)
 
-        ## sanity checks for the configuration file
-        if args.cfg == None:
-                parser.error("No configuration file provided, exiting")
+    ## sanity checks for the configuration file
+    if args.cfg == None:
+        parser.error("No configuration file provided, exiting")
 
-        ## the configuration file should exist ...
-        if not os.path.exists(args.cfg):
-                parser.error("File %s does not exist, exiting." % args.cfg)
+    ## the configuration file should exist ...
+    if not os.path.exists(args.cfg):
+        parser.error("File %s does not exist, exiting." % args.cfg)
 
-        ## ... and should be a real file
-        if not stat.S_ISREG(os.stat(args.cfg).st_mode):
-                parser.error("%s is not a regular file, exiting." % args.cfg)
+    ## ... and should be a real file
+    if not stat.S_ISREG(os.stat(args.cfg).st_mode):
+        parser.error("%s is not a regular file, exiting." % args.cfg)
 
-        filesize = os.stat(args.checkfile).st_size
+    filesize = os.stat(args.checkfile).st_size
 
-        ## Don't scan an empty file
-        if filesize == 0:
-                print("File to scan is empty, exiting", file=sys.stderr)
-                sys.exit(1)
+    ## Don't scan an empty file
+    if filesize == 0:
+        print("File to scan is empty, exiting", file=sys.stderr)
+        sys.exit(1)
 
-        ## read the configuration file. This is in Windows INI format.
-        config = configparser.ConfigParser()
+    ## read the configuration file. This is in Windows INI format.
+    config = configparser.ConfigParser()
 
-        try:
-                configfile = open(args.cfg, 'r')
-                config.readfp(configfile)
-        except:
-                print("Cannot open configuration file, exiting", file=sys.stderr)
-                sys.exit(1)
+    try:
+        configfile = open(args.cfg, 'r')
+        config.readfp(configfile)
+    except:
+        print("Cannot open configuration file, exiting", file=sys.stderr)
+        sys.exit(1)
 
-        ## set a few default values
-        baseunpackdirectory = ''
-        temporarydirectory = None
+    ## set a few default values
+    baseunpackdirectory = ''
+    temporarydirectory = None
 
-        ## some default values for the database.
-        postgresql_host = None
-        postgresql_port = None
-        usedatabase = True
-        dbconnectionerrorfatal = False
+    ## some default values for the database.
+    postgresql_host = None
+    postgresql_port = None
+    usedatabase = True
+    dbconnectionerrorfatal = False
 
-        ## then process each individual section and extract configuration options
-        for section in config.sections():
-                if section == 'configuration':
-                        ## The base unpack directory is where the unpacked files will be written.
-                        ## This is mandatory.
-                        try:
-                                baseunpackdirectory = config.get(section, 'baseunpackdirectory')
-                        except Exception:
-                                break
-                        ## The temporary directory is where temporary files will be written.
-                        ## This is optional. If not set the system's temporary directory
-                        ## (usually /tmp ) will be used.
-                        try:
-                                temporarydirectory = config.get(section, 'temporarydirectory')
-                        except Exception:
-                                pass
+    ## then process each individual section and extract configuration options
+    for section in config.sections():
+        if section == 'configuration':
+            ## The base unpack directory is where the unpacked files will be written.
+            ## This is mandatory.
+            try:
+                baseunpackdirectory = config.get(section, 'baseunpackdirectory')
+            except Exception:
+                break
+            ## The temporary directory is where temporary files will be written.
+            ## This is optional. If not set the system's temporary directory
+            ## (usually /tmp ) will be used.
+            try:
+                temporarydirectory = config.get(section, 'temporarydirectory')
+            except Exception:
+                pass
 
-                        ## The number of threads to be created to scan the files recursively,
-                        ## next to the main thread. Defaults to "all availabe threads" (number
-                        ## of CPUs on a machine).
-                        try:
-                                threads = min(int(config.get(section, 'threads')), multiprocessing.cpu_count())
-                                ## if 0 or a negative number was configured, then use all available threads
-                                if threads < 1:
-                                        threads = multiprocessing.cpu_count()
-                        except Exception:
-                                ## use all available threads by default
-                                threads = multiprocessing.cpu_count()
-                elif section == 'database':
-                        ## The default mode is to continue without having a database and
-                        ## to just disable the functionality that requires a database, but
-                        ## this makes it harder to detect that a database might be down.
-                        try:
-                                connectionerrorfatal = config.get(section, 'dbconnectionerrorfatal')
-                                if connectionerrorfatal == 'yes':
-                                        dbconnectionerrorfatal = True
-                        except:
-                                pass
+            ## The number of threads to be created to scan the files recursively,
+            ## next to the main thread. Defaults to "all availabe threads" (number
+            ## of CPUs on a machine).
+            try:
+                threads = min(int(config.get(section, 'threads')), multiprocessing.cpu_count())
+                ## if 0 or a negative number was configured, then use all available threads
+                if threads < 1:
+                    threads = multiprocessing.cpu_count()
+            except Exception:
+                ## use all available threads by default
+                threads = multiprocessing.cpu_count()
+        elif section == 'database':
+            ## The default mode is to continue without having a database and
+            ## to just disable the functionality that requires a database, but
+            ## this makes it harder to detect that a database might be down.
+            try:
+                connectionerrorfatal = config.get(section, 'dbconnectionerrorfatal')
+                if connectionerrorfatal == 'yes':
+                    dbconnectionerrorfatal = True
+            except:
+                pass
 
-                        ## Extract the minimally necessary information for PostgreSQL to
-                        ## be able to connect.
-                        try:
-                                postgresql_user = config.get(section, 'postgresql_user')
-                                postgresql_password = config.get(section, 'postgresql_password')
-                                postgresql_db = config.get(section, 'postgresql_db')
-                        except:
-                                usedatabase = False
-                                if dbconnectionerrorfatal:
-                                        print("Configuration file malformed: missing or wrong database information", file=sys.stderr)
-                                        configfile.close()
-                                        sys.exit(1)
-
-                        ## Extract some extra, optional, connection information
-                        try:
-                                postgresql_host = config.get(section, 'postgresql_host')
-                        except:
-                                pass
-                        try:
-                                postgresql_port = config.get(section, 'postgresql_port')
-                        except:
-                                pass
-
-        configfile.close()
-
-        ## test the database. If the connection fails it depends on whether or not it should
-        ## be treated as a fatal error. If not, then continue without using any of the
-        ## database functionality.
-        try:
-                c = psycopg2.connect(database=postgresql_db, user=postgresql_user, password=postgresql_password, port=postgresql_port, host=postgresql_host)
-                c.close()
-        except Exception as e:
-                if dbconnectionerrorfatal:
-                        print("Configuration file malformed: missing or wrong database information", file=sys.stderr)
-                        configfile.close()
-                        sys.exit(1)
+            ## Extract the minimally necessary information for PostgreSQL to
+            ## be able to connect.
+            try:
+                postgresql_user = config.get(section, 'postgresql_user')
+                postgresql_password = config.get(section, 'postgresql_password')
+                postgresql_db = config.get(section, 'postgresql_db')
+            except:
                 usedatabase = False
+                if dbconnectionerrorfatal:
+                    print("Configuration file malformed: missing or wrong database information", file=sys.stderr)
+                    configfile.close()
+                    sys.exit(1)
 
-        ## Check if the base unpack directory was declared.
-        if baseunpackdirectory == '':
-                print("Base unpack directory not declared in configuration file, exiting", file=sys.stderr)
-                sys.exit(1)
+            ## Extract some extra, optional, connection information
+            try:
+                postgresql_host = config.get(section, 'postgresql_host')
+            except:
+                pass
+            try:
+                postgresql_port = config.get(section, 'postgresql_port')
+            except:
+                pass
 
-        ## Check if the base unpack directory exists
-        if not os.path.exists(baseunpackdirectory):
-                print("Base unpack directory %s does not exist, exiting" % baseunpackdirectory, file=sys.stderr)
-                sys.exit(1)
+    configfile.close()
 
-        if not os.path.isdir(baseunpackdirectory):
-                print("Base unpack directory %s is not a directory, exiting" % baseunpackdirectory, file=sys.stderr)
-                sys.exit(1)
+    ## test the database. If the connection fails it depends on whether or not it should
+    ## be treated as a fatal error. If not, then continue without using any of the
+    ## database functionality.
+    try:
+        c = psycopg2.connect(database=postgresql_db, user=postgresql_user, password=postgresql_password, port=postgresql_port, host=postgresql_host)
+        c.close()
+    except Exception as e:
+        if dbconnectionerrorfatal:
+            print("Configuration file malformed: missing or wrong database information", file=sys.stderr)
+            configfile.close()
+            sys.exit(1)
+        usedatabase = False
 
-        ## Check if the base unpack directory can be written to
+    ## Check if the base unpack directory was declared.
+    if baseunpackdirectory == '':
+        print("Base unpack directory not declared in configuration file, exiting", file=sys.stderr)
+        sys.exit(1)
+
+    ## Check if the base unpack directory exists
+    if not os.path.exists(baseunpackdirectory):
+        print("Base unpack directory %s does not exist, exiting" % baseunpackdirectory, file=sys.stderr)
+        sys.exit(1)
+
+    if not os.path.isdir(baseunpackdirectory):
+        print("Base unpack directory %s is not a directory, exiting" % baseunpackdirectory, file=sys.stderr)
+        sys.exit(1)
+
+    ## Check if the base unpack directory can be written to
+    try:
+        testfile = tempfile.mkstemp(dir=baseunpackdirectory)
+        os.unlink(testfile[1])
+    except:
+        print("Base unpack directory %s cannot be written to, exiting" % baseunpackdirectory, file=sys.stderr)
+        sys.exit(1)
+
+    ## Check if the temporary directory is actually an existing directory,
+    ## but only if it was defined in the configuration file.
+    if temporarydirectory != None:
+        if not os.path.exists(temporarydirectory):
+            print("Temporary directory %s does not exist, exiting" % temporarydirectory, file=sys.stderr)
+            sys.exit(1)
+
+        if not os.path.isdir(temporarydirectory):
+            print("Temporary directory %s is not a directory, exiting" % temporarydirectory, file=sys.stderr)
+            sys.exit(1)
+
+        ## Check if the temporary directory can be written to
         try:
-                testfile = tempfile.mkstemp(dir=baseunpackdirectory)
-                os.unlink(testfile[1])
+            testfile = tempfile.mkstemp(dir=temporarydirectory)
+            os.unlink(testfile[1])
         except:
-                print("Base unpack directory %s cannot be written to, exiting" % baseunpackdirectory, file=sys.stderr)
-                sys.exit(1)
+            print("Temporary directory %s cannot be written to, exiting" % temporarydirectory, file=sys.stderr)
+            sys.exit(1)
 
-        ## Check if the temporary directory is actually an existing directory,
-        ## but only if it was defined in the configuration file.
-        if temporarydirectory != None:
-                if not os.path.exists(temporarydirectory):
-                        print("Temporary directory %s does not exist, exiting" % temporarydirectory, file=sys.stderr)
-                        sys.exit(1)
+    ## Now the real scanning starts.
+    scandate = datetime.datetime.utcnow()
 
-                if not os.path.isdir(temporarydirectory):
-                        print("Temporary directory %s is not a directory, exiting" % temporarydirectory, file=sys.stderr)
-                        sys.exit(1)
+    ## create a directory for the scan
+    scandirectory = tempfile.mkdtemp(prefix='bang-scan-', dir=baseunpackdirectory)
 
-                ## Check if the temporary directory can be written to
-                try:
-                        testfile = tempfile.mkstemp(dir=temporarydirectory)
-                        os.unlink(testfile[1])
-                except:
-                        print("Temporary directory %s cannot be written to, exiting" % temporarydirectory, file=sys.stderr)
-                        sys.exit(1)
+    ## create an empty file "STARTED" to easily identify
+    ## active (or crashed) scans.
+    startedfile = open(os.path.join(scandirectory, "STARTED"), 'wb')
+    startedfile.close()
 
-        ## Now the real scanning starts.
-        scandate = datetime.datetime.utcnow()
-
-        ## create a directory for the scan
-        scandirectory = tempfile.mkdtemp(prefix='bang-scan-', dir=baseunpackdirectory)
-
-        ## create an empty file "STARTED" to easily identify
-        ## active (or crashed) scans.
-        startedfile = open(os.path.join(scandirectory, "STARTED"), 'wb')
-        startedfile.close()
-
-        ## now create a directory structure inside the scandirectory:
-        ## unpack/ -- this is where all the unpacked data will be stored
-        ## results/ -- this is where files describing the unpacked data will be stored
-        ## logs/ -- this is where logs from the scan will be stored
-        unpackdirectory = os.path.join(scandirectory, "unpack")
-        os.mkdir(unpackdirectory)
+    ## now create a directory structure inside the scandirectory:
+    ## unpack/ -- this is where all the unpacked data will be stored
+    ## results/ -- this is where files describing the unpacked data will be stored
+    ## logs/ -- this is where logs from the scan will be stored
+    unpackdirectory = os.path.join(scandirectory, "unpack")
+    os.mkdir(unpackdirectory)
         
-        resultsdirectory = os.path.join(scandirectory, "results")
-        os.mkdir(resultsdirectory)
+    resultsdirectory = os.path.join(scandirectory, "results")
+    os.mkdir(resultsdirectory)
 
-        logdirectory = os.path.join(scandirectory, "logs")
-        os.mkdir(logdirectory)
+    logdirectory = os.path.join(scandirectory, "logs")
+    os.mkdir(logdirectory)
 
-        ## create a log file inside the log directory
-        logging.basicConfig(filename=os.path.join(logdirectory, 'unpack.log'),level=logging.DEBUG, format='%(asctime)s %(message)s')
-        logging.info("Started scanning %s" % args.checkfile)
+    ## create a log file inside the log directory
+    logging.basicConfig(filename=os.path.join(logdirectory, 'unpack.log'),level=logging.DEBUG, format='%(asctime)s %(message)s')
+    logging.info("Started scanning %s" % args.checkfile)
 
-        ## first determine how many bytes should be scanned for known signatures
-        ## using a sliding window. This should not be set too large for performance
-        ## reasons.
-        readsize = 2000000
+    ## first determine how many bytes should be scanned for known signatures
+    ## using a sliding window. This should not be set too large for performance
+    ## reasons.
+    readsize = 2000000
 
-        processmanager = multiprocessing.Manager()
+    processmanager = multiprocessing.Manager()
 
-        ## first create two queues: one for scanning files, the other one for
-        ## reporting results.
-        scanfilequeue = processmanager.JoinableQueue(maxsize=0)
-        resultqueue = processmanager.JoinableQueue(maxsize=0)
-        processes = []
+    ## first create two queues: one for scanning files, the other one for
+    ## reporting results.
+    scanfilequeue = processmanager.JoinableQueue(maxsize=0)
+    resultqueue = processmanager.JoinableQueue(maxsize=0)
+    processes = []
 
-        ## copy the file that needs to be scanned to the temporary
-        ## directory.
+    ## copy the file that needs to be scanned to the temporary
+    ## directory.
+    try:
+        shutil.copy(args.checkfile, unpackdirectory)
+    except:
+        print("Could not copy %s to scanning directory %s" % (args.checkfile, unpackdirectory), file=sys.stderr)
+        sys.exit(1)
+
+    ## The scan queue will be used to put files into that need to be scanned and
+    ## processes. New files wil keep being added to it while results are being
+    ## unpacked recursively.
+    ## Initially one file will be in this queue, namely the first file.
+    ## After files are unpacked they will be added to the queue, as they
+    ## can be scanned in a trivially parallel way.
+
+    ## Create a list of labels to pass around. The first element is tagged
+    ## as 'root', as it is the root of the unpacking tree.
+    labels = ['root']
+    scanfilequeue.put((os.path.join(unpackdirectory, os.path.basename(args.checkfile)), labels))
+
+    ## create processes for unpacking archives
+    for i in range(0,threads):
+        p = multiprocessing.Process(target=processfile, args=(scanfilequeue, resultqueue, readsize, unpackdirectory, temporarydirectory))
+        processes.append(p)
+
+    ## then start all the processes
+    for p in processes:
+        p.start()
+
+    ## wait for the queues to be empty.
+    scanfilequeue.join()
+
+    ## There is one result for each file in the result
+    ## queue, which need to be merged into a structure
+    ## matching the directory tree that was unpacked. The name
+    ## of each file that is unpacked serves as key into
+    ## the structure.
+    scantree = {}
+
+    while True:
         try:
-                shutil.copy(args.checkfile, unpackdirectory)
-        except:
-                print("Could not copy %s to scanning directory %s" % (args.checkfile, unpackdirectory), file=sys.stderr)
-                sys.exit(1)
+            fileresult = resultqueue.get_nowait()
+            if 'filename' in fileresult:
+                scantree[fileresult['filename']] = copy.deepcopy(fileresult)
+                resultqueue.task_done()
+        except queue.Empty as e:
+            ## Queue is empty
+            break
 
-        ## The scan queue will be used to put files into that need to be scanned and
-        ## processes. New files wil keep being added to it while results are being
-        ## unpacked recursively.
-        ## Initially one file will be in this queue, namely the first file.
-        ## After files are unpacked they will be added to the queue, as they
-        ## can be scanned in a trivially parallel way.
+    resultqueue.join()
 
-        ## Create a list of labels to pass around. The first element is tagged
-        ## as 'root', as it is the root of the unpacking tree.
-        labels = ['root']
-        scanfilequeue.put((os.path.join(unpackdirectory, os.path.basename(args.checkfile)), labels))
+    ## Done processing, terminate processes that were created
+    for p in processes:
+        p.terminate()
 
-        ## create processes for unpacking archives
-        for i in range(0,threads):
-                p = multiprocessing.Process(target=processfile, args=(scanfilequeue, resultqueue, readsize, unpackdirectory, temporarydirectory))
-                processes.append(p)
+    scandatefinished = datetime.datetime.utcnow()
 
-        ## then start all the processes
-        for p in processes:
-                p.start()
+    ## move the file "STARTED" to "FINISHED" to easily identify
+    ## active (or crashed) scans
+    shutil.move(os.path.join(scandirectory, "STARTED"), os.path.join(scandirectory, "FINISHED"))
+    os.utime(os.path.join(scandirectory, "FINISHED"))
 
-        ## wait for the queues to be empty.
-        scanfilequeue.join()
+    ## now store the scan tree results with other data
+    scanresult = {}
+    scanresult['scantree'] = scantree
 
-        ## There is one result for each file in the result
-        ## queue, which need to be merged into a structure
-        ## matching the directory tree that was unpacked. The name
-        ## of each file that is unpacked serves as key into
-        ## the structure.
-        scantree = {}
+    ## statistics about this particular session
+    scanresult['session'] = {}
+    scanresult['session']['start'] = scandate
+    scanresult['session']['stop'] = scandatefinished
+    scanresult['session']['duration'] = (scandatefinished - scandate).total_seconds()
+    scanresult['session']['user'] = getpass.getuser()
 
-        while True:
-                try:
-                        fileresult = resultqueue.get_nowait()
-                        if 'filename' in fileresult:
-                                scantree[fileresult['filename']] = copy.deepcopy(fileresult)
-                        resultqueue.task_done()
-                except queue.Empty as e:
-                        ## Queue is empty
-                        break
+    ## some information about the platform
+    scanresult['platform'] = {}
+    scanresult['platform']['machine'] = platform.machine()
+    scanresult['platform']['architecture'] = platform.architecture()[0]
+    scanresult['platform']['processor'] = platform.processor()
+    scanresult['platform']['node'] = platform.node()
+    scanresult['platform']['system'] = platform.system()
+    scanresult['platform']['release'] = platform.release()
+    scanresult['platform']['libc'] = platform.libc_ver()[0]
+    scanresult['platform']['libcversion'] = platform.libc_ver()[1]
 
-        resultqueue.join()
+    ## some information about the used Python version
+    scanresult['python'] = {}
+    scanresult['python']['version'] = platform.python_version()
+    scanresult['python']['implementation'] = platform.python_implementation()
 
-        ## Done processing, terminate processes that were created
-        for p in processes:
-                p.terminate()
+    picklefile = open(os.path.join(scandirectory, 'bang.pickle'), 'wb')
+    pickle.dump(scanresult, picklefile)
+    picklefile.close()
 
-        scandatefinished = datetime.datetime.utcnow()
-
-        ## move the file "STARTED" to "FINISHED" to easily identify
-        ## active (or crashed) scans
-        shutil.move(os.path.join(scandirectory, "STARTED"), os.path.join(scandirectory, "FINISHED"))
-        os.utime(os.path.join(scandirectory, "FINISHED"))
-
-        ## now store the scan tree results with other data
-        scanresult = {}
-        scanresult['scantree'] = scantree
-
-        ## statistics about this particular session
-        scanresult['session'] = {}
-        scanresult['session']['start'] = scandate
-        scanresult['session']['stop'] = scandatefinished
-        scanresult['session']['duration'] = (scandatefinished - scandate).total_seconds()
-        scanresult['session']['user'] = getpass.getuser()
-
-        ## some information about the platform
-        scanresult['platform'] = {}
-        scanresult['platform']['machine'] = platform.machine()
-        scanresult['platform']['architecture'] = platform.architecture()[0]
-        scanresult['platform']['processor'] = platform.processor()
-        scanresult['platform']['node'] = platform.node()
-        scanresult['platform']['system'] = platform.system()
-        scanresult['platform']['release'] = platform.release()
-        scanresult['platform']['libc'] = platform.libc_ver()[0]
-        scanresult['platform']['libcversion'] = platform.libc_ver()[1]
-
-        ## some information about the used Python version
-        scanresult['python'] = {}
-        scanresult['python']['version'] = platform.python_version()
-        scanresult['python']['implementation'] = platform.python_implementation()
-
-        picklefile = open(os.path.join(scandirectory, 'bang.pickle'), 'wb')
-        pickle.dump(scanresult, picklefile)
-        picklefile.close()
-
-        ## The end.
-        logging.info("Finished scanning %s" % args.checkfile)
+    ## The end.
+    logging.info("Finished scanning %s" % args.checkfile)
 
 if __name__ == "__main__":
-        main(sys.argv)
+    main(sys.argv)
