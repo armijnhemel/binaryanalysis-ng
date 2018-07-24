@@ -1677,7 +1677,7 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
 ## following them and copying the data. This is used in squashfs unpacking
 ## amongst others.
 def local_copy2(src, dest):
-        return shutil.copy2(src, dest, follow_symlinks=False)
+    return shutil.copy2(src, dest, follow_symlinks=False)
 
 ## https://tools.ietf.org/html/rfc1740
 ## file format is described in appendices A & B
@@ -2636,96 +2636,96 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
 ## Derived from public bzip2 specifications
 ## and Python module documentation
 def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        if filesize - offset < 10:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 10 bytes'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    if filesize - offset < 10:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 10 bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        unpackedsize = 0
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset)
+    unpackedsize = 0
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
 
-        ## Extract one 900k block of data as an extra sanity check.
-        ## First create a bzip2 decompressor
-        bz2decompressor = bz2.BZ2Decompressor()
-        bz2data = checkfile.read(900000)
+    ## Extract one 900k block of data as an extra sanity check.
+    ## First create a bzip2 decompressor
+    bz2decompressor = bz2.BZ2Decompressor()
+    bz2data = checkfile.read(900000)
 
-        ## then try to decompress the data.
-        try:
-                unpackeddata = bz2decompressor.decompress(bz2data)
-        except Exception:
-                ## no data could be successfully unpacked, so close the file and exit.
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid bzip2 file'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## set the name of the file in case it is "anonymous data"
-        ## otherwise just imitate whatever bunzip2 does. If the file has a
-        ## name recorded in the file it will be renamed later.
-        if filename.endswith('.bz2'):
-                outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
-        else:
-                outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
-
-        ## data has been unpacked, so open a file and write the data to it.
-        ## unpacked, or if all data has been unpacked
-        if not dryrun:
-                outfile = open(outfilename, 'wb')
-                outfile.write(unpackeddata)
-
-        unpackedsize += len(bz2data) - len(bz2decompressor.unused_data)
-
-        ## there is still some data left to be unpacked, so
-        ## continue unpacking, as described in the Python documentation:
-        ## https://docs.python.org/3/library/bz2.html#incremental-de-compression
-        ## read some more data in chunks of 10 MB
-        datareadsize = 10000000
-        bz2data = checkfile.read(datareadsize)
-        while bz2data != b'':
-                try:
-                        unpackeddata = bz2decompressor.decompress(bz2data)
-                except EOFError as e:
-                        break
-                except Exception as e:
-                        ## clean up
-                        if not dryrun:
-                                outfile.close()
-                                os.unlink(os.path.join(unpackdir, outfilename))
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid bzip2 file, use bzip2recover?'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-                if not dryrun:
-                        outfile.write(unpackeddata)
-
-                ## there is no more compressed data
-                unpackedsize += len(bz2data) - len(bz2decompressor.unused_data)
-                if bz2decompressor.unused_data != b'':
-                        break
-                bz2data = checkfile.read(datareadsize)
-
+    ## then try to decompress the data.
+    try:
+        unpackeddata = bz2decompressor.decompress(bz2data)
+    except Exception:
+        ## no data could be successfully unpacked, so close the file and exit.
         checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid bzip2 file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## set the name of the file in case it is "anonymous data"
+    ## otherwise just imitate whatever bunzip2 does. If the file has a
+    ## name recorded in the file it will be renamed later.
+    if filename.endswith('.bz2'):
+        outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
+    else:
+        outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
+
+    ## data has been unpacked, so open a file and write the data to it.
+    ## unpacked, or if all data has been unpacked
+    if not dryrun:
+        outfile = open(outfilename, 'wb')
+        outfile.write(unpackeddata)
+
+    unpackedsize += len(bz2data) - len(bz2decompressor.unused_data)
+
+    ## there is still some data left to be unpacked, so
+    ## continue unpacking, as described in the Python documentation:
+    ## https://docs.python.org/3/library/bz2.html#incremental-de-compression
+    ## read some more data in chunks of 10 MB
+    datareadsize = 10000000
+    bz2data = checkfile.read(datareadsize)
+    while bz2data != b'':
+        try:
+            unpackeddata = bz2decompressor.decompress(bz2data)
+        except EOFError as e:
+            break
+        except Exception as e:
+            ## clean up
+            if not dryrun:
+                outfile.close()
+                os.unlink(os.path.join(unpackdir, outfilename))
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid bzip2 file, use bzip2recover?'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
         if not dryrun:
-                outfile.close()
+            outfile.write(unpackeddata)
 
-                if offset == 0 and unpackedsize == os.stat(filename).st_size:
-                        ## in case the file name ends in either bz2 or tbz2 (tar) rename the file
-                        ## to mimic the behaviour of "bunzip2"
-                        if filename.lower().endswith('.bz2'):
-                                newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
-                                shutil.move(outfilename, newoutfilename)
-                                outfilename = newoutfilename
-                        elif filename.lower().endswith('.tbz2'):
-                                newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-5]) + ".tar"
-                                shutil.move(outfilename, newoutfilename)
-                                outfilename = newoutfilename
-                        labels += ['bzip2', 'compressed']
-                unpackedfilesandlabels.append((outfilename, []))
-        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        ## there is no more compressed data
+        unpackedsize += len(bz2data) - len(bz2decompressor.unused_data)
+        if bz2decompressor.unused_data != b'':
+            break
+        bz2data = checkfile.read(datareadsize)
+
+    checkfile.close()
+
+    if not dryrun:
+        outfile.close()
+
+        if offset == 0 and unpackedsize == os.stat(filename).st_size:
+            ## in case the file name ends in either bz2 or tbz2 (tar) rename the file
+            ## to mimic the behaviour of "bunzip2"
+            if filename.lower().endswith('.bz2'):
+                newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
+                shutil.move(outfilename, newoutfilename)
+                outfilename = newoutfilename
+            elif filename.lower().endswith('.tbz2'):
+                newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-5]) + ".tar"
+                shutil.move(outfilename, newoutfilename)
+                outfilename = newoutfilename
+            labels += ['bzip2', 'compressed']
+        unpackedfilesandlabels.append((outfilename, []))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Derived from specifications at:
 ## https://github.com/mackyle/xar/wiki/xarformat
@@ -5477,44 +5477,41 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
 
 ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html
 def unpackTrueTypeFont(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        ## font header is at least 12 bytes
-        if filesize - offset < 12:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid font file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## font header is at least 12 bytes
+    if filesize - offset < 12:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid font file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html (table 2)
-        ## the following tables are required in a font:
-        requiredtables = set([b'cmap', b'glyf', b'head', b'hhea', b'hmtx', b'loca', b'maxp', b'name', b'post'])
+    ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html (table 2)
+    ## the following tables are required in a font:
+    requiredtables = set([b'cmap', b'glyf', b'head', b'hhea', b'hmtx', b'loca', b'maxp', b'name', b'post'])
 
-        res = unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 'ttf', 'TrueType')
-        return res
-
-        return unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 'ttf', 'TrueType')
+    return unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 'ttf', 'TrueType')
 
 ## https://docs.microsoft.com/en-us/typography/opentype/spec/otff
 def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        ## font header is at least 12 bytes
-        if filesize - offset < 12:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid font file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## font header is at least 12 bytes
+    if filesize - offset < 12:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid font file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## https://docs.microsoft.com/en-us/typography/opentype/spec/otff (section 'Font Tables')
-        ## the following tables are required in a font:
-        requiredtables = set([b'cmap', b'head', b'hhea', b'hmtx', b'maxp', b'name', b'OS/2', b'post'])
+    ## https://docs.microsoft.com/en-us/typography/opentype/spec/otff (section 'Font Tables')
+    ## the following tables are required in a font:
+    requiredtables = set([b'cmap', b'head', b'hhea', b'hmtx', b'maxp', b'name', b'OS/2', b'post'])
 
-        return unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 'otf', 'OpenType')
+    return unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 'otf', 'OpenType')
 
 ## method to see if a file is a Vim swap file
 ## These always start with a certain header, including a page size.
@@ -5523,54 +5520,54 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
 ## Various other structs (data block, pointer block) are also described
 ## in this file.
 def unpackVimSwapfile(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset)
-        checkbytes = checkfile.read(6)
-        if len(checkbytes) != 6:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        if checkbytes != b'b0VIM\x20':
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid Vim swap file header'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(6)
+    if len(checkbytes) != 6:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if checkbytes != b'b0VIM\x20':
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid Vim swap file header'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        checkfile.seek(12)
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for page size'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    checkfile.seek(12)
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for page size'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        pagesize = int.from_bytes(checkbytes, byteorder='little')
+    pagesize = int.from_bytes(checkbytes, byteorder='little')
 
-        ## TODO: enable carving.
-        if filesize % pagesize != 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid Vim swap file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## TODO: enable carving.
+    if filesize % pagesize != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid Vim swap file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## then step through the blocks and check the first two
-        ## characters of each block. There are two types of blocks: data
-        ## blocks and pointer blocks.
-        for i in range(1,filesize//pagesize):
-                checkfile.seek(i*pagesize)
-                checkbytes = checkfile.read(2)
-                if not checkbytes in [b'tp', b'ad']:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a valid Vim swap file block identifier'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## then step through the blocks and check the first two
+    ## characters of each block. There are two types of blocks: data
+    ## blocks and pointer blocks.
+    for i in range(1,filesize//pagesize):
+        checkfile.seek(i*pagesize)
+        checkbytes = checkfile.read(2)
+        if not checkbytes in [b'tp', b'ad']:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a valid Vim swap file block identifier'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## else consider it a Vim swap file
-        labels.append('binary')
-        labels.append('vim swap')
-        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+    ## else consider it a Vim swap file
+    labels.append('binary')
+    labels.append('vim swap')
+    return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Some firmware updates are distributed as sparse data images. Given a data image and
 ## a transfer list data on an Android device is block wise added, replaced, erased, or
@@ -5744,96 +5741,96 @@ def unpackAndroidSparseData(filename, offset, unpackdir, temporarydirectory):
 ## header + zlib compressed data
 ## zlib compressed data contains a POSIX tar file
 def unpackAndroidBackup(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        checkfile = open(filename, 'rb')
+    checkfile = open(filename, 'rb')
 
-        ## skip over the offset
-        checkfile.seek(offset+15)
-        unpackedsize += 15
+    ## skip over the offset
+    checkfile.seek(offset+15)
+    unpackedsize += 15
 
-        ## Then read the version number. Only support version 1 right now.
-        checkbytes = checkfile.read(2)
-        if len(checkbytes) != 2:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        if checkbytes != b'1\n':
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported Android backup version'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-
-        ## Then read the compression flag.
-        checkbytes = checkfile.read(2)
-        if len(checkbytes) != 2:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        if checkbytes != b'1\n':
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported Android backup version'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-
-        ## Then read the encryption flag. Only "none" is supported, so read 5 bytes (including newline)
-        checkbytes = checkfile.read(5)
-        if len(checkbytes) != 5:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        if checkbytes != b'none\n':
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'decryption not supported'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 5
-
-        ## create a temporary file to write the results to
-        ## then create a zlib decompression object
-        tempbackupfile = tempfile.mkstemp(dir=temporarydirectory)
-        decompressobj = zlib.decompressobj()
-
-        ## read 1 MB chunks
-        chunksize = 1024*1024
-        checkbytes = checkfile.read(chunksize)
-        try:
-                while checkbytes != b'':
-                        ## uncompress the data, and write to an output file
-                        os.write(tempbackupfile[0], decompressobj.decompress(checkbytes))
-                        unpackedsize += len(checkbytes) - len(decompressobj.unused_data)
-                        if len(decompressobj.unused_data) != 0:
-                                break
-                        checkbytes = checkfile.read(chunksize)
-        except Exception as ex:
-                os.fdopen(tempbackupfile[0]).close()
-                os.unlink(tempbackupfile[1])
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid compression'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        os.fdopen(tempbackupfile[0]).close()
+    ## Then read the version number. Only support version 1 right now.
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
         checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if checkbytes != b'1\n':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported Android backup version'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
 
-        tarfilesize = os.stat(tempbackupfile[1]).st_size
+    ## Then read the compression flag.
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if checkbytes != b'1\n':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported Android backup version'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
 
-        ## now unpack the tar ball
-        tarresult = unpackTar(tempbackupfile[1], 0, unpackdir, temporarydirectory)
+    ## Then read the encryption flag. Only "none" is supported, so read 5 bytes (including newline)
+    checkbytes = checkfile.read(5)
+    if len(checkbytes) != 5:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if checkbytes != b'none\n':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'decryption not supported'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 5
 
-        ## cleanup
+    ## create a temporary file to write the results to
+    ## then create a zlib decompression object
+    tempbackupfile = tempfile.mkstemp(dir=temporarydirectory)
+    decompressobj = zlib.decompressobj()
+
+    ## read 1 MB chunks
+    chunksize = 1024*1024
+    checkbytes = checkfile.read(chunksize)
+    try:
+        while checkbytes != b'':
+            ## uncompress the data, and write to an output file
+            os.write(tempbackupfile[0], decompressobj.decompress(checkbytes))
+            unpackedsize += len(checkbytes) - len(decompressobj.unused_data)
+            if len(decompressobj.unused_data) != 0:
+                break
+            checkbytes = checkfile.read(chunksize)
+    except Exception as ex:
+        os.fdopen(tempbackupfile[0]).close()
         os.unlink(tempbackupfile[1])
-        if not tarresult[0]:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'corrupt tar inside Android backup file'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        if not tarfilesize == tarresult[1]:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'corrupt tar inside Android backup file'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid compression'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    os.fdopen(tempbackupfile[0]).close()
+    checkfile.close()
 
-        ## add the labels and pass on the results from the tar unpacking
-        labels.append('android backup')
-        return (True, unpackedsize, copy.deepcopy(tarresult[2]), labels, unpackingerror)
+    tarfilesize = os.stat(tempbackupfile[1]).st_size
+
+    ## now unpack the tar ball
+    tarresult = unpackTar(tempbackupfile[1], 0, unpackdir, temporarydirectory)
+
+    ## cleanup
+    os.unlink(tempbackupfile[1])
+    if not tarresult[0]:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'corrupt tar inside Android backup file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if not tarfilesize == tarresult[1]:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'corrupt tar inside Android backup file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## add the labels and pass on the results from the tar unpacking
+    labels.append('android backup')
+    return (True, unpackedsize, copy.deepcopy(tarresult[2]), labels, unpackingerror)
 
 ## https://en.wikipedia.org/wiki/ICO_%28file_format%29
 def unpackICO(filename, offset, unpackdir, temporarydirectory):
@@ -6306,78 +6303,78 @@ def unpackGNUMessageCatalog(filename, offset, unpackdir, temporarydirectory):
 ##
 ## but is currently not under the open specification promise
 def unpackCab(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        ## there are 33 bytes for all mandatory cab headers
-        if filesize < 33:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## there are 33 bytes for all mandatory cab headers
+    if filesize < 33:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## open the file and skip the magic and reserved field
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset+8)
-        unpackedsize += 8
+    ## open the file and skip the magic and reserved field
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+8)
+    unpackedsize += 8
 
-        ## check the filesize
-        checkbytes = checkfile.read(4)
-        cabinetsize = int.from_bytes(checkbytes, byteorder='little')
-        if cabinetsize > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'defined cabinet size larger than file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        if shutil.which('cabextract') == None:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cabextract program not found'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        havetmpfile = False
-        if not (offset == 0 and filesize == cabinetsize):
-                temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
-                os.sendfile(temporaryfile[0], checkfile.fileno(), offset, cabinetsize)
-                os.fdopen(temporaryfile[0]).close()
-                havetmpfile = True
-
+    ## check the filesize
+    checkbytes = checkfile.read(4)
+    cabinetsize = int.from_bytes(checkbytes, byteorder='little')
+    if cabinetsize > filesize:
         checkfile.close()
-        if havetmpfile:
-                p = subprocess.Popen(['cabextract', '-d', unpackdir, temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        else:
-                p = subprocess.Popen(['cabextract', '-d', unpackdir, filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'defined cabinet size larger than file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        (outputmsg, errormsg) = p.communicate()
-        if p.returncode != 0:
-                if havetmpfile:
-                        os.unlink(temporaryfile[1])
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid cab file'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if shutil.which('cabextract') == None:
         checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cabextract program not found'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        unpackedsize = cabinetsize - offset
+    havetmpfile = False
+    if not (offset == 0 and filesize == cabinetsize):
+        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, cabinetsize)
+        os.fdopen(temporaryfile[0]).close()
+        havetmpfile = True
 
-        dirwalk = os.walk(unpackdir)
-        for direntries in dirwalk:
-                ## make sure all subdirectories and files can be accessed
-                for subdir in direntries[1]:
-                        subdirname = os.path.join(direntries[0], subdir)
-                        if not os.path.islink(subdirname):
-                                os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
-                for filename in direntries[2]:
-                        fullfilename = os.path.join(direntries[0], filename)
-                        unpackedfilesandlabels.append((fullfilename, []))
+    checkfile.close()
+    if havetmpfile:
+        p = subprocess.Popen(['cabextract', '-d', unpackdir, temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        p = subprocess.Popen(['cabextract', '-d', unpackdir, filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        if not havetmpfile:
-                labels.append('cab')
-                labels.append('archive')
-
-        ## cleanup
+    (outputmsg, errormsg) = p.communicate()
+    if p.returncode != 0:
         if havetmpfile:
-                os.unlink(temporaryfile[1])
+            os.unlink(temporaryfile[1])
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid cab file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    checkfile.close()
 
-        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize = cabinetsize - offset
+
+    dirwalk = os.walk(unpackdir)
+    for direntries in dirwalk:
+        ## make sure all subdirectories and files can be accessed
+        for subdir in direntries[1]:
+            subdirname = os.path.join(direntries[0], subdir)
+            if not os.path.islink(subdirname):
+                os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+        for filename in direntries[2]:
+            fullfilename = os.path.join(direntries[0], filename)
+            unpackedfilesandlabels.append((fullfilename, []))
+
+    if not havetmpfile:
+        labels.append('cab')
+        labels.append('archive')
+
+    ## cleanup
+    if havetmpfile:
+        os.unlink(temporaryfile[1])
+
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## SGI file format
 ## https://media.xiph.org/svt/SGIIMAGESPEC
