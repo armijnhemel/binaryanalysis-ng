@@ -822,107 +822,107 @@ def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
 ## wrapper for both LZMA and XZ
 ## Uses standard Python code.
 def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfiletype, lzmaunpackedsize):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
 
-        unpackedsize = 0
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset)
+    unpackedsize = 0
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
 
-        ## Extract one 900k block of data as an extra sanity check.
-        ## First create a decompressor
-        decompressor = lzma.LZMADecompressor()
-        checkdata = checkfile.read(900000)
+    ## Extract one 900k block of data as an extra sanity check.
+    ## First create a decompressor
+    decompressor = lzma.LZMADecompressor()
+    checkdata = checkfile.read(900000)
 
-        ## then try to decompress the data.
-        try:
-                unpackeddata = decompressor.decompress(checkdata)
-        except Exception:
-                ## no data could be successfully unpacked, so close the file and exit.
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not valid %s data' % ppfiletype}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## set the name of the file in case it is "anonymous data"
-        ## otherwise just imitate whatever unxz and lzma do. If the file has a
-        ## name recorded in the file it will be renamed later.
-        if filetype == 'xz':
-                if filename.endswith('.xz'):
-                        outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-3])
-                else:
-                        outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
-        elif filetype == 'lzma':
-                if filename.endswith('.lzma'):
-                        outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-5])
-                else:
-                        outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
-
-        ## data has been unpacked, so open a file and write the data to it.
-        ## unpacked, or if all data has been unpacked
-        outfile = open(outfilename, 'wb')
-        outfile.write(unpackeddata)
-        unpackedsize += len(checkdata) - len(decompressor.unused_data)
-
-        ## there is still some data left to be unpacked, so
-        ## continue unpacking, as described in the Python documentation:
-        ## https://docs.python.org/3/library/bz2.html#incremental-de-compression
-        ## https://docs.python.org/3/library/lzma.html
-        ## read some more data in chunks of 10 MB
-        datareadsize = 10000000
-        checkdata = checkfile.read(datareadsize)
-        while checkdata != b'':
-                try:
-                        unpackeddata = decompressor.decompress(checkdata)
-                except EOFError as e:
-                        break
-                except Exception as e:
-                        ## clean up
-                        outfile.close()
-                        os.unlink(outfilename)
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid %s file' % ppfiletype}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                outfile.write(unpackeddata)
-                ## there is no more compressed data
-                unpackedsize += len(checkdata) - len(decompressor.unused_data)
-                if decompressor.unused_data != b'':
-                        break
-                checkdata = checkfile.read(datareadsize)
-        outfile.close()
+    ## then try to decompress the data.
+    try:
+        unpackeddata = decompressor.decompress(checkdata)
+    except Exception:
+        ## no data could be successfully unpacked, so close the file and exit.
         checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not valid %s data' % ppfiletype}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## ignore empty files, as it is bogus data
-        if os.stat(outfilename).st_size == 0:
-                os.unlink(outfilename)
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid %s file' % ppfiletype}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    ## set the name of the file in case it is "anonymous data"
+    ## otherwise just imitate whatever unxz and lzma do. If the file has a
+    ## name recorded in the file it will be renamed later.
+    if filetype == 'xz':
+        if filename.endswith('.xz'):
+                outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-3])
+        else:
+                outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
+    elif filetype == 'lzma':
+        if filename.endswith('.lzma'):
+            outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-5])
+        else:
+            outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
 
-        ## check if the length of the unpacked LZMA data is correct, but
-        ## only if any unpacked length has been defined.
-        if filetype == 'lzma' and lzmaunpackedsize != -1:
-                if lzmaunpackedsize != os.stat(outfilename).st_size:
-                        os.unlink(outfilename)
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'length of unpacked %s data does not correspond with header' % ppfiletype}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    ## data has been unpacked, so open a file and write the data to it.
+    ## unpacked, or if all data has been unpacked
+    outfile = open(outfilename, 'wb')
+    outfile.write(unpackeddata)
+    unpackedsize += len(checkdata) - len(decompressor.unused_data)
 
-        min_lzma = 256
+    ## there is still some data left to be unpacked, so
+    ## continue unpacking, as described in the Python documentation:
+    ## https://docs.python.org/3/library/bz2.html#incremental-de-compression
+    ## https://docs.python.org/3/library/lzma.html
+    ## read some more data in chunks of 10 MB
+    datareadsize = 10000000
+    checkdata = checkfile.read(datareadsize)
+    while checkdata != b'':
+        try:
+            unpackeddata = decompressor.decompress(checkdata)
+        except EOFError as e:
+            break
+        except Exception as e:
+            ## clean up
+            outfile.close()
+            os.unlink(outfilename)
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid %s file' % ppfiletype}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        outfile.write(unpackeddata)
+        ## there is no more compressed data
+        unpackedsize += len(checkdata) - len(decompressor.unused_data)
+        if decompressor.unused_data != b'':
+            break
+        checkdata = checkfile.read(datareadsize)
+    outfile.close()
+    checkfile.close()
 
-        ## LZMA sometimes has bogus files filled with 0x00
-        if os.stat(outfilename).st_size < min_lzma:
-                pass
+    ## ignore empty files, as it is bogus data
+    if os.stat(outfilename).st_size == 0:
+        os.unlink(outfilename)
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid %s file' % ppfiletype}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        if offset == 0 and unpackedsize == os.stat(filename).st_size:
-                ## in case the file name ends in extension rename the file
-                ## to mimic the behaviour of "unxz" and similar
-                if filename.lower().endswith(extension):
-                        newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-len(extension)])
-                        shutil.move(outfilename, newoutfilename)
-                        outfilename = newoutfilename
-                labels += [filetype, 'compressed']
-        unpackedfilesandlabels.append((outfilename, []))
-        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## check if the length of the unpacked LZMA data is correct, but
+    ## only if any unpacked length has been defined.
+    if filetype == 'lzma' and lzmaunpackedsize != -1:
+        if lzmaunpackedsize != os.stat(outfilename).st_size:
+            os.unlink(outfilename)
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'length of unpacked %s data does not correspond with header' % ppfiletype}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    min_lzma = 256
+
+    ## LZMA sometimes has bogus files filled with 0x00
+    if os.stat(outfilename).st_size < min_lzma:
+        pass
+
+    if offset == 0 and unpackedsize == os.stat(filename).st_size:
+        ## in case the file name ends in extension rename the file
+        ## to mimic the behaviour of "unxz" and similar
+        if filename.lower().endswith(extension):
+            newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-len(extension)])
+            shutil.move(outfilename, newoutfilename)
+            outfilename = newoutfilename
+        labels += [filetype, 'compressed']
+    unpackedfilesandlabels.append((outfilename, []))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## XZ unpacking works just like LZMA unpacking
 def unpackXZ(filename, offset, unpackdir, temporarydirectory):
