@@ -289,156 +289,156 @@ def unpackANI(filename, offset, unpackdir, temporarydirectory):
 ##
 ## Section 5 describes the structure of a PNG file
 def unpackPNG(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackedsize = 0
-        unpackingerror = {}
-        if filesize - offset < 57:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 57 bytes'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## open the file skip over the magic header bytes (section 5.2)
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset+8)
-        unpackedsize = 8
-
-        ## Then process the PNG data. All data is in network byte order (section 7)
-        ## First read the size of the first chunk, which is always 25 bytes (section 11.2.2)
-        checkbytes = checkfile.read(25)
-        if checkbytes[0:4] != b'\x00\x00\x00\x0d':
-                unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'no valid chunk length'}
-                checkfile.close()
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## The first chunk *has* to be IHDR
-        if checkbytes[4:8] != b'IHDR':
-                unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'no IHDR header'}
-                checkfile.close()
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## then compute the CRC32 of bytes 4 - 21 (header + data)
-        ## and compare it to the CRC in the PNG file
-        crccomputed = binascii.crc32(checkbytes[4:21])
-        crcstored = int.from_bytes(checkbytes[21:25], byteorder='big')
-        if crccomputed != crcstored:
-                unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Wrong CRC'}
-                checkfile.close()
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 25
-
-        ## Then move on to the next chunks in similar fashion (section 5.3)
-        endoffilereached = False
-        idatseen = False
-        chunknames = set()
-        while True:
-                ## read the chunk size
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Could not read chunk size'}
-                        checkfile.close()
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                chunksize = int.from_bytes(checkbytes, byteorder='big')
-                if offset + chunksize > filesize:
-                        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'PNG data bigger than file'}
-                        checkfile.close()
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 4
-
-                ## read the chunk type, plus the chunk data
-                checkbytes = checkfile.read(4+chunksize)
-                chunktype = checkbytes[0:4]
-                if len(checkbytes) != 4+chunksize:
-                        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Could not read chunk type'}
-                        checkfile.close()
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-                unpackedsize += 4+chunksize
-
-                ## compute the CRC
-                crccomputed = binascii.crc32(checkbytes)
-                checkbytes = checkfile.read(4)
-                crcstored = int.from_bytes(checkbytes, byteorder='big')
-                if crccomputed != crcstored:
-                        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Wrong CRC'}
-                        checkfile.close()
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-                ## add the name of the chunk to the list of chunk names
-                chunknames.add(chunktype)
-                if chunktype == b'IEND':
-                        ## IEND indicates the end of the file
-                        endoffilereached = True
-                        unpackedsize += 4
-                        break
-                elif chunktype == b'IDAT':
-                        ## a valid PNG file has to have a IDAT section
-                        idatseen = True
-                unpackedsize += 4
-
-        ## There has to be at least 1 IDAT chunk (section 5.6)
-        if not idatseen:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'No IDAT found'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## Check whether or not the PNG is animated.
-        ## https://wiki.mozilla.org/APNG_Specification
-        animated = False
-        if b'acTL' in chunknames and b'fcTL' in chunknames and b'fdAT' in chunknames:
-                animated = True
-
-        ## There has to be exactly 1 IEND chunk (section 5.6)
-        if endoffilereached:
-                if offset == 0 and unpackedsize == filesize:
-                        ## now load the file into PIL as an extra sanity check
-                        try:
-                                testimg = PIL.Image.open(checkfile)
-                                testimg.load()
-                                testimg.close()
-                        except Exception as e:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        checkfile.close()
-                        labels += ['png', 'graphics']
-                        if animated:
-                                labels.append('animated')
-                                labels.append('apng')
-                        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                ## else carve the file. It is anonymous, so just give it a name
-                outfilename = os.path.join(unpackdir, "unpacked.png")
-                outfile = open(outfilename, 'wb')
-                os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-                outfile.close()
-                checkfile.close()
-
-                ## reopen as read only
-                outfile = open(outfilename, 'rb')
-
-                ## now load the file into PIL as an extra sanity check
-                try:
-                        testimg = PIL.Image.open(outfile)
-                        testimg.load()
-                        testimg.close()
-                        outfile.close()
-                except:
-                        outfile.close()
-                        os.unlink(outfilename)
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                if animated:
-                        unpackedfilesandlabels.append((outfilename, ['png', 'graphics', 'animated', 'apng', 'unpacked']))
-                else:
-                        unpackedfilesandlabels.append((outfilename, ['png', 'graphics', 'unpacked']))
-                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## There is no end of file, so it is not a valid PNG.
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'No IEND found'}
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackedsize = 0
+    unpackingerror = {}
+    if filesize - offset < 57:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 57 bytes'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## open the file skip over the magic header bytes (section 5.2)
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+8)
+    unpackedsize = 8
+
+    ## Then process the PNG data. All data is in network byte order (section 7)
+    ## First read the size of the first chunk, which is always 25 bytes (section 11.2.2)
+    checkbytes = checkfile.read(25)
+    if checkbytes[0:4] != b'\x00\x00\x00\x0d':
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'no valid chunk length'}
+        checkfile.close()
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## The first chunk *has* to be IHDR
+    if checkbytes[4:8] != b'IHDR':
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'no IHDR header'}
+        checkfile.close()
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## then compute the CRC32 of bytes 4 - 21 (header + data)
+    ## and compare it to the CRC in the PNG file
+    crccomputed = binascii.crc32(checkbytes[4:21])
+    crcstored = int.from_bytes(checkbytes[21:25], byteorder='big')
+    if crccomputed != crcstored:
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Wrong CRC'}
+        checkfile.close()
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 25
+
+    ## Then move on to the next chunks in similar fashion (section 5.3)
+    endoffilereached = False
+    idatseen = False
+    chunknames = set()
+    while True:
+        ## read the chunk size
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Could not read chunk size'}
+            checkfile.close()
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        chunksize = int.from_bytes(checkbytes, byteorder='big')
+        if offset + chunksize > filesize:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'PNG data bigger than file'}
+            checkfile.close()
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## read the chunk type, plus the chunk data
+        checkbytes = checkfile.read(4+chunksize)
+        chunktype = checkbytes[0:4]
+        if len(checkbytes) != 4+chunksize:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Could not read chunk type'}
+            checkfile.close()
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize += 4+chunksize
+
+        ## compute the CRC
+        crccomputed = binascii.crc32(checkbytes)
+        checkbytes = checkfile.read(4)
+        crcstored = int.from_bytes(checkbytes, byteorder='big')
+        if crccomputed != crcstored:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Wrong CRC'}
+            checkfile.close()
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## add the name of the chunk to the list of chunk names
+        chunknames.add(chunktype)
+        if chunktype == b'IEND':
+            ## IEND indicates the end of the file
+            endoffilereached = True
+            unpackedsize += 4
+            break
+        elif chunktype == b'IDAT':
+            ## a valid PNG file has to have a IDAT section
+            idatseen = True
+        unpackedsize += 4
+
+    ## There has to be at least 1 IDAT chunk (section 5.6)
+    if not idatseen:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'No IDAT found'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## Check whether or not the PNG is animated.
+    ## https://wiki.mozilla.org/APNG_Specification
+    animated = False
+    if b'acTL' in chunknames and b'fcTL' in chunknames and b'fdAT' in chunknames:
+        animated = True
+
+    ## There has to be exactly 1 IEND chunk (section 5.6)
+    if endoffilereached:
+        if offset == 0 and unpackedsize == filesize:
+            ## now load the file into PIL as an extra sanity check
+            try:
+                testimg = PIL.Image.open(checkfile)
+                testimg.load()
+                testimg.close()
+            except Exception as e:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            checkfile.close()
+            labels += ['png', 'graphics']
+            if animated:
+                labels.append('animated')
+                labels.append('apng')
+            return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## else carve the file. It is anonymous, so just give it a name
+        outfilename = os.path.join(unpackdir, "unpacked.png")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        checkfile.close()
+
+        ## reopen as read only
+        outfile = open(outfilename, 'rb')
+
+        ## now load the file into PIL as an extra sanity check
+        try:
+            testimg = PIL.Image.open(outfile)
+            testimg.load()
+            testimg.close()
+            outfile.close()
+        except:
+            outfile.close()
+            os.unlink(outfilename)
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        if animated:
+            unpackedfilesandlabels.append((outfilename, ['png', 'graphics', 'animated', 'apng', 'unpacked']))
+        else:
+            unpackedfilesandlabels.append((outfilename, ['png', 'graphics', 'unpacked']))
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## There is no end of file, so it is not a valid PNG.
+    checkfile.close()
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'No IEND found'}
+    return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Derived from public gzip specifications and Python module documentation
 ## The gzip format is described in RFC 1952
