@@ -1,0 +1,4 @@
+zero.img is a file that expands to a 60 MiB zero filled file. This was created using:
+
+$ dd if=/dev/zero of=zero bs=62914560 count=1
+$ img2simg zero zero.img
