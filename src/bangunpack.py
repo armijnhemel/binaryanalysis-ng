@@ -452,230 +452,230 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 ## gzip data if there is other non-gzip data following the gzip compressed
 ## data, so it has to be processed another way.
 def unpackGzip(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset+3)
-        unpackedsize += 3
-        ## RFC 1952 http://www.zlib.org/rfc-gzip.html describes the flags, but omits the "encrytion" flag (bit 5)
-        ##
-        ## Python 3's zlib module does not support:
-        ## * continuation of multi-part gzip (bit 2)
-        ## * encrypt (bit 5)
-        ##
-        ## RFC 1952 says that bit 6 and 7 should not be set
-        checkbytes = checkfile.read(1)
-        if len(checkbytes) != 1:
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+3)
+    unpackedsize += 3
+    ## RFC 1952 http://www.zlib.org/rfc-gzip.html describes the flags, but omits the "encrytion" flag (bit 5)
+    ##
+    ## Python 3's zlib module does not support:
+    ## * continuation of multi-part gzip (bit 2)
+    ## * encrypt (bit 5)
+    ##
+    ## RFC 1952 says that bit 6 and 7 should not be set
+    checkbytes = checkfile.read(1)
+    if len(checkbytes) != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if (checkbytes[0] >> 2 & 1) == 1:
+        ## continuation of multi-part gzip
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported multi-part gzip'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if (checkbytes[0] >> 5 & 1) == 1:
+        ## encrypted
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported encrypted'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if (checkbytes[0] >> 6 & 1) == 1 or (checkbytes[0] >> 7 & 1) == 1:
+        ## reserved
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a valid gzip file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 1
+
+    havecrc16 = False
+    ## if bit on is set then there is a CRC16
+    if (checkbytes[0] >> 1 & 1) == 1:
+        havecrc16 = True
+
+    havefextra = False
+    ## if bit two is set then there is extra info
+    if (checkbytes[0] >> 2 & 1) == 1:
+        havefextra = True
+
+    havefname = False
+    ## if bit three is set then there is a name
+    if (checkbytes[0] >> 3 & 1) == 1:
+        havefname = True
+
+    havecomment = False
+    ## if bit four is set then there is a comment
+    if (checkbytes[0] >> 4 & 1) == 1:
+        havecomment = True
+
+    ## skip over the MIME field
+    checkfile.seek(4,os.SEEK_CUR)
+    unpackedsize += 4
+
+    ## skip over the XFL and OS fields
+    checkfile.seek(2,os.SEEK_CUR)
+    unpackedsize += 2
+
+    ## optional XLEN
+    if havefextra:
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        xlen = int.from_bytes(checkbytes, byteorder='little')
+        if checkfile.tell() + xlen > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extra data outside of file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize +=  xlen + 2
+
+    ## extract the original file name, if any
+    ## This can be used later to rename the file. Because of
+    ## false positives the name cannot be checked now.
+    if havefname:
+        origname = b''
+        while True:
+            checkbytes = checkfile.read(1)
+            if len(checkbytes) != 1:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'file name data outside of file'}
                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        if (checkbytes[0] >> 2 & 1) == 1:
-                ## continuation of multi-part gzip
+            if checkbytes == b'\x00':
+                unpackedsize += 1
+                break
+            origname += checkbytes
+            unpackedsize += 1
+
+   ## then extract the comment
+    origcomment = b''
+    if havecomment:
+        while True:
+            checkbytes = checkfile.read(1)
+            if len(checkbytes) != 1:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported multi-part gzip'}
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'comment data outside of file'}
                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        if (checkbytes[0] >> 5 & 1) == 1:
-                ## encrypted
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported encrypted'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        if (checkbytes[0] >> 6 & 1) == 1 or (checkbytes[0] >> 7 & 1) == 1:
-                ## reserved
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a valid gzip file'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 1
+            if checkbytes == b'\x00':
+                unpackedsize += 1
+                break
+            origcomment += checkbytes
+            unpackedsize += 1
+    #origcomment = origcomment.decode()
 
-        havecrc16 = False
-        ## if bit on is set then there is a CRC16
-        if (checkbytes[0] >> 1 & 1) == 1:
-                havecrc16 = True
-
-        havefextra = False
-        ## if bit two is set then there is extra info
-        if (checkbytes[0] >> 2 & 1) == 1:
-                havefextra = True
-
-        havefname = False
-        ## if bit three is set then there is a name
-        if (checkbytes[0] >> 3 & 1) == 1:
-                havefname = True
-
-        havecomment = False
-        ## if bit four is set then there is a comment
-        if (checkbytes[0] >> 4 & 1) == 1:
-                havecomment = True
-
-        ## skip over the MIME field
-        checkfile.seek(4,os.SEEK_CUR)
-        unpackedsize += 4
-
-        ## skip over the XFL and OS fields
+    ## skip over the CRC16, if present
+    if havecrc16:
         checkfile.seek(2,os.SEEK_CUR)
         unpackedsize += 2
 
-        ## optional XLEN
-        if havefextra:
-                checkbytes = checkfile.read(2)
-                if len(checkbytes) != 2:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                xlen = int.from_bytes(checkbytes, byteorder='little')
-                if checkfile.tell() + xlen > filesize:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extra data outside of file'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize +=  xlen + 2
-
-        ## extract the original file name, if any
-        ## This can be used later to rename the file. Because of
-        ## false positives the name cannot be checked now.
-        if havefname:
-                origname = b''
-                while True:
-                        checkbytes = checkfile.read(1)
-                        if len(checkbytes) != 1:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'file name data outside of file'}
-                                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                        if checkbytes == b'\x00':
-                                unpackedsize += 1
-                                break
-                        origname += checkbytes
-                        unpackedsize += 1
-
-       ## then extract the comment
-        origcomment = b''
-        if havecomment:
-                while True:
-                        checkbytes = checkfile.read(1)
-                        if len(checkbytes) != 1:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'comment data outside of file'}
-                                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                        if checkbytes == b'\x00':
-                                unpackedsize += 1
-                                break
-                        origcomment += checkbytes
-                        unpackedsize += 1
-        #origcomment = origcomment.decode()
-
-        ## skip over the CRC16, if present
-        if havecrc16:
-                checkfile.seek(2,os.SEEK_CUR)
-                unpackedsize += 2
-
-        ## next are blocks of zlib compressed data
-        ## RFC 1951 section 3.2.3 describes the algorithm and also
-        ## an extra sanity check.
-        checkbytes = checkfile.read(1)
-        if len(checkbytes) != 1:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        if (checkbytes[0] >> 1 & 1) == 1 and (checkbytes[0] >> 2 & 1) == 1:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong DEFLATE header'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## go back one byte
-        checkfile.seek(-1,os.SEEK_CUR)
-
-        ## what follows next is raw deflate blocks. To unpack raw deflate data the windowBits have to be
-        ## set to negative values: http://www.zlib.net/manual.html#Advanced
-        ## First create a zlib decompressor that can decompress raw deflate
-        ## https://docs.python.org/3/library/zlib.html#zlib.compressobj
-        decompressor = zlib.decompressobj(-zlib.MAX_WBITS)
-
-        ## now start decompressing the data
-        ## set the name of the file in case it is "anonymous data"
-        ## otherwise just imitate whatever gunzip does. If the file has a
-        ## name recorded in the file it will be renamed later.
-        if filename.endswith('.gz'):
-                outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-3])
-        else:
-                outfilename = os.path.join(unpackdir, "unpacked-from-gz")
-
-        ## open a file to write any unpacked data to
-        outfile = open(outfilename, 'wb')
-
-        ## store the CRC of the uncompressed data
-        gzipcrc32 = zlib.crc32(b'')
-
-        ## then continue
-        readsize = 10000000
-        checkbytes = bytearray(readsize)
-        while True:
-                checkfile.readinto(checkbytes)
-                try:
-                        unpackeddata = decompressor.decompress(checkbytes)
-                        outfile.write(unpackeddata)
-                        gzipcrc32 = zlib.crc32(unpackeddata, gzipcrc32)
-                except Exception as e:
-                        ## clean up
-                        outfile.close()
-                        os.unlink(os.path.join(unpackdir, outfilename))
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid gzip file'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-                unpackedsize += len(checkbytes) - len(decompressor.unused_data)
-                if decompressor.unused_data != b'':
-                        break
-        outfile.close()
-
-        ## A valid gzip file has CRC32 and ISIZE at the end, so there should always be
-        ## at least 8 bytes left for a valid file.
-        if filesize - unpackedsize + offset < 8:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no CRC and ISIZE'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## first reset the file pointer until the end of the unpacked zlib data
-        checkfile.seek(offset + unpackedsize)
-
-        ## now compute the gzip CRC of the unocmpressed data and compare to
-        ## the CRC stored in the file (RFC 1952, section 2.3.1)
-        checkbytes = checkfile.read(4)
-        unpackedsize += 4
-
-        ## compute the ISIZE (RFC 1952, section 2.3.1)
-        checkbytes = checkfile.read(4)
+    ## next are blocks of zlib compressed data
+    ## RFC 1951 section 3.2.3 describes the algorithm and also
+    ## an extra sanity check.
+    checkbytes = checkfile.read(1)
+    if len(checkbytes) != 1:
         checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if (checkbytes[0] >> 1 & 1) == 1 and (checkbytes[0] >> 2 & 1) == 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong DEFLATE header'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        unpackedsize += 4
+    ## go back one byte
+    checkfile.seek(-1,os.SEEK_CUR)
 
-        ## this check is modulo 2^32
-        isize = os.stat(outfilename).st_size % pow(2,32)
-        if int.from_bytes(checkbytes, byteorder='little') != isize:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for ISIZE'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    ## what follows next is raw deflate blocks. To unpack raw deflate data the windowBits have to be
+    ## set to negative values: http://www.zlib.net/manual.html#Advanced
+    ## First create a zlib decompressor that can decompress raw deflate
+    ## https://docs.python.org/3/library/zlib.html#zlib.compressobj
+    decompressor = zlib.decompressobj(-zlib.MAX_WBITS)
 
-        ## now rename the file in case the file name was known
-        if havefname:
-                if len(origname) != 0:
-                        origname = origname.decode()
-                        ## in this case report the original name as well in a
-                        ## different data structure
-                        try:
-                                shutil.move(outfilename, os.path.join(unpackdir, origname))
-                                outfilename = os.path.join(unpackdir, origname)
-                        except:
-                                pass
+    ## now start decompressing the data
+    ## set the name of the file in case it is "anonymous data"
+    ## otherwise just imitate whatever gunzip does. If the file has a
+    ## name recorded in the file it will be renamed later.
+    if filename.endswith('.gz'):
+        outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-3])
+    else:
+        outfilename = os.path.join(unpackdir, "unpacked-from-gz")
 
-        ## add the unpacked file to the result list
-        unpackedfilesandlabels.append((outfilename, []))
+    ## open a file to write any unpacked data to
+    outfile = open(outfilename, 'wb')
 
-        ## if the whole file is the gzip file add some more labels
-        if offset == 0 and offset + unpackedsize == filesize:
-                labels += ['gzip', 'compressed']
+    ## store the CRC of the uncompressed data
+    gzipcrc32 = zlib.crc32(b'')
 
-        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## then continue
+    readsize = 10000000
+    checkbytes = bytearray(readsize)
+    while True:
+        checkfile.readinto(checkbytes)
+        try:
+            unpackeddata = decompressor.decompress(checkbytes)
+            outfile.write(unpackeddata)
+            gzipcrc32 = zlib.crc32(unpackeddata, gzipcrc32)
+        except Exception as e:
+            ## clean up
+            outfile.close()
+            os.unlink(os.path.join(unpackdir, outfilename))
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid gzip file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize += len(checkbytes) - len(decompressor.unused_data)
+        if decompressor.unused_data != b'':
+            break
+    outfile.close()
+
+    ## A valid gzip file has CRC32 and ISIZE at the end, so there should always be
+    ## at least 8 bytes left for a valid file.
+    if filesize - unpackedsize + offset < 8:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no CRC and ISIZE'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## first reset the file pointer until the end of the unpacked zlib data
+    checkfile.seek(offset + unpackedsize)
+
+    ## now compute the gzip CRC of the unocmpressed data and compare to
+    ## the CRC stored in the file (RFC 1952, section 2.3.1)
+    checkbytes = checkfile.read(4)
+    unpackedsize += 4
+
+    ## compute the ISIZE (RFC 1952, section 2.3.1)
+    checkbytes = checkfile.read(4)
+    checkfile.close()
+
+    unpackedsize += 4
+
+    ## this check is modulo 2^32
+    isize = os.stat(outfilename).st_size % pow(2,32)
+    if int.from_bytes(checkbytes, byteorder='little') != isize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for ISIZE'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## now rename the file in case the file name was known
+    if havefname:
+        if len(origname) != 0:
+            origname = origname.decode()
+            ## in this case report the original name as well in a
+            ## different data structure
+            try:
+                shutil.move(outfilename, os.path.join(unpackdir, origname))
+                outfilename = os.path.join(unpackdir, origname)
+            except:
+                pass
+
+    ## add the unpacked file to the result list
+    unpackedfilesandlabels.append((outfilename, []))
+
+    ## if the whole file is the gzip file add some more labels
+    if offset == 0 and offset + unpackedsize == filesize:
+        labels += ['gzip', 'compressed']
+
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## https://en.wikipedia.org/wiki/BMP_file_format
 def unpackBMP(filename, offset, unpackdir, temporarydirectory):
