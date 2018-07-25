@@ -32,7 +32,7 @@
 ## 22. ICO (MS Windows icons)
 ## 23. Chrome PAK (version 4 & 5, only if offset starts at 0)
 ## 24. GNU message catalog
-## 25. Apple Icon Image
+## 25. RPM (missing: delta RPM)
 ## 26. AIFF/AIFF-C
 ## 27. terminfo (little endian, including ncurses extension, does not
 ##     recognize some wide character versions)
@@ -42,7 +42,6 @@
 ## 31. Sun Raster files (standard type only)
 ## 32. Intel Hex (text files only)
 ## 33. Motorola SREC (text files only)
-## 34. RPM (missing: delta RPM)
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -60,6 +59,7 @@
 ## 12. ext2/3/4 (missing: symbolic link support)
 ## 13. zstd (needs zstd package)
 ## 14. SGI image files (needs PIL)
+## 15. Apple Icon Image (needs PIL)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -10535,7 +10535,17 @@ def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
         unpackedsize += iconlength-8
 
     if offset == 0 and unpackedsize == filesize:
+        ## now load the file into PIL as an extra sanity check
+        try:
+            testimg = PIL.Image.open(checkfile)
+            testimg.load()
+            testimg.close()
+        except:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid Apple icon according to PIL'}
+            return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
         checkfile.close()
+
         labels.append('apple icon')
         labels.append('graphics')
         labels.append('resource')
@@ -10549,5 +10559,21 @@ def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
+
+    ## reopen as read only
+    outfile = open(outfilename, 'rb')
+
+    ## now load the file into PIL as an extra sanity check
+    try:
+        testimg = PIL.Image.open(outfile)
+        testimg.load()
+        testimg.close()
+        outfile.close()
+    except:
+        outfile.close()
+        os.unlink(outfilename)
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid Apple icon according to PIL'}
+        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
     unpackedfilesandlabels.append((outfilename, ['apple icon', 'graphics', 'resource', 'unpacked']))
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
