@@ -32,7 +32,7 @@
 ## 22. ICO (MS Windows icons)
 ## 23. Chrome PAK (version 4 & 5, only if offset starts at 0)
 ## 24. GNU message catalog
-## 25. SGI image files
+## 25. Apple Icon Image
 ## 26. AIFF/AIFF-C
 ## 27. terminfo (little endian, including ncurses extension, does not
 ##     recognize some wide character versions)
@@ -43,7 +43,6 @@
 ## 32. Intel Hex (text files only)
 ## 33. Motorola SREC (text files only)
 ## 34. RPM (missing: delta RPM)
-## 35. Apple Icon Image
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -60,6 +59,7 @@
 ## 11. Windows Imaging file format (requires external tools, single image only)
 ## 12. ext2/3/4 (missing: symbolic link support)
 ## 13. zstd (needs zstd package)
+## 14. SGI image files (needs PIL)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -6493,9 +6493,18 @@ def unpackSGI(filename, offset, unpackdir, temporarydirectory):
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough image data'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        ## check if the entire file is the image
         if offset == 0 and imagelength == filesize:
+            ## now load the file into PIL as an extra sanity check
+            try:
+                testimg = PIL.Image.open(checkfile)
+                testimg.load()
+                testimg.close()
+            except:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid SGI according to PIL'}
+                return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
             checkfile.close()
+
             labels.append('sgi')
             labels.append('graphics')
             return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
@@ -6515,6 +6524,22 @@ def unpackSGI(filename, offset, unpackdir, temporarydirectory):
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, imagelength)
         outfile.close()
         checkfile.close()
+
+        ## reopen as read only
+        outfile = open(outfilename, 'rb')
+
+        ## now load the file into PIL as an extra sanity check
+        try:
+            testimg = PIL.Image.open(outfile)
+            testimg.load()
+            testimg.close()
+            outfile.close()
+        except:
+            outfile.close()
+            os.unlink(outfilename)
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid SGI according to PIL'}
+            return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
         unpackedfilesandlabels.append((outfilename, ['sgi', 'graphics', 'unpacked']))
         return (True, imagelength, unpackedfilesandlabels, labels, unpackingerror)
 
