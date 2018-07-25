@@ -776,7 +776,7 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
     except:
         outfile.close()
         os.unlink(outfilename)
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP data according to PIL'}
         return (False, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
 
     unpackedfilesandlabels.append((outfilename, ['bmp', 'graphics', 'unpacked']))
