@@ -68,7 +68,7 @@ def generate_prepend_random_data(filepath, randombytes):
     sourcefile.close()
 
 ## third use case: cut data from the end
-def generate_cut_bytes_end(filepath):
+def generate_cut_bytes_end(filepath, cutlength):
     extension = filepath.suffix
     filestem = filepath.stem
 
@@ -83,8 +83,8 @@ def generate_cut_bytes_end(filepath):
     ## open the target file for writing
     outfile = open(outfilename, 'wb')
 
-    ## add original data, minus 100 bytes
-    os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, filesize-100)
+    ## add original data, minus cutlength bytes
+    os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, filesize-cutlength)
     outfile.flush()
     outfile.close()
 
@@ -92,7 +92,7 @@ def generate_cut_bytes_end(filepath):
     sourcefile.close()
 
 ## fourth use case: cut data from the end, add random data
-def generate_cut_bytes_add_random_data(filepath, randombytes):
+def generate_cut_bytes_add_random_data(filepath, randombytes, cutlength):
     extension = filepath.suffix
     filestem = filepath.stem
 
@@ -107,8 +107,8 @@ def generate_cut_bytes_add_random_data(filepath, randombytes):
     ## open the target file for writing
     outfile = open(outfilename, 'wb')
 
-    ## add original data, minus 100 bytes
-    os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, filesize-100)
+    ## add original data, minus cutlength bytes
+    os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, filesize-cutlength)
     outfile.flush()
 
     ## add random data
@@ -120,7 +120,7 @@ def generate_cut_bytes_add_random_data(filepath, randombytes):
     sourcefile.close()
 
 ## fifth use case: cut data from middle 
-def generate_cut_bytes_from_middle(filepath):
+def generate_cut_bytes_from_middle(filepath, cutlength):
     extension = filepath.suffix
     filestem = filepath.stem
 
@@ -141,8 +141,8 @@ def generate_cut_bytes_from_middle(filepath):
     os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, middle)
     outfile.flush()
 
-    ## add rest of data, minus 100 bytes
-    os.sendfile(outfile.fileno(), sourcefile.fileno(), offset + middle + 100, filesize - middle - 100)
+    ## add rest of data, minus cutlength bytes
+    os.sendfile(outfile.fileno(), sourcefile.fileno(), offset + middle + cutlength, filesize - middle - cutlength)
     outfile.flush()
     outfile.close()
 
@@ -239,12 +239,13 @@ def main(argv):
     randombytes = os.urandom(128)
 
     filepath = pathlib.PosixPath(args.checkfile).resolve()
+    cutlength = 100
 
     generate_add_random_data(filepath, randombytes)
     generate_prepend_random_data(filepath, randombytes)
-    generate_cut_bytes_end(filepath)
-    generate_cut_bytes_add_random_data(filepath, randombytes)
-    generate_cut_bytes_from_middle(filepath)
+    generate_cut_bytes_end(filepath, cutlength)
+    generate_cut_bytes_add_random_data(filepath, randombytes, cutlength)
+    generate_cut_bytes_from_middle(filepath, cutlength)
     generate_add_bytes_to_middle(filepath, randombytes)
     generate_replace_bytes_in_middle(filepath, randombytes)
 
