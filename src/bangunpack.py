@@ -6387,185 +6387,186 @@ def unpackCab(filename, offset, unpackdir, temporarydirectory):
 ## SGI file format
 ## https://media.xiph.org/svt/SGIIMAGESPEC
 def unpackSGI(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        if filesize - offset < 512:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for SGI header'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if filesize - offset < 512:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for SGI header'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        checkfile = open(filename, 'rb')
-        ## skip over the magic
-        checkfile.seek(offset+2)
-        unpackedsize += 2
+    checkfile = open(filename, 'rb')
+    ## skip over the magic
+    checkfile.seek(offset+2)
+    unpackedsize += 2
 
-        ## next the storage byte
-        checkbytes = checkfile.read(1)
-        if not (ord(checkbytes) == 0 or ord(checkbytes) == 1):
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for storage format'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 1
-        if ord(checkbytes) == 0:
-                storageformat = 'verbatim'
-        else:
-                storageformat = 'rle'
+    ## next the storage byte
+    checkbytes = checkfile.read(1)
+    if not (ord(checkbytes) == 0 or ord(checkbytes) == 1):
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for storage format'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 1
+    if ord(checkbytes) == 0:
+        storageformat = 'verbatim'
+    else:
+        storageformat = 'rle'
 
-        ## next the bytes per pixel channel
-        checkbytes = checkfile.read(1)
-        bytesperpixel = ord(checkbytes)
-        if not (bytesperpixel == 1 or bytesperpixel == 2):
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for BPC'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 1
+    ## next the bytes per pixel channel
+    checkbytes = checkfile.read(1)
+    bytesperpixel = ord(checkbytes)
+    if not (bytesperpixel == 1 or bytesperpixel == 2):
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for BPC'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 1
 
-        ## next the dimensions. The only allowed values are 1, 2, 3
-        checkbytes = checkfile.read(2)
-        dimensions = int.from_bytes(checkbytes, byteorder='big')
-        if not dimensions in [1,2,3]:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for dimensions'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
+    ## next the dimensions. The only allowed values are 1, 2, 3
+    checkbytes = checkfile.read(2)
+    dimensions = int.from_bytes(checkbytes, byteorder='big')
+    if not dimensions in [1,2,3]:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for dimensions'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
 
-        ## next xsize, ysize and zsize
-        checkbytes = checkfile.read(2)
-        xsize = int.from_bytes(checkbytes, byteorder='big')
-        unpackedsize += 2
+    ## next xsize, ysize and zsize
+    checkbytes = checkfile.read(2)
+    xsize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 2
 
-        checkbytes = checkfile.read(2)
-        ysize = int.from_bytes(checkbytes, byteorder='big')
-        unpackedsize += 2
+    checkbytes = checkfile.read(2)
+    ysize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 2
 
-        checkbytes = checkfile.read(2)
-        zsize = int.from_bytes(checkbytes, byteorder='big')
-        unpackedsize += 2
+    checkbytes = checkfile.read(2)
+    zsize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 2
 
-        ## pinmin and pinmax
-        checkbytes = checkfile.read(4)
-        pinmin = int.from_bytes(checkbytes, byteorder='big')
-        unpackedsize += 4
+    ## pinmin and pinmax
+    checkbytes = checkfile.read(4)
+    pinmin = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
 
-        checkbytes = checkfile.read(4)
-        pinmax = int.from_bytes(checkbytes, byteorder='big')
-        unpackedsize += 4
+    checkbytes = checkfile.read(4)
+    pinmax = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
 
-        ## 4 bytes of dummy data, always 0x00
-        checkbytes = checkfile.read(4)
-        if not checkbytes == b'\x00' * 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for dummy bytes in header'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
+    ## 4 bytes of dummy data, always 0x00
+    checkbytes = checkfile.read(4)
+    if not checkbytes == b'\x00' * 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for dummy bytes in header'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
 
-        ## image name, NUL terminated
-        checkbytes = checkfile.read(80)
-        imagename = checkbytes.split(b'\x00')[0]
-        unpackedsize += 80
+    ## image name, NUL terminated
+    checkbytes = checkfile.read(80)
+    imagename = checkbytes.split(b'\x00')[0]
+    unpackedsize += 80
 
-        ## colormap, can be 0, 1, 2, 3
-        checkbytes = checkfile.read(4)
-        colormap = int.from_bytes(checkbytes, byteorder='big')
-        if not colormap in [0,1,2,3]:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for colormap'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
+    ## colormap, can be 0, 1, 2, 3
+    checkbytes = checkfile.read(4)
+    colormap = int.from_bytes(checkbytes, byteorder='big')
+    if not colormap in [0,1,2,3]:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for colormap'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
 
-        ## last 404 bytes of the header should be 0x00
-        checkfile.seek(offset+108)
-        checkbytes = checkfile.read(404)
-        if checkbytes != b'\x00' * 404:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for dummy bytes in header'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 404
+    ## last 404 bytes of the header should be 0x00
+    checkfile.seek(offset+108)
+    checkbytes = checkfile.read(404)
+    if checkbytes != b'\x00' * 404:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for dummy bytes in header'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 404
 
-        if storageformat == 'verbatim':
-                ## if storage format is verbatim then an image basically
-                ## header + (width + height + depth * bytes per pixel)
-                imagelength = 512 + xsize * ysize * zsize * bytesperpixel
-                if imagelength > filesize - offset:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough image data'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                ## check if the entire file is the image
-                if offset == 0 and imagelength == filesize:
-                        checkfile.close()
-                        labels.append('sgi')
-                        labels.append('graphics')
-                        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
-
-                ## Carve the image.
-                ## first reset the file pointer
-                checkfile.seek(offset)
-                ## in case a name was recorded in the file and it
-                ## is not the name given by pnmtosgi use the recorded
-                ## name of the file. Otherwise use a default name.
-                if len(imagename) != 0 and imagename.decode() != "no name":
-                        outfilename = os.path.join(unpackdir, imagename.decode())
-                else:
-                        outfilename = os.path.join(unpackdir, "unpacked.sgi")
-                outfile = open(outfilename, 'wb')
-                os.sendfile(outfile.fileno(), checkfile.fileno(), offset, imagelength)
-                outfile.close()
-                checkfile.close()
-                unpackedfilesandlabels.append((outfilename, ['sgi', 'graphics', 'unpacked']))
-                return (True, imagelength, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## now unpack the LRE format
-        ## There should be two tables: starttab and lengthtab
-        ## store the table with offsets
-        starttab = {}
-        for n in range(0,ysize*zsize):
-                checkbytes = checkfile.read(4)
-                if not len(checkbytes) == 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for RLE start table'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                starttabentry = int.from_bytes(checkbytes, byteorder='big')
-                starttab[n] = starttabentry
-                unpackedsize += 4
-
-        maxoffset = 0
-        for n in range(0,ysize*zsize):
-                checkbytes = checkfile.read(4)
-                if not len(checkbytes) == 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for RLE length table'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                lengthtabentry = int.from_bytes(checkbytes, byteorder='big')
-
-                ## check if the data is outside of the file
-                if offset + starttab[n] + lengthtabentry > filesize:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for RLE data'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                maxoffset = max(maxoffset, starttab[n] + lengthtabentry)
-                unpackedsize += 4
-
-        unpackedsize = maxoffset
-
-        if offset == 0 and unpackedsize == filesize:
-                checkfile.close()
-                labels.append('sgi')
-                labels.append('graphics')
-                return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+    if storageformat == 'verbatim':
+        ## if storage format is verbatim then an image basically
+        ## header + (width + height + depth * bytes per pixel)
+        imagelength = 512 + xsize * ysize * zsize * bytesperpixel
+        if imagelength > filesize - offset:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough image data'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        ## check if the entire file is the image
+        if offset == 0 and imagelength == filesize:
+            checkfile.close()
+            labels.append('sgi')
+            labels.append('graphics')
+            return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
         ## Carve the image.
         ## first reset the file pointer
         checkfile.seek(offset)
-        outfilename = os.path.join(unpackdir, "unpacked.sgi")
+
+        ## in case a name was recorded in the file and it
+        ## is not the name given by pnmtosgi use the recorded
+        ## name of the file. Otherwise use a default name.
+        if len(imagename) != 0 and imagename.decode() != "no name":
+            outfilename = os.path.join(unpackdir, imagename.decode())
+        else:
+            outfilename = os.path.join(unpackdir, "unpacked.sgi")
         outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, imagelength)
         outfile.close()
         checkfile.close()
         unpackedfilesandlabels.append((outfilename, ['sgi', 'graphics', 'unpacked']))
-        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        return (True, imagelength, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## now unpack the LRE format
+    ## There should be two tables: starttab and lengthtab
+    ## store the table with offsets
+    starttab = {}
+    for n in range(0,ysize*zsize):
+        checkbytes = checkfile.read(4)
+        if not len(checkbytes) == 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for RLE start table'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        starttabentry = int.from_bytes(checkbytes, byteorder='big')
+        starttab[n] = starttabentry
+        unpackedsize += 4
+
+    maxoffset = 0
+    for n in range(0,ysize*zsize):
+        checkbytes = checkfile.read(4)
+        if not len(checkbytes) == 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for RLE length table'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        lengthtabentry = int.from_bytes(checkbytes, byteorder='big')
+
+        ## check if the data is outside of the file
+        if offset + starttab[n] + lengthtabentry > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for RLE data'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        maxoffset = max(maxoffset, starttab[n] + lengthtabentry)
+        unpackedsize += 4
+
+    unpackedsize = maxoffset
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels.append('sgi')
+        labels.append('graphics')
+        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## Carve the image.
+    ## first reset the file pointer
+    checkfile.seek(offset)
+    outfilename = os.path.join(unpackdir, "unpacked.sgi")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+    unpackedfilesandlabels.append((outfilename, ['sgi', 'graphics', 'unpacked']))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Derived from specifications linked at:
 ## https://en.wikipedia.org/wiki/Audio_Interchange_File_Format
