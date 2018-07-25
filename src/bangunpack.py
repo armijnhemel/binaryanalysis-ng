@@ -304,7 +304,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = 8
 
     ## Then process the PNG data. All data is in network byte order (section 7)
-    ## First read the size of the first chunk, which is always 25 bytes (section 11.2.2)
+    ## First read the size of the first chunk, which is always 25 bytes
+    ## when including length, chunk type and CRC fields (section 11.2.2)
     checkbytes = checkfile.read(25)
     if checkbytes[0:4] != b'\x00\x00\x00\x0d':
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'no valid chunk length'}
