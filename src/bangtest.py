@@ -311,6 +311,16 @@ class TestSGI(unittest.TestCase):
         self.assertTrue(testres[0])
         self.assertEqual(testres[1], filesize)
 
+    ## now all the test cases.
+    ## a test for the file being a single SGI
+    def testFullfileIsSGIVerbatim(self):
+        filename = os.path.join(basetestdir, 'sgi', 'test-verbatim.sgi')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        self.assertTrue(testres[0])
+        self.assertEqual(testres[1], filesize)
+
     ## a test for the file being a single SGI with data appended to it
     def testDataAppendedToSGI(self):
         filename = os.path.join(basetestdir, 'sgi', 'test-add-random-data.sgi')
@@ -319,6 +329,15 @@ class TestSGI(unittest.TestCase):
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
         self.assertTrue(testres[0])
         self.assertEqual(testres[1], 592418)
+
+    ## a test for the file being a single SGI with data appended to it
+    def testDataAppendedToSGIVerbatim(self):
+        filename = os.path.join(basetestdir, 'sgi', 'test-verbatim-add-random-data.sgi')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        self.assertTrue(testres[0])
+        self.assertEqual(testres[1], 572048)
 
     ## a test for the file being a single SGI with data in front
     def testDataPrependedToSGI(self):
@@ -329,9 +348,25 @@ class TestSGI(unittest.TestCase):
         self.assertTrue(testres[0])
         self.assertEqual(testres[1], 592418)
 
+    ## a test for the file being a single SGI with data in front
+    def testDataPrependedToSGIVerbatim(self):
+        filename = os.path.join(basetestdir, 'sgi', 'test-verbatim-prepend-random-data.sgi')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        self.assertTrue(testres[0])
+        self.assertEqual(testres[1], 572048)
+
     ## a test for the file being a single SGI with data cut from the end
     def testDataCutFromEndSGI(self):
         filename = os.path.join(basetestdir, 'sgi', 'test-cut-data-from-end.sgi')
+        offset = 0
+        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
+    ## a test for the file being a single SGI with data cut from the end
+    def testDataCutFromEndSGIVerbatim(self):
+        filename = os.path.join(basetestdir, 'sgi', 'test-verbatim-cut-data-from-end.sgi')
         offset = 0
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
         self.assertFalse(testres[0])
@@ -343,6 +378,13 @@ class TestSGI(unittest.TestCase):
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
         self.assertFalse(testres[0])
 
+    ## a test for the file being a single SGI with data cut from the middle
+    def testDataCutFromMiddleSGIVerbatim(self):
+        filename = os.path.join(basetestdir, 'sgi', 'test-verbatim-cut-data-from-middle.sgi')
+        offset = 0
+        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
     ## a test for the file being a single SGI with data added in the middle
     def testDataAddedInMiddleSGI(self):
         filename = os.path.join(basetestdir, 'sgi', 'test-data-added-to-middle.sgi')
@@ -350,9 +392,23 @@ class TestSGI(unittest.TestCase):
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
         self.assertFalse(testres[0])
 
+    ## a test for the file being a single SGI with data added in the middle
+    def testDataAddedInMiddleSGIVerbatim(self):
+        filename = os.path.join(basetestdir, 'sgi', 'test-verbatim-data-added-to-middle.sgi')
+        offset = 0
+        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
     ## a test for the file being a single SGI with data replaced in the middle
     def testDataReplacedInMiddleSGI(self):
         filename = os.path.join(basetestdir, 'sgi', 'test-data-replaced-in-middle.sgi')
+        offset = 0
+        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        self.assertFalse(testres[0])
+
+    ## a test for the file being a single SGI with data replaced in the middle
+    def testDataReplacedInMiddleSGIVerbatim(self):
+        filename = os.path.join(basetestdir, 'sgi', 'test-verbatim-data-replaced-in-middle.sgi')
         offset = 0
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
         self.assertFalse(testres[0])
