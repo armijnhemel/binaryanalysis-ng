@@ -777,10 +777,10 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
         outfile.close()
         os.unlink(outfilename)
         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
-        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        return (False, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
 
     unpackedfilesandlabels.append((outfilename, ['bmp', 'graphics', 'unpacked']))
-    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    return (True, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## wrapper for LZMA, with a few extra sanity checks based on LZMA format specifications.
 def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
