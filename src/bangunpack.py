@@ -10583,6 +10583,10 @@ def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
 ## MNG specifications can be found at:
 ##
 ## http://www.libpng.org/pub/mng/spec/
+## https://en.wikipedia.org/wiki/Multiple-image_Network_Graphics
+##
+## This format is almost never used and support for it in
+## programs is spotty.
 def unpackMNG(filename, offset, unpackdir, temporarydirectory):
     filesize = os.stat(filename).st_size
     unpackedfilesandlabels = []
