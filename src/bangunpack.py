@@ -4274,136 +4274,137 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
 
 ## http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
 def unpackLzip(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        if filesize < 26:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if filesize < 26:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## open the file and skip the magic
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset+4)
-        unpackedsize += 4
+    ## open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
 
-        ## then the version number, should be 1
-        lzipversion = ord(checkfile.read(1))
-        if lzipversion != 1:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported lzip version'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 1
+    ## then the version number, should be 1
+    lzipversion = ord(checkfile.read(1))
+    if lzipversion != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported lzip version'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 1
 
-        ## then the LZMA dictionary size. The lowest 5 bits are the dictionary
-        ## base size.
-        checkbytes = checkfile.read(1)
-        dictionarybasesize = pow(2, ord(checkbytes) & 31)
-        dictionarysize = dictionarybasesize - (int(dictionarybasesize/16)) * (ord(checkbytes) >> 5)
-        unpackedsize += 1
+    ## then the LZMA dictionary size. The lowest 5 bits are the dictionary
+    ## base size.
+    checkbytes = checkfile.read(1)
+    dictionarybasesize = pow(2, ord(checkbytes) & 31)
+    dictionarysize = dictionarybasesize - (int(dictionarybasesize/16)) * (ord(checkbytes) >> 5)
+    unpackedsize += 1
 
-        ## create a LZMA decompressor with custom filter, as the data is stored
-        ## without LZMA headers. The LZMA properties are hardcoded for lzip,
-        ## except the dictionary.
-        lzma_lc = 3
-        lzma_lp = 0
-        lzma_pb = 2
+    ## create a LZMA decompressor with custom filter, as the data is stored
+    ## without LZMA headers. The LZMA properties are hardcoded for lzip,
+    ## except the dictionary.
+    lzma_lc = 3
+    lzma_lp = 0
+    lzma_pb = 2
 
-        lzip_filters = [
-             {"id": lzma.FILTER_LZMA1, "dict_size": dictionarybasesize, 'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb},
-        ]
+    lzip_filters = [
+         {"id": lzma.FILTER_LZMA1, "dict_size": dictionarybasesize, 'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb},
+    ]
 
-        decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=lzip_filters)
-        if not filename.endswith('.lz'):
-                outfilename = os.path.join(unpackdir, "unpacked-from-lzip")
-        else:
-                outfilename = os.path.join(unpackdir, os.path.basename(filename[:-3]))
-        outfile = open(outfilename, 'wb')
+    decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=lzip_filters)
+    if not filename.endswith('.lz'):
+        outfilename = os.path.join(unpackdir, "unpacked-from-lzip")
+    else:
+        outfilename = os.path.join(unpackdir, os.path.basename(filename[:-3]))
+    outfile = open(outfilename, 'wb')
 
-        ## while decompressing also compute the CRC of the uncompressed data,
-        ## as it is stored after the compressed LZMA data in the file
-        crccomputed = binascii.crc32(b'')
+    ## while decompressing also compute the CRC of the uncompressed data,
+    ## as it is stored after the compressed LZMA data in the file
+    crccomputed = binascii.crc32(b'')
 
-        readsize = 1000000
-        checkdata = bytearray(readsize)
+    readsize = 1000000
+    checkdata = bytearray(readsize)
+    checkfile.readinto(checkdata)
+
+    while checkdata != b'':
+        try:
+            unpackeddata = decompressor.decompress(checkdata)
+        except EOFError as e:
+            break
+        except Exception as e:
+            ## clean up
+            outfile.close()
+            os.unlink(outfilename)
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not valid LZMA data'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        outfile.write(unpackeddata)
+        crccomputed = binascii.crc32(unpackeddata, crccomputed)
+        ## there is no more compressed data
+        unpackedsize += len(checkdata) - len(decompressor.unused_data)
+        if decompressor.unused_data != b'':
+            break
         checkfile.readinto(checkdata)
 
-        while checkdata != b'':
-                try:
-                        unpackeddata = decompressor.decompress(checkdata)
-                except EOFError as e:
-                        break
-                except Exception as e:
-                        ## clean up
-                        outfile.close()
-                        os.unlink(outfilename)
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not valid LZMA data'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                outfile.write(unpackeddata)
-                crccomputed = binascii.crc32(unpackeddata, crccomputed)
-                ## there is no more compressed data
-                unpackedsize += len(checkdata) - len(decompressor.unused_data)
-                if decompressor.unused_data != b'':
-                        break
-                checkfile.readinto(checkdata)
+    outfile.close()
 
-        outfile.close()
+    ## first reset to the end of the LZMA compressed data
+    checkfile.seek(offset+unpackedsize)
 
-        ## first reset to the end of the LZMA compressed data
-        checkfile.seek(offset+unpackedsize)
-
-        ## then four bytes of CRC32
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for CRC'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        crcstored = int.from_bytes(checkbytes, byteorder='little')
-        ## the CRC stored is the CRC of the uncompressed data
-        if crcstored != crccomputed:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong CRC'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## then the size of the original uncompressed data
-        checkbytes = checkfile.read(8)
-        if len(checkbytes) != 8:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for original data size'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        originalsize = int.from_bytes(checkbytes, byteorder='little')
-        if originalsize != os.stat(outfilename).st_size:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong original data size'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 8
-
-        ## then the member size
-        checkbytes = checkfile.read(8)
-        if len(checkbytes) != 8:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for member size'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        membersize = int.from_bytes(checkbytes, byteorder='little')
-        unpackedsize += 8
-
-        ## the member size has to be the same as the unpacked size
-        if membersize != unpackedsize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong member size'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
+    ## then four bytes of CRC32
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
         checkfile.close()
-        unpackedfilesandlabels.append((outfilename, []))
-        if offset == 0 and unpackedsize == filesize:
-                labels.append('compressed')
-                labels.append('lzip')
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for CRC'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    crcstored = int.from_bytes(checkbytes, byteorder='little')
+    ## the CRC stored is the CRC of the uncompressed data
+    if crcstored != crccomputed:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong CRC'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## then the size of the original uncompressed data
+    checkbytes = checkfile.read(8)
+    if len(checkbytes) != 8:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for original data size'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    originalsize = int.from_bytes(checkbytes, byteorder='little')
+    if originalsize != os.stat(outfilename).st_size:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong original data size'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 8
+
+    ## then the member size
+    checkbytes = checkfile.read(8)
+    if len(checkbytes) != 8:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for member size'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    membersize = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 8
+
+    ## the member size has to be the same as the unpacked size
+    if membersize != unpackedsize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong member size'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    checkfile.close()
+    unpackedfilesandlabels.append((outfilename, []))
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('compressed')
+        labels.append('lzip')
+
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## JPEG
 ## https://www.w3.org/Graphics/JPEG/
