@@ -42,6 +42,7 @@
 ## 31. Sun Raster files (standard type only)
 ## 32. Intel Hex (text files only)
 ## 33. Motorola SREC (text files only)
+## 34. MNG
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -10578,3 +10579,114 @@ def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
 
     unpackedfilesandlabels.append((outfilename, ['apple icon', 'graphics', 'resource', 'unpacked']))
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## MNG specifications can be found at:
+##
+## http://www.libpng.org/pub/mng/spec/
+def unpackMNG(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackedsize = 0
+    unpackingerror = {}
+    if filesize - offset < 52:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 52 bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## open the file skip over the magic header bytes
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+8)
+    unpackedsize = 8
+
+    ## Then process the MNG data. All data is in network byte order (section 1)
+    ## First read the size of the first chunk, which is always 28 bytes (section 4.1.1)
+    ## Including the header, chunk type and CRC 40 bytes have to be read
+    checkbytes = checkfile.read(40)
+    if checkbytes[0:4] != b'\x00\x00\x00\x1c':
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'no valid chunk length'}
+        checkfile.close()
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## The first chunk *has* to be MHDR
+    if checkbytes[4:8] != b'MHDR':
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'no MHDR header'}
+        checkfile.close()
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## then compute the CRC32 of bytes 4 - 24 (header + data)
+    ## and compare it to the CRC in the MNG file
+    crccomputed = binascii.crc32(checkbytes[4:-4])
+    crcstored = int.from_bytes(checkbytes[-4:], byteorder='big')
+    if crccomputed != crcstored:
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Wrong CRC'}
+        checkfile.close()
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 40
+
+    ## Then move on to the next chunks in similar fashion
+    endoffilereached = False
+    chunknames = set()
+
+    while True:
+        ## read the chunk size
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Could not read chunk size'}
+            checkfile.close()
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        chunksize = int.from_bytes(checkbytes, byteorder='big')
+        if offset + chunksize > filesize:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'MNG data bigger than file'}
+            checkfile.close()
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## read the chunk type, plus the chunk data
+        checkbytes = checkfile.read(4+chunksize)
+        chunktype = checkbytes[0:4]
+        if len(checkbytes) != 4+chunksize:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Could not read chunk type'}
+            checkfile.close()
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize += 4+chunksize
+
+        ## compute the CRC
+        crccomputed = binascii.crc32(checkbytes)
+        checkbytes = checkfile.read(4)
+        crcstored = int.from_bytes(checkbytes, byteorder='big')
+        if crccomputed != crcstored:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Wrong CRC'}
+            checkfile.close()
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## add the name of the chunk to the list of chunk names
+        chunknames.add(chunktype)
+        if chunktype == b'MEND':
+            ## MEND indicates the end of the file
+            endoffilereached = True
+            unpackedsize += 4
+            break
+        unpackedsize += 4
+
+    ## There has to be exactly 1 MEND chunk
+    if endoffilereached:
+        if offset == 0 and unpackedsize == filesize:
+            checkfile.close()
+            labels += ['mng', 'graphics']
+            return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## else carve the file. It is anonymous, so just give it a name
+        outfilename = os.path.join(unpackdir, "unpacked.mng")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        checkfile.close()
+
+        unpackedfilesandlabels.append((outfilename, ['mng', 'graphics', 'unpacked']))
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## There is no end of file, so it is not a valid MNG.
+    checkfile.close()
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'No MEND found'}
+    return (False, 0, unpackedfilesandlabels, labels, unpackingerror)

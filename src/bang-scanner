@@ -53,6 +53,7 @@ signatures = {
               'webp':           b'WEBP',
               'wav':            b'WAVE',
               'png':            b'\x89PNG\x0d\x0a\x1a\x0a',
+              'mng':            b'\x8aMNG\x0d\x0a\x1a\x0a',
               'gzip':           b'\x1f\x8b\x08',      # RFC 1952 says x08 is the only compression method allowed
               'bmp':            b'BM',                # https://en.wikipedia.org/wiki/BMP_file_format
               'xz':             b'\xfd\x37\x7a\x58\x5a\x00',
@@ -119,6 +120,7 @@ signaturesoffset = {
 signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'wav': bangunpack.unpackWAV,
                         'png': bangunpack.unpackPNG,
+                        'mng': bangunpack.unpackMNG,
                         'gzip': bangunpack.unpackGzip,
                         'bmp': bangunpack.unpackBMP,
                         'xz': bangunpack.unpackXZ,
@@ -616,7 +618,14 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                                                         ## bytes 8 - 11 are always the same in every PNG
                                                                         if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x0d':
                                                                                 continue
-
+                                                        elif s == 'mng':
+                                                                ## minimum size of PNG files is 52 bytes
+                                                                if filesize - (offsetinfile + offset) < 52:
+                                                                        continue
+                                                                if len(scanbytes) - offset >= 13:
+                                                                        ## bytes 8 - 11 are always the same in every MNG
+                                                                        if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x1c':
+                                                                                continue
                                                         elif s == 'truetype' or s == 'opentype':
                                                                 if filesize - (offsetinfile + offset) < 12:
                                                                         continue
