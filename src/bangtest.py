@@ -574,7 +574,7 @@ class TestGZIP(unittest.TestCase):
         shutil.rmtree(self.tempdir)
 
     ## now all the test cases.
-    ## a test for the file being a single JPEG
+    ## a test for the file being a single gzip
     def testFullfileIsGzip(self):
         filename = os.path.join(basetestdir, 'gzip', 'test.jpg.gz')
         filesize = os.stat(filename).st_size
@@ -584,7 +584,7 @@ class TestGZIP(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, filesize)
 
-    ## a test for the file being a single JPEG with data appended to it
+    ## a test for the file being a single gzip with data appended to it
     def testDataAppendedToGzip(self):
         filename = os.path.join(basetestdir, 'gzip', 'test.jpg-add-random-data.gz')
         filesize = os.stat(filename).st_size
@@ -594,7 +594,7 @@ class TestGZIP(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, 4665601)
 
-    ## a test for the file being a single JPEG with data in front
+    ## a test for the file being a single gzip with data in front
     def testDataPrependedToGzip(self):
         filename = os.path.join(basetestdir, 'gzip', 'test.jpg-prepend-random-data.gz')
         filesize = os.stat(filename).st_size
@@ -604,7 +604,7 @@ class TestGZIP(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, 4665601)
 
-    ## a test for the file being a single JPEG with data cut from the end
+    ## a test for the file being a single gzip with data cut from the end
     def testDataCutFromEndGzip(self):
         filename = os.path.join(basetestdir, 'gzip', 'test.jpg-cut-data-from-end.gz')
         offset = 0
@@ -612,7 +612,7 @@ class TestGZIP(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
-    ## a test for the file being a single JPEG with data cut from the middle
+    ## a test for the file being a single gzip with data cut from the middle
     def testDataCutFromMiddleGzip(self):
         filename = os.path.join(basetestdir, 'gzip', 'test.jpg-cut-data-from-middle.gz')
         offset = 0
@@ -620,7 +620,7 @@ class TestGZIP(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
-    ## a test for the file being a single JPEG with data added in the middle
+    ## a test for the file being a single gzip with data added in the middle
     def testDataAddedInMiddleGzip(self):
         filename = os.path.join(basetestdir, 'gzip', 'test.jpg-data-added-to-middle.gz')
         offset = 0
@@ -628,7 +628,7 @@ class TestGZIP(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
-    ## a test for the file being a single JPEG with data replaced in the middle
+    ## a test for the file being a single gzip with data replaced in the middle
     def testDataReplacedInMiddleGzip(self):
         filename = os.path.join(basetestdir, 'gzip', 'test.jpg-data-replaced-in-middle.gz')
         offset = 0
@@ -648,17 +648,18 @@ class TestZIP(unittest.TestCase):
         shutil.rmtree(self.tempdir)
 
     ## now all the test cases.
-    ## a test for the file being a single JPEG
+    ## a test for the file being a single ZIP
     def testFullfileIsZip(self):
         filename = os.path.join(basetestdir, 'zip', 'test.zip')
         filesize = os.stat(filename).st_size
+        print('blaat', filename)
         offset = 0
         testres = bangunpack.unpackZip(filename, offset, self.tempdir, None)
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, filesize)
 
-    ## a test for the file being a single JPEG with data appended to it
+    ## a test for the file being a single ZIP with data appended to it
     def testDataAppendedToZip(self):
         filename = os.path.join(basetestdir, 'zip', 'test-add-random-data.zip')
         filesize = os.stat(filename).st_size
@@ -668,7 +669,7 @@ class TestZIP(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, 4665740)
 
-    ## a test for the file being a single JPEG with data in front
+    ## a test for the file being a single ZIP with data in front
     def testDataPrependedToZip(self):
         filename = os.path.join(basetestdir, 'zip', 'test-prepend-random-data.zip')
         filesize = os.stat(filename).st_size
@@ -678,7 +679,7 @@ class TestZIP(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, 4665740)
 
-    ## a test for the file being a single JPEG with data cut from the end
+    ## a test for the file being a single ZIP with data cut from the end
     def testDataCutFromEndZip(self):
         filename = os.path.join(basetestdir, 'zip', 'test-cut-data-from-end.zip')
         offset = 0
@@ -686,7 +687,7 @@ class TestZIP(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
-    ## a test for the file being a single JPEG with data cut from the middle
+    ## a test for the file being a single ZIP with data cut from the middle
     def testDataCutFromMiddleZip(self):
         filename = os.path.join(basetestdir, 'zip', 'test-cut-data-from-middle.zip')
         offset = 0
@@ -694,7 +695,7 @@ class TestZIP(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
-    ## a test for the file being a single JPEG with data added in the middle
+    ## a test for the file being a single ZIP with data added in the middle
     def testDataAddedInMiddleZip(self):
         filename = os.path.join(basetestdir, 'zip', 'test-data-added-to-middle.zip')
         offset = 0
@@ -702,7 +703,7 @@ class TestZIP(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
-    ## a test for the file being a single JPEG with data replaced in the middle
+    ## a test for the file being a single ZIP with data replaced in the middle
     def testDataReplacedInMiddleZip(self):
         filename = os.path.join(basetestdir, 'zip', 'test-data-replaced-in-middle.zip')
         offset = 0
