@@ -14,6 +14,7 @@ import pathlib
 
 ## first use case: add random data to a file
 def generate_add_random_data(filepath, randombytes):
+    """Adds random data to a file"""
     extension = filepath.suffix
     filestem = filepath.stem
 
@@ -41,6 +42,7 @@ def generate_add_random_data(filepath, randombytes):
 
 ## second use case: prepend random data to a file
 def generate_prepend_random_data(filepath, randombytes):
+    """Prepends random data to a file"""
     extension = filepath.suffix
     filestem = filepath.stem
 
@@ -69,6 +71,7 @@ def generate_prepend_random_data(filepath, randombytes):
 
 ## third use case: cut data from the end
 def generate_cut_bytes_end(filepath, cutlength):
+    """Cuts data from the end of a file"""
     extension = filepath.suffix
     filestem = filepath.stem
 
@@ -93,6 +96,7 @@ def generate_cut_bytes_end(filepath, cutlength):
 
 ## fourth use case: cut data from the end, add random data
 def generate_cut_bytes_add_random_data(filepath, randombytes, cutlength):
+    """Cuts data from the end of a file and adds random data to a file"""
     extension = filepath.suffix
     filestem = filepath.stem
 
@@ -121,6 +125,7 @@ def generate_cut_bytes_add_random_data(filepath, randombytes, cutlength):
 
 ## fifth use case: cut data from middle 
 def generate_cut_bytes_from_middle(filepath, cutlength):
+    """Cuts data from the middle of a file"""
     extension = filepath.suffix
     filestem = filepath.stem
 
@@ -151,6 +156,7 @@ def generate_cut_bytes_from_middle(filepath, cutlength):
 
 ## sixth use case: data added to middle 
 def generate_add_bytes_to_middle(filepath, randombytes):
+    """Adds data in the middle of a file"""
     extension = filepath.suffix
     filestem = filepath.stem
 
@@ -185,6 +191,7 @@ def generate_add_bytes_to_middle(filepath, randombytes):
 
 ## seventh use case: data replaced in middle 
 def generate_replace_bytes_in_middle(filepath, randombytes):
+    """Replaces data in the middle of a file"""
     extension = filepath.suffix
     filestem = filepath.stem
 
