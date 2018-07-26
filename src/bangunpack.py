@@ -5212,290 +5212,291 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
 ## These fonts have a similar structure, but differ in the magic
 ## header and the required tables.
 def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, fontextension, fonttype):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        checkfile = open(filename, 'rb')
+    checkfile = open(filename, 'rb')
 
-        ## skip the magic
-        checkfile.seek(offset+4)
+    ## skip the magic
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    ## then the number of tables
+    checkbytes = checkfile.read(2)
+    numtables = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 2
+
+    if numtables == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no tables defined'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## followed by the searchRange
+    checkbytes = checkfile.read(2)
+    searchrange = int.from_bytes(checkbytes, byteorder='big')
+
+    ## the search range is defined as (maximum power of 2 <= numTables)*16
+    if pow(2, int(math.log2(numtables)))*16 != searchrange:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'number of tables does not correspond to search range'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## then the entryselector, which is defined as log2(maximum power of 2 <= numTables)
+    checkbytes = checkfile.read(2)
+    entryselector = int.from_bytes(checkbytes, byteorder='big')
+    if int(math.log2(numtables)) != entryselector:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'number of tables does not correspond to entrySelector'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## then the rangeshift
+    checkbytes = checkfile.read(2)
+    rangeshift = int.from_bytes(checkbytes, byteorder='big')
+    if rangeshift != numtables * 16 - searchrange:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'rangeshift does not correspond to rest of header'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+    tablesseen = set()
+
+    maxoffset = -1
+
+    tablenametooffset = {}
+
+    ## There are fonts that are not 4 byte aligned. Computing checksums for
+    ## these is more difficult, as it is unclear whether or not padding should
+    ## be added or not.
+    ## https://lists.w3.org/Archives/Public/public-webfonts-wg/2010Jun/0063.html
+    ##
+    ## For the checksums in individual tables it is imperative to add
+    ## a few "virtual NUL bytes" to make sure that the checksum can be computed
+    ## correctly. However, this doesn't seem to be working for the
+    ## checkSumAdjustment value.
+
+    addbytes = 0
+    fontname = ''
+
+    ## then read the table directory, with one entry per table
+    for i in range(0,numtables):
+        ## first the table name
+        tablename = checkfile.read(4)
+        if len(tablename) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table name'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## each table can only appear once
+        if tablename in tablesseen:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'duplicate table name'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+        tablesseen.add(tablename)
+
+        ## store the checksum for this table to check later
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table checksum'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+        tablechecksum = int.from_bytes(checkbytes, byteorder='big')
+
+        ## then the offset to the actual data
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table offset'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+        tableoffset = int.from_bytes(checkbytes, byteorder='big')
+
+        ## store where the data for each table starts
+        tablenametooffset[tablename] = tableoffset
+
+        ## then the length of the data
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table length'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        tablelength = int.from_bytes(checkbytes, byteorder='big')
         unpackedsize += 4
 
-        ## then the number of tables
-        checkbytes = checkfile.read(2)
-        numtables = int.from_bytes(checkbytes, byteorder='big')
-        unpackedsize += 2
+        if offset + tableoffset + tablelength > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        if numtables == 0:
+        ## then compute the checksum for the table
+        ## First store the old offset, so it is possible
+        ## to return.
+        oldoffset = checkfile.tell()
+        checkfile.seek(offset + tableoffset)
+        padding = 0
+
+        ## tables are 4 byte aligned (long)
+        if tablelength % 4 != 0:
+            padding = 4 - tablelength % 4
+
+        bytesadded = False
+
+        ## extra sanity check, as there might now be padding bytes
+        checkbytes = checkfile.read(tablelength + padding)
+        if len(checkbytes) != tablelength + padding:
+            if len(checkbytes) == tablelength:
+                checkbytes += b'\x00' * padding
+                addbytes = padding
+                bytesadded = True
+            else:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no tables defined'}
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## followed by the searchRange
-        checkbytes = checkfile.read(2)
-        searchrange = int.from_bytes(checkbytes, byteorder='big')
-
-        ## the search range is defined as (maximum power of 2 <= numTables)*16
-        if pow(2, int(math.log2(numtables)))*16 != searchrange:
+        ## parse the name table to see if there is a font name
+        ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6name.html
+        if tablename == b'name':
+            localoffset = 0
+            if len(checkbytes) < 6:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'number of tables does not correspond to search range'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-
-        ## then the entryselector, which is defined as log2(maximum power of 2 <= numTables)
-        checkbytes = checkfile.read(2)
-        entryselector = int.from_bytes(checkbytes, byteorder='big')
-        if int(math.log2(numtables)) != entryselector:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'number of tables does not correspond to entrySelector'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-
-        ## then the rangeshift
-        checkbytes = checkfile.read(2)
-        rangeshift = int.from_bytes(checkbytes, byteorder='big')
-        if rangeshift != numtables * 16 - searchrange:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'rangeshift does not correspond to rest of header'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-        tablesseen = set()
-
-        maxoffset = -1
-
-        tablenametooffset = {}
-
-        ## There are fonts that are not 4 byte aligned. Computing checksums for
-        ## these is more difficult, as it is unclear whether or not padding should
-        ## be added or not.
-        ## https://lists.w3.org/Archives/Public/public-webfonts-wg/2010Jun/0063.html
-        ##
-        ## For the checksums in individual tables it is imperative to add
-        ## a few "virtual NUL bytes" to make sure that the checksum can be computed
-        ## correctly. However, this doesn't seem to be working for the
-        ## checkSumAdjustment value.
-
-        addbytes = 0
-        fontname = ''
-
-        ## then read the table directory, with one entry per table
-        for i in range(0,numtables):
-                ## first the table name
-                tablename = checkfile.read(4)
-                if len(tablename) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table name'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                ## each table can only appear once
-                if tablename in tablesseen:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'duplicate table name'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 4
-                tablesseen.add(tablename)
-
-                ## store the checksum for this table to check later
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table checksum'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 4
-                tablechecksum = int.from_bytes(checkbytes, byteorder='big')
-
-                ## then the offset to the actual data
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table offset'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 4
-                tableoffset = int.from_bytes(checkbytes, byteorder='big')
-
-                ## store where the data for each table starts
-                tablenametooffset[tablename] = tableoffset
-
-                ## then the length of the data
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table length'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                tablelength = int.from_bytes(checkbytes, byteorder='big')
-                unpackedsize += 4
-
-                if offset + tableoffset + tablelength > filesize:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                ## then compute the checksum for the table
-                ## First store the old offset, so it is possible
-                ## to return.
-                oldoffset = checkfile.tell()
-                checkfile.seek(offset + tableoffset)
-                padding = 0
-
-                ## tables are 4 byte aligned (long)
-                if tablelength % 4 != 0:
-                        padding = 4 - tablelength % 4
-
-                bytesadded = False
-
-                ## extra sanity check, as there might now be padding bytes
-                checkbytes = checkfile.read(tablelength + padding)
-                if len(checkbytes) != tablelength + padding:
-                        if len(checkbytes) == tablelength:
-                                checkbytes += b'\x00' * padding
-                                addbytes = padding
-                                bytesadded = True
-                        else:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                ## parse the name table to see if there is a font name
-                ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6name.html
-                if tablename == b'name':
-                        localoffset = 0
-                        if len(checkbytes) < 6:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data in name table'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                        ## first the format selector ("set to 0"). Skip.
-                        ## then the name count to indicate how many name records (12 bytes
-                        ## each) are present in the name table
-                        namecount = int.from_bytes(checkbytes[2:4], byteorder='big')
-                        if len(checkbytes) < 6 + namecount * 12:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data in name table'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                        ## then the offset of the name table strings
-                        nametablestringoffset = int.from_bytes(checkbytes[4:6], byteorder='big')
-                        if len(checkbytes) < 6 + namecount * 12 + nametablestringoffset:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data in name table'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                        localoffset = 6
-                        for n in range(0, namecount):
-                                ## first platform id
-                                platformid = int.from_bytes(checkbytes[localoffset:localoffset+2], byteorder='big')
-                                localoffset += 2
-
-                                ## skip platform specific id and language id
-                                localoffset += 4
-
-                                ## then the nameid
-                                nameid = int.from_bytes(checkbytes[localoffset:localoffset+2], byteorder='big')
-                                localoffset += 2
-
-                                ## then the name length
-                                namelength = int.from_bytes(checkbytes[localoffset:localoffset+2], byteorder='big')
-                                localoffset += 2
-
-                                ## then the name offset
-                                nameoffset = int.from_bytes(checkbytes[localoffset:localoffset+2], byteorder='big')
-                                localoffset += 2
-
-                                ## extract the font name if it exists
-                                if namelength != 0:
-                                        if nameid == 6:
-                                                if platformid == 0 or platformid == 1:
-                                                        fontname = checkbytes[nametablestringoffset+nameoffset:nametablestringoffset+nameoffset+namelength]
-                computedsum = 0
-                for i in range(0, tablelength + padding, 4):
-                        computedsum += int.from_bytes(checkbytes[i:i+4], byteorder='big')
-
-                ## only grab the lowest 32 bits (4294967295 = (2^32)-1)
-                computedsum = computedsum & 4294967295
-                if tablename != b'head':
-                        if tablechecksum != computedsum:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'checksum for table incorrect'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                else:
-                        ## the head table checksum is different and uses a checksum adjustment,
-                        ## which is documented here:
-                        ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html
-                        ## First seek to the start of the table and then skip 8 bytes
-                        checkfile.seek(offset + tableoffset + 8)
-                        checkbytes = checkfile.read(4)
-                        checksumadjustment = int.from_bytes(checkbytes, byteorder='big')
-
-                ## then store the maxoffset, including padding, but minus any "virtual" bytes
-                if bytesadded:
-                        maxoffset = max(maxoffset, offset + tableoffset + tablelength + padding - addbytes)
-                else:
-                        maxoffset = max(maxoffset, offset + tableoffset + tablelength + padding)
-
-                ## and return to the old offset for the next entry
-                checkfile.seek(oldoffset)
-
-        ## first check if all the required tables are there.
-        if not tablesseen.intersection(requiredtables) == requiredtables:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not all required tables present'}
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data in name table'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        unpackedsize = maxoffset - offset
+            ## first the format selector ("set to 0"). Skip.
+            ## then the name count to indicate how many name records (12 bytes
+            ## each) are present in the name table
+            namecount = int.from_bytes(checkbytes[2:4], byteorder='big')
+            if len(checkbytes) < 6 + namecount * 12:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data in name table'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## now compute the checksum for the whole font. It is important that checkSumAdjustment
-        ## is set to 0 during this computation.
-        ## It should be noted that for some fonts (where padding was added to the last table)
-        ## this computation might be wrong.
-        fontchecksum = 0
-        checkfile.seek(offset)
-        for i in range(0, unpackedsize, 4):
-                if i == tablenametooffset[b'head'] + 8:
-                        checkfile.seek(4, os.SEEK_CUR)
-                        continue
-                checkbytes = checkfile.read(4)
-                if unpackedsize - i < 4 and addbytes != 0:
-                        checkbytes += b'\x00' * addbytes
-                fontchecksum += int.from_bytes(checkbytes, byteorder='big')
+            ## then the offset of the name table strings
+            nametablestringoffset = int.from_bytes(checkbytes[4:6], byteorder='big')
+            if len(checkbytes) < 6 + namecount * 12 + nametablestringoffset:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data in name table'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+            localoffset = 6
+            for n in range(0, namecount):
+                ## first platform id
+                platformid = int.from_bytes(checkbytes[localoffset:localoffset+2], byteorder='big')
+                localoffset += 2
+
+                ## skip platform specific id and language id
+                localoffset += 4
+
+                ## then the nameid
+                nameid = int.from_bytes(checkbytes[localoffset:localoffset+2], byteorder='big')
+                localoffset += 2
+
+                ## then the name length
+                namelength = int.from_bytes(checkbytes[localoffset:localoffset+2], byteorder='big')
+                localoffset += 2
+
+                ## then the name offset
+                nameoffset = int.from_bytes(checkbytes[localoffset:localoffset+2], byteorder='big')
+                localoffset += 2
+
+                ## extract the font name if it exists
+                if namelength != 0:
+                    if nameid == 6:
+                        if platformid == 0 or platformid == 1:
+                            fontname = checkbytes[nametablestringoffset+nameoffset:nametablestringoffset+nameoffset+namelength]
+        computedsum = 0
+        for i in range(0, tablelength + padding, 4):
+            computedsum += int.from_bytes(checkbytes[i:i+4], byteorder='big')
 
         ## only grab the lowest 32 bits (4294967295 = (2^32)-1)
-        fontchecksum = fontchecksum & 4294967295
-
-        if checksumadjustment != 0xB1B0AFBA - fontchecksum:
-                ## some fonts, such as the the Ubuntu ones use a different
-                ## value for checksumadjustment
-                if checksumadjustment != 0x1B1B0AFBA - fontchecksum:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'checksum adjustment does not match computed value'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        if offset == 0 and unpackedsize == filesize:
+        computedsum = computedsum & 4294967295
+        if tablename != b'head':
+            if tablechecksum != computedsum:
                 checkfile.close()
-                labels.append('font')
-                labels.append('resource')
-                labels.append(fonttype)
-                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## else carve the file
-        ## if the name was extracted from the 'name' table it could possibly
-        ## be used for the extracted file.
-        if fontname != '':
-                try:
-                        fontname = fontname.decode()
-                        outfilename = os.path.join(unpackdir, fontname + "." + fontextension)
-                except:
-                        outfilename = os.path.join(unpackdir, "unpacked." + fontextension)
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'checksum for table incorrect'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         else:
-                outfilename = os.path.join(unpackdir, "unpacked." + fontextension)
-        outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-        outfile.close()
-        unpackedfilesandlabels.append((outfilename, ['font', 'resource', 'unpacked', fonttype]))
+            ## the head table checksum is different and uses a checksum adjustment,
+            ## which is documented here:
+            ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html
+            ## First seek to the start of the table and then skip 8 bytes
+            checkfile.seek(offset + tableoffset + 8)
+            checkbytes = checkfile.read(4)
+            checksumadjustment = int.from_bytes(checkbytes, byteorder='big')
+
+        ## then store the maxoffset, including padding, but minus any "virtual" bytes
+        if bytesadded:
+            maxoffset = max(maxoffset, offset + tableoffset + tablelength + padding - addbytes)
+        else:
+            maxoffset = max(maxoffset, offset + tableoffset + tablelength + padding)
+
+        ## and return to the old offset for the next entry
+        checkfile.seek(oldoffset)
+
+    ## first check if all the required tables are there.
+    if not tablesseen.intersection(requiredtables) == requiredtables:
         checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not all required tables present'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    unpackedsize = maxoffset - offset
+
+    ## now compute the checksum for the whole font. It is important that checkSumAdjustment
+    ## is set to 0 during this computation.
+    ## It should be noted that for some fonts (where padding was added to the last table)
+    ## this computation might be wrong.
+    fontchecksum = 0
+    checkfile.seek(offset)
+    for i in range(0, unpackedsize, 4):
+        if i == tablenametooffset[b'head'] + 8:
+            checkfile.seek(4, os.SEEK_CUR)
+            continue
+        checkbytes = checkfile.read(4)
+        if unpackedsize - i < 4 and addbytes != 0:
+            checkbytes += b'\x00' * addbytes
+        fontchecksum += int.from_bytes(checkbytes, byteorder='big')
+
+    ## only grab the lowest 32 bits (4294967295 = (2^32)-1)
+    fontchecksum = fontchecksum & 4294967295
+
+    if checksumadjustment != 0xB1B0AFBA - fontchecksum:
+        ## some fonts, such as the the Ubuntu ones use a different
+        ## value for checksumadjustment
+        if checksumadjustment != 0x1B1B0AFBA - fontchecksum:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'checksum adjustment does not match computed value'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels.append('font')
+        labels.append('resource')
+        labels.append(fonttype)
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## else carve the file
+    ## if the name was extracted from the 'name' table it could possibly
+    ## be used for the extracted file.
+    if fontname != '':
+        try:
+            fontname = fontname.decode()
+            outfilename = os.path.join(unpackdir, fontname + "." + fontextension)
+        except:
+            outfilename = os.path.join(unpackdir, "unpacked." + fontextension)
+    else:
+        outfilename = os.path.join(unpackdir, "unpacked." + fontextension)
+
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    unpackedfilesandlabels.append((outfilename, ['font', 'resource', 'unpacked', fonttype]))
+    checkfile.close()
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html
 def unpackTrueTypeFont(filename, offset, unpackdir, temporarydirectory):
