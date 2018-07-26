@@ -118,6 +118,17 @@ class TestPNG(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, filesize)
 
+    ## a test for the file being a single animated PNG
+    def testFullfileIsAPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'Animated_PNG_example_bouncing_beach_ball.png')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+        self.assertIn('animated', unpackedlabels)
+
     ## a test for the file being a single PNG with data appended to it
     def testDataAppendedToPNG(self):
         filename = os.path.join(basetestdir, 'png', 'test-add-random-data.png')
@@ -127,6 +138,17 @@ class TestPNG(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, 6001452)
+
+    ## a test for the file being a single animated PNG with data appended to it
+    def testDataAppendedToAPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'Animated_PNG_example_bouncing_beach_ball-add-random-data.png')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 63435)
+        self.assertIn('animated', unpackedfilesandlabels[0][1])
 
     ## a test for the file being a single PNG with data in front
     def testDataPrependedToPNG(self):
@@ -138,9 +160,28 @@ class TestPNG(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, 6001452)
 
+    ## a test for the file being a single animated PNG with data in front
+    def testDataPrependedToAPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'Animated_PNG_example_bouncing_beach_ball-prepend-random-data.png')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 63435)
+        self.assertIn('animated', unpackedfilesandlabels[0][1])
+
     ## a test for the file being a single PNG with data cut from the end
     def testDataCutFromEndPNG(self):
         filename = os.path.join(basetestdir, 'png', 'test-cut-data-from-end.png')
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single PNG with data cut from the end
+    def testDataCutFromEndAPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'Animated_PNG_example_bouncing_beach_ball-cut-data-from-end.png')
         offset = 0
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
@@ -154,6 +195,14 @@ class TestPNG(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+    ## a test for the file being a single animated PNG with data cut from the middle
+    def testDataCutFromMiddleAPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'Animated_PNG_example_bouncing_beach_ball-cut-data-from-middle.png')
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
     ## a test for the file being a single PNG with data added in the middle
     def testDataAddedInMiddlePNG(self):
         filename = os.path.join(basetestdir, 'png', 'test-data-added-to-middle.png')
@@ -162,9 +211,25 @@ class TestPNG(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+    ## a test for the file being a single animated PNG with data added in the middle
+    def testDataAddedInMiddleAPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'Animated_PNG_example_bouncing_beach_ball-data-added-to-middle.png')
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
     ## a test for the file being a single PNG with data replaced in the middle
     def testDataReplacedInMiddlePNG(self):
         filename = os.path.join(basetestdir, 'png', 'test-data-replaced-in-middle.png')
+        offset = 0
+        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single animated PNG with data replaced in the middle
+    def testDataReplacedInMiddleAPNG(self):
+        filename = os.path.join(basetestdir, 'png', 'Animated_PNG_example_bouncing_beach_ball-data-replaced-in-middle.png')
         offset = 0
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
