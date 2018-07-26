@@ -461,6 +461,9 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
+    ## treat CRC errors as fatal
+    wrongcrcfatal = True
+
     checkfile = open(filename, 'rb')
     checkfile.seek(offset+3)
     unpackedsize += 3
@@ -646,6 +649,11 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     ## the CRC stored in the file (RFC 1952, section 2.3.1)
     checkbytes = checkfile.read(4)
     unpackedsize += 4
+
+    if not gzipcrc32 == int.from_bytes(checkbytes, byteorder='little') and wrongcrcfatal:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong CRC'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## compute the ISIZE (RFC 1952, section 2.3.1)
     checkbytes = checkfile.read(4)
