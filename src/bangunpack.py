@@ -2620,7 +2620,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                                unpackzipfile.extract(z)
                         os.chdir(oldcwd)
                         unpackzipfile.close()
-                        checkfile.close()
+
                         for i in zipinfolist:
                                 unpackedfilesandlabels.append((os.path.join(unpackdir, i.filename), []))
                         if offset == 0 and not carved:
@@ -2628,8 +2628,10 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                 labels.append('zip')
                         if carved:
                                 os.unlink(temporaryfile[1])
+                        checkfile.close()
                         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
                 except zipfile.BadZipFile:
+                        checkfile.close()
                         if carved:
                                 os.unlink(temporaryfile[1])
                         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'Not a valid ZIP file'}
@@ -2637,6 +2639,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
 
         ## it is an encrypted file
         if offset == 0 and checkfile.tell() == filesize:
+                checkfile.close()
                 labels.append('compressed')
                 labels.append('zip')
                 labels.append('encrypted')
