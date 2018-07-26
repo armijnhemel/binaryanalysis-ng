@@ -18,7 +18,7 @@ import pathlib
 import bangunpack
 
 basetestdir = '/home/armijn/git/binaryanalysis-ng/test'
-tmpdirectory = None
+tmpdirectory = '/home/armijn/tmp'
 
 ## a test class for testing GIFs
 class TestGIF(unittest.TestCase):
