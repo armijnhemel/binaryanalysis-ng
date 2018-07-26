@@ -520,5 +520,27 @@ class TestSGI(unittest.TestCase):
     #    (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
     #    self.assertFalse(unpackstatus)
 
+## a test class for testing Android sparse files
+class TestAndroidSparse(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single Android sparse image
+    def testFullfileIsAndroidSparse(self):
+        filename = os.path.join(basetestdir, 'simg', 'zero.img')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackAndroidSparse(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
 if __name__ == '__main__':
     unittest.main()
