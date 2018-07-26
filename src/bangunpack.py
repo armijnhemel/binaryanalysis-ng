@@ -5607,152 +5607,151 @@ def unpackVimSwapfile(filename, offset, unpackdir, temporarydirectory):
 ## Note: this is different to the Android sparse image format.
 def unpackAndroidSparseData(filename, offset, unpackdir, temporarydirectory):
 
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
 
-        ## for each .new.dat file there has to be a corresponding
-        ## .transfer.list file as well.
-        if not os.path.exists(filename[:-8] + ".transfer.list"):
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'transfer list not found'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    ## for each .new.dat file there has to be a corresponding
+    ## .transfer.list file as well.
+    if not os.path.exists(filename[:-8] + ".transfer.list"):
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'transfer list not found'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## open the transfer list in text mode, not in binary mode
-        transferlist = open(filename[:-8] + ".transfer.list", 'r')
-        transferlistlines = list(map(lambda x: x.strip(), transferlist.readlines()))
-        transferlist.close()
+    ## open the transfer list in text mode, not in binary mode
+    transferlist = open(filename[:-8] + ".transfer.list", 'r')
+    transferlistlines = list(map(lambda x: x.strip(), transferlist.readlines()))
+    transferlist.close()
 
-        if len(transferlistlines) < 4:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough entries in transer list'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize = 0
+    if len(transferlistlines) < 4:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough entries in transer list'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize = 0
 
-        ## first line is the version number, see comment here:
-        ## https://android.googlesource.com/platform/bootable/recovery/+/master/updater/blockimg.cpp#1628
+    ## first line is the version number, see comment here:
+    ## https://android.googlesource.com/platform/bootable/recovery/+/master/updater/blockimg.cpp#1628
+    try:
+        versionnumber = int(transferlistlines[0])
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid transfer list version number'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    if versionnumber != 4:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'only transfer list version 4 supported'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## the next line is the amount of blocks (1 block is 4096 bytes)
+    ## that will be copied to the output. This does not necessarily anything
+    ## about the size of the output file as it might not include the blocks such
+    ## as erase or zero, so it can be safely ignored.
+    try:
+        outputblocks = int(transferlistlines[1])
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid number for blocks to be written'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## then two lines related to stash entries which are only used by Android
+    ## during updates to prevent flash space from overflowing, so can safely
+    ## be ignored here.
+    try:
+        stashneeded = int(transferlistlines[2])
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid number for simultaneous stash entries needed'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    try:
+        maxstash = int(transferlistlines[2])
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid number for maximum stash entries'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## a list of commands recognized
+    validtransfercommands = set(['new', 'zero', 'erase', 'free', 'stash'])
+
+    transfercommands = []
+
+    ## store the maximum block number
+    maxblock = 0
+
+    ## then parse the rest of the lines to see if they are valid
+    for l in transferlistlines[4:]:
+        transfersplit = l.split(' ')
+        if len(transfersplit) != 2:
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid line in transfer list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        (transfercommand, transferblocks) = transfersplit
+        if not transfercommand in validtransfercommands:
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'unsupported command in transfer list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        transferblockssplit = transferblocks.split(',')
+        if len(transferblockssplit)%2 == 0:
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid transfer block list in transfer list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        ## first entry is the number of blocks on the rest of line
         try:
-                versionnumber = int(transferlistlines[0])
+            transferblockcount = int(transferblockssplit[0])
         except:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid transfer list version number'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        if versionnumber != 4:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'only transfer list version 4 supported'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## the next line is the amount of blocks (1 block is 4096 bytes)
-        ## that will be copied to the output. This does not necessarily anything
-        ## about the size of the output file as it might not include the blocks such
-        ## as erase or zero, so it can be safely ignored.
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid transfer block list in transfer list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if not transferblockcount == len(transferblockssplit[1:]):
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid transfer block list in transfer list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        ## then check the rest of the numbers
         try:
-                outputblocks = int(transferlistlines[1])
+            blocks = []
+            for b in transferblockssplit[1:]:
+                blocknr = int(b)
+                blocks.append(blocknr)
+                maxblock = max(maxblock, blocknr)
         except:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid number for blocks to be written'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid transfer block list in transfer list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        ## store the transfer commands
+        transfercommands.append((transfercommand, blocks))
 
-        ## then two lines related to stash entries which are only used by Android
-        ## during updates to prevent flash space from overflowing, so can safely
-        ## be ignored here.
-        try:
-                stashneeded = int(transferlistlines[2])
-        except:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid number for simultaneous stash entries needed'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    ## block size is set to 4096 in the Android source code
+    blocksize = 4096
 
-        try:
-                maxstash = int(transferlistlines[2])
-        except:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid number for maximum stash entries'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    ## cut the extension '.new.dat' from the file name unless the file
+    ## name is the extension (as there would be a zero length name).
+    if len(os.path.basename(filename[:-8])) == 0:
+        outputfilename = os.path.join(unpackdir, "unpacked-from-android-sparse-data")
+    else:
+        outputfilename = os.path.join(unpackdir, os.path.basename(filename[:-8]))
 
-        ## a list of commands recognized
-        validtransfercommands = set(['new', 'zero', 'erase', 'free', 'stash'])
+    ## first create the targetfile
+    targetfile = open(outputfilename, 'wb')
 
-        transfercommands = []
+    ## make sure that the target file is large enough.
+    ## On Linux truncate() will zero fill the targetfile.
+    targetfile.truncate(maxblock*blocksize)
 
-        ## store the maximum block number
-        maxblock = 0
+    ## then seek to the beginning of the target file
+    targetfile.seek(0)
 
-        ## then parse the rest of the lines to see if they are valid
-        for l in transferlistlines[4:]:
-                transfersplit = l.split(' ')
-                if len(transfersplit) != 2:
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid line in transfer list'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                (transfercommand, transferblocks) = transfersplit
-                if not transfercommand in validtransfercommands:
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'unsupported command in transfer list'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                transferblockssplit = transferblocks.split(',')
-                if len(transferblockssplit)%2 == 0:
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid transfer block list in transfer list'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                ## first entry is the number of blocks on the rest of line
-                try:
-                        transferblockcount = int(transferblockssplit[0])
-                except:
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid transfer block list in transfer list'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                if not transferblockcount == len(transferblockssplit[1:]):
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid transfer block list in transfer list'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                ## then check the rest of the numbers
-                try:
-                        blocks = []
-                        for b in transferblockssplit[1:]:
-                                blocknr = int(b)
-                                blocks.append(blocknr)
-                                maxblock = max(maxblock, blocknr)
-                except:
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid transfer block list in transfer list'}
-                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                ## store the transfer commands
-                transfercommands.append((transfercommand, blocks))
+    ## open the source file
+    checkfile = open(filename, 'rb')
 
-        ## block size is set to 4096 in the Android source code
-        blocksize = 4096
+    checkfile.seek(0)
 
-        ## cut the extension '.new.dat' from the file name unless the file
-        ## name is the extension (as there would be a zero length name).
-        if len(os.path.basename(filename[:-8])) == 0:
-                outputfilename = os.path.join(unpackdir, "unpacked-from-android-sparse-data")
+    ## then process all the commands. "zero" is not interesting has the
+    ## while underlying file has already been zero filled.
+    ## erase is not very interesting either.
+    for c in transfercommands:
+        (transfercommand, blocks) = c
+        if transfercommand == 'new':
+            for b in range(0,len(blocks),2):
+                targetfile.seek(blocks[b]*blocksize)
+                os.sendfile(targetfile.fileno(), checkfile.fileno(), None, (blocks[b+1] - blocks[b]) * blocksize)
         else:
-                outputfilename = os.path.join(unpackdir, os.path.basename(filename[:-8]))
+            pass
 
-        ## first create the targetfile
-        targetfile = open(outputfilename, 'wb')
+    targetfile.close()
+    checkfile.close()
 
-        ## make sure that the target file is large enough.
-        ## On Linux truncate() will zero fill the targetfile.
-        targetfile.truncate(maxblock*blocksize)
-
-        ## then seek to the beginning of the target file
-        targetfile.seek(0)
-
-        ## open the source file
-        checkfile = open(filename, 'rb')
-
-        checkfile.seek(0)
-
-        ## then process all the commands. "zero" is not interesting has the
-        ## while underlying file has already been zero filled.
-        ## erase is not very interesting either.
-        for c in transfercommands:
-                (transfercommand, blocks) = c
-                if transfercommand == 'new':
-                        for b in range(0,len(blocks),2):
-                                targetfile.seek(blocks[b]*blocksize)
-                                os.sendfile(targetfile.fileno(), checkfile.fileno(), None, (blocks[b+1] - blocks[b]) * blocksize)
-                else:
-                        pass
-
-        targetfile.close()
-        checkfile.close()
-
-        labels += ['androidsparsedata']
-        unpackedfilesandlabels.append((outputfilename, []))
-        return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
-
+    labels += ['androidsparsedata']
+    unpackedfilesandlabels.append((outputfilename, []))
+    return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Android backup files
 ##
