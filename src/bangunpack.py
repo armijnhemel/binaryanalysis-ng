@@ -642,7 +642,7 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     ## first reset the file pointer until the end of the unpacked zlib data
     checkfile.seek(offset + unpackedsize)
 
-    ## now compute the gzip CRC of the unocmpressed data and compare to
+    ## now compute the gzip CRC of the uncompressed data and compare to
     ## the CRC stored in the file (RFC 1952, section 2.3.1)
     checkbytes = checkfile.read(4)
     unpackedsize += 4
