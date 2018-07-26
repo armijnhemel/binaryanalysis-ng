@@ -9479,7 +9479,14 @@ def unpackSREC(filename, offset, unpackdir, temporarydirectory):
                         seenrecords.add(recordtype)
 
                         ## then the byte count
-                        bytescount = int.from_bytes(bytes.fromhex(line[2:4]), byteorder='big')
+                        try:
+                                bytescount = int.from_bytes(bytes.fromhex(line[2:4]), byteorder='big')
+                        except ValueError:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cannot convert to hex'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
                         if bytescount < 3:
                                 checkfile.close()
                                 outfile.close()
