@@ -40,8 +40,9 @@ class TestGIF(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], filesize)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
 
     ## a test for the file being a single GIF with data appended to it
     def testDataAppendedToGif(self):
@@ -49,8 +50,9 @@ class TestGIF(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 7073713)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 7073713)
 
     ## a test for the file being a single GIF with data in front
     def testDataPrependedToGif(self):
@@ -58,36 +60,41 @@ class TestGIF(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 128
         testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 7073713)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 7073713)
 
     ## a test for the file being a single GIF with data cut from the end
     def testDataCutFromEndGif(self):
         filename = os.path.join(basetestdir, 'gif', 'test-cut-data-from-end.gif')
         offset = 0
         testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single GIF with data cut from the middle
     def testDataCutFromMiddleGif(self):
         filename = os.path.join(basetestdir, 'gif', 'test-cut-data-from-middle.gif')
         offset = 0
         testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single GIF with data added in the middle
     def testDataAddedInMiddleGif(self):
         filename = os.path.join(basetestdir, 'gif', 'test-data-added-to-middle.gif')
         offset = 0
         testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single GIF with data replaced in the middle
     def testDataReplacedInMiddleGif(self):
         filename = os.path.join(basetestdir, 'gif', 'test-data-replaced-in-middle.gif')
         offset = 0
         testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
 ## a test class for testing PNG files
 class TestPNG(unittest.TestCase):
@@ -107,8 +114,9 @@ class TestPNG(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], filesize)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
 
     ## a test for the file being a single PNG with data appended to it
     def testDataAppendedToPNG(self):
@@ -116,8 +124,9 @@ class TestPNG(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 6001452)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 6001452)
 
     ## a test for the file being a single PNG with data in front
     def testDataPrependedToPNG(self):
@@ -125,36 +134,41 @@ class TestPNG(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 128
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 6001452)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 6001452)
 
     ## a test for the file being a single PNG with data cut from the end
     def testDataCutFromEndPNG(self):
         filename = os.path.join(basetestdir, 'png', 'test-cut-data-from-end.png')
         offset = 0
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single PNG with data cut from the middle
     def testDataCutFromMiddlePNG(self):
         filename = os.path.join(basetestdir, 'png', 'test-cut-data-from-middle.png')
         offset = 0
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single PNG with data added in the middle
     def testDataAddedInMiddlePNG(self):
         filename = os.path.join(basetestdir, 'png', 'test-data-added-to-middle.png')
         offset = 0
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single PNG with data replaced in the middle
     def testDataReplacedInMiddlePNG(self):
         filename = os.path.join(basetestdir, 'png', 'test-data-replaced-in-middle.png')
         offset = 0
         testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
 ## a test class for testing JPEG files
 class TestJPEG(unittest.TestCase):
@@ -174,8 +188,9 @@ class TestJPEG(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], filesize)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
 
     ## a test for the file being a single JPEG with data appended to it
     def testDataAppendedToJPEG(self):
@@ -183,8 +198,9 @@ class TestJPEG(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 4676767)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 4676767)
 
     ## a test for the file being a single JPEG with data in front
     def testDataPrependedToJPEG(self):
@@ -192,36 +208,41 @@ class TestJPEG(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 128
         testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 4676767)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 4676767)
 
     ## a test for the file being a single JPEG with data cut from the end
     def testDataCutFromEndJPEG(self):
         filename = os.path.join(basetestdir, 'jpeg', 'test-cut-data-from-end.jpg')
         offset = 0
         testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single JPEG with data cut from the middle
     def testDataCutFromMiddleJPEG(self):
         filename = os.path.join(basetestdir, 'jpeg', 'test-cut-data-from-middle.jpg')
         offset = 0
         testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single JPEG with data added in the middle
     def testDataAddedInMiddleJPEG(self):
         filename = os.path.join(basetestdir, 'jpeg', 'test-data-added-to-middle.jpg')
         offset = 0
         testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single JPEG with data replaced in the middle
     def testDataReplacedInMiddleJPEG(self):
         filename = os.path.join(basetestdir, 'jpeg', 'test-data-replaced-in-middle.jpg')
         offset = 0
         testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
 ## a test class for testing BMP files
 class TestBMP(unittest.TestCase):
@@ -241,8 +262,9 @@ class TestBMP(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], filesize)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
 
     ## a test for the file being a single BMP with data appended to it
     def testDataAppendedToBMP(self):
@@ -250,8 +272,9 @@ class TestBMP(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 572666)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 572666)
 
     ## a test for the file being a single BMP with data in front
     def testDataPrependedToBMP(self):
@@ -259,36 +282,41 @@ class TestBMP(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 128
         testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 572666)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 572666)
 
     ## a test for the file being a single BMP with data cut from the end
     def testDataCutFromEndBMP(self):
         filename = os.path.join(basetestdir, 'bmp', 'test-cut-data-from-end.bmp')
         offset = 0
         testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single BMP with data cut from the middle
     def testDataCutFromMiddleBMP(self):
         filename = os.path.join(basetestdir, 'bmp', 'test-cut-data-from-middle.bmp')
         offset = 0
         testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single BMP with data added in the middle
     def testDataAddedInMiddleBMP(self):
         filename = os.path.join(basetestdir, 'bmp', 'test-data-added-to-middle.bmp')
         offset = 0
         testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single BMP with data replaced in the middle
     def testDataReplacedInMiddleBMP(self):
         filename = os.path.join(basetestdir, 'bmp', 'test-data-replaced-in-middle.bmp')
         offset = 0
         testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
 ## a test class for testing SGI files
 class TestSGI(unittest.TestCase):
@@ -308,8 +336,9 @@ class TestSGI(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], filesize)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
 
     ## now all the test cases.
     ## a test for the file being a single SGI
@@ -318,8 +347,9 @@ class TestSGI(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], filesize)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
 
     ## a test for the file being a single SGI with data appended to it
     def testDataAppendedToSGI(self):
@@ -327,8 +357,9 @@ class TestSGI(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 592418)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 592418)
 
     ## a test for the file being a single SGI with data appended to it
     def testDataAppendedToSGIVerbatim(self):
@@ -336,8 +367,9 @@ class TestSGI(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 572048)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 572048)
 
     ## a test for the file being a single SGI with data in front
     def testDataPrependedToSGI(self):
@@ -345,8 +377,9 @@ class TestSGI(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 128
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 592418)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 592418)
 
     ## a test for the file being a single SGI with data in front
     def testDataPrependedToSGIVerbatim(self):
@@ -354,64 +387,73 @@ class TestSGI(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 128
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-        self.assertTrue(testres[0])
-        self.assertEqual(testres[1], 572048)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 572048)
 
     ## a test for the file being a single SGI with data cut from the end
     def testDataCutFromEndSGI(self):
         filename = os.path.join(basetestdir, 'sgi', 'test-cut-data-from-end.sgi')
         offset = 0
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single SGI with data cut from the end
     def testDataCutFromEndSGIVerbatim(self):
         filename = os.path.join(basetestdir, 'sgi', 'test-verbatim-cut-data-from-end.sgi')
         offset = 0
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single SGI with data cut from the middle
     def testDataCutFromMiddleSGI(self):
         filename = os.path.join(basetestdir, 'sgi', 'test-cut-data-from-middle.sgi')
         offset = 0
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ## a test for the file being a single SGI with data cut from the middle
     def testDataCutFromMiddleSGIVerbatim(self):
         filename = os.path.join(basetestdir, 'sgi', 'test-verbatim-cut-data-from-middle.sgi')
         offset = 0
         testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-        self.assertFalse(testres[0])
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
 
     ### a test for the file being a single SGI with data added in the middle
     #def testDataAddedInMiddleSGI(self):
     #    filename = os.path.join(basetestdir, 'sgi', 'test-data-added-to-middle.sgi')
     #    offset = 0
     #    testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-    #    self.assertFalse(testres[0])
+    #    (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+    #    self.assertFalse(unpackstatus)
 
     ## a test for the file being a single SGI with data added in the middle
     #def testDataAddedInMiddleSGIVerbatim(self):
     #    filename = os.path.join(basetestdir, 'sgi', 'test-verbatim-data-added-to-middle.sgi')
     #    offset = 0
     #    testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-    #    self.assertFalse(testres[0])
+    #    (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+    #    self.assertFalse(unpackstatus)
 
     ## a test for the file being a single SGI with data replaced in the middle
     #def testDataReplacedInMiddleSGI(self):
     #    filename = os.path.join(basetestdir, 'sgi', 'test-data-replaced-in-middle.sgi')
     #    offset = 0
     #    testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-    #    self.assertFalse(testres[0])
+    #    (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+    #    self.assertFalse(unpackstatus)
 
     ### a test for the file being a single SGI with data replaced in the middle
     #def testDataReplacedInMiddleSGIVerbatim(self):
     #    filename = os.path.join(basetestdir, 'sgi', 'test-verbatim-data-replaced-in-middle.sgi')
     #    offset = 0
     #    testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
-    #    self.assertFalse(testres[0])
+    #    (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+    #    self.assertFalse(unpackstatus)
 
 if __name__ == '__main__':
     unittest.main()
