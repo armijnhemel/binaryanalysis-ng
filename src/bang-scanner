@@ -227,7 +227,7 @@ maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
 maxsignaturesoffset = max(signaturesoffset.values()) + maxsignaturelength
 
 ## not all files should be scanned
-tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'file system'])
+tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'file system', 'srec', 'ihex'])
 
 ## Process a single file.
 ## This method has the following parameters:
