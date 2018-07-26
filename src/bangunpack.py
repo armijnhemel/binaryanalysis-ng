@@ -43,6 +43,7 @@
 ## 32. Intel Hex (text files only)
 ## 33. Motorola SREC (text files only)
 ## 34. MNG
+## 35. Android sparse image files
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -10694,3 +10695,153 @@ def unpackMNG(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'No MEND found'}
     return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+## The Android sparse format is documented in the Android source code tree:
+##
+## https://android.googlesource.com/platform/system/core/+/master/libsparse/sparse_format.h
+##
+## Tool to create images with for testing:
+##
+## * https://android.googlesource.com/platform/system/core/+/master/libsparse - img2simg.c
+##
+## Note: this is different to the Android sparse data image format.
+def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+
+    unpackedsize = 0
+    checkfile = open(filename, 'rb')
+
+    if filesize - offset < 28:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not enough bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## first skip over the magic
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    ## then read the major version
+    checkbytes = checkfile.read(2)
+    ## only version 1 is supported according to the header file from Android
+    major_version = int.from_bytes(checkbytes, byteorder='little')
+    if major_version != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong major version'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## skip over the minor version
+    checkfile.seek(2,os.SEEK_CUR)
+    unpackedsize += 2
+
+    ## then read the file header size (should be 28)
+    checkbytes = checkfile.read(2)
+    file_hdr_sz = int.from_bytes(checkbytes, byteorder='little')
+    if file_hdr_sz != 28:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong file header size'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## then the chunk header size (should be 12)
+    checkbytes = checkfile.read(2)
+    chunk_hdr_sz = int.from_bytes(checkbytes, byteorder='little')
+    if chunk_hdr_sz != 12:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong chunk header size'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## then the block size, must be a multiple of 4
+    checkbytes = checkfile.read(4)
+    blk_sz = int.from_bytes(checkbytes, byteorder='little')
+    if blk_sz % 4 != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong block size'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## the total number of blocks in the uncompressed image
+    checkbytes = checkfile.read(4)
+    total_blks = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    ## the total number of chunks in the compressed image
+    checkbytes = checkfile.read(4)
+    total_chunks = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    ## then skip over the checksum and look at the individual chunks
+    checkfile.seek(4,os.SEEK_CUR)
+    unpackedsize += 4
+
+    ## definitions for the different types of chunks
+    ## swap with the definitions in the header file from Android
+    ## because of endianness.
+    CHUNK_TYPE_RAW = b'\xc1\xca'
+    CHUNK_TYPE_FILL     = b'\xc2\xca'
+    CHUNK_TYPE_DONT_CARE = b'\xc3\xca'
+    CHUNK_TYPE_CRC32 = b'\xc4\xca'
+
+    ## open an output file
+    outputfilename = os.path.join(unpackdir, "sparse.out")
+    outputfile = open(outputfilename, 'wb')
+
+    ## then determine the size of the sparse file
+    for i in range(0,total_chunks):
+        ## each chunk has a 12 byte header
+        checkbytes = checkfile.read(12)
+        if len(checkbytes) != 12:
+            checkfile.close()
+            outputfile.close()
+            os.unlink(outputfilename)
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid Android sparse file: not enough bytes in chunk header'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 12
+
+        chunk_sz = int.from_bytes(checkbytes[4:8], byteorder='little')
+        total_sz = int.from_bytes(checkbytes[8:], byteorder='little')
+        if checkbytes[0:2] == CHUNK_TYPE_RAW:
+            if chunk_sz * blk_sz + offset + unpackedsize > filesize:
+                checkfile.close()
+                outputfile.close()
+                os.unlink(outputfilename)
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid Android sparse file: not enough data'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+            for c in range(0, chunk_sz):
+                outputfile.write(checkfile.read(blk_sz))
+            unpackedsize += chunk_sz * blk_sz
+        elif checkbytes[0:2] == CHUNK_TYPE_FILL:
+            ## the next 4 bytes are the fill data
+            filldata = checkfile.read(4)
+            for c in range(0, chunk_sz):
+                ## It has already been checked that blk_sz
+                ## is divisible by 4.
+                outputfile.write(filldata*(blk_sz//4))
+            unpackedsize += 4
+        elif checkbytes[0:2] == CHUNK_TYPE_DONT_CARE:
+            ## just fill the next X blocks with '\x00'
+            for c in range(0, chunk_sz):
+                outputfile.write(b'\x00' * blk_sz)
+            unpackedsize += 0
+        elif checkbytes[0:2] == CHUNK_TYPE_CRC32:
+            ## no idea what to do with this at the moment
+            ## so just skip over it.
+            checkfile.seek(4,os.SEEK_CUR)
+            unpackedsize += 4
+        else:
+            checkfile.close()
+            outputfile.close()
+            os.unlink(outputfilename)
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid Android sparse file: unknown chunk'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    outputfile.close()
+    checkfile.close()
+    if offset == 0 and filesize == unpackedsize:
+        labels.append('androidsparse')
+    unpackedfilesandlabels.append((outputfilename, []))
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid Android sparse file'}
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
