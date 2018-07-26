@@ -562,5 +562,79 @@ class TestSREC(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing GZIP files
+class TestGZIP(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single JPEG
+    def testFullfileIsGzip(self):
+        filename = os.path.join(basetestdir, 'gzip', 'test.jpg.gz')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single JPEG with data appended to it
+    def testDataAppendedToGzip(self):
+        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-add-random-data.gz')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 4665601)
+
+    ## a test for the file being a single JPEG with data in front
+    def testDataPrependedToGzip(self):
+        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-prepend-random-data.gz')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 4665601)
+
+    ## a test for the file being a single JPEG with data cut from the end
+    def testDataCutFromEndGzip(self):
+        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-cut-data-from-end.gz')
+        offset = 0
+        testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single JPEG with data cut from the middle
+    def testDataCutFromMiddleGzip(self):
+        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-cut-data-from-middle.gz')
+        offset = 0
+        testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single JPEG with data added in the middle
+    def testDataAddedInMiddleGzip(self):
+        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-data-added-to-middle.gz')
+        offset = 0
+        testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single JPEG with data replaced in the middle
+    def testDataReplacedInMiddleGzip(self):
+        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-data-replaced-in-middle.gz')
+        offset = 0
+        testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
