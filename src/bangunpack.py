@@ -9463,6 +9463,18 @@ def unpackSREC(filename, offset, unpackdir, temporarydirectory):
                                 isdata = True
                         elif line[:2] == 'S7' or line[:2] == 'S8' or line[:2] == 'S9':
                                 seenterminator = True
+                        elif line[:2] == 'S4':
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved S-Record value found'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        else:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not an S-Record line'}
+                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
                         recordtype = line[:2]
                         seenrecords.add(recordtype)
 
