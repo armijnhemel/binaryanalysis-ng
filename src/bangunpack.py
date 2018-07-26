@@ -6604,99 +6604,99 @@ def unpackSGI(filename, offset, unpackdir, temporarydirectory):
 ##
 ## Test files in any recent Python 3 distribution in Lib/test/audiodata/
 def unpackAIFF(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
 
-        if filesize - offset < 12:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'Too small for AIFF or AIFF-C file'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if filesize - offset < 12:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'Too small for AIFF or AIFF-C file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        unpackedsize = 0
-        checkfile = open(filename, 'rb')
-        ## skip over the header
-        checkfile.seek(offset+4)
-        checkbytes = checkfile.read(4)
-        chunkdatasize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize = 0
+    checkfile = open(filename, 'rb')
+    ## skip over the header
+    checkfile.seek(offset+4)
+    checkbytes = checkfile.read(4)
+    chunkdatasize = int.from_bytes(checkbytes, byteorder='big')
 
-        ## check if the file has enough bytes to be a valid AIFF or AIFF-C
-        if offset + chunkdatasize + 8 > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'chunk size bigger than file'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 8
+    ## check if the file has enough bytes to be a valid AIFF or AIFF-C
+    if offset + chunkdatasize + 8 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'chunk size bigger than file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 8
 
-        checkbytes = checkfile.read(4)
+    checkbytes = checkfile.read(4)
 
-        if not (checkbytes == b'AIFF' or checkbytes == b'AIFC'):
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong form type'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if not (checkbytes == b'AIFF' or checkbytes == b'AIFC'):
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong form type'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    if checkbytes == b'AIFF':
+        aifftype = 'aiff'
+    else:
+        aifftype = 'aiff-c'
+
+    ## keep track of which chunk names have been seen, as a few are
+    ## mandatory.
+    chunknames = set()
+
+    ## then read the respective chunks
+    while checkfile.tell() < offset + 8 + chunkdatasize:
+        chunkid = checkfile.read(4)
+        if len(chunkid) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for chunk id'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        ## store the name of the chunk, as a few chunk names are mandatory
+        chunknames.add(chunkid)
         unpackedsize += 4
 
-        if checkbytes == b'AIFF':
-                aifftype = 'aiff'
-        else:
-                aifftype = 'aiff-c'
+        ## read the size of the chunk
+        checkbytes = checkfile.read(4)
+        if len(chunkid) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for chunk'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        chunksize = int.from_bytes(checkbytes, byteorder='big')
+        ## chunk sizes should be even, so add a padding byte if necessary
+        if chunksize % 2 != 0:
+            chunksize += 1
+        ## check if the chunk isn't outside of the file
+        if checkfile.tell() + chunksize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'declared chunk size outside file'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+        checkfile.seek(chunksize, os.SEEK_CUR)
+        unpackedsize += chunksize
 
-        ## keep track of which chunk names have been seen, as a few are
-        ## mandatory.
-        chunknames = set()
-
-        ## then read the respective chunks
-        while checkfile.tell() < offset + 8 + chunkdatasize:
-                chunkid = checkfile.read(4)
-                if len(chunkid) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for chunk id'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                ## store the name of the chunk, as a few chunk names are mandatory
-                chunknames.add(chunkid)
-                unpackedsize += 4
-
-                ## read the size of the chunk
-                checkbytes = checkfile.read(4)
-                if len(chunkid) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for chunk'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                chunksize = int.from_bytes(checkbytes, byteorder='big')
-                ## chunk sizes should be even, so add a padding byte if necessary
-                if chunksize % 2 != 0:
-                        chunksize += 1
-                ## check if the chunk isn't outside of the file
-                if checkfile.tell() + chunksize > filesize:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'declared chunk size outside file'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 4
-                checkfile.seek(chunksize, os.SEEK_CUR)
-                unpackedsize += chunksize
-
-        ## chunks "COMM" and "SSND" are mandatory
-        if not b'COMM' in chunknames:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Mandatory chunk \'COMM\' not found.'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        if not b'SSND' in chunknames:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Mandatory chunk \'SSND\' not found.'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        if offset == 0 and unpackedsize == filesize:
-                checkfile.close()
-                labels += ['audio', 'aiff', aifftype]
-                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## else carve the file. It is anonymous, so just give it a name
-        outfilename = os.path.join(unpackdir, "unpacked-aiff")
-        outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-        outfile.close()
+    ## chunks "COMM" and "SSND" are mandatory
+    if not b'COMM' in chunknames:
         checkfile.close()
-        unpackedfilesandlabels.append((outfilename, ['audio', 'aiff', 'unpacked', aifftype]))
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Mandatory chunk \'COMM\' not found.'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if not b'SSND' in chunknames:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Mandatory chunk \'SSND\' not found.'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels += ['audio', 'aiff', aifftype]
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked-aiff")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+    unpackedfilesandlabels.append((outfilename, ['audio', 'aiff', 'unpacked', aifftype]))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## terminfo files, format described in the Linux man page for terminfo files
 ## man 5 term
