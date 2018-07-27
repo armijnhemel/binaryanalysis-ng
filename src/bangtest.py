@@ -667,7 +667,6 @@ class TestZIP(unittest.TestCase):
     def testFullfileIsZip(self):
         filename = os.path.join(basetestdir, 'zip', 'test.zip')
         filesize = os.stat(filename).st_size
-        print('blaat', filename)
         offset = 0
         testres = bangunpack.unpackZip(filename, offset, self.tempdir, None)
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
