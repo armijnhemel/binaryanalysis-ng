@@ -79,7 +79,8 @@
 ## 14. SGI image files (needs PIL)
 ## 15. Apple Icon Image (needs PIL)
 ## 16. LZ4 (requires LZ4 Python bindings)
-## 17. VMware VMDK (requires qemu-img)
+## 17. VMware VMDK (requires qemu-img, whole file only)
+## 18. QEMU qcow2 (requires qemu-img, whole file only)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -11020,4 +11021,58 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
             return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid VMDK file or cannot unpack'}
+    return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+## QEMU qcow2 files
+##
+## Specification can be found in docs/interop in the QEMU repository
+##
+## https://git.qemu.org/?p=qemu.git;a=blob;f=docs/interop/qcow2.txt;hb=HEAD
+def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackedsize = 0
+    unpackingerror = {}
+
+    if filesize - offset < 72:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 72 bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    if shutil.which('qemu-img') == None:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'qemu-img program not found'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## first run qemu-img in case the whole file is the qcow2 file
+    if offset == 0:
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (standardout, standarderror) = p.communicate()
+        if p.returncode == 0:
+            ## extra sanity check to see if it is valid JSON
+            try:
+               vmdkjson = json.loads(standardout)
+            except:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no valid JSON output from qemu-img'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            if filename.endswith('.qcow2'):
+                outputfilename = os.path.join(unpackdir, os.path.basename(filename)[:-6])
+            else:
+                outputfilename = os.path.join(unpackdir, 'unpacked-from-qcow2')
+
+            ## now convert it to a raw file
+            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (standardout, standarderror) = p.communicate()
+            if p.returncode != 0:
+                if os.path.exists(outputfilename):
+                    os.unlink(outputfilename)
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cannot convert file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+            labels.append('qemu')
+            labels.append('qcow2')
+            labels.append('file system')
+            unpackedfilesandlabels.append((outputfilename, []))
+            return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid qcow2 file or cannot unpack'}
     return (False, 0, unpackedfilesandlabels, labels, unpackingerror)

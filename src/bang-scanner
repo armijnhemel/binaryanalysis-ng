@@ -120,6 +120,7 @@ signatures = {
               'androidsparse':  b'\x3a\xff\x26\xed',
               'lz4':            b'\x04\x22\x4d\x18',  # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
               'vmdk':           b'KDMV'
+              'qcow2':          b'QFI\xfb',
              }
 
 ## some signatures do not start at the beginning of the file
@@ -190,6 +191,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'androidsparse': bangunpack.unpackAndroidSparse,
                         'lz4': bangunpack.unpackLZ4,
                         'vmdk': bangunpack.unpackVMDK,
+                        'qcow2': bangunpack.unpackQcow2,
                       }
 
 ## a lookup table to map signatures to a name for
