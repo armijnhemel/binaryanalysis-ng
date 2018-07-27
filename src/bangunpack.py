@@ -78,6 +78,7 @@
 ## 13. zstd (needs zstd package)
 ## 14. SGI image files (needs PIL)
 ## 15. Apple Icon Image (needs PIL)
+## 16. LZ4 (requires LZ4 Python bindings)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -105,6 +106,8 @@ import subprocess
 
 ## some external packages that are needed
 import PIL.Image
+import lz4
+import lz4.frame
 
 encodingstotranslate = [ 'utf-8','ascii','latin-1','euc_jp', 'euc_jis_2004'
                        , 'jisx0213', 'iso2022_jp', 'iso2022_jp_1', 'iso2022_jp_2'
@@ -10890,4 +10893,64 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
         labels.append('androidsparse')
     unpackedfilesandlabels.append((outputfilename, []))
     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid Android sparse file'}
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
+## uses https://pypi.org/project/lz4/
+def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    outfilename = os.path.join(unpackdir, "unpacked-from-lz4")
+    outfile = open(outfilename, 'wb')
+
+    ## first create a decompressor object
+    decompressor = lz4.frame.create_decompression_context()
+
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+    readsize = 1000000
+    checkbytes = checkfile.read(readsize)
+
+    seeneof = False
+    while checkbytes != b'':
+        try:
+            uncompressresults = lz4.frame.decompress_chunk(decompressor, checkbytes)
+            outfile.write(uncompressresults[0])
+            outfile.flush()
+        except:
+            outfile.close()
+            os.unlink(outfilename)
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'LZ4 unpacking error'}
+            return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+        unpackedsize += uncompressresults[1]
+
+        ## end of the data/LZ4 frame footer
+        if uncompressresults[2]:
+            outfile.close()
+            seeneof = True
+            break
+        checkbytes = checkfile.read(readsize)
+
+    checkfile.close()
+
+    if not seeneof:
+        os.unlink(outfilename)
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'data incomplete'}
+        return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## in case the whole file name is the lz4 file and the extension
+    ## is .lz4 rename the file.
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('compressed')
+        labels.append('lz4')
+        if filename.lower().endswith('.lz4'):
+            newoutfilename = os.path.join(unpackdir, os.path.basename(filename[:-4]))
+            shutil.move(outfilename, newoutfilename)
+            outfilename = newoutfilename
+    unpackedfilesandlabels.append((outfilename, []))
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)

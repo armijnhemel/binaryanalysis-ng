@@ -118,6 +118,7 @@ signatures = {
               'zstd_08':        b'\x28\xb5\x2f\xfd',  # /usr/share/magic
               'apple_icon':     b'icns',              # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
               'androidsparse':  b'\x3a\xff\x26\xed',
+              'lz4':            b'\x04\x22\x4d\x18',  # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
              }
 
 ## some signatures do not start at the beginning of the file
@@ -186,6 +187,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'zstd_08': bangunpack.unpackZstd,
                         'apple_icon': bangunpack.unpackAppleIcon,
                         'androidsparse': bangunpack.unpackAndroidSparse,
+                        'lz4': bangunpack.unpackLZ4,
                       }
 
 ## a lookup table to map signatures to a name for
