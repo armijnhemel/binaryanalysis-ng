@@ -14,6 +14,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * 7z
 * e2tools
 * zstd
+* python-lz4
 
 ## Invocation
 
