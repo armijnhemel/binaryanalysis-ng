@@ -79,6 +79,7 @@
 ## 14. SGI image files (needs PIL)
 ## 15. Apple Icon Image (needs PIL)
 ## 16. LZ4 (requires LZ4 Python bindings)
+## 17. VMware VMDK (requires qemu-img)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much as possible
 ## using the os.sendfile() method, as well as techniques described in this blog
@@ -103,6 +104,7 @@ import zipfile
 import bz2
 import stat
 import subprocess
+import json
 
 ## some external packages that are needed
 import PIL.Image
@@ -10956,3 +10958,66 @@ def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
             outfilename = newoutfilename
     unpackedfilesandlabels.append((outfilename, []))
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## VMware VMDK files
+##
+## The website:
+##
+## https://www.vmware.com/app/vmdk/?src=vmdk
+##
+## has a PDF of specification, but these are a bit outdated
+##
+## Newer specs:
+##
+## https://www.vmware.com/support/developer/vddk/vmdk_50_technote.pdf
+##
+## https://github.com/libyal/libvmdk/blob/master/documentation/VMWare%20Virtual%20Disk%20Format%20(VMDK).asciidoc
+## in section 4
+##
+## For now just focus on files where the entire file is VMDK
+def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackedsize = 0
+    unpackingerror = {}
+    if filesize - offset < 512:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 512 bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    if shutil.which('qemu-img') == None:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'qemu-img program not found'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## first run qemu-img in case the whole file is the VMDK file
+    if offset == 0:
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (standardout, standarderror) = p.communicate()
+        if p.returncode == 0:
+            ## extra sanity check to see if it is valid JSON
+            try:
+               vmdkjson = json.loads(standardout)
+            except:
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no valid JSON output from qemu-img'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            if filename.endswith('.vmdk'):
+                outputfilename = os.path.join(unpackdir, os.path.basename(filename)[:-5])
+            else:
+                outputfilename = os.path.join(unpackdir, 'unpacked-from-vmdk')
+
+            ## now convert it to a raw file
+            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (standardout, standarderror) = p.communicate()
+            if p.returncode != 0:
+                if os.path.exists(outputfilename):
+                    os.unlink(outputfilename)
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cannot convert file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+            labels.append('vmdk')
+            labels.append('file system')
+            unpackedfilesandlabels.append((outputfilename, []))
+            return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid VMDK file or cannot unpack'}
+    return (False, 0, unpackedfilesandlabels, labels, unpackingerror)

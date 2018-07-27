@@ -119,6 +119,7 @@ signatures = {
               'apple_icon':     b'icns',              # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
               'androidsparse':  b'\x3a\xff\x26\xed',
               'lz4':            b'\x04\x22\x4d\x18',  # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
+              'vmdk':           b'KDMV'
              }
 
 ## some signatures do not start at the beginning of the file
@@ -188,6 +189,7 @@ signaturetofunction = { 'webp': bangunpack.unpackWebP,
                         'apple_icon': bangunpack.unpackAppleIcon,
                         'androidsparse': bangunpack.unpackAndroidSparse,
                         'lz4': bangunpack.unpackLZ4,
+                        'vmdk': bangunpack.unpackVMDK,
                       }
 
 ## a lookup table to map signatures to a name for
