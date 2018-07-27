@@ -725,5 +725,79 @@ class TestZIP(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing LZ4 files
+class TestLZ4(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single ZIP
+    def testFullfileIsLZ4(self):
+        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt.lz4')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single ZIP with data appended to it
+    def testDataAppendedToLZ4(self):
+        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-add-random-data.lz4')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 755644)
+
+    ## a test for the file being a single ZIP with data in front
+    def testDataPrependedToLZ4(self):
+        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-prepend-random-data.lz4')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 755644)
+
+    ## a test for the file being a single ZIP with data cut from the end
+    def testDataCutFromEndLZ4(self):
+        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-cut-data-from-end.lz4')
+        offset = 0
+        testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single ZIP with data cut from the middle
+    def testDataCutFromMiddleLZ4(self):
+        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-cut-data-from-middle.lz4')
+        offset = 0
+        testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single ZIP with data added in the middle
+    def testDataAddedInMiddleLZ4(self):
+        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-data-added-to-middle.lz4')
+        offset = 0
+        testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single ZIP with data replaced in the middle
+    def testDataReplacedInMiddleLZ4(self):
+        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-data-replaced-in-middle.lz4')
+        offset = 0
+        testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
