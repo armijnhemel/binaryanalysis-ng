@@ -10922,6 +10922,7 @@ def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
             outfile.write(uncompressresults[0])
             outfile.flush()
         except:
+            checkfile.close()
             outfile.close()
             os.unlink(outfilename)
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'LZ4 unpacking error'}
@@ -10936,6 +10937,7 @@ def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
             break
         checkbytes = checkfile.read(readsize)
 
+    outfile.close()
     checkfile.close()
 
     if not seeneof:
