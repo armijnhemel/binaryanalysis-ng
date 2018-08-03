@@ -6733,257 +6733,257 @@ def unpackAIFF(filename, offset, unpackdir, temporarydirectory):
 ## terminfo files, format described in the Linux man page for terminfo files
 ## man 5 term
 def unpackTerminfo(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        ## the header is 12 bytes long
-        if filesize - offset < 12:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for header'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## the header is 12 bytes long
+    if filesize - offset < 12:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for header'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        checkfile = open(filename, 'rb')
-        ## first skip over the magic
-        checkfile.seek(offset+2)
-        unpackedsize += 2
+    checkfile = open(filename, 'rb')
+    ## first skip over the magic
+    checkfile.seek(offset+2)
+    unpackedsize += 2
 
-        ## the size of the names section, which immediately follows the header
+    ## the size of the names section, which immediately follows the header
+    checkbytes = checkfile.read(2)
+    namessectionsize = int.from_bytes(checkbytes, byteorder='little')
+    ## check if the names section is inside the file
+    if offset + 12 + namessectionsize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for names section or not enough data'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if namessectionsize < 2:
+        ## man page says "this section is terminated with an ASCII NUL character"
+        ## so it cannot be empty. The name of the terminal has to be at least one
+        ## character.
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'names section size cannot be less than 2'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## regular compiled names section cannot exceed 4096
+    if namessectionsize > 4096:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid names section size'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## the number of bytes in the boolean section, which follows the names section
+    checkbytes = checkfile.read(2)
+    booleansize = int.from_bytes(checkbytes, byteorder='little')
+    if offset + 12 + namessectionsize + booleansize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for boolean bytes or not enough data'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## the number section has to start on an even byte boundary
+    ## so pad if necessary.
+    booleanpadding = 0
+    if (12 + namessectionsize + booleansize)%2 != 0:
+        booleanpadding = 1
+
+    ## the number of short integers in the numbers section, following the boolean section
+    checkbytes = checkfile.read(2)
+    numbershortints = int.from_bytes(checkbytes, byteorder='little')
+    if offset + 12 + namessectionsize + booleansize + booleanpadding + numbershortints*2 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for short ints or not enough data'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## the number of shorts in the strings section, following the numbers section
+    checkbytes = checkfile.read(2)
+    stringoffsets = int.from_bytes(checkbytes, byteorder='little')
+    if offset + 12 + namessectionsize + booleansize + booleanpadding + numbershortints*2 + stringoffsets*2> filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for string offsets or not enough data'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    stringstableoffset = offset + 12 + namessectionsize + booleansize + booleanpadding + numbershortints*2 + stringoffsets*2
+
+    ## the size of the string table following the strings section
+    checkbytes = checkfile.read(2)
+    stringstablesize = int.from_bytes(checkbytes, byteorder='little')
+    if stringstableoffset + stringstablesize> filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for strings table or not enough data'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## names in the namessection size have to be printable.
+    checkfile.seek(offset + 12)
+    checkbytes = checkfile.read(namessectionsize)
+    for n in checkbytes[:-1]:
+        if not chr(n) in string.printable:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid character in names section'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## skip to the end of the namessection and check if there is a NUL
+    if checkbytes[-1] != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'names section not terminated with NUL'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## first skip to the start of the boolean section and check all the booleans
+    checkfile.seek(offset + 12 + namessectionsize)
+    for n in range(0,booleansize):
+        checkbytes = checkfile.read(1)
+        if checkbytes != b'\x00' and checkbytes != b'\x01':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for boolean table entry'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    maxoffset = -1
+
+    ## then check each of the offsets from the string offsets section in the strings table.
+    ## This doesn't work well for some terminfo files, such as jfbterm, kon, kon2, screen.xterm-xfree86
+    ## probably due to wide character support.
+    checkfile.seek(offset + 12 + namessectionsize + booleansize + booleanpadding + numbershortints*2)
+    for n in range(0,stringoffsets):
         checkbytes = checkfile.read(2)
-        namessectionsize = int.from_bytes(checkbytes, byteorder='little')
-        ## check if the names section is inside the file
-        if offset + 12 + namessectionsize > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for names section or not enough data'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        if namessectionsize < 2:
-                ## man page says "this section is terminated with an ASCII NUL character"
-                ## so it cannot be empty. The name of the terminal has to be at least one
-                ## character.
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'names section size cannot be less than 2'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
+        if checkbytes == b'\xff\xff':
+            continue
+        stringoffset = int.from_bytes(checkbytes, byteorder='little')
+        if stringstableoffset + stringoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': unpackedsize, 'fatal': False, 'reason': 'invalid offset for string table entry'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        maxoffset = max(maxoffset, stringstableoffset + stringoffset)
 
-        ## regular compiled names section cannot exceed 4096
-        if namessectionsize > 4096:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid names section size'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## then skip to the end of the string table
+    checkfile.seek(stringstableoffset + stringstablesize)
+    unpackedsize = stringstableoffset + stringstablesize - offset
 
-        ## the number of bytes in the boolean section, which follows the names section
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels.append('terminfo')
+        labels.append('resource')
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## possibly there are extensions
+    if filesize - checkfile.tell() >= 10:
+        validextension = True
+        ## first make sure to start on an even byte boundary
+        localunpackedsize = 0
+        if (checkfile.tell() - offset)%2 != 0:
+            localunpackedsize += 1
+            checkfile.seek(1, os.SEEK_CUR)
+
+        ## read the extended booleans capabilities
         checkbytes = checkfile.read(2)
-        booleansize = int.from_bytes(checkbytes, byteorder='little')
-        if offset + 12 + namessectionsize + booleansize > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for boolean bytes or not enough data'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
+        extendedboolean = int.from_bytes(checkbytes, byteorder='little')
+        localunpackedsize += 2
 
-        ## the number section has to start on an even byte boundary
-        ## so pad if necessary.
-        booleanpadding = 0
-        if (12 + namessectionsize + booleansize)%2 != 0:
-                booleanpadding = 1
-
-        ## the number of short integers in the numbers section, following the boolean section
+        ## read the extended numeric capabilities
         checkbytes = checkfile.read(2)
-        numbershortints = int.from_bytes(checkbytes, byteorder='little')
-        if offset + 12 + namessectionsize + booleansize + booleanpadding + numbershortints*2 > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for short ints or not enough data'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
+        extendednumeric = int.from_bytes(checkbytes, byteorder='little')
+        localunpackedsize += 2
 
-        ## the number of shorts in the strings section, following the numbers section
+        ## read the extended string capabilities
         checkbytes = checkfile.read(2)
-        stringoffsets = int.from_bytes(checkbytes, byteorder='little')
-        if offset + 12 + namessectionsize + booleansize + booleanpadding + numbershortints*2 + stringoffsets*2> filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for string offsets or not enough data'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
+        extendedstringcap = int.from_bytes(checkbytes, byteorder='little')
+        localunpackedsize += 2
 
-        stringstableoffset = offset + 12 + namessectionsize + booleansize + booleanpadding + numbershortints*2 + stringoffsets*2
-
-        ## the size of the string table following the strings section
+        ## read the extended string table size
         checkbytes = checkfile.read(2)
-        stringstablesize = int.from_bytes(checkbytes, byteorder='little')
-        if stringstableoffset + stringstablesize> filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for strings table or not enough data'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
+        extendedstringsize = int.from_bytes(checkbytes, byteorder='little')
+        localunpackedsize += 2
 
-        ## names in the namessection size have to be printable.
-        checkfile.seek(offset + 12)
-        checkbytes = checkfile.read(namessectionsize)
-        for n in checkbytes[:-1]:
-                if not chr(n) in string.printable:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid character in names section'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        ## read the location of the last offset in the extended string table
+        checkbytes = checkfile.read(2)
+        laststringoffset = int.from_bytes(checkbytes, byteorder='little')
+        localunpackedsize += 2
+        if laststringoffset == 0:
+            validextension = False
 
-        ## skip to the end of the namessection and check if there is a NUL
-        if checkbytes[-1] != 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'names section not terminated with NUL'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## first skip to the start of the boolean section and check all the booleans
-        checkfile.seek(offset + 12 + namessectionsize)
-        for n in range(0,booleansize):
+        ## read the extended booleans
+        if validextension:
+            for n in range(0, extendedboolean):
                 checkbytes = checkfile.read(1)
                 if checkbytes != b'\x00' and checkbytes != b'\x01':
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for boolean table entry'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                    validextension = False
+                    break
+                localunpackedsize += 1
 
-        maxoffset = -1
+        ## pad on even boundary
+        if (checkfile.tell() - offset)%2 != 0:
+            localunpackedsize += 1
+            checkfile.seek(1, os.SEEK_CUR)
 
-        ## then check each of the offsets from the string offsets section in the strings table.
-        ## This doesn't work well for some terminfo files, such as jfbterm, kon, kon2, screen.xterm-xfree86
-        ## probably due to wide character support.
-        checkfile.seek(offset + 12 + namessectionsize + booleansize + booleanpadding + numbershortints*2)
-        for n in range(0,stringoffsets):
+        ## read the extended numeric capabilities
+        if validextension:
+            checkbytes = checkfile.read(extendednumeric*2)
+            if len(checkbytes) != extendednumeric*2:
+                validextension = False
+            localunpackedsize += extendednumeric*2
+
+        ## check each of the string offsets
+        if validextension:
+            maxoffset = -1
+            for n in range(0,extendedstringcap):
                 checkbytes = checkfile.read(2)
+                if len(checkbytes) != 2:
+                    validextension = False
+                    break
+                localunpackedsize += 2
                 if checkbytes == b'\xff\xff':
-                        continue
+                    continue
                 stringoffset = int.from_bytes(checkbytes, byteorder='little')
-                if stringstableoffset + stringoffset > filesize:
-                        checkfile.close()
-                        unpackingerror = {'offset': unpackedsize, 'fatal': False, 'reason': 'invalid offset for string table entry'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                maxoffset = max(maxoffset, stringstableoffset + stringoffset)
 
-        ## then skip to the end of the string table
-        checkfile.seek(stringstableoffset + stringstablesize)
-        unpackedsize = stringstableoffset + stringstablesize - offset
+        ## Then finally read the string table.
+        if validextension:
+            checkbytes = checkfile.read(extendedstringsize)
+            if len(checkbytes) != extendedstringsize:
+                validextension = False
+            localunpackedsize += extendedstringsize
 
-        if offset == 0 and unpackedsize == filesize:
-                checkfile.close()
-                labels.append('terminfo')
-                labels.append('resource')
-                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        ## There is also a (NUL?) byte for each number and boolean.
+        ##
+        ## compare _nc_read_termtype() from ncurses/tinfo/read_entry.c from the ncurses 6.1
+        ## release.
+        ##
+        ## Easy hack: use the last offset in the string table
+        if validextension:
+            checkbytes = checkfile.read(extendedboolean + extendednumeric)
+            if len(checkbytes) != extendedboolean + extendednumeric:
+                validextension = False
+            ## there might be a NUL byte, but this doesn't hold for every
+            ## file seen in the wild so ignore for now.
+            #if not checkbytes == b'\x00' * (extendedboolean + extendednumeric):
+            #        validextension = False
+            if validextension:
+                checkbytes = checkfile.read(laststringoffset)
+                if len(checkbytes) != laststringoffset:
+                    validextension = False
+                localunpackedsize += laststringoffset
+                if checkbytes[-1] != 0:
+                    validextension = False
 
-        ## possibly there are extensions
-        if filesize - checkfile.tell() >= 10:
-                validextension = True
-                ## first make sure to start on an even byte boundary
-                localunpackedsize = 0
-                if (checkfile.tell() - offset)%2 != 0:
-                        localunpackedsize += 1
-                        checkfile.seek(1, os.SEEK_CUR)
+        if validextension:
+            unpackedsize = checkfile.tell() - offset
 
-                ## read the extended booleans capabilities
-                checkbytes = checkfile.read(2)
-                extendedboolean = int.from_bytes(checkbytes, byteorder='little')
-                localunpackedsize += 2
-
-                ## read the extended numeric capabilities
-                checkbytes = checkfile.read(2)
-                extendednumeric = int.from_bytes(checkbytes, byteorder='little')
-                localunpackedsize += 2
-
-                ## read the extended string capabilities
-                checkbytes = checkfile.read(2)
-                extendedstringcap = int.from_bytes(checkbytes, byteorder='little')
-                localunpackedsize += 2
-
-                ## read the extended string table size
-                checkbytes = checkfile.read(2)
-                extendedstringsize = int.from_bytes(checkbytes, byteorder='little')
-                localunpackedsize += 2
-
-                ## read the location of the last offset in the extended string table
-                checkbytes = checkfile.read(2)
-                laststringoffset = int.from_bytes(checkbytes, byteorder='little')
-                localunpackedsize += 2
-                if laststringoffset == 0:
-                        validextension = False
-
-                ## read the extended booleans
-                if validextension:
-                        for n in range(0, extendedboolean):
-                                checkbytes = checkfile.read(1)
-                                if checkbytes != b'\x00' and checkbytes != b'\x01':
-                                        validextension = False
-                                        break
-                                localunpackedsize += 1
-
-                ## pad on even boundary
-                if (checkfile.tell() - offset)%2 != 0:
-                        localunpackedsize += 1
-                        checkfile.seek(1, os.SEEK_CUR)
-
-                ## read the extended numeric capabilities
-                if validextension:
-                        checkbytes = checkfile.read(extendednumeric*2)
-                        if len(checkbytes) != extendednumeric*2:
-                                validextension = False
-                        localunpackedsize += extendednumeric*2
-
-                ## check each of the string offsets
-                if validextension:
-                        maxoffset = -1
-                        for n in range(0,extendedstringcap):
-                                checkbytes = checkfile.read(2)
-                                if len(checkbytes) != 2:
-                                        validextension = False
-                                        break
-                                localunpackedsize += 2
-                                if checkbytes == b'\xff\xff':
-                                        continue
-                                stringoffset = int.from_bytes(checkbytes, byteorder='little')
-
-                ## Then finally read the string table.
-                if validextension:
-                        checkbytes = checkfile.read(extendedstringsize)
-                        if len(checkbytes) != extendedstringsize:
-                                validextension = False
-                        localunpackedsize += extendedstringsize
-
-                ## There is also a (NUL?) byte for each number and boolean.
-                ##
-                ## compare _nc_read_termtype() from ncurses/tinfo/read_entry.c from the ncurses 6.1
-                ## release.
-                ##
-                ## Easy hack: use the last offset in the string table
-                if validextension:
-                        checkbytes = checkfile.read(extendedboolean + extendednumeric)
-                        if len(checkbytes) != extendedboolean + extendednumeric:
-                                validextension = False
-                        ## there might be a NUL byte, but this doesn't hold for every
-                        ## file seen in the wild so ignore for now.
-                        #if not checkbytes == b'\x00' * (extendedboolean + extendednumeric):
-                        #        validextension = False
-                        if validextension:
-                                checkbytes = checkfile.read(laststringoffset)
-                                if len(checkbytes) != laststringoffset:
-                                        validextension = False
-                                localunpackedsize += laststringoffset
-                                if checkbytes[-1] != 0:
-                                        validextension = False
-
-                if validextension:
-                        unpackedsize = checkfile.tell() - offset
-
-        if offset == 0 and unpackedsize == filesize:
-                checkfile.close()
-                labels.append('terminfo')
-                labels.append('resource')
-                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## else carve.
-        checkfile.seek(offset)
-        outfilename = os.path.join(unpackdir, "unpacked-from-term")
-        outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-        outfile.close()
+    if offset == 0 and unpackedsize == filesize:
         checkfile.close()
-        unpackedfilesandlabels.append((outfilename, ['terminfo', 'resource', 'unpacked']))
+        labels.append('terminfo')
+        labels.append('resource')
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## else carve.
+    checkfile.seek(offset)
+    outfilename = os.path.join(unpackdir, "unpacked-from-term")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+    unpackedfilesandlabels.append((outfilename, ['terminfo', 'resource', 'unpacked']))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## https://rzip.samba.org/
 ## https://en.wikipedia.org/wiki/Rzip
