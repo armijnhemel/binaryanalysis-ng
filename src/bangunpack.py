@@ -4949,281 +4949,281 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
 ## https://www.w3.org/TR/WOFF/
 ## section 3 and 4 describe the format
 def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
-        checkfile = open(filename, 'rb')
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    checkfile = open(filename, 'rb')
 
-        ## skip over the header
-        checkfile.seek(offset+4)
-        unpackedsize += 4
+    ## skip over the header
+    checkfile.seek(offset+4)
+    unpackedsize += 4
 
-        ## next 4 bytes are the "flavour" of the font. Don't use for now.
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for font flavour'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## next 4 bytes are the size of the font.
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for font size'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## the font cannot be outside of the file
-        fontsize = int.from_bytes(checkbytes, byteorder='big')
-        if offset + fontsize > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'declared font size outside file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## next the number of tables
-        checkbytes = checkfile.read(2)
-        if len(checkbytes) != 2:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for number of tables'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-        numtables = int.from_bytes(checkbytes, byteorder='big')
-
-        ## next a reserved field. Should be set to 0
-        checkbytes = checkfile.read(2)
-        if len(checkbytes) != 2:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for reserved field'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        if int.from_bytes(checkbytes, byteorder='big') != 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved field not 0'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-
-        ## next the totalSfntSize. This field must be divisible by 4.
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for totalSfntSize'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        if int.from_bytes(checkbytes, byteorder='big')%4 != 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not aligned on 4 byte boundary'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## then the major version
-        checkbytes = checkfile.read(2)
-        if len(checkbytes) != 2:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for major version'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-
-        ## and the minor version
-        checkbytes = checkfile.read(2)
-        if len(checkbytes) != 2:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for minor version'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-
-        ## the location of the meta data block. This offset cannot be
-        ## outside the file.
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for meta data block location'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        metaoffset = int.from_bytes(checkbytes, byteorder='big')
-        if offset + metaoffset > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'meta data block cannot be outside of file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        ## the private data block MUST started on a 4 byte boundary (section 7)
-        if metaoffset % 4 != 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'meta data doesn\'t start on 4 byte boundary'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## the length of the compressed meta data block. This cannot be
-        ## outside the file.
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for compressed meta data block'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        metalength = int.from_bytes(checkbytes, byteorder='big')
-        if offset + metaoffset + metalength > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'meta data block end outside file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## then the original length of the meta data. Ignore for now.
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for original meta data length'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## the location of the private data block. This offset cannot be
-        ## outside the file.
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for private data block location'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        privateoffset = int.from_bytes(checkbytes, byteorder='big')
-        if offset + privateoffset > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'private data block cannot be outside of file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        ## the private data block MUST started on a 4 byte boundary (section 8)
-        if privateoffset % 4 != 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'private data block doesn\'t start on 4 byte boundary'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## the length of the private data block. This cannot be outside the file.
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for private data block'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        privatelength = int.from_bytes(checkbytes, byteorder='big')
-        if offset + privateoffset + privatelength > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'private data block cannot be outside of file'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## then the "table directory"
-        lastseenoffset = 0
-        for t in range(0,numtables):
-                ## the tag of the table
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for tag table'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 4
-
-                ## the offset of the table. This cannot be outside of the file.
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for table offset'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                tableoffset = int.from_bytes(checkbytes, byteorder='big')
-                if offset + tableoffset > filesize:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table offset cannot be outside of file'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 4
-
-                ## then the length of the compressed data, excluding padding
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for compressed table length'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                tablecompressedlength = int.from_bytes(checkbytes, byteorder='big')
-                if offset + tableoffset + tablecompressedlength > filesize:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'compressed data cannot be outside of file'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 4
-
-                ## then the length of the uncompressed data, excluding padding.
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for uncompressed table length'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                tableuncompressedlength = int.from_bytes(checkbytes, byteorder='big')
-                unpackedsize += 4
-
-                ## then the checksum of the uncompressed data. Can be ignored for now
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for uncompressed data checksum'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 4
-
-                ## If the compressed length is the same as uncompressed,
-                ## then the data is stored uncompressed. Since this has
-                ## already been verified in an earlier check there is no
-                ## need to further check (section 5 of specifications).
-
-                if tablecompressedlength < tableuncompressedlength:
-                        ## Then jump to the right place in the file (tableoffset)
-                        ## and read the bytes.
-                        ## first store the old offset
-                        prevoffset = checkfile.tell()
-                        checkfile.seek(offset+tableoffset)
-                        checkbytes = checkfile.read(tablecompressedlength)
-
-                        ## then try to decompress the bytes read with zlib
-                        zlibdecompressor = zlib.decompressobj()
-                        uncompresseddata = zlibdecompressor.decompress(checkbytes)
-                        try:
-                                uncompresseddata = zlibdecompressor.decompress(checkbytes)
-                                if len(uncompresseddata) != tableuncompressedlength:
-                                       pass
-                        except:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+tableoffset, 'fatal': False, 'reason': 'invalid compressed data in font'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        checkfile.seek(offset+tableoffset)
-
-                        ## then return to the previous offset
-                        checkfile.seek(prevoffset)
-
-                ## store the last valid offset seen. Fonts don't need to appear in order.
-                ## in the font table.
-                lastseenoffset = max(lastseenoffset, offset + tableoffset + tablecompressedlength)
-
-        ## set the unpackedsize to the maximum of the last seen offset and the unpacked size.
-        ## This is done in case the font table is empty.
-        unpackedsize = max(lastseenoffset, unpackedsize) - offset
-
-        ## the declared fontsize cannot be smaller than what was unpacked
-        if unpackedsize > fontsize:
-                checkfile.close()
-                unpackingerror = {'offset': offset+tableoffset, 'fatal': False, 'reason': 'size of unpacked data larger than declared font size'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## it could be that there is padding. There should be a maximum
-        ## of three bytes for padding.
-        if fontsize - unpackedsize > 3:
-                checkfile.close()
-                unpackingerror = {'offset': offset+tableoffset, 'fatal': False, 'reason': 'declared font size too large for unpacked data'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        unpackedsize = fontsize
-
-        if offset == 0 and unpackedsize == filesize:
-                checkfile.close()
-                labels += ['woff', 'font', 'resource']
-                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## else carve the file. It is anonymous, so just give it a name
-        outfilename = os.path.join(unpackdir, "unpacked-woff")
-        outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-        outfile.close()
+    ## next 4 bytes are the "flavour" of the font. Don't use for now.
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
         checkfile.close()
-        unpackedfilesandlabels.append((outfilename, ['woff', 'font', 'resource', 'unpacked']))
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for font flavour'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## next 4 bytes are the size of the font.
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for font size'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## the font cannot be outside of the file
+    fontsize = int.from_bytes(checkbytes, byteorder='big')
+    if offset + fontsize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'declared font size outside file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## next the number of tables
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for number of tables'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+    numtables = int.from_bytes(checkbytes, byteorder='big')
+
+    ## next a reserved field. Should be set to 0
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for reserved field'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if int.from_bytes(checkbytes, byteorder='big') != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved field not 0'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## next the totalSfntSize. This field must be divisible by 4.
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for totalSfntSize'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if int.from_bytes(checkbytes, byteorder='big')%4 != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not aligned on 4 byte boundary'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## then the major version
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for major version'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## and the minor version
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for minor version'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## the location of the meta data block. This offset cannot be
+    ## outside the file.
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for meta data block location'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    metaoffset = int.from_bytes(checkbytes, byteorder='big')
+    if offset + metaoffset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'meta data block cannot be outside of file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## the private data block MUST started on a 4 byte boundary (section 7)
+    if metaoffset % 4 != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'meta data doesn\'t start on 4 byte boundary'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## the length of the compressed meta data block. This cannot be
+    ## outside the file.
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for compressed meta data block'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    metalength = int.from_bytes(checkbytes, byteorder='big')
+    if offset + metaoffset + metalength > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'meta data block end outside file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## then the original length of the meta data. Ignore for now.
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for original meta data length'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## the location of the private data block. This offset cannot be
+    ## outside the file.
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for private data block location'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    privateoffset = int.from_bytes(checkbytes, byteorder='big')
+    if offset + privateoffset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'private data block cannot be outside of file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## the private data block MUST started on a 4 byte boundary (section 8)
+    if privateoffset % 4 != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'private data block doesn\'t start on 4 byte boundary'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## the length of the private data block. This cannot be outside the file.
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for private data block'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    privatelength = int.from_bytes(checkbytes, byteorder='big')
+    if offset + privateoffset + privatelength > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'private data block cannot be outside of file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## then the "table directory"
+    lastseenoffset = 0
+    for t in range(0,numtables):
+        ## the tag of the table
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for tag table'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## the offset of the table. This cannot be outside of the file.
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for table offset'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        tableoffset = int.from_bytes(checkbytes, byteorder='big')
+        if offset + tableoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table offset cannot be outside of file'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## then the length of the compressed data, excluding padding
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for compressed table length'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        tablecompressedlength = int.from_bytes(checkbytes, byteorder='big')
+        if offset + tableoffset + tablecompressedlength > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'compressed data cannot be outside of file'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## then the length of the uncompressed data, excluding padding.
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for uncompressed table length'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        tableuncompressedlength = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        ## then the checksum of the uncompressed data. Can be ignored for now
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for uncompressed data checksum'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        ## If the compressed length is the same as uncompressed,
+        ## then the data is stored uncompressed. Since this has
+        ## already been verified in an earlier check there is no
+        ## need to further check (section 5 of specifications).
+
+        if tablecompressedlength < tableuncompressedlength:
+            ## Then jump to the right place in the file (tableoffset)
+            ## and read the bytes.
+            ## first store the old offset
+            prevoffset = checkfile.tell()
+            checkfile.seek(offset+tableoffset)
+            checkbytes = checkfile.read(tablecompressedlength)
+
+            ## then try to decompress the bytes read with zlib
+            zlibdecompressor = zlib.decompressobj()
+            uncompresseddata = zlibdecompressor.decompress(checkbytes)
+            try:
+                uncompresseddata = zlibdecompressor.decompress(checkbytes)
+                if len(uncompresseddata) != tableuncompressedlength:
+                   pass
+            except:
+                checkfile.close()
+                unpackingerror = {'offset': offset+tableoffset, 'fatal': False, 'reason': 'invalid compressed data in font'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            checkfile.seek(offset+tableoffset)
+
+            ## then return to the previous offset
+            checkfile.seek(prevoffset)
+
+        ## store the last valid offset seen. Fonts don't need to appear in order.
+        ## in the font table.
+        lastseenoffset = max(lastseenoffset, offset + tableoffset + tablecompressedlength)
+
+    ## set the unpackedsize to the maximum of the last seen offset and the unpacked size.
+    ## This is done in case the font table is empty.
+    unpackedsize = max(lastseenoffset, unpackedsize) - offset
+
+    ## the declared fontsize cannot be smaller than what was unpacked
+    if unpackedsize > fontsize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+tableoffset, 'fatal': False, 'reason': 'size of unpacked data larger than declared font size'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## it could be that there is padding. There should be a maximum
+    ## of three bytes for padding.
+    if fontsize - unpackedsize > 3:
+        checkfile.close()
+        unpackingerror = {'offset': offset+tableoffset, 'fatal': False, 'reason': 'declared font size too large for unpacked data'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    unpackedsize = fontsize
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels += ['woff', 'font', 'resource']
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked-woff")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+    unpackedfilesandlabels.append((outfilename, ['woff', 'font', 'resource', 'unpacked']))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## a generic method for unpacking fonts:
 ##
