@@ -7208,518 +7208,518 @@ def unpackAU(filename, offset, unpackdir, temporarydirectory):
 ## it is no longer the first choice for modern systems, where for example UBI/UBIFS
 ## are chosen.
 def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        if filesize - offset < 12:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 12 bytes'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    if filesize - offset < 12:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 12 bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        unpackedsize = 0
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset)
+    unpackedsize = 0
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
 
-        bigendian = False
+    bigendian = False
 
-        ## read the magic of the first inode to see if it is a little endian
-        ## or big endian file system
+    ## read the magic of the first inode to see if it is a little endian
+    ## or big endian file system
+    checkbytes = checkfile.read(2)
+    if checkbytes == b'\x19\x85':
+        bigendian = True
+
+    dataunpacked = False
+
+    ## keep track of which nodes have already been seen. This is to
+    ## detect if multiple JFFS2 file systems have been concatenated.
+    ## Also store the version, as inodes could have been reused in the
+    ## case of hardlinks.
+    inodesseenversion = set()
+    parentinodesseen = set()
+
+    ## the various node types are:
+    ##
+    ## * directory entry
+    ## * inode (containing actual data)
+    ## * clean marker
+    ## * padding
+    ## * summary
+    ## * xattr
+    ## * xref
+    ##
+    ## For unpacking data only the directory entry and regular inode
+    ## will be considered.
+
+    DIRENT = 0xe001
+    INODE = 0xe002
+    CLEANMARKER = 0x2003
+    PADDING = 0x2004
+    SUMMARY = 0x2006
+    XATTR = 0xe008
+    XREF = 0xe009
+
+    validinodes = set([DIRENT, INODE, CLEANMARKER, PADDING, SUMMARY, XATTR, XREF])
+
+    inodetoparent = {}
+
+    ## keep a list of inodes to file names
+    ## the root inode (1) always has ''
+    inodetofilename = {}
+    inodetofilename[1] = ''
+
+    ## different kinds of compression
+    ## Jefferson ( https://github.com/sviehb/jefferson ) defines more
+    ## types than standard JFFS2. LZMA compression is available as a
+    ## patch from OpenWrt.
+    COMPR_NONE = 0x00
+    COMPR_ZERO = 0x01
+    COMPR_RTIME = 0x02
+    COMPR_RUBINMIPS = 0x03
+    COMPR_COPY = 0x04
+    COMPR_DYNRUBIN = 0x05
+    COMPR_ZLIB = 0x06
+    COMPR_LZO = 0x07
+    COMPR_LZMA = 0x08
+
+    ## LZMA settings from OpenWrt's patch
+    lzma_dict_size = 0x2000
+    lzma_pb = 0
+    lzma_lp = 0
+    lzma_lc = 0
+
+    ## keep a mapping of inodes to last written position in
+    ## the file.
+    inodetowriteoffset = {}
+
+    ## a mapping of inodes to open files
+    inodetoopenfiles = {}
+
+    rootseen = False
+
+    ## reset the file pointer and read all the inodes
+    checkfile.seek(offset)
+    while True:
+        oldoffset = checkfile.tell()
+        if checkfile.tell() == filesize:
+            break
         checkbytes = checkfile.read(2)
-        if checkbytes == b'\x19\x85':
-                bigendian = True
+        if len(checkbytes) != 2:
+            break
 
-        dataunpacked = False
+        ## first check if the inode magic is valid
+        if bigendian:
+            if not checkbytes in [b'\x19\x85', b'\x00\x00', b'\xff\xff']:
+                break
+        else:
+            if not checkbytes in [b'\x85\x19', b'\x00\x00', b'\xff\xff']:
+                break
+        if checkbytes == b'\x00\x00':
+            ## dirty nodes, skip.
+            nodemagictype = 'dirty'
+        elif checkbytes == b'\xff\xff':
+            ## empty space
+            unpackedsize += 2
+            paddingbytes = 0x10000 - (unpackedsize%0x10000)
+            if paddingbytes != 0:
+                checkbytes = checkfile.read(paddingbytes)
+                if len(checkbytes) != paddingbytes:
+                    break
+                unpackedsize += paddingbytes
+            continue
+        else:
+            nodemagictype = 'normal'
+        unpackedsize += 2
 
-        ## keep track of which nodes have already been seen. This is to
-        ## detect if multiple JFFS2 file systems have been concatenated.
-        ## Also store the version, as inodes could have been reused in the
-        ## case of hardlinks.
-        inodesseenversion = set()
-        parentinodesseen = set()
+        ## then read the node type
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            break
+        if bigendian:
+            inodetype = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            inodetype = int.from_bytes(checkbytes, byteorder='little')
 
-        ## the various node types are:
-        ##
-        ## * directory entry
-        ## * inode (containing actual data)
-        ## * clean marker
-        ## * padding
-        ## * summary
-        ## * xattr
-        ## * xref
-        ##
-        ## For unpacking data only the directory entry and regular inode
-        ## will be considered.
+        ## check if the inode type is actually valid
+        if not inodetype in validinodes:
+            break
 
-        DIRENT = 0xe001
-        INODE = 0xe002
-        CLEANMARKER = 0x2003
-        PADDING = 0x2004
-        SUMMARY = 0x2006
-        XATTR = 0xe008
-        XREF = 0xe009
+        ## then read the size
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            break
+        if bigendian:
+            inodesize = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            inodesize = int.from_bytes(checkbytes, byteorder='little')
 
-        validinodes = set([DIRENT, INODE, CLEANMARKER, PADDING, SUMMARY, XATTR, XREF])
+        ## check if the inode extends past the file
+        if checkfile.tell() - 12 + inodesize > filesize:
+            break
 
-        inodetoparent = {}
-
-        ## keep a list of inodes to file names
-        ## the root inode (1) always has ''
-        inodetofilename = {}
-        inodetofilename[1] = ''
-
-        ## different kinds of compression
-        ## Jefferson ( https://github.com/sviehb/jefferson ) defines more
-        ## types than standard JFFS2. LZMA compression is available as a
-        ## patch from OpenWrt.
-        COMPR_NONE = 0x00
-        COMPR_ZERO = 0x01
-        COMPR_RTIME = 0x02
-        COMPR_RUBINMIPS = 0x03
-        COMPR_COPY = 0x04
-        COMPR_DYNRUBIN = 0x05
-        COMPR_ZLIB = 0x06
-        COMPR_LZO = 0x07
-        COMPR_LZMA = 0x08
-
-        ## LZMA settings from OpenWrt's patch
-        lzma_dict_size = 0x2000
-        lzma_pb = 0
-        lzma_lp = 0
-        lzma_lc = 0
-
-        ## keep a mapping of inodes to last written position in
-        ## the file.
-        inodetowriteoffset = {}
-
-        ## a mapping of inodes to open files
-        inodetoopenfiles = {}
-
-        rootseen = False
-
-        ## reset the file pointer and read all the inodes
-        checkfile.seek(offset)
-        while True:
-                oldoffset = checkfile.tell()
-                if checkfile.tell() == filesize:
-                        break
-                checkbytes = checkfile.read(2)
-                if len(checkbytes) != 2:
-                        break
-
-                ## first check if the inode magic is valid
-                if bigendian:
-                        if not checkbytes in [b'\x19\x85', b'\x00\x00', b'\xff\xff']:
-                                break
-                else:
-                        if not checkbytes in [b'\x85\x19', b'\x00\x00', b'\xff\xff']:
-                                break
-                if checkbytes == b'\x00\x00':
-                        ## dirty nodes, skip.
-                        nodemagictype = 'dirty'
-                elif checkbytes == b'\xff\xff':
-                        ## empty space
-                        unpackedsize += 2
-                        paddingbytes = 0x10000 - (unpackedsize%0x10000)
-                        if paddingbytes != 0:
-                                checkbytes = checkfile.read(paddingbytes)
-                                if len(checkbytes) != paddingbytes:
-                                        break
-                                unpackedsize += paddingbytes
-                        continue
-                else:
-                        nodemagictype = 'normal'
-                unpackedsize += 2
-
-                ## then read the node type
-                checkbytes = checkfile.read(2)
-                if len(checkbytes) != 2:
-                        break
-                if bigendian:
-                        inodetype = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                        inodetype = int.from_bytes(checkbytes, byteorder='little')
-
-                ## check if the inode type is actually valid
-                if not inodetype in validinodes:
-                        break
-
-                ## then read the size
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        break
-                if bigendian:
-                        inodesize = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                        inodesize = int.from_bytes(checkbytes, byteorder='little')
-
-                ## check if the inode extends past the file
-                if checkfile.tell() - 12 + inodesize > filesize:
-                        break
-
-                ## skip dirty nodes
-                if nodemagictype == 'dirty':
-                        checkfile.seek(oldoffset + inodesize)
-                        unpackedsize = checkfile.tell() - offset
-                        if unpackedsize % 4 != 0:
-                                paddingbytes = 4 - (unpackedsize%4)
-                                checkfile.seek(paddingbytes, os.SEEK_CUR)
-                                unpackedsize = checkfile.tell() - offset
-                        continue
-
-                ## then the header CRC of the first 8 bytes in the node
-                ## The checksum is not the same as the CRC32 algorithm from
-                ## zlib/binascii, and it is explained here:
-                ##
-                ## http://www.infradead.org/pipermail/linux-mtd/2003-February/006910.html
-                checkbytes = checkfile.read(4)
-                if len(checkbytes) != 4:
-                        break
-                if bigendian:
-                        headercrc = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                        headercrc = int.from_bytes(checkbytes, byteorder='little')
-
-                ## The checksum varies slightly from the one in the zlib/binascii modules
-                ## as explained here:
-                ##
-                ## http://www.infradead.org/pipermail/linux-mtd/2003-February/006910.html
-                ##
-                ## specific implementation for computing checksum grabbed from MIT licensed script found
-                ## at:
-                ##
-                ## https://github.com/sviehb/jefferson/blob/master/src/scripts/jefferson
-                checkfile.seek(-12, os.SEEK_CUR)
-                checkbytes = checkfile.read(8)
-
-                computedcrc = (binascii.crc32(checkbytes, -1) ^ -1) & 0xffffffff
-                if not computedcrc == headercrc:
-                        break
-
-                ## skip past the CRC and start processing the data
-                checkfile.seek(4, os.SEEK_CUR)
+        ## skip dirty nodes
+        if nodemagictype == 'dirty':
+            checkfile.seek(oldoffset + inodesize)
+            unpackedsize = checkfile.tell() - offset
+            if unpackedsize % 4 != 0:
+                paddingbytes = 4 - (unpackedsize%4)
+                checkfile.seek(paddingbytes, os.SEEK_CUR)
                 unpackedsize = checkfile.tell() - offset
+            continue
 
-                ## process directory entries
-                if inodetype == DIRENT:
-                        ## parent inode is first
-                        checkbytes = checkfile.read(4)
-                        if len(checkbytes) != 4:
-                                break
-                        if bigendian:
-                                parentinode = int.from_bytes(checkbytes, byteorder='big')
-                        else:
-                                parentinode = int.from_bytes(checkbytes, byteorder='little')
+        ## then the header CRC of the first 8 bytes in the node
+        ## The checksum is not the same as the CRC32 algorithm from
+        ## zlib/binascii, and it is explained here:
+        ##
+        ## http://www.infradead.org/pipermail/linux-mtd/2003-February/006910.html
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            break
+        if bigendian:
+            headercrc = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            headercrc = int.from_bytes(checkbytes, byteorder='little')
 
-                        parentinodesseen.add(parentinode)
+        ## The checksum varies slightly from the one in the zlib/binascii modules
+        ## as explained here:
+        ##
+        ## http://www.infradead.org/pipermail/linux-mtd/2003-February/006910.html
+        ##
+        ## specific implementation for computing checksum grabbed from MIT licensed script found
+        ## at:
+        ##
+        ## https://github.com/sviehb/jefferson/blob/master/src/scripts/jefferson
+        checkfile.seek(-12, os.SEEK_CUR)
+        checkbytes = checkfile.read(8)
 
-                        ## inode version is next
-                        checkbytes = checkfile.read(4)
-                        if len(checkbytes) != 4:
-                                break
-                        if bigendian:
-                                inodeversion = int.from_bytes(checkbytes, byteorder='big')
-                        else:
-                                inodeversion = int.from_bytes(checkbytes, byteorder='little')
+        computedcrc = (binascii.crc32(checkbytes, -1) ^ -1) & 0xffffffff
+        if not computedcrc == headercrc:
+            break
 
-                        ## inode number is next
-                        checkbytes = checkfile.read(4)
-                        if len(checkbytes) != 4:
-                                break
-                        if bigendian:
-                                inodenumber = int.from_bytes(checkbytes, byteorder='big')
-                        else:
-                                inodenumber = int.from_bytes(checkbytes, byteorder='little')
+        ## skip past the CRC and start processing the data
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize = checkfile.tell() - offset
 
-                        ## skip unlinked inodes
-                        if inodenumber == 0:
-                                ## first go back to the old offset, then skip
-                                ## the entire inode
-                                checkfile.seek(oldoffset + inodesize)
-                                unpackedsize = checkfile.tell() - offset
-                                if unpackedsize % 4 != 0:
-                                        paddingbytes = 4 - (unpackedsize%4)
-                                        checkfile.seek(paddingbytes, os.SEEK_CUR)
-                                        unpackedsize = checkfile.tell() - offset
-                                continue
+        ## process directory entries
+        if inodetype == DIRENT:
+            ## parent inode is first
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+            if bigendian:
+                parentinode = int.from_bytes(checkbytes, byteorder='big')
+            else:
+                parentinode = int.from_bytes(checkbytes, byteorder='little')
 
-                        ## cannot have duplicate inodes
-                        if (inodenumber, inodeversion) in inodesseenversion:
-                                break
+            parentinodesseen.add(parentinode)
 
-                        inodesseenversion.add((inodenumber, inodeversion))
+            ## inode version is next
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+            if bigendian:
+                inodeversion = int.from_bytes(checkbytes, byteorder='big')
+            else:
+                inodeversion = int.from_bytes(checkbytes, byteorder='little')
 
-                        ## mctime is next, not interesting so no need to process
-                        checkbytes = checkfile.read(4)
-                        if len(checkbytes) != 4:
-                                break
+            ## inode number is next
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+            if bigendian:
+                inodenumber = int.from_bytes(checkbytes, byteorder='big')
+            else:
+                inodenumber = int.from_bytes(checkbytes, byteorder='little')
 
-                        ## name length is next
-                        checkbytes = checkfile.read(1)
-                        if len(checkbytes) != 1:
-                                break
-                        inodenamelength = ord(checkbytes)
-                        if inodenamelength == 0:
-                                break
-
-                        ## the dirent type is next. Not sure what to do with this
-                        ## value at the moment
-                        checkbytes = checkfile.read(1)
-                        if len(checkbytes) != 1:
-                                break
-
-                        ## skip two unused bytes
-                        checkbytes = checkfile.read(2)
-                        if len(checkbytes) != 2:
-                                break
-
-                        ## the node CRC. skip for now
-                        checkbytes = checkfile.read(4)
-                        if len(checkbytes) != 4:
-                                break
-
-                        ## the name CRC
-                        checkbytes = checkfile.read(4)
-                        if len(checkbytes) != 4:
-                                break
-                        if bigendian:
-                                namecrc = int.from_bytes(checkbytes, byteorder='big')
-                        else:
-                                namecrc = int.from_bytes(checkbytes, byteorder='little')
-
-                        ## finally the name of the node
-                        checkbytes = checkfile.read(inodenamelength)
-                        if len(checkbytes) != inodenamelength:
-                                break
-
-                        try:
-                                inodename = checkbytes.decode()
-                        except:
-                                break
-
-                        ## compute the CRC of the name
-                        computedcrc = (binascii.crc32(checkbytes, -1) ^ -1) & 0xffffffff
-                        if namecrc !=  computedcrc:
-                                break
-
-                        ## process any possible hard links
-                        if inodenumber in inodetofilename:
-                                ## the inode number is already known, meaning that this should be a hard link
-                                os.link(os.path.join(unpackdir, inodetofilename[inodenumber]), os.path.join(unpackdir, inodename))
-
-                                ## TODO: determine whether or not to add the hard link to the result set
-                                ## unpackedfilesandlabels.append((os.path.join(unpackdir, inodename),['hardlink']))
-
-                        ## now add the name to the inode to filename mapping
-                        if parentinode in inodetofilename:
-                                inodetofilename[inodenumber] = os.path.join(inodetofilename[parentinode], inodename)
-
-                elif inodetype == INODE:
-                        ## inode number
-                        checkbytes = checkfile.read(4)
-                        if len(checkbytes) != 4:
-                                break
-                        if bigendian:
-                                inodenumber = int.from_bytes(checkbytes, byteorder='big')
-                        else:
-                                inodenumber = int.from_bytes(checkbytes, byteorder='little')
-
-                        ## first check if a file name for this inode is known
-                        if not inodenumber in inodetofilename:
-                                break
-
-                        ## skip unlinked inodes
-                        if inodenumber == 0:
-                                ## first go back to the old offset, then skip
-                                ## the entire inode
-                                checkfile.seek(oldoffset + inodesize)
-                                unpackedsize = checkfile.tell() - offset
-                                if unpackedsize % 4 != 0:
-                                        paddingbytes = 4 - (unpackedsize%4)
-                                        checkfile.seek(paddingbytes, os.SEEK_CUR)
-                                        unpackedsize = checkfile.tell() - offset
-                                continue
-
-                        ## version number, should not be a duplicate
-                        checkbytes = checkfile.read(4)
-                        if len(checkbytes) != 4:
-                                break
-                        if bigendian:
-                                inodeversion = int.from_bytes(checkbytes, byteorder='big')
-                        else:
-                                inodeversion = int.from_bytes(checkbytes, byteorder='little')
-
-                        ## file mode
-                        checkbytes = checkfile.read(4)
-                        if len(checkbytes) != 4:
-                                break
-                        if bigendian:
-                                filemode = int.from_bytes(checkbytes, byteorder='big')
-                        else:
-                                filemode = int.from_bytes(checkbytes, byteorder='little')
-
-                        if stat.S_ISSOCK(filemode):
-                                ## keep track of whatever is in the file and report
-                                pass
-                        elif stat.S_ISDIR(filemode):
-                                ## create directories, but skip them otherwise
-                                os.makedirs(os.path.join(unpackdir, inodetofilename[inodenumber]))
-                                checkfile.seek(oldoffset + inodesize)
-                                continue
-                        elif stat.S_ISLNK(filemode):
-                                ## skip ahead 24 bytes to the size of the data
-                                checkfile.seek(24, os.SEEK_CUR)
-
-                                checkbytes = checkfile.read(4)
-                                if len(checkbytes) != 4:
-                                        break
-                                if bigendian:
-                                        linknamelength = int.from_bytes(checkbytes, byteorder='big')
-                                else:
-                                        linknamelength = int.from_bytes(checkbytes, byteorder='little')
-
-                                ## skip ahead 16 bytes to the data containing the link name
-                                checkfile.seek(16, os.SEEK_CUR)
-                                checkbytes = checkfile.read(linknamelength)
-                                if len(checkbytes) != linknamelength:
-                                        break
-                                try:
-                                        os.symlink(checkbytes.decode(), os.path.join(unpackdir, inodetofilename[inodenumber]))
-                                        unpackedfilesandlabels.append((os.path.join(unpackdir, inodetofilename[inodenumber]),['symbolic link']))
-                                        dataunpacked = True
-                                except Exception as e:
-                                        break
-                        elif stat.S_ISREG(filemode):
-                                ## skip ahead 20 bytes to the offset of where to write data
-                                checkfile.seek(20, os.SEEK_CUR)
-
-                                ## the write offset is useful as a sanity check: either
-                                ## it is 0, or it is the previous offset, plus the previous
-                                ## uncompressed length.
-                                checkbytes = checkfile.read(4)
-                                if len(checkbytes) != 4:
-                                        break
-                                if bigendian:
-                                        writeoffset = int.from_bytes(checkbytes, byteorder='big')
-                                else:
-                                        writeoffset = int.from_bytes(checkbytes, byteorder='little')
-
-                                if writeoffset == 0:
-                                        if inodenumber in inodetowriteoffset:
-                                                break
-                                        if inodenumber in inodetoopenfiles:
-                                                break
-                                        ## open a file and store it as a reference
-                                        outfile = open(os.path.join(unpackdir, inodetofilename[inodenumber]), 'wb')
-                                        inodetoopenfiles[inodenumber] = outfile
-                                else:
-                                        if writeoffset != inodetowriteoffset[inodenumber]:
-                                                break
-                                        if not inodenumber in inodetoopenfiles:
-                                                break
-                                        outfile = inodetoopenfiles[inodenumber]
-
-                                ## the offset to the compressed data length
-                                checkbytes = checkfile.read(4)
-                                if len(checkbytes) != 4:
-                                        break
-                                if bigendian:
-                                        compressedsize = int.from_bytes(checkbytes, byteorder='big')
-                                else:
-                                        compressedsize = int.from_bytes(checkbytes, byteorder='little')
-
-                                ## read the decompressed size
-                                checkbytes = checkfile.read(4)
-                                if len(checkbytes) != 4:
-                                        break
-                                if bigendian:
-                                        decompressedsize = int.from_bytes(checkbytes, byteorder='big')
-                                else:
-                                        decompressedsize = int.from_bytes(checkbytes, byteorder='little')
-
-                                ## find out which compression algorithm has been used
-                                checkbytes = checkfile.read(1)
-                                if len(checkbytes) != 1:
-                                        break
-                                compression_used = ord(checkbytes)
-
-                                ## skip ahead 11 bytes to the actual data
-                                checkfile.seek(11, os.SEEK_CUR)
-                                checkbytes = checkfile.read(compressedsize)
-                                if len(checkbytes) != compressedsize:
-                                        break
-
-                                ## Check the compression that's used as it could be that
-                                ## for a file compressed and uncompressed nodes are mixed
-                                ## in case the node cannot be compressed efficiently
-                                ## and the compressed data would be larger than the
-                                ## original data.
-                                if compression_used == COMPR_NONE:
-                                        ## the data is not compressed, so can be written
-                                        ## to the output file immediately
-                                        outfile.write(checkbytes)
-                                        dataunpacked = True
-                                elif compression_used == COMPR_ZLIB:
-                                        ## the data is zlib compressed, so first decompress
-                                        ## before writing
-                                        try:
-                                                outfile.write(zlib.decompress(checkbytes))
-                                                dataunpacked = True
-                                        except Exception as e:
-                                                break
-                                elif compression_used == COMPR_LZMA:
-                                        ## The data is LZMA compressed, so create a LZMA decompressor
-                                        ## with custom filter, as the data is stored without LZMA headers.
-                                        jffs_filters = [
-                                             {"id": lzma.FILTER_LZMA1, "dict_size": lzma_dict_size, 'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb},
-                                        ]
-
-                                        decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=jffs_filters)
-
-                                        try:
-                                                outfile.write(decompressor.decompress(checkbytes))
-                                                dataunpacked = True
-                                        except Exception as e:
-                                                break
-                                #elif compression_used == COMPR_LZO:
-                                ## The JFFS2 version of LZO somehow cannot be unpacked with
-                                ## python-lzo
-                                else:
-                                        break
-                                inodetowriteoffset[inodenumber] = writeoffset + decompressedsize
-                        else:
-                                ## unsure what to do here now
-                                pass
-
+            ## skip unlinked inodes
+            if inodenumber == 0:
+                ## first go back to the old offset, then skip
+                ## the entire inode
                 checkfile.seek(oldoffset + inodesize)
                 unpackedsize = checkfile.tell() - offset
                 if unpackedsize % 4 != 0:
-                        paddingbytes = 4 - (unpackedsize%4)
-                        checkfile.seek(paddingbytes, os.SEEK_CUR)
-                        unpackedsize = checkfile.tell() - offset
+                    paddingbytes = 4 - (unpackedsize%4)
+                    checkfile.seek(paddingbytes, os.SEEK_CUR)
+                    unpackedsize = checkfile.tell() - offset
+                continue
 
-        checkfile.close()
+            ## cannot have duplicate inodes
+            if (inodenumber, inodeversion) in inodesseenversion:
+                break
 
-        if not dataunpacked:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no data unpacked'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+            inodesseenversion.add((inodenumber, inodeversion))
 
-        ## close all the open files
+            ## mctime is next, not interesting so no need to process
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+
+            ## name length is next
+            checkbytes = checkfile.read(1)
+            if len(checkbytes) != 1:
+                break
+            inodenamelength = ord(checkbytes)
+            if inodenamelength == 0:
+                break
+
+            ## the dirent type is next. Not sure what to do with this
+            ## value at the moment
+            checkbytes = checkfile.read(1)
+            if len(checkbytes) != 1:
+                break
+
+            ## skip two unused bytes
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                break
+
+            ## the node CRC. skip for now
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+
+            ## the name CRC
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+            if bigendian:
+                namecrc = int.from_bytes(checkbytes, byteorder='big')
+            else:
+                namecrc = int.from_bytes(checkbytes, byteorder='little')
+
+            ## finally the name of the node
+            checkbytes = checkfile.read(inodenamelength)
+            if len(checkbytes) != inodenamelength:
+                break
+
+            try:
+                inodename = checkbytes.decode()
+            except:
+                break
+
+            ## compute the CRC of the name
+            computedcrc = (binascii.crc32(checkbytes, -1) ^ -1) & 0xffffffff
+            if namecrc !=  computedcrc:
+                break
+
+            ## process any possible hard links
+            if inodenumber in inodetofilename:
+                ## the inode number is already known, meaning that this should be a hard link
+                os.link(os.path.join(unpackdir, inodetofilename[inodenumber]), os.path.join(unpackdir, inodename))
+
+                ## TODO: determine whether or not to add the hard link to the result set
+                ## unpackedfilesandlabels.append((os.path.join(unpackdir, inodename),['hardlink']))
+
+            ## now add the name to the inode to filename mapping
+            if parentinode in inodetofilename:
+                inodetofilename[inodenumber] = os.path.join(inodetofilename[parentinode], inodename)
+
+        elif inodetype == INODE:
+            ## inode number
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+            if bigendian:
+                inodenumber = int.from_bytes(checkbytes, byteorder='big')
+            else:
+                inodenumber = int.from_bytes(checkbytes, byteorder='little')
+
+            ## first check if a file name for this inode is known
+            if not inodenumber in inodetofilename:
+                break
+
+            ## skip unlinked inodes
+            if inodenumber == 0:
+                ## first go back to the old offset, then skip
+                ## the entire inode
+                checkfile.seek(oldoffset + inodesize)
+                unpackedsize = checkfile.tell() - offset
+                if unpackedsize % 4 != 0:
+                    paddingbytes = 4 - (unpackedsize%4)
+                    checkfile.seek(paddingbytes, os.SEEK_CUR)
+                    unpackedsize = checkfile.tell() - offset
+                continue
+
+            ## version number, should not be a duplicate
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+            if bigendian:
+                inodeversion = int.from_bytes(checkbytes, byteorder='big')
+            else:
+                inodeversion = int.from_bytes(checkbytes, byteorder='little')
+
+            ## file mode
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+            if bigendian:
+                filemode = int.from_bytes(checkbytes, byteorder='big')
+            else:
+                filemode = int.from_bytes(checkbytes, byteorder='little')
+
+            if stat.S_ISSOCK(filemode):
+                ## keep track of whatever is in the file and report
+                pass
+            elif stat.S_ISDIR(filemode):
+                ## create directories, but skip them otherwise
+                os.makedirs(os.path.join(unpackdir, inodetofilename[inodenumber]))
+                checkfile.seek(oldoffset + inodesize)
+                continue
+            elif stat.S_ISLNK(filemode):
+                ## skip ahead 24 bytes to the size of the data
+                checkfile.seek(24, os.SEEK_CUR)
+
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                    break
+                if bigendian:
+                    linknamelength = int.from_bytes(checkbytes, byteorder='big')
+                else:
+                    linknamelength = int.from_bytes(checkbytes, byteorder='little')
+
+                ## skip ahead 16 bytes to the data containing the link name
+                checkfile.seek(16, os.SEEK_CUR)
+                checkbytes = checkfile.read(linknamelength)
+                if len(checkbytes) != linknamelength:
+                    break
+                try:
+                    os.symlink(checkbytes.decode(), os.path.join(unpackdir, inodetofilename[inodenumber]))
+                    unpackedfilesandlabels.append((os.path.join(unpackdir, inodetofilename[inodenumber]),['symbolic link']))
+                    dataunpacked = True
+                except Exception as e:
+                    break
+            elif stat.S_ISREG(filemode):
+                ## skip ahead 20 bytes to the offset of where to write data
+                checkfile.seek(20, os.SEEK_CUR)
+
+                ## the write offset is useful as a sanity check: either
+                ## it is 0, or it is the previous offset, plus the previous
+                ## uncompressed length.
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                    break
+                if bigendian:
+                    writeoffset = int.from_bytes(checkbytes, byteorder='big')
+                else:
+                    writeoffset = int.from_bytes(checkbytes, byteorder='little')
+
+                if writeoffset == 0:
+                    if inodenumber in inodetowriteoffset:
+                        break
+                    if inodenumber in inodetoopenfiles:
+                        break
+                    ## open a file and store it as a reference
+                    outfile = open(os.path.join(unpackdir, inodetofilename[inodenumber]), 'wb')
+                    inodetoopenfiles[inodenumber] = outfile
+                else:
+                    if writeoffset != inodetowriteoffset[inodenumber]:
+                        break
+                    if not inodenumber in inodetoopenfiles:
+                        break
+                    outfile = inodetoopenfiles[inodenumber]
+
+                ## the offset to the compressed data length
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                    break
+                if bigendian:
+                    compressedsize = int.from_bytes(checkbytes, byteorder='big')
+                else:
+                    compressedsize = int.from_bytes(checkbytes, byteorder='little')
+
+                ## read the decompressed size
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                    break
+                if bigendian:
+                    decompressedsize = int.from_bytes(checkbytes, byteorder='big')
+                else:
+                    decompressedsize = int.from_bytes(checkbytes, byteorder='little')
+
+                ## find out which compression algorithm has been used
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                    break
+                compression_used = ord(checkbytes)
+
+                ## skip ahead 11 bytes to the actual data
+                checkfile.seek(11, os.SEEK_CUR)
+                checkbytes = checkfile.read(compressedsize)
+                if len(checkbytes) != compressedsize:
+                    break
+
+                ## Check the compression that's used as it could be that
+                ## for a file compressed and uncompressed nodes are mixed
+                ## in case the node cannot be compressed efficiently
+                ## and the compressed data would be larger than the
+                ## original data.
+                if compression_used == COMPR_NONE:
+                    ## the data is not compressed, so can be written
+                    ## to the output file immediately
+                    outfile.write(checkbytes)
+                    dataunpacked = True
+                elif compression_used == COMPR_ZLIB:
+                    ## the data is zlib compressed, so first decompress
+                    ## before writing
+                    try:
+                        outfile.write(zlib.decompress(checkbytes))
+                        dataunpacked = True
+                    except Exception as e:
+                        break
+                elif compression_used == COMPR_LZMA:
+                    ## The data is LZMA compressed, so create a LZMA decompressor
+                    ## with custom filter, as the data is stored without LZMA headers.
+                    jffs_filters = [
+                         {"id": lzma.FILTER_LZMA1, "dict_size": lzma_dict_size, 'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb},
+                    ]
+
+                    decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=jffs_filters)
+
+                    try:
+                        outfile.write(decompressor.decompress(checkbytes))
+                        dataunpacked = True
+                    except Exception as e:
+                        break
+                #elif compression_used == COMPR_LZO:
+                ## The JFFS2 version of LZO somehow cannot be unpacked with
+                ## python-lzo
+                else:
+                    break
+                inodetowriteoffset[inodenumber] = writeoffset + decompressedsize
+            else:
+                ## unsure what to do here now
+                pass
+
+        checkfile.seek(oldoffset + inodesize)
+        unpackedsize = checkfile.tell() - offset
+        if unpackedsize % 4 != 0:
+            paddingbytes = 4 - (unpackedsize%4)
+            checkfile.seek(paddingbytes, os.SEEK_CUR)
+            unpackedsize = checkfile.tell() - offset
+
+    checkfile.close()
+
+    if not dataunpacked:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no data unpacked'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## close all the open files
+    for i in inodetoopenfiles:
+        inodetoopenfiles[i].flush()
+        inodetoopenfiles[i].close()
+        unpackedfilesandlabels.append((inodetoopenfiles[i].name,[]))
+
+    ## check if a valid root node was found.
+    if not 1 in parentinodesseen:
         for i in inodetoopenfiles:
-                inodetoopenfiles[i].flush()
-                inodetoopenfiles[i].close()
-                unpackedfilesandlabels.append((inodetoopenfiles[i].name,[]))
+            os.unlink(inodetoopenfiles[i])
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no valid root file node'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## check if a valid root node was found.
-        if not 1 in parentinodesseen:
-                for i in inodetoopenfiles:
-                        os.unlink(inodetoopenfiles[i])
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no valid root file node'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        if offset == 0 and filesize == unpackedsize:
-                labels.append('jffs2')
-                labels.append('file system')
-        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if offset == 0 and filesize == unpackedsize:
+        labels.append('jffs2')
+        labels.append('file system')
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## An unpacker for various CPIO flavours.
 ## A description of the CPIO format can be found in section 5 of the
