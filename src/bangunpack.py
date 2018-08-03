@@ -9616,311 +9616,311 @@ def unpackSREC(filename, offset, unpackdir, temporarydirectory):
 ## because it already takes care of deleted files, etc. through
 ## e2fsprogs-libs.
 def unpackExt2(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        ## superblock starts at offset 1024 and is 1024 bytes (section 3.1)
-        if filesize - offset < 2048:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for superblock'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## superblock starts at offset 1024 and is 1024 bytes (section 3.1)
+    if filesize - offset < 2048:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for superblock'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        if shutil.which('e2ls') == None:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'e2ls program not found'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if shutil.which('e2ls') == None:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'e2ls program not found'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        if shutil.which('e2cp') == None:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'e2cp program not found'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    if shutil.which('e2cp') == None:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'e2cp program not found'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## open the file and skip directly to the superblock
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset+1024)
-        unpackedsize += 1024
+    ## open the file and skip directly to the superblock
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+1024)
+    unpackedsize += 1024
 
-        ## Process the superblock and run many sanity checks.
-        ## Extract the total number of inodes in the file system (section 3.1.1)
-        checkbytes = checkfile.read(4)
-        totalinodecount = int.from_bytes(checkbytes, byteorder='little')
-        if totalinodecount == 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'inodes cannot be 0'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## the total number of blocks in the file system (section 3.1.2)
-        checkbytes = checkfile.read(4)
-        totalblockcount = int.from_bytes(checkbytes, byteorder='little')
-        if totalblockcount == 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'block count cannot be 0'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## reserved block count for the superuser (section 3.1.3)
-        checkbytes = checkfile.read(4)
-        reservedblockcount = int.from_bytes(checkbytes, byteorder='little')
-        if reservedblockcount > totalblockcount:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved blocks cannot exceed total blocks'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## free blocks in the system (section 3.1.4)
-        checkbytes = checkfile.read(4)
-        freeblockcount = int.from_bytes(checkbytes, byteorder='little')
-        if freeblockcount > totalblockcount:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'free blocks cannot exceed total blocks'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## free inodes in the system (section 3.1.5)
-        checkbytes = checkfile.read(4)
-        freeinodes = int.from_bytes(checkbytes, byteorder='little')
-        if freeinodes > totalinodecount:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'free inodes cannot exceed total inodes'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## location of the first data block. Has to be 0 or 1. (section 3.1.6)
-        checkbytes = checkfile.read(4)
-        firstdatablock = int.from_bytes(checkbytes, byteorder='little')
-        if firstdatablock != 0 and firstdatablock != 1:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for first data block'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## the block size (section 3.1.7)
-        checkbytes = checkfile.read(4)
-        blocksize = 1024 << int.from_bytes(checkbytes, byteorder='little')
-        unpackedsize += 4
-
-        ## check if the declared size is bigger than the file's size
-        if offset + (totalblockcount * blocksize) > filesize:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'declared file system size larger than file size'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## skip 4 bytes
-        checkfile.seek(4, os.SEEK_CUR)
-        unpackedsize += 4
-
-        ## determine the blocks per group (section 3.1.9)
-        checkbytes = checkfile.read(4)
-        blocks_per_group = int.from_bytes(checkbytes, byteorder='little')
-        if blocks_per_group == 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for blocks per group'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-        blockgroups = math.ceil(totalblockcount/blocks_per_group)
-
-        ## then skip a bunch of not so interesting values
-        checkfile.seek(offset + 1024 + 76)
-        unpackedsize = 1024+76
-
-        ## check the revision level (section 3.1.23)
-        checkbytes = checkfile.read(4)
-        revision = int.from_bytes(checkbytes, byteorder='little')
-        if not (revision == 0 or revision == 1):
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid ext2/3/4 revision'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 4
-
-        ## skip 8 bytes
-        checkfile.seek(8, os.SEEK_CUR)
-        unpackedsize += 8
-
-        ## read the inode size, cannot be larger than block size (section 3.1.27)
-        checkbytes = checkfile.read(2)
-        inodesize = int.from_bytes(checkbytes, byteorder='little')
-        if inodesize > blocksize:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'inode size cannot be larger than block size'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
-
-        ## skip 10 bytes
-        checkfile.seek(10, os.SEEK_CUR)
-        unpackedsize += 10
-
-        ## read the RO compat flags (section 3.1.31)
-        checkbytes = checkfile.read(4)
-        rocompatflags = int.from_bytes(checkbytes, byteorder='little')
-        if rocompatflags & 1 == 1:
-                sparsesuperblocks = True
-        else:
-                sparsesuperblocks = False
-
-        ## Now check for each block group if there is a copy of the superblock
-        ## except if the sparse super block features is set (section 2.5)
-        ## Find the right offset and then check if the magic byte is at
-        ## that location, unless the block size is 1024, then it will be at
-        ## the location + 1024.
-        for i in range(1,blockgroups):
-                ## super blocks are always present in block group 0 and 1, except
-                ## if the block size = 1024
-                ## Block group 0 contains the original superblock, which has
-                ## already been processed.
-                if not sparsesuperblocks:
-                        if blocksize == 1024:
-                                blockoffset = offset + i*blocksize*blocks_per_group+1024
-                        else:
-                                blockoffset = offset + i*blocksize*blocks_per_group
-                else:
-                        ## if the sparse superblock feature is enabled
-                        ## the superblock can be found in each superblock
-                        ## that is a power of 3, 5 or 7
-                        sparsefound = False
-                        for p in [3,5,7]:
-                                if pow(p,int(math.log(i, p))) == i:
-                                        if blocksize == 1024:
-                                                blockoffset = offset + i*blocksize*blocks_per_group+1024
-                                        else:
-                                                blockoffset = offset + i*blocksize*blocks_per_group
-                                        sparsefound = True
-                                        break
-                        if not sparsefound:
-                                continue
-
-                ## jump to the location of the magic header (section 3.1.16)
-                ## and check its value. In a valid super block this value should
-                ## always be the same.
-                checkfile.seek(blockoffset + 0x38)
-                checkbytes = checkfile.read(2)
-                if not checkbytes == b'\x53\xef':
-                        checkfile.close()
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid super block copy'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        unpackedsize = totalblockcount * blocksize
-
-        ## e2tools can work with trailing data, but if there is any data preceding
-        ## the file system then some carving has to be done first.
-        havetmpfile = False
-        if not offset == 0:
-                temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
-                os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
-                os.fdopen(temporaryfile[0]).close()
-                havetmpfile = True
+    ## Process the superblock and run many sanity checks.
+    ## Extract the total number of inodes in the file system (section 3.1.1)
+    checkbytes = checkfile.read(4)
+    totalinodecount = int.from_bytes(checkbytes, byteorder='little')
+    if totalinodecount == 0:
         checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'inodes cannot be 0'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
 
-        ## Now read the contents of the file system with e2ls and copy with e2cp
-        ## Unfortunately e2cp does not allow recursive copying, so the entire
-        ## directory structure has to be walked recursively and recreated.
-        ## Individual files have then to be copied with e2cp.
-        ext2dirstoscan = collections.deque([''])
+    ## the total number of blocks in the file system (section 3.1.2)
+    checkbytes = checkfile.read(4)
+    totalblockcount = int.from_bytes(checkbytes, byteorder='little')
+    if totalblockcount == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'block count cannot be 0'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
 
-        ## store a mapping for inodes and files. This is needed to detect
-        ## hard links, where files have the same inode.
-        inodetofile = {}
-        filetoinode = {}
+    ## reserved block count for the superuser (section 3.1.3)
+    checkbytes = checkfile.read(4)
+    reservedblockcount = int.from_bytes(checkbytes, byteorder='little')
+    if reservedblockcount > totalblockcount:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved blocks cannot exceed total blocks'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
 
-        ## keep track of if any data was unpacked. Since file systems that
-        ## have been created always have the "lost+found" directory it means
-        ## that if no data could be unpacked it was not a valid file system,
-        ## or at least it was not a useful file system.
-        dataunpacked = False
+    ## free blocks in the system (section 3.1.4)
+    checkbytes = checkfile.read(4)
+    freeblockcount = int.from_bytes(checkbytes, byteorder='little')
+    if freeblockcount > totalblockcount:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'free blocks cannot exceed total blocks'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
 
-        while True:
-                try:
-                        ext2dir = ext2dirstoscan.popleft()
-                except IndexError:
-                        ## there are no more entries to process
-                        break
-                p = subprocess.Popen(['e2ls', '-lai', filename + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                (outputmsg, errormsg) = p.communicate()
-                if p.returncode != 0:
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'e2ls error'}
+    ## free inodes in the system (section 3.1.5)
+    checkbytes = checkfile.read(4)
+    freeinodes = int.from_bytes(checkbytes, byteorder='little')
+    if freeinodes > totalinodecount:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'free inodes cannot exceed total inodes'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## location of the first data block. Has to be 0 or 1. (section 3.1.6)
+    checkbytes = checkfile.read(4)
+    firstdatablock = int.from_bytes(checkbytes, byteorder='little')
+    if firstdatablock != 0 and firstdatablock != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for first data block'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## the block size (section 3.1.7)
+    checkbytes = checkfile.read(4)
+    blocksize = 1024 << int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    ## check if the declared size is bigger than the file's size
+    if offset + (totalblockcount * blocksize) > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'declared file system size larger than file size'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## skip 4 bytes
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    ## determine the blocks per group (section 3.1.9)
+    checkbytes = checkfile.read(4)
+    blocks_per_group = int.from_bytes(checkbytes, byteorder='little')
+    if blocks_per_group == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for blocks per group'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+    blockgroups = math.ceil(totalblockcount/blocks_per_group)
+
+    ## then skip a bunch of not so interesting values
+    checkfile.seek(offset + 1024 + 76)
+    unpackedsize = 1024+76
+
+    ## check the revision level (section 3.1.23)
+    checkbytes = checkfile.read(4)
+    revision = int.from_bytes(checkbytes, byteorder='little')
+    if not (revision == 0 or revision == 1):
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid ext2/3/4 revision'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 4
+
+    ## skip 8 bytes
+    checkfile.seek(8, os.SEEK_CUR)
+    unpackedsize += 8
+
+    ## read the inode size, cannot be larger than block size (section 3.1.27)
+    checkbytes = checkfile.read(2)
+    inodesize = int.from_bytes(checkbytes, byteorder='little')
+    if inodesize > blocksize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'inode size cannot be larger than block size'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## skip 10 bytes
+    checkfile.seek(10, os.SEEK_CUR)
+    unpackedsize += 10
+
+    ## read the RO compat flags (section 3.1.31)
+    checkbytes = checkfile.read(4)
+    rocompatflags = int.from_bytes(checkbytes, byteorder='little')
+    if rocompatflags & 1 == 1:
+        sparsesuperblocks = True
+    else:
+        sparsesuperblocks = False
+
+    ## Now check for each block group if there is a copy of the superblock
+    ## except if the sparse super block features is set (section 2.5)
+    ## Find the right offset and then check if the magic byte is at
+    ## that location, unless the block size is 1024, then it will be at
+    ## the location + 1024.
+    for i in range(1,blockgroups):
+        ## super blocks are always present in block group 0 and 1, except
+        ## if the block size = 1024
+        ## Block group 0 contains the original superblock, which has
+        ## already been processed.
+        if not sparsesuperblocks:
+            if blocksize == 1024:
+                blockoffset = offset + i*blocksize*blocks_per_group+1024
+            else:
+                blockoffset = offset + i*blocksize*blocks_per_group
+        else:
+            ## if the sparse superblock feature is enabled
+            ## the superblock can be found in each superblock
+            ## that is a power of 3, 5 or 7
+            sparsefound = False
+            for p in [3,5,7]:
+                if pow(p,int(math.log(i, p))) == i:
+                    if blocksize == 1024:
+                        blockoffset = offset + i*blocksize*blocks_per_group+1024
+                    else:
+                        blockoffset = offset + i*blocksize*blocks_per_group
+                    sparsefound = True
+                    break
+            if not sparsefound:
+                continue
+
+        ## jump to the location of the magic header (section 3.1.16)
+        ## and check its value. In a valid super block this value should
+        ## always be the same.
+        checkfile.seek(blockoffset + 0x38)
+        checkbytes = checkfile.read(2)
+        if not checkbytes == b'\x53\xef':
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid super block copy'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    unpackedsize = totalblockcount * blocksize
+
+    ## e2tools can work with trailing data, but if there is any data preceding
+    ## the file system then some carving has to be done first.
+    havetmpfile = False
+    if not offset == 0:
+        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+        os.fdopen(temporaryfile[0]).close()
+        havetmpfile = True
+    checkfile.close()
+
+    ## Now read the contents of the file system with e2ls and copy with e2cp
+    ## Unfortunately e2cp does not allow recursive copying, so the entire
+    ## directory structure has to be walked recursively and recreated.
+    ## Individual files have then to be copied with e2cp.
+    ext2dirstoscan = collections.deque([''])
+
+    ## store a mapping for inodes and files. This is needed to detect
+    ## hard links, where files have the same inode.
+    inodetofile = {}
+    filetoinode = {}
+
+    ## keep track of if any data was unpacked. Since file systems that
+    ## have been created always have the "lost+found" directory it means
+    ## that if no data could be unpacked it was not a valid file system,
+    ## or at least it was not a useful file system.
+    dataunpacked = False
+
+    while True:
+        try:
+            ext2dir = ext2dirstoscan.popleft()
+        except IndexError:
+            ## there are no more entries to process
+            break
+        p = subprocess.Popen(['e2ls', '-lai', filename + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outputmsg, errormsg) = p.communicate()
+        if p.returncode != 0:
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'e2ls error'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        dirlisting = outputmsg.rstrip().split(b'\n')
+        for d in dirlisting:
+            ## ignore deleted files
+            if d.strip().startswith(b'>'):
+                continue
+            (inode, filemode, userid, groupid, size, filedate, filetime, ext2name) = re.split(b'\s+', d.strip(), 7)
+            filemode = int(filemode, base=8)
+
+            dataunpacked = True
+
+            ## try to make sense of the filename by decoding it first.
+            ## This might fail.
+            namedecoded = False
+            for c in encodingstotranslate:
+               try:
+                  ext2name = ext2name.decode()
+                  namedecoded = True
+                  break
+               except Exception as e:
+                  pass
+            if not namedecoded:
+               unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'could not decode file name'}
+               return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+            ## Check the different file types
+            if stat.S_ISDIR(filemode):
+                ## It is a directory, so create it and then add
+                ## it to the scanning queue, unless it is . or ..
+                if ext2name == '.' or ext2name == '..':
+                    continue
+                newext2dir = os.path.join(ext2dir, ext2name)
+                ext2dirstoscan.append(newext2dir)
+                os.mkdir(os.path.join(unpackdir, newext2dir))
+            elif stat.S_ISBLK(filemode):
+                ## ignore block devices
+                continue
+            elif stat.S_ISCHR(filemode):
+                ## ignore character devices
+                continue
+            elif stat.S_ISFIFO(filemode):
+                ## ignore FIFO
+                continue
+            elif stat.S_ISSOCK(filemode):
+                ## ignore sockets
+                continue
+
+            fullext2name = os.path.join(ext2dir, ext2name)
+            filetoinode[fullext2name] = inode
+            if stat.S_ISLNK(filemode):
+                ## e2cp cannot copy symbolic links
+                ## so just record it as a symbolic link
+                ## TODO: process symbolic links
+                pass
+            elif stat.S_ISREG(filemode):
+                if not inode in inodetofile:
+                    inodetofile[inode] = fullext2name
+                    ## use e2cp to copy the file
+                    p = subprocess.Popen(['e2cp', filename + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    (outputmsg, errormsg) = p.communicate()
+                    if p.returncode != 0:
+                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'e2cp error'}
                         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                dirlisting = outputmsg.rstrip().split(b'\n')
-                for d in dirlisting:
-                        ## ignore deleted files
-                        if d.strip().startswith(b'>'):
-                                continue
-                        (inode, filemode, userid, groupid, size, filedate, filetime, ext2name) = re.split(b'\s+', d.strip(), 7)
-                        filemode = int(filemode, base=8)
+                    else:
+                        ## hardlink the file to an existing
+                        ## file and record it as such.
+                        os.link(os.path.join(unpackdir, inodetofile[inode]), os.path.join(unpackdir, fullext2name))
+                    unpackedfilesandlabels.append((os.path.join(unpackdir,fullext2name), []))
 
-                        dataunpacked = True
+    ## cleanup
+    if havetmpfile:
+        os.unlink(temporaryfile[1])
 
-                        ## try to make sense of the filename by decoding it first.
-                        ## This might fail.
-                        namedecoded = False
-                        for c in encodingstotranslate:
-                               try:
-                                      ext2name = ext2name.decode()
-                                      namedecoded = True
-                                      break
-                               except Exception as e:
-                                      pass
-                        if not namedecoded:
-                               unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'could not decode file name'}
-                               return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    ## only report if any data was unpacked
+    if not dataunpacked:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no data unpacked'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-                        ## Check the different file types
-                        if stat.S_ISDIR(filemode):
-                                ## It is a directory, so create it and then add
-                                ## it to the scanning queue, unless it is . or ..
-                                if ext2name == '.' or ext2name == '..':
-                                        continue
-                                newext2dir = os.path.join(ext2dir, ext2name)
-                                ext2dirstoscan.append(newext2dir)
-                                os.mkdir(os.path.join(unpackdir, newext2dir))
-                        elif stat.S_ISBLK(filemode):
-                                ## ignore block devices
-                                continue
-                        elif stat.S_ISCHR(filemode):
-                                ## ignore character devices
-                                continue
-                        elif stat.S_ISFIFO(filemode):
-                                ## ignore FIFO
-                                continue
-                        elif stat.S_ISSOCK(filemode):
-                                ## ignore sockets
-                                continue
+    if offset == 0 and filesize == unpackedsize:
+        labels.append('ext2')
+        labels.append('file system')
 
-                        fullext2name = os.path.join(ext2dir, ext2name)
-                        filetoinode[fullext2name] = inode
-                        if stat.S_ISLNK(filemode):
-                                ## e2cp cannot copy symbolic links
-                                ## so just record it as a symbolic link
-                                ## TODO: process symbolic links
-                                pass
-                        elif stat.S_ISREG(filemode):
-                                if not inode in inodetofile:
-                                        inodetofile[inode] = fullext2name
-                                        ## use e2cp to copy the file
-                                        p = subprocess.Popen(['e2cp', filename + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                                        (outputmsg, errormsg) = p.communicate()
-                                        if p.returncode != 0:
-                                                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'e2cp error'}
-                                                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-                                else:
-                                        ## hardlink the file to an existing
-                                        ## file and record it as such.
-                                        os.link(os.path.join(unpackdir, inodetofile[inode]), os.path.join(unpackdir, fullext2name))
-                                unpackedfilesandlabels.append((os.path.join(unpackdir,fullext2name), []))
-
-        ## cleanup
-        if havetmpfile:
-                os.unlink(temporaryfile[1])
-
-        ## only report if any data was unpacked
-        if not dataunpacked:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no data unpacked'}
-                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
-        if offset == 0 and filesize == unpackedsize:
-                labels.append('ext2')
-                labels.append('file system')
-
-        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## The RPM format is described as part of the Linux Standards Base:
 ##
