@@ -737,7 +737,7 @@ class TestLZ4(unittest.TestCase):
         shutil.rmtree(self.tempdir)
 
     ## now all the test cases.
-    ## a test for the file being a single ZIP
+    ## a test for the file being a single LZ4
     def testFullfileIsLZ4(self):
         filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt.lz4')
         filesize = os.stat(filename).st_size
@@ -747,7 +747,7 @@ class TestLZ4(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, filesize)
 
-    ## a test for the file being a single ZIP with data appended to it
+    ## a test for the file being a single LZ4 with data appended to it
     def testDataAppendedToLZ4(self):
         filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-add-random-data.lz4')
         filesize = os.stat(filename).st_size
@@ -757,7 +757,7 @@ class TestLZ4(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, 755644)
 
-    ## a test for the file being a single ZIP with data in front
+    ## a test for the file being a single LZ4 with data in front
     def testDataPrependedToLZ4(self):
         filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-prepend-random-data.lz4')
         filesize = os.stat(filename).st_size
@@ -767,7 +767,7 @@ class TestLZ4(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, 755644)
 
-    ## a test for the file being a single ZIP with data cut from the end
+    ## a test for the file being a single LZ4 with data cut from the end
     def testDataCutFromEndLZ4(self):
         filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-cut-data-from-end.lz4')
         offset = 0
@@ -775,7 +775,7 @@ class TestLZ4(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
-    ## a test for the file being a single ZIP with data cut from the middle
+    ## a test for the file being a single LZ4 with data cut from the middle
     def testDataCutFromMiddleLZ4(self):
         filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-cut-data-from-middle.lz4')
         offset = 0
@@ -783,7 +783,7 @@ class TestLZ4(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
-    ## a test for the file being a single ZIP with data added in the middle
+    ## a test for the file being a single LZ4 with data added in the middle
     def testDataAddedInMiddleLZ4(self):
         filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-data-added-to-middle.lz4')
         offset = 0
@@ -791,7 +791,7 @@ class TestLZ4(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
-    ## a test for the file being a single ZIP with data replaced in the middle
+    ## a test for the file being a single LZ4 with data replaced in the middle
     def testDataReplacedInMiddleLZ4(self):
         filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-data-replaced-in-middle.lz4')
         offset = 0
