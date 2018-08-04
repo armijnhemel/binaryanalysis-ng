@@ -8702,6 +8702,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             if havepadding:
                 break
             checkfile.seek(padoffset)
+        checkfile.close()
 
     if offset == 0 and filesize == unpackedsize:
         labels.append('cpio')
