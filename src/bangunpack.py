@@ -3170,370 +3170,370 @@ def unpackXAR(filename, offset, unpackdir, temporarydirectory):
 ## document.
 ## A grammer for the GIF format is described in Appendix B.
 def unpackGIF(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        ## a minimal GIF file is 6 + 6 + 6 + 1 = 19
-        if filesize - offset < 19:
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'incompatible terminator records mixed'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    ## a minimal GIF file is 6 + 6 + 6 + 1 = 19
+    if filesize - offset < 19:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'incompatible terminator records mixed'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## open the file and skip the offset (section 17)
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset+6)
-        unpackedsize += 6
+    ## open the file and skip the offset (section 17)
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+6)
+    unpackedsize += 6
 
-        ## After the header comes a logical screen which
-        ## consists of a logical screen descriptor (section 18)
-        ## and an optional global color table (section 19)
-        ## Only one logical screen descriptor is allowed per file.
-        ## The logical screen descriptor is 6 bytes.
-        ## All data is little endian (section 4, appendix D)
+    ## After the header comes a logical screen which
+    ## consists of a logical screen descriptor (section 18)
+    ## and an optional global color table (section 19)
+    ## Only one logical screen descriptor is allowed per file.
+    ## The logical screen descriptor is 6 bytes.
+    ## All data is little endian (section 4, appendix D)
 
-        ## first the logical screen width, cannot be 0
-        checkbytes = checkfile.read(2)
-        logicalscreenwidth = int.from_bytes(checkbytes, byteorder='little')
-        if logicalscreenwidth == 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid logical screen width'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
+    ## first the logical screen width, cannot be 0
+    checkbytes = checkfile.read(2)
+    logicalscreenwidth = int.from_bytes(checkbytes, byteorder='little')
+    if logicalscreenwidth == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid logical screen width'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
 
-        ## then the logical screen height, cannot be 0
-        checkbytes = checkfile.read(2)
-        logicalscreenheight = int.from_bytes(checkbytes, byteorder='little')
-        if logicalscreenheight == 0:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid logical screen height'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-        unpackedsize += 2
+    ## then the logical screen height, cannot be 0
+    checkbytes = checkfile.read(2)
+    logicalscreenheight = int.from_bytes(checkbytes, byteorder='little')
+    if logicalscreenheight == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid logical screen height'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
 
-        ## Then extract the packed fields byte (section 18)
-        ## the fields describe:
-        ##
-        ## * global color flag
-        ## * color resolution
-        ## * sort flag
-        ## * size of global color table
-        ##
-        ## Of these only the ones applying to the global color
-        ## table are of interest
+    ## Then extract the packed fields byte (section 18)
+    ## the fields describe:
+    ##
+    ## * global color flag
+    ## * color resolution
+    ## * sort flag
+    ## * size of global color table
+    ##
+    ## Of these only the ones applying to the global color
+    ## table are of interest
 
+    checkbytes = checkfile.read(1)
+    unpackedsize += 1
+
+    haveglobalcolortable = False
+    if ord(checkbytes) & 0x80 == 0x80:
+        haveglobalcolortable = True
+
+    if haveglobalcolortable:
+        globalcolortablesize = pow(2, (ord(checkbytes) & 7) + 1) * 3
+
+    ## then skip two bytes
+    checkfile.seek(2, os.SEEK_CUR)
+    unpackedsize += 2
+
+    ## skip over the global color table, if there is one (section 19(
+    if haveglobalcolortable:
+        if offset + unpackedsize + globalcolortablesize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for global color table'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        checkfile.seek(globalcolortablesize, os.SEEK_CUR)
+        unpackedsize += globalcolortablesize
+
+    ## then there are 0 or more data blocks
+    ## data blocks are either graphic blocks or special purpose blocks
+    ## and are followed by a trailer.
+
+    havegiftrailer = False
+    animated = False
+
+    while True:
         checkbytes = checkfile.read(1)
+        if len(checkbytes) != 1:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for data blocks or trailer'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
 
-        haveglobalcolortable = False
-        if ord(checkbytes) & 0x80 == 0x80:
-                haveglobalcolortable = True
+        ## first check to see if there is a trailer (section 27)
+        if checkbytes == b'\x3b':
+            havegiftrailer = True
+            break
 
-        if haveglobalcolortable:
-                globalcolortablesize = pow(2, (ord(checkbytes) & 7) + 1) * 3
-
-        ## then skip two bytes
-        checkfile.seek(2, os.SEEK_CUR)
-        unpackedsize += 2
-
-        ## skip over the global color table, if there is one (section 19(
-        if haveglobalcolortable:
-                if offset + unpackedsize + globalcolortablesize > filesize:
+        ## The various extensions all start with 0x21 (section 23, 24, 25, 26, appendix C)
+        if checkbytes == b'\x21':
+            ## the next byte gives more information about which extension was used
+            checkbytes = checkfile.read(1)
+            if len(checkbytes) != 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for data blocks or trailer'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 1
+            ## a graphic block is an optional graphic control extension
+            ## (section 23) followed by a graphic rendering block
+            if checkbytes == b'\xf9':
+                ## then read the next 6 bytes
+                checkbytes = checkfile.read(6)
+                if len(checkbytes) != 6:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for graphic control extension'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                if checkbytes[0] != 4:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for graphic control extension size'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                ## last byte is the block terminator (section 16)
+                if checkbytes[5] != 0:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for graphic control extension block terminator'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 6
+            ## process the comment extension (section 24)
+            elif checkbytes == b'\xfe':
+                ## similar to the image data there is comment data
+                ## and then a block terminator
+                gifcomment = b''
+                while True:
+                    checkbytes = checkfile.read(1)
+                    if len(checkbytes) != 1:
                         checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for global color table'}
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for block size'}
                         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                checkfile.seek(globalcolortablesize, os.SEEK_CUR)
-                unpackedsize += globalcolortablesize
+                    unpackedsize += 1
 
-        ## then there are 0 or more data blocks
-        ## data blocks are either graphic blocks or special purpose blocks
-        ## and are followed by a trailer.
+                    ## check for a block terminator (section 16)
+                    if checkbytes == b'\x00':
+                        break
 
-        havegiftrailer = False
-        animated = False
-
-        while True:
+                    ## else read the data
+                    datasize = ord(checkbytes)
+                    if offset + unpackedsize + datasize > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for LZW data bytes'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                    gifcomment += checkfile.read(datasize)
+                    unpackedsize += datasize
+            ## process the application extension (section 26)
+            elif checkbytes == b'\xff':
                 checkbytes = checkfile.read(1)
                 if len(checkbytes) != 1:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for block size'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                ## block size describes the application extension header
+                ## and has fixed value 11.
+                if ord(checkbytes) != 11:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for block size'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+                if offset + unpackedsize + 11 > filesize:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for application extension header'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                ## The structure rest of the rest of the data depends
+                ## on the application identifier.
+
+                ## First read the application identifier
+                applicationidentifier = checkfile.read(8)
+
+                ## and the application authentication code
+                applicationauth = checkfile.read(3)
+                unpackedsize += 11
+
+                ## Then process the application data for different extensions.
+                ## Only a handful have been defined but only three are in widespread
+                ## use (netscape, icc, xmp).
+                ##
+                ## http://fileformats.archiveteam.org/wiki/GIF#Known_application_extensions
+                if applicationidentifier == b'NETSCAPE' and applicationauth == b'2.0':
+                    ## http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html#application_extension_block
+                    ## The Netscape extension is for animations.
+                    animated = True
+                    checkbytes = checkfile.read(4)
+                    if len(checkbytes) != 4:
                         checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for data blocks or trailer'}
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for application data'}
                         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                    if checkbytes[0] != 3 or checkbytes[1] != 1:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for application data'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                    unpackedsize += 4
+
+                    ## finally a block terminator (section 16)
+                    checkbytes = checkfile.read(1)
+                    if checkbytes != b'\x00':
+                        break
+                    unpackedsize += 1
+
+                elif applicationidentifier == b'ICCRGBG1' and applicationauth == b'012':
+                    ## ICC profiles, http://www.color.org/icc1V42.pdf, section B.6
+                    iccprofile = b''
+                    while True:
+                        checkbytes = checkfile.read(1)
+                        if len(checkbytes) != 1:
+                            checkfile.close()
+                            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for block size'}
+                            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        unpackedsize += 1
+
+                        ## finally a block terminator (section 16)
+                        if checkbytes == b'\x00':
+                            break
+
+                        ## else read the data
+                        datasize = ord(checkbytes)
+                        if offset + unpackedsize + datasize > filesize:
+                            checkfile.close()
+                            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ICC data bytes'}
+                            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        iccprofile += checkfile.read(datasize)
+                        unpackedsize += datasize
+                elif applicationidentifier == b'XMP Data' and applicationauth == b'XMP':
+                    ## XMP data
+                    ## https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart3.pdf
+                    ## broken XMP headers exist, so store the XMP data for a few extra sanity checks.
+                    xmpdata = b''
+                    while True:
+                        checkbytes = checkfile.read(1)
+                        if len(checkbytes) != 1:
+                            checkfile.close()
+                            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for block size'}
+                            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        unpackedsize += 1
+
+                        ## finally a block terminator (section 16)
+                        if checkbytes == b'\x00' and len(xmpdata) >= 258:
+                            break
+
+                        xmpdata += checkbytes
+
+                        ## else read the data
+                        datasize = ord(checkbytes)
+                        if offset + unpackedsize + datasize > filesize:
+                            checkfile.close()
+                            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ICC data bytes'}
+                            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                        xmpdata += checkfile.read(datasize)
+                        unpackedsize += datasize
+                    xmpdata = xmpdata[:-257]
+
+        ## process the image descriptor (section 20)
+        elif checkbytes == b'\x2c':
+            ## the image descriptor is 10 bytes in total, of which
+            ## 1 has already been read
+            checkbytes = checkfile.read(9)
+            if len(checkbytes) != 9:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for image descriptor'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 9
+
+            ## images can have a separate color table
+            havelocalcolortable = False
+            if checkbytes[-1] & 0x80 == 0x80:
+                havelocalcolortable = True
+
+            ## check if there is a local color table (section 21) and if so, skip it
+            if havelocalcolortable:
+                localcolortablesize = pow(2, (ord(checkbytes) & 7) + 1) * 3
+                if offset + unpackedsize + localcolortablesize > filesize:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for local color table'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                checkfile.seek(localcolortablesize, os.SEEK_CUR)
+                unpackedsize += localcolortablesize
+
+            ## then the image data (section 22)
+            ## The first byte describes the LZW minimum code size
+            checkbytes = checkfile.read(1)
+            if len(checkbytes) != 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for LZW minimum code size'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 1
+
+            ## then the raster data stream (appendix F).
+            while True:
+                checkbytes = checkfile.read(1)
+                if len(checkbytes) != 1:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for block size'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
                 unpackedsize += 1
 
-                ## first check to see if there is a trailer (section 27)
-                if checkbytes == b'\x3b':
-                        havegiftrailer = True
-                        break
+                ## check for a block terminator (section 16)
+                if checkbytes == b'\x00':
+                    break
 
-                ## The various extensions all start with 0x21 (section 23, 24, 25, 26, appendix C)
-                if checkbytes == b'\x21':
-                        ## the next byte gives more information about which extension was used
-                        checkbytes = checkfile.read(1)
-                        if len(checkbytes) != 1:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for data blocks or trailer'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        unpackedsize += 1
-                        ## a graphic block is an optional graphic control extension
-                        ## (section 23) followed by a graphic rendering block
-                        if checkbytes == b'\xf9':
-                                ## then read the next 6 bytes
-                                checkbytes = checkfile.read(6)
-                                if len(checkbytes) != 6:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for graphic control extension'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                if checkbytes[0] != 4:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for graphic control extension size'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                ## last byte is the block terminator (section 16)
-                                if checkbytes[5] != 0:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for graphic control extension block terminator'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                unpackedsize += 6
-                        ## process the comment extension (section 24)
-                        elif checkbytes == b'\xfe':
-                                ## similar to the image data there is comment data
-                                ## and then a block terminator
-                                gifcomment = b''
-                                while True:
-                                        checkbytes = checkfile.read(1)
-                                        if len(checkbytes) != 1:
-                                                checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for block size'}
-                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                        unpackedsize += 1
+                ## else skip over data
+                datasize = ord(checkbytes)
+                if offset + unpackedsize + datasize > filesize:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for LZW data bytes'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                checkfile.seek(datasize, os.SEEK_CUR)
+                unpackedsize += datasize
+        else:
+            break
 
-                                        ## check for a block terminator (section 16)
-                                        if checkbytes == b'\x00':
-                                                break
-
-                                        ## else read the data
-                                        datasize = ord(checkbytes)
-                                        if offset + unpackedsize + datasize > filesize:
-                                                checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for LZW data bytes'}
-                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                        gifcomment += checkfile.read(datasize)
-                                        unpackedsize += datasize
-                        ## process the application extension (section 26)
-                        elif checkbytes == b'\xff':
-                                checkbytes = checkfile.read(1)
-                                if len(checkbytes) != 1:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for block size'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                ## block size describes the application extension header
-                                ## and has fixed value 11.
-                                if ord(checkbytes) != 11:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for block size'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                unpackedsize += 1
-                                if offset + unpackedsize + 11 > filesize:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for application extension header'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                                ## The structure rest of the rest of the data depends
-                                ## on the application identifier.
-
-                                ## First read the application identifier
-                                applicationidentifier = checkfile.read(8)
-
-                                ## and the application authentication code
-                                applicationauth = checkfile.read(3)
-                                unpackedsize += 11
-
-                                ## Then process the application data for different extensions.
-                                ## Only a handful have been defined but only three are in widespread
-                                ## use (netscape, icc, xmp).
-                                ##
-                                ## http://fileformats.archiveteam.org/wiki/GIF#Known_application_extensions
-                                if applicationidentifier == b'NETSCAPE' and applicationauth == b'2.0':
-                                        ## http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html#application_extension_block
-                                        ## The Netscape extension is for animations.
-                                        animated = True
-                                        checkbytes = checkfile.read(4)
-                                        if len(checkbytes) != 4:
-                                                checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for application data'}
-                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                        if checkbytes[0] != 3 or checkbytes[1] != 1:
-                                                checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for application data'}
-                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                        unpackedsize += 4
-
-                                        ## finally a block terminator (section 16)
-                                        checkbytes = checkfile.read(1)
-                                        if checkbytes != b'\x00':
-                                                break
-                                        unpackedsize += 1
-
-                                elif applicationidentifier == b'ICCRGBG1' and applicationauth == b'012':
-                                        ## ICC profiles, http://www.color.org/icc1V42.pdf, section B.6
-                                        iccprofile = b''
-                                        while True:
-                                                checkbytes = checkfile.read(1)
-                                                if len(checkbytes) != 1:
-                                                        checkfile.close()
-                                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for block size'}
-                                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                                unpackedsize += 1
-
-                                                ## finally a block terminator (section 16)
-                                                if checkbytes == b'\x00':
-                                                        break
-
-                                                ## else read the data
-                                                datasize = ord(checkbytes)
-                                                if offset + unpackedsize + datasize > filesize:
-                                                        checkfile.close()
-                                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ICC data bytes'}
-                                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                                iccprofile += checkfile.read(datasize)
-                                                unpackedsize += datasize
-                                elif applicationidentifier == b'XMP Data' and applicationauth == b'XMP':
-                                        ## XMP data
-                                        ## https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart3.pdf
-                                        ## broken XMP headers exist, so store the XMP data for a few extra sanity checks.
-                                        xmpdata = b''
-                                        while True:
-                                                checkbytes = checkfile.read(1)
-                                                if len(checkbytes) != 1:
-                                                        checkfile.close()
-                                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for block size'}
-                                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                                unpackedsize += 1
-
-                                                ## finally a block terminator (section 16)
-                                                if checkbytes == b'\x00' and len(xmpdata) >= 258:
-                                                        break
-
-                                                xmpdata += checkbytes
-
-                                                ## else read the data
-                                                datasize = ord(checkbytes)
-                                                if offset + unpackedsize + datasize > filesize:
-                                                        checkfile.close()
-                                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ICC data bytes'}
-                                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                                xmpdata += checkfile.read(datasize)
-                                                unpackedsize += datasize
-                                        xmpdata = xmpdata[:-257]
-
-                ## process the image descriptor (section 20)
-                elif checkbytes == b'\x2c':
-                        ## the image descriptor is 10 bytes in total, of which
-                        ## 1 has already been read
-                        checkbytes = checkfile.read(9)
-                        if len(checkbytes) != 9:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for image descriptor'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        unpackedsize += 9
-
-                        ## images can have a separate color table
-                        havelocalcolortable = False
-                        if checkbytes[-1] & 0x80 == 0x80:
-                                havelocalcolortable = True
-
-                        ## check if there is a local color table (section 21) and if so, skip it
-                        if havelocalcolortable:
-                                localcolortablesize = pow(2, (ord(checkbytes) & 7) + 1) * 3
-                                if offset + unpackedsize + localcolortablesize > filesize:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for local color table'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                checkfile.seek(localcolortablesize, os.SEEK_CUR)
-                                unpackedsize += localcolortablesize
-
-                        ## then the image data (section 22)
-                        ## The first byte describes the LZW minimum code size
-                        checkbytes = checkfile.read(1)
-                        if len(checkbytes) != 1:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for LZW minimum code size'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        unpackedsize += 1
-
-                        ## then the raster data stream (appendix F).
-                        while True:
-                                checkbytes = checkfile.read(1)
-                                if len(checkbytes) != 1:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for block size'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                unpackedsize += 1
-
-                                ## check for a block terminator (section 16)
-                                if checkbytes == b'\x00':
-                                        break
-
-                                ## else skip over data
-                                datasize = ord(checkbytes)
-                                if offset + unpackedsize + datasize > filesize:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for LZW data bytes'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                checkfile.seek(datasize, os.SEEK_CUR)
-                                unpackedsize += datasize
-                else:
-                        break
-
-        ## if there is no GIF trailer, then the file cannot be valid
-        if not havegiftrailer:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'GIF trailer not found'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        if offset == 0 and unpackedsize == filesize:
-                ## now load the file into PIL as an extra sanity check
-                try:
-                        testimg = PIL.Image.open(checkfile)
-                        testimg.load()
-                        testimg.close()
-                except:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid GIF data according to PIL'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                checkfile.close()
-
-                labels += ['gif', 'graphics']
-                if animated:
-                        labels.append('animated')
-                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ## Carve the file. It is anonymous, so just give it a name
-        outfilename = os.path.join(unpackdir, "unpacked.gif")
-        outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-        outfile.close()
+    ## if there is no GIF trailer, then the file cannot be valid
+    if not havegiftrailer:
         checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'GIF trailer not found'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## reopen the file read only
-        outfile = open(outfilename, 'rb')
-
+    if offset == 0 and unpackedsize == filesize:
         ## now load the file into PIL as an extra sanity check
         try:
-                testimg = PIL.Image.open(outfile)
-                testimg.load()
-                testimg.close()
-                outfile.close()
+            testimg = PIL.Image.open(checkfile)
+            testimg.load()
+            testimg.close()
         except:
-                outfile.close()
-                os.unlink(outfilename)
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid GIF data according to PIL'}
-                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid GIF data according to PIL'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        checkfile.close()
 
-        outlabels = ['gif', 'graphics', 'unpacked']
+        labels += ['gif', 'graphics']
         if animated:
-                outlabels.append('animated')
-        unpackedfilesandlabels.append((outfilename, outlabels))
+            labels.append('animated')
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## Carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.gif")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    ## reopen the file read only
+    outfile = open(outfilename, 'rb')
+
+    ## now load the file into PIL as an extra sanity check
+    try:
+        testimg = PIL.Image.open(outfile)
+        testimg.load()
+        testimg.close()
+        outfile.close()
+    except:
+        outfile.close()
+        os.unlink(outfilename)
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid GIF data according to PIL'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    outlabels = ['gif', 'graphics', 'unpacked']
+    if animated:
+        outlabels.append('animated')
+    unpackedfilesandlabels.append((outfilename, outlabels))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Derived from public ISO9660 specifications
 ## https://en.wikipedia.org/wiki/ISO_9660
