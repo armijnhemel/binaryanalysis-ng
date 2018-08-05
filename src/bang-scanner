@@ -256,20 +256,22 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'file system', 'srec'
 ## * resultqueue :: a queue where results will be written to
 ## * maxsearchbytes :: an integer that defines the maximum amount of bytes
 ##   that are read to be searched for magic signatures
-## * unpackdirectory :: the absolute path of the top level directory in which files
-##   will be unpacked
-## * temporary directory :: the absolute path of a directory in which temporary
-##   files will be written
+## * unpackdirectory :: the absolute path of the top level directory in
+##   which files will be unpacked
+## * temporary directory :: the absolute path of a directory in which
+##   temporary files will be written
 ##
-## Each file will be in the scan queue and have the following data associated with
-## it:
+## Each file will be in the scan queue and have the following data associated
+## with it:
 ##
 ## * file name (absolutepath)
-## * set of labels (set by parent, either empty or containing hints from unpacking)
+## * set of labels (set by parent, either empty or containing hints from
+##   unpacking)
 ##
-## For every file a set of labels describing the file (such as 'binary' or 'graphics')
-## will be stored. These labels can be used to feed extra information to the unpacking
-## process, such as preventing scans from running.
+## For every file a set of labels describing the file (such as 'binary' or
+## 'graphics') will be stored. These labels can be used to feed extra
+## information to the unpacking process, such as preventing scans from
+## running.
 def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, temporarydirectory):
     lenunpackdirectory = len(unpackdirectory) + 1
     synthesizedminimum = 10
@@ -502,15 +504,16 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                     if res != None:
                         for r in res:
                             if s in signaturesoffset:
-                                ## skip files that aren't big enough if the signature
-                                ## is not at the start of the data to be carved (example:
-                                ## ISO9660).
+                                ## skip files that aren't big enough if the
+                                ## signature is not at the start of the data
+                                ## to be carved (example: ISO9660).
                                 if r.start() + offsetinfile - signaturesoffset[s] < 0:
                                     continue
                             offset = r.start()
 
-                            ## first perform a few sanity checks to prevent false positives for
-                            ## the built in unpack functions in BANG, as function calls are
+                            ## first perform a few sanity checks to prevent
+                            ## false positives for the built in unpack
+                            ## functions in BANG, as function calls are
                             ## expensive so prevent them as much as possible.
                             ##
                             ## Included are checks for:
@@ -527,28 +530,36 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                 ## header of LZMA files is 13 bytes
                                 if filesize - (offset + offsetinfile) < 13:
                                     continue
-                                ## Only do this if there are enough bytes left to test on, otherwise
-                                ## let the sliding window do its work
+                                ## Only do this if there are enough bytes
+                                ## left to test on, otherwise let the sliding
+                                ## window do its work
                                 if len(scanbytes) - offset >= 13:
-                                    ## bytes 5 - 13 are the size field. It could be that
-                                    ## it is undefined, but if it is defined then check
-                                    ## if it is too large or too small.
+                                    ## bytes 5 - 13 are the size field. It
+                                    ## could be that it is undefined, but if
+                                    ## it is defined then check if it is too
+                                    ## large or too small.
                                     if scanbytes[offset+5:offset+13] != b'\xff\xff\xff\xff\xff\xff\xff\xff':
                                         lzmaunpackedsize = int.from_bytes(scanbytes[offset+5:offset+13], byteorder='little')
                                         if lzmaunpackedsize == 0:
                                             continue
 
-                                        ## XZ Utils cannot unpack or create files with size of 256 GiB or more
+                                        ## XZ Utils cannot unpack or create
+                                        ## files with size of 256 GiB or more
                                         if lzmaunpackedsize > 274877906944:
                                             continue
                             elif s == 'bzip2':
-                                ## first some sanity checks consisting of header checks:
+                                ## first some sanity checks consisting of
+                                ## header checks:
+                                ##
                                 ## * block size
                                 ## * magic
-                                ## Only do this if there are enough bytes left to test on, otherwise
+                                ##
+                                ## Only do this if there are enough bytes
+                                ## left to test on, otherwise
                                 ## let the sliding window do its work
                                 if len(scanbytes) - offset >= 10:
-                                    ## the byte indicating the block size has to be in the range 1 - 9
+                                    ## the byte indicating the block size has
+                                    ## to be in the range 1 - 9
                                     try:
                                         blocksize = int(scanbytes[offset+3])
                                     except:
@@ -556,21 +567,27 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                     ## block size byte cannot be 0
                                     if blocksize == 0:
                                         continue
-                                    ## then check if the file is a stream or not. If so, some more
-                                    ## checks can be made (bzip2 source code decompress.c, line 224)
+                                    ## then check if the file is a stream or
+                                    ## not. If so, some more checks can be
+                                    ## made (bzip2 source code decompress.c,
+                                    ## line 224).
                                     if scanbytes[offset+4] != b'\x17':
                                         if scanbytes[offset+4:offset+10] != b'\x31\x41\x59\x26\x53\x59':
                                             continue
                             elif s == 'gzip':
-                                ## first some sanity checks consisting of header checks
+                                ## first some sanity checks consisting of
+                                ## header checks.
                                 ##
-                                ## RFC 1952 http://www.zlib.org/rfc-gzip.html describes the flags, but omits the "encrytion" flag (bit 5)
+                                ## RFC 1952 http://www.zlib.org/rfc-gzip.html
+                                ## describes the flags, but omits the
+                                ## "encrytion" flag (bit 5)
                                 ##
                                 ## Python 3's zlib module does not support:
                                 ## * continuation of multi-part gzip (bit 2)
                                 ## * encrypt (bit 5)
                                 ##
-                                ## RFC 1952 says that bit 6 and 7 should not be set
+                                ## RFC 1952 says that bit 6 and 7 should not
+                                ## be set.
                                 if len(scanbytes) - offset >= 4:
                                     gzipbyte = scanbytes[offset+3]
                                     if (gzipbyte >> 2 & 1) == 1:
@@ -691,9 +708,11 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                                 namecounter += 1
 
                     ## The result of the scan is:
+                    ##
                     ## * the status of the scan (successful or not)
                     ## * the length of the data
-                    ## * list of files that were unpacked, if any, plus labels for the unpacked files
+                    ## * list of files that were unpacked, if any, plus
+                    ##   labels for the unpacked files
                     ## * labels that were added, if any
                     ## * errors that were encountered, if any
                     logging.debug("TRYING %s %s at offset: %d" % (checkfile, s[1], s[0]))
