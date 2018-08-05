@@ -10363,7 +10363,7 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         payload = tagstoresults[1124][0]
         if payload == b'cpio':
             ## first move the payload file to a different location
-            ## to avoid name clashes with the
+            ## to avoid any potential name clashes
             payloaddir = tempfile.mkdtemp(dir=temporarydirectory)
             shutil.move(payloadfile, payloaddir)
             unpackresult = unpackCpio(os.path.join(payloaddir, os.path.basename(payloadfile)), 0, unpackdir, temporarydirectory)
