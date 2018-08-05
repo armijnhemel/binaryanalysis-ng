@@ -4451,499 +4451,498 @@ def unpackLzip(filename, offset, unpackdir, temporarydirectory):
 ## https://en.wikipedia.org/wiki/JPEG#Syntax_and_structure
 ## also has an extensive list of the markers
 def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
-        filesize = os.stat(filename).st_size
-        unpackedfilesandlabels = []
-        labels = []
-        unpackingerror = {}
-        unpackedsize = 0
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
 
-        ## open the file and skip the SOI magic
-        checkfile = open(filename, 'rb')
-        checkfile.seek(offset+2)
+    ## open the file and skip the SOI magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+2)
+    unpackedsize += 2
+
+    ## then further process the frame according to B.2.1
+    ## After SOI there are optional tables/miscellaneous (B.2.4)
+    ## These are defined in B.2.4.*. Marker values are in B.1
+    ## JPEG is in big endian order (B.1.1.1)
+
+    ## DQT, DHT, DAC, DRI, COM
+    tablesmiscmarkers = set([b'\xff\xdb', b'\xff\xc4', b'\xff\xcc', b'\xff\xdd', b'\xff\xfe'])
+
+    ## RST0-7
+    rstmarkers = set([b'\xff\xd0', b'\xff\xd1', b'\xff\xd2', b'\xff\xd3', b'\xff\xd4',
+                     b'\xff\xd5', b'\xff\xd6', b'\xff\xd7'])
+
+    ## JPEG extension markers -- are these actually being used by someone?
+    jpegextmarkers = set([b'\xff\xc8', b'\xff\xf0', b'\xff\xf1', b'\xff\xf2', b'\xff\xf3',
+                          b'\xff\xf4', b'\xff\xf5', b'\xff\xf6', b'\xff\xf7', b'\xff\xf8',
+                          b'\xff\xf9', b'\xff\xfa', b'\xff\xfb', b'\xff\xfc', b'\xff\xfd'])
+
+    ## APP0-n (16 values)
+    appmarkers = set([b'\xff\xe0', b'\xff\xe1', b'\xff\xe2', b'\xff\xe3', b'\xff\xe4', b'\xff\xe5',
+                     b'\xff\xe6', b'\xff\xe7', b'\xff\xe8', b'\xff\xe9', b'\xff\xea', b'\xff\xeb',
+                     b'\xff\xec', b'\xff\xed', b'\xff\xee', b'\xff\xef'])
+
+    ## start of frame markers
+    startofframemarkers = set([b'\xff\xc0', b'\xff\xc1', b'\xff\xc2', b'\xff\xc3', b'\xff\xc5',
+                              b'\xff\xc6', b'\xff\xc7', b'\xff\xc9', b'\xff\xca', b'\xff\xcb',
+                              b'\xff\xcd', b'\xff\xce', b'\xff\xcf'])
+
+    ## keep track of whether or not a frame can be restarted
+    restart = False
+    eofseen = False
+
+    seenmarkers = set()
+    while True:
+        checkbytes = checkfile.read(2)
+        if not len(checkbytes) == 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 2
 
-        ## then further process the frame according to B.2.1
-        ## After SOI there are optional tables/miscellaneous (B.2.4)
-        ## These are defined in B.2.4.*. Marker values are in B.1
-        ## JPEG is in big endian order (B.1.1.1)
-
-        ## DQT, DHT, DAC, DRI, COM
-        tablesmiscmarkers = set([b'\xff\xdb', b'\xff\xc4', b'\xff\xcc', b'\xff\xdd', b'\xff\xfe'])
-
-        ## RST0-7
-        rstmarkers = set([b'\xff\xd0', b'\xff\xd1', b'\xff\xd2', b'\xff\xd3', b'\xff\xd4',
-                         b'\xff\xd5', b'\xff\xd6', b'\xff\xd7'])
-
-        ## JPEG extension markers -- are these actually being used by someone?
-        jpegextmarkers = set([b'\xff\xc8', b'\xff\xf0', b'\xff\xf1', b'\xff\xf2', b'\xff\xf3',
-                              b'\xff\xf4', b'\xff\xf5', b'\xff\xf6', b'\xff\xf7', b'\xff\xf8',
-                              b'\xff\xf9', b'\xff\xfa', b'\xff\xfb', b'\xff\xfc', b'\xff\xfd'])
-
-        ## APP0-n (16 values)
-        appmarkers = set([b'\xff\xe0', b'\xff\xe1', b'\xff\xe2', b'\xff\xe3', b'\xff\xe4', b'\xff\xe5',
-                         b'\xff\xe6', b'\xff\xe7', b'\xff\xe8', b'\xff\xe9', b'\xff\xea', b'\xff\xeb',
-                         b'\xff\xec', b'\xff\xed', b'\xff\xee', b'\xff\xef'])
-
-        ## start of frame markers
-        startofframemarkers = set([b'\xff\xc0', b'\xff\xc1', b'\xff\xc2', b'\xff\xc3', b'\xff\xc5',
-                                  b'\xff\xc6', b'\xff\xc7', b'\xff\xc9', b'\xff\xca', b'\xff\xcb',
-                                  b'\xff\xcd', b'\xff\xce', b'\xff\xcf'])
-
-        ## keep track of whether or not a frame can be restarted
-        restart = False
-        eofseen = False
-
-        seenmarkers = set()
-        while True:
-                checkbytes = checkfile.read(2)
-                if not len(checkbytes) == 2:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 2
-
-                if checkbytes in tablesmiscmarkers or checkbytes in appmarkers:
-                        marker = checkbytes
-                        seenmarkers.add(checkbytes)
-                        ## extract the length of the table or app marker.
-                        ## this includes the 2 bytes of the length field itself
-                        checkbytes = checkfile.read(2)
-                        if not len(checkbytes) == 2:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        unpackedsize += 2
-                        misctablelength = int.from_bytes(checkbytes, byteorder='big')
-                        if checkfile.tell() + misctablelength - 2 > filesize:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                        if marker == b'\xff\xdd':
-                                ## DRI
-                                oldoffset = checkfile.tell()
-                                checkbytes = checkfile.read(2)
-                                restartinterval = int.from_bytes(checkbytes, byteorder='big')
-                                if restartinterval != 0:
-                                        restart = True
-                                checkfile.seek(oldoffset)
-                        elif marker == b'\xff\xdb':
-                                ## DQT, not present for lossless JPEG by definition (B.2.4.1)
-                                oldoffset = checkfile.tell()
-                                ## check Pq and Tq
-                                checkbytes = checkfile.read(1)
-                                pqtq = ord(checkbytes)
-                                pq = pqtq >> 4
-                                if not (pq == 0 or pq == 1):
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid DQT value'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                tq = pqtq & 15
-                                if not tq < 4:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid DQT value'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                checkfile.seek(oldoffset)
-                        elif marker == b'\xff\xe0':
-                                ## APP0, TODO
-                                oldoffset = checkfile.tell()
-                                checkbytes = checkfile.read(5)
-                                checkfile.seek(oldoffset)
-                        elif marker == b'\xff\xe1':
-                                ## APP1, EXIF and friends
-                                ## EXIF could have a thumbnail, TODO
-                                oldoffset = checkfile.tell()
-                                checkbytes = checkfile.read(5)
-                                checkfile.seek(oldoffset)
-
-                        ## skip over the section
-                        checkfile.seek(misctablelength-2, os.SEEK_CUR)
-                        unpackedsize += misctablelength-2
-                else:
-                        break
-
-        ## the abbreviated syntax is not widely used, so do not allow it
-        allowabbreviated = False
-
-        if allowabbreviated:
-                ## There *could* be an EOI marker here and it would be a valid JPEG
-                ## according to section B.5, although not all markers would be allowed.
-                if checkbytes == b'\xff\xd9':
-                        if len(seenmarkers) == 0:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no tables present, needed for abbreviated syntax'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        ## according to B.5 DAC and DRI are not allowed in this syntax.
-                        if b'\xff\xcc' in seenmarkers or b'\xff\xdd' in seenmarkers:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'DAC and/or DRI not allowed in abbreviated syntax'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        if offset == 0 and unpackedsize == filesize:
-                                checkfile.close()
-                                labels.append('graphics')
-                                labels.append('jpeg')
-                                return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                        ## else carve the file
-                        outfilename = os.path.join(unpackdir, "unpacked.jpg")
-                        outfile = open(outfilename, 'wb')
-                        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-                        outfile.close()
-                        unpackedfilesandlabels.append((outfilename, ['graphics', 'jpeg', 'unpacked']))
-                        checkfile.close()
-                        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-        ishierarchical = False
-
-        ## there could be a DHP segment here according to section B.3,
-        ## but only one in the entire image
-        if checkbytes == b'\xff\xde':
-                checkbytes = checkfile.read(2)
-                if not len(checkbytes) == 2:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 2
-                sectionlength = int.from_bytes(checkbytes, byteorder='big')
-                if checkfile.tell() + sectionlength - 2 > filesize:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                ishierarchical = True
-
-                ## skip over the section
-                checkfile.seek(sectionlength-2, os.SEEK_CUR)
-                unpackedsize += sectionlength-2
-
-                ## and make sure that there are already a few bytes read
-                checkbytes = checkfile.read(2)
-                if not len(checkbytes) == 2:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                unpackedsize += 2
-
-        ## now there could be multiple frames, starting with optional misc/tables
-        ## again.
-        while True:
-                framerestart = restart
-                while True:
-                        if checkbytes in tablesmiscmarkers or checkbytes in appmarkers:
-                                isdri = False
-                                if checkbytes == b'\xff\xdd':
-                                        isdri = True
-                                ## extract the length of the table or app marker.
-                                ## this includes the 2 bytes of the length field itself
-                                checkbytes = checkfile.read(2)
-                                if not len(checkbytes) == 2:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                unpackedsize += 2
-                                misctablelength = int.from_bytes(checkbytes, byteorder='big')
-                                if checkfile.tell() + misctablelength - 2 > filesize:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                                if isdri:
-                                        oldoffset = checkfile.tell()
-                                        checkbytes = checkfile.read(2)
-                                        restartinterval = int.from_bytes(checkbytes, byteorder='big')
-                                        if restartinterval != 0:
-                                                framerestart = True
-                                        checkfile.seek(oldoffset)
-
-                                ## skip over the section
-                                checkfile.seek(misctablelength-2, os.SEEK_CUR)
-                                unpackedsize += misctablelength-2
-                                checkbytes = checkfile.read(2)
-
-                                ## and read the next few bytes
-                                if not len(checkbytes) == 2:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                unpackedsize += 2
-                        else:
-                                break
-
-                ## check if this is EXP (only in hierarchical syntax)
-                if checkbytes == b'\xff\xdf':
-                        if not ishierarchical:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'EXP only allowed in hierarchical syntax'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        checkbytes = checkfile.read(2)
-                        if not len(checkbytes) == 2:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        unpackedsize += 2
-                        misctablelength = int.from_bytes(checkbytes, byteorder='big')
-                        if checkfile.tell() + misctablelength - 2 > filesize:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                        ## skip over the section
-                        checkfile.seek(misctablelength-2, os.SEEK_CUR)
-                        unpackedsize += misctablelength-2
-
-                        ## and read the next two bytes
-                        checkbytes = checkfile.read(2)
-                        if not len(checkbytes) == 2:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        unpackedsize += 2
-
-                ## after the tables/misc and possibly EXP there should be
-                ## a frame header (B.2.2) with a SOF (start of frame) marker
-                if checkbytes in startofframemarkers:
-
-                        ## extract the length of the frame
-                        ## this includes the 2 bytes of the length field itself
-                        checkbytes = checkfile.read(2)
-                        if not len(checkbytes) == 2:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        unpackedsize += 2
-                        misctablelength = int.from_bytes(checkbytes, byteorder='big')
-                        if checkfile.tell() + misctablelength - 2 > filesize:
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
-                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                        ## skip over the section
-                        checkfile.seek(misctablelength-2, os.SEEK_CUR)
-                        unpackedsize += misctablelength-2
-                else:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for start of frame'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                ## This is followed by at least one scan header, optionally preceded by more tables/misc
-                while True:
-                        if eofseen:
-                                break
-                        ## optionally preceded by more tables/misc
-                        while True:
-                                checkbytes = checkfile.read(2)
-                                if not len(checkbytes) == 2:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                unpackedsize += 2
-
-                                if checkbytes in tablesmiscmarkers or checkbytes in appmarkers:
-                                        ## extract the length of the table or app marker.
-                                        ## this includes the 2 bytes of the length field itself
-                                        checkbytes = checkfile.read(2)
-                                        if not len(checkbytes) == 2:
-                                                checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
-                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                        unpackedsize += 2
-                                        misctablelength = int.from_bytes(checkbytes, byteorder='big')
-                                        if checkfile.tell() + misctablelength - 2 > filesize:
-                                                checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
-                                                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                                        ## skip over the section
-                                        checkfile.seek(misctablelength-2, os.SEEK_CUR)
-                                        unpackedsize += misctablelength-2
-                                else:
-                                        break
-
-                        ## RST: no data, so simply ignore, but immediately
-                        ## skip to more of the raw data.
-                        isrestart = False
-                        if checkbytes in rstmarkers:
-                                isrestart = True
-
-                        ## DNL (section B.2.5)
-                        if checkbytes == b'\xff\xdc':
-                                ## extract the length of the DNL
-                                ## this includes the 2 bytes of the length field itself
-                                checkbytes = checkfile.read(2)
-                                if not len(checkbytes) == 2:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                unpackedsize += 2
-
-                                headerlength = int.from_bytes(checkbytes, byteorder='big')
-                                if checkfile.tell() + headerlength - 2 > filesize:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'start of scan outside of file'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                ## skip over the section
-                                checkfile.seek(headerlength-3, os.SEEK_CUR)
-                                unpackedsize += headerlength - 3
-
-                                ## and read two bytes
-                                checkbytes = checkfile.read(2)
-                                if not len(checkbytes) == 2:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                unpackedsize += 2
-
-                        ## the SOS (start of scan) header
-                        if checkbytes == b'\xff\xda':
-                                ## extract the length of the start of scan header
-                                ## this includes the 2 bytes of the length field itself
-                                checkbytes = checkfile.read(2)
-                                if not len(checkbytes) == 2:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                unpackedsize += 2
-
-                                headerlength = int.from_bytes(checkbytes, byteorder='big')
-                                if checkfile.tell() + headerlength - 2 > filesize:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'start of scan outside of file'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                                ## the number of image components, can only be 1-4
-                                checkbytes = checkfile.read(1)
-                                numberimagecomponents = ord(checkbytes)
-                                if numberimagecomponents not in [1,2,3,4]:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for number of image components'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-                                unpackedsize += 1
-
-                                ## the header length = 6+2* number of image components
-                                if headerlength != 6+2*numberimagecomponents:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for number of image components or start of scan header length'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                                ## skip over the section
-                                checkfile.seek(headerlength-3, os.SEEK_CUR)
-                                unpackedsize += headerlength - 3
-                        else:
-                                if not isrestart:
-                                        checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for start of scan'}
-                                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
-                        ## now read the image data in chunks to search for
-                        ## JPEG markers (section B.1.1.2)
-                        ## This is not fully fool proof: if data from the
-                        ## entropy coded segment (ECS) is missing, or if data
-                        ## has been inserted or changed in the ECS. The only
-                        ## way to verify this is to reimplement it, or to run
-                        ## it through an external tool or library such as pillow.
-                        readsize = 100
-                        while True:
-                                oldpos = checkfile.tell()
-                                checkbytes = checkfile.read(readsize)
-                                if checkbytes == b'':
-                                        break
-                                ## check if 0xff can be found in the data. If so, then it
-                                ## is either part of the entropy coded data (and followed
-                                ## by 0x00), or a valid JPEG marker, or bogus data.
-                                if b'\xff' in checkbytes:
-                                        startffpos = 0
-                                        fffound = False
-                                        while True:
-                                                ffpos = checkbytes.find(b'\xff', startffpos)
-                                                if ffpos == -1:
-                                                        break
-                                                startffpos = ffpos + 1
-                                                if ffpos < readsize - 1:
-                                                        if checkbytes[ffpos+1] != 0:
-                                                                if checkbytes[ffpos:ffpos+2] in tablesmiscmarkers or checkbytes[ffpos:ffpos+2] in appmarkers:
-                                                                        checkfile.seek(oldpos + ffpos)
-                                                                        fffound = True
-                                                                        break
-                                                                if checkbytes[ffpos:ffpos+2] in jpegextmarkers:
-                                                                        checkfile.seek(oldpos + ffpos)
-                                                                        fffound = True
-                                                                        break
-                                                                if checkbytes[ffpos:ffpos+2] in rstmarkers:
-                                                                        checkfile.seek(oldpos + ffpos)
-                                                                        fffound = True
-                                                                        break
-                                                                ## check for SOS
-                                                                if checkbytes[ffpos:ffpos+2] == b'\xff\xda':
-                                                                        checkfile.seek(oldpos + ffpos)
-                                                                        fffound = True
-                                                                        break
-                                                                ## check for DNL
-                                                                if checkbytes[ffpos:ffpos+2] == b'\xff\xdc':
-                                                                        checkfile.seek(oldpos + ffpos)
-                                                                        fffound = True
-                                                                        break
-                                                                ## check for EOI
-                                                                if checkbytes[ffpos:ffpos+2] == b'\xff\xd9':
-                                                                        checkfile.seek(oldpos + ffpos + 2)
-                                                                        eofseen = True
-                                                                        fffound = True
-                                                                        break
-
-                                        ## set unpacked size to whatever data was read
-                                        unpackedsize = checkfile.tell() - offset
-
-                                        ## a valid marker was found, so break out of the loop
-                                        if fffound:
-                                                break
-                                else:
-                                        unpackedsize = checkfile.tell() - offset
-                                if checkfile.tell() == filesize:
-                                        break
-                                checkfile.seek(-1, os.SEEK_CUR)
-
-                ## end of the image, so break out of the loop
-                if eofseen:
-                        break
-
-        if offset == 0 and unpackedsize == filesize:
-                ## now load the file into PIL as an extra sanity check
-                try:
-                        testimg = PIL.Image.open(checkfile)
-                        testimg.load()
-                        testimg.close()
-                except:
-                        checkfile.close()
-                        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
-                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        if checkbytes in tablesmiscmarkers or checkbytes in appmarkers:
+            marker = checkbytes
+            seenmarkers.add(checkbytes)
+            ## extract the length of the table or app marker.
+            ## this includes the 2 bytes of the length field itself
+            checkbytes = checkfile.read(2)
+            if not len(checkbytes) == 2:
                 checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+            misctablelength = int.from_bytes(checkbytes, byteorder='big')
+            if checkfile.tell() + misctablelength - 2 > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
+            if marker == b'\xff\xdd':
+                ## DRI
+                oldoffset = checkfile.tell()
+                checkbytes = checkfile.read(2)
+                restartinterval = int.from_bytes(checkbytes, byteorder='big')
+                if restartinterval != 0:
+                    restart = True
+                checkfile.seek(oldoffset)
+            elif marker == b'\xff\xdb':
+                ## DQT, not present for lossless JPEG by definition (B.2.4.1)
+                oldoffset = checkfile.tell()
+                ## check Pq and Tq
+                checkbytes = checkfile.read(1)
+                pqtq = ord(checkbytes)
+                pq = pqtq >> 4
+                if not (pq == 0 or pq == 1):
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid DQT value'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                tq = pqtq & 15
+                if not tq < 4:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid DQT value'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                checkfile.seek(oldoffset)
+            elif marker == b'\xff\xe0':
+                ## APP0, TODO
+                oldoffset = checkfile.tell()
+                checkbytes = checkfile.read(5)
+                checkfile.seek(oldoffset)
+            elif marker == b'\xff\xe1':
+                ## APP1, EXIF and friends
+                ## EXIF could have a thumbnail, TODO
+                oldoffset = checkfile.tell()
+                checkbytes = checkfile.read(5)
+                checkfile.seek(oldoffset)
+
+            ## skip over the section
+            checkfile.seek(misctablelength-2, os.SEEK_CUR)
+            unpackedsize += misctablelength-2
+        else:
+            break
+
+    ## the abbreviated syntax is not widely used, so do not allow it
+    allowabbreviated = False
+
+    if allowabbreviated:
+        ## There *could* be an EOI marker here and it would be a valid JPEG
+        ## according to section B.5, although not all markers would be allowed.
+        if checkbytes == b'\xff\xd9':
+            if len(seenmarkers) == 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no tables present, needed for abbreviated syntax'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            ## according to B.5 DAC and DRI are not allowed in this syntax.
+            if b'\xff\xcc' in seenmarkers or b'\xff\xdd' in seenmarkers:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'DAC and/or DRI not allowed in abbreviated syntax'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            if offset == 0 and unpackedsize == filesize:
+                checkfile.close()
                 labels.append('graphics')
                 labels.append('jpeg')
                 return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## else carve the file
-        outfilename = os.path.join(unpackdir, "unpacked.jpg")
-        outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-        outfile.close()
-        checkfile.close()
+            ## else carve the file
+            outfilename = os.path.join(unpackdir, "unpacked.jpg")
+            outfile = open(outfilename, 'wb')
+            os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+            outfile.close()
+            unpackedfilesandlabels.append((outfilename, ['graphics', 'jpeg', 'unpacked']))
+            checkfile.close()
+            return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## open as read only
-        outfile = open(outfilename, 'rb')
+    ishierarchical = False
 
-        ## now load the file into PIL as an extra sanity check
-        try:
-                testimg = PIL.Image.open(outfile)
-                testimg.load()
-                testimg.close()
-                outfile.close()
-        except:
-                outfile.close()
-                os.unlink(outfilename)
-                unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
+    ## there could be a DHP segment here according to section B.3,
+    ## but only one in the entire image
+    if checkbytes == b'\xff\xde':
+        checkbytes = checkfile.read(2)
+        if not len(checkbytes) == 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+        sectionlength = int.from_bytes(checkbytes, byteorder='big')
+        if checkfile.tell() + sectionlength - 2 > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ishierarchical = True
+
+        ## skip over the section
+        checkfile.seek(sectionlength-2, os.SEEK_CUR)
+        unpackedsize += sectionlength-2
+
+        ## and make sure that there are already a few bytes read
+        checkbytes = checkfile.read(2)
+        if not len(checkbytes) == 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+    ## now there could be multiple frames, starting with optional misc/tables
+    ## again.
+    while True:
+        framerestart = restart
+        while True:
+            if checkbytes in tablesmiscmarkers or checkbytes in appmarkers:
+                isdri = False
+                if checkbytes == b'\xff\xdd':
+                    isdri = True
+                ## extract the length of the table or app marker.
+                ## this includes the 2 bytes of the length field itself
+                checkbytes = checkfile.read(2)
+                if not len(checkbytes) == 2:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 2
+                misctablelength = int.from_bytes(checkbytes, byteorder='big')
+                if checkfile.tell() + misctablelength - 2 > filesize:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                if isdri:
+                    oldoffset = checkfile.tell()
+                    checkbytes = checkfile.read(2)
+                    restartinterval = int.from_bytes(checkbytes, byteorder='big')
+                    if restartinterval != 0:
+                        framerestart = True
+                    checkfile.seek(oldoffset)
+
+                ## skip over the section
+                checkfile.seek(misctablelength-2, os.SEEK_CUR)
+                unpackedsize += misctablelength-2
+                checkbytes = checkfile.read(2)
+
+                ## and read the next few bytes
+                if not len(checkbytes) == 2:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 2
+            else:
+                break
+
+        ## check if this is EXP (only in hierarchical syntax)
+        if checkbytes == b'\xff\xdf':
+            if not ishierarchical:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'EXP only allowed in hierarchical syntax'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            checkbytes = checkfile.read(2)
+            if not len(checkbytes) == 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+            misctablelength = int.from_bytes(checkbytes, byteorder='big')
+            if checkfile.tell() + misctablelength - 2 > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-        unpackedfilesandlabels.append((outfilename, ['jpeg', 'graphics', 'unpacked']))
+            ## skip over the section
+            checkfile.seek(misctablelength-2, os.SEEK_CUR)
+            unpackedsize += misctablelength-2
+
+            ## and read the next two bytes
+            checkbytes = checkfile.read(2)
+            if not len(checkbytes) == 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+
+        ## after the tables/misc and possibly EXP there should be
+        ## a frame header (B.2.2) with a SOF (start of frame) marker
+        if checkbytes in startofframemarkers:
+            ## extract the length of the frame
+            ## this includes the 2 bytes of the length field itself
+            checkbytes = checkfile.read(2)
+            if not len(checkbytes) == 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+            misctablelength = int.from_bytes(checkbytes, byteorder='big')
+            if checkfile.tell() + misctablelength - 2 > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            ## skip over the section
+            checkfile.seek(misctablelength-2, os.SEEK_CUR)
+            unpackedsize += misctablelength-2
+        else:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for start of frame'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## This is followed by at least one scan header, optionally preceded by more tables/misc
+        while True:
+            if eofseen:
+                break
+            ## optionally preceded by more tables/misc
+            while True:
+                checkbytes = checkfile.read(2)
+                if not len(checkbytes) == 2:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 2
+
+                if checkbytes in tablesmiscmarkers or checkbytes in appmarkers:
+                    ## extract the length of the table or app marker.
+                    ## this includes the 2 bytes of the length field itself
+                    checkbytes = checkfile.read(2)
+                    if not len(checkbytes) == 2:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                    unpackedsize += 2
+                    misctablelength = int.from_bytes(checkbytes, byteorder='big')
+                    if checkfile.tell() + misctablelength - 2 > filesize:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+                        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                    ## skip over the section
+                    checkfile.seek(misctablelength-2, os.SEEK_CUR)
+                    unpackedsize += misctablelength-2
+                else:
+                    break
+
+            ## RST: no data, so simply ignore, but immediately
+            ## skip to more of the raw data.
+            isrestart = False
+            if checkbytes in rstmarkers:
+                isrestart = True
+
+            ## DNL (section B.2.5)
+            if checkbytes == b'\xff\xdc':
+                ## extract the length of the DNL
+                ## this includes the 2 bytes of the length field itself
+                checkbytes = checkfile.read(2)
+                if not len(checkbytes) == 2:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 2
+
+                headerlength = int.from_bytes(checkbytes, byteorder='big')
+                if checkfile.tell() + headerlength - 2 > filesize:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'start of scan outside of file'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                ## skip over the section
+                checkfile.seek(headerlength-3, os.SEEK_CUR)
+                unpackedsize += headerlength - 3
+
+                ## and read two bytes
+                checkbytes = checkfile.read(2)
+                if not len(checkbytes) == 2:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 2
+
+            ## the SOS (start of scan) header
+            if checkbytes == b'\xff\xda':
+                ## extract the length of the start of scan header
+                ## this includes the 2 bytes of the length field itself
+                checkbytes = checkfile.read(2)
+                if not len(checkbytes) == 2:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 2
+
+                headerlength = int.from_bytes(checkbytes, byteorder='big')
+                if checkfile.tell() + headerlength - 2 > filesize:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'start of scan outside of file'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                ## the number of image components, can only be 1-4
+                checkbytes = checkfile.read(1)
+                numberimagecomponents = ord(checkbytes)
+                if numberimagecomponents not in [1,2,3,4]:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for number of image components'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+                unpackedsize += 1
+
+                ## the header length = 6+2* number of image components
+                if headerlength != 6+2*numberimagecomponents:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for number of image components or start of scan header length'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+                ## skip over the section
+                checkfile.seek(headerlength-3, os.SEEK_CUR)
+                unpackedsize += headerlength - 3
+            else:
+                if not isrestart:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for start of scan'}
+                    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+            ## now read the image data in chunks to search for
+            ## JPEG markers (section B.1.1.2)
+            ## This is not fully fool proof: if data from the
+            ## entropy coded segment (ECS) is missing, or if data
+            ## has been inserted or changed in the ECS. The only
+            ## way to verify this is to reimplement it, or to run
+            ## it through an external tool or library such as pillow.
+            readsize = 100
+            while True:
+                oldpos = checkfile.tell()
+                checkbytes = checkfile.read(readsize)
+                if checkbytes == b'':
+                    break
+                ## check if 0xff can be found in the data. If so, then it
+                ## is either part of the entropy coded data (and followed
+                ## by 0x00), or a valid JPEG marker, or bogus data.
+                if b'\xff' in checkbytes:
+                    startffpos = 0
+                    fffound = False
+                    while True:
+                        ffpos = checkbytes.find(b'\xff', startffpos)
+                        if ffpos == -1:
+                            break
+                        startffpos = ffpos + 1
+                        if ffpos < readsize - 1:
+                            if checkbytes[ffpos+1] != 0:
+                                if checkbytes[ffpos:ffpos+2] in tablesmiscmarkers or checkbytes[ffpos:ffpos+2] in appmarkers:
+                                    checkfile.seek(oldpos + ffpos)
+                                    fffound = True
+                                    break
+                                if checkbytes[ffpos:ffpos+2] in jpegextmarkers:
+                                    checkfile.seek(oldpos + ffpos)
+                                    fffound = True
+                                    break
+                                if checkbytes[ffpos:ffpos+2] in rstmarkers:
+                                    checkfile.seek(oldpos + ffpos)
+                                    fffound = True
+                                    break
+                                ## check for SOS
+                                if checkbytes[ffpos:ffpos+2] == b'\xff\xda':
+                                    checkfile.seek(oldpos + ffpos)
+                                    fffound = True
+                                    break
+                                ## check for DNL
+                                if checkbytes[ffpos:ffpos+2] == b'\xff\xdc':
+                                    checkfile.seek(oldpos + ffpos)
+                                    fffound = True
+                                    break
+                                ## check for EOI
+                                if checkbytes[ffpos:ffpos+2] == b'\xff\xd9':
+                                    checkfile.seek(oldpos + ffpos + 2)
+                                    eofseen = True
+                                    fffound = True
+                                    break
+
+                    ## set unpacked size to whatever data was read
+                    unpackedsize = checkfile.tell() - offset
+
+                    ## a valid marker was found, so break out of the loop
+                    if fffound:
+                        break
+                else:
+                    unpackedsize = checkfile.tell() - offset
+                if checkfile.tell() == filesize:
+                    break
+                checkfile.seek(-1, os.SEEK_CUR)
+
+        ## end of the image, so break out of the loop
+        if eofseen:
+            break
+
+    if offset == 0 and unpackedsize == filesize:
+        ## now load the file into PIL as an extra sanity check
+        try:
+            testimg = PIL.Image.open(checkfile)
+            testimg.load()
+            testimg.close()
+        except:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        checkfile.close()
+
+        labels.append('graphics')
+        labels.append('jpeg')
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## else carve the file
+    outfilename = os.path.join(unpackdir, "unpacked.jpg")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    ## open as read only
+    outfile = open(outfilename, 'rb')
+
+    ## now load the file into PIL as an extra sanity check
+    try:
+        testimg = PIL.Image.open(outfile)
+        testimg.load()
+        testimg.close()
+        outfile.close()
+    except:
+        outfile.close()
+        os.unlink(outfilename)
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    unpackedfilesandlabels.append((outfilename, ['jpeg', 'graphics', 'unpacked']))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Derived from specifications at:
 ## https://www.w3.org/TR/WOFF/
