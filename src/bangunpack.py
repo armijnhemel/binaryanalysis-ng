@@ -13,11 +13,13 @@
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU Affero General Public License for more details.
 ##
-## You should have received a copy of the GNU Affero General Public License, version 3,
-## along with BANG.  If not, see <http://www.gnu.org/licenses/>
+## You should have received a copy of the GNU Affero General Public
+## License, version 3, along with BANG.  If not, see
+## <http://www.gnu.org/licenses/>
 ##
 ## Copyright 2018 - Armijn Hemel
-## Licensed under the terms of the GNU Affero General Public License version 3
+## Licensed under the terms of the GNU Affero General Public License
+## version 3
 ## SPDX-License-Identifier: AGPL-3.0-only
 
 ## Built in carvers/verifiers/unpackers for various formats.
@@ -72,8 +74,10 @@
 ##  7. Microsoft Cabinet archives (requires cabextract)
 ##  8. RZIP (requires rzip)
 ##  9. 7z (requires external tools), single frame(?)
-## 10. Windows Compiled HTML Help (requires external tools, version 3 only)
-## 11. Windows Imaging file format (requires external tools, single image only)
+## 10. Windows Compiled HTML Help (requires external tools, version 3
+##     only)
+## 11. Windows Imaging file format (requires external tools, single
+##     image only)
 ## 12. ext2/3/4 (missing: symbolic link support)
 ## 13. zstd (needs zstd package)
 ## 14. SGI image files (needs PIL)
@@ -82,9 +86,9 @@
 ## 17. VMware VMDK (requires qemu-img, whole file only)
 ## 18. QEMU qcow2 (requires qemu-img, whole file only)
 ##
-## For these unpackers it has been attempted to reduce disk I/O as much as possible
-## using the os.sendfile() method, as well as techniques described in this blog
-## post:
+## For these unpackers it has been attempted to reduce disk I/O as much
+## as possible using the os.sendfile() method, as well as techniques
+## described in this blog post:
 ##
 ## https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
@@ -113,35 +117,39 @@ import lz4
 import lz4.frame
 
 encodingstotranslate = [ 'utf-8','ascii','latin-1','euc_jp', 'euc_jis_2004'
-                       , 'jisx0213', 'iso2022_jp', 'iso2022_jp_1', 'iso2022_jp_2'
-                       , 'iso2022_jp_2004', 'iso2022_jp_3', 'iso2022_jp_ext'
-                       , 'iso2022_kr','shift_jis','shift_jis_2004'
-                       , 'shift_jisx0213']
+                       , 'jisx0213', 'iso2022_jp', 'iso2022_jp_1'
+                       , 'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3'
+                       , 'iso2022_jp_ext', 'iso2022_kr','shift_jis'
+                       ,'shift_jis_2004', 'shift_jisx0213']
 
 ## Each unpacker has a specific interface:
 ##
 ## def unpacker(filename, offset, unpackdir)
 ##
 ## * filename: full file name
-## * offset: offset inside the file where the file system, compressed file
-##   media file possibly starts
+## * offset: offset inside the file where the file system, compressed
+##   file media file possibly starts
 ## * unpackdir: the target directory where data should be written to
 ##
-## The unpackers are supposed to return the following data (in this order):
+## The unpackers are supposed to return the following data (in this
+## order):
 ##
-## * unpack status (boolean) to indicate whether or not any data was unpacked
+## * unpack status (boolean) to indicate whether or not any data was
+##   unpacked
 ## * unpack size to indicate what part of the data was unpacked
-## * a list of tuples (file, labels) that were unpacked from the file. The labels
-##   could be used to indicate that a file has a certain status and that it should
-##   not be unpacked as it is already known what the file is (example: PNG)
+## * a list of tuples (file, labels) that were unpacked from the file.
+##   The labels could be used to indicate that a file has a certain
+##   status and that it should not be unpacked as it is already known
+##   what the file is (example: PNG)
 ## * a list of labels for the file
-## * a dict with a possible error. This is ignored if unpacking was successful.
+## * a dict with a possible error. This is ignored if unpacking was
+##   successful.
 ##
 ## The error dict has the following items:
 ##
 ## * fatal: boolean to indicate whether or not the error is a fatal
-##   error (such as disk full, etc.) so BANG should be stopped. Non-fatal
-##   errors are format violations (files, etc.)
+##   error (such as disk full, etc.) so BANG should be stopped.
+##   Non-fatal errors are format violations (files, etc.)
 ## * offset: offset where the error occured
 ## * reason: human readable description of the error
 
@@ -160,7 +168,8 @@ def unpackWebP(filename, offset, unpackdir, temporarydirectory):
 
     ## a list of valid WebP chunk FourCC
     ## also contains the deprecated FRGM
-    validchunkfourcc = set([b'ALPH', b'ANIM', b'ANMF', b'EXIF', b'FRGM', b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
+    validchunkfourcc = set([b'ALPH', b'ANIM', b'ANMF', b'EXIF', b'FRGM',
+                           b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
     (unpackstatus, unpackedsize, unpackedfiles, labels, error) = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP', filesize)
     if unpackstatus:
         if offset == 0 and unpackedsize == filesize:
@@ -179,7 +188,9 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
     unpackedfilesandlabels = []
 
     ## a list of valid WAV chunk FourCC
-    validchunkfourcc = set([b'LGWV', b'bext', b'cue ', b'data', b'fact', b'fmt ', b'inst', b'labl', b'list', b'ltxt', b'note', b'plst', b'smpl'])
+    validchunkfourcc = set([b'LGWV', b'bext', b'cue ', b'data', b'fact',
+                            b'fmt ', b'inst', b'labl', b'list', b'ltxt',
+                            b'note', b'plst', b'smpl'])
     (unpackstatus, unpackedsize, unpackedfiles, labels, error) = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
     if unpackstatus:
         if offset == 0 and unpackedsize == filesize:
@@ -195,14 +206,16 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
 ## https://en.wikipedia.org/wiki/Resource_Interchange_File_Format
 def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, applicationheader, filesize):
     labels = []
-    ## First check if the file size is 12 bytes or more. If not, then it is not a valid RIFF file
+    ## First check if the file size is 12 bytes or more. If not, then
+    ## it is not a valid RIFF file.
     if filesize - offset < 12:
         unpackingerror = {'offset': offset, 'reason': 'less than 12 bytes', 'fatal': False}
         return (False, 0, [], labels, unpackingerror)
 
     unpackedsize = 0
 
-    ## Then open the file and read the first four bytes to see if they are "RIFF"
+    ## Then open the file and read the first four bytes to see if
+    ## they are "RIFF".
     checkfile = open(filename, 'rb')
     checkfile.seek(offset)
     checkbytes = checkfile.read(4)
@@ -212,7 +225,8 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
         return (False, 0, [], labels, unpackingerror)
     unpackedsize += 4
 
-    ## Then read four bytes and check the length (stored in little endian format)
+    ## Then read four bytes and check the length (stored
+    ## in little endian format)
     checkbytes = checkfile.read(4)
     rifflength = int.from_bytes(checkbytes, byteorder='little')
     ## the data cannot go outside of the file
@@ -226,7 +240,9 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
     checkbytes = checkfile.read(4)
     if checkbytes != applicationheader:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'reason': 'no valid %s header' % applicationname, 'fatal': False}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'no valid %s header' % applicationname,
+                          'fatal': False}
         return (False, 0, [], labels, unpackingerror)
     unpackedsize += 4
 
@@ -236,11 +252,15 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset + unpackedsize, 'reason': 'no valid chunk header', 'fatal': False}
+            unpackingerror = {'offset': offset + unpackedsize,
+                              'reason': 'no valid chunk header',
+                              'fatal': False}
             return (False, 0, [], labels, unpackingerror)
         if not checkbytes in validchunkfourcc:
             checkfile.close()
-            unpackingerror = {'offset': offset + unpackedsize, 'reason': 'no valid chunk FourCC %s' % checkbytes, 'fatal': False}
+            unpackingerror = {'offset': offset + unpackedsize,
+                              'reason': 'no valid chunk FourCC %s' % checkbytes,
+                              'fatal': False}
             return (False, 0, [], labels, unpackingerror)
         unpackedsize += 4
 
@@ -253,7 +273,9 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
         curpos = checkfile.tell()
         if chunklength > filesize - curpos:
             checkfile.close()
-            unpackingerror = {'offset': offset + unpackedsize, 'reason': 'wrong chunk length', 'fatal': False}
+            unpackingerror = {'offset': offset + unpackedsize,
+                              'reason': 'wrong chunk length',
+                              'fatal': False}
             return (False, 0, [], labels, unpackingerror)
         unpackedsize += 4
 
@@ -263,7 +285,9 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
             paddingbyte = checkfile.read(1)
             if not paddingbyte == b'\x00':
                 checkfile.close()
-                unpackingerror = {'offset': offset + unpackedsize, 'reason': 'wrong value for padding byte length', 'fatal': False}
+                unpackingerror = {'offset': offset + unpackedsize,
+                                  'reason': 'wrong value for padding byte length',
+                                  'fatal': False}
                 return (False, 0, [], labels, unpackingerror)
         else:
             checkfile.seek(curpos + chunklength)
@@ -10384,8 +10408,8 @@ def unpackZstd(filename, offset, unpackdir, temporarydirectory):
     checkfile.seek(offset+4)
     unpackedsize += 4
 
-    ## then read the frame header descriptor as it might indicate whether or
-    ## not there is a size field
+    ## then read the frame header descriptor as it might indicate
+    ## whether or not there is a size field.
     checkbytes = checkfile.read(1)
     if len(checkbytes) != 1:
         checkfile.close()
@@ -10397,7 +10421,8 @@ def unpackZstd(filename, offset, unpackdir, temporarydirectory):
     else:
         single_segment = True
 
-    ## process the frame header descriptor to see how big the frame header is
+    ## process the frame header descriptor to see how big the
+    ## frame header is.
     frame_content_size_flag = ord(checkbytes) >> 6
     if frame_content_size_flag == 3:
         fcs_field_size = 8
@@ -10481,7 +10506,8 @@ def unpackZstd(filename, offset, unpackdir, temporarydirectory):
             break
 
     if content_checksum_set:
-        ## lower 32 bytes of xxHash checksum of the original decompressed data
+        ## lower 32 bytes of xxHash checksum of the original
+        ## decompressed data
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
@@ -10653,8 +10679,9 @@ def unpackMNG(filename, offset, unpackdir, temporarydirectory):
     checkfile.seek(offset+8)
     unpackedsize = 8
 
-    ## Then process the MNG data. All data is in network byte order (section 1)
-    ## First read the size of the first chunk, which is always 28 bytes (section 4.1.1)
+    ## Then process the MNG data. All data is in network byte order
+    ## (section 1). First read the size of the first chunk, which is
+    ## always 28 bytes (section 4.1.1).
     ## Including the header, chunk type and CRC 40 bytes have to be read
     checkbytes = checkfile.read(40)
     if checkbytes[0:4] != b'\x00\x00\x00\x1c':
