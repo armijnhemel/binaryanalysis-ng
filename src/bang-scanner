@@ -132,7 +132,7 @@ signaturesoffset = {
                      'tar_gnu': 0x101,
                      'icc':     36,
                      'iso9660': 32769,
-               '      ext2':    0x438,
+                     'ext2':    0x438,
                    }
 
 ## keep a list of signatures to the (built in) functions
