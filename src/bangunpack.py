@@ -9972,16 +9972,17 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     checkfile.seek(offset+4)
     unpackedsize += 4
 
-    ## then process the RPM lead. Many of these values are duplicated in the
-    ## header later in the file.
+    ## then process the RPM lead. Many of these values are duplicated
+    ## in the header later in the file.
 
-    ## read the major version. The standard version is 3. There have been
-    ## files with major 4.
+    ## read the major version. The standard version is 3. There have
+    ## also been files with major 4.
     checkbytes = checkfile.read(1)
     majorversion = ord(checkbytes)
     if majorversion > 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a valid RPM major version'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not a valid RPM major version'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 1
 
@@ -9998,7 +9999,8 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         issourcerpm = True
     else:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a valid RPM type'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not a valid RPM type'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 2
 
@@ -10010,7 +10012,8 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(66)
     if not b'\x00' in checkbytes:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'name not NUL terminated'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'name not NUL terminated'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 66
 
@@ -10019,7 +10022,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     osnum = int.from_bytes(checkbytes, byteorder='big')
     if osnum != 1:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'osnum not 1'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                         'fatal': False,
+                         'reason': 'osnum not 1'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 2
 
@@ -10028,7 +10033,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     signaturetype = int.from_bytes(checkbytes, byteorder='big')
     if signaturetype != 5:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'signature type not 5'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'signature type not 5'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 2
 
@@ -10040,11 +10047,15 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for signature'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for signature'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     if checkbytes != b'\x8e\xad\xe8\x01':
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong magic for signature'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'wrong magic for signature'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -10052,11 +10063,15 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for signature reserved space'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for signature reserved space'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     if checkbytes != b'\x00\x00\x00\x00':
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'incorrect values for signature rserved space'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'incorrect values for signature rserved space'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -10064,20 +10079,27 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for signature index record count'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for signature index record count'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     signatureindexrecordcount = int.from_bytes(checkbytes, byteorder='big')
     if signatureindexrecordcount < 1:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for signature index record count'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'wrong value for signature index record count'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
-    ## the size of the storage area for the data pointed to by the index records
+    ## the size of the storage area for the data pointed to by
+    ## the index records
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for index record size'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for index record size'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     signaturehsize = int.from_bytes(checkbytes, byteorder='big')
     unpackedsize += 4
@@ -10088,7 +10110,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for index record tag'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for index record tag'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -10096,7 +10120,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for index record type'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for index record type'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -10104,12 +10130,16 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for index record offset'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for index record offset'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         indexoffset = int.from_bytes(checkbytes, byteorder='big')
         if indexoffset > signaturehsize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid index record offset'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid index record offset'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -10117,7 +10147,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for index count'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for index count'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         indexcount = int.from_bytes(checkbytes, byteorder='big')
         unpackedsize += 4
@@ -10125,7 +10157,8 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     ## then the signature size
     if checkfile.tell() + signaturehsize > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for signature storage area'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                         'reason': 'not enough data for signature storage area'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     checkfile.seek(signaturehsize, os.SEEK_CUR)
@@ -10136,15 +10169,18 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         checkfile.seek(8 - unpackedsize%8, os.SEEK_CUR)
         unpackedsize += 8 - unpackedsize%8
 
-    ## Next is the Header, which is identical to the Signature (section 22.2.2 and 22.2.3)
+    ## Next is the Header, which is identical to the Signature
+    ## (section 22.2.2 and 22.2.3)
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for header'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     if checkbytes != b'\x8e\xad\xe8\x01':
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong magic for header'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong magic for header'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -10152,11 +10188,13 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for header reserved space'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header reserved space'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     if checkbytes != b'\x00\x00\x00\x00':
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'incorrect values for header rserved space'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'incorrect values for header rserved space'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -10164,12 +10202,14 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for header index record count'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header index record count'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     headerindexrecordcount = int.from_bytes(checkbytes, byteorder='big')
     if headerindexrecordcount < 1:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for header index record count'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong value for header index record count'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -10177,7 +10217,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for index record size'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for index record size'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     headerhsize = int.from_bytes(checkbytes, byteorder='big')
     unpackedsize += 4
@@ -10191,7 +10233,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for index record tag'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for index record tag'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         headertag = int.from_bytes(checkbytes, byteorder='big')
         unpackedsize += 4
@@ -10200,7 +10244,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for index record type'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for index record type'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         headertype = int.from_bytes(checkbytes, byteorder='big')
         unpackedsize += 4
@@ -10209,12 +10255,16 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for index record offset'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for index record offset'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         indexoffset = int.from_bytes(checkbytes, byteorder='big')
         if indexoffset > headerhsize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid index record offset'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid index record offset'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -10222,7 +10272,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for index count'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for index count'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         indexcount = int.from_bytes(checkbytes, byteorder='big')
         unpackedsize += 4
@@ -10233,7 +10285,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     ## then the header size
     if checkfile.tell() + headerhsize > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for header storage area'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for header storage area'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## first store the old offset
@@ -10250,7 +10304,8 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         ## store results for tags, for now for strings only
         tagresults = []
 
-        ## depending on the type a different size has to be read (section 22.2.2.2.1)
+        ## depending on the type a different size has to be read
+        ## (section 22.2.2.2.1)
         for c in range(0,tagcount):
             ## char
             if tagtype == 1:
@@ -10311,9 +10366,11 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     checkfile.seek(headerhsize, os.SEEK_CUR)
     unpackedsize += signaturehsize
 
-    ## then unpack the file. This depends on the compressor and the payload format.
-    ## The default compressor is either gzip or XZ (on Fedora). Other supported
-    ## compressors are bzip2, LZMA and zstd (recent addition).
+    ## then unpack the file. This depends on the compressor and the
+    ## payload format.  The default compressor is either gzip or XZ
+    ## (on Fedora). Other supported compressors are bzip2, LZMA and
+    ## zstd (recent addition).
+    ##
     ## 1125 is the tag for the compressor.
     if not 1125 in tagstoresults:
         ## gzip by default
