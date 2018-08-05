@@ -762,9 +762,11 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                     if s[0] == 0 and unpackedlength == filesize:
                         labels += unpackedlabels
                         labels = list(set(labels))
-                        ## if unpackedfilesandlabels is empty, then no files were unpacked
-                        ## likely because the whole file was the result and didn't
-                        ## contain any files (it was not a container or compresed file)
+                        ## if unpackedfilesandlabels is empty, then no
+                        ## files were unpacked, likely because the whole
+                        ## file was the result and didn't contain any
+                        ## files (i.e. it was not a container file or
+                        ## compresed file).
                         if len(unpackedfilesandlabels) == 0:
                             os.rmdir(dataunpackdirectory)
 
@@ -793,7 +795,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
 
                     fileresult['unpackedfiles'].append(report)
 
-                    ## skip over all of the indexes that are essentially false positives now
+                    ## skip over all of the indexes that are now known
+                    ## to be false positives
                     lastunpackedoffset = s[0] + unpackedlength
                     needsunpacking = False
 
@@ -886,18 +889,22 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                         continue
                     (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = unpackresult
                     if not unpackstatus:
-                        ## No data could be unpacked for some reason, so check the status first
+                        ## No data could be unpacked for some reason,
+                        ## so check the status first
                         logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, 0, unpackerror['offset'], unpackerror['reason']))
                         #print(s[1], unpackerror)
                         #sys.stdout.flush()
                         ## unpackerror contains:
-                        ## * offset in the file where the error occured (integer)
+                        ## * offset in the file where the error occured
+                        ##   (integer)
                         ## * reason of the error (human readable)
-                        ## * flag to indicate if it is a fatal error (boolean)
+                        ## * flag to indicate if it is a fatal error
+                        ##   (boolean)
                         ##
-                        ## Fatal errors should lead to the program stopping execution.
-                        ## remove the directory, so first change the permissions of
-                        ## all the files so they can be safely
+                        ## Fatal errors should stop execution of the
+                        ## program and remove the unpacking directory,
+                        ## so first change the permissions of
+                        ## all the files so they can be safely removed.
                         if unpackerror['fatal']:
                             pass
                         ## clean up any data that might have been left behind
@@ -1017,38 +1024,41 @@ def main(argv):
     usedatabase = True
     dbconnectionerrorfatal = False
 
-    ## then process each individual section and extract configuration options
+    ## then process each individual section and extract
+    ## configuration options
     for section in config.sections():
         if section == 'configuration':
-            ## The base unpack directory is where the unpacked files will be written.
-            ## This is mandatory.
+            ## The base unpack directory is where the unpacked files
+            ## will be written. This is mandatory.
             try:
                 baseunpackdirectory = config.get(section, 'baseunpackdirectory')
             except Exception:
                 break
-            ## The temporary directory is where temporary files will be written.
-            ## This is optional. If not set the system's temporary directory
-            ## (usually /tmp ) will be used.
+            ## The temporary directory is where temporary files will be
+            ## written.  This is optional. If not set the system's
+            ## temporary directory (usually /tmp ) will be used.
             try:
                 temporarydirectory = config.get(section, 'temporarydirectory')
             except Exception:
                 pass
 
-            ## The number of threads to be created to scan the files recursively,
-            ## next to the main thread. Defaults to "all availabe threads" (number
-            ## of CPUs on a machine).
+            ## The number of threads to be created to scan the files
+            ## recursively, next to the main thread. Defaults to "all
+            ## availabe threads" (number of CPUs on a machine).
             try:
                 threads = min(int(config.get(section, 'threads')), multiprocessing.cpu_count())
-                ## if 0 or a negative number was configured, then use all available threads
+                ## if 0 or a negative number was configured, then use
+                ## all available threads
                 if threads < 1:
                     threads = multiprocessing.cpu_count()
             except Exception:
                 ## use all available threads by default
                 threads = multiprocessing.cpu_count()
         elif section == 'database':
-            ## The default mode is to continue without having a database and
-            ## to just disable the functionality that requires a database, but
-            ## this makes it harder to detect that a database might be down.
+            ## The default mode is to continue without having a database
+            ## and to just disable the functionality that requires a
+            ## database, but this makes it harder to detect that a
+            ## database might be down.
             try:
                 connectionerrorfatal = config.get(section, 'dbconnectionerrorfatal')
                 if connectionerrorfatal == 'yes':
@@ -1056,8 +1066,8 @@ def main(argv):
             except:
                 pass
 
-            ## Extract the minimally necessary information for PostgreSQL to
-            ## be able to connect.
+            ## Extract the minimally necessary information for
+            ## PostgreSQL to be able to connect.
             try:
                 postgresql_user = config.get(section, 'postgresql_user')
                 postgresql_password = config.get(section, 'postgresql_password')
@@ -1081,9 +1091,9 @@ def main(argv):
 
     configfile.close()
 
-    ## test the database. If the connection fails it depends on whether or not it should
-    ## be treated as a fatal error. If not, then continue without using any of the
-    ## database functionality.
+    ## test the database. If the connection fails it depends on whether
+    ## or not it should be treated as a fatal error. If not, then
+    ## continue without using any of the database functionality.
     try:
         c = psycopg2.connect(database=postgresql_db, user=postgresql_user, password=postgresql_password, port=postgresql_port, host=postgresql_host)
         c.close()
@@ -1116,8 +1126,8 @@ def main(argv):
         print("Base unpack directory %s cannot be written to, exiting" % baseunpackdirectory, file=sys.stderr)
         sys.exit(1)
 
-    ## Check if the temporary directory is actually an existing directory,
-    ## but only if it was defined in the configuration file.
+    ## Check if the temporary directory is actually an existing
+    ## directory, but only if it was defined in the configuration file.
     if temporarydirectory != None:
         if not os.path.exists(temporarydirectory):
             print("Temporary directory %s does not exist, exiting" % temporarydirectory, file=sys.stderr)
@@ -1148,7 +1158,8 @@ def main(argv):
 
     ## now create a directory structure inside the scandirectory:
     ## unpack/ -- this is where all the unpacked data will be stored
-    ## results/ -- this is where files describing the unpacked data will be stored
+    ## results/ -- this is where files describing the unpacked data
+    ##             will be stored
     ## logs/ -- this is where logs from the scan will be stored
     unpackdirectory = os.path.join(scandirectory, "unpack")
     os.mkdir(unpackdirectory)
@@ -1163,15 +1174,15 @@ def main(argv):
     logging.basicConfig(filename=os.path.join(logdirectory, 'unpack.log'),level=logging.DEBUG, format='%(asctime)s %(message)s')
     logging.info("Started scanning %s" % args.checkfile)
 
-    ## first determine how many bytes should be scanned for known signatures
-    ## using a sliding window. This should not be set too large for performance
-    ## reasons.
+    ## first determine how many bytes should be scanned for known
+    ## signatures using a sliding window. This should not be set too
+    ## large for performance reasons.
     readsize = 2000000
 
     processmanager = multiprocessing.Manager()
 
-    ## first create two queues: one for scanning files, the other one for
-    ## reporting results.
+    ## first create two queues: one for scanning files, the other one
+    ## for reporting results.
     scanfilequeue = processmanager.JoinableQueue(maxsize=0)
     resultqueue = processmanager.JoinableQueue(maxsize=0)
     processes = []
@@ -1184,15 +1195,15 @@ def main(argv):
         print("Could not copy %s to scanning directory %s" % (args.checkfile, unpackdirectory), file=sys.stderr)
         sys.exit(1)
 
-    ## The scan queue will be used to put files into that need to be scanned and
-    ## processes. New files wil keep being added to it while results are being
-    ## unpacked recursively.
+    ## The scan queue will be used to put files into that need to be
+    ## scanned and processes. New files wil keep being added to it
+    ## while results are being unpacked recursively.
     ## Initially one file will be in this queue, namely the first file.
     ## After files are unpacked they will be added to the queue, as they
     ## can be scanned in a trivially parallel way.
 
-    ## Create a list of labels to pass around. The first element is tagged
-    ## as 'root', as it is the root of the unpacking tree.
+    ## Create a list of labels to pass around. The first element is
+    ## tagged as 'root', as it is the root of the unpacking tree.
     labels = ['root']
     scanfilequeue.put((os.path.join(unpackdirectory, os.path.basename(args.checkfile)), labels))
 
