@@ -64,184 +64,189 @@ except Exception:
 
 ## store a few standard signatures
 signatures = {
-              'webp':           b'WEBP',
-              'wav':            b'WAVE',
-              'png':            b'\x89PNG\x0d\x0a\x1a\x0a',
-              'mng':            b'\x8aMNG\x0d\x0a\x1a\x0a',
-              'gzip':           b'\x1f\x8b\x08',      # RFC 1952 says x08 is the only compression method allowed
-              'bmp':            b'BM',                # https://en.wikipedia.org/wiki/BMP_file_format
-              'xz':             b'\xfd\x37\x7a\x58\x5a\x00',
-              'lzma_var1':      b'\x5d\x00\x00',
-              'lzma_var2':      b'\x6d\x00\x00',      # used in OpenWrt
-              'lzma_var3':      b'\x6c\x00\x00',      # some routers, like ZyXEL NBG5615, use this
-              'timezone':       b'TZif',              # man 5 tzfile
-              'tar_posix':      b'ustar\x00',         # /usr/share/magic
-              'tar_gnu':        b'ustar\x20\x20\x00', # /usr/share/magic
-              'ar':             b'!<arch>',
-              'squashfs_var1':  b'sqsh',
-              'squashfs_var2':  b'hsqs',
-              'appledouble':    b'\x00\x05\x16\x07',  # https://tools.ietf.org/html/rfc1740 Appendix B
-              'icc':            b'acsp',              # http://www.color.org/specification/ICC1v43_2010-12.pdf, section 7.2
-              'zip':            b'\x50\x4b\x03\04',   # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
-              'bzip2':          b'BZh',               # https://en.wikipedia.org/wiki/Bzip2#File_format
-              'xar':            b'\x78\x61\x72\x21',  # https://github.com/mackyle/xar/wiki/xarformat
-              'gif87':          b'GIF87a',            # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
-              'gif89':          b'GIF89a',            # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
-              'iso9660':        b'CD001',             # ECMA 119
-              'lzip':           b'LZIP',              # http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
-              'jpeg':           b'\xff\xd8',
-              'woff':           b'wOFF',
-              'opentype':       b'OTTO',
-              'truetype':       b'\x00\x01\x00\x00',
-              'android_backup':      b'ANDROID BACKUP\n',
-              'ico':            b'\x00\x00\x01\x00',  # https://en.wikipedia.org/wiki/ICO_%28file_format%29
-              'gnu_message_catalog_le': b'\xde\x12\x04\x95',    # /usr/share/magic
-              'gnu_message_catalog_be': b'\x95\x04\x12\xde',    # /usr/share/magic
-              'cab':                  b'MSCF\x00\x00\x00\x00',  # /usr/share/magic
-              'sgi':            b'\x01\xda',          # https://media.xiph.org/svt/SGIIMAGESPEC
-              'aiff':           b'FORM',
-              'terminfo':       b'\x1a\x01',
-              'rzip':           b'RZIP',              # /usr/share/magic
-              'au':             b'.snd',
-              'jffs2_little_endian':  b'\x85\x19',    # /usr/share/magic
-              'jffs2_big_endian':     b'\x19\x85',    # /usr/share/magic
-              'cpio_old':       b'\xc7\x71',          # man 5 cpio
-              'cpio_portable':  b'070707',            # man 5 cpio
-              'cpio_newascii':  b'070701',            # man 5 cpio
-              'cpio_newcrc':    b'070702',            # man 5 cpio
-              '7z':             b'7z\xbc\xaf\x27\x1c',      # documentation in 7-Zip source code
-              'chm':            b'ITSF\x03\x00\x00\x00',    # /usr/share/magic but only use a part and only support version 3
-              'mswim':          b'MSWIM\x00\x00\x00',       # /usr/share/magic
-              'sunraster':      b'\x59\xa6\x6a\x95',  # https://www.fileformat.info/format/sunraster/egff.htm
-              'ext2':           b'\x53\xef',          # /usr/share/magic
-              'rpm':            b'\xed\xab\xee\xdb',
-              'zstd_08':        b'\x28\xb5\x2f\xfd',  # /usr/share/magic
-              'apple_icon':     b'icns',              # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
-              'androidsparse':  b'\x3a\xff\x26\xed',
-              'lz4':            b'\x04\x22\x4d\x18',  # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
-              'vmdk':           b'KDMV',
-              'qcow2':          b'QFI\xfb',
-              'vdi':            b'<<< Oracle VM VirtualBox Disk Image >>>\n',
-             }
+    'webp':           b'WEBP',
+    'wav':            b'WAVE',
+    'png':            b'\x89PNG\x0d\x0a\x1a\x0a',
+    'mng':            b'\x8aMNG\x0d\x0a\x1a\x0a',
+    'gzip':           b'\x1f\x8b\x08',      # RFC 1952 says x08 is the only compression method allowed
+    'bmp':            b'BM',                # https://en.wikipedia.org/wiki/BMP_file_format
+    'xz':             b'\xfd\x37\x7a\x58\x5a\x00',
+    'lzma_var1':      b'\x5d\x00\x00',
+    'lzma_var2':      b'\x6d\x00\x00',      # used in OpenWrt
+    'lzma_var3':      b'\x6c\x00\x00',      # some routers, like ZyXEL NBG5615, use this
+    'timezone':       b'TZif',              # man 5 tzfile
+    'tar_posix':      b'ustar\x00',         # /usr/share/magic
+    'tar_gnu':        b'ustar\x20\x20\x00', # /usr/share/magic
+    'ar':             b'!<arch>',
+    'squashfs_var1':  b'sqsh',
+    'squashfs_var2':  b'hsqs',
+    'appledouble':    b'\x00\x05\x16\x07',  # https://tools.ietf.org/html/rfc1740 Appendix B
+    'icc':            b'acsp',              # http://www.color.org/specification/ICC1v43_2010-12.pdf, section 7.2
+    'zip':            b'\x50\x4b\x03\04',   # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
+    'bzip2':          b'BZh',               # https://en.wikipedia.org/wiki/Bzip2#File_format
+    'xar':            b'\x78\x61\x72\x21',  # https://github.com/mackyle/xar/wiki/xarformat
+    'gif87':          b'GIF87a',            # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+    'gif89':          b'GIF89a',            # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+    'iso9660':        b'CD001',             # ECMA 119
+    'lzip':           b'LZIP',              # http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
+    'jpeg':           b'\xff\xd8',
+    'woff':           b'wOFF',
+    'opentype':       b'OTTO',
+    'truetype':       b'\x00\x01\x00\x00',
+    'android_backup':      b'ANDROID BACKUP\n',
+    'ico':            b'\x00\x00\x01\x00',  # https://en.wikipedia.org/wiki/ICO_%28file_format%29
+    'gnu_message_catalog_le': b'\xde\x12\x04\x95',    # /usr/share/magic
+    'gnu_message_catalog_be': b'\x95\x04\x12\xde',    # /usr/share/magic
+    'cab':                  b'MSCF\x00\x00\x00\x00',  # /usr/share/magic
+    'sgi':            b'\x01\xda',          # https://media.xiph.org/svt/SGIIMAGESPEC
+    'aiff':           b'FORM',
+    'terminfo':       b'\x1a\x01',
+    'rzip':           b'RZIP',              # /usr/share/magic
+    'au':             b'.snd',
+    'jffs2_little_endian':  b'\x85\x19',    # /usr/share/magic
+    'jffs2_big_endian':     b'\x19\x85',    # /usr/share/magic
+    'cpio_old':       b'\xc7\x71',          # man 5 cpio
+    'cpio_portable':  b'070707',            # man 5 cpio
+    'cpio_newascii':  b'070701',            # man 5 cpio
+    'cpio_newcrc':    b'070702',            # man 5 cpio
+    '7z':             b'7z\xbc\xaf\x27\x1c',      # documentation in 7-Zip source code
+    'chm':            b'ITSF\x03\x00\x00\x00',    # /usr/share/magic but only use a part and only support version 3
+    'mswim':          b'MSWIM\x00\x00\x00',       # /usr/share/magic
+    'sunraster':      b'\x59\xa6\x6a\x95',  # https://www.fileformat.info/format/sunraster/egff.htm
+    'ext2':           b'\x53\xef',          # /usr/share/magic
+    'rpm':            b'\xed\xab\xee\xdb',
+    'zstd_08':        b'\x28\xb5\x2f\xfd',  # /usr/share/magic
+    'apple_icon':     b'icns',              # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
+    'androidsparse':  b'\x3a\xff\x26\xed',
+    'lz4':            b'\x04\x22\x4d\x18',  # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
+    'vmdk':           b'KDMV',
+    'qcow2':          b'QFI\xfb',
+    'vdi':            b'<<< Oracle VM VirtualBox Disk Image >>>\n',
+}
 
 ## some signatures do not start at the beginning of the file
 signaturesoffset = {
-                     'webp':    8,
-                     'wav':     8,
-                     'tar_posix': 0x101,
-                     'tar_gnu': 0x101,
-                     'icc':     36,
-                     'iso9660': 32769,
-                     'ext2':    0x438,
-                   }
+    'webp':    8,
+    'wav':     8,
+    'tar_posix': 0x101,
+    'tar_gnu': 0x101,
+    'icc':     36,
+    'iso9660': 32769,
+    'ext2':    0x438,
+}
 
 ## keep a list of signatures to the (built in) functions
-signaturetofunction = { 'webp': bangunpack.unpackWebP,
-                        'wav': bangunpack.unpackWAV,
-                        'png': bangunpack.unpackPNG,
-                        'mng': bangunpack.unpackMNG,
-                        'gzip': bangunpack.unpackGzip,
-                        'bmp': bangunpack.unpackBMP,
-                        'xz': bangunpack.unpackXZ,
-                        'lzma_var1': bangunpack.unpackLZMA,
-                        'lzma_var2': bangunpack.unpackLZMA,
-                        'lzma_var3': bangunpack.unpackLZMA,
-                        'timezone': bangunpack.unpackTimeZone,
-                        'tar_posix': bangunpack.unpackTar,
-                        'tar_gnu': bangunpack.unpackTar,
-                        'ar': bangunpack.unpackAr,
-                        'squashfs_var1': bangunpack.unpackSquashfs,
-                        'squashfs_var2': bangunpack.unpackSquashfs,
-                        'appledouble': bangunpack.unpackAppleDouble,
-                        'icc': bangunpack.unpackICC,
-                        'zip': bangunpack.unpackZip,
-                        'bzip2': bangunpack.unpackBzip2,
-                        'xar': bangunpack.unpackXAR,
-                        'gif87': bangunpack.unpackGIF,
-                        'gif89': bangunpack.unpackGIF,
-                        'iso9660': bangunpack.unpackISO9660,
-                        'lzip': bangunpack.unpackLzip,
-                        'jpeg': bangunpack.unpackJPEG,
-                        'woff': bangunpack.unpackWOFF,
-                        'opentype': bangunpack.unpackOpenTypeFont,
-                        'truetype': bangunpack.unpackTrueTypeFont,
-                        'android_backup': bangunpack.unpackAndroidBackup,
-                        'ico': bangunpack.unpackICO,
-                        'gnu_message_catalog_le': bangunpack.unpackGNUMessageCatalog,
-                        'gnu_message_catalog_be': bangunpack.unpackGNUMessageCatalog,
-                        'cab': bangunpack.unpackCab,
-                        'sgi': bangunpack.unpackSGI,
-                        'aiff': bangunpack.unpackAIFF,
-                        'terminfo': bangunpack.unpackTerminfo,
-                        'rzip': bangunpack.unpackRzip,
-                        'au': bangunpack.unpackAU,
-                        'jffs2_little_endian': bangunpack.unpackJFFS2,
-                        'jffs2_big_endian': bangunpack.unpackJFFS2,
-                        'cpio_old': bangunpack.unpackCpio,
-                        'cpio_portable': bangunpack.unpackCpio,
-                        'cpio_newascii': bangunpack.unpackCpio,
-                        'cpio_newcrc': bangunpack.unpackCpio,
-                        '7z': bangunpack.unpack7z,
-                        'chm': bangunpack.unpackCHM,
-                        'mswim': bangunpack.unpackWIM,
-                        'sunraster': bangunpack.unpackSunRaster,
-                        'ext2': bangunpack.unpackExt2,
-                        'rpm': bangunpack.unpackRPM,
-                        'zstd_08': bangunpack.unpackZstd,
-                        'apple_icon': bangunpack.unpackAppleIcon,
-                        'androidsparse': bangunpack.unpackAndroidSparse,
-                        'lz4': bangunpack.unpackLZ4,
-                        'vmdk': bangunpack.unpackVMDK,
-                        'qcow2': bangunpack.unpackQcow2,
-                        'vdi': bangunpack.unpackVDI,
-                      }
+signaturetofunction = {
+    'webp': bangunpack.unpackWebP,
+    'wav': bangunpack.unpackWAV,
+    'png': bangunpack.unpackPNG,
+    'mng': bangunpack.unpackMNG,
+    'gzip': bangunpack.unpackGzip,
+    'bmp': bangunpack.unpackBMP,
+    'xz': bangunpack.unpackXZ,
+    'lzma_var1': bangunpack.unpackLZMA,
+    'lzma_var2': bangunpack.unpackLZMA,
+    'lzma_var3': bangunpack.unpackLZMA,
+    'timezone': bangunpack.unpackTimeZone,
+    'tar_posix': bangunpack.unpackTar,
+    'tar_gnu': bangunpack.unpackTar,
+    'ar': bangunpack.unpackAr,
+    'squashfs_var1': bangunpack.unpackSquashfs,
+    'squashfs_var2': bangunpack.unpackSquashfs,
+    'appledouble': bangunpack.unpackAppleDouble,
+    'icc': bangunpack.unpackICC,
+    'zip': bangunpack.unpackZip,
+    'bzip2': bangunpack.unpackBzip2,
+    'xar': bangunpack.unpackXAR,
+    'gif87': bangunpack.unpackGIF,
+    'gif89': bangunpack.unpackGIF,
+    'iso9660': bangunpack.unpackISO9660,
+    'lzip': bangunpack.unpackLzip,
+    'jpeg': bangunpack.unpackJPEG,
+    'woff': bangunpack.unpackWOFF,
+    'opentype': bangunpack.unpackOpenTypeFont,
+    'truetype': bangunpack.unpackTrueTypeFont,
+    'android_backup': bangunpack.unpackAndroidBackup,
+    'ico': bangunpack.unpackICO,
+    'gnu_message_catalog_le': bangunpack.unpackGNUMessageCatalog,
+    'gnu_message_catalog_be': bangunpack.unpackGNUMessageCatalog,
+    'cab': bangunpack.unpackCab,
+    'sgi': bangunpack.unpackSGI,
+    'aiff': bangunpack.unpackAIFF,
+    'terminfo': bangunpack.unpackTerminfo,
+    'rzip': bangunpack.unpackRzip,
+    'au': bangunpack.unpackAU,
+    'jffs2_little_endian': bangunpack.unpackJFFS2,
+    'jffs2_big_endian': bangunpack.unpackJFFS2,
+    'cpio_old': bangunpack.unpackCpio,
+    'cpio_portable': bangunpack.unpackCpio,
+    'cpio_newascii': bangunpack.unpackCpio,
+    'cpio_newcrc': bangunpack.unpackCpio,
+    '7z': bangunpack.unpack7z,
+    'chm': bangunpack.unpackCHM,
+    'mswim': bangunpack.unpackWIM,
+    'sunraster': bangunpack.unpackSunRaster,
+    'ext2': bangunpack.unpackExt2,
+    'rpm': bangunpack.unpackRPM,
+    'zstd_08': bangunpack.unpackZstd,
+    'apple_icon': bangunpack.unpackAppleIcon,
+    'androidsparse': bangunpack.unpackAndroidSparse,
+    'lz4': bangunpack.unpackLZ4,
+    'vmdk': bangunpack.unpackVMDK,
+    'qcow2': bangunpack.unpackQcow2,
+    'vdi': bangunpack.unpackVDI,
+}
 
 ## a lookup table to map signatures to a name for
 ## pretty printing.
-signatureprettyprint = { 'lzma_var1': 'lzma',
-                         'lzma_var2': 'lzma',
-                         'lzma_var3': 'lzma',
-                         'tar_posix': 'tar',
-                         'tar_gnu': 'tar',
-                         'squashfs_var1': 'squashfs',
-                         'squashfs_var2': 'squashfs',
-                         'gif87': 'gif',
-                         'gif89': 'gif',
-                         'jffs2_little_endian': 'jffs2',
-                         'jffs2_big_endian': 'jffs2',
-                         'cpio_old': 'cpio',
-                         'cpio_portable': 'cpio',
-                         'cpio_newascii': 'cpio',
-                         'cpio_newcrc': 'cpio',
-                         'zstd_08': 'zstd',
-                       }
+signatureprettyprint = {
+    'lzma_var1': 'lzma',
+    'lzma_var2': 'lzma',
+    'lzma_var3': 'lzma',
+    'tar_posix': 'tar',
+    'tar_gnu': 'tar',
+    'squashfs_var1': 'squashfs',
+    'squashfs_var2': 'squashfs',
+    'gif87': 'gif',
+    'gif89': 'gif',
+    'jffs2_little_endian': 'jffs2',
+    'jffs2_big_endian': 'jffs2',
+    'cpio_old': 'cpio',
+    'cpio_portable': 'cpio',
+    'cpio_newascii': 'cpio',
+    'cpio_newcrc': 'cpio',
+    'zstd_08': 'zstd',
+}
 
 ## extensions to unpacking functions. This should only be
 ## used for files with a known extension that cannot be
 ## reliably recognized any other way.
 ## One example is the Android sparse data format.
 ## These extensions should be lower case
-extensiontofunction = { '.swp': bangunpack.unpackVimSwapfile,
-                        '.new.dat': bangunpack.unpackAndroidSparseData,
-                        '.pak': bangunpack.unpackChromePak,
-                        '.ihex': bangunpack.unpackIHex,
-                        '.hex': bangunpack.unpackIHex,
-                        '.srec': bangunpack.unpackSREC,
-                      }
+extensiontofunction = {
+    '.swp': bangunpack.unpackVimSwapfile,
+    '.new.dat': bangunpack.unpackAndroidSparseData,
+    '.pak': bangunpack.unpackChromePak,
+    '.ihex': bangunpack.unpackIHex,
+    '.hex': bangunpack.unpackIHex,
+    '.srec': bangunpack.unpackSREC,
+}
 
 
-extensionprettyprint = { '.swp': 'vimswapfile',
-                         '.new.dat': 'androidsparsedata',
-                         '.pak': 'pak',
-                         '.ihex': 'ihex',
-                         '.hex': 'ihex',
-                         '.srec': 'srec',
-                       }
+extensionprettyprint = {
+    '.swp': 'vimswapfile',
+    '.new.dat': 'androidsparsedata',
+    '.pak': 'pak',
+    '.ihex': 'ihex',
+    '.hex': 'ihex',
+    '.srec': 'srec',
+}
 
 ## certain unpacking functions if the whole file is text
-textonlyfunctions = { 'ihex': bangunpack.unpackIHex,
-                      'srec': bangunpack.unpackSREC,
-                    }
+textonlyfunctions = {
+    'ihex': bangunpack.unpackIHex,
+    'srec': bangunpack.unpackSREC,
+}
 
 ## store the maximum look ahead window. This is unlikely to matter, but
 ## just in case.
@@ -249,7 +254,8 @@ maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
 maxsignaturesoffset = max(signaturesoffset.values()) + maxsignaturelength
 
 ## not all files should be scanned
-tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'file system', 'srec', 'ihex'])
+tlshlabelsignore = set(['compressed', 'graphics', 'audio',
+                        'file system', 'srec', 'ihex'])
 
 ## Process a single file.
 ## This method has the following parameters:
@@ -274,7 +280,8 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'file system', 'srec'
 ## 'graphics') will be stored. These labels can be used to feed extra
 ## information to the unpacking process, such as preventing scans from
 ## running.
-def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, temporarydirectory):
+def processfile(scanfilequeue, resultqueue, maxsearchbytes,
+                unpackdirectory, temporarydirectory):
     lenunpackdirectory = len(unpackdirectory) + 1
     synthesizedminimum = 10
 
@@ -297,8 +304,10 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
             scanfilequeue.task_done()
             continue
 
-        ## First perform all kinds of checks to prevent the file being scanned.
-        ## Check if the file is a symbolic link
+        ## First perform all kinds of checks to prevent the file being
+        ## scanned.
+
+        ## Check if the file is a symbolic link.
         if os.path.islink(checkfile):
             labels.append('symbolic link')
             fileresult['labels'] = labels
@@ -378,9 +387,9 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
         ## remove any duplicate labels
         labels = list(set(labels))
 
-        ## check for a dummy value to see if the file has already been unpacked
-        ## if so, simply report and skip the unpacking, but move on to just
-        ## running the per file scans.
+        ## check for a dummy value to see if the file has already been
+        ## unpacked if so, simply report and skip the unpacking, but
+        ## move on to just running the per file scans.
         if 'unpacked' in labels:
             labels.remove('unpacked')
             needsunpacking = False
@@ -394,16 +403,16 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
 
         ## Now try to unpack the files. There are a few categories:
         ##
-        ## 1. a known extension, without a known magic header. This is for for
-        ## example Android sparse data image formats, or several other Android
-        ## or Google formats (Chrome PAK, etc.)
+        ## 1. a known extension, without a known magic header. This is
+        ##    for for example Android sparse data image formats, or
+        ##    several other Android or Google formats (Chrome PAK, etc.)
         ##
-        ## 2. blobs, searching for known magic headers and carving them from
-        ## blobs, or regular files.
+        ## 2. blobs, searching for known magic headers and carving them
+        ##    from blobs, or regular files.
         ##
-        ## 3. text only files, where it is not immediately clear what is inside
-        ## and where the file possibly first has to be converted to a binary (examples:
-        ## Intel Hex).
+        ## 3. text only files, where it is not immediately clear what
+        ##    is inside and where the file possibly first has to be
+        ##    converted to a binary (examples: Intel Hex).
 
         ## first process files with a known extension, but where
         ## there is no clear magic header. A prime example is the
@@ -416,7 +425,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes, unpackdirectory, tem
                 ## The result of the scan is:
                 ## * the status of the scan (successful or not)
                 ## * the length of the data
-                ## * list of files that were unpacked, if any, plus labels for the unpacked files
+                ## * list of files that were unpacked, if any, plus
+                ##   labels for the unpacked files
                 ## * labels that were added, if any
                 ## * errors that were encountered, if any
                 try:
