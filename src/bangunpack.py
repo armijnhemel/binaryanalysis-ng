@@ -11370,3 +11370,85 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                      'reason': 'Not a valid VDI file or cannot unpack'}
     return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+## XML specification: https://www.w3.org/TR/2008/REC-xml-20081126/
+def unpackXML(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if shutil.which('xmllint') == None:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'xmllint program not found'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    checkfile = open(filename, 'rb')
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': oldoffset, 'fatal': False,
+                          'reason': 'not enough data'}
+
+    ## XML files sometimes start with a Byte Order Mark
+    ## https://en.wikipedia.org/wiki/Byte_order_mark
+    ## XML specification, section F.1
+    if checkbytes[0:3] == b'\xef\xbb\xbf':
+        unpackedsize += 3
+        ## rewind one byte, as only three bytes were consumed
+        checkfile.seek(-1, os.SEEK_CUR)
+    else:
+        ## else reset to the beginning
+        checkfile.seek(offset)
+
+    ## White space is defined in the XML specification (section 2.3)
+    ## and can appear before the processing instruction (see section 2.4)
+    ## A document has to start with a processing instruction (section 2.6)
+    while True:
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'':
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid character at start of XML file'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        if not checkbytes in [b' ', b'\n', b'\r', b'\t', b'<']:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid character at start of XML file'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## check to see if the start of the XML data is found. If not,
+        ## it's white space, so read another character to see if there is more
+        ## whitespace
+        if checkbytes == b'<':
+            ## a processing instruction (section 2.6) might follow.
+            ## The first one should start with "<?xml" (case insensitive)
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'not enough data for XML'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            if checkbytes.lower() != b'?xml':
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid processing instruction at start of file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            break
+
+    checkfile.close()
+
+    ## now run xmllint as a sanity check. By default xmllint tries to resolve external
+    ## entities, so this should be prevented by supplying "--nonet"
+    p = subprocess.Popen(['xmllint','--noout', "--nonet", filename],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (outputmsg, errormsg) = p.communicate()
+    if p.returncode != 0:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'xmllint cannot parse file'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## whole file is XML
+    labels.append('xml')
+    return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)

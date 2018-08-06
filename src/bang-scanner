@@ -230,6 +230,7 @@ extensiontofunction = {
     '.ihex': bangunpack.unpackIHex,
     '.hex': bangunpack.unpackIHex,
     '.srec': bangunpack.unpackSREC,
+    '.xml': bangunpack.unpackXML,
 }
 
 
@@ -240,6 +241,7 @@ extensionprettyprint = {
     '.ihex': 'ihex',
     '.hex': 'ihex',
     '.srec': 'srec',
+    '.xml': 'xml',
 }
 
 ## certain unpacking functions if the whole file is text
