@@ -5,23 +5,25 @@
 ## This file is part of BANG.
 ##
 ## BANG is free software: you can redistribute it and/or modify
-## it under the terms of the GNU Affero General Public License, version 3,
-## as published by the Free Software Foundation.
+## it under the terms of the GNU Affero General Public License,
+## version 3, as published by the Free Software Foundation.
 ##
 ## BANG is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU Affero General Public License for more details.
 ##
-## You should have received a copy of the GNU Affero General Public License, version 3,
-## along with BANG.  If not, see <http://www.gnu.org/licenses/>
+## You should have received a copy of the GNU Affero General Public
+## License, version 3, along with BANG.  If not,
+## see <http://www.gnu.org/licenses/>
 ##
 ## Copyright 2018 - Armijn Hemel
-## Licensed under the terms of the GNU Affero General Public License version 3
+## Licensed under the terms of the GNU Affero General Public
+## License version 3
 ## SPDX-License-Identifier: AGPL-3.0-only
 
-## This program provides a commandline interface to browsing the results
-## of a scan made by BANG
+## This program provides a commandline interface to browsing the
+## results of a scan made by BANG.
 
 import os
 import sys
@@ -280,7 +282,8 @@ class BangShell(cmd.Cmd):
         ## If only one line is used then only having two spaces
         ## between entries is enough.
         ##
-        ## If more than one line is used then the
+        ## If more than one line is used then columns have to be
+        ## constructed, similar to what the "ls" command does.
         if linesused == 1:
             print(functools.reduce(lambda x, y: x + "  " + y, entries), '\n')
         else:
