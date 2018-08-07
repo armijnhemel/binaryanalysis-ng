@@ -1207,5 +1207,79 @@ class TestLZMA(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing bzip2 files
+class TestBzip2(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single bzip2
+    def testFullfileIsBzip2(self):
+        filename = os.path.join(basetestdir, 'bz2', 'test.bz2')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single bzip2 with data appended to it
+    def testDataAppendedToBzip2(self):
+        filename = os.path.join(basetestdir, 'bz2', 'test-add-random-data.bz2')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 530237)
+
+    ## a test for the file being a single bzip2 with data in front
+    def testDataPrependedToBzip2(self):
+        filename = os.path.join(basetestdir, 'bz2', 'test-prepend-random-data.bz2')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 530237)
+
+    ## a test for the file being a single bzip2 with data cut from the end
+    def testDataCutFromEndBzip2(self):
+        filename = os.path.join(basetestdir, 'bz2', 'test-cut-data-from-end.bz2')
+        offset = 0
+        testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single bzip2 with data cut from the middle
+    def testDataCutFromMiddleBzip2(self):
+        filename = os.path.join(basetestdir, 'bz2', 'test-cut-data-from-middle.bz2')
+        offset = 0
+        testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single bzip2 with data added in the middle
+    def testDataAddedInMiddleBzip2(self):
+        filename = os.path.join(basetestdir, 'bz2', 'test-data-added-to-middle.bz2')
+        offset = 0
+        testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single bzip2 with data replaced in the middle
+    def testDataReplacedInMiddleBzip2(self):
+        filename = os.path.join(basetestdir, 'bz2', 'test-data-replaced-in-middle.bz2')
+        offset = 0
+        testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
