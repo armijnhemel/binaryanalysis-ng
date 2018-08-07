@@ -1600,7 +1600,8 @@ def unpackAr(filename, offset, unpackdir, temporarydirectory):
 ## Unpacking for squashfs
 ## There are many different flavours of squashfs and configurations
 ## differ per Linux distribution.
-## This is for the "vanilla" squashfs
+## This is for the "vanilla" squashfs, not for any vendor specific
+## versions.
 def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     filesize = os.stat(filename).st_size
     unpackedfilesandlabels = []
@@ -1610,13 +1611,17 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = 0
 
     if shutil.which('unsquashfs') == None:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsquashfs program not found'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'unsquashfs program not found'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## need at least a header, plus version
     ## see /usr/share/magic
     if filesize - offset < 30:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     checkfile = open(filename, 'rb')
@@ -1642,9 +1647,10 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     ## So far only squashfs 1-4 have been released (June 2018)
     if majorversion == 0 or majorversion > 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid squashfs version'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'invalid squashfs version'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
-
 
     ## The location of the size of the squashfs file system depends on
     ## the major version of the file. These values can be found in /usr/share/magic
@@ -1654,7 +1660,9 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(8)
         if len(checkbytes) != 8:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data to read size'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data to read size'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         if bigendian:
             squashfssize = int.from_bytes(checkbytes, byteorder='big')
@@ -1665,7 +1673,9 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(8)
         if len(checkbytes) != 8:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data to read size'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data to read size'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         if bigendian:
             squashfssize = int.from_bytes(checkbytes, byteorder='big')
@@ -1676,7 +1686,9 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data to read size'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data to read size'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         if bigendian:
             squashfssize = int.from_bytes(checkbytes, byteorder='big')
@@ -1686,7 +1698,9 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     ## file size sanity check
     if offset + squashfssize > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'file system cannot extend past file'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'file system cannot extend past file'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## then create a temporary file and copy the data into the temporary file
@@ -1705,9 +1719,13 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     squashfsunpackdirectory = tempfile.mkdtemp(dir=temporarydirectory)
 
     if offset != 0:
-        p = subprocess.Popen(['unsquashfs', temporaryfile[1]], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=squashfsunpackdirectory)
+        p = subprocess.Popen(['unsquashfs', temporaryfile[1]],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              cwd=squashfsunpackdirectory)
     else:
-        p = subprocess.Popen(['unsquashfs', filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=squashfsunpackdirectory)
+        p = subprocess.Popen(['unsquashfs', filename],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              cwd=squashfsunpackdirectory)
     (outputmsg, errormsg) = p.communicate()
 
     if offset != 0:
@@ -1715,7 +1733,9 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
 
     if p.returncode != 0:
         shutil.rmtree(squashfsunpackdirectory)
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid squashfs file'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'Not a valid squashfs file'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## move contents of the unpacked file system
@@ -1745,7 +1765,8 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
             fullfilename = os.path.join(direntries[0], filename)
             unpackedfilesandlabels.append((fullfilename, []))
 
-    unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'Not a valid Squashfs'}
+    unpackingerror = {'offset': offset, 'fatal': False,
+                      'reason': 'Not a valid Squashfs'}
     return (True, squashfssize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## a wrapper around shutil.copy2 to copy symbolic links instead of
