@@ -1765,8 +1765,6 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
             fullfilename = os.path.join(direntries[0], filename)
             unpackedfilesandlabels.append((fullfilename, []))
 
-    unpackingerror = {'offset': offset, 'fatal': False,
-                      'reason': 'Not a valid Squashfs'}
     return (True, squashfssize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## a wrapper around shutil.copy2 to copy symbolic links instead of
