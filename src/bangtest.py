@@ -1429,5 +1429,79 @@ class TestZstd(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing 7z files
+class Test7z(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single 7z
+    def testFullfileIs7z(self):
+        filename = os.path.join(basetestdir, '7z', 'test.7z')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpack7z(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single 7z with data appended to it
+    def testDataAppendedTo7z(self):
+        filename = os.path.join(basetestdir, '7z', 'test-add-random-data.7z')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpack7z(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 511498)
+
+    ## a test for the file being a single 7z with data in front
+    def testDataPrependedTo7z(self):
+        filename = os.path.join(basetestdir, '7z', 'test-prepend-random-data.7z')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpack7z(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 511498)
+
+    ## a test for the file being a single 7z with data cut from the end
+    def testDataCutFromEnd7z(self):
+        filename = os.path.join(basetestdir, '7z', 'test-cut-data-from-end.7z')
+        offset = 0
+        testres = bangunpack.unpack7z(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single 7z with data cut from the middle
+    def testDataCutFromMiddle7z(self):
+        filename = os.path.join(basetestdir, '7z', 'test-cut-data-from-middle.7z')
+        offset = 0
+        testres = bangunpack.unpack7z(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single 7z with data added in the middle
+    def testDataAddedInMiddle7z(self):
+        filename = os.path.join(basetestdir, '7z', 'test-data-added-to-middle.7z')
+        offset = 0
+        testres = bangunpack.unpack7z(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single 7z with data replaced in the middle
+    def testDataReplacedInMiddle7z(self):
+        filename = os.path.join(basetestdir, '7z', 'test-data-replaced-in-middle.7z')
+        offset = 0
+        testres = bangunpack.unpack7z(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
