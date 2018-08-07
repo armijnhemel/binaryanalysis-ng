@@ -87,6 +87,7 @@
 ## 18. QEMU qcow2 (requires qemu-img, whole file only)
 ## 19. VirtualBox VDI (requires qemu-img, whole file only,
 ##     Oracle flavour only)
+## 20. XML
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much
 ## as possible using the os.sendfile() method, as well as techniques
