@@ -1577,5 +1577,205 @@ class TestAr(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing XAR files
+class TestXAR(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single xar
+    def testFullfileIsXAR(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-gzip.xar')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## now all the test cases.
+    ## a test for the file being a single xar
+    def testFullfileIsXARBzip2(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-bzip2.xar')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## now all the test cases.
+    ## a test for the file being a single xar
+    def testFullfileIsXARNone(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-none.xar')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single xar with data appended to it
+    def testDataAppendedToXAR(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-gzip-add-random-data.xar')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 582324)
+
+    ## a test for the file being a single xar with data appended to it
+    def testDataAppendedToXARBzip2(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-bipz2-add-random-data.xar')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 530707)
+
+    ## a test for the file being a single xar with data appended to it
+    def testDataAppendedToXARNone(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-none-add-random-data.xar')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 592861)
+
+    ## a test for the file being a single xar with data in front
+    def testDataPrependedToXAR(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-gzip-prepend-random-data.xar')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 582324)
+
+    ## a test for the file being a single xar with data in front
+    def testDataPrependedToXARBzip2(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-bzip2-prepend-random-data.xar')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 530707)
+
+    ## a test for the file being a single xar with data in front
+    def testDataPrependedToXARBzip2(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-none-prepend-random-data.xar')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 592861)
+
+    ## a test for the file being a single xar with data cut from the end
+    def testDataCutFromEndXAR(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-gzip-cut-data-from-end.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data cut from the end
+    def testDataCutFromEndXARBzip2(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-bzip2-cut-data-from-end.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data cut from the end
+    def testDataCutFromEndXARNone(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-none-cut-data-from-end.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data cut from the middle
+    def testDataCutFromMiddleXAR(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-gzip-cut-data-from-middle.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data cut from the middle
+    def testDataCutFromMiddleXARBzip2(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-bzip2-cut-data-from-middle.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data cut from the middle
+    def testDataCutFromMiddleXARNone(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-none-cut-data-from-middle.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data added in the middle
+    def testDataAddedInMiddleXAR(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-gzip-data-added-to-middle.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data added in the middle
+    def testDataAddedInMiddleXARBzip2(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-bzip2-data-added-to-middle.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data added in the middle
+    def testDataAddedInMiddleXARNone(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-none-data-added-to-middle.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data replaced in the middle
+    def testDataReplacedInMiddleXAR(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-gzip-data-replaced-in-middle.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data replaced in the middle
+    def testDataReplacedInMiddleXARBzip2(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-bzip2-data-replaced-in-middle.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single xar with data replaced in the middle
+    def testDataReplacedInMiddleXARNone(self):
+        filename = os.path.join(basetestdir, 'xar', 'test-none-data-replaced-in-middle.xar')
+        offset = 0
+        testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
