@@ -1738,6 +1738,8 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'Not a valid squashfs file'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
+    unpackedsize = squashfssize
+
     ## move contents of the unpacked file system
     foundfiles = os.listdir(squashfsunpackdirectory)
     if len(foundfiles) == 1:
@@ -1756,16 +1758,35 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     dirwalk = os.walk(unpackdir)
     for direntries in dirwalk:
         ## make sure all subdirectories and files can be accessed
-        for filename in direntries[1]:
-            fullfilename = os.path.join(direntries[0], filename)
+        for entryname in direntries[1]:
+            fullfilename = os.path.join(direntries[0], entryname)
             if not os.path.islink(fullfilename):
                 os.chmod(fullfilename, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
             unpackedfilesandlabels.append((fullfilename, []))
-        for filename in direntries[2]:
-            fullfilename = os.path.join(direntries[0], filename)
+        for entryname in direntries[2]:
+            fullfilename = os.path.join(direntries[0], entryname)
             unpackedfilesandlabels.append((fullfilename, []))
 
-    return (True, squashfssize, unpackedfilesandlabels, labels, unpackingerror)
+    if offset + unpackedsize != filesize:
+        ## by default mksquashfs pads to 4K blocks
+        ## with NUL bytes.
+        checkfile = open(filename, 'rb')
+        checkfile.seek(offset + unpackedsize)
+        padoffset = checkfile.tell()
+        if unpackedsize % 4096 != 0:
+            paddingbytes = 4096 - unpackedsize%4096
+            checkbytes = checkfile.read(paddingbytes)
+            if len(checkbytes) == paddingbytes:
+                if checkbytes == paddingbytes * b'\x00':
+                    unpackedsize += paddingbytes
+                    havepadding = True
+        checkfile.close()
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('squashfs')
+        labels.append('file system')
+
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## a wrapper around shutil.copy2 to copy symbolic links instead of
 ## following them and copying the data. This is used in squashfs unpacking
