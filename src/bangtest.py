@@ -1059,5 +1059,79 @@ class TestCPIO(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing XZ files
+class TestXZ(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single XZ
+    def testFullfileIsXZ(self):
+        filename = os.path.join(basetestdir, 'xz', 'test.xz')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackXZ(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single XZ with data appended to it
+    def testDataAppendedToXZ(self):
+        filename = os.path.join(basetestdir, 'xz', 'test-add-random-data.xz')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackXZ(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 510744)
+
+    ## a test for the file being a single XZ with data in front
+    def testDataPrependedToXZ(self):
+        filename = os.path.join(basetestdir, 'xz', 'test-prepend-random-data.xz')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackXZ(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 510744)
+
+    ## a test for the file being a single XZ with data cut from the end
+    def testDataCutFromEndXZ(self):
+        filename = os.path.join(basetestdir, 'xz', 'test-cut-data-from-end.xz')
+        offset = 0
+        testres = bangunpack.unpackXZ(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single XZ with data cut from the middle
+    def testDataCutFromMiddleXZ(self):
+        filename = os.path.join(basetestdir, 'xz', 'test-cut-data-from-middle.xz')
+        offset = 0
+        testres = bangunpack.unpackXZ(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single XZ with data added in the middle
+    def testDataAddedInMiddleXZ(self):
+        filename = os.path.join(basetestdir, 'xz', 'test-data-added-to-middle.xz')
+        offset = 0
+        testres = bangunpack.unpackXZ(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single XZ with data replaced in the middle
+    def testDataReplacedInMiddleXZ(self):
+        filename = os.path.join(basetestdir, 'xz', 'test-data-replaced-in-middle.xz')
+        offset = 0
+        testres = bangunpack.unpackXZ(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
