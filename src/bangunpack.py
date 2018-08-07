@@ -984,6 +984,13 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## XZ unpacking works just like LZMA unpacking
+##
+## XZ specifications:
+##
+## https://tukaani.org/xz/xz-file-format.txt
+##
+## XZ has some extra data (footer) that can be used for
+## verifying the integrity of the file.
 def unpackXZ(filename, offset, unpackdir, temporarydirectory):
     return unpackLZMAWrapper(filename, offset, unpackdir, '.xz', 'xz', 'XZ', -1)
 
