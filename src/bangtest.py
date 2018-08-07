@@ -831,6 +831,26 @@ class TestCPIO(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, filesize)
 
+    ## a test for the file being a single CPIO
+    def testFullfileIsCPIONew(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-new.cpio')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single CPIO
+    def testFullfileIsCPIOCRC(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-crc.cpio')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
     ## a test for the file being a single CPIO with data appended to it
     def testDataAppendedToCPIOBin(self):
         filename = os.path.join(basetestdir, 'cpio', 'test-old-bin-add-random-data.cpio')
@@ -844,6 +864,26 @@ class TestCPIO(unittest.TestCase):
     ## a test for the file being a single CPIO with data appended to it
     def testDataAppendedToCPIOOld(self):
         filename = os.path.join(basetestdir, 'cpio', 'test-old-add-random-data.cpio')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 592896)
+
+    ## a test for the file being a single CPIO with data appended to it
+    def testDataAppendedToCPIONew(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-new-add-random-data.cpio')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 592896)
+
+    ## a test for the file being a single CPIO with data appended to it
+    def testDataAppendedToCPIOCRC(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-crc-add-random-data.cpio')
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
@@ -871,6 +911,26 @@ class TestCPIO(unittest.TestCase):
         self.assertTrue(unpackstatus)
         self.assertEqual(unpackedlength, 592896)
 
+    ## a test for the file being a single CPIO with data in front
+    def testDataPrependedToCPIONew(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-new-prepend-random-data.cpio')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 592896)
+
+    ## a test for the file being a single CPIO with data in front
+    def testDataPrependedToCPIOCRC(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-crc-prepend-random-data.cpio')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 592896)
+
     ## a test for the file being a single CPIO with data cut from the end
     def testDataCutFromEndCPIOBin(self):
         filename = os.path.join(basetestdir, 'cpio', 'test-old-bin-cut-data-from-end.cpio')
@@ -882,6 +942,22 @@ class TestCPIO(unittest.TestCase):
     ## a test for the file being a single CPIO with data cut from the end
     def testDataCutFromEndCPIOOld(self):
         filename = os.path.join(basetestdir, 'cpio', 'test-old-cut-data-from-end.cpio')
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single CPIO with data cut from the end
+    def testDataCutFromEndCPIONew(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-new-cut-data-from-end.cpio')
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single CPIO with data cut from the end
+    def testDataCutFromEndCPIOCRC(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-crc-cut-data-from-end.cpio')
         offset = 0
         testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
@@ -903,6 +979,22 @@ class TestCPIO(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+    ## a test for the file being a single CPIO with data cut from the middle
+    def testDataCutFromMiddleCPIONew(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-new-cut-data-from-middle.cpio')
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single CPIO with data cut from the middle
+    def testDataCutFromMiddleCPIOCRC(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-crc-cut-data-from-middle.cpio')
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
     ## a test for the file being a single CPIO with data added in the middle
     def testDataAddedInMiddleCPIOBin(self):
         filename = os.path.join(basetestdir, 'cpio', 'test-old-bin-data-added-to-middle.cpio')
@@ -919,6 +1011,22 @@ class TestCPIO(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+    ## a test for the file being a single CPIO with data added in the middle
+    def testDataAddedInMiddleCPIONew(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-new-data-added-to-middle.cpio')
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single CPIO with data added in the middle
+    def testDataAddedInMiddleCPIOCRC(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-crc-data-added-to-middle.cpio')
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
     ## a test for the file being a single CPIO with data replaced in the middle
     def testDataReplacedInMiddleCPIOBin(self):
         filename = os.path.join(basetestdir, 'cpio', 'test-old-bin-data-replaced-in-middle.cpio')
@@ -930,6 +1038,22 @@ class TestCPIO(unittest.TestCase):
     ## a test for the file being a single CPIO with data replaced in the middle
     def testDataReplacedInMiddleCPIOOld(self):
         filename = os.path.join(basetestdir, 'cpio', 'test-old-data-replaced-in-middle.cpio')
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single CPIO with data replaced in the middle
+    def testDataReplacedInMiddleCPIONew(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-new-data-replaced-in-middle.cpio')
+        offset = 0
+        testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single CPIO with data replaced in the middle
+    def testDataReplacedInMiddleCPIOCRC(self):
+        filename = os.path.join(basetestdir, 'cpio', 'test-crc-data-replaced-in-middle.cpio')
         offset = 0
         testres = bangunpack.unpackCpio(filename, offset, self.tempdir, None)
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
