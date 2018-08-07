@@ -112,6 +112,8 @@ import bz2
 import stat
 import subprocess
 import json
+import xml.dom.minidom
+import hashlib
 
 ## some external packages that are needed
 import PIL.Image
