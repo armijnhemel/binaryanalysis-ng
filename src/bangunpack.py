@@ -3126,6 +3126,8 @@ def unpackXAR(filename, offset, unpackdir, temporarydirectory):
                         checkbytes = checkfile.read(min(maxbytestoread, datalength-bytesread))
                         targetfile.write(checkbytes)
                         bytesread += len(checkbytes)
+                        if checkhash != None:
+                            checkhash.update(checkbytes)
                 else:
                     try:
                         if compressionmethod == 'gzip':
@@ -3164,22 +3166,23 @@ def unpackXAR(filename, offset, unpackdir, temporarydirectory):
                             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'broken data'}
                             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-                        ## if there is a checksum compare it to the one that was
-                        ## stored in the file.
-                        if checkhash != None:
-                            if extractedchecksum != checkhash.hexdigest():
-                                targetfile.close()
-                                os.unlink(targetfilename)
-                                checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'checksum mismatch'}
-                                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
-
                     except Exception as e:
                         targetfile.close()
                         os.unlink(targetfilename)
                         checkfile.close()
                         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'broken data'}
                         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+                ## if there is a checksum compare it to the one that was
+                ## stored in the file.
+                if checkhash != None:
+                    if extractedchecksum != checkhash.hexdigest():
+                        targetfile.close()
+                        os.unlink(targetfilename)
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'checksum mismatch'}
+                        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
                 unpackedfilesandlabels.append((targetfilename, []))
             else:
                 ## empty files have no data section associated with it
