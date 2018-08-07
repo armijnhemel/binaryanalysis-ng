@@ -1281,5 +1281,79 @@ class TestBzip2(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing lzip files
+class TestLzip(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single lzip
+    def testFullfileIsLzip(self):
+        filename = os.path.join(basetestdir, 'lzip', 'test.lz')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackLzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single lzip with data appended to it
+    def testDataAppendedToLzip(self):
+        filename = os.path.join(basetestdir, 'lzip', 'test-add-random-data.lz')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackLzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 511095)
+
+    ## a test for the file being a single lzip with data in front
+    def testDataPrependedToLzip(self):
+        filename = os.path.join(basetestdir, 'lzip', 'test-prepend-random-data.lz')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackLzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 511095)
+
+    ## a test for the file being a single lzip with data cut from the end
+    def testDataCutFromEndLzip(self):
+        filename = os.path.join(basetestdir, 'lzip', 'test-cut-data-from-end.lz')
+        offset = 0
+        testres = bangunpack.unpackLzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single lzip with data cut from the middle
+    def testDataCutFromMiddleLzip(self):
+        filename = os.path.join(basetestdir, 'lzip', 'test-cut-data-from-middle.lz')
+        offset = 0
+        testres = bangunpack.unpackLzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single lzip with data added in the middle
+    def testDataAddedInMiddleLzip(self):
+        filename = os.path.join(basetestdir, 'lzip', 'test-data-added-to-middle.lz')
+        offset = 0
+        testres = bangunpack.unpackLzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single lzip with data replaced in the middle
+    def testDataReplacedInMiddleLzip(self):
+        filename = os.path.join(basetestdir, 'lzip', 'test-data-replaced-in-middle.lz')
+        offset = 0
+        testres = bangunpack.unpackLzip(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
