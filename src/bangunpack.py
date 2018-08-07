@@ -1795,21 +1795,25 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
     ## then the version number, skip
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a valid Apple Double file'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not a valid Apple Double file'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
     ## then 16 filler bytes, all 0x00
     checkbytes = checkfile.read(16)
     if len(checkbytes) != 16:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough filler bytes'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough filler bytes'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 16
 
     ## then the number of entries
     checkbytes = checkfile.read(2)
     if len(checkbytes) != 2:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no number of entries'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no number of entries'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 2
 
@@ -1826,11 +1830,13 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'incomplete entry'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'incomplete entry'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
         if int.from_bytes(checkbytes, byteorder='big') == 0:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no valid entry id'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'no valid entry id'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -1838,14 +1844,16 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'incomplete entry'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'incomplete entry'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
         ## offset cannot be outside of the file
         entryoffset = int.from_bytes(checkbytes, byteorder='big')
         if offset + entryoffset > filesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -1853,13 +1861,15 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'incomplete entry'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'incomplete entry'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
         ## data cannot be outside of the file
         entrysize = int.from_bytes(checkbytes, byteorder='big')
         if offset + entryoffset + entrysize> filesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
         maxoffset = max(maxoffset, entrysize + entryoffset)
@@ -1899,7 +1909,8 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
 
     ## ICC.1:2010, section 7.1
     if filesize - offset < 128:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ICC file'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'Not a valid ICC file'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
     checkfile = open(filename, 'rb')
@@ -1914,7 +1925,8 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
     profilesize = int.from_bytes(checkbytes, byteorder='big')
     if offset + profilesize > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not enough data'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'Not enough data'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -1929,18 +1941,29 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 4
 
     ## profile/device class field, ICC.1:2010 7.2.5
+    profilefields = [b'scnr', b'mntr', b'prtr', b'link',
+                     b'spac', b'abst', b'nmcl']
+
     checkbytes = checkfile.read(4)
-    if not checkbytes in [b'scnr', b'mntr', b'prtr', b'link', b'spac', b'abst', b'nmcl']:
+    if not checkbytes in profilefields:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid profile/device class field'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid profile/device class field'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
     ## data colour space field, ICC.1:2010, 7.2.6
+    datacolourfields = [b'XYZ ', b'Lab ', b'Luv ', b'YCbr', b'Yxy ', b'RGB ',
+                        b'GRAY', b'HSV ', b'HLS ', b'CMYK', b'CMY ', b'2CLR',
+                        b'3CLR', b'4CLR', b'5CLR', b'6CLR', b'7CLR', b'8CLR',
+                        b'9CLR', b'ACLR', b'BCLR', b'CCLR', b'DCLR', b'ECLR',
+                        b'FCLR']
     checkbytes = checkfile.read(4)
-    if not checkbytes in [b'XYZ ', b'Lab ', b'Luv ', b'YCbr', b'Yxy ', b'RGB ', b'GRAY', b'HSV ', b'HLS ', b'CMYK', b'CMY ', b'2CLR', b'3CLR', b'4CLR', b'5CLR', b'6CLR', b'7CLR', b'8CLR', b'9CLR', b'ACLR', b'BCLR', b'CCLR', b'DCLR', b'ECLR', b'FCLR']:
+    if not checkbytes in datacolourfields:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid profile/device class field'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'invalid profile/device class field'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -1960,7 +1983,8 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if not checkbytes in [b'APPL', b'MSFT', b'SGI ', b'SUNW', b'\x00\x00\x00\x00']:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid profile/device class field'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid profile/device class field'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -1971,7 +1995,8 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
 
     if not checkbytes == b'\x00' * 28:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved bytes not \\x00'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'reserved bytes not \\x00'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## skip to the tag table, ICC.1:2010, 7.3
@@ -1982,13 +2007,15 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no tag table'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no tag table'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
     tagcount = int.from_bytes(checkbytes, byteorder='big')
     ## each tag is 12 bytes
     if offset + unpackedsize + 4 + tagcount * 12 > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for tag table'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for tag table'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -2004,18 +2031,21 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
         ## tag offset has to be on a 4 byte boundary
         if icctagoffset%4 != 0:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid tag offset'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid tag offset'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
         if offset + icctagoffset > filesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'offset outside of file'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'offset outside of file'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
         ## then the size of the data, ICC.1:2010 7.3.5
         icctagsize = int.from_bytes(checkbytes[8:12], byteorder='big')
         if offset + icctagoffset + icctagsize > filesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
         ## add padding if necessary
         if icctagsize % 4 != 0:
@@ -2027,7 +2057,8 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
         ## the tag offset cannot be outside of the declared profile size
         if maxtagoffset - offset >  profilesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid tag offset'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid tag offset'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
     if offset == 0 and maxtagoffset == filesize:
