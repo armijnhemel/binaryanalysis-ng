@@ -8608,10 +8608,9 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             if isdevice:
                 continue
 
-            dataunpacked = True
-
             ## if it is a directory, then just create the directory
             if isdir:
+                dataunpacked = True
                 os.makedirs(os.path.join(unpackdir, unpackname), exist_ok=True)
                 unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
                 continue
@@ -8631,6 +8630,8 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                     targetname = targetname.decode()
                 except:
                     break
+
+                dataunpacked = True
 
                 os.symlink(targetname, os.path.join(unpackdir, unpackname))
                 unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), ['symbolic link']))
@@ -8662,6 +8663,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                     outfile.close()
                     if cpiochecksum != tmpchecksum:
                         break
+                dataunpacked = True
 
             unpackedsize += cpiodatasize
 
