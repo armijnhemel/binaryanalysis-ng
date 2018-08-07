@@ -1777,5 +1777,79 @@ class TestXAR(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing squashfs files
+class TestSquashfs(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single squashfs
+    def testFullfileIsSquashfs(self):
+        filename = os.path.join(basetestdir, 'squashfs', 'test.sqsh')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single squashfs with data appended to it
+    def testDataAppendedToSquashfs(self):
+        filename = os.path.join(basetestdir, 'squashfs', 'test-add-random-data.sqsh')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 577536)
+
+    ## a test for the file being a single squashfs with data in front
+    def testDataPrependedToSquashfs(self):
+        filename = os.path.join(basetestdir, 'squashfs', 'test-prepend-random-data.sqsh')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 577536)
+
+    ## a test for the file being a single squashfs with data cut from the end
+    def testDataCutFromEndSquashfs(self):
+        filename = os.path.join(basetestdir, 'squashfs', 'test-cut-data-from-end.sqsh')
+        offset = 0
+        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single squashfs with data cut from the middle
+    def testDataCutFromMiddleSquashfs(self):
+        filename = os.path.join(basetestdir, 'squashfs', 'test-cut-data-from-middle.sqsh')
+        offset = 0
+        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single squashfs with data added in the middle
+    def testDataAddedInMiddleSquashfs(self):
+        filename = os.path.join(basetestdir, 'squashfs', 'test-data-added-to-middle.sqsh')
+        offset = 0
+        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single squashfs with data replaced in the middle
+    def testDataReplacedInMiddleSquashfs(self):
+        filename = os.path.join(basetestdir, 'squashfs', 'test-data-replaced-in-middle.sqsh')
+        offset = 0
+        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()

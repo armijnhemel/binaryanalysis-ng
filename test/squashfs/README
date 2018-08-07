@@ -1,0 +1,3 @@
+Creating a regular squashfs file system:
+
+$ mksquashfs test.sgi test.sqsh -all-root
