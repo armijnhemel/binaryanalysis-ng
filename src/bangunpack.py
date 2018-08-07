@@ -1768,8 +1768,8 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
             unpackedfilesandlabels.append((fullfilename, []))
 
     if offset + unpackedsize != filesize:
-        ## by default mksquashfs pads to 4K blocks
-        ## with NUL bytes.
+        ## by default mksquashfs pads to 4K blocks with NUL bytes. The
+        ## padding is not counted in squashfssize
         checkfile = open(filename, 'rb')
         checkfile.seek(offset + unpackedsize)
         padoffset = checkfile.tell()
