@@ -1,0 +1,11 @@
+For gzip compression:
+
+$ xar -c -f test.xar test-gzip.sgi
+
+For bzip2 compression:
+
+$ xar -c --compression=bzip2 -f test-bzip2.xar test.sgi
+
+For no compression:
+
+$ xar -c --compression=none -f test-none.xar test.sgi
