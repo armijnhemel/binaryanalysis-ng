@@ -1355,5 +1355,79 @@ class TestLzip(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing zstd files
+class TestZstd(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single zstd
+    def testFullfileIsZstd(self):
+        filename = os.path.join(basetestdir, 'zstd', 'test.zst')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single zstd with data appended to it
+    def testDataAppendedToZstd(self):
+        filename = os.path.join(basetestdir, 'zstd', 'test-add-random-data.zst')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 583703)
+
+    ## a test for the file being a single zstd with data in front
+    def testDataPrependedToZstd(self):
+        filename = os.path.join(basetestdir, 'zstd', 'test-prepend-random-data.zst')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 583703)
+
+    ## a test for the file being a single zstd with data cut from the end
+    def testDataCutFromEndZstd(self):
+        filename = os.path.join(basetestdir, 'zstd', 'test-cut-data-from-end.zst')
+        offset = 0
+        testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single zstd with data cut from the middle
+    def testDataCutFromMiddleZstd(self):
+        filename = os.path.join(basetestdir, 'zstd', 'test-cut-data-from-middle.zst')
+        offset = 0
+        testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single zstd with data added in the middle
+    def testDataAddedInMiddleZstd(self):
+        filename = os.path.join(basetestdir, 'zstd', 'test-data-added-to-middle.zst')
+        offset = 0
+        testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single zstd with data replaced in the middle
+    def testDataReplacedInMiddleZstd(self):
+        filename = os.path.join(basetestdir, 'zstd', 'test-data-replaced-in-middle.zst')
+        offset = 0
+        testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
