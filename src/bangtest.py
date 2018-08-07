@@ -1503,5 +1503,79 @@ class Test7z(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing ar files
+class TestAr(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single ar
+    def testFullfileIsAr(self):
+        filename = os.path.join(basetestdir, 'ar', 'test.ar')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackAr(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single ar with data appended to it
+    def testDataAppendedToAr(self):
+        filename = os.path.join(basetestdir, 'ar', 'test-add-random-data.ar')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackAr(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 511498)
+
+    ## a test for the file being a single ar with data in front
+    def testDataPrependedToAr(self):
+        filename = os.path.join(basetestdir, 'ar', 'test-prepend-random-data.ar')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackAr(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 511498)
+
+    ## a test for the file being a single ar with data cut from the end
+    def testDataCutFromEndAr(self):
+        filename = os.path.join(basetestdir, 'ar', 'test-cut-data-from-end.ar')
+        offset = 0
+        testres = bangunpack.unpackAr(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single ar with data cut from the middle
+    def testDataCutFromMiddleAr(self):
+        filename = os.path.join(basetestdir, 'ar', 'test-cut-data-from-middle.ar')
+        offset = 0
+        testres = bangunpack.unpackAr(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single ar with data added in the middle
+    def testDataAddedInMiddleAr(self):
+        filename = os.path.join(basetestdir, 'ar', 'test-data-added-to-middle.ar')
+        offset = 0
+        testres = bangunpack.unpackAr(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single ar with data replaced in the middle
+    def testDataReplacedInMiddleAr(self):
+        filename = os.path.join(basetestdir, 'ar', 'test-data-replaced-in-middle.ar')
+        offset = 0
+        testres = bangunpack.unpackAr(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
