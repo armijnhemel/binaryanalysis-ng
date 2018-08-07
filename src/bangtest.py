@@ -1133,5 +1133,79 @@ class TestXZ(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing LZMA files
+class TestLZMA(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single LZMA
+    def testFullfileIsLZMA(self):
+        filename = os.path.join(basetestdir, 'lzma', 'test.lzma')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackLZMA(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single LZMA with data appended to it
+    def testDataAppendedToLZMA(self):
+        filename = os.path.join(basetestdir, 'lzma', 'test-add-random-data.lzma')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackLZMA(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 510623)
+
+    ## a test for the file being a single LZMA with data in front
+    def testDataPrependedToLZMA(self):
+        filename = os.path.join(basetestdir, 'lzma', 'test-prepend-random-data.lzma')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackLZMA(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 510623)
+
+    ## a test for the file being a single LZMA with data cut from the end
+    def testDataCutFromEndLZMA(self):
+        filename = os.path.join(basetestdir, 'lzma', 'test-cut-data-from-end.lzma')
+        offset = 0
+        testres = bangunpack.unpackLZMA(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single LZMA with data cut from the middle
+    def testDataCutFromMiddleLZMA(self):
+        filename = os.path.join(basetestdir, 'lzma', 'test-cut-data-from-middle.lzma')
+        offset = 0
+        testres = bangunpack.unpackLZMA(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single LZMA with data added in the middle
+    def testDataAddedInMiddleLZMA(self):
+        filename = os.path.join(basetestdir, 'lzma', 'test-data-added-to-middle.lzma')
+        offset = 0
+        testres = bangunpack.unpackLZMA(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single LZMA with data replaced in the middle
+    def testDataReplacedInMiddleLZMA(self):
+        filename = os.path.join(basetestdir, 'lzma', 'test-data-replaced-in-middle.lzma')
+        offset = 0
+        testres = bangunpack.unpackLZMA(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
