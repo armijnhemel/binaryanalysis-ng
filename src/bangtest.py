@@ -13,11 +13,12 @@
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU Affero General Public License for more details.
 ##
-## You should have received a copy of the GNU Affero General Public License, version 3,
-## along with BANG.  If not, see <http://www.gnu.org/licenses/>
+## You should have received a copy of the GNU Affero General Public License,
+## version 3, along with BANG.  If not, see <http://www.gnu.org/licenses/>
 ##
 ## Copyright 2018 - Armijn Hemel
-## Licensed under the terms of the GNU Affero General Public License version 3
+## Licensed under the terms of the GNU Affero General Public License
+## version 3
 ## SPDX-License-Identifier: AGPL-3.0-only
 
 ## Test modules for BANG
