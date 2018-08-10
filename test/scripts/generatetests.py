@@ -5,22 +5,25 @@
 ## This file is part of BANG.
 ##
 ## BANG is free software: you can redistribute it and/or modify
-## it under the terms of the GNU Affero General Public License, version 3,
-## as published by the Free Software Foundation.
+## it under the terms of the GNU Affero General Public License,
+## version 3, as published by the Free Software Foundation.
 ##
 ## BANG is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU Affero General Public License for more details.
 ##
-## You should have received a copy of the GNU Affero General Public License, version 3,
-## along with BANG.  If not, see <http://www.gnu.org/licenses/>
+## You should have received a copy of the GNU Affero General Public
+## License, version 3, along with BANG.  If not, see
+## <http://www.gnu.org/licenses/>
 ##
 ## Copyright 2018 - Armijn Hemel
-## Licensed under the terms of the GNU Affero General Public License version 3
+## Licensed under the terms of the GNU Affero General Public License
+## version 3
 ## SPDX-License-Identifier: AGPL-3.0-only
 ##
-## Program to generate test files from a base file using a few common patterns
+## Program to generate test files from a base file using a few
+## common patterns: cutting data, adding data, replacing data
 
 import os
 import sys
@@ -103,7 +106,8 @@ def generate_cut_bytes_end(filepath, cutlength):
     outfile = open(outfilename, 'wb')
 
     ## add original data, minus cutlength bytes
-    os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, filesize-cutlength)
+    os.sendfile(outfile.fileno(), sourcefile.fileno(),
+                offset, filesize-cutlength)
     outfile.flush()
     outfile.close()
 
@@ -128,7 +132,8 @@ def generate_cut_bytes_add_random_data(filepath, randombytes, cutlength):
     outfile = open(outfilename, 'wb')
 
     ## add original data, minus cutlength bytes
-    os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, filesize-cutlength)
+    os.sendfile(outfile.fileno(), sourcefile.fileno(),
+                offset, filesize-cutlength)
     outfile.flush()
 
     ## add random data
@@ -163,7 +168,8 @@ def generate_cut_bytes_from_middle(filepath, cutlength):
     outfile.flush()
 
     ## add rest of data, minus cutlength bytes
-    os.sendfile(outfile.fileno(), sourcefile.fileno(), offset + middle + cutlength, filesize - middle - cutlength)
+    os.sendfile(outfile.fileno(), sourcefile.fileno(),
+                offset + middle + cutlength, filesize - middle - cutlength)
     outfile.flush()
     outfile.close()
 
@@ -233,7 +239,9 @@ def generate_replace_bytes_in_middle(filepath, randombytes):
     outfile.flush()
 
     ## add rest of data
-    os.sendfile(outfile.fileno(), sourcefile.fileno(), offset + middle + len(randombytes), filesize - middle - len(randombytes))
+    os.sendfile(outfile.fileno(), sourcefile.fileno(),
+                offset + middle + len(randombytes),
+                filesize - middle - len(randombytes))
     outfile.flush()
     outfile.close()
 
@@ -242,7 +250,8 @@ def generate_replace_bytes_in_middle(filepath, randombytes):
 
 def main(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", action="store", dest="checkfile", help="path to original file", metavar="FILE")
+    parser.add_argument("-f", "--file", action="store", dest="checkfile",
+                        help="path to original file", metavar="FILE")
     args = parser.parse_args()
 
     ## sanity checks for the file to scan
