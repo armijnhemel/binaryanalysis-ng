@@ -518,7 +518,8 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     checkfile = open(filename, 'rb')
     checkfile.seek(offset+3)
     unpackedsize += 3
-    ## RFC 1952 http://www.zlib.org/rfc-gzip.html describes the flags, but omits the "encrytion" flag (bit 5)
+    ## RFC 1952 http://www.zlib.org/rfc-gzip.html describes the flags,
+    ## but omits the "encrytion" flag (bit 5)
     ##
     ## Python 3's zlib module does not support:
     ## * continuation of multi-part gzip (bit 2)
@@ -528,22 +529,26 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(1)
     if len(checkbytes) != 1:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     if (checkbytes[0] >> 2 & 1) == 1:
         ## continuation of multi-part gzip
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported multi-part gzip'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unsupported multi-part gzip'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     if (checkbytes[0] >> 5 & 1) == 1:
         ## encrypted
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported encrypted'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unsupported encrypted'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     if (checkbytes[0] >> 6 & 1) == 1 or (checkbytes[0] >> 7 & 1) == 1:
         ## reserved
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not a valid gzip file'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not a valid gzip file'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 1
 
@@ -580,12 +585,14 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(2)
         if len(checkbytes) != 2:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         xlen = int.from_bytes(checkbytes, byteorder='little')
         if checkfile.tell() + xlen > filesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extra data outside of file'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'extra data outside of file'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize +=  xlen + 2
 
@@ -598,7 +605,8 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(1)
             if len(checkbytes) != 1:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'file name data outside of file'}
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'file name data outside of file'}
                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
             if checkbytes == b'\x00':
                 unpackedsize += 1
@@ -613,7 +621,9 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(1)
             if len(checkbytes) != 1:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'comment data outside of file'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'comment data outside of file'}
                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
             if checkbytes == b'\x00':
                 unpackedsize += 1
@@ -633,18 +643,22 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(1)
     if len(checkbytes) != 1:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     if (checkbytes[0] >> 1 & 1) == 1 and (checkbytes[0] >> 2 & 1) == 1:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong DEFLATE header'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong DEFLATE header'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## go back one byte
     checkfile.seek(-1,os.SEEK_CUR)
 
-    ## what follows next is raw deflate blocks. To unpack raw deflate data the windowBits have to be
-    ## set to negative values: http://www.zlib.net/manual.html#Advanced
+    ## what follows next is raw deflate blocks. To unpack raw deflate
+    ## data the windowBits have to be set to negative values:
+    ## http://www.zlib.net/manual.html#Advanced
     ## First create a zlib decompressor that can decompress raw deflate
     ## https://docs.python.org/3/library/zlib.html#zlib.compressobj
     decompressor = zlib.decompressobj(-zlib.MAX_WBITS)
@@ -678,7 +692,8 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
             outfile.close()
             os.unlink(os.path.join(unpackdir, outfilename))
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid gzip file'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'File not a valid gzip file'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
         unpackedsize += len(checkbytes) - len(decompressor.unused_data)
@@ -686,11 +701,12 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
             break
     outfile.close()
 
-    ## A valid gzip file has CRC32 and ISIZE at the end, so there should always be
-    ## at least 8 bytes left for a valid file.
+    ## A valid gzip file has CRC32 and ISIZE at the end, so there should
+    ## always be at least 8 bytes left for a valid file.
     if filesize - unpackedsize + offset < 8:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no CRC and ISIZE'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no CRC and ISIZE'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## first reset the file pointer until the end of the unpacked zlib data
@@ -703,7 +719,8 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
 
     if not gzipcrc32 == int.from_bytes(checkbytes, byteorder='little') and wrongcrcfatal:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong CRC'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong CRC'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## compute the ISIZE (RFC 1952, section 2.3.1)
@@ -715,7 +732,8 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     ## this check is modulo 2^32
     isize = os.stat(outfilename).st_size % pow(2,32)
     if int.from_bytes(checkbytes, byteorder='little') != isize:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for ISIZE'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong value for ISIZE'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## now rename the file in case the file name was known
@@ -750,7 +768,8 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
     ## BMP header is 14 bytes, smallest DIB header is 12 bytes
     ## https://en.wikipedia.org/wiki/BMP_file_format#Bitmap_file_header
     if filesize - offset < 26:
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 26 bytes'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'File too small (less than 26 bytes'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     unpackedsize = 0
@@ -764,10 +783,12 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
     bmpsize = int.from_bytes(checkbytes, byteorder='little')
     if offset + bmpsize > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for BMP file'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for BMP file'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-    ## skip over 4 bytes of reserved data and read the offset of the BMP data
+    ## skip over 4 bytes of reserved data and read the offset
+    ## of the BMP data
     checkfile.seek(4,os.SEEK_CUR)
     unpackedsize += 4
     checkbytes = checkfile.read(4)
@@ -779,27 +800,30 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for BMP'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-    ## read the first two bytes of the DIB header (DIB header size) as an extra sanity check.
-    ## There are actually just a few supported values:
+    ## read the first two bytes of the DIB header (DIB header size) as
+    ## an extra sanity check.  There are actually just a few supported values:
     ## https://en.wikipedia.org/wiki/BMP_file_format#DIB_header_(bitmap_information_header)
     checkbytes = checkfile.read(2)
     dibheadersize = int.from_bytes(checkbytes, byteorder='little')
     if not dibheadersize in set([12, 64, 16, 40, 52, 56, 108, 124]):
         checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid DIB header'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid DIB header'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## check if the header size is inside the file
     if offset + 14 + dibheadersize > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data for DIB header'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for DIB header'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-    ## the BMP data offset is from the start of the BMP file. It cannot be inside
-    ## the BMP header (14 bytes) or the DIB header (variable).
+    ## the BMP data offset is from the start of the BMP file. It cannot
+    ## be inside the BMP header (14 bytes) or the DIB header (variable).
     if bmpoffset < dibheadersize + 14:
         checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP data offset'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid BMP data offset'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 2
 
@@ -811,7 +835,8 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
             testimg.close()
         except:
             checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP according to PIL'}
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid BMP according to PIL'}
             return (False, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
         checkfile.close()
 
@@ -838,43 +863,48 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
     except:
         outfile.close()
         os.unlink(outfilename)
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid BMP data according to PIL'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid BMP data according to PIL'}
         return (False, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
 
     unpackedfilesandlabels.append((outfilename, ['bmp', 'graphics', 'unpacked']))
     return (True, bmpsize, unpackedfilesandlabels, labels, unpackingerror)
 
-## wrapper for LZMA, with a few extra sanity checks based on LZMA format specifications.
+## wrapper for LZMA, with a few extra sanity checks based on
+## LZMA format specifications.
 def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
     filesize = os.stat(filename).st_size
     unpackedfilesandlabels = []
     labels = []
     if filesize - offset < 13:
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough bytes'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough bytes'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## There are many false positives for LZMA.
-    ## The file lzma-file-format.txt in XZ file distributions describe the
-    ## LZMA format. The first 13 bytes describe the header. The last
+    ## The file lzma-file-format.txt in XZ file distributions describe
+    ## the LZMA format. The first 13 bytes describe the header. The last
     ## 8 bytes of the header describe the file size.
     checkfile = open(filename, 'rb')
     checkfile.seek(offset+5)
     checkbytes = checkfile.read(8)
     checkfile.close()
 
-    ## first check if an actual length of the *uncompressed* data is stored, or
-    ## if it is possibly stored as a stream. LZMA streams have 0xffffffff stored
-    ## in the length field.
+    ## first check if an actual length of the *uncompressed* data is
+    ## stored, or if it is possibly stored as a stream. LZMA streams
+    ## have 0xffffffff stored in the length field.
     ## http://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
     if checkbytes != b'\xff\xff\xff\xff\xff\xff\xff\xff':
         lzmaunpackedsize = int.from_bytes(checkbytes, byteorder='little')
         if lzmaunpackedsize == 0:
-            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'declared size 0'}
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'declared size 0'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-        ## XZ Utils cannot unpack or create files with size of 256 GiB or more
+        ## XZ Utils cannot unpack or create files > 256 GiB
         if lzmaunpackedsize > 274877906944:
-            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'declared size too big'}
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'declared size too big'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     else:
         lzmaunpackedsize = -1
@@ -902,14 +932,16 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
     try:
         unpackeddata = decompressor.decompress(checkdata)
     except Exception:
-        ## no data could be successfully unpacked, so close the file and exit.
+        ## no data could be successfully unpacked
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not valid %s data' % ppfiletype}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not valid %s data' % ppfiletype}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## set the name of the file in case it is "anonymous data"
-    ## otherwise just imitate whatever unxz and lzma do. If the file has a
-    ## name recorded in the file it will be renamed later.
+    ## otherwise just imitate whatever unxz and lzma do. If the file
+    ## has a name recorded in the file it will be renamed later.
     if filetype == 'xz':
         if filename.endswith('.xz'):
                 outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-3])
@@ -944,7 +976,8 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
             outfile.close()
             os.unlink(outfilename)
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid %s file' % ppfiletype}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'File not a valid %s file' % ppfiletype}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         outfile.write(unpackeddata)
         ## there is no more compressed data
@@ -958,7 +991,8 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
     ## ignore empty files, as it is bogus data
     if os.stat(outfilename).st_size == 0:
         os.unlink(outfilename)
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'File not a valid %s file' % ppfiletype}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'File not a valid %s file' % ppfiletype}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## check if the length of the unpacked LZMA data is correct, but
@@ -966,7 +1000,8 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
     if filetype == 'lzma' and lzmaunpackedsize != -1:
         if lzmaunpackedsize != os.stat(outfilename).st_size:
             os.unlink(outfilename)
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'length of unpacked %s data does not correspond with header' % ppfiletype}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'length of unpacked %s data does not correspond with header' % ppfiletype}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     min_lzma = 256
@@ -1016,7 +1051,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = 0
 
     if filesize - offset < 44:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## open the file and skip the offset
@@ -1034,7 +1070,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         version = 3
     else:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid version'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid version'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 1
 
@@ -1042,11 +1079,13 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(15)
     if checkbytes != b'\x00' * 15:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved bytes not 0'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'reserved bytes not 0'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 15
 
-    ## then the number of UT/local indicators in "standard byte order" (big endian)
+    ## then the number of UT/local indicators in "standard byte order"
+    ## (big endian)
     checkbytes = checkfile.read(4)
     ut_indicators = int.from_bytes(checkbytes, byteorder='big')
     unpackedsize += 4
@@ -1072,7 +1111,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 4
     if local_times == 0:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'local of times set to not-permitted 0'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'local of times set to not-permitted 0'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## the number of bytes of timezone abbreviation strings
@@ -1084,7 +1124,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for transition time'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for transition time'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -1094,12 +1135,14 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for transition time'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for transition time'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
         if ord(checkbytes) > local_times:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid index for transition time'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid index for transition time'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## now read a bunch of ttinfo entries
@@ -1107,7 +1150,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo GMT offsets'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for ttinfo GMT offsets'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -1115,11 +1159,13 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo DST info'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for ttinfo DST info'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         if not (ord(checkbytes) == 0 or ord(checkbytes) == 1):
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for ttinfo DST info'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid value for ttinfo DST info'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
 
@@ -1128,11 +1174,13 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo abbreviation index'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for ttinfo abbreviation index'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         if ord(checkbytes) > tz_abbrevation_bytes:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for ttinfo abbreviation index'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid value for ttinfo abbreviation index'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
 
@@ -1140,7 +1188,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(tz_abbrevation_bytes)
     if len(checkbytes) != tz_abbrevation_bytes:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for abbreviation bytes'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for abbreviation bytes'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += tz_abbrevation_bytes
 
@@ -1149,14 +1198,16 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for leap seconds'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for leap seconds'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for leap seconds'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for leap seconds'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -1165,7 +1216,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for standard indicator'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for standard indicator'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
 
@@ -1174,7 +1226,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for UT indicator'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for UT indicator'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
 
@@ -1198,14 +1251,16 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
     ## version 1 header.
     if offset + unpackedsize + 44 > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for version 2 timezone header'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for version 2 timezone header'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## first check the header
     checkbytes = checkfile.read(4)
     if checkbytes != b'TZif':
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid magic for version 2 header'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid magic for version 2 header'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -1217,13 +1272,15 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         newversion = 3
     else:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid version'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid version'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## The version has to be identical to the previously declard version
     if version != newversion:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'versions in headers don\'t match'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'versions in headers don\'t match'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 1
 
@@ -1231,7 +1288,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(15)
     if checkbytes != b'\x00' * 15:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved bytes not 0'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'reserved bytes not 0'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 15
 
@@ -1261,7 +1319,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 4
     if local_times == 0:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'local of times set to not-permitted 0'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'local of times set to not-permitted 0'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## the number of bytes of timezone abbreviation strings
@@ -1273,7 +1332,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(8)
         if len(checkbytes) != 8:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for transition time'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for transition time'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 8
 
@@ -1283,12 +1343,14 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for transition time'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for transition time'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
         if ord(checkbytes) > local_times:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid index for transition time'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid index for transition time'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## now read a bunch of ttinfo entries
@@ -1296,7 +1358,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo GMT offsets'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for ttinfo GMT offsets'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -1304,11 +1367,13 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo DST info'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for ttinfo DST info'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         if not (ord(checkbytes) == 0 or ord(checkbytes) == 1):
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for ttinfo DST info'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid value for ttinfo DST info'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
 
@@ -1317,11 +1382,13 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for ttinfo abbreviation index'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for ttinfo abbreviation index'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         if ord(checkbytes) > tz_abbrevation_bytes:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for ttinfo abbreviation index'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid value for ttinfo abbreviation index'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
 
@@ -1329,7 +1396,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(tz_abbrevation_bytes)
     if len(checkbytes) != tz_abbrevation_bytes:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for abbreviation bytes'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for abbreviation bytes'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += tz_abbrevation_bytes
 
@@ -1338,14 +1406,16 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(8)
         if len(checkbytes) != 8:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for leap seconds'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for leap seconds'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 8
 
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for leap seconds'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for leap seconds'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
 
@@ -1354,7 +1424,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for standard indicator'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for standard indicator'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
 
@@ -1363,7 +1434,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for UT indicator'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for UT indicator'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
 
@@ -1372,11 +1444,13 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(1)
     if len(checkbytes) != 1:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for POSIX TZ environment style string'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for POSIX TZ environment style string'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
     if checkbytes != b'\n':
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong value for POSIX TZ environment style string'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong value for POSIX TZ environment style string'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 1
 
@@ -1393,14 +1467,16 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'enclosing newline for POSIX TZ environment style string not found'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'enclosing newline for POSIX TZ environment style string not found'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 1
         if checkbytes == b'\n':
             break
         if not chr(ord(checkbytes)) in string.printable or chr(ord(checkbytes)) in string.whitespace:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid character in POSIX TZ environment style string'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid character in POSIX TZ environment style string'}
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     if offset == 0 and unpackedsize == filesize:
@@ -1427,15 +1503,15 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
-    ## tar is a concatenation of files. It could be that a tar file has been cut
-    ## halfway but it might still be possible to extract some data.
-    ## Use a file object so it is possible to start tar unpacking at arbitrary
-    ## positions in the file.
+    ## tar is a concatenation of files. It could be that a tar file has
+    ## been cut halfway but it might still be possible to extract some
+    ## data. Use a file object so it is possible to start tar unpacking
+    ## at arbitrary positions in the file.
     checkfile = open(filename, 'rb')
 
-    ## seek to the offset where the tar is supposed to start. According to
-    ## the documentation it should be opened at offset 0, but this works
-    ## too.
+    ## seek to the offset where the tar is supposed to start. According
+    ## to the documentation it should be opened at offset 0, but this
+    ## works too.
     checkfile.seek(offset)
     unpacktar = tarfile.open(fileobj=checkfile, mode='r')
 
@@ -1490,7 +1566,8 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
         except Exception as e:
             unpackedsize = oldunpackedsize
             tarerror = True
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': str(e)}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': str(e)}
             if tounpack != '':
                 unpackedname = os.path.join(unpackdir,unpackedname)
                 if not os.path.islink(unpackedname):
@@ -1505,24 +1582,25 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
     unpacktar.close()
     if not tarunpacked:
         checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'Not a valid tar file'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'Not a valid tar file'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## tar has finished, meaning it should also have read the termination
-    ## blocks for the tar file, so set the unpacked size to just after where
-    ## the tar module finished.
+    ## blocks for the tar file, so set the unpacked size to just after
+    ## where the tar module finished.
     unpackedsize = checkfile.tell() - offset
 
     ## Data was unpacked from the file, so the data up until now is
-    ## definitely a tar, but is the rest of the file also part of the tar
-    ## or of something else?
+    ## definitely a tar, but is the rest of the file also part of the
+    ## tar or of something else?
     ##
     ## Example: GNU tar tends to pad files with up to 20 blocks (512
     ## bytes each) filled with 0x00 although this heavily depends on
     ## the command line settings.
     ##
-    ## This can be checked with GNU tar by inspecting the file with the options
-    ## "itvRf" to the tar command:
+    ## This can be checked with GNU tar by inspecting the file with the
+    ## options "itvRf" to the tar command:
     ##
     ## $ tar itvRf /path/to/tar/file
     ##
@@ -1554,22 +1632,27 @@ def unpackAr(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = 0
 
     if offset != 0:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Currently only works on whole files'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'Currently only works on whole files'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     if shutil.which('ar') == None:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'ar program not found'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'ar program not found'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## first test the file to see if it is a valid file
-    p = subprocess.Popen(['ar', 't', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(['ar', 't', filename], stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (standard_out, standard_error) = p.communicate()
     if p.returncode != 0:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ar file'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'Not a valid ar file'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## then extract the file
-    p = subprocess.Popen(['ar', 'x', filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=unpackdir)
+    p = subprocess.Popen(['ar', 'x', filename], stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, cwd=unpackdir)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
         foundfiles = os.listdir(unpackdir)
@@ -1580,7 +1663,8 @@ def unpackAr(filename, offset, unpackdir, temporarydirectory):
             else:
                 os.unlink(os.path.join(unpackdir, f))
 
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ar file'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'Not a valid ar file'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     foundfiles = os.listdir(unpackdir)
@@ -1707,8 +1791,8 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     ## but only if offset != 0
     if offset != 0:
         temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
-        ## depending on the variant of squashfs a file size can be determined
-        ## meaning less data needs to be copied.
+        ## depending on the variant of squashfs a file size can be
+        ## determined meaning less data needs to be copied.
         os.sendfile(temporaryfile[0], checkfile.fileno(), offset, filesize - offset)
         os.fdopen(temporaryfile[0]).close()
     checkfile.close()
@@ -1789,8 +1873,8 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## a wrapper around shutil.copy2 to copy symbolic links instead of
-## following them and copying the data. This is used in squashfs unpacking
-## amongst others.
+## following them and copying the data. This is used in squashfs
+## unpacking amongst others.
 def local_copy2(src, dest):
     return shutil.copy2(src, dest, follow_symlinks=False)
 
@@ -10718,14 +10802,16 @@ def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for icon length'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for icon length'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     appleiconlength = int.from_bytes(checkbytes, byteorder='big')
 
     ## data cannot be outside of file
     if appleiconlength + offset > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'icon cannot be outside of file'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'icon cannot be outside of file'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -10735,7 +10821,8 @@ def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough icon data for icon type'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough icon data for icon type'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         icontype = checkbytes
         unpackedsize += 4
@@ -10744,17 +10831,20 @@ def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough icon data'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough icon data'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         iconlength = int.from_bytes(checkbytes, byteorder='big')
-        ## icon length cannot be outside of the file. The length field includes
-        ## the type and length, and unpackedsize already has 4 bytes of the
-        ## type added, so subtract 4 in the check.
+        ## icon length cannot be outside of the file. The length field
+        ## includes the type and length, and unpackedsize already has
+        ## 4 bytes of the type added, so subtract 4 in the check.
         if offset + unpackedsize - 4 + iconlength > filesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'icon data outside of file'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'icon data outside of file'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
+
         checkfile.seek(iconlength-8, os.SEEK_CUR)
         unpackedsize += iconlength-8
 
@@ -10766,7 +10856,8 @@ def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
             testimg.close()
         except:
             checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid Apple icon according to PIL'}
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid Apple icon according to PIL'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
         checkfile.close()
 
@@ -10796,7 +10887,8 @@ def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
     except:
         outfile.close()
         os.unlink(outfilename)
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid Apple icon according to PIL'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid Apple icon according to PIL'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
     unpackedfilesandlabels.append((outfilename, ['apple icon', 'graphics', 'resource', 'unpacked']))
@@ -10816,7 +10908,8 @@ def unpackMNG(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = 0
     unpackingerror = {}
     if filesize - offset < 52:
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 52 bytes'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'File too small (less than 52 bytes'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## open the file skip over the magic header bytes
@@ -10830,13 +10923,15 @@ def unpackMNG(filename, offset, unpackdir, temporarydirectory):
     ## Including the header, chunk type and CRC 40 bytes have to be read
     checkbytes = checkfile.read(40)
     if checkbytes[0:4] != b'\x00\x00\x00\x1c':
-        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'no valid chunk length'}
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'no valid chunk length'}
         checkfile.close()
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## The first chunk *has* to be MHDR
     if checkbytes[4:8] != b'MHDR':
-        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'no MHDR header'}
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'no MHDR header'}
         checkfile.close()
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
@@ -10845,7 +10940,8 @@ def unpackMNG(filename, offset, unpackdir, temporarydirectory):
     crccomputed = binascii.crc32(checkbytes[4:-4])
     crcstored = int.from_bytes(checkbytes[-4:], byteorder='big')
     if crccomputed != crcstored:
-        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Wrong CRC'}
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'Wrong CRC'}
         checkfile.close()
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 40
@@ -10858,12 +10954,14 @@ def unpackMNG(filename, offset, unpackdir, temporarydirectory):
         ## read the chunk size
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
-            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Could not read chunk size'}
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                              'reason': 'Could not read chunk size'}
             checkfile.close()
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         chunksize = int.from_bytes(checkbytes, byteorder='big')
         if offset + chunksize > filesize:
-            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'MNG data bigger than file'}
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                              'reason': 'MNG data bigger than file'}
             checkfile.close()
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 4
@@ -10872,7 +10970,8 @@ def unpackMNG(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4+chunksize)
         chunktype = checkbytes[0:4]
         if len(checkbytes) != 4+chunksize:
-            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Could not read chunk type'}
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                              'reason': 'Could not read chunk type'}
             checkfile.close()
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
@@ -10883,7 +10982,8 @@ def unpackMNG(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         crcstored = int.from_bytes(checkbytes, byteorder='big')
         if crccomputed != crcstored:
-            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False, 'reason': 'Wrong CRC'}
+            unpackingerror = {'offset': offset + unpackedsize,
+                              'fatal': False, 'reason': 'Wrong CRC'}
             checkfile.close()
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
@@ -10915,7 +11015,8 @@ def unpackMNG(filename, offset, unpackdir, temporarydirectory):
 
     ## There is no end of file, so it is not a valid MNG.
     checkfile.close()
-    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'No MEND found'}
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                      'reason': 'No MEND found'}
     return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
 ## The Android sparse format is documented in the Android source code tree:
@@ -10937,7 +11038,8 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
     checkfile = open(filename, 'rb')
 
     if filesize - offset < 28:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not enough bytes'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'Not enough bytes'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## first skip over the magic
@@ -10950,7 +11052,8 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
     major_version = int.from_bytes(checkbytes, byteorder='little')
     if major_version != 1:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong major version'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong major version'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 2
 
@@ -10963,7 +11066,8 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
     file_hdr_sz = int.from_bytes(checkbytes, byteorder='little')
     if file_hdr_sz != 28:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong file header size'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong file header size'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 2
 
@@ -10972,7 +11076,8 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
     chunk_hdr_sz = int.from_bytes(checkbytes, byteorder='little')
     if chunk_hdr_sz != 12:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong chunk header size'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong chunk header size'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 2
 
@@ -10981,7 +11086,8 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
     blk_sz = int.from_bytes(checkbytes, byteorder='little')
     if blk_sz % 4 != 0:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong block size'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong block size'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     unpackedsize += 4
 
@@ -11019,7 +11125,8 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
             checkfile.close()
             outputfile.close()
             os.unlink(outputfilename)
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid Android sparse file: not enough bytes in chunk header'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'Not a valid Android sparse file: not enough bytes in chunk header'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         unpackedsize += 12
 
@@ -11030,7 +11137,8 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
                 checkfile.close()
                 outputfile.close()
                 os.unlink(outputfilename)
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid Android sparse file: not enough data'}
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'Not a valid Android sparse file: not enough data'}
                 return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
             for c in range(0, chunk_sz):
                 outputfile.write(checkfile.read(blk_sz))
@@ -11057,7 +11165,8 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
             checkfile.close()
             outputfile.close()
             os.unlink(outputfilename)
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid Android sparse file: unknown chunk'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'Not a valid Android sparse file: unknown chunk'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     outputfile.close()
@@ -11065,7 +11174,8 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
     if offset == 0 and filesize == unpackedsize:
         labels.append('androidsparse')
     unpackedfilesandlabels.append((outputfilename, []))
-    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid Android sparse file'}
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                      'reason': 'Not a valid Android sparse file'}
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
@@ -11098,7 +11208,8 @@ def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
             checkfile.close()
             outfile.close()
             os.unlink(outfilename)
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'LZ4 unpacking error'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'LZ4 unpacking error'}
             return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
         unpackedsize += uncompressresults[1]
@@ -11115,7 +11226,8 @@ def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
 
     if not seeneof:
         os.unlink(outfilename)
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'data incomplete'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'data incomplete'}
         return (False, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## in case the whole file name is the lz4 file and the extension
@@ -11153,23 +11265,28 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = 0
     unpackingerror = {}
     if filesize - offset < 512:
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 512 bytes'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'File too small (less than 512 bytes'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     if shutil.which('qemu-img') == None:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'qemu-img program not found'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'qemu-img program not found'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## first run qemu-img in case the whole file is the VMDK file
     if offset == 0:
-        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename],
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
         (standardout, standarderror) = p.communicate()
         if p.returncode == 0:
             ## extra sanity check to see if it is valid JSON
             try:
                vmdkjson = json.loads(standardout)
             except:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no valid JSON output from qemu-img'}
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'no valid JSON output from qemu-img'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
             if filename.endswith('.vmdk'):
                 outputfilename = os.path.join(unpackdir, os.path.basename(filename)[:-5])
@@ -11177,12 +11294,17 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
                 outputfilename = os.path.join(unpackdir, 'unpacked-from-vmdk')
 
             ## now convert it to a raw file
-            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename],
+                                 stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
             (standardout, standarderror) = p.communicate()
             if p.returncode != 0:
                 if os.path.exists(outputfilename):
                     os.unlink(outputfilename)
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cannot convert file'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'cannot convert file'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
             labels.append('vmdk')
@@ -11190,7 +11312,8 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
             unpackedfilesandlabels.append((outputfilename, []))
             return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
-    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid VMDK file or cannot unpack'}
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                      'reason': 'Not a valid VMDK file or cannot unpack'}
     return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
 ## QEMU qcow2 files
@@ -11206,23 +11329,28 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
 
     if filesize - offset < 72:
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 72 bytes'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'File too small (less than 72 bytes'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     if shutil.which('qemu-img') == None:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'qemu-img program not found'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'qemu-img program not found'}
         return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
     ## first run qemu-img in case the whole file is the qcow2 file
     if offset == 0:
-        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename],
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
         (standardout, standarderror) = p.communicate()
         if p.returncode == 0:
             ## extra sanity check to see if it is valid JSON
             try:
                vmdkjson = json.loads(standardout)
             except:
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no valid JSON output from qemu-img'}
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'no valid JSON output from qemu-img'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
             if filename.endswith('.qcow2'):
                 outputfilename = os.path.join(unpackdir, os.path.basename(filename)[:-6])
@@ -11230,12 +11358,17 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
                 outputfilename = os.path.join(unpackdir, 'unpacked-from-qcow2')
 
             ## now convert it to a raw file
-            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename],
+                                  stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
             (standardout, standarderror) = p.communicate()
             if p.returncode != 0:
                 if os.path.exists(outputfilename):
                     os.unlink(outputfilename)
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'cannot convert file'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'cannot convert file'}
                 return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
             labels.append('qemu')
@@ -11244,7 +11377,8 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
             unpackedfilesandlabels.append((outputfilename, []))
             return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
 
-    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid qcow2 file or cannot unpack'}
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                      'reason': 'Not a valid qcow2 file or cannot unpack'}
     return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
 ## VirtualBox VDI
@@ -11505,8 +11639,8 @@ def unpackXML(filename, offset, unpackdir, temporarydirectory):
             return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
         ## check to see if the start of the XML data is found. If not,
-        ## it's white space, so read another character to see if there is more
-        ## whitespace
+        ## it's white space, so read another character to see if there
+        ## is more whitespace.
         if checkbytes == b'<':
             ## a processing instruction (section 2.6) might follow.
             ## The first one should start with "<?xml" (case insensitive)
@@ -11525,8 +11659,9 @@ def unpackXML(filename, offset, unpackdir, temporarydirectory):
 
     checkfile.close()
 
-    ## now run xmllint as a sanity check. By default xmllint tries to resolve external
-    ## entities, so this should be prevented by supplying "--nonet"
+    ## now run xmllint as a sanity check. By default xmllint tries to
+    ## resolve external entities, so this should be prevented by
+    ## supplying "--nonet"
     p = subprocess.Popen(['xmllint','--noout', "--nonet", filename],
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
