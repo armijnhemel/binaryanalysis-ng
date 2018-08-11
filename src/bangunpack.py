@@ -3592,7 +3592,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
     checkfile.seek(2, os.SEEK_CUR)
     unpackedsize += 2
 
-    ## skip over the global color table, if there is one (section 19(
+    ## skip over the global color table, if there is one (section 19)
     if haveglobalcolortable:
         if offset + unpackedsize + globalcolortablesize > filesize:
             checkfile.close()
