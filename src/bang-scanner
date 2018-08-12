@@ -5,23 +5,26 @@
 ## This file is part of BANG.
 ##
 ## BANG is free software: you can redistribute it and/or modify
-## it under the terms of the GNU Affero General Public License, version 3,
-## as published by the Free Software Foundation.
+## it under the terms of the GNU Affero General Public License,
+## version 3, as published by the Free Software Foundation.
 ##
 ## BANG is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU Affero General Public License for more details.
 ##
-## You should have received a copy of the GNU Affero General Public License, version 3,
-## along with BANG.  If not, see <http://www.gnu.org/licenses/>
+## You should have received a copy of the GNU Affero General Public
+## License, version 3, along with BANG.  If not, see
+## <http://www.gnu.org/licenses/>
 ##
 ## Copyright 2018 - Armijn Hemel
-## Licensed under the terms of the GNU Affero General Public License version 3
+## Licensed under the terms of the GNU Affero General Public License
+## version 3
 ## SPDX-License-Identifier: AGPL-3.0-only
 ##
-## Gets a file and unpacks contents using standard functionality in Python 3
-## or some custom code and writes the contents to a temporary directory.
+## Gets a file and unpacks contents using standard functionality in
+## Python 3 or some custom code and writes the contents to a temporary
+## directory.
 
 import sys
 import os
@@ -271,8 +274,8 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio',
 ## * temporary directory :: the absolute path of a directory in which
 ##   temporary files will be written
 ##
-## Each file will be in the scan queue and have the following data associated
-## with it:
+## Each file will be in the scan queue and have the following data
+## associated with it:
 ##
 ## * file name (absolutepath)
 ## * set of labels (set by parent, either empty or containing hints from
@@ -442,20 +445,23 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                     ## No data could be unpacked for some reason, so check the status first
                     logging.debug("FAIL %s known extension %s: %s" % (checkfile, e, unpackerror['reason']))
                     ## unpackerror contains:
-                    ## * offset in the file where the error occured (integer)
+                    ## * offset in the file where the error occured
+                    ##   (integer)
                     ## * reason of the error (human readable)
-                    ## * flag to indicate if it is a fatal error (boolean)
+                    ## * flag to indicate if it is a fatal error
+                    ##   (boolean)
                     ##
-                    ## Fatal errors should lead to the program stopping execution.
-                    ## remove the directory, so first change the permissions of
-                    ## all the files so they can be safely
+                    ## Fatal errors should lead to the program stopping
+                    ## execution.
                     if unpackerror['fatal']:
                         pass
-                    ## clean up any data that might have been left behind
+                    ## Remove the directory, so first change the
+                    ## permissions of all the files so they can be safely.
                     dirwalk = os.walk(dataunpackdirectory)
 
                     for direntries in dirwalk:
-                        ## make sure all subdirectories and files can be accessed
+                        ## make sure all subdirectories and files can
+                        ## be accessed.
                         for subdir in direntries[1]:
                             subdirname = os.path.join(direntries[0], subdir)
                             if not os.path.islink(subdirname):
@@ -479,9 +485,10 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                 labels += unpackedlabels
                 labels = list(set(labels))
 
-                ## if unpackedfilesandlabels is empty, then no files were unpacked
-                ## likely because the whole file was the result and didn't
-                ## contain any files (it was not a container or compresed file)
+                ## if unpackedfilesandlabels is empty, then no files
+                ## were unpacked likely because the whole file was the
+                ## result and didn't contain any files (it was not a
+                ## container or compresed file)
                 if len(unpackedfilesandlabels) == 0:
                     os.rmdir(dataunpackdirectory)
 
@@ -499,7 +506,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                     istext = False
 
         if needsunpacking:
-            ## keep a counter per signature for the unpacking directory names
+            ## keep a counter per signature for the unpacking
+            ## directory names
             counterspersignature = {}
 
             ## open the file in binary mode
@@ -572,8 +580,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                                 ## left to test on, otherwise
                                 ## let the sliding window do its work
                                 if len(scanbytes) - offset >= 10:
-                                    ## the byte indicating the block size has
-                                    ## to be in the range 1 - 9
+                                    ## the byte indicating the block size
+                                    ## has to be in the range 1 - 9
                                     try:
                                         blocksize = int(scanbytes[offset+3])
                                     except:
@@ -635,7 +643,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                                     ## BPC
                                     if not (scanbytes[offset+3] == 1 or scanbytes[offset+3] == 2):
                                         continue
-                                    ## dummy values, last 404 bytes of the header are 0x00
+                                    ## dummy values, last 404 bytes of
+                                    ## the header are 0x00
                                     if not scanbytes[offset+108:offset+512] == b'\x00' * 404:
                                         continue
                             elif s == 'ico':
@@ -650,8 +659,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                                 if offsetinfile + offset + 6 + numberofimages * 16 > filesize:
                                     continue
 
-                                ## Then check the first image, as this is where most
-                                ## false positives happen.
+                                ## Then check the first image, as this
+                                ## is where most false positives happen.
                                 imagesize = int.from_bytes(scanbytes[offset+14:offset+18], byteorder='little')
                                 if imagesize == 0:
                                     continue
@@ -666,7 +675,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                                 if filesize - (offsetinfile + offset) < 57:
                                     continue
                                 if len(scanbytes) - offset >= 13:
-                                    ## bytes 8 - 11 are always the same in every PNG
+                                    ## bytes 8 - 11 are always the same in
+                                    ## every PNG
                                     if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x0d':
                                         continue
                             elif s == 'mng':
@@ -674,13 +684,15 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                                 if filesize - (offsetinfile + offset) < 52:
                                     continue
                                 if len(scanbytes) - offset >= 13:
-                                    ## bytes 8 - 11 are always the same in every MNG
+                                    ## bytes 8 - 11 are always the same in
+                                    ## every MNG
                                     if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x1c':
                                         continue
                             elif s == 'truetype' or s == 'opentype':
                                 if filesize - (offsetinfile + offset) < 12:
                                     continue
-                                ## two simple sanity checks: number of tables and search range
+                                ## two simple sanity checks: number of
+                                ## tables and search range
                                 numtables = int.from_bytes(scanbytes[offset+4:offset+6], byteorder='big')
 
                                 if numtables == 0:
@@ -737,25 +749,31 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                         continue
                     (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = unpackresult
                     if not unpackstatus:
-                        ## No data could be unpacked for some reason, so check the status first
+                        ## No data could be unpacked for some reason,
+                        ## so check the status first
                         logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, s[1], s[0], unpackerror['reason']))
                         #print(s[1], unpackerror)
                         #sys.stdout.flush()
                         ## unpackerror contains:
-                        ## * offset in the file where the error occured (integer)
+                        ## * offset in the file where the error occured
+                        ##   (integer)
                         ## * reason of the error (human readable)
-                        ## * flag to indicate if it is a fatal error (boolean)
+                        ## * flag to indicate if it is a fatal error
+                        ##   (boolean)
                         ##
-                        ## Fatal errors should lead to the program stopping execution.
-                        ## remove the directory, so first change the permissions of
-                        ## all the files so they can be safely
+                        ## Fatal errors should lead to the program
+                        ## stopping execution.
                         if unpackerror['fatal']:
                             pass
                         ## clean up any data that might have been left behind
+                        ## remove the directory, so first change the
+                        ## permissions of all the files so they can be
+                        ## safely.
                         dirwalk = os.walk(dataunpackdirectory)
 
                         for direntries in dirwalk:
-                            ## make sure all subdirectories and files can be accessed
+                            ## make sure all subdirectories and files
+                            ## can be accessed
                             for subdir in direntries[1]:
                                 subdirname = os.path.join(direntries[0], subdir)
                                 if not os.path.islink(subdirname):
@@ -925,7 +943,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                         dirwalk = os.walk(dataunpackdirectory)
 
                         for direntries in dirwalk:
-                            ## make sure all subdirectories and files can be accessed
+                            ## make sure all subdirectories and files
+                            ## can be accessed
                             for subdir in direntries[1]:
                                 subdirname = os.path.join(direntries[0], subdir)
                                 if not os.path.islink(subdirname):
