@@ -125,6 +125,8 @@ signatures = {
     'vmdk':           b'KDMV',
     'qcow2':          b'QFI\xfb',
     'vdi':            b'<<< Oracle VM VirtualBox Disk Image >>>\n',
+    'javaclass':      b'\xca\xfe\xba\xbe',
+
 }
 
 ## some signatures do not start at the beginning of the file
@@ -198,6 +200,7 @@ signaturetofunction = {
     'vmdk': bangunpack.unpackVMDK,
     'qcow2': bangunpack.unpackQcow2,
     'vdi': bangunpack.unpackVDI,
+    'javaclass': bangunpack.unpackJavaClass,
 }
 
 ## a lookup table to map signatures to a name for

@@ -62,6 +62,7 @@
 ## 33. Motorola SREC (text files only)
 ## 34. MNG
 ## 35. Android sparse image files
+## 36. Java class file
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -11887,3 +11888,614 @@ def unpackXML(filename, offset, unpackdir, temporarydirectory):
     ## whole file is XML
     labels.append('xml')
     return (True, filesize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Uses the description of the Java class file format as described here:
+##
+## https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html
+## TODO: many more checks for valid pointers into the constant pool
+def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
+    ## a couple of constants. Same names as in the Java class
+    ## documentation from Oracle.
+    CONSTANT_Class = 7
+    CONSTANT_Fieldref = 9
+    CONSTANT_Methodref = 10
+    CONSTANT_InterfaceMethodref = 11
+    CONSTANT_String = 8
+    CONSTANT_Integer = 3
+    CONSTANT_Float = 4
+    CONSTANT_Long = 5
+    CONSTANT_Double = 6
+    CONSTANT_NameAndType = 12
+    CONSTANT_Utf8 = 1
+    CONSTANT_MethodHandle = 15
+    CONSTANT_MethodType = 16
+    CONSTANT_InvokeDynamic = 18
+
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    ## The minimal size for a valid Java class file is 24 bytes: magic
+    ## (4 bytes) plus 2 bytes for minor_version, major_version,
+    ## constant_pool_count access_flags, this_class, super_class,
+    ## interfaces_count, fields_count, methods_count and attributes_count
+    if filesize - offset < 24:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    checkfile = open(filename, 'rb')
+
+    ## skip over the magic header
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    ## then skip 4 bytes (major + minor versions)
+    checkfile.seek(4,os.SEEK_CUR)
+    unpackedsize += 4
+
+    ## Then read two bytes (constant pool count)
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for constant pool'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    constant_pool_count = int.from_bytes(checkbytes, byteorder='big')
+    if constant_pool_count == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'empty constant pool'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    islongordouble = False
+    constant_pool = {}
+
+    ## a mapping of classes to corresponding entries in the constant
+    ## pool section 4.4.1
+    class_table = {}
+
+    ## read the constants. Many of these have pointers back into the
+    ## constant_pool for names (methods, signatures, etc.).
+    for i in range(1,constant_pool_count):
+        if islongordouble:
+            islongordouble = False
+            continue
+        ## first read one byte, which is the constant "tag",
+        ## section 4.4 of specification
+        tagbyte = checkfile.read(1)
+        if len(tagbyte) != 1:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'no constant pool tag'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 1
+        tag = ord(tagbyte)
+        ## how much data is then stored per constant type depends
+        ## on the type
+        if tag == CONSTANT_Class:
+            ## section 4.4.1
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no name_index'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            class_table[i] = int.from_bytes(checkbytes, byteorder='big')
+            unpackedsize += 2
+        elif tag == CONSTANT_Fieldref or tag == CONSTANT_Methodref or tag == CONSTANT_InterfaceMethodref:
+            ## section 4.4.2
+            ## class index
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no class_index'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+            class_index = int.from_bytes(checkbytes, byteorder='big')
+
+            ## name and type index
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no name_and_type_index'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+            name_type_index = int.from_bytes(checkbytes, byteorder='big')
+            constant_pool[i] = (class_index, name_type_index)
+        elif tag == CONSTANT_String:
+            ## section 4.4.3
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no string_index'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+        elif tag == CONSTANT_Integer or tag == CONSTANT_Float:
+            ## section 4.4.4
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no integer/float bytes'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 4
+        elif tag == CONSTANT_Long or tag == CONSTANT_Double:
+            ## section 4.4.5
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no high_bytes'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 4
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no low_bytes'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 4
+            ## longs and doubles take two entries in the constant pool
+            ## so one entry needs to be skipped according to section 4.4.5
+            islongordouble = True
+        elif tag == CONSTANT_NameAndType:
+            ## section 4.4.6
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no name_index'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no descriptor_index'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+        elif tag == CONSTANT_Utf8:
+            ## section 4.4.7
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no utf8 length'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+            utf8len = int.from_bytes(checkbytes, byteorder='big')
+            utf8bytes = checkfile.read(utf8len)
+            ## Caveat: Java uses its own "modified UTF-8", as described
+            ## in 4.4.7. Assume for now that only simple ASCII is being
+            ## used. This is a mistake.
+            try:
+                constant_pool[i] = utf8bytes.decode()
+            except:
+                constant_pool[i] = utf8bytes
+            if len(utf8bytes) != utf8len:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough utf8 bytes (%d needed)' % utf8len}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += utf8len
+        elif tag == CONSTANT_MethodHandle:
+            ## section 4.4.8
+            checkbytes = checkfile.read(1)
+            if len(checkbytes) != 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no reference_kind'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 1
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no reference_index'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+        elif tag == CONSTANT_MethodType:
+            ## section 4.4.9
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no descriptor_index'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+        elif tag == CONSTANT_InvokeDynamic:
+            ## section 4.4.10
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no bootstrap_method_attr_index'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no name_and_type_index'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+    ## end of the constant pool reached
+
+    ## sanity check: verify all the class objects have valid pointers
+    ## to valid indexes in the constant pool
+    for c in class_table:
+        if not class_table[c] in constant_pool:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'class info object does not have valid pointer into constant pool'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## read the access flags
+    access_flags = checkfile.read(2)
+    if len(access_flags) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no access_flags'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## this_class
+    ## This points to an index in the constant pool table, which should
+    ## be a class file (which here are kept in class_table instead).
+    this_class = checkfile.read(2)
+    if len(this_class) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no this_class'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+    this_class_index = int.from_bytes(this_class, byteorder='big')
+    if not this_class_index in class_table:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no valid pointer into class table'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## super_class
+    super_class = checkfile.read(2)
+    if len(super_class) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no super_class'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    ## interfaces_count
+    interfaces_count_bytes = checkfile.read(2)
+    if len(interfaces_count_bytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no interfaces_count'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+    interfaces_count = int.from_bytes(interfaces_count_bytes, byteorder='big')
+
+    ## read the interfaces
+    for i in range(0,interfaces_count):
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'no interface'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## The interface should point to a valid class
+        interface_index = int.from_bytes(checkbytes, byteorder='big')
+        if not interface_index in class_table:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not a valid interface in constant pool'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+    ## fields_count
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no fields_count'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+    fields_count = int.from_bytes(checkbytes, byteorder='big')
+
+    ## read the fields, section 4.5
+    for i in range(0,fields_count):
+        ## access flags
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for access_flags'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## field name index
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for name index'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        field_name_index = int.from_bytes(checkbytes, byteorder='big')
+
+        ## field_name_index has to be a valid entry in the constant pool
+        if not field_name_index in constant_pool:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not a valid name_index in constant pool'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## field descriptor index
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for name index'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        field_descriptor_index = int.from_bytes(checkbytes, byteorder='big')
+
+        ## field_descriptor_index has to be a valid entry in
+        ## the constant pool
+        if not field_descriptor_index in constant_pool:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not a valid descriptor_index in constant pool'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## finally the attributes count
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'no field attributes_count'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+        attributes_count = int.from_bytes(checkbytes, byteorder='big')
+
+        for a in range(0, attributes_count):
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough field attributes'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough field attributes'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 4
+            attribute_info_length = int.from_bytes(checkbytes, byteorder='big')
+
+            checkbytes = checkfile.read(attribute_info_length)
+            if len(checkbytes) != attribute_info_length:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'field attribute length incorrect'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += attribute_info_length
+
+    ## methods_count
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no methods_count'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+    methods_count = int.from_bytes(checkbytes, byteorder='big')
+
+    ## read the methods, section 4.6
+    for i in range(0,methods_count):
+        ## access flags
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'no methods'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## name index
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'no methods'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        method_name_index = int.from_bytes(checkbytes, byteorder='big')
+
+        ## method_name_index has to be a valid entry in the constant pool
+        if not method_name_index in constant_pool:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not a valid name_index in constant pool'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## descriptor index
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'no methods'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        method_descriptor_index = int.from_bytes(checkbytes, byteorder='big')
+
+        ## method_descriptor_index has to be a valid entry in the constant pool
+        if not method_descriptor_index in constant_pool:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not a valid descriptor_index in constant pool'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'no method attributes_count'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        attributes_count = int.from_bytes(checkbytes, byteorder='big')
+        for a in range(0, attributes_count):
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no method attributes'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            attribute_name_index = int.from_bytes(checkbytes, byteorder='big')
+
+            ## attribute_name_index has to be a valid entry
+            ## in the constant pool
+            if not attribute_name_index in constant_pool:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not a valid name_index in constant pool'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 2
+
+            ## length of the attribute
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough method attributes'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += 4
+            attribute_info_length = int.from_bytes(checkbytes, byteorder='big')
+
+            checkbytes = checkfile.read(attribute_info_length)
+            if len(checkbytes) != attribute_info_length:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'method attribute length incorrect'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            unpackedsize += attribute_info_length
+
+    ## attributes_count
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no attributes_count'}
+        return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    unpackedsize += 2
+
+    attributes_count = int.from_bytes(checkbytes, byteorder='big')
+
+    ## read the attributes, section 4.7
+    for i in range(0,attributes_count):
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough attributes'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        attribute_name_index = int.from_bytes(checkbytes, byteorder='big')
+
+        ## attribute_name_index has to be a valid entry in the constant pool
+        if not attribute_name_index in constant_pool:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not a valid name_index in constant pool'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 2
+
+        ## length of the attribute
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough attributes'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += 4
+
+        attribute_info_length = int.from_bytes(checkbytes, byteorder='big')
+        checkbytes = checkfile.read(attribute_info_length)
+        if len(checkbytes) != attribute_info_length:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'attribute length incorrect'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        unpackedsize += attribute_info_length
+
+    if offset == 0 and unpackedsize == filesize:
+       checkfile.close()
+       labels.append('java class')
+       return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## else carve the file. The name of the class file can often
+    ## be derived from the class data itself.
+    if this_class_index in class_table:
+        ## sometimes there is a full path inside the class file
+        ## This can be found by first finding the right class
+        ## in the constant pool and then using this index to
+        ## find the corresponding name in the constant pool.
+        if  class_table[this_class_index] in constant_pool:
+            classname = os.path.basename(constant_pool[class_table[this_class_index]])
+            ## sometimes the name ends in .class, but sometimes
+            ## it doesn't, so add it.
+            if not classname.endswith('.class'):
+                classname += '.class'
+        else:
+            ## name could not be found in the constant pool
+            ## so just give it a name
+            classname = "unpacked.class"
+    else:
+        ## It is anonymous, so just give it a name
+        classname = "unpacked.class"
+
+    outfilename = os.path.join(unpackdir, classname)
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+    unpackedfilesandlabels.append((outfilename, ['java class', 'unpacked']))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
