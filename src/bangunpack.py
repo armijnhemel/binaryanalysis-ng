@@ -12813,19 +12813,31 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
 
     ## store the Adler32 of the uncompressed data
     dexadler = zlib.adler32(b'')
+    dexsha1 = hashlib.new('sha1')
 
-    ## read all data to check the Adler32 checksum
+    ## first read 20 bytes just relevant for the Adler32
+    checkbytes = checkfile.read(20)
+    dexadler = zlib.adler32(checkbytes, dexadler)
+
+    ## read all data to check the Adler32 checksum and the SHA1 checksum
     readsize = 10000000
     while True:
         checkbytes = checkfile.read(readsize)
         if checkbytes == b'':
             break
         dexadler = zlib.adler32(checkbytes, dexadler)
+        dexsha1.update(checkbytes)
 
     if dexadler != adlerchecksum:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong Adler32'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    if dexsha1.digest() != signature:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong SHA1'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## then return to the old offset
