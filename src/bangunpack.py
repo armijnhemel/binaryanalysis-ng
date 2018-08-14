@@ -63,6 +63,7 @@
 ## 34. MNG
 ## 35. Android sparse image files
 ## 36. Java class file
+## 37. Android Dex (not Odex or OAT, just carving)
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -12498,4 +12499,350 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
     outfile.close()
     checkfile.close()
     unpackedfilesandlabels.append((outfilename, ['java class', 'unpacked']))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Android Dalvik
+##
+## https://source.android.com/devices/tech/dalvik/dex-format
+##
+## Internet archive link:
+##
+## http://web.archive.org/web/20180520110013/https://source.android.com/devices/tech/dalvik/dex-format
+##
+## (sections "File layout" and "Items and related structures")
+def unpackDex(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackedsize = 0
+    unpackingerror = {}
+
+    if filesize < 70:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## open the file and skip over the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    ## then the version. In the specification it is part of
+    ## DEX_FILE_MAGIC, but check it separately here to filter
+    ## any false positives.
+
+    dexversions = [b'035\x00', b'037\x00', b'038\x00']
+
+    checkbytes = checkfile.read(4)
+    if not checkbytes in dexversions:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong Dex version'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    dexversion = checkbytes
+    unpackedsize += 4
+
+    ## first check if the file is little endian. The endianness
+    ## bytes can be found at offset 40
+    oldoffset = checkfile.tell()
+    checkfile.seek(offset+40)
+    checkbytes = checkfile.read(4)
+
+    if int.from_bytes(checkbytes, byteorder='little') != 0x12345678:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'incorrect endianness bytes'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## return to the old offset
+    checkfile.seek(oldoffset)
+
+    ## then the adler checksum
+    checkbytes = checkfile.read(4)
+    adlerchecksum = int.from_bytes(checkbytes, byteorder='little')
+
+    ## then the signature
+    signature = checkfile.read(20)
+
+    ## then the file size
+    checkbytes = checkfile.read(4)
+    dexsize = int.from_bytes(checkbytes, byteorder='little')
+    if offset + dexsize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'declared size bigger than file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## header size
+    checkbytes = checkfile.read(4)
+    headersize = int.from_bytes(checkbytes, byteorder='little')
+    if headersize != 0x70:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong header size'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## skip the endianness bit
+    checkfile.seek(4, os.SEEK_CUR)
+
+    ## link size
+    checkbytes = checkfile.read(4)
+    linksize = int.from_bytes(checkbytes, byteorder='little')
+
+    ## link offset
+    checkbytes = checkfile.read(4)
+    linkoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    if linkoffset != 0:
+        if offset + linkoffset + linksize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'link section outside of file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## map item offset, "must be non-zero"
+    checkbytes = checkfile.read(4)
+    mapoffset = int.from_bytes(checkbytes, byteorder='little')
+    if mapoffset == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'map item must be non-zero'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    if offset + mapoffset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'map item outside of file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## string ids size
+    checkbytes = checkfile.read(4)
+    stringidssize = int.from_bytes(checkbytes, byteorder='little')
+
+    ## string ids offset
+    checkbytes = checkfile.read(4)
+    stringidsoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    if stringidsoffset != 0:
+        if stringidsoffset < headersize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'strings section cannot be inside header'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if offset + stringidsoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'strings section outside of file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    else:
+        ## "0 if string_ids_size == 0"
+        if stringidssize != 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'strings section/strings size mismatch'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## type_ids_size, "at most 65535"
+    checkbytes = checkfile.read(4)
+    typeidssize = int.from_bytes(checkbytes, byteorder='little')
+    if typeidssize > 65535:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'too many type identifiers'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## type ids offset
+    checkbytes = checkfile.read(4)
+    typeidsoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    if typeidsoffset != 0:
+        if typeidsoffset < headersize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'type section cannot be inside header'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if offset + typeidsoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'type section outside of file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    else:
+        ## "0 if type_ids_size == 0"
+        if typeidssize != 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'type section/type size mismatch'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## proto ids size, "at most 65535"
+    checkbytes = checkfile.read(4)
+    protoidssize = int.from_bytes(checkbytes, byteorder='little')
+    if protoidssize > 65535:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'too many type identifiers'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## proto ids offset
+    checkbytes = checkfile.read(4)
+    protoidsoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    if protoidsoffset != 0:
+        if protoidsoffset < headersize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'prototype section cannot be inside header'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if offset + protoidsoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'prototype section outside of file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    else:
+        ## "0 if proto_ids_size == 0"
+        if protoidssize != 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'prototype section/prototype size mismatch'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## fields ids size
+    checkbytes = checkfile.read(4)
+    fieldsidsize = int.from_bytes(checkbytes, byteorder='little')
+
+    ## fields ids offset
+    checkbytes = checkfile.read(4)
+    fieldsidsoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    if fieldsidsoffset != 0:
+        if fieldsidsoffset < headersize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'fields section cannot be inside header'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if offset + fieldsidsoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'fields section outside of file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    else:
+        ## "0 if field_ids_size == 0"
+        if fieldsidsize != 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'fields section/fields size mismatch'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## method ids size
+    checkbytes = checkfile.read(4)
+    methodidssize = int.from_bytes(checkbytes, byteorder='little')
+
+    ## method ids offset
+    checkbytes = checkfile.read(4)
+    methodidsoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    if methodidsoffset != 0:
+        if methodidsoffset < headersize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'methods section cannot be inside header'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if offset + methodidsoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'methods section outside of file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    else:
+        ## "0 if method_ids_size == 0"
+        if methodidssize != 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'methods section/methods size mismatch'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## class definitions size
+    checkbytes = checkfile.read(4)
+    classdefssize = int.from_bytes(checkbytes, byteorder='little')
+
+    ## class definitions offset
+    checkbytes = checkfile.read(4)
+    classdefsoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    if classdefsoffset != 0:
+        if classdefsoffset < headersize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'class definitions cannot be inside header'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if offset + classdefsoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'class definitions outside of file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    else:
+        ## "0 if class_defs_size == 0"
+        if classdefssize != 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'class definitions section/class definitions size mismatch'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## data size, "Must be an even multiple of sizeof(uint)"
+    checkbytes = checkfile.read(4)
+    datasize = int.from_bytes(checkbytes, byteorder='little')
+    if (datasize//4)%2 != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'incorrect data size'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## data offset
+    checkbytes = checkfile.read(4)
+    dataoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    if offset + dataoffset + datasize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'data outside of file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## store the old offset
+    oldoffset = checkfile.tell()
+
+    ## jump to byte 12 and read all data
+    checkfile.seek(offset+12)
+
+    ## store the Adler32 of the uncompressed data
+    dexadler = zlib.adler32(b'')
+
+    ## read all data to check the Adler32 checksum
+    readsize = 10000000
+    while True:
+        checkbytes = checkfile.read(readsize)
+        if checkbytes == b'':
+            break
+        dexadler = zlib.adler32(checkbytes, dexadler)
+
+    if dexadler != adlerchecksum:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong Adler32'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## then return to the old offset
+    checkfile.seek(oldoffset)
+
+    unpackedsize = dataoffset + datasize
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('dex')
+        labels.append('android')
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## else carve the file
+    outfilename = os.path.join(unpackdir, "classes.dex")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    unpackedfilesandlabels.append((outfilename, ['dex', 'android', 'unpacked']))
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
