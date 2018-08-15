@@ -13053,6 +13053,72 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'field identifier not in string identifier list'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
+    ## jump to the offset of the method identifiers list
+    checkfile.seek(offset + methodidsoffset)
+
+    ## read each method_id_item
+    for i in range(0,methodidssize):
+        ## first an index into the string identifiers list
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for type identifier offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        class_idx = int.from_bytes(checkbytes, byteorder='little')
+
+        if not class_idx in typeids:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'method identifier not in type identifier list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## "must be a class type or array type"
+        if not (typeids[class_idx].startswith('L') or typeids[class_idx].startswith('[')):
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'method identifier does not point to a class'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## proto_idx
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for type identifier offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        proto_idx = int.from_bytes(checkbytes, byteorder='little')
+
+        ## TODO: has to be a valid entry into the prototype list
+
+        ## name_idx
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for type identifier offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        name_idx = int.from_bytes(checkbytes, byteorder='little')
+
+        if not name_idx in stringids:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'field identifier not in string identifier list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## Done with most of the sanity checks, so now use
+    ## the map item instead, as it is more convenient.
+
+    ## map offset "should be to an offset in the data section"
+    if mapoffset < dataoffset:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'map item not in data section'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## jump to the offset of the map item
+    checkfile.seek(offset + mapoffset)
+
     unpackedsize = dataoffset + datasize
     if offset == 0 and unpackedsize == filesize:
         labels.append('dex')
