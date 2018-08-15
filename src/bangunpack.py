@@ -13109,6 +13109,12 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
     ## Done with most of the sanity checks, so now use
     ## the map item instead, as it is more convenient.
 
+    ## there is just a limited set of valid map item types
+    validmapitems = set([0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005,
+                         0x0006, 0x0007, 0x0008, 0x1000, 0x1001, 0x1002,
+                         0x1003, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004,
+                         0x2005, 0x2006])
+
     ## map offset "should be to an offset in the data section"
     if mapoffset < dataoffset:
         checkfile.close()
@@ -13118,6 +13124,51 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
 
     ## jump to the offset of the map item
     checkfile.seek(offset + mapoffset)
+
+    ## parse map_list
+    checkbytes = checkfile.read(4)
+    mapsize = int.from_bytes(checkbytes, byteorder='little')
+    for i in range(0, mapsize):
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for map type'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        maptype = int.from_bytes(checkbytes, byteorder='little')
+        if not maptype in validmapitems:
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid map type'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## unused
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for map item'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for map item'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        mapitemsize = int.from_bytes(checkbytes, byteorder='little')
+
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for map item offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        mapitemoffset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + mapitemoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'map item offset outside of file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     unpackedsize = dataoffset + datasize
     if offset == 0 and unpackedsize == filesize:
