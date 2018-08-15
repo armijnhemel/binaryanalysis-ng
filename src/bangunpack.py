@@ -13137,6 +13137,7 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
         maptype = int.from_bytes(checkbytes, byteorder='little')
         if not maptype in validmapitems:
+            checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'invalid map type'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
