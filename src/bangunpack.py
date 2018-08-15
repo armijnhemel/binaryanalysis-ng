@@ -13125,6 +13125,8 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
     ## jump to the offset of the map item
     checkfile.seek(offset + mapoffset)
 
+    seenmaptypes = set()
+
     ## parse map_list
     checkbytes = checkfile.read(4)
     mapsize = int.from_bytes(checkbytes, byteorder='little')
@@ -13141,6 +13143,14 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'invalid map type'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## map types can appear at most once
+        if maptype in seenmaptypes:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'duplicate map type'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        seenmaptypes.add(maptype)
 
         ## unused
         checkbytes = checkfile.read(2)
