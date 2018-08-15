@@ -117,6 +117,7 @@ import subprocess
 import json
 import xml.dom.minidom
 import hashlib
+import re
 
 ## some external packages that are needed
 import PIL.Image
@@ -12707,7 +12708,7 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
 
     ## fields ids size
     checkbytes = checkfile.read(4)
-    fieldsidsize = int.from_bytes(checkbytes, byteorder='little')
+    fieldsidssize = int.from_bytes(checkbytes, byteorder='little')
 
     ## fields ids offset
     checkbytes = checkfile.read(4)
@@ -12726,7 +12727,7 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
     else:
         ## "0 if field_ids_size == 0"
-        if fieldsidsize != 0:
+        if fieldsidssize != 0:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'fields section/fields size mismatch'}
@@ -12805,9 +12806,6 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'data outside of file'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-    ## store the old offset
-    oldoffset = checkfile.tell()
-
     ## jump to byte 12 and read all data
     checkfile.seek(offset+12)
 
@@ -12840,8 +12838,220 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'wrong SHA1'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-    ## then return to the old offset
-    checkfile.seek(oldoffset)
+    ## There are two ways to access the data: the first is to use the
+    ## so called "map list" (the easiest). The second is to walk all the
+    ## items separately.
+    ## In this implementation the map list is primarily used, with the
+    ## other data used for additional sanity checks.
+
+    ## jump to the offset of the string identifiers list
+    checkfile.seek(offset + stringidsoffset)
+
+    ## keep track of the string identifiers
+    stringids = {}
+
+    ## keep track of the type identifiers
+    typeids = {}
+
+    ## some regex for sanity checks
+    reshorty = re.compile('(?:V|[ZBSCIJFDL])[ZBSCIJFDL]*$')
+
+    ## read each string_id_item, which is an offset into the data section
+    for i in range(0,stringidssize):
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for string identifier offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        string_data_offset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + string_data_offset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'string identifier offset outside file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if string_data_offset < dataoffset:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'string identifier offset not in data section'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## store the old offset
+        oldoffset = checkfile.tell()
+
+        ## then jump to the new offset
+        checkfile.seek(offset + string_data_offset)
+
+        ## encountered. The first few bytes will be the size in
+        ## ULEB128 encoding:
+        ##
+        ## https://en.wikipedia.org/wiki/LEB128
+        stringiddata = b''
+        while True:
+            checkbytes = checkfile.read(1)
+            if checkbytes == b'\x00':
+                break
+            stringiddata += checkbytes
+        for s in enumerate(stringiddata):
+            if s[1] & 0x80 == 0x80:
+                continue
+
+            ## The string data itself is in Modified UTF-8 encoding.
+            ## https://en.wikipedia.org/wiki/UTF-8#Modified_UTF-8
+            stringid = stringiddata[s[0]+1:].replace(b'\xc0\x80', b'\x00')
+
+            ## several characters have been replaced as well (surrogate)
+            ## TODO
+
+            stringid = stringid.decode()
+            stringids[i] = stringid
+            break
+
+        ## and return to the old offset
+        checkfile.seek(oldoffset)
+
+    ## jump to the offset of the string identifiers list
+    checkfile.seek(offset + typeidsoffset)
+
+    ## read each type_id_item. These have to be valid ids in the
+    ## string identifier table
+    for i in range(0,typeidssize):
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for string identifier offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        descriptor_idx = int.from_bytes(checkbytes, byteorder='little')
+
+        if not descriptor_idx in stringids:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'type identifier not in string identifier list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        typeids[i] = stringids[descriptor_idx]
+
+    ## jump to the offset of the prototype identifiers list
+    checkfile.seek(offset + protoidsoffset)
+
+    ## read each proto_id_item
+    for i in range(0,protoidssize):
+        ## first an index into the string identifiers list
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for prototype identifier offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        shorty_idx = int.from_bytes(checkbytes, byteorder='little')
+
+        if not shorty_idx in stringids:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'prototype identifier not in string identifier list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## the shorty index points to a string that must conform
+        ## to ShortyDescription syntax (see specifications)
+        if reshorty.match(stringids[shorty_idx]) == None:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid prototype identifier'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## then the return type index, which has to be a valid
+        ## index into the type ids list
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for prototype return identifier offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        return_type_idx = int.from_bytes(checkbytes, byteorder='little')
+
+        if not return_type_idx in typeids:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'prototype return type not in type identifier list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## finally the parameters offset. This can either by 0 or
+        ## a valid offset into the data section.
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for prototype parameters offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        parameters_off = int.from_bytes(checkbytes, byteorder='little')
+        if offset + parameters_off > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'prototype parameters offset outside file'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if parameters_off != 0:
+            if parameters_off < dataoffset:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'prototype parameters offset not in data section'}
+                return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## jump to the offset of the field identifiers list
+    checkfile.seek(offset + fieldsidsoffset)
+
+    ## read each field_id_item
+    for i in range(0,fieldsidssize):
+        ## first an index into the string identifiers list
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for type identifier offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        class_idx = int.from_bytes(checkbytes, byteorder='little')
+
+        if not class_idx in typeids:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'field identifier not in type identifier list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## "must be a class type"
+        if not typeids[class_idx].startswith('L'):
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'field identifier does not point to a class'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## type_idx
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for type identifier offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        type_idx = int.from_bytes(checkbytes, byteorder='little')
+
+        if not type_idx in typeids:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'field identifier not in type identifier list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## name_idx
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for type identifier offset'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        name_idx = int.from_bytes(checkbytes, byteorder='little')
+
+        if not name_idx in stringids:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'field identifier not in string identifier list'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     unpackedsize = dataoffset + datasize
     if offset == 0 and unpackedsize == filesize:
