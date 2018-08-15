@@ -13125,6 +13125,9 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
     ## jump to the offset of the map item
     checkfile.seek(offset + mapoffset)
 
+    ## store the types to offsets, plus the amount of map type items
+    maptypetooffsets = {}
+
     seenmaptypes = set()
 
     ## parse map_list
@@ -13180,6 +13183,7 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'map item offset outside of file'}
             return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        maptypetooffsets[maptype] = (mapitemoffset, mapitemsize)
 
     unpackedsize = dataoffset + datasize
     if offset == 0 and unpackedsize == filesize:
