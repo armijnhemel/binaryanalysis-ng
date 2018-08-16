@@ -75,3 +75,28 @@ unsuccessfully unpacked the following information is kept:
 If a file is not successfully unpacked the result will contain an error
 message, as well as the offset at which place in the file the error occured
 which is stored in a log file for later analysis, if needed.
+
+#### Unpacking directory
+
+Files that are unpacked from a container, or which are carved from a
+larger file are written in a directory structure that looks like this:
+
+    $filename-$type-$counter/
+
+for example:
+
+    example.gz-gzip-1/
+
+For each subsequent gzip file that is unpacked from the file the counter
+will be increased, for example:
+
+    example.bin-gzip-1/
+    example.bin-gzip-2/
+    example.bin-gzip-3/
+
+and so on.
+
+Not every successful verification of a file will have a directory structure
+like this. If the entire file is a file from which nothing can be unpacked,
+then the directory will not be returned. Examples of this are graphics files
+(PNG, GIF, JPEG, WebP, etcetera) or audio files.
