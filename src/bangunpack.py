@@ -12518,7 +12518,7 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = 0
     unpackingerror = {}
 
-    if filesize < 70:
+    if offset + 70 > filesize:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'not enough data'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
