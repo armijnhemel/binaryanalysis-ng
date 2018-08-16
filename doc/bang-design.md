@@ -100,3 +100,44 @@ Not every successful verification of a file will have a directory structure
 like this. If the entire file is a file from which nothing can be unpacked,
 then the directory will not be returned. Examples of this are graphics files
 (PNG, GIF, JPEG, WebP, etcetera) or audio files.
+
+Files that have been unpacked are written to this directory and when returned
+will be added to the scanning queue.
+
+#### Carving
+
+Carving a file from a larger file is a bit different than unpacking data
+from a file. The code that carves data from a file already verifies the data
+to find the end of the data. Files that are marked as "unpacked" are not
+processed by BANG as an optimization.
+
+#### Return values
+
+The data that is returned from the unpackers carvers look like this:
+
+    (return status, data size, list of files and labels, labels for top level file, error message)
+
+*   return status: a boolean indicating if unpacking or carving was successful
+*   data size: an integer indicating the size of the data that is unpacked
+*   list of files and labels: a list of tuples with the name of each file
+    that was unpacked, plus a list of associated labels (empty most of the time)
+*   error message: a dictionary with information about possible errors that
+    occured.
+
+If the return status is False, then the only relevant part is the error
+message. If the return status is True, then the error message is ignored.
+
+A successful PNG verification (whole file) could return this:
+
+    (True, filesize, [], ['png', 'graphics'], {})
+
+An error message is a dictionary, with the following elements:
+
+*   offset: offset in the file at which the error occured
+*   fatal: boolean indicating whether or not the error is fatal and the
+    program should be stopped (this is currently ignored)
+*   reason: a human readable description of the error
+
+An example of an error message:
+
+    {'offset': 0, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
