@@ -26,20 +26,18 @@ of other files might be needed).
 After all files have been unpacked results regarding unpacking are written
 to an output file and the files can be further analyzed.
 
-Each file is first unpacked, after which a result is returned. If a file is
-unsuccessfully unpacked the following information is kept:
-
-1.  the type of file or data that was unpacked (example: gzip, ext2 file
-    system).
-2.  the byte range of the unpacked data, indicating where the file or data
-    starts and where it ends. This is useful if different files have been
-    concatenated (example: a flash dump with different partitions)
-3.  paths of any files that were unpacked (example: contents of a ZIP file)
-4.  labels describing the unpacked data, which can later be used to more
-    quickly identify files and filter using the labels.
-
-
 ### Unpacking
+
+For each file from the scanning queue the following is done:
+
+1.  check if the file is a regular file, or if it is a special file, like
+    a block or character device, a socket file, or if it is a directory.
+    Only regular files are scanned.
+2.  compute various checksums (MD5, SHA1, SHA256)
+3.  analyze the file to verify what kind of file it is, and if any data
+    can be extracted from it in case it is a container format (file system,
+    archive, compresed file, etcetera), or if it is a regular file with data
+    appended to it, or prepended in front of it.
 
 Many file types have a certain header that indicates what file type they
 are. On Linux systems these file types are typically described in a
@@ -60,4 +58,20 @@ There are three different types of files that can currently be unpacked:
     is inside and where the file possibly first has to be
     converted to a binary (examples: Intel Hex).
 
-#### Interface
+The files are scanned in this exact order to prevent false positives.
+
+For each file that is unpacked, a result is returned. If a file is
+unsuccessfully unpacked the following information is kept:
+
+1.  the type of file or data that was unpacked (example: gzip, ext2 file
+    system).
+2.  the byte range of the unpacked data, indicating where the file or data
+    starts and where it ends. This is useful if different files have been
+    concatenated (example: a flash dump with different partitions)
+3.  paths of any files that were unpacked (example: contents of a ZIP file)
+4.  labels describing the unpacked data, which can later be used to more
+    quickly identify files and filter using the labels.
+
+If a file is not successfully unpacked the result will contain an error
+message, as well as the offset at which place in the file the error occured
+which is stored in a log file for later analysis, if needed.
