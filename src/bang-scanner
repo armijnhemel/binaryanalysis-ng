@@ -1086,14 +1086,14 @@ def main(argv):
             ## recursively, next to the main thread. Defaults to "all
             ## availabe threads" (number of CPUs on a machine).
             try:
-                threads = min(int(config.get(section, 'threads')), multiprocessing.cpu_count())
+                bangthreads = min(int(config.get(section, 'threads')), multiprocessing.cpu_count())
                 ## if 0 or a negative number was configured, then use
                 ## all available threads
-                if threads < 1:
-                    threads = multiprocessing.cpu_count()
+                if bangthreads < 1:
+                    bangthreads = multiprocessing.cpu_count()
             except Exception:
                 ## use all available threads by default
-                threads = multiprocessing.cpu_count()
+                bangthreads = multiprocessing.cpu_count()
         elif section == 'database':
             ## The default mode is to continue without having a database
             ## and to just disable the functionality that requires a
@@ -1242,13 +1242,23 @@ def main(argv):
     ## After files are unpacked they will be added to the queue, as they
     ## can be scanned in a trivially parallel way.
 
+    ## tuple of database connection/database cursor
+    bangdbconns = []
+
+    ## create database connections if any database is used
+    if usedatabase:
+        for i in range(0,bangthreads):
+            bangconn = psycopg2.connect(database=postgresql_db, user=postgresql_user, password=postgresql_password, port=postgresql_port, host=postgresql_host)
+            bangcursor = bangconn.cursor()
+            bangdbconns.append((bangconn, bangcursor))
+
     ## Create a list of labels to pass around. The first element is
     ## tagged as 'root', as it is the root of the unpacking tree.
     labels = ['root']
     scanfilequeue.put((os.path.join(unpackdirectory, os.path.basename(args.checkfile)), labels))
 
     ## create processes for unpacking archives
-    for i in range(0,threads):
+    for i in range(0, bangthreads):
         p = multiprocessing.Process(target=processfile, args=(scanfilequeue, resultqueue, readsize, unpackdirectory, temporarydirectory, None, None))
         processes.append(p)
 
@@ -1281,6 +1291,14 @@ def main(argv):
     ## Done processing, terminate processes that were created
     for p in processes:
         p.terminate()
+
+    ## clean up the database connections and
+    ## close all connections to the database
+    for c in bangdbconns:
+        ## first close the cursor
+        c[1].close()
+        ## then close the database connection
+        c[0].close()
 
     scandatefinished = datetime.datetime.utcnow()
 
