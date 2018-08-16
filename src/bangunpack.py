@@ -12532,7 +12532,7 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
     ## DEX_FILE_MAGIC, but check it separately here to filter
     ## any false positives.
 
-    dexversions = [b'035\x00', b'037\x00', b'038\x00']
+    dexversions = [b'035\x00', b'037\x00', b'038\x00', b'039\x00']
 
     checkbytes = checkfile.read(4)
     if not checkbytes in dexversions:
