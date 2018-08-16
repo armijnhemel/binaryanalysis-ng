@@ -16,6 +16,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * zstd
 * python-lz4
 * qemu-img (for VMDK files)
+* psycopg2
 
 ## Invocation
 
