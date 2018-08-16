@@ -12511,7 +12511,7 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
 ## http://web.archive.org/web/20180520110013/https://source.android.com/devices/tech/dalvik/dex-format
 ##
 ## (sections "File layout" and "Items and related structures")
-def unpackDex(filename, offset, unpackdir, temporarydirectory):
+def unpackDex(filename, offset, unpackdir, temporarydirectory, dryrun=False, verifychecksum=True):
     filesize = os.stat(filename).st_size
     unpackedfilesandlabels = []
     labels = []
@@ -12806,37 +12806,38 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'data outside of file'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
-    ## jump to byte 12 and read all data
-    checkfile.seek(offset+12)
+    if verifychecksum:
+        ## jump to byte 12 and read all data
+        checkfile.seek(offset+12)
 
-    ## store the Adler32 of the uncompressed data
-    dexadler = zlib.adler32(b'')
-    dexsha1 = hashlib.new('sha1')
+        ## store the Adler32 of the uncompressed data
+        dexadler = zlib.adler32(b'')
+        dexsha1 = hashlib.new('sha1')
 
-    ## first read 20 bytes just relevant for the Adler32
-    checkbytes = checkfile.read(20)
-    dexadler = zlib.adler32(checkbytes, dexadler)
-
-    ## read all data to check the Adler32 checksum and the SHA1 checksum
-    readsize = 10000000
-    while True:
-        checkbytes = checkfile.read(readsize)
-        if checkbytes == b'':
-            break
+        ## first read 20 bytes just relevant for the Adler32
+        checkbytes = checkfile.read(20)
         dexadler = zlib.adler32(checkbytes, dexadler)
-        dexsha1.update(checkbytes)
 
-    if dexadler != adlerchecksum:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'wrong Adler32'}
-        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        ## read all data to check the Adler32 checksum and the SHA1 checksum
+        readsize = 10000000
+        while True:
+            checkbytes = checkfile.read(readsize)
+            if checkbytes == b'':
+                break
+            dexadler = zlib.adler32(checkbytes, dexadler)
+            dexsha1.update(checkbytes)
 
-    if dexsha1.digest() != signature:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'wrong SHA1'}
-        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+        if dexadler != adlerchecksum:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'wrong Adler32'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+        if dexsha1.digest() != signature:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'wrong SHA1'}
+            return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     ## There are two ways to access the data: the first is to use the
     ## so called "map list" (the easiest). The second is to walk all the
@@ -13191,14 +13192,15 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
         labels.append('android')
         return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
-    ## else carve the file
-    outfilename = os.path.join(unpackdir, "classes.dex")
-    outfile = open(outfilename, 'wb')
-    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-    outfile.close()
-    checkfile.close()
+    if not dryrun:
+        ## else carve the file
+        outfilename = os.path.join(unpackdir, "classes.dex")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, ['dex', 'android', 'unpacked']))
 
-    unpackedfilesandlabels.append((outfilename, ['dex', 'android', 'unpacked']))
+    checkfile.close()
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
 
 ## Android Dalvik, optimized
@@ -13309,6 +13311,17 @@ def unpackOdex(filename, offset, unpackdir, temporarydirectory):
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong Adler32'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## now check to see if it is a valid Dex. This is extremely
+    ## unlikely at this point.
+    dryrun = True
+    verifychecksum = False
+    dexres = unpackDex(filename, dexoffset, unpackdir, temporarydirectory, dryrun, verifychecksum)
+    if not dexres[0]:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid Dex data'}
         return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
 
     unpackedsize = maxunpack
