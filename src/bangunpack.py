@@ -63,7 +63,7 @@
 ## 34. MNG
 ## 35. Android sparse image files
 ## 36. Java class file
-## 37. Android Dex (not Odex or OAT, just carving)
+## 37. Android Dex/Odex (not OAT, just carving)
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -13193,6 +13193,132 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory):
 
     ## else carve the file
     outfilename = os.path.join(unpackdir, "classes.dex")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    unpackedfilesandlabels.append((outfilename, ['dex', 'android', 'unpacked']))
+    return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## Android Dalvik, optimized
+##
+## https://android.googlesource.com/platform/dalvik.git/+/master/libdex/DexFile.h
+##
+## Internet archive link:
+##
+## http://web.archive.org/web/20180816094438/https://android.googlesource.com/platform/dalvik.git/+/master/libdex/DexFile.h
+##
+## (struct DexOptHeader and DexFile)
+def unpackOdex(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackedsize = 0
+    unpackingerror = {}
+
+    if filesize < 40:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## open the file and skip over the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    ## then the version. So far only one has been released but
+    ## it could be that more will be released, so make it extensible.
+    odexversions = [b'036\x00']
+
+    checkbytes = checkfile.read(4)
+    if not checkbytes in odexversions:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong Odex version'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+    dexversion = checkbytes
+    unpackedsize += 4
+
+    ## file offset to Dex header
+    checkbytes = checkfile.read(4)
+    dexoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    ## dex length
+    checkbytes = checkfile.read(4)
+    dexlength = int.from_bytes(checkbytes, byteorder='little')
+    if offset + dexlength + dexoffset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'Dex file outside of file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    maxunpack = dexoffset + dexlength
+
+    ## dependency table offset
+    checkbytes = checkfile.read(4)
+    depsoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    ## dependency table length
+    checkbytes = checkfile.read(4)
+    depslength = int.from_bytes(checkbytes, byteorder='little')
+    if offset + depslength + depsoffset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'Dependency table outside of file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    maxunpack = max(maxunpack, depsoffset + depslength)
+
+    ## optimized table offset
+    checkbytes = checkfile.read(4)
+    optoffset = int.from_bytes(checkbytes, byteorder='little')
+
+    ## optimized table length
+    checkbytes = checkfile.read(4)
+    optlength = int.from_bytes(checkbytes, byteorder='little')
+    if offset + optlength + optoffset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'Optimized table outside of file'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    maxunpack = max(maxunpack, optoffset + optlength)
+
+    ## skip the flags
+    checkfile.seek(4, os.SEEK_CUR)
+
+    ## Adler32 checksum
+    checkbytes = checkfile.read(4)
+    adlerchecksum = int.from_bytes(checkbytes, byteorder='little')
+
+    ## store the Adler32 of the uncompressed data
+    dexadler = zlib.adler32(b'')
+
+    ## first the deps
+    checkfile.seek(offset+depsoffset)
+    checkbytes = checkfile.read(depslength)
+    dexadler = zlib.adler32(checkbytes, dexadler)
+
+    ## then the optimized table
+    checkfile.seek(offset+optoffset)
+    checkbytes = checkfile.read(optlength)
+    dexadler = zlib.adler32(checkbytes, dexadler)
+
+    if dexadler != adlerchecksum:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong Adler32'}
+        return (False, 0, unpackedfilesandlabels, labels, unpackingerror)
+
+    unpackedsize = maxunpack
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('odex')
+        labels.append('android')
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    ## else carve the file
+    outfilename = os.path.join(unpackdir, "unpacked.odex")
     outfile = open(outfilename, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()

@@ -127,6 +127,7 @@ signatures = {
     'vdi':            b'<<< Oracle VM VirtualBox Disk Image >>>\n',
     'javaclass':      b'\xca\xfe\xba\xbe',
     'dex':            b'dex\n',
+    'odex':           b'dey\n',
 }
 
 ## some signatures do not start at the beginning of the file
@@ -202,6 +203,7 @@ signaturetofunction = {
     'vdi': bangunpack.unpackVDI,
     'javaclass': bangunpack.unpackJavaClass,
     'dex': bangunpack.unpackDex,
+    'odex': bangunpack.unpackOdex,
 }
 
 ## a lookup table to map signatures to a name for
