@@ -43,6 +43,7 @@ import pickle
 import json
 import copy
 import subprocess
+import psycopg2
 
 ## import modules needed for multiprocessing
 import multiprocessing
