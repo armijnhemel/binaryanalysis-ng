@@ -292,7 +292,7 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio',
 ## information to the unpacking process, such as preventing scans from
 ## running.
 def processfile(scanfilequeue, resultqueue, maxsearchbytes,
-                unpackdirectory, temporarydirectory):
+                unpackdirectory, temporarydirectory, dbcursor, dbconn):
     lenunpackdirectory = len(unpackdirectory) + 1
     synthesizedminimum = 10
 
@@ -1248,7 +1248,7 @@ def main(argv):
 
     ## create processes for unpacking archives
     for i in range(0,threads):
-        p = multiprocessing.Process(target=processfile, args=(scanfilequeue, resultqueue, readsize, unpackdirectory, temporarydirectory))
+        p = multiprocessing.Process(target=processfile, args=(scanfilequeue, resultqueue, readsize, unpackdirectory, temporarydirectory, None, None))
         processes.append(p)
 
     ## then start all the processes
