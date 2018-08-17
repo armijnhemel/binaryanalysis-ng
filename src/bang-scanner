@@ -436,7 +436,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                 dataunpackdirectory = "%s-%s-%d" % (checkfile, extensionprettyprint[e], 1)
                 os.mkdir(dataunpackdirectory)
 
-                ## The result of the scan is:
+                ## The result of the scan is a dictionary with the
+                ## following data, depending on the status of the scan
                 ## * the status of the scan (successful or not)
                 ## * the length of the data
                 ## * list of files that were unpacked, if any, plus
@@ -449,10 +450,9 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                     os.rmdir(dataunpackdirectory)
                     continue
 
-                (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = unpackresult
-                if not unpackstatus:
+                if not unpackresult['status']:
                     ## No data could be unpacked for some reason, so check the status first
-                    logging.debug("FAIL %s known extension %s: %s" % (checkfile, e, unpackerror['reason']))
+                    logging.debug("FAIL %s known extension %s: %s" % (checkfile, e, unpackresult['error']['reason']))
                     ## unpackerror contains:
                     ## * offset in the file where the error occured
                     ##   (integer)
@@ -462,7 +462,7 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                     ##
                     ## Fatal errors should lead to the program stopping
                     ## execution.
-                    if unpackerror['fatal']:
+                    if unpackresult['error']['fatal']:
                         pass
                     ## Remove the directory, so first change the
                     ## permissions of all the files so they can be safely.
@@ -482,33 +482,33 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                     shutil.rmtree(dataunpackdirectory)
                     continue
 
-                logging.info("SUCCESS %s %s at offset: 0, length: %d" % (checkfile, e, unpackedlength))
-                if unpackedlength != filesize:
-                    lastunpackedoffset = unpackedlength
+                logging.info("SUCCESS %s %s at offset: 0, length: %d" % (checkfile, e, unpackresult['length']))
+                if unpackresult['length'] != filesize:
+                    lastunpackedoffset = unpackresult['length']
 
                 ## store the range of the unpacked data
-                unpackedrange.append((0, unpackedlength))
+                unpackedrange.append((0, unpackresult['length']))
 
                 ## store any labels that were passed as a result and
                 ## add them to the current list of labels
-                labels += unpackedlabels
+                labels += copy.deepcopy(unpackresult['labels'])
                 labels = list(set(labels))
 
                 ## if unpackedfilesandlabels is empty, then no files
                 ## were unpacked likely because the whole file was the
                 ## result and didn't contain any files (it was not a
                 ## container or compresed file)
-                if len(unpackedfilesandlabels) == 0:
+                if len(unpackresult['filesandlabels']) == 0:
                     os.rmdir(dataunpackdirectory)
 
-                for un in unpackedfilesandlabels:
+                for un in unpackresult['filesandlabels']:
                     (unpackedfile, unpackedlabel) = un
                     ## add the data, plus possibly any label
                     scanfilequeue.put((unpackedfile, unpackedlabel))
 
                 ## whole file has already been unpacked, so no need for
                 ## further scanning.
-                if unpackedlength == filesize:
+                if unpackresult['length'] == filesize:
                     needsunpacking = False
 
                 if 'binary' in labels:
@@ -756,12 +756,12 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                     except AttributeError as e:
                         os.rmdir(dataunpackdirectory)
                         continue
-                    (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = unpackresult
-                    if not unpackstatus:
+
+                    if not unpackresult['status']:
                         ## No data could be unpacked for some reason,
                         ## so check the status first
-                        logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, s[1], s[0], unpackerror['reason']))
-                        #print(s[1], unpackerror)
+                        logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, s[1], s[0], unpackresult['error']['reason']))
+                        #print(s[1], unpackresult['error'])
                         #sys.stdout.flush()
                         ## unpackerror contains:
                         ## * offset in the file where the error occured
@@ -772,7 +772,7 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                         ##
                         ## Fatal errors should lead to the program
                         ## stopping execution.
-                        if unpackerror['fatal']:
+                        if unpackresult['error']['fatal']:
                             pass
                         ## clean up any data that might have been left behind
                         ## remove the directory, so first change the
@@ -794,38 +794,38 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                         shutil.rmtree(dataunpackdirectory)
                         continue
 
-                    logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, s[1], s[0], unpackedlength))
+                    logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, s[1], s[0], unpackresult['length']))
 
                     ## store the name counter, but only after data was
                     ## unpacked successfully.
                     counterspersignature[s[1]] = namecounter
 
-                    if s[0] == 0 and unpackedlength == filesize:
-                        labels += unpackedlabels
+                    if s[0] == 0 and unpackresult['length'] == filesize:
+                        labels += copy.deepcopy(unpackresult['labels'])
                         labels = list(set(labels))
                         ## if unpackedfilesandlabels is empty, then no
                         ## files were unpacked, likely because the whole
                         ## file was the result and didn't contain any
                         ## files (i.e. it was not a container file or
                         ## compresed file).
-                        if len(unpackedfilesandlabels) == 0:
+                        if len(unpackresult['filesandlabels']) == 0:
                             os.rmdir(dataunpackdirectory)
 
                     ## store the range of the unpacked data
-                    unpackedrange.append((s[0], s[0] + unpackedlength))
+                    unpackedrange.append((s[0], s[0] + unpackresult['length']))
 
                     ## add a lot of information about the unpacked files
                     report = {}
                     report['offset'] = s[0]
                     report['signature'] = s[1]
                     report['type'] = signatureprettyprint.get(s[1], s[1])
-                    report['size'] = unpackedlength
+                    report['size'] = unpackresult['length']
                     report['files'] = []
                     ## set unpackdirectory, but only if needed
-                    if len(unpackedfilesandlabels) != 0:
+                    if len(unpackresult['filesandlabels']) != 0:
                         report['unpackdirectory'] = dataunpackdirectory[lenunpackdirectory:]
 
-                    for un in unpackedfilesandlabels:
+                    for un in unpackresult['filesandlabels']:
                         (unpackedfile, unpackedlabel) = un
 
                         ## TODO: make relative wrt unpackdir
@@ -838,7 +838,7 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
 
                     ## skip over all of the indexes that are now known
                     ## to be false positives
-                    lastunpackedoffset = s[0] + unpackedlength
+                    lastunpackedoffset = s[0] + unpackresult['length']
                     needsunpacking = False
 
                 ## check if the end of file has been reached, if so exit
@@ -928,12 +928,12 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                     except Exception as e:
                         os.rmdir(dataunpackdirectory)
                         continue
-                    (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = unpackresult
-                    if not unpackstatus:
+
+                    if not unpackresult['status']:
                         ## No data could be unpacked for some reason,
                         ## so check the status first
-                        logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, 0, unpackerror['offset'], unpackerror['reason']))
-                        #print(s[1], unpackerror)
+                        logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, 0, unpackresult['error']['offset'], unpackresult['error']['reason']))
+                        #print(s[1], unpackresult['error'])
                         #sys.stdout.flush()
                         ## unpackerror contains:
                         ## * offset in the file where the error occured
@@ -946,7 +946,7 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                         ## program and remove the unpacking directory,
                         ## so first change the permissions of
                         ## all the files so they can be safely removed.
-                        if unpackerror['fatal']:
+                        if unpackresult['error']['fatal']:
                             pass
                         ## clean up any data that might have been left behind
                         dirwalk = os.walk(dataunpackdirectory)
@@ -965,20 +965,20 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                         shutil.rmtree(dataunpackdirectory)
                         continue
 
-                    logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, f, 0, unpackedlength))
+                    logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, f, 0, unpackresult['length']))
 
                     ## add a lot of information about the unpacked files
                     report = {}
                     report['offset'] = 0
                     report['signature'] = f
                     report['type'] = f
-                    report['size'] = unpackedlength
+                    report['size'] = unpackresult['length']
                     report['files'] = []
 
-                    lastunpackedoffset = unpackedlength
-                    unpackedrange.append((0, unpackedlength))
+                    lastunpackedoffset = unpackresult['length']
+                    unpackedrange.append((0, unpackresult['length']))
 
-                    for un in unpackedfilesandlabels:
+                    for un in unpackresult['filesandlabels']:
                         (unpackedfile, unpackedlabel) = un
 
                         ## TODO: make relative wrt unpackdir

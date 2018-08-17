@@ -113,23 +113,20 @@ processed by BANG as an optimization.
 
 #### Return values
 
-The data that is returned from the unpackers carvers look like this:
+The data that is returned from the unpackers carvers is a dictionary with
+a key "status" and various other elements, depending whether a scan was
+successful or not. If the scan was successful, then the following fields
+will also be present:
 
-    (return status, data size, list of files and labels, labels for top level file, error message)
-
-*   return status: a boolean indicating if unpacking or carving was successful
-*   data size: an integer indicating the size of the data that is unpacked
+*   length: an integer indicating the size of the data that is unpacked
 *   list of files and labels: a list of tuples with the name of each file
     that was unpacked, plus a list of associated labels (empty most of the time)
+*   labels: a list of labels for the file that was scanned
+
+If the scan was unsuccessful then the dictionary will contain:
+
 *   error message: a dictionary with information about possible errors that
     occured.
-
-If the return status is False, then the only relevant part is the error
-message. If the return status is True, then the error message is ignored.
-
-A successful PNG verification (whole file) could return this:
-
-    (True, filesize, [], ['png', 'graphics'], {})
 
 An error message is a dictionary, with the following elements:
 
