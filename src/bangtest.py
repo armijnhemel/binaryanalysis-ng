@@ -1389,8 +1389,11 @@ class TestAr(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackAr(filename, offset, self.tempdir, None)
-        self.assertTrue(testres['status'])
-        self.assertEqual(testres['length'], 511498)
+
+        ## ar unpacker only works on complete files
+        self.assertFalse(testres['status'])
+        #self.assertTrue(testres['status'])
+        #self.assertEqual(testres['length'], 511498)
 
     ## a test for the file being a single ar with data in front
     def testDataPrependedToAr(self):
@@ -1398,8 +1401,11 @@ class TestAr(unittest.TestCase):
         filesize = os.stat(filename).st_size
         offset = 128
         testres = bangunpack.unpackAr(filename, offset, self.tempdir, None)
-        self.assertTrue(testres['status'])
-        self.assertEqual(testres['length'], 511498)
+
+        ## ar unpacker only works on complete files
+        self.assertFalse(testres['status'])
+        #self.assertTrue(testres['status'])
+        #self.assertEqual(testres['length'], 511498)
 
     ## a test for the file being a single ar with data cut from the end
     def testDataCutFromEndAr(self):
