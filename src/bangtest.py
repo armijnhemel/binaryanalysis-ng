@@ -1852,5 +1852,79 @@ class TestSquashfs(unittest.TestCase):
         (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
         self.assertFalse(unpackstatus)
 
+## a test class for testing snappy files
+class TestSnappy(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single snappy
+    def testFullfileIsSnappy(self):
+        filename = os.path.join(basetestdir, 'snappy', 'test.sz')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackSnappy(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, filesize)
+
+    ## a test for the file being a single snappy with data appended to it
+    def testDataAppendedToSnappy(self):
+        filename = os.path.join(basetestdir, 'snappy', 'test-add-random-data.sz')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackSnappy(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 592508)
+
+    ## a test for the file being a single snappy with data in front
+    def testDataPrependedToSnappy(self):
+        filename = os.path.join(basetestdir, 'snappy', 'test-prepend-random-data.sz')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackSnappy(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertTrue(unpackstatus)
+        self.assertEqual(unpackedlength, 592508)
+
+    ## a test for the file being a single snappy with data cut from the end
+    def testDataCutFromEndSnappy(self):
+        filename = os.path.join(basetestdir, 'snappy', 'test-cut-data-from-end.sz')
+        offset = 0
+        testres = bangunpack.unpackSnappy(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single snappy with data cut from the middle
+    def testDataCutFromMiddleSnappy(self):
+        filename = os.path.join(basetestdir, 'snappy', 'test-cut-data-from-middle.sz')
+        offset = 0
+        testres = bangunpack.unpackSnappy(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single snappy with data added in the middle
+    def testDataAddedInMiddleSnappy(self):
+        filename = os.path.join(basetestdir, 'snappy', 'test-data-added-to-middle.sz')
+        offset = 0
+        testres = bangunpack.unpackSnappy(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
+    ## a test for the file being a single snappy with data replaced in the middle
+    def testDataReplacedInMiddleSnappy(self):
+        filename = os.path.join(basetestdir, 'snappy', 'test-data-replaced-in-middle.sz')
+        offset = 0
+        testres = bangunpack.unpackSnappy(filename, offset, self.tempdir, None)
+        (unpackstatus, unpackedlength, unpackedfilesandlabels, unpackedlabels, unpackerror) = testres
+        self.assertFalse(unpackstatus)
+
 if __name__ == '__main__':
     unittest.main()
