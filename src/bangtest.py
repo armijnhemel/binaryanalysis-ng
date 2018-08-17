@@ -1481,7 +1481,7 @@ class TestXAR(unittest.TestCase):
 
     ## a test for the file being a single xar with data appended to it
     def testDataAppendedToXARBzip2(self):
-        filename = os.path.join(basetestdir, 'xar', 'test-bipz2-add-random-data.xar')
+        filename = os.path.join(basetestdir, 'xar', 'test-bzip2-add-random-data.xar')
         filesize = os.stat(filename).st_size
         offset = 0
         testres = bangunpack.unpackXAR(filename, offset, self.tempdir, None)
