@@ -129,6 +129,7 @@ signatures = {
     'javaclass':      b'\xca\xfe\xba\xbe',
     'dex':            b'dex\n',
     'odex':           b'dey\n',
+    'snappy_framed':  b'\xff\x06\x00\x00\x73\x4e\x61\x50\x70\x59', # https://github.com/google/snappy/blob/master/framing_format.txt
 }
 
 ## some signatures do not start at the beginning of the file
@@ -205,6 +206,7 @@ signaturetofunction = {
     'javaclass': bangunpack.unpackJavaClass,
     'dex': bangunpack.unpackDex,
     'odex': bangunpack.unpackOdex,
+    'snappy_framed': bangunpack.unpackSnappy,
 }
 
 ## a lookup table to map signatures to a name for

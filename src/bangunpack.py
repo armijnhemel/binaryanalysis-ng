@@ -90,6 +90,7 @@
 ## 19. VirtualBox VDI (requires qemu-img, whole file only,
 ##     Oracle flavour only)
 ## 20. XML
+## 21. Snappy (needs python-snappy)
 ##
 ## For these unpackers it has been attempted to reduce disk I/O as much
 ## as possible using the os.sendfile() method, as well as techniques
@@ -123,6 +124,7 @@ import re
 import PIL.Image
 import lz4
 import lz4.frame
+import snappy
 
 encodingstotranslate = [ 'utf-8','ascii','latin-1','euc_jp', 'euc_jis_2004'
                        , 'jisx0213', 'iso2022_jp', 'iso2022_jp_1'
@@ -152,6 +154,8 @@ encodingstotranslate = [ 'utf-8','ascii','latin-1','euc_jp', 'euc_jis_2004'
 ## * a list of labels for the file
 ## * a dict with a possible error. This is ignored if unpacking was
 ##   successful.
+## * a dict with extra information (structure depending on type
+##   of scan)
 ##
 ## The error dict has the following items:
 ##
@@ -13339,3 +13343,120 @@ def unpackOdex(filename, offset, unpackdir, temporarydirectory):
 
     unpackedfilesandlabels.append((outfilename, ['dex', 'android', 'unpacked']))
     return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+## snappy
+##
+## https://pypi.python.org/pypi/python-snappy
+## https://github.com/google/snappy/blob/master/framing_format.txt
+## Test files can be created with snzip: https://github.com/kubo/snzip
+## This only unpacks snzip's "framing2" format
+def unpackSnappy(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    checkfile = open(filename, 'rb')
+
+    ## skip the stream identifier stream (section 4.1)
+    checkfile.seek(offset+10)
+    unpackedsize += 10
+
+    ## in practice just a few chunks are used
+    validchunktypes = [b'\x00', b'\x01', '\xfe']
+
+    possibledata = False
+
+    ## then process all the frames
+    while True:
+        ## first the stream identifier
+        checkbytes = checkfile.read(1)
+        if len(checkbytes) != 1:
+            break
+        if not checkbytes in validchunktypes:
+            ## There is no explicit end of file identifier
+            ## so for carving assume that the end of
+            ## stream has been reached
+            break
+        unpackedsize += 1
+        ## then the length of the chunk
+        checkbytes = checkfile.read(3)
+        if len(checkbytes) != 3:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for chunk length'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        ## each chunk has a length. It could be that data has been
+        ## appended and that it starts with a valid chunk type (false
+        ## positive). In that case stop processing the file and exit
+        ## in case no chunks were unpacked at all.
+        chunklength = int.from_bytes(checkbytes, byteorder='little')
+        if checkfile.tell() + chunklength > filesize:
+            if not possibledata:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'chunk cannot be outside of file'}
+                return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+            ## adjust the counter
+            unpackedsize -= 1
+            break
+        possibledata = True
+        unpackedsize += 3 + chunklength
+        checkfile.seek(chunklength, os.SEEK_CUR)
+
+    outfilename = os.path.join(unpackdir, "unpacked-from-snappy")
+    outfile = open(outfilename, 'wb')
+
+    ## start at the beginning of the frame
+    checkfile.seek(offset)
+
+    ## now carve the file (if necessary)
+    if filesize == offset + unpackedsize:
+        try:
+            snappy.stream_decompress(checkfile, outfile)
+        except:
+            outfile.close()
+            os.unlink(outfilename)
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid Snappy data'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+        if offset == 0 and unpackedsize == filesize:
+            labels += ['snappy', 'compressed']
+        outfile.close()
+        checkfile.close()
+        unpackedfilesandlabels.append((outfilename, []))
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+    else:
+        tmpfilename = os.path.join(unpackdir, "unpacked-from-snappy.sn")
+        tmpfile = open(tmpfilename, 'wb')
+        os.sendfile(tmpfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        checkfile.close()
+        tmpfile.close()
+
+        ## reopen the temporary file as read only
+        tmpfile = open(tmpfilename, 'rb')
+        tmpfile.seek(0)
+
+        try:
+            snappy.stream_decompress(tmpfile, outfile)
+        except Exception as e:
+            outfile.close()
+            tmpfile.close()
+            os.unlink(outfilename)
+            os.unlink(tmpfilename)
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid Snappy data'}
+            return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+        outfile.close()
+        tmpfile.close()
+        os.unlink(tmpfilename)
+
+        unpackedfilesandlabels.append((outfilename, []))
+        return (True, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
+
+    outfile.close()
+    os.unlink(outfilename)
+    checkfile.close()
+
+    unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid Snappy file'}
+    return (False, unpackedsize, unpackedfilesandlabels, labels, unpackingerror)
