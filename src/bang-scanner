@@ -419,9 +419,11 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             needsunpacking = True
             unpackedrange = []
 
+        ## keep track of whether or not a file consists of just
+        ## ASCII characters. Initially assume it is text only.
         istext = True
 
-        ## Now try to unpack the files. There are a few categories:
+        ## Now try to unpack the file. There are a few categories:
         ##
         ## 1. a known extension, without a known magic header. This is
         ##    for for example Android sparse data image formats, or
@@ -451,24 +453,29 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 ## * labels that were added, if any
                 ## * errors that were encountered, if any
                 try:
+                    ## for these files the start offset of the
+                    ## files is always 0
                     unpackresult = extensiontofunction[e](checkfile, 0, dataunpackdirectory, temporarydirectory)
                 except AttributeError as ex:
                     os.rmdir(dataunpackdirectory)
                     continue
 
                 if not unpackresult['status']:
-                    ## No data could be unpacked for some reason, so
-                    ## check the status first
-                    logging.debug("FAIL %s known extension %s: %s" % (checkfile, e, unpackresult['error']['reason']))
-                    ## unpackerror contains:
+                    ## No data could be unpacked for some reason
+                    ## The unpack errror returned has more information:
+                    ##
                     ## * offset in the file where the error occured
                     ##   (integer)
                     ## * reason of the error (human readable)
                     ## * flag to indicate if it is a fatal error
                     ##   (boolean)
-                    ##
+
+                    ## log the file name, the extension and the
+                    ## error message
+                    logging.debug("FAIL %s known extension %s: %s" % (checkfile, e, unpackresult['error']['reason']))
+
                     ## Fatal errors should lead to the program stopping
-                    ## execution.
+                    ## execution. Not used for now.
                     if unpackresult['error']['fatal']:
                         pass
                     ## Remove the directory, so first change the
@@ -477,7 +484,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     for direntries in dirwalk:
                         ## make sure all subdirectories and files can
-                        ## be accessed.
+                        ## be accessed and then removed.
                         for subdir in direntries[1]:
                             subdirname = os.path.join(direntries[0], subdir)
                             if not os.path.islink(subdirname):
@@ -491,9 +498,13 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     shutil.rmtree(dataunpackdirectory)
                     continue
 
+                ## the file could be unpacked successfully,
+                ## so log it as such.
                 logging.info("SUCCESS %s %s at offset: 0, length: %d" % (checkfile, e, unpackresult['length']))
-                if unpackresult['length'] != filesize:
-                    lastunpackedoffset = unpackresult['length']
+
+                ## store the location of where the successfully
+                ## unpacked file ends (the offset is always 0  here).
+                lastunpackedoffset = unpackresult['length']
 
                 ## store the range of the unpacked data
                 unpackedrange.append((0, unpackresult['length']))
@@ -520,9 +531,12 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 if unpackresult['length'] == filesize:
                     needsunpacking = False
 
+                ## in case the file is a binary, then it obviously
+                ## cannot be a text file.
                 if 'binary' in labels:
                     istext = False
 
+        ## continue scanning if needed by searching for known signatures
         if needsunpacking:
             ## keep a counter per signature for the unpacking
             ## directory names
@@ -532,8 +546,13 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             scanfile = open(checkfile, 'rb')
             scanfile.seek(max(lastunpackedoffset, 0))
 
+            ## keep track of where in the file the starting
+            ## point for scanning for signatures is
             offsetinfile = scanfile.tell()
             scanbytes = scanfile.read(maxsearchbytes)
+
+            ## check if any of the characters read is a
+            ## non-ASCII character. If so, it is not a text file.
             if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
                 istext = False
 
