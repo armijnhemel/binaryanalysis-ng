@@ -235,7 +235,8 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
     ## First check if the file size is 12 bytes or more. If not, then
     ## it is not a valid RIFF file.
     if filesize - offset < 12:
-        unpackingerror = {'offset': offset, 'reason': 'less than 12 bytes', 'fatal': False}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'less than 12 bytes'}
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = 0
@@ -248,7 +249,8 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
     checkbytes = checkfile.read(4)
     if checkbytes != b'RIFF':
         checkfile.close()
-        unpackingerror = {'offset': offset, 'reason': 'no valid RIFF header', 'fatal': False}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'no valid RIFF header'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
@@ -259,7 +261,8 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
     ## the data cannot go outside of the file
     if rifflength + 8 > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'reason': 'wrong length', 'fatal': False}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'wrong length', 'fatal': False}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
@@ -324,7 +327,8 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
     ## matches the declared size from the header.
     if unpackedsize != rifflength + 8:
         checkfile.close()
-        unpackingerror = {'offset': offset, 'reason': 'unpacked size does not match declared size', 'fatal': False}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'unpacked size does not match declared size'}
         return {'status': False, 'error': unpackingerror}
 
     ## if the entire file is the RIFF file, then label it as such
@@ -341,7 +345,8 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
     outfile.close()
     checkfile.close()
 
-    return(True, unpackedsize, [outfilename], labels, {})
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+           'filesandlabels': unpackedfilesandlabels}
 
 ## test files for ANI: http://www.anicursor.com/diercur.html
 ## http://fileformats.archiveteam.org/wiki/Windows_Animated_Cursor#Sample_files
