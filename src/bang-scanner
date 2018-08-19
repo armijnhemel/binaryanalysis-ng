@@ -1039,20 +1039,36 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     fileresult['unpackedfiles'].append(report)
 
-        ## now compute any TLSH hashes, but not for every file type
-        ## as it often does not make sense to compute TLSH.
-        if set(labels).intersection(tlshlabelsignore) == set():
-            if filesize >= 256:
-                scanfile = open(checkfile, 'rb')
-                scanfile.seek(0)
-                hashdata = scanfile.read()
-                scanfile.close()
-                fileresult['tlsh'] = tlsh.hash(hashdata)
+        ## run individual scans for files and store them in a separate
+        ## result file, but only do this once for every file, so check
+        ## the shared dictionary with checksum results first.
+        duplicate = False
+
+        processlock.acquire()
+        if fileresult['sha256'] in checksumdict:
+            duplicate = True
+        else:
+            checksumdict[fileresult['sha256']] = checkfile
+        processlock.release()
+
+        if not duplicate:
+            ## now compute any TLSH hashes, but not for every file type
+            ## as it often does not make sense to compute TLSH.
+            if set(labels).intersection(tlshlabelsignore) == set():
+                if filesize >= 256:
+                    scanfile = open(checkfile, 'rb')
+                    scanfile.seek(0)
+                    hashdata = scanfile.read()
+                    scanfile.close()
+                    fileresult['tlsh'] = tlsh.hash(hashdata)
+        else:
+            labels.append('duplicate')
 
         fileresult['labels'] = list(set(labels))
         fileresult['filesize'] = filesize
         print(json.dumps(fileresult))
         sys.stdout.flush()
+
         resultqueue.put(fileresult)
         scanfilequeue.task_done()
 
