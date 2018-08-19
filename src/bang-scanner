@@ -451,7 +451,8 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                     continue
 
                 if not unpackresult['status']:
-                    ## No data could be unpacked for some reason, so check the status first
+                    ## No data could be unpacked for some reason, so
+                    ## check the status first
                     logging.debug("FAIL %s known extension %s: %s" % (checkfile, e, unpackresult['error']['reason']))
                     ## unpackerror contains:
                     ## * offset in the file where the error occured
@@ -474,11 +475,13 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
                         for subdir in direntries[1]:
                             subdirname = os.path.join(direntries[0], subdir)
                             if not os.path.islink(subdirname):
-                                os.chmod(subdirname, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                                os.chmod(subdirname,
+                                         stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
                         for filename in direntries[2]:
                             fullfilename = os.path.join(direntries[0], filename)
                             if not os.path.islink(fullfilename):
-                                os.chmod(fullfilename, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                                os.chmod(fullfilename,
+                                         stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
                     shutil.rmtree(dataunpackdirectory)
                     continue
 
@@ -1009,8 +1012,10 @@ def processfile(scanfilequeue, resultqueue, maxsearchbytes,
 
 def main(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", action="store", dest="checkfile", help="path to file to check", metavar="FILE")
-    parser.add_argument("-c", "--config", action="store", dest="cfg", help="path to configuration file", metavar="FILE")
+    parser.add_argument("-f", "--file", action="store", dest="checkfile",
+                        help="path to file to check", metavar="FILE")
+    parser.add_argument("-c", "--config", action="store", dest="cfg",
+                        help="path to configuration file", metavar="FILE")
     args = parser.parse_args()
 
     ## sanity checks for the file to scan
@@ -1102,7 +1107,8 @@ def main(argv):
             ## database, but this makes it harder to detect that a
             ## database might be down.
             try:
-                connectionerrorfatal = config.get(section, 'dbconnectionerrorfatal')
+                connectionerrorfatal = config.get(section,
+                                       'dbconnectionerrorfatal')
                 if connectionerrorfatal == 'yes':
                     dbconnectionerrorfatal = True
             except:
@@ -1137,7 +1143,9 @@ def main(argv):
     ## or not it should be treated as a fatal error. If not, then
     ## continue without using any of the database functionality.
     try:
-        c = psycopg2.connect(database=postgresql_db, user=postgresql_user, password=postgresql_password, port=postgresql_port, host=postgresql_host)
+        c = psycopg2.connect(database=postgresql_db, user=postgresql_user,
+                             password=postgresql_password,
+                             port=postgresql_port, host=postgresql_host)
         c.close()
     except Exception as e:
         if dbconnectionerrorfatal:
@@ -1191,7 +1199,8 @@ def main(argv):
     scandate = datetime.datetime.utcnow()
 
     ## create a directory for the scan
-    scandirectory = tempfile.mkdtemp(prefix='bang-scan-', dir=baseunpackdirectory)
+    scandirectory = tempfile.mkdtemp(prefix='bang-scan-',
+                                     dir=baseunpackdirectory)
 
     ## create an empty file "STARTED" to easily identify
     ## active (or crashed) scans.
@@ -1213,7 +1222,8 @@ def main(argv):
     os.mkdir(logdirectory)
 
     ## create a log file inside the log directory
-    logging.basicConfig(filename=os.path.join(logdirectory, 'unpack.log'),level=logging.DEBUG, format='%(asctime)s %(message)s')
+    logging.basicConfig(filename=os.path.join(logdirectory, 'unpack.log'),
+                        level=logging.DEBUG, format='%(asctime)s %(message)s')
     logging.info("Started scanning %s" % args.checkfile)
 
     ## first determine how many bytes should be scanned for known
@@ -1250,7 +1260,11 @@ def main(argv):
     ## create database connections if any database is used
     if usedatabase:
         for i in range(0,bangthreads):
-            bangconn = psycopg2.connect(database=postgresql_db, user=postgresql_user, password=postgresql_password, port=postgresql_port, host=postgresql_host)
+            bangconn = psycopg2.connect(database=postgresql_db,
+                                        user=postgresql_user,
+                                        password=postgresql_password,
+                                        port=postgresql_port,
+                                        host=postgresql_host)
             bangcursor = bangconn.cursor()
             bangdbconns.append((bangconn, bangcursor))
 
@@ -1261,7 +1275,11 @@ def main(argv):
 
     ## create processes for unpacking archives
     for i in range(0, bangthreads):
-        p = multiprocessing.Process(target=processfile, args=(scanfilequeue, resultqueue, readsize, unpackdirectory, temporarydirectory, None, None))
+        p = multiprocessing.Process(target=processfile,
+                                    args=(scanfilequeue,
+                                          resultqueue,
+                                          readsize, unpackdirectory,
+                                          temporarydirectory, None, None))
         processes.append(p)
 
     ## then start all the processes
@@ -1306,7 +1324,8 @@ def main(argv):
 
     ## move the file "STARTED" to "FINISHED" to easily identify
     ## active (or crashed) scans
-    shutil.move(os.path.join(scandirectory, "STARTED"), os.path.join(scandirectory, "FINISHED"))
+    shutil.move(os.path.join(scandirectory, "STARTED"),
+                os.path.join(scandirectory, "FINISHED"))
     os.utime(os.path.join(scandirectory, "FINISHED"))
 
     ## now store the scan tree results with other data
