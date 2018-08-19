@@ -553,8 +553,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
             ## check if any of the characters read is a
             ## non-ASCII character. If so, it is not a text file.
-            if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
-                istext = False
+            if istext:
+                if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
+                    istext = False
 
             while True:
                 candidateoffsetsfound = set()
