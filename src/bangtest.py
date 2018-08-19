@@ -1748,5 +1748,72 @@ class TestSnappy(unittest.TestCase):
         testres = bangunpack.unpackSnappy(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
+## a test class for testing ISO files
+class TestISO9660(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single iso9660
+    def testFullfileIsISO9660(self):
+        filename = os.path.join(basetestdir, 'iso9660', 'test.iso')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], filesize)
+
+    ## a test for the file being a single iso9660 with data appended to it
+    def testDataAppendedToISO9660(self):
+        filename = os.path.join(basetestdir, 'iso9660', 'test-add-random-data.iso')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 952320)
+
+    ## a test for the file being a single iso9660 with data in front
+    def testDataPrependedToISO9660(self):
+        filename = os.path.join(basetestdir, 'iso9660', 'test-prepend-random-data.iso')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 952320)
+
+    ## a test for the file being a single iso9660 with data cut from the end
+    def testDataCutFromEndISO9660(self):
+        filename = os.path.join(basetestdir, 'iso9660', 'test-cut-data-from-end.iso')
+        offset = 0
+        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single iso9660 with data cut from the middle
+    def testDataCutFromMiddleISO9660(self):
+        filename = os.path.join(basetestdir, 'iso9660', 'test-cut-data-from-middle.iso')
+        offset = 0
+        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single iso9660 with data added in the middle
+    def testDataAddedInMiddleISO9660(self):
+        filename = os.path.join(basetestdir, 'iso9660', 'test-data-added-to-middle.iso')
+        offset = 0
+        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single iso9660 with data replaced in the middle
+    def testDataReplacedInMiddleISO9660(self):
+        filename = os.path.join(basetestdir, 'iso9660', 'test-data-replaced-in-middle.iso')
+        offset = 0
+        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
 if __name__ == '__main__':
     unittest.main()
