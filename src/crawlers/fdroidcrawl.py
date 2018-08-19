@@ -104,6 +104,7 @@ def main(argv):
             except Exception:
                 break
 
+        elif section == 'general':
             ## The number of threads to be created to download the files,
             ## next to the main thread. Defaults to "all availabe threads".
             ## WARNING: this might not always be faster!
@@ -202,6 +203,7 @@ def main(argv):
         hashfile.close()
         if oldhashdata == filehash:
             print("Metadata has not changed, exiting.")
+            os.unlink(xmloutname)
             sys.exit(0)
 
     ## write the hash of the current data to the hash file
