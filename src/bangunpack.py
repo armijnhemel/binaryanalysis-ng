@@ -357,16 +357,16 @@ def unpackANI(filename, offset, unpackdir, temporarydirectory):
     ## a list of valid ANI chunk FourCC
     validchunkfourcc = set([b'IART', b'ICON', b'INAM', b'LIST',
                             b'anih', b'rate', b'seq '])
-    (unpackstatus, unpackedsize, unpackedfiles, labels, error) = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', filesize)
-    if unpackstatus:
-        if offset == 0 and unpackedsize == filesize:
+    unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', filesize)
+    if unpackres['status']:
+        labels = copy.deepcopy(unpackres['labels'])
+        if offset == 0 and unpackres['length'] == filesize:
             labels += ['ani', 'graphics']
-        for u in unpackedfiles:
+        for u in unpackres['filesandlabels']:
             unpackedfilesandlabels.append((u, ['ani', 'graphics', 'unpacked']))
-    if unpackstatus:
-        return {'status': True, 'length': unpackedsize,
+        return {'status': True, 'length': unpackres['length'],
                 'filesandlabels': unpackedfilesandlabels, 'labels': labels}
-    return {'status': False, 'error': unpackingerror}
+    return {'status': False, 'error': unpackres['error']}
 
 ## PNG specifications can be found at:
 ##
