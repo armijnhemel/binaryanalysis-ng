@@ -4905,7 +4905,9 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'no volume terminator descriptor'}
         return {'status': False, 'error': unpackingerror}
 
-    if offset == 0 and volume_space_size * logical_size == filesize:
+    unpackedsize = volume_space_size * logical_size
+
+    if offset == 0 and unpackedsize == filesize:
         labels += ['iso9660', 'file system']
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
