@@ -12147,7 +12147,7 @@ def unpackXML(filename, offset, unpackdir, temporarydirectory):
 
     ## whole file is XML
     labels.append('xml')
-    return {'status': True, 'length': unpackedsize, 'labels': labels,
+    return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
 ## Uses the description of the Java class file format as described here:
