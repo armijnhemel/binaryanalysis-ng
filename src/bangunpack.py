@@ -192,11 +192,12 @@ def unpackWebP(filename, offset, unpackdir, temporarydirectory):
                            b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP', filesize)
     if unpackres['status']:
+        labels = copy.deepcopy(unpackres['labels'])
         if offset == 0 and unpackres['length'] == filesize:
             labels += ['webp', 'graphics']
         for u in unpackres['filesandlabels']:
             unpackedfilesandlabels.append((u, ['webp', 'graphics', 'unpacked']))
-        return {'status': True, 'length': unpackedsize,
+        return {'status': True, 'length': unpackres['length'],
                 'filesandlabels': unpackedfilesandlabels, 'labels': labels}
     return {'status': False, 'error': unpackres['error']}
 
@@ -215,11 +216,12 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
                             b'note', b'plst', b'smpl'])
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
     if unpackres['status']:
+        labels = copy.deepcopy(unpackres['labels'])
         if offset == 0 and unpackres['length'] == filesize:
             labels += ['wav', 'audio']
         for u in unpackres['filesandlabels']:
             unpackedfilesandlabels.append((u, ['wav', 'audio', 'unpacked']))
-        return {'status': True, 'length': unpackedsize,
+        return {'status': True, 'length': unpackres['length'],
                 'filesandlabels': unpackedfilesandlabels, 'labels': labels}
     return {'status': False, 'error': unpackres['error']}
 
