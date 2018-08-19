@@ -22,3 +22,13 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 ## Invocation
 
     $ python3 bang-scanner -c bang.config -f /path/to/binary
+
+## License
+
+GNU Affero General Public License, version 3 (AGPL-3.0)
+
+## Developing
+
+The recommended coding style is described in PEP 8:
+
+[https://www.python.org/dev/peps/pep-0008/]
