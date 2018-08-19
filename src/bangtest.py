@@ -1882,5 +1882,127 @@ class TestTar(unittest.TestCase):
         testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
+## a test class for testing jffs2 files
+class TestJFFS2(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single jffs2
+    def testFullfileIsJFFS2Little(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-little.jffs2')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], filesize)
+
+    ## a test for the file being a single jffs2
+    def testFullfileIsJFFS2Big(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-big.jffs2')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], filesize)
+
+    ## a test for the file being a single jffs2 with data appended to it
+    def testDataAppendedToJFFS2Little(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-little-add-random-data.jffs2')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 594192)
+
+    ## a test for the file being a single jffs2 with data appended to it
+    def testDataAppendedToJFFS2Big(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-big-add-random-data.jffs2')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 594192)
+
+    ## a test for the file being a single jffs2 with data in front
+    def testDataPrependedToJFFS2Little(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-little-prepend-random-data.jffs2')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 594192)
+
+    ## a test for the file being a single jffs2 with data in front
+    def testDataPrependedToJFFS2Big(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-big-prepend-random-data.jffs2')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 594192)
+
+    ## a test for the file being a single jffs2 with data cut from the end
+    def testDataCutFromEndJFFS2Little(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-little-cut-data-from-end.jffs2')
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single jffs2 with data cut from the end
+    def testDataCutFromEndJFFS2Big(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-big-cut-data-from-end.jffs2')
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single jffs2 with data cut from the middle
+    def testDataCutFromMiddleJFFS2Little(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-little-cut-data-from-middle.jffs2')
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single jffs2 with data cut from the middle
+    def testDataCutFromMiddleJFFS2Big(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-big-cut-data-from-middle.jffs2')
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single jffs2 with data added in the middle
+    def testDataAddedInMiddleJFFS2Little(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-little-data-added-to-middle.jffs2')
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single jffs2 with data added in the middle
+    def testDataAddedInMiddleJFFS2Big(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-big-data-added-to-middle.jffs2')
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single jffs2 with data replaced in the middle
+    def testDataReplacedInMiddleJFFS2Little(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-little-data-replaced-in-middle.jffs2')
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single jffs2 with data replaced in the middle
+    def testDataReplacedInMiddleJFFS2Big(self):
+        filename = os.path.join(basetestdir, 'jffs2', 'test-big-data-replaced-in-middle.jffs2')
+        offset = 0
+        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
 if __name__ == '__main__':
     unittest.main()
