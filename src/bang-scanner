@@ -280,8 +280,13 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio',
 ##   that are read to be searched for magic signatures
 ## * unpackdirectory :: the absolute path of the top level directory in
 ##   which files will be unpacked
+## * processlock :: a lock object that guards access to shared objects
+## * checksumdict :: a shared dictionary to store hashes of files so
+##   unnecessary scans of duplicate files can be prevented.
 ## * temporary directory :: the absolute path of a directory in which
 ##   temporary files will be written
+## * dbconn :: a PostgreSQL database connection
+## * dbcursor :: a PostgreSQL database cursor
 ##
 ## Each file will be in the scan queue and have the following data
 ## associated with it:
@@ -294,8 +299,9 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio',
 ## 'graphics') will be stored. These labels can be used to feed extra
 ## information to the unpacking process, such as preventing scans from
 ## running.
-def processfile(scanfilequeue, resultqueue, processlock, maxsearchbytes,
-                unpackdirectory, temporarydirectory, dbconn, dbcursor):
+def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
+                maxsearchbytes, unpackdirectory, temporarydirectory,
+                dbconn, dbcursor):
     lenunpackdirectory = len(unpackdirectory) + 1
     synthesizedminimum = 10
 
@@ -1276,6 +1282,9 @@ def main(argv):
     ## create a lock to control access to any shared data structures
     processlock = multiprocessing.Lock()
 
+    ## create a shared dictionary
+    checksumdict = processmanager.dict()
+
     ## create processes for unpacking archives
     for i in range(0, bangthreads):
         if not usedatabase:
@@ -1283,6 +1292,7 @@ def main(argv):
                                         args=(scanfilequeue,
                                               resultqueue,
                                               processlock,
+                                              checksumdict,
                                               readsize, unpackdirectory,
                                               temporarydirectory, None, None))
         else:
@@ -1290,6 +1300,7 @@ def main(argv):
                                         args=(scanfilequeue,
                                               resultqueue,
                                               processlock,
+                                              checksumdict,
                                               readsize, unpackdirectory,
                                               temporarydirectory,
                                               bangdbconns[i][0],
