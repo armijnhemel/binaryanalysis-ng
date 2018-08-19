@@ -4027,13 +4027,15 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
     labels = []
     unpackingerror = {}
     if filesize - offset < 32769:
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'File too small (less than 32769 bytes'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'File too small (less than 32769 bytes'}
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = 0
 
-    ## each sector is 2048 bytes long (ECMA 119, 6.1.2). The first 16 sectors are
-    ## reserved for the "system area" (in total 32768 bytes: ECMA 119, 6.2.1)
+    ## each sector is 2048 bytes long (ECMA 119, 6.1.2). The first 16
+    ## sectors are reserved for the "system area" (in total 32768 bytes:
+    ## ECMA 119, 6.2.1)
     checkfile = open(filename, 'rb')
     checkfile.seek(offset+32768)
     unpackedsize += 32768
@@ -4059,13 +4061,16 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(2048)
         if len(checkbytes) != 2048:
             checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough bytes for sector'}
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough bytes for sector'}
             return {'status': False, 'error': unpackingerror}
 
-        ## each volume descriptor has a type and an identifier (ECMA 119, section 8.1)
+        ## each volume descriptor has a type and an identifier
+        ## (ECMA 119, section 8.1)
         if checkbytes[1:6] != b'CD001':
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'wrong identifier'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'wrong identifier'}
             return {'status': False, 'error': unpackingerror}
 
         volumedescriptoroffset = checkfile.tell()
@@ -4073,25 +4078,28 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
         ## volume descriptor type (ECMA 119, section 8.1.1)
         ## 0: boot record
         ## 1: primary volume descriptor
-        ## 2: supplementary volume descriptor or an enhanced volume descriptor
+        ## 2: supplementary volume descriptor or an enhanced volume
+        ##    descriptor
         ## 3: volume partition descriptor
         ## 255: volume descriptor set terminator
         if checkbytes[0] == 0:
-            ## boot record. There is no additional data here, except that
-            ## there could be a bootloader located here, which could be important
-            ## for license compliance (isolinux and friends), so mark this as a
-            ## bootable CD.
+            ## boot record. There is no additional data here, except
+            ## that there could be a bootloader located here, which
+            ## could be important for license compliance (isolinux and
+            ## friends), so mark this as a bootable CD.
             isbootable = True
         elif checkbytes[0] == 1:
             ## primary volume descriptor (PVD)
             ## ECMA 119, 8.4
             haveprimary = True
 
-            ## most fields are stored in both little endian and big endian format
-            ## and should have the same values.
+            ## most fields are stored in both little endian and big
+            ## endian format and should have the same values.
             if int.from_bytes(checkbytes[80:84], byteorder='little') != int.from_bytes(checkbytes[84:88], byteorder='big'):
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'endian mismatch'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'endian mismatch'}
                 return {'status': False, 'error': unpackingerror}
             ## ECMA 119, 8.4.8
             volume_space_size = int.from_bytes(checkbytes[80:84], byteorder='little')
@@ -4100,7 +4108,9 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
             ## values match.
             if int.from_bytes(checkbytes[128:130], byteorder='little') != int.from_bytes(checkbytes[130:132], byteorder='big'):
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'endian mismatch'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'endian mismatch'}
                 return {'status': False, 'error': unpackingerror}
 
             ## ECMA 119, 8.4.12
@@ -4109,12 +4119,15 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
             ## sanity check: the ISO image cannot be outside of the file
             if offset + volume_space_size * logical_size > filesize:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'image cannot be outside of file'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'image cannot be outside of file'}
                 return {'status': False, 'error': unpackingerror}
 
-            ## according to https://wiki.osdev.org/ISO_9660 Linux does not
-            ## use the L-path and M-path but the directory entries instead.
-            ## the PVD contains the directory root entry (ECMA 119, 8.4.8)
+            ## according to https://wiki.osdev.org/ISO_9660 Linux does
+            ## not use the L-path and M-path but the directory entries
+            ## instead.
+            ## The PVD contains the directory root entry (ECMA 119, 8.4.8)
             root_directory_entry = checkbytes[156:190]
 
             ## the entry is formatted as described in ECMA 119, 9.1
@@ -4125,13 +4138,18 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
             ## sanity check: the ISO image cannot be outside of the file
             if offset + extent_location * logical_size > filesize:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent location cannot be outside file'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'extent location cannot be outside file'}
                 return {'status': False, 'error': unpackingerror}
 
-            ## sanity check: the ISO image cannot be outside of the declared size of the file
+            ## sanity check: the ISO image cannot be outside of the
+            ## declared size of the file
             if extent_location * logical_size > volume_space_size * logical_size:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent location cannot be larger than declared size'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'extent location cannot be larger than declared size'}
                 return {'status': False, 'error': unpackingerror}
 
             ## extent size (ECMA 119, 9.1.4)
@@ -4139,19 +4157,26 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
             ## sanity check: the ISO image cannot be outside of the file
             if offset + extent_location * logical_size + root_directory_extent_length > filesize:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent cannot be outside fle'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'extent cannot be outside fle'}
                 return {'status': False, 'error': unpackingerror}
 
-            ## sanity check: the ISO image cannot be outside of the declared size of the file
+            ## sanity check: the ISO image cannot be outside of the
+            ## declared size of the file
             if extent_location * logical_size + root_directory_extent_length > volume_space_size * logical_size:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent cannot be outside of declared size'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'extent cannot be outside of declared size'}
                 return {'status': False, 'error': unpackingerror}
 
             ## file flags (ECMA 119, 9.1.6)
             if root_directory_entry[25] >> 1 & 1 != 1:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'file flags for directory wrong'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'file flags for directory wrong'}
                 return {'status': False, 'error': unpackingerror}
 
             ## file name length (ECMA 119, 9.1.10)
@@ -4161,7 +4186,9 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
             ## ECMA 119, 7.6: file name for root directory is 0x00
             if extent_filename != b'\x00':
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'root file name wrong'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'root file name wrong'}
                 return {'status': False, 'error': unpackingerror}
 
             ## record which extents correspond to which names. This is
@@ -4169,10 +4196,12 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
             extenttoname = {}
             extenttoparent = {}
 
-            ## recursively walk all entries/extents in the directory structure
+            ## recursively walk all entries/extents in the directory
+            ## structure.
             ## Keep these in a deque data structure for quick access
             ## For each extent to unpack add:
-            ## location of the extent, the size of the extent, location where to unpack, name
+            ## location of the extent, the size of the extent, location
+            ## where to unpack, and the name
             extents = collections.deque()
             extents.append((extent_location, root_directory_extent_length, unpackdir, ''))
 
@@ -4186,13 +4215,14 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
             ## in case rock ridge or zisofs are used the first
             ## directory entry in the first extent will contain
             ## the SP System Use entry, which specifies how many
-            ## bytes need to be skipped by default (IEEE P1281, section 5.3)
+            ## bytes need to be skipped by default
+            ## (IEEE P1281, section 5.3)
             suspskip = 0
 
             ## then process all the extents with directory records. The
             ## structure is described in ECMA 119, 6.8
-            ## In the extent pointed to by a directory entry all the entries
-            ## are concatenated (ECMA 119, 6.8.1).
+            ## In the extent pointed to by a directory entry all the
+            ## entries are concatenated (ECMA 119, 6.8.1).
             while len(extents) != 0:
                 (this_extent_location, this_extent_length, this_extent_unpackdir, this_extent_name) = extents.popleft()
 
@@ -4202,7 +4232,8 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                 ## store the starting offset of the current extent
                 orig_extent_offset = checkfile.tell()
 
-                ## a counter of all data that has been read in this extent so far
+                ## a counter of all data that has been read in this
+                ## extent so far
                 all_extent_offset = 0
 
                 while checkfile.tell() - orig_extent_offset < this_extent_length:
@@ -4212,50 +4243,63 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                     ## then reset the file pointer
                     checkfile.seek(-1,os.SEEK_CUR)
 
-                    ## and store how much data will have been read after processing
-                    ## this directory.
+                    ## and store how much data will have been read
+                    ## after processing this directory.
                     all_extent_offset += extent_directory_length
 
-                    ## ECMA 119, 6.8.1.1: "each Directory Record shall end in the Logical
-                    ## Sector in which it begins"
+                    ## ECMA 119, 6.8.1.1: "each Directory Record shall
+                    ## end in the Logical Sector in which it begins"
                     ## This means that there could be padding bytes (NUL)
                     if extent_directory_length == 0:
-                        ## if there is still a logical size block then jump
-                        ## to the start of that next block
+                        ## if there is still a logical size block then
+                        ## jump to the start of that next block
                         all_extent_offset = ((all_extent_offset//logical_size) + 1) * logical_size
                         checkfile.seek(orig_extent_offset + all_extent_offset)
                         continue
 
-                    ## read the directory entry and process according ECMA 119, 9.1
+                    ## read the directory entry and process according
+                    ## to ECMA 119, 9.1
                     directory_entry = bytearray(extent_directory_length)
                     checkfile.readinto(directory_entry)
 
                     ## extent location (ECMA 119, 9.1.3)
                     extent_location = int.from_bytes(directory_entry[2:6], byteorder='little')
-                    ## sanity check: the ISO image cannot be outside of the file
+                    ## sanity check: the ISO image cannot be outside
+                    ## of the file
                     if offset + extent_location * logical_size > filesize:
                         checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent location cannot be outside file'}
+                        unpackingerror = {'offset': offset+unpackedsize,
+                                          'fatal': False,
+                                          'reason': 'extent location cannot be outside file'}
                         return {'status': False, 'error': unpackingerror}
 
-                    ## sanity check: the ISO image cannot be outside of the declared size of the file
+                    ## sanity check: the ISO image cannot be outside of
+                    ## the declared size of the file
                     if extent_location * logical_size > volume_space_size * logical_size:
                         checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent location cannot be bigger than declared size'}
+                        unpackingerror = {'offset': offset+unpackedsize,
+                                          'fatal': False,
+                                          'reason': 'extent location cannot be bigger than declared size'}
                         return {'status': False, 'error': unpackingerror}
 
                     ## extent size (ECMA 119, 9.1.4)
                     directory_extent_length = int.from_bytes(directory_entry[10:14], byteorder='little')
-                    ## sanity check: the ISO image cannot be outside of the file
+                    ## sanity check: the ISO image cannot
+                    ## be outside of the file
                     if offset + extent_location * logical_size + directory_extent_length > filesize:
                         checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent cannot be outside file'}
+                        unpackingerror = {'offset': offset+unpackedsize,
+                                          'fatal': False,
+                                          'reason': 'extent cannot be outside file'}
                         return {'status': False, 'error': unpackingerror}
 
-                    ## sanity check: the ISO image cannot be outside of the declared size of the file
+                    ## sanity check: the ISO image cannot be outside of
+                    ## the declared size of the file
                     if extent_location * logical_size + directory_extent_length > volume_space_size * logical_size:
                         checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'extent outside of declared size'}
+                        unpackingerror = {'offset': offset+unpackedsize,
+                                          'fatal': False,
+                                          'reason': 'extent outside of declared size'}
                         return {'status': False, 'error': unpackingerror}
 
                     ## file name length (ECMA 119, 9.1.10)
@@ -4264,46 +4308,55 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                     ## file name (ECMA 119, 9.1.11)
                     extent_filename = directory_entry[33:33+file_name_length].decode()
 
-                    ## Grab the system use field (ECMA 119, 9.1.13) as this is where
-                    ## Rock Ridge and zisofs information lives (IEEE P1282, section 3)
-                    ## First check if there is a padding byte (ECMA 119, 9.1.12)
+                    ## Grab the system use field (ECMA 119, 9.1.13) as
+                    ## this is where Rock Ridge and zisofs information
+                    ## lives (IEEE P1282, section 3).
+                    ## First check if there is a padding byte
+                    ## (ECMA 119, 9.1.12)
                     if file_name_length%2 == 0:
-                        ## extra check: there should be a padding byte (ECMA 119, 9.1.12)
-                        ## if the file name length is even.
+                        ## extra check: there should be a padding byte
+                        ## if the file name length is even
+                        ## (ECMA 119, 9.1.12)
                         if directory_entry[33+file_name_length] != 0:
                             checkfile.close()
-                            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no mandatory padding byte found'}
+                            unpackingerror = {'offset': offset+unpackedsize,
+                                              'fatal': False,
+                                              'reason': 'no mandatory padding byte found'}
                             return {'status': False, 'error': unpackingerror}
                         system_use = directory_entry[33+file_name_length+1:]
                     else:
                         system_use = directory_entry[33+file_name_length:]
 
-                    ## if RockRidge extensions are used place holder files are
-                    ## written when a directory has been moved. These files should
-                    ## not be created, so indicate whether or not a file needs to
-                    ## be created or not.
+                    ## if RockRidge extensions are used place holder
+                    ## files are written when a directory has been
+                    ## moved. These files should not be created, so
+                    ## indicate whether or not a file needs to be
+                    ## created or not.
                     createfile = True
 
                     if len(system_use) != 0:
-                        ## set the offset to the number of bytes that should
-                        ## be skipped for each system use area according to
-                        ## IEEE P1281, section 5.3
+                        ## set the offset to the number of bytes that
+                        ## should be skipped for each system use area
+                        ## according to IEEE P1281, section 5.3
                         suoffset = suspskip
 
-                        ## add a stub for an alternate name as the could span
-                        ## multiple entries and need to be concatenated.
+                        ## add a stub for an alternate name as the
+                        ## could span multiple entries and need to be
+                        ## concatenated.
                         alternatename = b''
                         alternatenamecontinue = True
                         renamecurrentdirectory = False
                         renameparentdirectory = False
 
-                        ## add a stub for a symbolic name as the could span
-                        ## multiple entries and need to be concatenated.
+                        ## add a stub for a symbolic name as the could
+                        ## span multiple entries and need to be
+                        ## concatenated.
                         symlinktarget = b''
                         symlinkcontinue = True
                         symlinknamecontinue = True
 
-                        ## store if PL was already seen (IEEE P1282, 4.1.5.2)
+                        ## store if PL was already seen
+                        ## (IEEE P1282, 4.1.5.2)
                         havepl = False
 
                         ## process according to IEEE P1281, section 4
@@ -4315,35 +4368,44 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                             sulength = system_use[suoffset+2]
                             if sulength>len(system_use):
                                 checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid length in system use field'}
+                                unpackingerror = {'offset': offset+unpackedsize,
+                                                  'fatal': False,
+                                                  'reason': 'invalid length in system use field'}
                                 return {'status': False, 'error': unpackingerror}
                             suversion = system_use[suoffset+3]
                             sudata = system_use[suoffset+4:suoffset+4+sulength]
 
-                            ## the 'SP' entry can only appear once per directory hierarchy
-                            ## and has to be the very first entry of the first directory entry
-                            ## of the first extent (IEEE P1281, section 5.3)
+                            ## the 'SP' entry can only appear once per
+                            ## directory hierarchy and has to be the
+                            ## very first entry of the first directory
+                            ## entry of the first extent
+                            ## (IEEE P1281, section 5.3)
                             if signatureword == b'SP':
                                 if firstextentprocessed:
                                     checkfile.close()
-                                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'SP used twice in System Use area'}
+                                    unpackingerror = {'offset': offset+unpackedsize,
+                                                      'fatal': False,
+                                                      'reason': 'SP used twice in System Use area'}
                                     return {'status': False, 'error': unpackingerror}
                                 havesusp = True
                                 suspskip = system_use[suoffset+6]
                             else:
                                 if not havesusp:
                                     checkfile.close()
-                                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'SP not first in System Use area'}
+                                    unpackingerror = {'offset': offset+unpackedsize,
+                                                      'fatal': False,
+                                                      'reason': 'SP not first in System Use area'}
                                     return {'status': False, 'error': unpackingerror}
-                                ## depending on the SUSP word that follows
-                                ## the contents should be interpreted differently
+                                ## depending on the SUSP word that
+                                ## follows the contents should be
+                                ## interpreted differently
                                 if signatureword == b'ST':
                                     ## terminator (IEEE P1281, 5.4)
                                     break
                                 elif signatureword == b'RR':
-                                    ## this signature word is obsolete but still
-                                    ## frequently (not always!) used to indicate that
-                                    ## RockRidge is used
+                                    ## this signature word is obsolete
+                                    ## but still frequently used to
+                                    ## indicate that RockRidge is used
                                     haverockridge = True
                                 elif signatureword == b'CE':
                                     ## the continuation area
@@ -4351,11 +4413,14 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     continuation_offset = int.from_bytes(system_use[suoffset+12:suoffset+16], byteorder='little')
                                     continuation_length = int.from_bytes(system_use[suoffset+20:suoffset+24], byteorder='little')
 
-                                    ## first check whether or not the continuation
-                                    ## data is inside the ISO image.
+                                    ## first check whether or not the
+                                    ## continuation data is inside the
+                                    ## ISO image.
                                     if volume_space_size * logical_size < continuation_block * logical_size + continuation_offset + continuation_length:
                                         checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid continuation area location or size'}
+                                        unpackingerror = {'offset': offset+unpackedsize,
+                                                          'fatal': False,
+                                                          'reason': 'invalid continuation area location or size'}
                                         return {'status': False, 'error': unpackingerror}
 
                                     ## store the current position in the file
@@ -4364,17 +4429,22 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     ## continuation_bytes = checkfile.read(continuation_length)
                                     ## TODO
 
-                                    ## return to the original position in the file
+                                    ## return to the original position
+                                    ## in the file
                                     checkfile.seek(oldoffset)
                                 elif signatureword == b'NM' and alternatenamecontinue:
-                                    ## The alternate name field is described in IEEE P1282, 4.1.4
+                                    ## The alternate name field is
+                                    ## described in IEEE P1282, 4.1.4
                                     nmflags = system_use[suoffset+4]
 
-                                    ## sanity check: only one of the lower bits can be set
+                                    ## sanity check: only one of the
+                                    ## lower bits can be set
                                     nmflagtotal = (nmflags & 1) + (nmflags >> 1 & 1) + (nmflags >> 2 & 1)
                                     if nmflagtotal > 1:
                                         checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid flag combination in alternate name field'}
+                                        unpackingerror = {'offset': offset+unpackedsize,
+                                                          'fatal': False,
+                                                          'reason': 'invalid flag combination in alternate name field'}
                                         return {'status': False, 'error': unpackingerror}
 
                                     if sulength - 5 != 0:
@@ -4393,9 +4463,9 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     ## no need to process POSIX device numbers
                                     pass
                                 elif signatureword == b'PX':
-                                    ## This entry is mandatory, so a good indicator
-                                    ## that RockRidge is used in case there is no
-                                    ## 'RR' entry.
+                                    ## This entry is mandatory, so a
+                                    ## good indicator that RockRidge is
+                                    ## used in case there is no RR entry.
                                     haverockridge = True
                                     ## don't process POSIX flags
                                     pass
@@ -4403,16 +4473,20 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     ## symbolic links, IEEE P1282, 4.1.3
                                     symflags = system_use[suoffset+4]
 
-                                    ## sanity check: only one of the lower bits can be set
+                                    ## sanity check: only one of the
+                                    ## lower bits can be set
                                     nmflagtotal = (symflags & 1) + (symflags >> 1 & 1) + (symflags >> 2 & 1)
                                     if nmflagtotal > 1:
                                         checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid flag combination in alternate name field'}
+                                        unpackingerror = {'offset': offset+unpackedsize,
+                                                          'fatal': False,
+                                                          'reason': 'invalid flag combination in alternate name field'}
                                         return {'status': False, 'error': unpackingerror}
 
                                     if sulength - 5 != 0:
-                                        ## the rest of the data is the component area
-                                        ## the first byte is a bit field
+                                        ## the rest of the data is the
+                                        ## component area the first byte
+                                        ## is a bit field
                                         if system_use[suoffset+5] & 1 == 1:
                                             symlinknamecontinue = True
                                         else:
@@ -4421,19 +4495,25 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                         if system_use[suoffset+5] & 2 == 2:
                                             if symlinknamecontinue:
                                                 checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid flag combination in symbolic name field'}
+                                                unpackingerror = {'offset': offset+unpackedsize,
+                                                                  'fatal': False,
+                                                                  'reason': 'invalid flag combination in symbolic name field'}
                                                 return {'status': False, 'error': unpackingerror}
                                             symlinktarget = b'.'
                                         elif system_use[suoffset+5] & 4 == 4:
                                             if symlinknamecontinue:
                                                 checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid flag combination in symbolic name field'}
+                                                unpackingerror = {'offset': offset+unpackedsize,
+                                                                  'fatal': False,
+                                                                  'reason': 'invalid flag combination in symbolic name field'}
                                                 return {'status': False, 'error': unpackingerror}
                                             symlinktarget = b'..'
                                         elif system_use[suoffset+5] & 8 == 8:
                                             if symlinknamecontinue:
                                                 checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid flag combination in symbolic name field'}
+                                                unpackingerror = {'offset': offset+unpackedsize,
+                                                                  'fatal': False,
+                                                                  'reason': 'invalid flag combination in symbolic name field'}
                                                 return {'status': False, 'error': unpackingerror}
                                             symlinktarget = b'/'
                                         elif system_use[suoffset+5] & 16 == 16:
@@ -4445,31 +4525,39 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                             componentlength = system_use[suoffset+6]
                                             if sulength-7 > componentlength:
                                                 checkfile.close()
-                                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'declared component area size larger than SUSP'}
+                                                unpackingerror = {'offset': offset+unpackedsize,
+                                                                  'fatal': False,
+                                                                  'reason': 'declared component area size larger than SUSP'}
                                                 return {'status': False, 'error': unpackingerror}
                                             symlinktarget += system_use[suoffset+7:suoffset+7+componentlength]
 
                                     if symflags & 1 != 1:
                                         symlinkcontinue = False
                                 elif signatureword == b'SF':
-                                    ## no need to process sparse file as it doesn't
-                                    ## seem to be supported well in the real world
+                                    ## no need to process sparse file as
+                                    ## it doesn't seem to be supported
+                                    ## well in the real world
                                     pass
                                 elif signatureword == b'TF':
                                     ## don't process time field
                                     pass
 
-                                ## the following three signature words are involved
-                                ## in directory relocations
+                                ## the following three signature words
+                                ## are involved in directory relocations
                                 elif signatureword == b'CL':
                                     ## IEEE P1282, 4.1.5.1 says:
-                                    ## If an entry is tagged with CL it means that this entry
-                                    ## is a placeholder file with the same name as the directory
-                                    ## and that the directory should be moved to this location.
+                                    ## If an entry is tagged with CL it
+                                    ## means that this entry is a
+                                    ## placeholder file with the same
+                                    ## name as the directory and that the
+                                    ## directory should be moved to
+                                    ## this location.
                                     location_child = int.from_bytes(system_use[suoffset+4:suoffset+8], byteorder='little')
                                     if volume_space_size < location_child:
                                         checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid directory relocation'}
+                                        unpackingerror = {'offset': offset+unpackedsize,
+                                                          'fatal': False,
+                                                          'reason': 'invalid directory relocation'}
                                         return {'status': False, 'error': unpackingerror}
 
                                     ## don't create, simply store
@@ -4478,19 +4566,26 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     ## store the directory here
                                     extenttomove[location_child] = this_extent_location
                                 elif signatureword == b'PL':
-                                    ## IEEE P1282, 4.1.5.2: PL entry is recorded in SUSP field
-                                    ## for the parent field.
-                                    ## This value points to the original parent of the file.
+                                    ## IEEE P1282, 4.1.5.2: PL entry is
+                                    ## recorded in SUSP field for the
+                                    ## parent field.
+                                    ## This value points to the original
+                                    ## parent of the file.
                                     if extent_filename != '\x01':
                                         checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'PL in wrong directory entry'}
+                                        unpackingerror = {'offset': offset+unpackedsize,
+                                                          'fatal': False,
+                                                          'reason': 'PL in wrong directory entry'}
                                         return {'status': False, 'error': unpackingerror}
 
-                                    ## IEEE P1282, 4.1.5.2: only one PL entry
-                                    ## is allowed per directory entry.
+                                    ## IEEE P1282, 4.1.5.2: only one
+                                    ## PL entry is allowed per directory
+                                    ## entry.
                                     if havepl:
                                         checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'duplicate PL entry'}
+                                        unpackingerror = {'offset': offset+unpackedsize,
+                                                          'fatal': False,
+                                                          'reason': 'duplicate PL entry'}
                                         return {'status': False, 'error': unpackingerror}
                                     havepl = True
 
@@ -4498,15 +4593,19 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     location_parent = int.from_bytes(system_use[suoffset+4:suoffset+8], byteorder='little')
                                     if volume_space_size < location_parent:
                                         checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'relocated directory parent outside of file'}
+                                        unpackingerror = {'offset': offset+unpackedsize,
+                                                          'fatal': False,
+                                                          'reason': 'relocated directory parent outside of file'}
                                         return {'status': False, 'error': unpackingerror}
 
-                                    ## record the original parent for this extent
+                                    ## record the original parent for
+                                    ## this extent
                                     plparent[this_extent_location] = location_parent
                                 elif signatureword == b'RE':
-                                    ## IEEE P1282, 4.1.5.3 describes that the directory entry
-                                    ## that is described is labeled as relocated, so record it
-                                    ## as such.
+                                    ## IEEE P1282, 4.1.5.3 describes
+                                    ## that the directory entry that is
+                                    ## described is labeled as
+                                    ## relocated, so record it as such.
                                     relocatedextents.add(extent_location)
 
                                 ## zisofs extension
@@ -4516,36 +4615,46 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     pz = system_use[suoffset+4:suoffset+6]
                                     if pz != b'pz':
                                         checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported zisofs compression'}
+                                        unpackingerror = {'offset': offset+unpackedsize,
+                                                          'fatal': False,
+                                                          'reason': 'unsupported zisofs compression'}
                                         return {'status': False, 'error': unpackingerror}
                                     zisofs_header_div_4 = system_use[suoffset+6]
 
-                                    ## Log2 of Block Size, has to be 15, 16 or 17
+                                    ## Log2 of Block Size
+                                    ## must be 15, 16 or 17
                                     zisofs_header_log = system_use[suoffset+7]
                                     if zisofs_header_log not in [15,16,17]:
                                         checkfile.close()
-                                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'unsupported zisofs block size log'}
+                                        unpackingerror = {'offset': offset+unpackedsize,
+                                                          'fatal': False,
+                                                          'reason': 'unsupported zisofs block size log'}
                                         return {'status': False, 'error': unpackingerror}
                                     zisofs_uncompressed = int.from_bytes(system_use[suoffset+8:suoffset+12], byteorder='little')
                             ## skip all the other signature words
                             suoffset += sulength
 
                     ## file flags (ECMA 119, 9.1.6)
+
                     if directory_entry[25] >> 1 & 1 == 1:
                         ## directory entry
                         if extent_filename == '\x00':
-                            ## Look at the file name. If it is '.. then it is
-                            ## safe to skip, but do a sanity check to see if
-                            ## the location matches with the current one.
+                            ## Look at the file name. If it is '.. then
+                            ## it is safe to skip, but do a sanity check
+                            ## to see if the location matches with the
+                            ## current one.
                             if not this_extent_location == extent_location:
                                 checkfile.close()
-                                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'Not a valid ISO9660 file system: wrong back reference for . directory'}
+                                unpackingerror = {'offset': offset+unpackedsize,
+                                                  'fatal': False,
+                                                  'reason': 'wrong back reference for . directory'}
                                 return {'status': False, 'error': unpackingerror}
                         elif extent_filename == '\x01':
                             ## TODO: extra sanity checks to see if parent matches
                             pass
                         else:
-                            ## store the name of the parent, for extra sanity checks
+                            ## store the name of the parent,
+                            ## for extra sanity checks
                             extenttoparent[extent_location] = this_extent_location
 
                             extent_unpackdir = os.path.join(this_extent_unpackdir, extent_filename)
@@ -4562,7 +4671,8 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                             extents.append((extent_location, directory_extent_length, extent_unpackdir, ''))
                     else:
                         ## file entry
-                        ## store the name of the parent, for extra sanity checks
+                        ## store the name of the parent,
+                        ## for extra sanity checks
                         extenttoparent[extent_location] = this_extent_location
                         outfilename = os.path.join(this_extent_unpackdir, extent_filename.rsplit(';', 1)[0])
                         if haverockridge:
@@ -4580,14 +4690,15 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                             except:
                                 pass
 
-                            ## absolute symlinks can always be created, as can . and ..
+                            ## absolute symlinks can always be created,
+                            ## as can links to . and ..
                             if os.path.isabs(symlinktarget):
                                 os.symlink(symlinktarget, outfilename)
                             elif symlinktarget == '.' or symlinktarget == '..':
                                 os.symlink(symlinktarget, outfilename)
                             else:
-                                ## first chdir to the directory, then create
-                                ## the link and go back
+                                ## first chdir to the directory, then
+                                ## create the link and go back
                                 olddir = os.getcwd()
                                 os.chdir(os.path.dirname(outfilename))
                                 os.symlink(symlinktarget, outfilename)
@@ -4604,36 +4715,46 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                 zisofs_oldoffset = checkfile.tell()
                                 checkfile.seek(offset + extent_location * logical_size)
                                 if filesize - checkfile.tell() < 16:
-                                    unpackingerror = {'offset': checkfile.tell() - offset, 'fatal': False, 'reason': 'not enough bytes for zisofs header'}
+                                    unpackingerror = {'offset': checkfile.tell() - offset,
+                                                      'fatal': False,
+                                                      'reason': 'not enough bytes for zisofs header'}
                                     checkfile.close()
                                     return {'status': False, 'error': unpackingerror}
 
                                 ## first 8 bytes are the zisofs magic
                                 checkbytes = checkfile.read(8)
                                 if checkbytes != b'\x37\xe4\x53\x96\xc9\xdB\xd6\x07':
-                                    unpackingerror = {'offset': checkfile.tell() - offset, 'fatal': False, 'reason': 'wrong magic for zisofs data'}
+                                    unpackingerror = {'offset': checkfile.tell() - offset,
+                                                      'fatal': False,
+                                                      'reason': 'wrong magic for zisofs data'}
                                     checkfile.close()
                                     return {'status': False, 'error': unpackingerror}
 
-                                ## then the uncompressed size. Should be the same as
-                                ## in the SUSP entry
+                                ## then the uncompressed size. Should be
+                                ## the same as in the SUSP entry
                                 checkbytes = checkfile.read(4)
                                 if int.from_bytes(checkbytes, byteorder='little') != zisofs_uncompressed:
-                                    unpackingerror = {'offset': checkfile.tell() - offset, 'fatal': False, 'reason': 'mismatch for uncompressed size in zisofs header and SUSP'}
+                                    unpackingerror = {'offset': checkfile.tell() - offset,
+                                                      'fatal': False,
+                                                      'reason': 'mismatch for uncompressed size in zisofs header and SUSP'}
                                     checkfile.close()
                                     return {'status': False, 'error': unpackingerror}
 
                                 ## then the zisofs header size
                                 checkbytes = checkfile.read(1)
                                 if not ord(checkbytes) == zisofs_header_div_4:
-                                    unpackingerror = {'offset': checkfile.tell() - offset, 'fatal': False, 'reason': 'mismatch between zisofs header and SUSP'}
+                                    unpackingerror = {'offset': checkfile.tell() - offset,
+                                                      'fatal': False,
+                                                      'reason': 'mismatch between zisofs header and SUSP'}
                                     checkfile.close()
                                     return {'status': False, 'error': unpackingerror}
 
                                 ## then the zisofs log2(block size)
                                 checkbytes = checkfile.read(1)
                                 if not ord(checkbytes) == zisofs_header_log:
-                                    unpackingerror = {'offset': checkfile.tell() - offset, 'fatal': False, 'reason': 'mismatch between zisofs header and SUSP'}
+                                    unpackingerror = {'offset': checkfile.tell() - offset,
+                                                      'fatal': False,
+                                                      'reason': 'mismatch between zisofs header and SUSP'}
                                     checkfile.close()
                                     return {'status': False, 'error': unpackingerror}
 
@@ -4642,7 +4763,9 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                 ## then two reserved bytes
                                 checkbytes = checkfile.read(2)
                                 if not int.from_bytes(checkbytes, byteorder='little') == 0:
-                                    unpackingerror = {'offset': checkfile.tell() - offset, 'fatal': False, 'reason': 'wrong value for reserved bytes'}
+                                    unpackingerror = {'offset': checkfile.tell() - offset,
+                                                      'fatal': False,
+                                                      'reason': 'wrong value for reserved bytes'}
                                     checkfile.close()
                                     return {'status': False, 'error': unpackingerror}
 
@@ -4652,12 +4775,16 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                 for b in range(0,blockpointers):
                                     checkbytes = checkfile.read(4)
                                     if not len(checkbytes) == 4:
-                                        unpackingerror = {'offset': checkfile.tell() - offset, 'fatal': False, 'reason': 'not enough data for block pointer'}
+                                        unpackingerror = {'offset': checkfile.tell() - offset,
+                                                          'fatal': False,
+                                                          'reason': 'not enough data for block pointer'}
                                         checkfile.close()
                                         return {'status': False, 'error': unpackingerror}
                                     blockpointer = int.from_bytes(checkbytes, byteorder='little')
                                     if blockpointer > directory_extent_length:
-                                        unpackingerror = {'offset': checkfile.tell() - offset, 'fatal': False, 'reason': 'block pointer cannot be outside extent'}
+                                        unpackingerror = {'offset': checkfile.tell() - offset,
+                                                          'fatal': False,
+                                                          'reason': 'block pointer cannot be outside extent'}
                                         checkfile.close()
                                         return {'status': False, 'error': unpackingerror}
                                     blockpointerarray.append(blockpointer)
@@ -4666,9 +4793,11 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                 for b in range(0, len(blockpointerarray) -1):
                                     blockpointer = blockpointerarray[b]
                                     nextblockpointer = blockpointerarray[b+1]
-                                    ## in case the two pointers are the same a block of NULs
-                                    ## should be written. Normally this is blocksize bytes
-                                    ## unless there are fewer bytes to be left to write. The
+                                    ## in case the two pointers are the
+                                    ## same a block of NULs should be
+                                    ## written. Normally this is blocksize
+                                    ## bytes unless there are fewer bytes
+                                    ## to be left to write. The
                                     ## specification does not mention this.
                                     if blockpointer == nextblockpointer:
                                         if zisofs_uncompressed - totalwritten > block_size:
@@ -4682,7 +4811,9 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
 
                                 ## extra sanity check, unsure if this is correct, but seems so
                                 if blockpointerarray[-1] < directory_extent_length:
-                                    unpackingerror = {'offset': checkfile.tell() - offset, 'fatal': False, 'reason': 'block pointer ends before directory extent'}
+                                    unpackingerror = {'offset': checkfile.tell() - offset,
+                                                      'fatal': False,
+                                                      'reason': 'block pointer ends before directory extent'}
                                     checkfile.close()
                                     return {'status': False, 'error': unpackingerror}
 
@@ -4690,7 +4821,8 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                             outfile.close()
                             unpackedfilesandlabels.append((outfilename, []))
 
-                    ## then skip to the (possible) start of the next directory entry.
+                    ## then skip to the (possible) start of
+                    ## the next directory entry.
                     checkfile.seek(orig_extent_offset + all_extent_offset)
 
                 firstextentprocessed = True
@@ -4706,7 +4838,9 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                 ##    as the recorded value in plparent[e]
                 if not targetparent == plparent[e]:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'CL/PL entries do not match'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'CL/PL entries do not match'}
                     return {'status': False, 'error': unpackingerror}
 
                 ## now move the directory and all its contents
@@ -4731,7 +4865,8 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                 ## finally rewrite the name of the extent moved itself
                 extenttoname[e] = extenttoname[e].replace(os.path.dirname(extenttoname[e]), extenttoname[extenttomove[e]], 1)
 
-            ## finally return to the old offset to read more volume descriptors
+            ## finally return to the old offset to read more
+            ## volume descriptors
             checkfile.seek(volumedescriptoroffset)
         elif checkbytes[0] == 2:
             ## supplementary or enhanced volume descriptor
@@ -4744,13 +4879,17 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
             haveterminator = True
             if not haveprimary:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no primary volume descriptor'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no primary volume descriptor'}
                 return {'status': False, 'error': unpackingerror}
         elif checkbytes[0] > 3 and checkbytes[0] < 255:
             ## reserved blocks, for future use, have never been
             ## implemented for ISO9660.
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no primary volume descriptor'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'no primary volume descriptor'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 2048
 
@@ -4759,10 +4898,11 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
 
     checkfile.close()
 
-    ## there should always be at least one terminator. If not, then it is not
-    ## a valid ISO file
+    ## there should always be at least one terminator. If not,
+    ## then it is not a valid ISO file
     if not haveterminator:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no volume terminator descriptor'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no volume terminator descriptor'}
         return {'status': False, 'error': unpackingerror}
 
     if offset == 0 and volume_space_size * logical_size == filesize:
