@@ -1815,5 +1815,72 @@ class TestISO9660(unittest.TestCase):
         testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
+## a test class for testing tar files
+class TestTar(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single tar
+    def testFullfileIsTar(self):
+        filename = os.path.join(basetestdir, 'tar', 'test.tar')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], filesize)
+
+    ## a test for the file being a single tar with data appended to it
+    def testDataAppendedToTar(self):
+        filename = os.path.join(basetestdir, 'tar', 'test-add-random-data.tar')
+        filesize = os.stat(filename).st_size
+        offset = 0
+        testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 604160)
+
+    ## a test for the file being a single tar with data in front
+    def testDataPrependedToTar(self):
+        filename = os.path.join(basetestdir, 'tar', 'test-prepend-random-data.tar')
+        filesize = os.stat(filename).st_size
+        offset = 128
+        testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 604160)
+
+    ## a test for the file being a single tar with data cut from the end
+    def testDataCutFromEndTar(self):
+        filename = os.path.join(basetestdir, 'tar', 'test-cut-data-from-end.tar')
+        offset = 0
+        testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single tar with data cut from the middle
+    def testDataCutFromMiddleTar(self):
+        filename = os.path.join(basetestdir, 'tar', 'test-cut-data-from-middle.tar')
+        offset = 0
+        testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single tar with data added in the middle
+    def testDataAddedInMiddleTar(self):
+        filename = os.path.join(basetestdir, 'tar', 'test-data-added-to-middle.tar')
+        offset = 0
+        testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single tar with data replaced in the middle
+    def testDataReplacedInMiddleTar(self):
+        filename = os.path.join(basetestdir, 'tar', 'test-data-replaced-in-middle.tar')
+        offset = 0
+        testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
 if __name__ == '__main__':
     unittest.main()
