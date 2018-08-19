@@ -31,4 +31,4 @@ GNU Affero General Public License, version 3 (AGPL-3.0)
 
 The recommended coding style is described in PEP 8:
 
-[https://www.python.org/dev/peps/pep-0008/]
+https://www.python.org/dev/peps/pep-0008/
