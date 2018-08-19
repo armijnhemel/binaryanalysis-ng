@@ -408,7 +408,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         labels = list(set(labels))
 
         ## check for a dummy value to see if the file has already been
-        ## unpacked if so, simply report and skip the unpacking, but
+        ## unpacked and if so, simply report and skip the unpacking, and
         ## move on to just running the per file scans.
         if 'unpacked' in labels:
             labels.remove('unpacked')
@@ -466,7 +466,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     ##
                     ## * offset in the file where the error occured
                     ##   (integer)
-                    ## * reason of the error (human readable)
+                    ## * error message (human readable)
                     ## * flag to indicate if it is a fatal error
                     ##   (boolean)
 
@@ -475,9 +475,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     logging.debug("FAIL %s known extension %s: %s" % (checkfile, e, unpackresult['error']['reason']))
 
                     ## Fatal errors should lead to the program stopping
-                    ## execution. Not used for now.
+                    ## execution. Ignored for now.
                     if unpackresult['error']['fatal']:
                         pass
+
                     ## Remove the directory, so first change the
                     ## permissions of all the files so they can be safely.
                     dirwalk = os.walk(dataunpackdirectory)
@@ -576,7 +577,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             ## functions in BANG, as function calls are
                             ## expensive so prevent them as much as possible.
                             ##
-                            ## Included are checks for:
+                            ## Included here are checks for:
                             ##
                             ## * LZMA
                             ## * bzip2
@@ -741,13 +742,14 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 if pow(2, int(math.log2(numtables)))*16 != searchrange:
                                     continue
 
-                                ## default
+                            ## default
                             if s in signaturesoffset:
                                 candidateoffsetsfound.add((offset + offsetinfile - signaturesoffset[s], s))
                             else:
                                 candidateoffsetsfound.add((offset + offsetinfile, s))
 
-                ## see if any data can be unpacked
+                ## For each of the found candidates see if any
+                ## data can be unpacked.
                 for s in (sorted(candidateoffsetsfound)):
                     if s[0] < lastunpackedoffset:
                         continue
@@ -771,15 +773,25 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             except:
                                 namecounter += 1
 
-                    ## The result of the scan is:
+                    ## run the scan for the offset that was found
+                    ## First log which identifier was found and
+                    ## at which offset.
+                    logging.debug("TRYING %s %s at offset: %d" % (checkfile, s[1], s[0]))
+
+                    ## The result of the scan is a dictionary containing:
                     ##
                     ## * the status of the scan (successful or not)
+                    ##
+                    ## Successful scans also contain:
+                    ##
                     ## * the length of the data
                     ## * list of files that were unpacked, if any, plus
                     ##   labels for the unpacked files
                     ## * labels that were added, if any
-                    ## * errors that were encountered, if any
-                    logging.debug("TRYING %s %s at offset: %d" % (checkfile, s[1], s[0]))
+                    ##
+                    ## Unsucccesful scans contain:
+                    ##
+                    ## * errors that were encountered
                     try:
                         unpackresult = signaturetofunction[s[1]](checkfile, s[0], dataunpackdirectory, temporarydirectory)
                     except AttributeError as e:
@@ -790,19 +802,20 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         ## No data could be unpacked for some reason,
                         ## so check the status first
                         logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, s[1], s[0], unpackresult['error']['reason']))
-                        #print(s[1], unpackresult['error'])
-                        #sys.stdout.flush()
-                        ## unpackerror contains:
+
+                        ## unpacking error contains:
+                        ##
                         ## * offset in the file where the error occured
                         ##   (integer)
-                        ## * reason of the error (human readable)
+                        ## * error message (human readable)
                         ## * flag to indicate if it is a fatal error
                         ##   (boolean)
                         ##
                         ## Fatal errors should lead to the program
-                        ## stopping execution.
+                        ## stopping execution. Ignored for now.
                         if unpackresult['error']['fatal']:
                             pass
+
                         ## clean up any data that might have been left behind
                         ## remove the directory, so first change the
                         ## permissions of all the files so they can be
@@ -823,12 +836,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         shutil.rmtree(dataunpackdirectory)
                         continue
 
+                    ## the file could be unpacked successfully,
+                    ## so log it as such.
                     logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, s[1], s[0], unpackresult['length']))
 
-                    ## store the name counter, but only after data was
-                    ## unpacked successfully.
+                    ## store the name counter
                     counterspersignature[s[1]] = namecounter
 
+                    ## store the labels for files that could be
+                    ## unpacked/verified completely.
                     if s[0] == 0 and unpackresult['length'] == filesize:
                         labels += copy.deepcopy(unpackresult['labels'])
                         labels = list(set(labels))
@@ -868,6 +884,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     ## skip over all of the indexes that are now known
                     ## to be false positives
                     lastunpackedoffset = s[0] + unpackresult['length']
+
+                    ## something was unpacked, so record it as such
                     needsunpacking = False
 
                 ## check if the end of file has been reached, if so exit
@@ -891,13 +909,14 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
             scanfile.close()
 
-        ## Now carve any unpacked data from the file and
+        ## Now carve any data that was not unpacked from the file and
         ## put it back into the scanning queue to see if something
-        ## could be unpacked.
+        ## could be unpacked after all.
         ##
-        ## It also makes it easier for doing a "post mortem".
+        ## This also makes it easier for doing a "post mortem".
         if unpackedrange != []:
             ## first check if the first entry covers the entire file
+            ## because if so there is nothing to do
             if not (unpackedrange[0][0] == 0 and unpackedrange[0][1] == filesize):
                 synthesizedcounter = 1
                 startoffset = 0
@@ -930,6 +949,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     startoffset = u[1]
                 scanfile.close()
 
+        ## fix the labels, in case it wasn't recorded whether
+        ## or not the file is text or binary.
         if istext:
             labels.append('text')
         else:
@@ -1017,7 +1038,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         scanfilequeue.put((unpackedfile, unpackedlabel))
 
                     fileresult['unpackedfiles'].append(report)
-
 
         ## now compute any TLSH hashes, but not for every file type
         ## as it often does not make sense to compute TLSH.
