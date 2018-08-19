@@ -1680,6 +1680,7 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
         labels.append('tar')
         labels.append('archive')
 
+    checkfile.close()
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
