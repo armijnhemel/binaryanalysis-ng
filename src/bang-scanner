@@ -294,7 +294,7 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio',
 ## 'graphics') will be stored. These labels can be used to feed extra
 ## information to the unpacking process, such as preventing scans from
 ## running.
-def processfile(scanfilequeue, resultqueue, maxsearchbytes,
+def processfile(scanfilequeue, resultqueue, processlock, maxsearchbytes,
                 unpackdirectory, temporarydirectory, dbconn, dbcursor):
     lenunpackdirectory = len(unpackdirectory) + 1
     synthesizedminimum = 10
@@ -1273,18 +1273,23 @@ def main(argv):
     labels = ['root']
     scanfilequeue.put((os.path.join(unpackdirectory, os.path.basename(args.checkfile)), labels))
 
+    ## create a lock to control access to any shared data structures
+    processlock = multiprocessing.Lock()
+
     ## create processes for unpacking archives
     for i in range(0, bangthreads):
         if not usedatabase:
             p = multiprocessing.Process(target=processfile,
                                         args=(scanfilequeue,
                                               resultqueue,
+                                              processlock,
                                               readsize, unpackdirectory,
                                               temporarydirectory, None, None))
         else:
             p = multiprocessing.Process(target=processfile,
                                         args=(scanfilequeue,
                                               resultqueue,
+                                              processlock,
                                               readsize, unpackdirectory,
                                               temporarydirectory,
                                               bangdbconns[i][0],
