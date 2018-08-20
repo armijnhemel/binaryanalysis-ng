@@ -3664,6 +3664,9 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
 
     havegiftrailer = False
     animated = False
+    allowbrokenxmp = True
+    xmpdata = b''
+    xmpdom = None
 
     while True:
         checkbytes = checkfile.read(1)
@@ -3845,7 +3848,6 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                     ## https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart3.pdf
                     ## broken XMP headers exist, so store the XMP data
                     ## for a few extra sanity checks.
-                    xmpdata = b''
                     while True:
                         checkbytes = checkfile.read(1)
                         if len(checkbytes) != 1:
@@ -3873,6 +3875,15 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                         xmpdata += checkfile.read(datasize)
                         unpackedsize += datasize
                     xmpdata = xmpdata[:-257]
+                    try:
+                        xmpdom = xml.dom.minidom.parseString(xmpdata)
+                    except:
+                        if not allowbrokenxmp:
+                            checkfile.close()
+                            unpackingerror = {'offset': offset+unpackedsize,
+                                              'fatal': False,
+                                              'reason': 'invalid XMP data'}
+                            return {'status': False, 'error': unpackingerror}
 
         ## process the image descriptor (section 20)
         elif checkbytes == b'\x2c':
@@ -3951,6 +3962,10 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                           'fatal': False, 'reason': 'GIF trailer not found'}
         return {'status': False, 'error': unpackingerror}
 
+    extrareturn = {}
+    if xmpdata != b'' and xmpdom != None:
+        extrareturn['xmp'] = xmpdom.toprettyxml()
+
     if offset == 0 and unpackedsize == filesize:
         ## now load the file into PIL as an extra sanity check
         try:
@@ -3968,7 +3983,8 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
         if animated:
             labels.append('animated')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
+                'filesandlabels': unpackedfilesandlabels,
+                'extra': extrareturn}
 
     ## Carve the file. It is anonymous, so just give it a name
     outfilename = os.path.join(unpackdir, "unpacked.gif")
