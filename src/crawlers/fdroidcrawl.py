@@ -50,7 +50,7 @@ def downloadfile(downloadqueue, failqueue):
             downloadqueue.task_done()
             continue
 
-        ## write the hash of the current data to the hash file
+        ## write the downloaded data to a file
         resultfilename = os.path.join(storedirectory, fdroidfile)
         resultfile = open(resultfilename, 'wb')
         resultfile.write(r.content)
