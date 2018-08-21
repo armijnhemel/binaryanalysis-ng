@@ -14194,9 +14194,6 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
     maxoffset = max(maxoffset, unpackedsize)
 
-    for i in sectionheaders:
-        print(i, sectionheaders[i])
-
     ## entire file is ELF
     if offset == 0 and maxoffset == filesize:
         checkfile.close()
