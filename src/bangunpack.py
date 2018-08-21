@@ -14077,13 +14077,23 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(4)
             unpackedsize += 4
 
-    ## sanity check for each of the program headers
+    sectionheaders = {}
+
+    ## sanity check for each of the section headers
     checkfile.seek(offset + shoff)
     unpackedsize = shoff
     for i in range(0, shnum):
+        sectionheaders[i] = {}
+
         ## sh_name, should be a valid index into SHT_STRTAB
         checkbytes = checkfile.read(4)
+        if bigendian:
+            sh_name = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            sh_name = int.from_bytes(checkbytes, byteorder='little')
         unpackedsize += 4
+
+        sectionheaders[i]['sh_name_offset'] = sh_name
 
         ## sh_type
         checkbytes = checkfile.read(4)
@@ -14092,6 +14102,8 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         else:
             sh_type = int.from_bytes(checkbytes, byteorder='little')
         unpackedsize += 4
+
+        sectionheaders[i]['sh_type'] = sh_type
 
         ## sh_flags
         if is64bit:
@@ -14128,6 +14140,8 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         if is64bit:
             unpackedsize += 4
 
+        sectionheaders[i]['sh_offset'] = sh_offset
+
         ## sh_size
         if is64bit:
             checkbytes = checkfile.read(8)
@@ -14140,6 +14154,8 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         unpackedsize += 4
         if is64bit:
             unpackedsize += 4
+
+        sectionheaders[i]['sh_size'] = sh_size
 
         ## sanity checks
         if offset + sh_offset + sh_size > filesize:
@@ -14176,16 +14192,20 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         if is64bit:
             unpackedsize += 4
 
-    checkfile.close()
     maxoffset = max(maxoffset, unpackedsize)
+
+    for i in sectionheaders:
+        print(i, sectionheaders[i])
 
     ## entire file is ELF
     if offset == 0 and maxoffset == filesize:
+        checkfile.close()
         labels.append('elf')
         return {'status': True, 'length': maxoffset, 'labels': labels,
                'filesandlabels': unpackedfilesandlabels}
 
     ## TODO: carving
 
+    checkfile.close()
     unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid ELF file'}
     return {'status': False, 'error': unpackingerror}
