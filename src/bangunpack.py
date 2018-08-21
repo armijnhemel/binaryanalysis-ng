@@ -13972,19 +13972,6 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'program headers outside of file'}
         return {'status': False, 'error': unpackingerror}
 
-    ## program header and section headers cannot overlap
-    if phoff < shoff and phoff + phentrysize * phnum > shoff:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'program headers and section headers overlap'}
-        return {'status': False, 'error': unpackingerror}
-
-    if shoff < phoff and shoff + shentrysize * shnum > phoff:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'program headers and section headers overlap'}
-        return {'status': False, 'error': unpackingerror}
-
     maxoffset = 0
 
     ## sanity check for each of the program headers
