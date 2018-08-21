@@ -64,6 +64,7 @@
 ## 35. Android sparse image files
 ## 36. Java class file
 ## 37. Android Dex/Odex (not OAT, just carving)
+## 38. ELF (whole files only, basic)
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -13738,4 +13739,453 @@ def unpackSnappy(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
 
     unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid Snappy file'}
+    return {'status': False, 'error': unpackingerror}
+
+## The ELF format is documented in numerous places:
+##
+## https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
+## http://refspecs.linuxfoundation.org/elf/elf.pdf
+## https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-43405/index.html
+## https://android.googlesource.com/platform/art/+/master/runtime/elf.h
+def unpackELF(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    ## ELF header is 52 bytes
+    if filesize - offset < 52:
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+    is64bit = False
+    bigendian = False
+
+    ## check if the file is 32 bit or 64 bit
+    checkbytes = checkfile.read(1)
+    elfclass = ord(checkbytes)
+    if elfclass == 0 or elfclass > 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid ELF class'}
+        return {'status': False, 'error': unpackingerror}
+    if elfclass == 2:
+        is64bit = True
+    unpackedsize += 1
+
+    if is64bit:
+        ## 64 bit ELF header is 52 bytes
+        if filesize - offset < 64:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not enough data'}
+            return {'status': False, 'error': unpackingerror}
+
+    ## check endianness of the file
+    checkbytes = checkfile.read(1)
+    dataencoding = ord(checkbytes)
+    if dataencoding == 0 or dataencoding > 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid ELF data encoding'}
+        return {'status': False, 'error': unpackingerror}
+    if dataencoding == 2:
+        bigendian = True
+    unpackedsize += 1
+
+    ## version (in e_ident), has to be 1
+    checkbytes = checkfile.read(1)
+    elfversion = ord(checkbytes)
+    if elfversion != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid ELF version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    ## OS ABI, not accurate, often set to 0
+    checkbytes = checkfile.read(1)
+    osabi = ord(checkbytes)
+    unpackedsize += 1
+
+    ## ABI version, not accurate, often set to 0
+    checkbytes = checkfile.read(1)
+    abiversion = ord(checkbytes)
+    unpackedsize += 1
+
+    ## padding bytes, skip
+    checkfile.seek(7, os.SEEK_CUR)
+    unpackedsize += 7
+
+    ## ELF type
+    checkbytes = checkfile.read(2)
+    if bigendian:
+        elftype = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        elftype = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    ## ELF machine
+    checkbytes = checkfile.read(2)
+    if bigendian:
+        elfmachine = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        elfmachine = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    ## ELF version
+    checkbytes = checkfile.read(4)
+    if bigendian:
+        elfversion = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        elfversion = int.from_bytes(checkbytes, byteorder='little')
+    if elfversion != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid ELF version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    ## e entry_point
+    if is64bit:
+        checkbytes = checkfile.read(8)
+    else:
+        checkbytes = checkfile.read(4)
+    if bigendian:
+        entry_point = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        entry_point = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+    if is64bit:
+        unpackedsize += 4
+
+    ## program header offset
+    if is64bit:
+        checkbytes = checkfile.read(8)
+    else:
+        checkbytes = checkfile.read(4)
+    if bigendian:
+        phoff = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        phoff = int.from_bytes(checkbytes, byteorder='little')
+    if offset + phoff > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'program header outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+    if is64bit:
+        unpackedsize += 4
+
+    ## section header offset
+    if is64bit:
+        checkbytes = checkfile.read(8)
+    else:
+        checkbytes = checkfile.read(4)
+    if bigendian:
+        shoff = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        shoff = int.from_bytes(checkbytes, byteorder='little')
+    if offset + shoff > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'section header outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+    if is64bit:
+        unpackedsize += 4
+
+    ## flags, don't process
+    checkbytes = checkfile.read(4)
+    if bigendian:
+        elfflags = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        elfflags = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    ## header size: 64 for 64 bit, 52 for 32 bit. There might be other
+    ## sizes but these are by far the most common.
+    checkbytes = checkfile.read(2)
+    if bigendian:
+        elfheadersize = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        elfheadersize = int.from_bytes(checkbytes, byteorder='little')
+    if (is64bit and elfheadersize != 64) or (not is64bit and elfheadersize != 52):
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'wrong ELF header size'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    ## program header table entry size
+    checkbytes = checkfile.read(2)
+    if bigendian:
+        phentrysize = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        phentrysize = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    ## program header table entries
+    checkbytes = checkfile.read(2)
+    if bigendian:
+        phnum = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        phnum = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    ## section header table entry size
+    checkbytes = checkfile.read(2)
+    if bigendian:
+        shentrysize = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        shentrysize = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    ## section header table entries
+    checkbytes = checkfile.read(2)
+    if bigendian:
+        shnum = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        shnum = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    ## section header index for section names
+    checkbytes = checkfile.read(2)
+    if bigendian:
+        shstrndx = int.from_bytes(checkbytes, byteorder='big')
+    else:
+        shstrndx = int.from_bytes(checkbytes, byteorder='little')
+    if shstrndx > shnum:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid index for section header table entry'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    ## some sanity checks for size
+    if offset + phoff + phentrysize * phnum > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'program headers outside of file'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset + shoff + shentrysize * shnum > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'program headers outside of file'}
+        return {'status': False, 'error': unpackingerror}
+
+    ## program header and section headers cannot overlap
+    if phoff < shoff and phoff + phentrysize * phnum > shoff:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'program headers and section headers overlap'}
+        return {'status': False, 'error': unpackingerror}
+
+    if shoff < phoff and shoff + shentrysize * shnum > phoff:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'program headers and section headers overlap'}
+        return {'status': False, 'error': unpackingerror}
+
+    maxoffset = 0
+
+    ## sanity check for each of the program headers
+    checkfile.seek(offset + phoff)
+    unpackedsize = phoff
+    for i in range(0, phnum):
+        ## read the program header entry
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        ## p_flags (64 bit only)
+        if is64bit:
+            checkbytes = checkfile.read(4)
+            unpackedsize += 4
+
+        ## p_offset
+        if is64bit:
+            checkbytes = checkfile.read(8)
+        else:
+            checkbytes = checkfile.read(4)
+        if bigendian:
+            p_offset = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            p_offset = int.from_bytes(checkbytes, byteorder='little')
+        ## sanity check
+        if offset + p_offset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'program header outside file'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+        if is64bit:
+            unpackedsize += 4
+
+        ## virtual address, skip
+        if is64bit:
+            checkbytes = checkfile.read(8)
+            unpackedsize += 8
+        else:
+            checkbytes = checkfile.read(4)
+            unpackedsize += 4
+
+        ## physical address, skip
+        if is64bit:
+            checkbytes = checkfile.read(8)
+            unpackedsize += 8
+        else:
+            checkbytes = checkfile.read(4)
+            unpackedsize += 4
+
+        ## filesz
+        if is64bit:
+            checkbytes = checkfile.read(8)
+        else:
+            checkbytes = checkfile.read(4)
+        if bigendian:
+            p_filesz = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            p_filesz = int.from_bytes(checkbytes, byteorder='little')
+        ## sanity check
+        if offset + p_offset + p_filesz > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'program header outside file'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+        if is64bit:
+            unpackedsize += 4
+
+        maxoffset = max(maxoffset, p_offset + p_filesz)
+
+        ## memory size, skip for now
+        if is64bit:
+            checkbytes = checkfile.read(8)
+            unpackedsize += 8
+        else:
+            checkbytes = checkfile.read(4)
+            unpackedsize += 4
+
+        ## p_flags (32 bit only)
+        if not is64bit:
+            checkbytes = checkfile.read(4)
+            unpackedsize += 4
+
+        ## palign, skip for now
+        if is64bit:
+            checkbytes = checkfile.read(8)
+            unpackedsize += 8
+        else:
+            checkbytes = checkfile.read(4)
+            unpackedsize += 4
+
+    ## sanity check for each of the program headers
+    checkfile.seek(offset + shoff)
+    unpackedsize = shoff
+    for i in range(0, shnum):
+        ## sh_name, should be a valid index into SHT_STRTAB
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        ## sh_type
+        checkbytes = checkfile.read(4)
+        if bigendian:
+            sh_type = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            sh_type = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        ## sh_flags
+        if is64bit:
+            checkbytes = checkfile.read(8)
+        else:
+            checkbytes = checkfile.read(4)
+        if bigendian:
+            sh_flags = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            sh_flags = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+        if is64bit:
+            unpackedsize += 4
+
+        ## sh_addr, skip
+        if is64bit:
+            checkbytes = checkfile.read(8)
+        else:
+            checkbytes = checkfile.read(4)
+        unpackedsize += 4
+        if is64bit:
+            unpackedsize += 4
+
+        ## sh_offset
+        if is64bit:
+            checkbytes = checkfile.read(8)
+        else:
+            checkbytes = checkfile.read(4)
+        if bigendian:
+            sh_offset = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            sh_offset = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+        if is64bit:
+            unpackedsize += 4
+
+        ## sh_size
+        if is64bit:
+            checkbytes = checkfile.read(8)
+        else:
+            checkbytes = checkfile.read(4)
+        if bigendian:
+            sh_size = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            sh_size = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+        if is64bit:
+            unpackedsize += 4
+
+        ## sanity checks
+        if offset + sh_offset + sh_size > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'section header outside file'}
+            return {'status': False, 'error': unpackingerror}
+
+        maxoffset = max(maxoffset, sh_offset + sh_size)
+
+        ## sh_link, skip for now
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        ## sh_info, skip for now
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        ## sh_addralign, skip for now
+        if is64bit:
+            checkbytes = checkfile.read(8)
+        else:
+            checkbytes = checkfile.read(4)
+        unpackedsize += 4
+        if is64bit:
+            unpackedsize += 4
+
+        ## sh_entsize, skip for now
+        if is64bit:
+            checkbytes = checkfile.read(8)
+        else:
+            checkbytes = checkfile.read(4)
+        unpackedsize += 4
+        if is64bit:
+            unpackedsize += 4
+
+    checkfile.close()
+    maxoffset = max(maxoffset, unpackedsize)
+
+    ## entire file is ELF
+    if offset == 0 and maxoffset == filesize:
+        labels.append('elf')
+        return {'status': True, 'length': maxoffset, 'labels': labels,
+               'filesandlabels': unpackedfilesandlabels}
+
+    ## TODO: carving
+
+    unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid ELF file'}
     return {'status': False, 'error': unpackingerror}
