@@ -28,6 +28,7 @@
 
 import sys
 import os
+import pathlib
 import stat
 import shutil
 import struct
@@ -225,14 +226,14 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio',
 ## information to the unpacking process, such as preventing scans from
 ## running.
 def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
-                maxsearchbytes, unpackdirectory, temporarydirectory,
-                dbconn, dbcursor):
+                maxsearchbytes, unpackdirectory, resultsdirectory,
+                temporarydirectory, dbconn, dbcursor):
     lenunpackdirectory = len(unpackdirectory) + 1
     synthesizedminimum = 10
 
     while True:
         ## grab a new file from the scanning queue
-        (checkfile, labels) = scanfilequeue.get()
+        (checkfile, labels, extra) = scanfilequeue.get()
 
         ## store the results of the file
         ## At minimum store:
@@ -450,7 +451,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 for un in unpackresult['filesandlabels']:
                     (unpackedfile, unpackedlabel) = un
                     ## add the data, plus possibly any label
-                    scanfilequeue.put((unpackedfile, unpackedlabel))
+                    scanfilequeue.put((unpackedfile, unpackedlabel, {}))
 
                 ## whole file has already been unpacked, so no need for
                 ## further scanning.
@@ -802,7 +803,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
 
                         ## add the data, plus possibly any label
-                        scanfilequeue.put((unpackedfile, unpackedlabel))
+                        scanfilequeue.put((unpackedfile, unpackedlabel, {}))
 
                     fileresult['unpackedfiles'].append(report)
 
@@ -870,7 +871,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         unpackedlabel = ['synthesized']
 
                         ## add the data, plus labels, to the queue
-                        scanfilequeue.put((outfilename, unpackedlabel))
+                        scanfilequeue.put((outfilename, unpackedlabel, {}))
                     startoffset = u[1]
                 scanfile.close()
 
@@ -960,7 +961,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
 
                         ## add the data, plus possibly any label
-                        scanfilequeue.put((unpackedfile, unpackedlabel))
+                        scanfilequeue.put((unpackedfile, unpackedlabel, {}))
 
                     fileresult['unpackedfiles'].append(report)
 
@@ -977,6 +978,14 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         processlock.release()
 
         if not duplicate:
+            ## write a pickle with output data
+            ## The pickle contains:
+            ## * all available hashes
+            ## * any extra data that might have been passed around
+            resultout = {}
+            for i in ['sha256', 'md5', 'sha1']:
+                resultout[i] = fileresult[i]
+
             ## now compute any TLSH hashes, but not for every file type
             ## as it often does not make sense to compute TLSH.
             if set(labels).intersection(tlshlabelsignore) == set():
@@ -985,7 +994,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     scanfile.seek(0)
                     hashdata = scanfile.read()
                     scanfile.close()
-                    fileresult['tlsh'] = tlsh.hash(hashdata)
+                    tlshhash = tlsh.hash(hashdata)
+                    fileresult['tlsh'] = tlshhash
+                    resultout['tlsh'] = tlshhash
+
+            picklefilename = pathlib.Path(resultsdirectory, "%s.pickle" % fileresult['sha256'])
+            if not picklefilename.exists():
+                pickleout = picklefilename.open('wb')
+                pickle.dump(resultout, pickleout)
+                pickleout.close()
         else:
             labels.append('duplicate')
 
@@ -1258,7 +1275,7 @@ def main(argv):
     ## Create a list of labels to pass around. The first element is
     ## tagged as 'root', as it is the root of the unpacking tree.
     labels = ['root']
-    scanfilequeue.put((os.path.join(unpackdirectory, os.path.basename(args.checkfile)), labels))
+    scanfilequeue.put((os.path.join(unpackdirectory, os.path.basename(args.checkfile)), labels, {}))
 
     ## create a lock to control access to any shared data structures
     processlock = multiprocessing.Lock()
@@ -1275,6 +1292,7 @@ def main(argv):
                                               processlock,
                                               checksumdict,
                                               readsize, unpackdirectory,
+                                              resultsdirectory,
                                               temporarydirectory, None, None))
         else:
             p = multiprocessing.Process(target=processfile,
@@ -1283,6 +1301,7 @@ def main(argv):
                                               processlock,
                                               checksumdict,
                                               readsize, unpackdirectory,
+                                              resultsdirectory,
                                               temporarydirectory,
                                               bangdbconns[i][0],
                                               bangdbconns[i][1]))
