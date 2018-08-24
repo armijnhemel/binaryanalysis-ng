@@ -14157,14 +14157,16 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
         sectionheaders[i]['sh_size'] = sh_size
 
-        ## sanity checks
-        if offset + sh_offset + sh_size > filesize:
-            checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'section header outside file'}
-            return {'status': False, 'error': unpackingerror}
+        ## sanity checks, except if a section is marked as SHT_NOBITS
+        ## http://web.archive.org/web/20141027140248/http://wiki.osdev.org:80/ELF_Tutorial#The_BSS_and_SHT_NOBITS
+        if sh_type != 8:
+            if offset + sh_offset + sh_size > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'section header outside file'}
+                return {'status': False, 'error': unpackingerror}
 
-        maxoffset = max(maxoffset, sh_offset + sh_size)
+            maxoffset = max(maxoffset, sh_offset + sh_size)
 
         ## sh_link, skip for now
         checkbytes = checkfile.read(4)
