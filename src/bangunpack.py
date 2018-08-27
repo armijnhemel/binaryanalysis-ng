@@ -2538,7 +2538,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 ## then check to see if this is possibly an Android
                 ## signing block
                 ## https://source.android.com/security/apksigning/v2
-                if androidsigning:
+                if androidsigning or checkbytes == b'\x00\x00\x00\x00':
                     ## first go back four bytes
                     checkfile.seek(-4, os.SEEK_CUR)
                     unpackedsize = checkfile.tell() - offset
@@ -2588,6 +2588,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                           'fatal': False,
                                           'reason': 'wrong magic for Android signing block'}
                         return {'status': False, 'error': unpackingerror}
+                    androidsigning = True
                     unpackedsize += androidsigningsize
                 else:
                     break
@@ -2807,9 +2808,12 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
             ## in case the length is not known it is very difficult
             ## to see where the data ends so it is needed to search for
             ## a signature. This can either be:
+            ##
             ## * data descriptor header
             ## * local file header
             ## * central directory header
+            ##
+            ## Whichever is found first will be processed.
             while True:
                 curpos = checkfile.tell()
                 tmppos = -1
