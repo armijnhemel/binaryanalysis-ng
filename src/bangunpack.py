@@ -2541,7 +2541,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 if androidsigning:
                     ## first go back four bytes
                     checkfile.seek(-4, os.SEEK_CUR)
-                    unpackedsize -= 8
+                    unpackedsize = checkfile.tell() - offset
 
                     ## then read 8 bytes for the APK signing block size
                     checkbytes = checkfile.read(8)
@@ -2553,6 +2553,24 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                         return {'status': False, 'error': unpackingerror}
                     unpackedsize += 8
                     androidsigningsize = int.from_bytes(checkbytes, byteorder='little')
+
+                    ## APK signing V3 might pad to 4096 bytes first, introduced in
+                    ## https://android.googlesource.com/platform/tools/apksig/+/edf96cb79f533eb4255ee1b6aa2ba8bf9c1729b2
+                    if androidsigningsize == 0:
+                        checkfile.seek(4096 - unpackedsize % 4096, os.SEEK_CUR)
+                        unpackedsize += 4096 - unpackedsize % 4096
+
+                        ## then read 8 bytes for the APK signing block size
+                        checkbytes = checkfile.read(8)
+                        if len(checkbytes) != 8:
+                            checkfile.close()
+                            unpackingerror = {'offset': offset+unpackedsize,
+                                              'fatal': False,
+                                              'reason': 'not enough data for Android signing block'}
+                            return {'status': False, 'error': unpackingerror}
+                        unpackedsize += 8
+                        androidsigningsize = int.from_bytes(checkbytes, byteorder='little')
+
                     if checkfile.tell() + androidsigningsize > filesize:
                         checkfile.close()
                         unpackingerror = {'offset': offset+unpackedsize,
