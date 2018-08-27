@@ -61,12 +61,8 @@ import bangunpack
 import bangsignatures
 
 ## For proximity matching use the TLSH module. This is not a standard
-## module, so make it optional.
-try:
-    import tlsh
-    tlshscanning = True
-except Exception:
-    tlshscanning = False
+## module.
+import tlsh
 
 ## keep a list of signatures to the (built in) functions
 signaturetofunction = {
