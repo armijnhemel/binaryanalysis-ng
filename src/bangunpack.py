@@ -3013,6 +3013,8 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
             if offset == 0 and not carved:
                 labels.append('compressed')
                 labels.append('zip')
+                if androidsigning:
+                    labels.append('apk')
             if carved:
                 os.unlink(temporaryfile[1])
             checkfile.close()
