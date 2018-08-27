@@ -10577,11 +10577,11 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                     if p.returncode != 0:
                         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'e2cp error'}
                         return {'status': False, 'error': unpackingerror}
-                    else:
-                        ## hardlink the file to an existing
-                        ## file and record it as such.
-                        os.link(os.path.join(unpackdir, inodetofile[inode]), os.path.join(unpackdir, fullext2name))
-                    unpackedfilesandlabels.append((os.path.join(unpackdir,fullext2name), []))
+                else:
+                    ## hardlink the file to an existing
+                    ## file and record it as such.
+                    os.link(os.path.join(unpackdir, inodetofile[inode]), os.path.join(unpackdir, fullext2name))
+                unpackedfilesandlabels.append((os.path.join(unpackdir,fullext2name), []))
 
     ## cleanup
     if havetmpfile:
