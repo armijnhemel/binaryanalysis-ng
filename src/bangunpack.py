@@ -120,6 +120,7 @@ import json
 import xml.dom.minidom
 import hashlib
 import re
+import pathlib
 
 ## some external packages that are needed
 import PIL.Image
@@ -10509,7 +10510,7 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
         except IndexError:
             ## there are no more entries to process
             break
-        p = subprocess.Popen(['e2ls', '-lai', filename + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['e2ls', '-lai', str(filename) + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate()
         if p.returncode != 0:
             unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'e2ls error'}
@@ -10571,7 +10572,7 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                 if not inode in inodetofile:
                     inodetofile[inode] = fullext2name
                     ## use e2cp to copy the file
-                    p = subprocess.Popen(['e2cp', filename + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    p = subprocess.Popen(['e2cp', str(filename) + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     (outputmsg, errormsg) = p.communicate()
                     if p.returncode != 0:
                         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'e2cp error'}
