@@ -1973,7 +1973,8 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
-    ## then 16 filler bytes, all 0x00
+    ## then 16 filler bytes, all 0x00 according to the specifications
+    ## but not in files observed in real life.
     checkbytes = checkfile.read(16)
     if len(checkbytes) != 16:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -1995,7 +1996,7 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
 
     ## store maximum offset, because the RFC says:
     ## "The entries in the AppleDouble Header file can appear in any order"
-    maxoffset = -1
+    maxoffset = unpackedsize
 
     for i in range(0,appledoubleentries):
         ## first the entry id, which cannot be 0
@@ -2046,8 +2047,10 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
         unpackedsize += 4
         maxoffset = max(maxoffset, entrysize + entryoffset)
 
+    unpackedsize = maxoffset
+
     ## the entire file is the Apple Double file
-    if offset == 0 and maxoffset == filesize:
+    if offset == 0 and unpackedsize == filesize:
         checkfile.close()
         labels.append('resource')
         labels.append('appledouble')
@@ -2057,7 +2060,7 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
     ## else carve the file. It is anonymous, so just give it a name
     outfilename = os.path.join(unpackdir, "unpacked-from-appledouble")
     outfile = open(outfilename, 'wb')
-    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
     unpackedfilesandlabels.append((outfilename, ['appledouble', 'resource', 'unpacked']))
