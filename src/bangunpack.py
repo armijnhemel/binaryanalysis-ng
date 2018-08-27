@@ -1994,6 +1994,12 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
     ## following the header
     appledoubleentries = int.from_bytes(checkbytes, byteorder='big')
 
+    ## having 0 entries does not make practical sense
+    if appledoubleentries == 0:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no Apple Double entries'}
+        return {'status': False, 'error': unpackingerror}
+
     ## store maximum offset, because the RFC says:
     ## "The entries in the AppleDouble Header file can appear in any order"
     maxoffset = unpackedsize
