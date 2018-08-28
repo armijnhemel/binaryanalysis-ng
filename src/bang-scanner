@@ -1011,7 +1011,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     resultout['tlsh'] = tlshhash
 
             resultout['labels'] = labels
-            picklefilename = pathlib.Path(resultsdirectory, "%s.pickle" % fileresult['sha256'])
+            picklefilename = resultsdirectory / ("%s.pickle" % fileresult['sha256'])
             if not picklefilename.exists():
                 pickleout = picklefilename.open('wb')
                 pickle.dump(resultout, pickleout)
