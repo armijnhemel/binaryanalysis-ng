@@ -97,6 +97,7 @@ signatures = {
 signaturesoffset = {
     'webp': 8,
     'wav': 8,
+    'ani': 8,
     'tar_posix': 0x101,
     'tar_gnu': 0x101,
     'icc': 36,
