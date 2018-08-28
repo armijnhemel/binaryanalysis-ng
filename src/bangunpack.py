@@ -842,19 +842,21 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'not enough data for BMP file'}
         return {'status': False, 'error': unpackingerror}
 
-    ## skip over 4 bytes of reserved data and read the offset
-    ## of the BMP data
+    ## skip over 4 bytes of reserved data
     checkfile.seek(4,os.SEEK_CUR)
     unpackedsize += 4
+
+    ## read the offset of the BMP data
     checkbytes = checkfile.read(4)
     bmpoffset = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-    ## the BMP cannot be outside the file
-    if offset + bmpoffset > filesize:
+
+    ## the BMP offset cannot be bigger than the bmpsize
+    if bmpoffset > bmpsize:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not enough data for BMP'}
+                          'reason': 'BMP offset cannot be outside of file'}
         return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
 
     ## read the first two bytes of the DIB header (DIB header size) as
     ## an extra sanity check.  There are actually just a few supported
