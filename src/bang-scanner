@@ -668,6 +668,16 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 searchrange = int.from_bytes(scanbytes[offset+6:offset+8], byteorder='big')
                                 if pow(2, int(math.log2(numtables)))*16 != searchrange:
                                     continue
+                            elif s == 'terminfo':
+                                if filesize - (offsetinfile + offset) < 12:
+                                    continue
+
+                                ## simple sanity check: names section
+                                ## size cannot be < 2 or > 128
+                                namessectionsize = int.from_bytes(scanbytes[offset+2:offset+4], byteorder='little')
+
+                                if namessectionsize < 2 or namessectionsize > 128:
+                                    continue
 
                             ## default
                             if s in bangsignatures.signaturesoffset:
