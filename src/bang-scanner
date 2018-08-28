@@ -31,7 +31,6 @@ import os
 import pathlib
 import stat
 import shutil
-import struct
 import argparse
 import configparser
 import datetime
