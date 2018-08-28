@@ -233,7 +233,7 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
 ## * WAV
 ## * ANI
 ## https://en.wikipedia.org/wiki/Resource_Interchange_File_Format
-def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, applicationheader, filesize):
+def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, applicationheader, filesize, brokenlength=False):
     labels = []
     ## First check if the file size is 12 bytes or more. If not, then
     ## it is not a valid RIFF file.
@@ -261,12 +261,21 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
     ## in little endian format)
     checkbytes = checkfile.read(4)
     rifflength = int.from_bytes(checkbytes, byteorder='little')
-    ## the data cannot go outside of the file
-    if rifflength + 8 > filesize:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'reason': 'wrong length', 'fatal': False}
-        return {'status': False, 'error': unpackingerror}
+    ## the data cannot go outside of the file. Some cases exist where
+    ## a broken length header is recorded (the length of the entire RIFF,
+    ## instead of "all following bytes").
+    if not brokenlength:
+        if rifflength + 8 > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'wrong length', 'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+    else:
+        if rifflength > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'wrong length', 'fatal': False}
+            return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
     ## Then read four bytes and check if they match the supplied header
@@ -280,7 +289,13 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
     unpackedsize += 4
 
     ## then read chunks
-    while checkfile.tell() != offset + rifflength + 8:
+    while True:
+        if brokenlength:
+            if checkfile.tell() == offset + rifflength:
+                break
+        else:
+            if checkfile.tell() == offset + rifflength + 8:
+                break
         haspadding = False
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
@@ -328,11 +343,18 @@ def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, a
 
     ## extra sanity check to see if the size of the unpacked data
     ## matches the declared size from the header.
-    if unpackedsize != rifflength + 8:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'unpacked size does not match declared size'}
-        return {'status': False, 'error': unpackingerror}
+    if not brokenlength:
+        if unpackedsize != rifflength + 8:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'unpacked size does not match declared size'}
+            return {'status': False, 'error': unpackingerror}
+    else:
+        if unpackedsize != rifflength:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'unpacked size does not match declared size'}
+            return {'status': False, 'error': unpackingerror}
 
     ## if the entire file is the RIFF file, then label it as such
     if offset == 0 and unpackedsize == filesize:
@@ -360,7 +382,22 @@ def unpackANI(filename, offset, unpackdir, temporarydirectory):
     ## a list of valid ANI chunk FourCC
     validchunkfourcc = set([b'IART', b'ICON', b'INAM', b'LIST',
                             b'anih', b'rate', b'seq '])
-    unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', filesize)
+
+    ## Some ANI files have a broken RIFF header, so try to
+    ## detect if that is the case. This is not 100% foolproof.
+    brokenlength = False
+
+    ## Then read four bytes and check the length (stored
+    ## in little endian format)
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    checkbytes = checkfile.read(4)
+    rifflength = int.from_bytes(checkbytes, byteorder='little')
+    if rifflength == filesize:
+        brokenlength = True
+    checkfile.close()
+
+    unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', filesize, brokenlength)
     if unpackres['status']:
         labels = copy.deepcopy(unpackres['labels'])
         if offset == 0 and unpackres['length'] == filesize:
