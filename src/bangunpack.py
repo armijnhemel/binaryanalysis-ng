@@ -11701,7 +11701,7 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
 ## https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
 ## uses https://pypi.org/project/lz4/
 def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
-    filesize = os.stat(filename).st_size
+    filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11755,8 +11755,8 @@ def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
     if offset == 0 and unpackedsize == filesize:
         labels.append('compressed')
         labels.append('lz4')
-        if filename.lower().endswith('.lz4'):
-            newoutfilename = os.path.join(unpackdir, os.path.basename(filename[:-4]))
+        if filename.suffix.lower() == '.lz4':
+            newoutfilename = os.path.join(unpackdir, filename.stem)
             shutil.move(outfilename, newoutfilename)
             outfilename = newoutfilename
     unpackedfilesandlabels.append((outfilename, []))

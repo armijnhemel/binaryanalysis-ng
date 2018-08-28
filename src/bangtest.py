@@ -675,8 +675,8 @@ class TestLZ4(unittest.TestCase):
     ## now all the test cases.
     ## a test for the file being a single LZ4
     def testFullfileIsLZ4(self):
-        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt.lz4')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'lz4' / 'pg6130.txt.lz4'
+        filesize = filename.stat().st_size
         offset = 0
         testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -684,8 +684,8 @@ class TestLZ4(unittest.TestCase):
 
     ## a test for the file being a single LZ4 with data appended to it
     def testDataAppendedToLZ4(self):
-        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-add-random-data.lz4')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'lz4' / 'pg6130.txt-add-random-data.lz4'
+        filesize = filename.stat().st_size
         offset = 0
         testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -693,8 +693,8 @@ class TestLZ4(unittest.TestCase):
 
     ## a test for the file being a single LZ4 with data in front
     def testDataPrependedToLZ4(self):
-        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-prepend-random-data.lz4')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'lz4' / 'pg6130.txt-prepend-random-data.lz4'
+        filesize = filename.stat().st_size
         offset = 128
         testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -702,28 +702,28 @@ class TestLZ4(unittest.TestCase):
 
     ## a test for the file being a single LZ4 with data cut from the end
     def testDataCutFromEndLZ4(self):
-        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-cut-data-from-end.lz4')
+        filename = basetestdir / 'lz4' / 'pg6130.txt-cut-data-from-end.lz4'
         offset = 0
         testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single LZ4 with data cut from the middle
     def testDataCutFromMiddleLZ4(self):
-        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-cut-data-from-middle.lz4')
+        filename = basetestdir / 'lz4' / 'pg6130.txt-cut-data-from-middle.lz4'
         offset = 0
         testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single LZ4 with data added in the middle
     def testDataAddedInMiddleLZ4(self):
-        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-data-added-to-middle.lz4')
+        filename = basetestdir / 'lz4' / 'pg6130.txt-data-added-to-middle.lz4'
         offset = 0
         testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single LZ4 with data replaced in the middle
     def testDataReplacedInMiddleLZ4(self):
-        filename = os.path.join(basetestdir, 'lz4', 'pg6130.txt-data-replaced-in-middle.lz4')
+        filename = basetestdir / 'lz4' / 'pg6130.txt-data-replaced-in-middle.lz4'
         offset = 0
         testres = bangunpack.unpackLZ4(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
