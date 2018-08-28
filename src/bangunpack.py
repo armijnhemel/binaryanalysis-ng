@@ -7449,13 +7449,13 @@ def unpackTerminfo(filename, offset, unpackdir, temporarydirectory):
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'names section size cannot be less than 2'}
         return {'status': False, 'error': unpackingerror}
-    unpackedsize += 2
 
     ## name field cannot exceed 128 bytes
     if namessectionsize > 128:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid names section size'}
         return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
 
     ## the number of bytes in the boolean section, which follows the names section
     checkbytes = checkfile.read(2)
