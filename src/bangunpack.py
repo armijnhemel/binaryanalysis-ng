@@ -2650,7 +2650,9 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
         datadescriptor = False
 
         ## see if there is a data descriptor for regular files in the
-        ## general purpose bit flag (this won't be set for directories)
+        ## general purpose bit flag. This usually won't be set for
+        ## directories although sometimes it is
+        ## (example: framework/ext.jar from various Android versions)
         if generalbitflag & 0x08 == 0x08:
             datadescriptor = True
 
@@ -2784,7 +2786,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                     if uncompressedsize == 0xffffffff:
                         uncompressedsize = zip64uncompressedsize
                 extrafieldcounter += extrafieldheaderlength
-            unpackedsize += extrafieldlength
+        unpackedsize += extrafieldlength
 
         ## some sanity checks: file name, extra field and compressed
         ## size cannot extend past the file size
@@ -2802,7 +2804,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
         ddfound = False
         ddsearched = False
 
-        if not localfilename.endswith(b'/') and compressedsize == 0:
+        if not (localfilename.endswith(b'/') and compressedsize == 0) or datadescriptor:
             datastart = checkfile.tell()
             ## in case the length is not known it is very difficult
             ## to see where the data ends so it is needed to search for
