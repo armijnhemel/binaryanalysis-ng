@@ -138,3 +138,15 @@ An error message is a dictionary, with the following elements:
 An example of an error message:
 
     {'offset': 0, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
+
+#### Optimizations
+
+There are various optimizations in BANG. One optimization is that during the
+search for magic headers some sanity checks are performed to see if the magic
+headers really are valid, or if they are false positives. This is to prevent
+that methods are run unnecessarily. Method calls in Python are quite expensive
+and preventing large amounts of them can easily shave a few minutes off for
+large files (for example: Android firmwares).
+
+In the main scaning loop some checks from the unpacking checks are duplicated
+to essentially perform a look ahead.
