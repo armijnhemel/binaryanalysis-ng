@@ -2004,5 +2004,72 @@ class TestJFFS2(unittest.TestCase):
         testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
+## a test class for testing rzip files
+class TestRzip(unittest.TestCase):
+    ## create a temporary directory and copy
+    ## the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    ## remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    ## now all the test cases.
+    ## a test for the file being a single rzip
+    def testFullfileIsRzip(self):
+        filename = basetestdir / 'rzip' / 'test.rz'
+        filesize = filename.stat().st_size
+        offset = 0
+        testres = bangunpack.unpackRzip(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], filesize)
+
+    ## a test for the file being a single rzip with data appended to it
+    def testDataAppendedToRzip(self):
+        filename = basetestdir / 'rzip' / 'test-add-random-data.rz'
+        filesize = filename.stat().st_size
+        offset = 0
+        testres = bangunpack.unpackRzip(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 530499)
+
+    ## a test for the file being a single rzip with data in front
+    def testDataPrependedToRzip(self):
+        filename = basetestdir / 'rzip' / 'test-prepend-random-data.rz'
+        filesize = filename.stat().st_size
+        offset = 128
+        testres = bangunpack.unpackRzip(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 530499)
+
+    ## a test for the file being a single rzip with data cut from the end
+    def testDataCutFromEndRzip(self):
+        filename = basetestdir / 'rzip' / 'test-cut-data-from-end.rz'
+        offset = 0
+        testres = bangunpack.unpackRzip(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single rzip with data cut from the middle
+    def testDataCutFromMiddleRzip(self):
+        filename = basetestdir / 'rzip' / 'test-cut-data-from-middle.rz'
+        offset = 0
+        testres = bangunpack.unpackRzip(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single rzip with data added in the middle
+    def testDataAddedInMiddleRzip(self):
+        filename = basetestdir / 'rzip' / 'test-data-added-to-middle.rz'
+        offset = 0
+        testres = bangunpack.unpackRzip(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    ## a test for the file being a single rzip with data replaced in the middle
+    def testDataReplacedInMiddleRzip(self):
+        filename = basetestdir / 'rzip' / 'test-data-replaced-in-middle.rz'
+        offset = 0
+        testres = bangunpack.unpackRzip(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
 if __name__ == '__main__':
     unittest.main()
