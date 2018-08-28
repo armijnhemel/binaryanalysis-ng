@@ -1108,8 +1108,8 @@ class TestBzip2(unittest.TestCase):
     ## now all the test cases.
     ## a test for the file being a single bzip2
     def testFullfileIsBzip2(self):
-        filename = os.path.join(basetestdir, 'bz2', 'test.bz2')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'bz2' / 'test.bz2'
+        filesize = filename.stat().st_size
         offset = 0
         testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -1117,8 +1117,8 @@ class TestBzip2(unittest.TestCase):
 
     ## a test for the file being a single bzip2 with data appended to it
     def testDataAppendedToBzip2(self):
-        filename = os.path.join(basetestdir, 'bz2', 'test-add-random-data.bz2')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'bz2' / 'test-add-random-data.bz2'
+        filesize = filename.stat().st_size
         offset = 0
         testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -1126,8 +1126,8 @@ class TestBzip2(unittest.TestCase):
 
     ## a test for the file being a single bzip2 with data in front
     def testDataPrependedToBzip2(self):
-        filename = os.path.join(basetestdir, 'bz2', 'test-prepend-random-data.bz2')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'bz2' / 'test-prepend-random-data.bz2'
+        filesize = filename.stat().st_size
         offset = 128
         testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -1135,28 +1135,28 @@ class TestBzip2(unittest.TestCase):
 
     ## a test for the file being a single bzip2 with data cut from the end
     def testDataCutFromEndBzip2(self):
-        filename = os.path.join(basetestdir, 'bz2', 'test-cut-data-from-end.bz2')
+        filename = basetestdir / 'bz2' / 'test-cut-data-from-end.bz2'
         offset = 0
         testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single bzip2 with data cut from the middle
     def testDataCutFromMiddleBzip2(self):
-        filename = os.path.join(basetestdir, 'bz2', 'test-cut-data-from-middle.bz2')
+        filename = basetestdir / 'bz2' / 'test-cut-data-from-middle.bz2'
         offset = 0
         testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single bzip2 with data added in the middle
     def testDataAddedInMiddleBzip2(self):
-        filename = os.path.join(basetestdir, 'bz2', 'test-data-added-to-middle.bz2')
+        filename = basetestdir / 'bz2' / 'test-data-added-to-middle.bz2'
         offset = 0
         testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single bzip2 with data replaced in the middle
     def testDataReplacedInMiddleBzip2(self):
-        filename = os.path.join(basetestdir, 'bz2', 'test-data-replaced-in-middle.bz2')
+        filename = basetestdir / 'bz2' / 'test-data-replaced-in-middle.bz2'
         offset = 0
         testres = bangunpack.unpackBzip2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])

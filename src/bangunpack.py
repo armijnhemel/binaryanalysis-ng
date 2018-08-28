@@ -3073,7 +3073,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
 ## Derived from public bzip2 specifications
 ## and Python module documentation
 def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
-    filesize = os.stat(filename).st_size
+    filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3105,10 +3105,7 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
     ## set the name of the file in case it is "anonymous data"
     ## otherwise just imitate whatever bunzip2 does. If the file has a
     ## name recorded in the file it will be renamed later.
-    if filename.endswith('.bz2'):
-        outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
-    else:
-        outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
+    outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
 
     ## data has been unpacked, so open a file and write the data to it.
     ## unpacked, or if all data has been unpacked
@@ -3154,15 +3151,15 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
     if not dryrun:
         outfile.close()
 
-        if offset == 0 and unpackedsize == os.stat(filename).st_size:
+        if offset == 0 and unpackedsize == filesize:
             ## in case the file name ends in either bz2 or tbz2 (tar)
             ## rename the file to mimic the behaviour of "bunzip2"
-            if filename.lower().endswith('.bz2'):
-                newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
+            if filename.suffix.lower() == '.bz2':
+                newoutfilename = os.path.join(unpackdir, filename.name[:-4])
                 shutil.move(outfilename, newoutfilename)
                 outfilename = newoutfilename
-            elif filename.lower().endswith('.tbz2'):
-                newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-5]) + ".tar"
+            elif filename.suffix.lower() == '.tbz2':
+                newoutfilename = os.path.join(unpackdir, filename.name[:-5]) + ".tar"
                 shutil.move(outfilename, newoutfilename)
                 outfilename = newoutfilename
             labels += ['bzip2', 'compressed']
