@@ -918,7 +918,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     if not unpackresult['status']:
                         ## No data could be unpacked for some reason,
                         ## so check the status first
-                        logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, 0, unpackresult['error']['offset'], unpackresult['error']['reason']))
+                        logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, f, 0, unpackresult['error']['reason']))
                         #print(s[1], unpackresult['error'])
                         #sys.stdout.flush()
                         ## unpackerror contains:
