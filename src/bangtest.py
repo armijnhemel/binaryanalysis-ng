@@ -33,7 +33,7 @@ import pathlib
 ## load own modules
 import bangunpack
 
-basetestdir = '/home/armijn/git/binaryanalysis-ng/test'
+basetestdir = pathlib.Path('/home/armijn/git/binaryanalysis-ng/test')
 tmpdirectory = '/home/armijn/tmp'
 
 ## a test class for testing GIFs
@@ -541,8 +541,8 @@ class TestGZIP(unittest.TestCase):
     ## now all the test cases.
     ## a test for the file being a single gzip
     def testFullfileIsGzip(self):
-        filename = os.path.join(basetestdir, 'gzip', 'test.jpg.gz')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'gzip' / 'test.jpg.gz'
+        filesize = filename.stat().st_size
         offset = 0
         testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -550,8 +550,8 @@ class TestGZIP(unittest.TestCase):
 
     ## a test for the file being a single gzip with data appended to it
     def testDataAppendedToGzip(self):
-        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-add-random-data.gz')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'gzip' / 'test.jpg-add-random-data.gz'
+        filesize = filename.stat().st_size
         offset = 0
         testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -559,8 +559,8 @@ class TestGZIP(unittest.TestCase):
 
     ## a test for the file being a single gzip with data in front
     def testDataPrependedToGzip(self):
-        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-prepend-random-data.gz')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'gzip' / 'test.jpg-prepend-random-data.gz'
+        filesize = filename.stat().st_size
         offset = 128
         testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -568,28 +568,28 @@ class TestGZIP(unittest.TestCase):
 
     ## a test for the file being a single gzip with data cut from the end
     def testDataCutFromEndGzip(self):
-        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-cut-data-from-end.gz')
+        filename = basetestdir / 'gzip' / 'test.jpg-cut-data-from-end.gz'
         offset = 0
         testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single gzip with data cut from the middle
     def testDataCutFromMiddleGzip(self):
-        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-cut-data-from-middle.gz')
+        filename = basetestdir / 'gzip' / 'test.jpg-cut-data-from-middle.gz'
         offset = 0
         testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single gzip with data added in the middle
     def testDataAddedInMiddleGzip(self):
-        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-data-added-to-middle.gz')
+        filename = basetestdir / 'gzip' / 'test.jpg-data-added-to-middle.gz'
         offset = 0
         testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single gzip with data replaced in the middle
     def testDataReplacedInMiddleGzip(self):
-        filename = os.path.join(basetestdir, 'gzip', 'test.jpg-data-replaced-in-middle.gz')
+        filename = basetestdir / 'gzip' / 'test.jpg-data-replaced-in-middle.gz'
         offset = 0
         testres = bangunpack.unpackGzip(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
