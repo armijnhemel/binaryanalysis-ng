@@ -7736,18 +7736,18 @@ def unpackRzip(filename, offset, unpackdir, temporarydirectory):
 
         ## uncompress the bzip2 data
         bzip2res = unpackBzip2(filename, bzip2pos, unpackdir, temporarydirectory, dryrun=True)
-        if not bzip2res[0]:
+        if not bzip2res['status']:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'no valid bzip2 data'}
             return {'status': False, 'error': unpackingerror}
 
-        checkfile.seek(bzip2pos + bzip2res[1])
+        checkfile.seek(bzip2pos + bzip2res['length'])
         unpackedsize = checkfile.tell() - offset
 
         ## check if there could be another block with bzip2 data
         ## the data between the bzip2 blocks is 13 bytes (rzip source code,
         ## file: stream.c, function: fill_buffer()
-        if filesize - (bzip2res[1] + bzip2pos) < 13:
+        if filesize - (bzip2res['length'] + bzip2pos) < 13:
             break
 
         checkfile.seek(13, os.SEEK_CUR)
