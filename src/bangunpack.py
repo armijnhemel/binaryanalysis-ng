@@ -973,7 +973,7 @@ def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
 ## wrapper for both LZMA and XZ
 ## Uses standard Python code.
 def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfiletype, lzmaunpackedsize):
-    filesize = os.stat(filename).st_size
+    filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1001,16 +1001,12 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
     ## set the name of the file in case it is "anonymous data"
     ## otherwise just imitate whatever unxz and lzma do. If the file
     ## has a name recorded in the file it will be renamed later.
-    if filetype == 'xz':
-        if filename.endswith('.xz'):
-                outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-3])
-        else:
-                outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
-    elif filetype == 'lzma':
-        if filename.endswith('.lzma'):
-            outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-5])
-        else:
-            outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
+    if filetype == 'xz' and filename.suffix == '.xz':
+       outfilename = os.path.join(unpackdir, filename.stem)
+    elif filetype == 'lzma' and filename.suffix == '.lzma':
+       outfilename = os.path.join(unpackdir, filename.stem)
+    else:
+        outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
 
     ## data has been unpacked, so open a file and write the data to it.
     ## unpacked, or if all data has been unpacked
@@ -1069,11 +1065,11 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
     if os.stat(outfilename).st_size < min_lzma:
         pass
 
-    if offset == 0 and unpackedsize == os.stat(filename).st_size:
+    if offset == 0 and unpackedsize == filesize:
         ## in case the file name ends in extension rename the file
         ## to mimic the behaviour of "unxz" and similar
-        if filename.lower().endswith(extension):
-            newoutfilename = os.path.join(unpackdir, os.path.basename(filename)[:-len(extension)])
+        if filename.suffix.lower() == extension:
+            newoutfilename = os.path.join(unpackdir, filename.stem)
             shutil.move(outfilename, newoutfilename)
             outfilename = newoutfilename
         labels += [filetype, 'compressed']
