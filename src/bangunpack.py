@@ -6307,12 +6307,13 @@ def unpackAndroidSparseData(filename, offset, unpackdir, temporarydirectory):
 
     ## for each .new.dat file there has to be a corresponding
     ## .transfer.list file as well.
-    if not os.path.exists(filename[:-8] + ".transfer.list"):
+    transferfile = filename.parent / (filename.name[:-8] + ".transfer.list")
+    if not transferfile.exists():
         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'transfer list not found'}
         return {'status': False, 'error': unpackingerror}
 
     ## open the transfer list in text mode, not in binary mode
-    transferlist = open(filename[:-8] + ".transfer.list", 'r')
+    transferlist = open(transferfile, 'r')
     transferlistlines = list(map(lambda x: x.strip(), transferlist.readlines()))
     transferlist.close()
 
@@ -6407,10 +6408,10 @@ def unpackAndroidSparseData(filename, offset, unpackdir, temporarydirectory):
 
     ## cut the extension '.new.dat' from the file name unless the file
     ## name is the extension (as there would be a zero length name).
-    if len(os.path.basename(filename[:-8])) == 0:
+    if len(filename.stem) == 0:
         outputfilename = os.path.join(unpackdir, "unpacked-from-android-sparse-data")
     else:
-        outputfilename = os.path.join(unpackdir, os.path.basename(filename[:-8]))
+        outputfilename = os.path.join(unpackdir, filename.stem)
 
     ## first create the targetfile
     targetfile = open(outputfilename, 'wb')
@@ -6441,6 +6442,8 @@ def unpackAndroidSparseData(filename, offset, unpackdir, temporarydirectory):
 
     targetfile.close()
     checkfile.close()
+
+    unpackedsize = filesize
 
     labels += ['androidsparsedata']
     unpackedfilesandlabels.append((outputfilename, []))
