@@ -7451,8 +7451,8 @@ def unpackTerminfo(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
 
-    ## regular compiled names section cannot exceed 4096
-    if namessectionsize > 4096:
+    ## name field cannot exceed 128 bytes
+    if namessectionsize > 128:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid names section size'}
         return {'status': False, 'error': unpackingerror}
