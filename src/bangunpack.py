@@ -3099,8 +3099,7 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
         return {'status': False, 'error': unpackingerror}
 
     ## set the name of the file in case it is "anonymous data"
-    ## otherwise just imitate whatever bunzip2 does. If the file has a
-    ## name recorded in the file it will be renamed later.
+    ## otherwise just imitate whatever bunzip2 does.
     outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
 
     ## data has been unpacked, so open a file and write the data to it.
