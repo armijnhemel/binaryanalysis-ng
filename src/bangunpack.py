@@ -559,7 +559,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 ## gzip data if there is other non-gzip data following the gzip compressed
 ## data, so it has to be processed another way.
 def unpackGzip(filename, offset, unpackdir, temporarydirectory):
-    filesize = os.stat(filename).st_size
+    filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -721,8 +721,8 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     ## set the name of the file in case it is "anonymous data"
     ## otherwise just imitate whatever gunzip does. If the file has a
     ## name recorded in the file it will be renamed later.
-    if filename.endswith('.gz'):
-        outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-3])
+    if filename.suffix == '.gz':
+        outfilename = os.path.join(unpackdir, filename.name[:-3])
     else:
         outfilename = os.path.join(unpackdir, "unpacked-from-gz")
 
