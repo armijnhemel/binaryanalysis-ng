@@ -139,7 +139,7 @@ encodingstotranslate = [ 'utf-8','ascii','latin-1','euc_jp', 'euc_jis_2004'
 ##
 ## def unpacker(filename, offset, unpackdir)
 ##
-## * filename: full file name
+## * filename: full file name (pathlib.PosixPath object)
 ## * offset: offset inside the file where the file system, compressed
 ##   file media file possibly starts
 ## * unpackdir: the target directory where data should be written to
