@@ -1738,7 +1738,7 @@ def unpackAr(filename, offset, unpackdir, temporarydirectory):
        outputfilename = os.path.join(unpackdir, f)
        unpackedfilesandlabels.append((outputfilename, []))
        if f == 'debian-binary':
-           if filename.lower().endswith('.deb') or filename.lower().endswith('.udeb'):
+           if filename.suffix == '.deb' or filename.suffix == '.udeb':
                labels.append('debian')
                labels.append('deb')
 
@@ -5006,10 +5006,10 @@ def unpackLzip(filename, offset, unpackdir, temporarydirectory):
     ]
 
     decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=lzip_filters)
-    if not filename.endswith('.lz'):
+    if not filename.suffix == '.lz':
         outfilename = os.path.join(unpackdir, "unpacked-from-lzip")
     else:
-        outfilename = os.path.join(unpackdir, os.path.basename(filename[:-3]))
+        outfilename = os.path.join(unpackdir, filename.stem)
     outfile = open(outfilename, 'wb')
 
     ## while decompressing also compute the CRC of the uncompressed
@@ -7757,10 +7757,10 @@ def unpackRzip(filename, offset, unpackdir, temporarydirectory):
 
         checkfile.seek(-3, os.SEEK_CUR)
 
-    if not filename.endswith('.rz'):
+    if not filename.suffix == '.rz':
         outfilename = os.path.join(unpackdir, "unpacked-from-rzip")
     else:
-        outfilename = os.path.join(unpackdir, os.path.basename(filename[:-3]))
+        outfilename = os.path.join(unpackdir, filename.stem)
 
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
@@ -10036,10 +10036,8 @@ def unpackIHex(filename, offset, unpackdir, temporarydirectory):
     checkfile.seek(offset)
 
     outfilename = os.path.join(unpackdir, "unpacked-from-ihex")
-    if filename.lower().endswith('.hex'):
-        outfilename = os.path.join(unpackdir, os.path.basename(filename[:-4]))
-    elif filename.lower().endswith('.ihex'):
-        outfilename = os.path.join(unpackdir, os.path.basename(filename[:-5]))
+    if filename.suffix.lower() == '.hex' or filename.suffix.lower() == '.ihex':
+        outfilename = os.path.join(unpackdir, filename.stem)
 
     outfile = open(outfilename, 'wb')
     endofihex = False
@@ -10156,8 +10154,8 @@ def unpackSREC(filename, offset, unpackdir, temporarydirectory):
     checkfile.seek(offset)
 
     outfilename = os.path.join(unpackdir, "unpacked-from-srec")
-    if filename.lower().endswith('.srec'):
-        outfilename = os.path.join(unpackdir, os.path.basename(filename[:-5]))
+    if filename.suffix == '.srec':
+        outfilename = os.path.join(unpackdir, filename.stem)
 
     outfile = open(outfilename, 'wb')
 
@@ -11806,8 +11804,8 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.endswith('.vmdk'):
-                outputfilename = os.path.join(unpackdir, os.path.basename(filename)[:-5])
+            if filename.suffix == '.vmdk':
+                outputfilename = os.path.join(unpackdir, filename.stem)
             else:
                 outputfilename = os.path.join(unpackdir, 'unpacked-from-vmdk')
 
@@ -11871,8 +11869,8 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.endswith('.qcow2'):
-                outputfilename = os.path.join(unpackdir, os.path.basename(filename)[:-6])
+            if filename.suffix == '.qcow2':
+                outputfilename = os.path.join(unpackdir, filename.stem)
             else:
                 outputfilename = os.path.join(unpackdir, 'unpacked-from-qcow2')
 
@@ -12079,8 +12077,8 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
                                   'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.endswith('.vdi'):
-                outputfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
+            if filename.suffix == '.vdi':
+                outputfilename = os.path.join(unpackdir, filename.stem)
             else:
                 outputfilename = os.path.join(unpackdir, 'unpacked-from-vdi')
 
