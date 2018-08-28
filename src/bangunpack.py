@@ -6536,21 +6536,21 @@ def unpackAndroidBackup(filename, offset, unpackdir, temporarydirectory):
     tarfilesize = os.stat(tempbackupfile[1]).st_size
 
     ## now unpack the tar ball
-    tarresult = unpackTar(tempbackupfile[1], 0, unpackdir, temporarydirectory)
+    tarresult = unpackTar(pathlib.Path(tempbackupfile[1]), 0, unpackdir, temporarydirectory)
 
     ## cleanup
     os.unlink(tempbackupfile[1])
-    if not tarresult[0]:
+    if not tarresult['status']:
         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'corrupt tar inside Android backup file'}
         return {'status': False, 'error': unpackingerror}
-    if not tarfilesize == tarresult[1]:
+    if not tarfilesize == tarresult['length']:
         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'corrupt tar inside Android backup file'}
         return {'status': False, 'error': unpackingerror}
 
     ## add the labels and pass on the results from the tar unpacking
     labels.append('android backup')
     return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+            'filesandlabels': tarresult['filesandlabels']}
 
 ## https://en.wikipedia.org/wiki/ICO_%28file_format%29
 def unpackICO(filename, offset, unpackdir, temporarydirectory):
