@@ -721,7 +721,7 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     ## set the name of the file in case it is "anonymous data"
     ## otherwise just imitate whatever gunzip does. If the file has a
     ## name recorded in the file it will be renamed later.
-    if filename.suffix == '.gz':
+    if filename.suffix.lower() == '.gz':
         outfilename = os.path.join(unpackdir, filename.stem)
     else:
         outfilename = os.path.join(unpackdir, "unpacked-from-gz")
@@ -1001,9 +1001,9 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
     ## set the name of the file in case it is "anonymous data"
     ## otherwise just imitate whatever unxz and lzma do. If the file
     ## has a name recorded in the file it will be renamed later.
-    if filetype == 'xz' and filename.suffix == '.xz':
+    if filetype == 'xz' and filename.suffix.lower() == '.xz':
        outfilename = os.path.join(unpackdir, filename.stem)
-    elif filetype == 'lzma' and filename.suffix == '.lzma':
+    elif filetype == 'lzma' and filename.suffix.lower() == '.lzma':
        outfilename = os.path.join(unpackdir, filename.stem)
     else:
         outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
@@ -1738,7 +1738,7 @@ def unpackAr(filename, offset, unpackdir, temporarydirectory):
        outputfilename = os.path.join(unpackdir, f)
        unpackedfilesandlabels.append((outputfilename, []))
        if f == 'debian-binary':
-           if filename.suffix == '.deb' or filename.suffix == '.udeb':
+           if filename.suffix.lower() == '.deb' or filename.suffix.lower() == '.udeb':
                labels.append('debian')
                labels.append('deb')
 
@@ -3100,7 +3100,7 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
 
     ## set the name of the file in case it is "anonymous data"
     ## otherwise just imitate whatever bunzip2 does.
-    if filename.suffix == '.bz2':
+    if filename.suffix.lower() == '.bz2':
         outfilename = os.path.join(unpackdir, filename.stem)
     else:
         outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
@@ -5006,7 +5006,7 @@ def unpackLzip(filename, offset, unpackdir, temporarydirectory):
     ]
 
     decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=lzip_filters)
-    if not filename.suffix == '.lz':
+    if not filename.suffix.lower() == '.lz':
         outfilename = os.path.join(unpackdir, "unpacked-from-lzip")
     else:
         outfilename = os.path.join(unpackdir, filename.stem)
@@ -7757,7 +7757,7 @@ def unpackRzip(filename, offset, unpackdir, temporarydirectory):
 
         checkfile.seek(-3, os.SEEK_CUR)
 
-    if not filename.suffix == '.rz':
+    if not filename.suffix.lower() == '.rz':
         outfilename = os.path.join(unpackdir, "unpacked-from-rzip")
     else:
         outfilename = os.path.join(unpackdir, filename.stem)
@@ -10154,7 +10154,7 @@ def unpackSREC(filename, offset, unpackdir, temporarydirectory):
     checkfile.seek(offset)
 
     outfilename = os.path.join(unpackdir, "unpacked-from-srec")
-    if filename.suffix == '.srec':
+    if filename.suffix.lower() == '.srec':
         outfilename = os.path.join(unpackdir, filename.stem)
 
     outfile = open(outfilename, 'wb')
@@ -11258,7 +11258,7 @@ def unpackZstd(filename, offset, unpackdir, temporarydirectory):
     ## compressed, so guess, or just set a name.
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
-        if filename.suffix == '.zst':
+        if filename.suffix.lower() == '.zst':
             outfilename = os.path.join(unpackdir, filename.stem)
         else:
             outfilename = os.path.join(unpackdir, "unpacked-by-zstd")
@@ -11804,7 +11804,7 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.suffix == '.vmdk':
+            if filename.suffix.lower() == '.vmdk':
                 outputfilename = os.path.join(unpackdir, filename.stem)
             else:
                 outputfilename = os.path.join(unpackdir, 'unpacked-from-vmdk')
@@ -11869,7 +11869,7 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.suffix == '.qcow2':
+            if filename.suffix.lower() == '.qcow2':
                 outputfilename = os.path.join(unpackdir, filename.stem)
             else:
                 outputfilename = os.path.join(unpackdir, 'unpacked-from-qcow2')
@@ -12077,7 +12077,7 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
                                   'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.suffix == '.vdi':
+            if filename.suffix.lower() == '.vdi':
                 outputfilename = os.path.join(unpackdir, filename.stem)
             else:
                 outputfilename = os.path.join(unpackdir, 'unpacked-from-vdi')
