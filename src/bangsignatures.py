@@ -26,6 +26,7 @@
 signatures = {
     'webp': b'WEBP',
     'wav': b'WAVE',
+    'ani': b'ACON',
     'png': b'\x89PNG\x0d\x0a\x1a\x0a',
     'mng': b'\x8aMNG\x0d\x0a\x1a\x0a',
     'gzip': b'\x1f\x8b\x08', # RFC 1952 says x08 is the only compression method allowed

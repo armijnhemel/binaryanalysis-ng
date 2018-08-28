@@ -67,6 +67,7 @@ import tlsh
 signaturetofunction = {
     'webp': bangunpack.unpackWebP,
     'wav': bangunpack.unpackWAV,
+    'ani': bangunpack.unpackANI,
     'png': bangunpack.unpackPNG,
     'mng': bangunpack.unpackMNG,
     'gzip': bangunpack.unpackGzip,
