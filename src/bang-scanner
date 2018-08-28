@@ -129,6 +129,9 @@ signaturetofunction = {
     'odex': bangunpack.unpackOdex,
     'snappy_framed': bangunpack.unpackSnappy,
     'elf': bangunpack.unpackELF,
+    'swf': bangunpack.unpackSWF,
+    'swf_zlib': bangunpack.unpackSWF,
+    'swf_lzma': bangunpack.unpackSWF,
 }
 
 ## a lookup table to map signatures to a name for
@@ -150,6 +153,8 @@ signatureprettyprint = {
     'cpio_newascii': 'cpio',
     'cpio_newcrc': 'cpio',
     'zstd_08': 'zstd',
+    'swf_zlib': 'swf',
+    'swf_lzma': 'swf',
 }
 
 ## extensions to unpacking functions. This should only be

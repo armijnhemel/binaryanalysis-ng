@@ -87,6 +87,9 @@ signatures = {
     'odex': b'dey\n',
     'snappy_framed': b'\xff\x06\x00\x00\x73\x4e\x61\x50\x70\x59', # https://github.com/google/snappy/blob/master/framing_format.txt
     'elf': b'\x7f\x45\x4c\x46',
+    'swf': b'FWS',
+    'swf_zlib': b'CWS',
+    'swf_lzma': b'ZWS',
 }
 
 ## some signatures do not start at the beginning of the file

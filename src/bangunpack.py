@@ -65,6 +65,7 @@
 ## 36. Java class file
 ## 37. Android Dex/Odex (not OAT, just carving)
 ## 38. ELF (whole files only, basic)
+## 39. SWF
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -14242,3 +14243,353 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
     unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid ELF file'}
     return {'status': False, 'error': unpackingerror}
+
+## An unpacker for the SWF format, able to carve/label zlib &
+## LZMA compressed SWF files as well as uncompressed files.
+## Uses the description of the SWF file format as described here:
+##
+## https://wwwimages2.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf
+##
+## The format is described in chapter 2 and Appendix A.
+def unpackSWF(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    labels = []
+    unpackedfilesandlabels = []
+    unpackingerror = {}
+
+    unpackedsize = 0
+
+    ## First check if the file size is 8 bytes or more.
+    ## If not, then it is not a valid SWF file
+    if filesize - offset < 8:
+        unpackingerror = {'offset': offset, 'reason': 'fewer than 8 bytes',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+
+    ## Then open the file and read the first three bytes to see
+    ## if they respond to any of these SWF types:
+    ##
+    ## * uncompressed
+    ## * compressed with zlib
+    ## * compressed with LZMA
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(3)
+    if checkbytes == b'FWS':
+        swftype = 'uncompressed'
+    elif checkbytes == b'CWS':
+        swftype = 'zlib'
+    elif checkbytes == b'ZWS':
+        swftype = 'lzma'
+    else:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'no valid SWF header',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 3
+
+    ## Then the version number
+    ## As of August 2018 it is at 40:
+    ## https://www.adobe.com/devnet/articles/flashplayer-air-feature-list.html
+    swfversion = ord(checkfile.read(1))
+
+    if swftype == 'zlib' and swfversion < 6:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'wrong SWF version number for zlib compression',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+    if swftype == 'lzma' and swfversion < 13:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'wrong SWF version number for zlib compression',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    ## Then read four bytes and check the length (stored in
+    ## little endian format).
+    ## This length has different meanings depending on whether or not
+    ## compression has been used.
+    checkbytes = checkfile.read(4)
+    storedfilelength = int.from_bytes(checkbytes, byteorder='little')
+    if storedfilelength == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'invalid declared file length',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+
+    ## first process uncompresed files
+    if swftype == 'uncompressed':
+        ## the stored file length is the length of the entire
+        ## file, so it cannot be bigger than the size of the
+        ## actual fle.
+        if storedfilelength > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'reason': 'wrong length',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+
+        ## read one byte to find how many bits are
+        ## needed for RECT (SWF specification, chapter 1)
+        ## highest bits are used for this
+        checkbytes = checkfile.read(1)
+        nbits = ord(checkbytes) >> 3
+
+        ## go back one byte
+        checkfile.seek(-1, os.SEEK_CUR)
+
+        ## and read (5 + 4*nbits) bits, has to be byte aligned
+        bitstoread = 5 + 4*nbits
+        checkbytes = checkfile.read(math.ceil(bitstoread/8))
+
+        ## now process all of the bits
+        bitcounter = 5
+
+        ## then the frame rate
+        checkbytes = checkfile.read(2)
+        framerate = int.from_bytes(checkbytes, byteorder='little')
+
+        ## and the frame size
+        checkbytes = checkfile.read(2)
+        framesize = int.from_bytes(checkbytes, byteorder='little')
+
+        ## then the tags
+        endofswf = False
+        while True:
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                 checkfile.close()
+                 unpackingerror = {'offset': offset,
+                                   'reason': 'not enough bytes for tag',
+                                   'fatal': False}
+                 return {'status': False, 'error': unpackingerror}
+            tagcodeandlength = int.from_bytes(checkbytes, byteorder='little')
+            tagtype = tagcodeandlength >> 6
+            taglength = tagcodeandlength & 63
+            if taglength == 0x3f:
+                checkbytes = checkfile.read(4)
+                if len(checkbytes) != 4:
+                     checkfile.close()
+                     unpackingerror = {'offset': offset,
+                                       'reason': 'not enough bytes for tag length',
+                                       'fatal': False}
+                     return {'status': False, 'error': unpackingerror}
+                taglength = int.from_bytes(checkbytes, byteorder='little')
+            if checkfile.tell() + taglength > filesize:
+                 checkfile.close()
+                 unpackingerror = {'offset': offset,
+                                   'reason': 'not enough bytes for tag',
+                                   'fatal': False}
+                 return {'status': False, 'error': unpackingerror}
+
+            ## a few sanity checks for known tags
+            if tagtype == 1:
+                ## a show frame tag has no body
+                if taglength != 0:
+                     checkfile.close()
+                     unpackingerror = {'offset': offset,
+                                       'reason': 'wrong length for ShowFrame tag',
+                                       'fatal': False}
+                     return {'status': False, 'error': unpackingerror}
+
+            ## then skip tag length bytes
+            checkfile.seek(taglength, os.SEEK_CUR)
+            if tagtype == 0:
+                ## end tag
+                endofswf = True
+                break
+            if checkfile.tell() == filesize:
+                break
+
+        if not endofswf:
+            checkfile.close()
+            unpackingerror = {'offset': offset,
+                              'reason': 'no end tag found',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+
+        unpackedsize = checkfile.tell() - offset
+        if unpackedsize != storedfilelength:
+            checkfile.close()
+            unpackingerror = {'offset': offset,
+                              'reason': 'stored file length does not match length of unpacked data',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+
+        if offset == 0 and unpackedsize == filesize:
+            checkfile.close()
+            labels += ['swf', 'video']
+            return {'status': True, 'length': filesize, 'labels': labels,
+                    'filesandlabels': unpackedfilesandlabels}
+
+        ## Carve the file. It is anonymous, so just give it a name
+        outfilename = os.path.join(unpackdir, "unpacked.swf")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        checkfile.close()
+        outlabels = ['swf', 'video', 'unpacked']
+        unpackedfilesandlabels.append((outfilename, outlabels))
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    ## the data is compressed, so keep reading the compressed data until it
+    ## can no longer be uncompressed
+
+    ## 8 bytes have already been read
+    unpackedsize = 8
+
+    ## read 1 MB chunks
+    chunksize = 1024*1024
+
+    if swftype == 'zlib':
+        #payload = b''
+        decompressor = zlib.decompressobj()
+        checkbytes = bytearray(chunksize)
+        decompressedlength = 0
+        while True:
+            checkfile.readinto(checkbytes)
+            try:
+                ## uncompress the data and count the length, but
+                ## don't store the data.
+                unpackeddata = decompressor.decompress(checkbytes)
+                decompressedlength += len(unpackeddata)
+                #payload += unpackeddata
+                unpackedsize += len(checkbytes) - len(decompressor.unused_data)
+                if len(decompressor.unused_data) != 0:
+                    break
+            except Exception as e:
+                checkfile.close()
+                unpackingerror = {'offset': offset,
+                                  'reason': 'zlib decompression failure',
+                                  'fatal': False}
+                return {'status': False, 'error': unpackingerror}
+
+        if not decompressedlength + 8 == storedfilelength:
+            checkfile.close()
+            unpackingerror = {'offset': offset,
+                              'reason': 'length of decompressed data does not match declared length',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+
+        if offset == 0 and unpackedsize == filesize:
+            checkfile.close()
+            labels += ['swf', 'zlib compressed swf', 'video']
+            return {'status': True, 'length': filesize, 'labels': labels,
+                    'filesandlabels': unpackedfilesandlabels}
+
+        ## Carve the file. It is anonymous, so just give it a name
+        outfilename = os.path.join(unpackdir, "unpacked.swf")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        checkfile.close()
+        outlabels = ['swf', 'zlib compressed swf', 'video', 'unpacked']
+        unpackedfilesandlabels.append((outfilename, outlabels))
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    ## As standard LZMA decompression from Python does not
+    ## like this format and neither does lzmacat, so some tricks are needed
+    ## to be able to decompress this data.
+    ##
+    ## Also see:
+    ##
+    ## * https://bugzilla.mozilla.org/show_bug.cgi?format=default&id=754932
+    ## * http://dev.offerhq.co/ui/assets/js/plupload/src/moxie/build/swf2lzma/swf2lzma.py
+
+    checkbytes = checkfile.read(4)
+    compressedlength = int.from_bytes(checkbytes, byteorder='little')
+    if offset + 12 + compressedlength + 5 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'reason': 'wrong length',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize = 12
+    checkfile.seek(offset+12)
+
+    ## now read 1 byte for the LZMA properties
+    checkbytes = checkfile.read(1)
+    unpackedsize += 1
+
+    ## compute the LZMA properties, according to
+    ## http://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
+    ## section 1.1
+    props = ord(checkbytes)
+    lzma_pb = props // (9 * 5)
+    props -= lzma_pb * 9 * 5
+    lzma_lp = props // 9
+    lzma_lc = props - lzma_lp * 9
+
+    ## and 4 for the dictionary size
+    checkbytes = checkfile.read(4)
+    dictionarysize = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    ## Create a LZMA decompressor with custom filter, as the data
+    ## is stored without LZMA headers.
+    swf_filters = [
+         {'id': lzma.FILTER_LZMA1,
+          'dict_size': dictionarysize,
+          'lc': lzma_lc,
+          'lp': lzma_lp,
+          'pb': lzma_pb},
+    ]
+
+    try:
+        decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=swf_filters)
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset,
+                          'reason': 'unsupported LZMA properties',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+
+    ## read 1 MB chunks
+    #payload = b''
+    checkbytes = bytearray(chunksize)
+    decompressedlength = 0
+    while True:
+        checkfile.readinto(checkbytes)
+        try:
+            ## uncompress the data and count the length, but
+            ## don't store the data.
+            unpackeddata = decompressor.decompress(checkbytes)
+            decompressedlength += len(unpackeddata)
+            #payload += unpackeddata
+            unpackedsize += len(checkbytes) - len(decompressor.unused_data)
+            if len(decompressor.unused_data) != 0:
+                break
+        except Exception as e:
+            checkfile.close()
+            unpackingerror = {'offset': offset,
+                              'reason': 'LZMA decompression failure',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+
+    if not decompressedlength + 8 == storedfilelength:
+        checkfile.close()
+        unpackingerror = {'offset': offset,
+                          'reason': 'length of decompressed data does not match declared length',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels += ['swf', 'lzma compressed swf', 'video']
+        return {'status': True, 'length': filesize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    ## Carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.swf")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+    outlabels = ['swf', 'lzma compressed swf', 'video', 'unpacked']
+    unpackedfilesandlabels.append((outfilename, outlabels))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
