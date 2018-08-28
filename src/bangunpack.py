@@ -2835,13 +2835,13 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'data cannot be outside file'}
             return {'status': False, 'error': unpackingerror}
 
-        ## keep track if a data descriptor was searched and found
+        ## keep track of if a data descriptor was searched and found
         ## This is needed if the length of the compressed size is set
         ## to 0, which can happen in certain cases (section 4.4.4, bit 3)
         ddfound = False
         ddsearched = False
 
-        if not (localfilename.endswith(b'/') and compressedsize == 0) or datadescriptor:
+        if (not localfilename.endswith(b'/') and compressedsize == 0) or datadescriptor:
             datastart = checkfile.tell()
             ## in case the length is not known it is very difficult
             ## to see where the data ends so it is needed to search for
