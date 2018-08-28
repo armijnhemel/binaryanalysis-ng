@@ -11080,12 +11080,13 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
             ## gzip is default
             unpackresult = unpackGzip(filename, checkfile.tell(), unpackdir, temporarydirectory)
 
-    if not unpackresult[0]:
+    if not unpackresult['status']:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'could not decompress payload'}
         return {'status': False, 'error': unpackingerror}
 
-    (rpmunpacksize, rpmunpackfiles) = unpackresult[1:3]
+    rpmunpacksize = unpackresult['length']
+    rpmunpackfiles = unpackresult['filesandlabels']
     if len(rpmunpackfiles) != 1:
         ## this should never happen
         checkfile.close()
@@ -11106,16 +11107,16 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         if payload == b'cpio':
             ## first move the payload file to a different location
             ## to avoid any potential name clashes
-            payloaddir = tempfile.mkdtemp(dir=temporarydirectory)
+            payloaddir = pathlib.Path(tempfile.mkdtemp(dir=temporarydirectory))
             shutil.move(payloadfile, payloaddir)
-            unpackresult = unpackCpio(os.path.join(payloaddir, os.path.basename(payloadfile)), 0, unpackdir, temporarydirectory)
+            unpackresult = unpackCpio(payloaddir / os.path.basename(payloadfile), 0, unpackdir, temporarydirectory)
             ## cleanup
             shutil.rmtree(payloaddir)
-            if not unpackresult[0]:
+            if not unpackresult['status']:
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'could not unpack CPIO payload'}
                 return {'status': False, 'error': unpackingerror}
-            for i in unpackresult[2]:
+            for i in unpackresult['filesandlabels']:
                     unpackedfilesandlabels.append((os.path.normpath(i[0]), i[1]))
         elif payload == b'drpm':
             unpackedfilesandlabels.append((payloadfile, ['delta rpm data']))
