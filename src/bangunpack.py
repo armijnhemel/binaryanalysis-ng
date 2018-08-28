@@ -3100,7 +3100,10 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
 
     ## set the name of the file in case it is "anonymous data"
     ## otherwise just imitate whatever bunzip2 does.
-    outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
+    if filename.suffix == '.bz2':
+        outfilename = os.path.join(unpackdir, filename.stem)
+    else:
+        outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
 
     ## data has been unpacked, so open a file and write the data to it.
     ## unpacked, or if all data has been unpacked
