@@ -1242,8 +1242,8 @@ class TestZstd(unittest.TestCase):
     ## now all the test cases.
     ## a test for the file being a single zstd
     def testFullfileIsZstd(self):
-        filename = os.path.join(basetestdir, 'zstd', 'test.zst')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'zstd' / 'test.zst'
+        filesize = filename.stat().st_size
         offset = 0
         testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -1251,8 +1251,8 @@ class TestZstd(unittest.TestCase):
 
     ## a test for the file being a single zstd with data appended to it
     def testDataAppendedToZstd(self):
-        filename = os.path.join(basetestdir, 'zstd', 'test-add-random-data.zst')
-        filesize = os.stat(filename).st_size
+        filename = basetestdir / 'zstd' / 'test-add-random-data.zst'
+        filesize = filename.stat().st_size
         offset = 0
         testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
@@ -1260,7 +1260,7 @@ class TestZstd(unittest.TestCase):
 
     ## a test for the file being a single zstd with data in front
     def testDataPrependedToZstd(self):
-        filename = os.path.join(basetestdir, 'zstd', 'test-prepend-random-data.zst')
+        filename = basetestdir / 'zstd' / 'test-prepend-random-data.zst'
         filesize = os.stat(filename).st_size
         offset = 128
         testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
@@ -1269,28 +1269,28 @@ class TestZstd(unittest.TestCase):
 
     ## a test for the file being a single zstd with data cut from the end
     def testDataCutFromEndZstd(self):
-        filename = os.path.join(basetestdir, 'zstd', 'test-cut-data-from-end.zst')
+        filename = basetestdir / 'zstd' / 'test-cut-data-from-end.zst'
         offset = 0
         testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single zstd with data cut from the middle
     def testDataCutFromMiddleZstd(self):
-        filename = os.path.join(basetestdir, 'zstd', 'test-cut-data-from-middle.zst')
+        filename = basetestdir / 'zstd' / 'test-cut-data-from-middle.zst'
         offset = 0
         testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single zstd with data added in the middle
     def testDataAddedInMiddleZstd(self):
-        filename = os.path.join(basetestdir, 'zstd', 'test-data-added-to-middle.zst')
+        filename = basetestdir / 'zstd' / 'test-data-added-to-middle.zst'
         offset = 0
         testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single zstd with data replaced in the middle
     def testDataReplacedInMiddleZstd(self):
-        filename = os.path.join(basetestdir, 'zstd', 'test-data-replaced-in-middle.zst')
+        filename = basetestdir / 'zstd' / 'test-data-replaced-in-middle.zst'
         offset = 0
         testres = bangunpack.unpackZstd(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])

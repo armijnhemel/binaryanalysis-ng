@@ -11134,7 +11134,7 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
 ## zstd
 ## https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md
 def unpackZstd(filename, offset, unpackdir, temporarydirectory):
-    filesize = os.stat(filename).st_size
+    filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11261,8 +11261,8 @@ def unpackZstd(filename, offset, unpackdir, temporarydirectory):
     ## compressed, so guess, or just set a name.
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
-        if filename.endswith(".zst"):
-            outfilename = os.path.join(unpackdir, os.path.basename(filename)[:-4])
+        if filename.suffix == '.zst':
+            outfilename = os.path.join(unpackdir, filename.stem)
         else:
             outfilename = os.path.join(unpackdir, "unpacked-by-zstd")
         p = subprocess.Popen(['zstd', '-d', '-o', outfilename, filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
