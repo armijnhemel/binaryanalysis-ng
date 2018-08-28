@@ -13631,7 +13631,7 @@ def unpackOdex(filename, offset, unpackdir, temporarydirectory):
     dryrun = True
     verifychecksum = False
     dexres = unpackDex(filename, dexoffset, unpackdir, temporarydirectory, dryrun, verifychecksum)
-    if not dexres[0]:
+    if not dexres['status']:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid Dex data'}
