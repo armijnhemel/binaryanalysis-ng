@@ -722,7 +722,7 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     ## otherwise just imitate whatever gunzip does. If the file has a
     ## name recorded in the file it will be renamed later.
     if filename.suffix == '.gz':
-        outfilename = os.path.join(unpackdir, filename.name[:-3])
+        outfilename = os.path.join(unpackdir, filename.stem)
     else:
         outfilename = os.path.join(unpackdir, "unpacked-from-gz")
 
@@ -3155,11 +3155,11 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
             ## in case the file name ends in either bz2 or tbz2 (tar)
             ## rename the file to mimic the behaviour of "bunzip2"
             if filename.suffix.lower() == '.bz2':
-                newoutfilename = os.path.join(unpackdir, filename.name[:-4])
+                newoutfilename = os.path.join(unpackdir, filename.stem)
                 shutil.move(outfilename, newoutfilename)
                 outfilename = newoutfilename
             elif filename.suffix.lower() == '.tbz2':
-                newoutfilename = os.path.join(unpackdir, filename.name[:-5]) + ".tar"
+                newoutfilename = os.path.join(unpackdir, filename.stem) + ".tar"
                 shutil.move(outfilename, newoutfilename)
                 outfilename = newoutfilename
             labels += ['bzip2', 'compressed']
