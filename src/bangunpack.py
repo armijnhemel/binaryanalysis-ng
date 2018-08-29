@@ -5172,26 +5172,31 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
     ## JPEG is in big endian order (B.1.1.1)
 
     ## DQT, DHT, DAC, DRI, COM
-    tablesmiscmarkers = set([b'\xff\xdb', b'\xff\xc4', b'\xff\xcc', b'\xff\xdd', b'\xff\xfe'])
+    tablesmiscmarkers = set([b'\xff\xdb', b'\xff\xc4', b'\xff\xcc',
+                             b'\xff\xdd', b'\xff\xfe'])
 
     ## RST0-7
-    rstmarkers = set([b'\xff\xd0', b'\xff\xd1', b'\xff\xd2', b'\xff\xd3', b'\xff\xd4',
-                     b'\xff\xd5', b'\xff\xd6', b'\xff\xd7'])
+    rstmarkers = set([b'\xff\xd0', b'\xff\xd1', b'\xff\xd2', b'\xff\xd3',
+                     b'\xff\xd4', b'\xff\xd5', b'\xff\xd6', b'\xff\xd7'])
 
     ## JPEG extension markers -- are these actually being used by someone?
-    jpegextmarkers = set([b'\xff\xc8', b'\xff\xf0', b'\xff\xf1', b'\xff\xf2', b'\xff\xf3',
-                          b'\xff\xf4', b'\xff\xf5', b'\xff\xf6', b'\xff\xf7', b'\xff\xf8',
-                          b'\xff\xf9', b'\xff\xfa', b'\xff\xfb', b'\xff\xfc', b'\xff\xfd'])
+    jpegextmarkers = set([b'\xff\xc8', b'\xff\xf0', b'\xff\xf1', b'\xff\xf2',
+                          b'\xff\xf3', b'\xff\xf4', b'\xff\xf5', b'\xff\xf6',
+                          b'\xff\xf7', b'\xff\xf8', b'\xff\xf9', b'\xff\xfa',
+                          b'\xff\xfb', b'\xff\xfc', b'\xff\xfd'])
 
     ## APP0-n (16 values)
-    appmarkers = set([b'\xff\xe0', b'\xff\xe1', b'\xff\xe2', b'\xff\xe3', b'\xff\xe4', b'\xff\xe5',
-                     b'\xff\xe6', b'\xff\xe7', b'\xff\xe8', b'\xff\xe9', b'\xff\xea', b'\xff\xeb',
-                     b'\xff\xec', b'\xff\xed', b'\xff\xee', b'\xff\xef'])
+    appmarkers = set([b'\xff\xe0', b'\xff\xe1', b'\xff\xe2', b'\xff\xe3',
+                      b'\xff\xe4', b'\xff\xe5', b'\xff\xe6', b'\xff\xe7',
+                      b'\xff\xe8', b'\xff\xe9', b'\xff\xea', b'\xff\xeb',
+                      b'\xff\xec', b'\xff\xed', b'\xff\xee', b'\xff\xef'])
 
     ## start of frame markers
-    startofframemarkers = set([b'\xff\xc0', b'\xff\xc1', b'\xff\xc2', b'\xff\xc3', b'\xff\xc5',
-                              b'\xff\xc6', b'\xff\xc7', b'\xff\xc9', b'\xff\xca', b'\xff\xcb',
-                              b'\xff\xcd', b'\xff\xce', b'\xff\xcf'])
+    startofframemarkers = set([b'\xff\xc0', b'\xff\xc1', b'\xff\xc2',
+                               b'\xff\xc3', b'\xff\xc5', b'\xff\xc6',
+                               b'\xff\xc7', b'\xff\xc9', b'\xff\xca',
+                               b'\xff\xcb', b'\xff\xcd', b'\xff\xce',
+                               b'\xff\xcf'])
 
     ## keep track of whether or not a frame can be restarted
     restart = False
@@ -5202,7 +5207,8 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(2)
         if not len(checkbytes) == 2:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for table/misc'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 2
 
@@ -5214,13 +5220,17 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(2)
             if not len(checkbytes) == 2:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for table/misc length field'}
                 return {'status': False, 'error': unpackingerror}
             unpackedsize += 2
             misctablelength = int.from_bytes(checkbytes, byteorder='big')
             if checkfile.tell() + misctablelength - 2 > filesize:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'table outside of file'}
                 return {'status': False, 'error': unpackingerror}
 
             if marker == b'\xff\xdd':
@@ -5240,12 +5250,16 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
                 pq = pqtq >> 4
                 if not (pq == 0 or pq == 1):
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid DQT value'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid DQT value'}
                     return {'status': False, 'error': unpackingerror}
                 tq = pqtq & 15
                 if not tq < 4:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid DQT value'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid DQT value'}
                     return {'status': False, 'error': unpackingerror}
                 checkfile.seek(oldoffset)
             elif marker == b'\xff\xe0':
@@ -5270,17 +5284,22 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
     allowabbreviated = False
 
     if allowabbreviated:
-        ## There *could* be an EOI marker here and it would be a valid JPEG
-        ## according to section B.5, although not all markers would be allowed.
+        ## There *could* be an EOI marker here and it would be
+        ## a valid JPEG according to section B.5, although not
+        ## all markers would be allowed.
         if checkbytes == b'\xff\xd9':
             if len(seenmarkers) == 0:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no tables present, needed for abbreviated syntax'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no tables present, needed for abbreviated syntax'}
                 return {'status': False, 'error': unpackingerror}
             ## according to B.5 DAC and DRI are not allowed in this syntax.
             if b'\xff\xcc' in seenmarkers or b'\xff\xdd' in seenmarkers:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'DAC and/or DRI not allowed in abbreviated syntax'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'DAC and/or DRI not allowed in abbreviated syntax'}
                 return {'status': False, 'error': unpackingerror}
             if offset == 0 and unpackedsize == filesize:
                 checkfile.close()
@@ -5307,13 +5326,15 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(2)
         if not len(checkbytes) == 2:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for table/misc length field'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 2
         sectionlength = int.from_bytes(checkbytes, byteorder='big')
         if checkfile.tell() + sectionlength - 2 > filesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'table outside of file'}
             return {'status': False, 'error': unpackingerror}
 
         ishierarchical = True
@@ -5326,12 +5347,13 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(2)
         if not len(checkbytes) == 2:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for table/misc'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 2
 
-    ## now there could be multiple frames, starting with optional misc/tables
-    ## again.
+    ## now there could be multiple frames, starting with optional
+    ## misc/tables again.
     while True:
         framerestart = restart
         while True:
@@ -5344,13 +5366,17 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(2)
                 if not len(checkbytes) == 2:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'not enough data for table/misc length field'}
                     return {'status': False, 'error': unpackingerror}
                 unpackedsize += 2
                 misctablelength = int.from_bytes(checkbytes, byteorder='big')
                 if checkfile.tell() + misctablelength - 2 > filesize:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'table outside of file'}
                     return {'status': False, 'error': unpackingerror}
 
                 if isdri:
@@ -5369,7 +5395,9 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
                 ## and read the next few bytes
                 if not len(checkbytes) == 2:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'not enough data for table/misc'}
                     return {'status': False, 'error': unpackingerror}
                 unpackedsize += 2
             else:
@@ -5379,18 +5407,24 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
         if checkbytes == b'\xff\xdf':
             if not ishierarchical:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'EXP only allowed in hierarchical syntax'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'EXP only allowed in hierarchical syntax'}
                 return {'status': False, 'error': unpackingerror}
             checkbytes = checkfile.read(2)
             if not len(checkbytes) == 2:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for table/misc length field'}
                 return {'status': False, 'error': unpackingerror}
             unpackedsize += 2
             misctablelength = int.from_bytes(checkbytes, byteorder='big')
             if checkfile.tell() + misctablelength - 2 > filesize:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'table outside of file'}
                 return {'status': False, 'error': unpackingerror}
 
             ## skip over the section
@@ -5401,7 +5435,9 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(2)
             if not len(checkbytes) == 2:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for table/misc'}
                 return {'status': False, 'error': unpackingerror}
             unpackedsize += 2
 
@@ -5413,23 +5449,29 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(2)
             if not len(checkbytes) == 2:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for table/misc length field'}
                 return {'status': False, 'error': unpackingerror}
             unpackedsize += 2
             misctablelength = int.from_bytes(checkbytes, byteorder='big')
             if checkfile.tell() + misctablelength - 2 > filesize:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'table outside of file'}
                 return {'status': False, 'error': unpackingerror}
             ## skip over the section
             checkfile.seek(misctablelength-2, os.SEEK_CUR)
             unpackedsize += misctablelength-2
         else:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for start of frame'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid value for start of frame'}
             return {'status': False, 'error': unpackingerror}
 
-        ## This is followed by at least one scan header, optionally preceded by more tables/misc
+        ## This is followed by at least one scan header,
+        ## optionally preceded by more tables/misc
         while True:
             if eofseen:
                 break
@@ -5438,23 +5480,29 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(2)
                 if not len(checkbytes) == 2:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'not enough data for table/misc'}
                     return {'status': False, 'error': unpackingerror}
                 unpackedsize += 2
 
                 if checkbytes in tablesmiscmarkers or checkbytes in appmarkers:
-                    ## extract the length of the table or app marker.
-                    ## this includes the 2 bytes of the length field itself
+                    ## Extract the length of the table or app marker.
+                    ## This includes the 2 bytes of the length field itself
                     checkbytes = checkfile.read(2)
                     if not len(checkbytes) == 2:
                         checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                        unpackingerror = {'offset': offset+unpackedsize,
+                                          'fatal': False,
+                                          'reason': 'not enough data for table/misc length field'}
                         return {'status': False, 'error': unpackingerror}
                     unpackedsize += 2
                     misctablelength = int.from_bytes(checkbytes, byteorder='big')
                     if checkfile.tell() + misctablelength - 2 > filesize:
                         checkfile.close()
-                        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table outside of file'}
+                        unpackingerror = {'offset': offset+unpackedsize,
+                                          'fatal': False,
+                                          'reason': 'table outside of file'}
                         return {'status': False, 'error': unpackingerror}
 
                     ## skip over the section
@@ -5476,14 +5524,18 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(2)
                 if not len(checkbytes) == 2:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'not enough data for table/misc length field'}
                     return {'status': False, 'error': unpackingerror}
                 unpackedsize += 2
 
                 headerlength = int.from_bytes(checkbytes, byteorder='big')
                 if checkfile.tell() + headerlength - 2 > filesize:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'start of scan outside of file'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'start of scan outside of file'}
                     return {'status': False, 'error': unpackingerror}
                 ## skip over the section
                 checkfile.seek(headerlength-3, os.SEEK_CUR)
@@ -5493,7 +5545,9 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(2)
                 if not len(checkbytes) == 2:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'not enough data for table/misc'}
                     return {'status': False, 'error': unpackingerror}
                 unpackedsize += 2
 
@@ -5504,14 +5558,18 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(2)
                 if not len(checkbytes) == 2:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table/misc length field'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'not enough data for table/misc length field'}
                     return {'status': False, 'error': unpackingerror}
                 unpackedsize += 2
 
                 headerlength = int.from_bytes(checkbytes, byteorder='big')
                 if checkfile.tell() + headerlength - 2 > filesize:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'start of scan outside of file'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'start of scan outside of file'}
                     return {'status': False, 'error': unpackingerror}
 
                 ## the number of image components, can only be 1-4
@@ -5519,14 +5577,18 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
                 numberimagecomponents = ord(checkbytes)
                 if numberimagecomponents not in [1,2,3,4]:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for number of image components'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid value for number of image components'}
                     return {'status': False, 'error': unpackingerror}
                 unpackedsize += 1
 
                 ## the header length = 6+2* number of image components
                 if headerlength != 6+2*numberimagecomponents:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for number of image components or start of scan header length'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid value for number of image components or start of scan header length'}
                     return {'status': False, 'error': unpackingerror}
 
                 ## skip over the section
@@ -5535,7 +5597,9 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
             else:
                 if not isrestart:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'invalid value for start of scan'}
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid value for start of scan'}
                     return {'status': False, 'error': unpackingerror}
 
             ## now read the image data in chunks to search for
@@ -5617,7 +5681,8 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
             testimg.close()
         except:
             checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid JPEG data according to PIL'}
             return {'status': False, 'error': unpackingerror}
         checkfile.close()
 
@@ -5645,7 +5710,8 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
     except:
         outfile.close()
         os.unlink(outfilename)
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'invalid JPEG data according to PIL'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid JPEG data according to PIL'}
         return {'status': False, 'error': unpackingerror}
 
     unpackedfilesandlabels.append((outfilename, ['jpeg', 'graphics', 'unpacked']))
