@@ -5671,7 +5671,8 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for font flavour'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for font flavour'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
@@ -5679,14 +5680,16 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for font size'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for font size'}
         return {'status': False, 'error': unpackingerror}
 
     ## the font cannot be outside of the file
     fontsize = int.from_bytes(checkbytes, byteorder='big')
     if offset + fontsize > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'declared font size outside file'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'declared font size outside file'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
@@ -5694,7 +5697,8 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(2)
     if len(checkbytes) != 2:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for number of tables'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for number of tables'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
     numtables = int.from_bytes(checkbytes, byteorder='big')
@@ -5703,11 +5707,13 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(2)
     if len(checkbytes) != 2:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for reserved field'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for reserved field'}
         return {'status': False, 'error': unpackingerror}
     if int.from_bytes(checkbytes, byteorder='big') != 0:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'reserved field not 0'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'reserved field not 0'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
 
@@ -5715,11 +5721,13 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for totalSfntSize'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for totalSfntSize'}
         return {'status': False, 'error': unpackingerror}
     if int.from_bytes(checkbytes, byteorder='big')%4 != 0:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not aligned on 4 byte boundary'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not aligned on 4 byte boundary'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
@@ -5727,7 +5735,8 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(2)
     if len(checkbytes) != 2:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for major version'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for major version'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
 
@@ -5735,7 +5744,8 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(2)
     if len(checkbytes) != 2:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for minor version'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for minor version'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
 
@@ -5744,17 +5754,20 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for meta data block location'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for meta data block location'}
         return {'status': False, 'error': unpackingerror}
     metaoffset = int.from_bytes(checkbytes, byteorder='big')
     if offset + metaoffset > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'meta data block cannot be outside of file'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'meta data block cannot be outside of file'}
         return {'status': False, 'error': unpackingerror}
-    ## the private data block MUST started on a 4 byte boundary (section 7)
+    ## the private data block MUST start on a 4 byte boundary (section 7)
     if metaoffset % 4 != 0:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'meta data doesn\'t start on 4 byte boundary'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'meta data doesn\'t start on 4 byte boundary'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
@@ -5763,12 +5776,14 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for compressed meta data block'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for compressed meta data block'}
         return {'status': False, 'error': unpackingerror}
     metalength = int.from_bytes(checkbytes, byteorder='big')
     if offset + metaoffset + metalength > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'meta data block end outside file'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'meta data block end outside file'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
@@ -5776,7 +5791,8 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for original meta data length'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for original meta data length'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
@@ -5785,30 +5801,36 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for private data block location'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for private data block location'}
         return {'status': False, 'error': unpackingerror}
     privateoffset = int.from_bytes(checkbytes, byteorder='big')
     if offset + privateoffset > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'private data block cannot be outside of file'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'private data block cannot be outside of file'}
         return {'status': False, 'error': unpackingerror}
-    ## the private data block MUST started on a 4 byte boundary (section 8)
+    ## the private data block MUST start on a 4 byte boundary (section 8)
     if privateoffset % 4 != 0:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'private data block doesn\'t start on 4 byte boundary'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'private data block doesn\'t start on 4 byte boundary'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
-    ## the length of the private data block. This cannot be outside the file.
+    ## the length of the private data block.
+    ## This cannot be outside the file.
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for private data block'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for private data block'}
         return {'status': False, 'error': unpackingerror}
     privatelength = int.from_bytes(checkbytes, byteorder='big')
     if offset + privateoffset + privatelength > filesize:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'private data block cannot be outside of file'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'private data block cannot be outside of file'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
@@ -5819,7 +5841,8 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for tag table'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough bytes for tag table'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
 
@@ -5827,12 +5850,14 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for table offset'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough bytes for table offset'}
             return {'status': False, 'error': unpackingerror}
         tableoffset = int.from_bytes(checkbytes, byteorder='big')
         if offset + tableoffset > filesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'table offset cannot be outside of file'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'table offset cannot be outside of file'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
 
@@ -5840,12 +5865,14 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for compressed table length'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough bytes for compressed table length'}
             return {'status': False, 'error': unpackingerror}
         tablecompressedlength = int.from_bytes(checkbytes, byteorder='big')
         if offset + tableoffset + tablecompressedlength > filesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'compressed data cannot be outside of file'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'compressed data cannot be outside of file'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
 
@@ -5853,16 +5880,19 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for uncompressed table length'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough bytes for uncompressed table length'}
             return {'status': False, 'error': unpackingerror}
         tableuncompressedlength = int.from_bytes(checkbytes, byteorder='big')
         unpackedsize += 4
 
-        ## then the checksum of the uncompressed data. Can be ignored for now
+        ## then the checksum of the uncompressed data.
+        ## Can be ignored for now
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough bytes for uncompressed data checksum'}
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough bytes for uncompressed data checksum'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
 
@@ -5888,32 +5918,36 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
                    pass
             except:
                 checkfile.close()
-                unpackingerror = {'offset': offset+tableoffset, 'fatal': False, 'reason': 'invalid compressed data in font'}
+                unpackingerror = {'offset': offset+tableoffset,
+                                  'fatal': False,
+                                  'reason': 'invalid compressed data in font'}
                 return {'status': False, 'error': unpackingerror}
             checkfile.seek(offset+tableoffset)
 
             ## then return to the previous offset
             checkfile.seek(prevoffset)
 
-        ## store the last valid offset seen. Fonts don't need to appear in order.
-        ## in the font table.
+        ## store the last valid offset seen. Fonts don't need to
+        ## appear in order in the font table.
         lastseenoffset = max(lastseenoffset, offset + tableoffset + tablecompressedlength)
 
-    ## set the unpackedsize to the maximum of the last seen offset and the unpacked size.
-    ## This is done in case the font table is empty.
+    ## set the unpackedsize to the maximum of the last seen offset and
+    ## the unpacked size. This is done in case the font table is empty.
     unpackedsize = max(lastseenoffset, unpackedsize) - offset
 
     ## the declared fontsize cannot be smaller than what was unpacked
     if unpackedsize > fontsize:
         checkfile.close()
-        unpackingerror = {'offset': offset+tableoffset, 'fatal': False, 'reason': 'size of unpacked data larger than declared font size'}
+        unpackingerror = {'offset': offset+tableoffset, 'fatal': False,
+                          'reason': 'size of unpacked data larger than declared font size'}
         return {'status': False, 'error': unpackingerror}
 
     ## it could be that there is padding. There should be a maximum
     ## of three bytes for padding.
     if fontsize - unpackedsize > 3:
         checkfile.close()
-        unpackingerror = {'offset': offset+tableoffset, 'fatal': False, 'reason': 'declared font size too large for unpacked data'}
+        unpackingerror = {'offset': offset+tableoffset, 'fatal': False,
+                          'reason': 'declared font size too large for unpacked data'}
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = fontsize
@@ -5961,26 +5995,33 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
 
     if numtables == 0:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'no tables defined'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False, 'reason': 'no tables defined'}
         return {'status': False, 'error': unpackingerror}
 
     ## followed by the searchRange
     checkbytes = checkfile.read(2)
     searchrange = int.from_bytes(checkbytes, byteorder='big')
 
-    ## the search range is defined as (maximum power of 2 <= numTables)*16
+    ## the search range is defined
+    ## as (maximum power of 2 <= numTables)*16
     if pow(2, int(math.log2(numtables)))*16 != searchrange:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'number of tables does not correspond to search range'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'number of tables does not correspond to search range'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
 
-    ## then the entryselector, which is defined as log2(maximum power of 2 <= numTables)
+    ## then the entryselector, which is defined
+    ## as log2(maximum power of 2 <= numTables)
     checkbytes = checkfile.read(2)
     entryselector = int.from_bytes(checkbytes, byteorder='big')
     if int(math.log2(numtables)) != entryselector:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'number of tables does not correspond to entrySelector'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'number of tables does not correspond to entrySelector'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
 
@@ -5989,7 +6030,9 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
     rangeshift = int.from_bytes(checkbytes, byteorder='big')
     if rangeshift != numtables * 16 - searchrange:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'rangeshift does not correspond to rest of header'}
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'rangeshift does not correspond to rest of header'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
     tablesseen = set()
@@ -5998,15 +6041,15 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
 
     tablenametooffset = {}
 
-    ## There are fonts that are not 4 byte aligned. Computing checksums for
-    ## these is more difficult, as it is unclear whether or not padding should
-    ## be added or not.
+    ## There are fonts that are not 4 byte aligned. Computing checksums
+    ## for these is more difficult, as it is unclear whether or not
+    ## padding should be added or not.
     ## https://lists.w3.org/Archives/Public/public-webfonts-wg/2010Jun/0063.html
     ##
     ## For the checksums in individual tables it is imperative to add
-    ## a few "virtual NUL bytes" to make sure that the checksum can be computed
-    ## correctly. However, this doesn't seem to be working for the
-    ## checkSumAdjustment value.
+    ## a few "virtual NUL bytes" to make sure that the checksum can be
+    ## computed correctly. However, this doesn't seem to be working for
+    ## the checkSumAdjustment value.
 
     addbytes = 0
     fontname = ''
@@ -6017,13 +6060,17 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
         tablename = checkfile.read(4)
         if len(tablename) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table name'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table name'}
             return {'status': False, 'error': unpackingerror}
 
         ## each table can only appear once
         if tablename in tablesseen:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'duplicate table name'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'duplicate table name'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
         tablesseen.add(tablename)
@@ -6032,7 +6079,9 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table checksum'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table checksum'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
         tablechecksum = int.from_bytes(checkbytes, byteorder='big')
@@ -6041,7 +6090,9 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table offset'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table offset'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
         tableoffset = int.from_bytes(checkbytes, byteorder='big')
@@ -6053,14 +6104,18 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table length'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table length'}
             return {'status': False, 'error': unpackingerror}
         tablelength = int.from_bytes(checkbytes, byteorder='big')
         unpackedsize += 4
 
         if offset + tableoffset + tablelength > filesize:
             checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table'}
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table'}
             return {'status': False, 'error': unpackingerror}
 
         ## then compute the checksum for the table
@@ -6085,7 +6140,9 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
                 bytesadded = True
             else:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data for table'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for table'}
                 return {'status': False, 'error': unpackingerror}
 
         ## parse the name table to see if there is a font name
@@ -6094,23 +6151,29 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
             localoffset = 0
             if len(checkbytes) < 6:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data in name table'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data in name table'}
                 return {'status': False, 'error': unpackingerror}
 
             ## first the format selector ("set to 0"). Skip.
-            ## then the name count to indicate how many name records (12 bytes
-            ## each) are present in the name table
+            ## then the name count to indicate how many name records
+            ## (12 bytes each) are present in the name table
             namecount = int.from_bytes(checkbytes[2:4], byteorder='big')
             if len(checkbytes) < 6 + namecount * 12:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data in name table'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data in name table'}
                 return {'status': False, 'error': unpackingerror}
 
             ## then the offset of the name table strings
             nametablestringoffset = int.from_bytes(checkbytes[4:6], byteorder='big')
             if len(checkbytes) < 6 + namecount * 12 + nametablestringoffset:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not enough data in name table'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data in name table'}
                 return {'status': False, 'error': unpackingerror}
 
             localoffset = 6
@@ -6148,18 +6211,21 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
         if tablename != b'head':
             if tablechecksum != computedsum:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'checksum for table incorrect'}
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'checksum for table incorrect'}
                 return {'status': False, 'error': unpackingerror}
         else:
-            ## the head table checksum is different and uses a checksum adjustment,
-            ## which is documented here:
+            ## the head table checksum is different and uses a
+            ## checksum adjustment, which is documented here:
             ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html
             ## First seek to the start of the table and then skip 8 bytes
             checkfile.seek(offset + tableoffset + 8)
             checkbytes = checkfile.read(4)
             checksumadjustment = int.from_bytes(checkbytes, byteorder='big')
 
-        ## then store the maxoffset, including padding, but minus any "virtual" bytes
+        ## then store the maxoffset, including padding, but minus
+        ## any "virtual" bytes
         if bytesadded:
             maxoffset = max(maxoffset, offset + tableoffset + tablelength + padding - addbytes)
         else:
@@ -6171,15 +6237,16 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
     ## first check if all the required tables are there.
     if not tablesseen.intersection(requiredtables) == requiredtables:
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False, 'reason': 'not all required tables present'}
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not all required tables present'}
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = maxoffset - offset
 
-    ## now compute the checksum for the whole font. It is important that checkSumAdjustment
-    ## is set to 0 during this computation.
-    ## It should be noted that for some fonts (where padding was added to the last table)
-    ## this computation might be wrong.
+    ## now compute the checksum for the whole font. It is important
+    ## that checkSumAdjustment is set to 0 during this computation.
+    ## It should be noted that for some fonts (where padding was added
+    ## to the last table) this computation might be wrong.
     fontchecksum = 0
     checkfile.seek(offset)
     for i in range(0, unpackedsize, 4):
@@ -6199,7 +6266,8 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
         ## value for checksumadjustment
         if checksumadjustment != 0x1B1B0AFBA - fontchecksum:
             checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'checksum adjustment does not match computed value'}
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'checksum adjustment does not match computed value'}
             return {'status': False, 'error': unpackingerror}
 
     if offset == 0 and unpackedsize == filesize:
@@ -6240,7 +6308,8 @@ def unpackTrueTypeFont(filename, offset, unpackdir, temporarydirectory):
 
     ## font header is at least 12 bytes
     if filesize - offset < 12:
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid font file'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid font file'}
         return {'status': False, 'error': unpackingerror}
 
     ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html (table 2)
@@ -6259,7 +6328,8 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
 
     ## font header is at least 12 bytes
     if filesize - offset < 12:
-        unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid font file'}
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid font file'}
         return {'status': False, 'error': unpackingerror}
 
     ## https://docs.microsoft.com/en-us/typography/opentype/spec/otff (section 'Font Tables')
