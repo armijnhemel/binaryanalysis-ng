@@ -94,6 +94,7 @@ signaturetofunction = {
     'jpeg': bangunpack.unpackJPEG,
     'woff': bangunpack.unpackWOFF,
     'opentype': bangunpack.unpackOpenTypeFont,
+    'ttc': bangunpack.unpackOpenTypeFontCollection,
     'truetype': bangunpack.unpackTrueTypeFont,
     'android_backup': bangunpack.unpackAndroidBackup,
     'ico': bangunpack.unpackICO,

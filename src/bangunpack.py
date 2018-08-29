@@ -6041,7 +6041,7 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
 ##
 ## These fonts have a similar structure, but differ in the magic
 ## header and the required tables.
-def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, fontextension, fonttype):
+def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, fontextension, fonttype, collectionoffset=None):
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
@@ -6177,18 +6177,29 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
         tablelength = int.from_bytes(checkbytes, byteorder='big')
         unpackedsize += 4
 
-        if offset + tableoffset + tablelength > filesize:
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize,
-                              'fatal': False,
-                              'reason': 'not enough data for table'}
-            return {'status': False, 'error': unpackingerror}
+        if collectionoffset != None:
+            if collectionoffset + tableoffset + tablelength > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for table'}
+                return {'status': False, 'error': unpackingerror}
+        else:
+            if offset + tableoffset + tablelength > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for table'}
+                return {'status': False, 'error': unpackingerror}
 
         ## then compute the checksum for the table
         ## First store the old offset, so it is possible
         ## to return.
         oldoffset = checkfile.tell()
-        checkfile.seek(offset + tableoffset)
+        if collectionoffset != None:
+            checkfile.seek(collectionoffset + tableoffset)
+        else:
+            checkfile.seek(offset + tableoffset)
         padding = 0
 
         ## tables are 4 byte aligned (long)
@@ -6286,16 +6297,25 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
             ## checksum adjustment, which is documented here:
             ## https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html
             ## First seek to the start of the table and then skip 8 bytes
-            checkfile.seek(offset + tableoffset + 8)
+            if collectionoffset != None:
+                checkfile.seek(collectionoffset + tableoffset + 8)
+            else:
+                checkfile.seek(offset + tableoffset + 8)
             checkbytes = checkfile.read(4)
             checksumadjustment = int.from_bytes(checkbytes, byteorder='big')
 
         ## then store the maxoffset, including padding, but minus
         ## any "virtual" bytes
         if bytesadded:
-            maxoffset = max(maxoffset, offset + tableoffset + tablelength + padding - addbytes)
+            if collectionoffset != None:
+                maxoffset = max(maxoffset, collectionoffset + tableoffset + tablelength + padding - addbytes)
+            else:
+                maxoffset = max(maxoffset, offset + tableoffset + tablelength + padding - addbytes)
         else:
-            maxoffset = max(maxoffset, offset + tableoffset + tablelength + padding)
+            if collectionoffset != None:
+                maxoffset = max(maxoffset, collectionoffset + tableoffset + tablelength + padding)
+            else:
+                maxoffset = max(maxoffset, offset + tableoffset + tablelength + padding)
 
         ## and return to the old offset for the next entry
         checkfile.seek(oldoffset)
@@ -6308,6 +6328,12 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = maxoffset - offset
+
+    ## in case the file is a font collection it ends here.
+    if collectionoffset != None:
+        checkfile.close()
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
 
     ## now compute the checksum for the whole font. It is important
     ## that checkSumAdjustment is set to 0 during this computation.
@@ -6407,6 +6433,96 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
                           b'maxp', b'name', b'OS/2', b'post'])
 
     return unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 'otf', 'OpenType')
+
+## https://docs.microsoft.com/en-us/typography/opentype/spec/otff
+def unpackOpenTypeFontCollection(filename, offset, unpackdir, temporarydirectory):
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    ## https://docs.microsoft.com/en-us/typography/opentype/spec/otff
+    ## (section 'Font Tables')
+    ## the following tables are required in a font:
+    requiredtables = set([b'cmap', b'head', b'hhea', b'hmtx',
+                          b'maxp', b'name', b'OS/2', b'post'])
+
+    ## font collection header is at least 12 bytes
+    if filesize - offset < 12:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid font file'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize = 4
+
+    ## major version, only support version 1 right now
+    checkbytes = checkfile.read(2)
+    majorversion = int.from_bytes(checkbytes, byteorder='big')
+    if majorversion != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'unsupported major version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    ## minor version, has to be 0
+    checkbytes = checkfile.read(2)
+    minorversion = int.from_bytes(checkbytes, byteorder='big')
+    if minorversion != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'unsupported minor version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    ## number of fonts
+    checkbytes = checkfile.read(4)
+    numfonts = int.from_bytes(checkbytes, byteorder='big')
+    if numfonts == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'no fonts declared'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    maxoffset = 0
+
+    ## offsets for each font
+    for i in range(0, numfonts):
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for font offsets'}
+            return {'status': False, 'error': unpackingerror}
+        fontoffset = int.from_bytes(checkbytes, byteorder='big')
+        if offset + fontoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'font offset table outside of file'}
+            return {'status': False, 'error': unpackingerror}
+        fontres = unpackFont(filename, offset + fontoffset, unpackdir, temporarydirectory, requiredtables, 'otf', 'OpenType', collectionoffset=offset)
+        if not fontres['status']:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'font verification failed'}
+            return {'status': False, 'error': unpackingerror}
+        maxoffset = fontres['length'] + fontoffset
+
+    checkfile.close()
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('fontcollection')
+        labels.append('resource')
+        return {'status': True, 'length': filesize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    unpackingerror = {'offset': offset, 'fatal': False,
+                      'reason': 'not a valid font collection file or unsupported file'}
+    return {'status': False, 'error': unpackingerror}
 
 ## method to see if a file is a Vim swap file
 ## These always start with a certain header, including a page size.

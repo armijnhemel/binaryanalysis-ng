@@ -53,6 +53,7 @@ signatures = {
     'jpeg': b'\xff\xd8',
     'woff': b'wOFF',
     'opentype': b'OTTO',
+    'ttc': b'ttcf',
     'truetype': b'\x00\x01\x00\x00',
     'android_backup': b'ANDROID BACKUP\n',
     'ico': b'\x00\x00\x01\x00', # https://en.wikipedia.org/wiki/ICO_%28file_format%29
