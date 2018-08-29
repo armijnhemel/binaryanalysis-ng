@@ -235,7 +235,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
     while True:
         ## grab a new file from the scanning queue
-        (checkfile, labels, extra) = scanfilequeue.get()
+        (checkfile, labels, extradata) = scanfilequeue.get()
 
         ## store the results of the file
         ## At minimum store:
@@ -1012,6 +1012,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     resultout['tlsh'] = tlshhash
 
             resultout['labels'] = labels
+            if extradata != {}:
+                resultout['extra'] = extradata
             picklefilename = resultsdirectory / ("%s.pickle" % fileresult['sha256'])
             if not picklefilename.exists():
                 pickleout = picklefilename.open('wb')
