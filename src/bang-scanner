@@ -196,7 +196,7 @@ textonlyfunctions = {
 maxsignaturelength = max(map(lambda x: len(x), bangsignatures.signatures.values()))
 maxsignaturesoffset = max(bangsignatures.signaturesoffset.values()) + maxsignaturelength
 
-## not all files should be scanned
+## not all files with TLSH should be looked at
 tlshlabelsignore = set(['compressed', 'graphics', 'audio',
                         'file system', 'srec', 'ihex'])
 
@@ -309,9 +309,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         ## compute various checksums of the file
         hashresults = {}
+        hashes = {}
 
         for hashtocompute in ['sha256', 'md5', 'sha1']:
-            hashresults[hashtocompute] = hashlib.new(hashtocompute)
+            hashes[hashtocompute] = hashlib.new(hashtocompute)
+
+        ## add TLSH hash as well, even though it might
+        ## not be used in the end.
+        if filesize >= 256:
+            tlshhash = tlsh.Tlsh()
 
         scanfile = open(checkfile, 'rb')
         scanfile.seek(0)
@@ -319,13 +325,21 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         hashingdata = scanfile.read(readsize)
 
         while hashingdata != b'':
-            for h in hashresults:
-                hashresults[h].update(hashingdata)
+            for h in hashes:
+                hashes[h].update(hashingdata)
+            if filesize >= 256:
+                tlshhash.update(hashingdata)
             hashingdata = scanfile.read(readsize)
+        if filesize >= 256:
+            tlshhash.final()
+            hashes['tlsh'] = tlshhash
         scanfile.close()
 
-        for f in hashresults:
-            fileresult[f] = hashresults[f].hexdigest()
+        for f in hashes:
+            try:
+                hashresults[f] = hashes[f].hexdigest()
+            except:
+                pass
 
         fileresult['unpackedfiles'] = []
 
@@ -985,38 +999,26 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         duplicate = False
 
         processlock.acquire()
-        if fileresult['sha256'] in checksumdict:
+        if hashresults['sha256'] in checksumdict:
             duplicate = True
         else:
-            checksumdict[fileresult['sha256']] = checkfile
+            checksumdict[hashresults['sha256']] = checkfile
         processlock.release()
 
         if not duplicate:
-            ## Compute any TLSH hashes, but not for every file type
-            ## as it often does not make sense to compute TLSH.
-            if set(labels).intersection(tlshlabelsignore) == set():
-                if filesize >= 256:
-                    scanfile = open(checkfile, 'rb')
-                    scanfile.seek(0)
-                    hashdata = scanfile.read()
-                    scanfile.close()
-                    tlshhash = tlsh.hash(hashdata)
-                    fileresult['tlsh'] = tlshhash
-                    resultout['tlsh'] = tlshhash
-                    hashresult['tlsh'] = tlshhash
-
             ## write a pickle with output data
             ## The pickle contains:
             ## * all available hashes
             ## * any extra data that might have been passed around
             resultout = {}
-            for i in ['sha256', 'md5', 'sha1']:
-                resultout[i] = fileresult[i]
+            for i in hashresults:
+                resultout[i] = hashresults[i]
+                fileresult[i] = hashresults[i]
 
             resultout['labels'] = labels
             if extradata != {}:
                 resultout['extra'] = extradata
-            picklefilename = resultsdirectory / ("%s.pickle" % fileresult['sha256'])
+            picklefilename = resultsdirectory / ("%s.pickle" % hashresults['sha256'])
             if not picklefilename.exists():
                 pickleout = picklefilename.open('wb')
                 pickle.dump(resultout, pickleout)
