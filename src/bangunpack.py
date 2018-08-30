@@ -6434,6 +6434,9 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
 
     return unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 'otf', 'OpenType')
 
+## Multiple fonts can be stored in font collections. The offsets
+## recorded in the fonts are relative to the start of the collection
+## not to the font itself.
 ## https://docs.microsoft.com/en-us/typography/opentype/spec/otff
 def unpackOpenTypeFontCollection(filename, offset, unpackdir, temporarydirectory):
     filesize = filename.stat().st_size
