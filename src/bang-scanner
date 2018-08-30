@@ -173,7 +173,8 @@ extensiontofunction = {
     '.xml': bangunpack.unpackXML,
 }
 
-
+## a lookup table to map extensions to a name
+## for pretty printing.
 extensionprettyprint = {
     '.swp': 'vimswapfile',
     '.new.dat': 'androidsparsedata',
@@ -307,10 +308,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             continue
 
         ## compute various checksums of the file
-        checksumresults = {}
+        hashresults = {}
 
         for hashtocompute in ['sha256', 'md5', 'sha1']:
-            checksumresults[hashtocompute] = hashlib.new(hashtocompute)
+            hashresults[hashtocompute] = hashlib.new(hashtocompute)
 
         scanfile = open(checkfile, 'rb')
         scanfile.seek(0)
@@ -318,13 +319,13 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         hashingdata = scanfile.read(readsize)
 
         while hashingdata != b'':
-            for h in checksumresults:
-                checksumresults[h].update(hashingdata)
+            for h in hashresults:
+                hashresults[h].update(hashingdata)
             hashingdata = scanfile.read(readsize)
         scanfile.close()
 
-        for f in checksumresults:
-            fileresult[f] = checksumresults[f].hexdigest()
+        for f in hashresults:
+            fileresult[f] = hashresults[f].hexdigest()
 
         fileresult['unpackedfiles'] = []
 
@@ -991,15 +992,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         processlock.release()
 
         if not duplicate:
-            ## write a pickle with output data
-            ## The pickle contains:
-            ## * all available hashes
-            ## * any extra data that might have been passed around
-            resultout = {}
-            for i in ['sha256', 'md5', 'sha1']:
-                resultout[i] = fileresult[i]
-
-            ## now compute any TLSH hashes, but not for every file type
+            ## Compute any TLSH hashes, but not for every file type
             ## as it often does not make sense to compute TLSH.
             if set(labels).intersection(tlshlabelsignore) == set():
                 if filesize >= 256:
@@ -1010,6 +1003,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     tlshhash = tlsh.hash(hashdata)
                     fileresult['tlsh'] = tlshhash
                     resultout['tlsh'] = tlshhash
+                    hashresult['tlsh'] = tlshhash
+
+            ## write a pickle with output data
+            ## The pickle contains:
+            ## * all available hashes
+            ## * any extra data that might have been passed around
+            resultout = {}
+            for i in ['sha256', 'md5', 'sha1']:
+                resultout[i] = fileresult[i]
 
             resultout['labels'] = labels
             if extradata != {}:
