@@ -119,7 +119,7 @@ def main(argv):
     dbconnection = psycopg2.connect(database=postgresql_db, user=postgresql_user, password=postgresql_password, port=postgresql_port, host=postgresql_host)
     dbcursor = dbconnection.cursor()
 
-    decode = False
+    decode = True
 
     ## NSRL mixes different encodings in the CSV files, so gruesome hacks
     ## are needed to work around that, namely:
