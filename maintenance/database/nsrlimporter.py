@@ -242,6 +242,7 @@ def main(argv):
     for i in csvreader:
         (oscode, osname, osversion, manufacturercode) = i
         oscode = int(oscode)
+        osname = osname.strip()
         manufacturercode = int(manufacturercode)
         bulkinserts.append((oscode, osname, osversion, manufacturercode))
         if counter % 10000 == 0:
