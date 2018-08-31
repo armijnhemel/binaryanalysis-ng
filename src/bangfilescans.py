@@ -52,7 +52,7 @@ def knownfileNSRL(filename, hashresults, dbconn, dbcursor):
     manufacturercache = {}
 
     ## get more results
-    dbcursor.execute("SELECT n.productname, n.productversion, n.applicationtype FROM nsrl_product n, nsrl_entry m WHERE n.productcode = m.productcode AND m.sha1=%s;", (hashresults['sha1'],))
+    dbcursor.execute("SELECT n.productname, n.productversion, n.applicationtype, n.manufacturercode FROM nsrl_product n, nsrl_entry m WHERE n.productcode = m.productcode AND m.sha1=%s;", (hashresults['sha1'],))
     productres = dbcursor.fetchall()
     dbconn.commit()
     for p in productres:
