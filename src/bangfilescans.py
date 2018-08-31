@@ -43,40 +43,39 @@ def knownfileNSRL(filename, hashresults, dbconn, dbcursor):
     ## the SHA1 of the file. At the moment just one *possible* filename
     ## is recorded in the database.
     dbcursor.execute("SELECT filename FROM nsrl_hash WHERE sha1=%s", (hashresults['sha1'],))
-    res = dbcursor.fetchall()
+    filenameres = dbcursor.fetchall()
     dbconn.commit()
 
-    if len(res) == 0:
+    if len(filenameres) == 0:
         return results
 
     manufacturercache = {}
 
     ## get more results
-    for i in res:
-        dbcursor.execute("SELECT n.productname, n.productversion, n.applicationtype FROM nsrl_product n, nsrl_entry m WHERE n.productcode = m.productcode AND m.sha1=%s;", (hashresults['sha1'],))
-        productres = dbcursor.fetchall()
-        dbconn.commit()
-        for p in productres:
-            ## first create a result object
-            dbres = {}
-            (productname, productversion, applicationtype, manufacturercode) = p
-            if manufacturercode in manufacturercache:
-                manufacturer = manufacturercache[manufacturercode]
-            else:
-                dbcursor.execute("SELECT manufacturername FROM nsrl_manufacturer WHERE manufacturercode=%s", (manufacturercode,))
-                manufacturerres = dbcursor.fetchone()
-                if manufacturerres == None:
-                     ## this shouldn't happen
-                     dbconn.commit()
-                     return results
-                manufacturer = manufacturerres[0]
-                manufacturercache[manufacturercode] = manufacturer
-                dbconn.commit()
-            dbres['productname'] = productname
-            dbres['productversion'] = productversion
-            dbres['applicationtype'] = applicationtype
-            dbres['manufacturer'] = manufacturer
-            ## add the result to the final list of results
-            results.append(dbres)
+    dbcursor.execute("SELECT n.productname, n.productversion, n.applicationtype FROM nsrl_product n, nsrl_entry m WHERE n.productcode = m.productcode AND m.sha1=%s;", (hashresults['sha1'],))
+    productres = dbcursor.fetchall()
+    dbconn.commit()
+    for p in productres:
+        ## first create a result object
+        dbres = {}
+        (productname, productversion, applicationtype, manufacturercode) = p
+        if manufacturercode in manufacturercache:
+            manufacturer = manufacturercache[manufacturercode]
+        else:
+            dbcursor.execute("SELECT manufacturername FROM nsrl_manufacturer WHERE manufacturercode=%s", (manufacturercode,))
+            manufacturerres = dbcursor.fetchone()
+            if manufacturerres == None:
+                 ## this shouldn't happen
+                 dbconn.commit()
+                 return results
+            manufacturer = manufacturerres[0]
+            manufacturercache[manufacturercode] = manufacturer
+            dbconn.commit()
+        dbres['productname'] = productname
+        dbres['productversion'] = productversion
+        dbres['applicationtype'] = applicationtype
+        dbres['manufacturer'] = manufacturer
+        ## add the result to the final list of results
+        results.append(dbres)
 
     return results
