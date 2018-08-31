@@ -170,8 +170,19 @@ def main(argv):
                 offset += lastoffset
             decodedfile.close()
 
+    if decode:
+        nsrlmfg = 'NSRLMfg.txt-translated'
+        nsrlos = 'NSRLOS.txt-translated'
+        nsrlprod = 'NSRLProd.txt-translated'
+        nsrlfile = 'NSRLFile.txt-translated'
+    else:
+        nsrlmfg = 'NSRLMfg.txt'
+        nsrlos = 'NSRLOS.txt'
+        nsrlprod = 'NSRLProd.txt'
+        nsrlfile = 'NSRLFile.txt'
+
     ## then process all the translated files, start with NSRLMfg.txt
-    decodedfilename = os.path.join(args.nsrldir, 'NSRLMfg.txt-translated')
+    decodedfilename = os.path.join(args.nsrldir, nsrlmfg)
     nsrfile = open(decodedfilename, 'r')
 
     ## skip the first line
@@ -212,7 +223,7 @@ def main(argv):
     nsrfile.close()
 
     ## then NSRLOS.txt
-    decodedfilename = os.path.join(args.nsrldir, 'NSRLOS.txt-translated')
+    decodedfilename = os.path.join(args.nsrldir, nsrlos)
     nsrfile = open(decodedfilename, 'r')
 
     ## skip the first line
@@ -253,7 +264,7 @@ def main(argv):
     nsrfile.close()
 
     ## then NSRLProd.txt
-    decodedfilename = os.path.join(args.nsrldir, 'NSRLProd.txt-translated')
+    decodedfilename = os.path.join(args.nsrldir, nsrlprod)
     nsrfile = open(decodedfilename, 'r')
 
     ## skip the first line
@@ -294,7 +305,7 @@ def main(argv):
     nsrfile.close()
 
     ## finally NSRLFile.txt
-    decodedfilename = os.path.join(args.nsrldir, 'NSRLFile.txt-translated')
+    decodedfilename = os.path.join(args.nsrldir, nsrlfile)
     nsrfile = open(decodedfilename, 'r')
 
     ## skip the first line
