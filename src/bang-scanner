@@ -43,6 +43,9 @@ import pickle
 import json
 import copy
 import subprocess
+import inspect
+
+## import module for database
 import psycopg2
 
 ## import modules needed for multiprocessing
@@ -58,6 +61,7 @@ import getpass
 ## import the local file with unpacking methods
 import bangunpack
 import bangsignatures
+import bangfilescans
 
 ## For proximity matching use the TLSH module. This is not a standard
 ## module.
@@ -230,7 +234,7 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio',
 ## running.
 def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 maxsearchbytes, unpackdirectory, resultsdirectory,
-                temporarydirectory, dbconn, dbcursor):
+                temporarydirectory, dbconn, dbcursor, bangfunctions):
     lenunpackdirectory = len(str(unpackdirectory)) + 1
     synthesizedminimum = 10
 
@@ -1006,6 +1010,13 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         processlock.release()
 
         if not duplicate:
+            ## Run scans for each individual file. Parameters include:
+            ## * filename (pathlib.Path object)
+            ## * hashes (dict 'hashresults')
+
+            for b in bangfunctions:
+                res = b[1](checkfile, hashresults, dbconn, dbcursor)
+
             ## write a pickle with output data
             ## The pickle contains:
             ## * all available hashes
@@ -1303,6 +1314,9 @@ def main(argv):
     ## create a shared dictionary
     checksumdict = processmanager.dict()
 
+    ## grab all the functions from the "bangfilescans" file
+    bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
+
     ## create processes for unpacking archives
     for i in range(0, bangthreads):
         if not usedatabase:
@@ -1313,7 +1327,9 @@ def main(argv):
                                               checksumdict,
                                               readsize, unpackdirectory,
                                               resultsdirectory,
-                                              temporarydirectory, None, None))
+                                              temporarydirectory,
+                                              None, None,
+                                              bangfunctions))
         else:
             p = multiprocessing.Process(target=processfile,
                                         args=(scanfilequeue,
@@ -1324,7 +1340,8 @@ def main(argv):
                                               resultsdirectory,
                                               temporarydirectory,
                                               bangdbconns[i][0],
-                                              bangdbconns[i][1]))
+                                              bangdbconns[i][1],
+                                              bangfunctions))
         processes.append(p)
 
     ## then start all the processes
