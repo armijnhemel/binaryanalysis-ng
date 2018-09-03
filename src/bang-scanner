@@ -175,6 +175,7 @@ extensiontofunction = {
     '.hex': bangunpack.unpackIHex,
     '.srec': bangunpack.unpackSREC,
     '.xml': bangunpack.unpackXML,
+    'resources.arsc': bangunpack.unpackAndroidResource,
 }
 
 ## a lookup table to map extensions to a name
@@ -187,6 +188,7 @@ extensionprettyprint = {
     '.hex': 'ihex',
     '.srec': 'srec',
     '.xml': 'xml',
+    'resources.arsc': 'androidresource',
 }
 
 ## certain unpacking functions if the whole file is text

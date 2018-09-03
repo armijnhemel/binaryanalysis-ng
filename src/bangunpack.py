@@ -66,6 +66,7 @@
 ## 37. Android Dex/Odex (not OAT, just carving)
 ## 38. ELF (whole files only, basic)
 ## 39. SWF
+## 40. Android resource files (table type only, possibly not all types)
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -15184,5 +15185,393 @@ def unpackSWF(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
     outlabels = ['swf', 'lzma compressed swf', 'video', 'unpacked']
     unpackedfilesandlabels.append((outfilename, outlabels))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+## Android resources files (such as "resources.arsc") as found in
+## many APK files. Description:
+##
+## https://android.googlesource.com/platform/frameworks/base.git/+/master/libs/androidfw/include/androidfw/ResourceTypes.h
+##
+## As the pointer is to the master Git repository line references
+## might chance over time.
+##
+## Around line 182 the format description starts.
+def unpackAndroidResource(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    ## first check the kind of file. There are four types of
+    ## top level files.
+    ## * NULL type
+    ## * string type
+    ## * table type (resources.asrc typically is a table)
+    ## * XML (Android's "binary XML")
+    ## In ResourceTypes.h this part is the resChunk_header
+    ## Only the table type is currently supported.
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
+    resourcetype = int.from_bytes(checkbytes, byteorder='little')
+    if resourcetype > 3:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'unsupported resource type'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    ## then the chunk header size
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
+    headersize = int.from_bytes(checkbytes, byteorder='little')
+    if offset + headersize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'header size larger than file size'}
+        return {'status': False, 'error': unpackingerror}
+
+    ## first header is minimally 8 bytes
+    if headersize < 8:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong header size'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    ## then the total chunk size 
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
+    totalchunksize = int.from_bytes(checkbytes, byteorder='little')
+    if offset + totalchunksize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'chunk size larger than file size'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    ## For unknown reasons many of the files do not seem
+    ## to use the header size defined in the header.
+    #if checkfile.tell() - offset < headersize:
+    #    checkfile.seek(offset + headersize)
+    #unpackedsize = headersize
+
+    stringtable = {}
+
+    ## then each individual chunk, depending on the type
+    if resourcetype == 2:
+        ## It is a table type, so
+        ## ResourceType.h around line 826:
+        ## first a package count followed by a stringpool and
+        ## table package chunks (around line 842)
+        ## first the amount of ResTable_package structures
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table header'}
+            return {'status': False, 'error': unpackingerror}
+        restablecount = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        ## first store the old offset, as it is important to determine
+        ## the start of the string table and style offsets.
+        oldoffset = checkfile.tell()
+
+        ## then the ResStringPool_header (around line 410)
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data'}
+            return {'status': False, 'error': unpackingerror}
+        ## check if it is indeed a string pool resource (around line 214)
+        stringpoolresourcetype = int.from_bytes(checkbytes, byteorder='little')
+        if stringpoolresourcetype != 1:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'unsupported string pool resource type'}
+            return {'status': False, 'error': unpackingerror}
+        ## then the string pool header size
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data'}
+            return {'status': False, 'error': unpackingerror}
+        stringpoolheadersize = int.from_bytes(checkbytes, byteorder='little')
+        if offset + stringpoolheadersize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'header size larger than file size'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 2
+
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table header'}
+            return {'status': False, 'error': unpackingerror}
+        stringpoolheaderchunksize = int.from_bytes(checkbytes, byteorder='little')
+        if offset + stringpoolheaderchunksize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'chunk size larger than file size'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        ## followed by the string count
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table header'}
+            return {'status': False, 'error': unpackingerror}
+        stringcount = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        ## followed by the style count
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table header'}
+            return {'status': False, 'error': unpackingerror}
+        stylecount = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        ## then string flags
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table header'}
+            return {'status': False, 'error': unpackingerror}
+        stringflags = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        ## check if everything is UTF-8 or UTF-16 (around line 451)
+        isutf16 = True
+        if(stringflags & 1<<8) == 256:
+            isutf16 = False
+
+        ## then the offset for the string data
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table header'}
+            return {'status': False, 'error': unpackingerror}
+        stringoffset = int.from_bytes(checkbytes, byteorder='little')
+        if oldoffset + stringoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for string table'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        ## and the offset for the style data
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for table header'}
+            return {'status': False, 'error': unpackingerror}
+        styleoffset = int.from_bytes(checkbytes, byteorder='little')
+        if oldoffset + styleoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for style data'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        for s in range(1,stringcount+1):
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for string table'}
+                return {'status': False, 'error': unpackingerror}
+            stringindex = int.from_bytes(checkbytes, byteorder='little')
+
+            ## store the current offset
+            curoffset = checkfile.tell()
+            if oldoffset + stringoffset + stringindex > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'string data cannotbe outside of file'}
+                return {'status': False, 'error': unpackingerror}
+            checkfile.seek(oldoffset + stringoffset + stringindex)
+
+            ## now extract the string and store it
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': oldoffset+stringoffset+stringindex,
+                                  'fatal': False,
+                                  'reason': 'not enough data for string data'}
+                return {'status': False, 'error': unpackingerror}
+
+            ## the length of the string is put in front of the actual
+            ## string. Decoding of the length depends on whether or not
+            ## the string table is in UTF-8 or in UTF-16 (see comments
+            ## in ResourceTypes.cpp, as the header file is missing some
+            ## information).
+            if isutf16:
+                strlen = int.from_bytes(checkbytes, byteorder='little')
+                if strlen & 0x8000 == 0x8000:
+                    checkbytes = checkfile.read(2)
+                    strlen = ((strlen & 0x7fff) << 16) + struct.unpack('<H', checkbytes)[0]
+            else:
+                strlen = int.from_bytes(checkbytes, byteorder='little')
+                if strlen & 0x80 == 0x80:
+                    ## the correct length is actually in the
+                    ## next two bytes for reasons unknown
+                    checkbytes = checkfile.read(2)
+                    strlen = ((checkbytes[0] & 0x7f) << 8) + checkbytes[1]
+                else:
+                    ## the correct length is actually in the
+                    ## second byte for reasons unknown
+                    strlen = checkbytes[1]
+
+            strentry = checkfile.read(strlen)
+            if len(strentry) != strlen:
+                checkfile.close()
+                unpackingerror = {'offset': oldoffset+stringoffset+stringindex,
+                                  'fatal': False,
+                                  'reason': 'not enough data for string data'}
+                return {'status': False, 'error': unpackingerror}
+            if not isutf16:
+                try:
+                    ## try to decode the string to UTF-8
+                    stringtable[s] = strentry.decode()
+                except:
+                    stringtable[s] = strentry
+            else:
+                stringtable[s] = strentry
+            checkfile.seek(curoffset)
+
+        checkfile.seek(oldoffset + styleoffset)
+
+        ## skip over the entire chunk
+        checkfile.seek(oldoffset + stringpoolheaderchunksize)
+        unpackedsize = checkfile.tell() - offset
+
+        for i in range(0, restablecount):
+            ## first store the old offset, as it is important to
+            ## determine the start of the chunk.
+            oldoffset = checkfile.tell()
+
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data'}
+                return {'status': False, 'error': unpackingerror}
+            packageresourcetype = int.from_bytes(checkbytes, byteorder='little')
+
+            ## package chunk types (around line 230)
+            if packageresourcetype > 515 and packageresource < 512:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'unsupported resource type'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += 2
+
+            ## then the chunk header size
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data'}
+                return {'status': False, 'error': unpackingerror}
+            packageheadersize = int.from_bytes(checkbytes, byteorder='little')
+            if offset + packageheadersize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'header size larger than file size'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += 2
+
+            ## then the package chunk size 
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data'}
+                return {'status': False, 'error': unpackingerror}
+
+            ## sanity check: package chunk cannot be outside of the file
+            packagesize = int.from_bytes(checkbytes, byteorder='little')
+            if oldoffset + packagesize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': oldoffset, 'fatal': False,
+                                  'reason': 'package chunk cannot be outside file'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += 4
+
+            ## skip over the entire chunk
+            checkfile.seek(oldoffset + packagesize)
+            unpackedsize = checkfile.tell() - offset
+    else:
+        checkfile.close()
+        unpackingerror = {'offset': oldoffset, 'fatal': False,
+                          'reason': 'cannot process chunk with resource type %d' % resourcetype}
+        return {'status': False, 'error': unpackingerror}
+
+    ## see if the whole file is the android resource file
+    if offset + totalchunksize == filesize:
+        checkfile.close()
+        labels.append('binary')
+        labels.append('resource')
+        labels.append('android resource')
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    ## else carve the file
+    outfilename = os.path.join(unpackdir, "unpacked-from-resources.arsc")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    unpackedfilesandlabels.append((outfilename, ['binary', 'resource', 'android resource', 'unpacked']))
+    checkfile.close()
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
