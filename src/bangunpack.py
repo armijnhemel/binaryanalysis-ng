@@ -1663,6 +1663,8 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
                     unpackedfilesandlabels.append((os.path.join(unpackdir, unpacktarinfo.name), []))
                 elif unpacktarinfo.issym():
                     unpackedfilesandlabels.append((os.path.join(unpackdir, unpacktarinfo.name), ['symbolic link']))
+                elif unpacktarinfo.isdir():
+                    unpackedfilesandlabels.append((os.path.join(unpackdir, unpacktarinfo.name), ['directory']))
                 tounpack = ''
         except Exception as e:
             unpackedsize = oldunpackedsize
