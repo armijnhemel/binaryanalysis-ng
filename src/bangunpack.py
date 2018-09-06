@@ -2967,6 +2967,9 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                     break
 
                 ## have a small overlap the size of a possible header
+                ## unless it is the last 4 bytes of the file
+                if checkfile.tell() == filesize:
+                    break
                 checkfile.seek(-4, os.SEEK_CUR)
         else:
             if checkfile.tell() + compressedsize > filesize:
