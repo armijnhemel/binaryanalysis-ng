@@ -932,7 +932,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         except:
                             namecounter += 1
 
-                    logging.debug("TRYING %s %s at offset: 0" % (checkfile, s[1]))
+                    logging.debug("TRYING %s %s at offset: 0" % (checkfile, f))
                     try:
                         unpackresult = textonlyfunctions[f](checkfile, 0, dataunpackdirectory, temporarydirectory)
                     except Exception as e:
