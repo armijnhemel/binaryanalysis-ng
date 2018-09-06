@@ -1882,6 +1882,15 @@ class TestTar(unittest.TestCase):
         testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
+    ## a test for the file being a single tar with just directories
+    def testFullfileIsTarDir(self):
+        filename = basetestdir / 'tar' / 'test-dir.tar'
+        filesize = filename.stat().st_size
+        offset = 0
+        testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 10240)
+
 ## a test class for testing jffs2 files
 class TestJFFS2(unittest.TestCase):
     ## create a temporary directory and copy
