@@ -1615,7 +1615,13 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
     ## to the documentation it should be opened at offset 0, but this
     ## works too.
     checkfile.seek(offset)
-    unpacktar = tarfile.open(fileobj=checkfile, mode='r')
+    try:
+        unpacktar = tarfile.open(fileobj=checkfile, mode='r')
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'Not a valid tar file'}
+        return {'status': False, 'error': unpackingerror}
 
     ## record if something was unpacked and if something went wrong
     tarunpacked = False

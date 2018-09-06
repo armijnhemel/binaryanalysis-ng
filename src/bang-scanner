@@ -175,6 +175,7 @@ extensiontofunction = {
     '.hex': bangunpack.unpackIHex,
     '.srec': bangunpack.unpackSREC,
     '.xml': bangunpack.unpackXML,
+    '.tar': bangunpack.unpackTar,
     'resources.arsc': bangunpack.unpackAndroidResource,
 }
 
@@ -188,6 +189,7 @@ extensionprettyprint = {
     '.hex': 'ihex',
     '.srec': 'srec',
     '.xml': 'xml',
+    '.tar': 'tar',
     'resources.arsc': 'androidresource',
 }
 
