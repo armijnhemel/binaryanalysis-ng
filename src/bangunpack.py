@@ -6007,7 +6007,7 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     ## the declared fontsize cannot be smaller than what was unpacked
     if unpackedsize > fontsize:
         checkfile.close()
-        unpackingerror = {'offset': offset+tableoffset, 'fatal': False,
+        unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'size of unpacked data larger than declared font size'}
         return {'status': False, 'error': unpackingerror}
 
@@ -6015,7 +6015,7 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
     ## of three bytes for padding.
     if fontsize - unpackedsize > 3:
         checkfile.close()
-        unpackingerror = {'offset': offset+tableoffset, 'fatal': False,
+        unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'declared font size too large for unpacked data'}
         return {'status': False, 'error': unpackingerror}
 
