@@ -10574,19 +10574,38 @@ def unpackIHex(filename, offset, unpackdir, temporarydirectory):
                                   'reason': 'not enough bytes in line'}
                 return {'status': False, 'error': unpackingerror}
 
-            bytescount = int.from_bytes(bytes.fromhex(line[1:3]), byteorder='big')
+            try:
+                bytescount = int.from_bytes(bytes.fromhex(line[1:3]), byteorder='big')
+            except:
+                checkfile.close()
+                outfile.close()
+                os.unlink(outfilename)
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not valid hex data'}
+                return {'status': False, 'error': unpackingerror}
+
             if 3 + bytescount + 2 > len(line.strip()):
                 checkfile.close()
                 outfile.close()
                 os.unlink(outfilename)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
-                                  'reason': 'not enough bytes in line'}
+                                  'reason': 'cannot convert to hex'}
                 return {'status': False, 'error': unpackingerror}
 
             ## the base address is from 3:7 and can be skipped
             ## the record type is next from 7:9
-            recordtype = int.from_bytes(bytes.fromhex(line[7:9]), byteorder='big')
+            try:
+                recordtype = int.from_bytes(bytes.fromhex(line[7:9]), byteorder='big')
+            except:
+                checkfile.close()
+                outfile.close()
+                os.unlink(outfilename)
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'cannot convert to hex'}
+                return {'status': False, 'error': unpackingerror}
             if recordtype > 5:
                 checkfile.close()
                 outfile.close()
