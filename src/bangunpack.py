@@ -3979,7 +3979,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
             ## check if there is a local color table (section 21)
             ## and if so, skip it
             if havelocalcolortable:
-                localcolortablesize = pow(2, (ord(checkbytes[-1]) & 7) + 1) * 3
+                localcolortablesize = pow(2, (checkbytes[-1] & 7) + 1) * 3
                 if offset + unpackedsize + localcolortablesize > filesize:
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize,
