@@ -2851,8 +2851,10 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
         ddsearched = False
 
         if (not localfilename.endswith(b'/') and compressedsize == 0) or datadescriptor:
+            ## first store where the data possibly starts
             datastart = checkfile.tell()
-            ## in case the length is not known it is very difficult
+
+            ## In case the length is not known it is very difficult
             ## to see where the data ends so it is needed to search for
             ## a signature. This can either be:
             ##
@@ -2862,12 +2864,20 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
             ##
             ## Whichever is found first will be processed.
             while True:
+                ## store the current position of the pointer in the file
                 curpos = checkfile.tell()
                 tmppos = -1
+
+                ## read a number of bytes to be searched for markers
                 checkbytes = checkfile.read(50000)
                 newcurpos = checkfile.tell()
                 if checkbytes == b'':
                     break
+
+                ## first search for the common marker for
+                ## data descriptors, but only if the right
+                ## flag has been set in the general purpose
+                ## bit flag.
                 if datadescriptor:
                     ddpos = checkbytes.find(b'PK\x07\x08')
                     if ddpos != -1:
@@ -2878,6 +2888,9 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                         tmpcompressedsize = int.from_bytes(checkfile.read(4), byteorder='little')
                         if curpos + ddpos - datastart == tmpcompressedsize:
                             tmppos = ddpos
+
+                ## search for a local file header which indicates
+                ## the next entry in the ZIP file
                 localheaderpos = checkbytes.find(b'PK\x03\x04')
                 if localheaderpos != -1 and (localheaderpos < tmppos or tmppos == -1):
                     ## In case the file that is stored is an empty
@@ -2910,6 +2923,8 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                         else:
                             tmppos = min(localheaderpos, tmppos)
                     checkfile.seek(newcurpos)
+
+                ## then search for the start of the central directory
                 centraldirpos = checkbytes.find(b'PK\x01\x02')
                 if centraldirpos != -1:
                     ## In case the file that is stored is an empty
