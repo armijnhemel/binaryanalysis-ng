@@ -3009,13 +3009,14 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 ddcrc = checkfile.read(4)
             else:
                 ddcrc = possiblesignature
-            ddcompressedsize = checkfile.read(4)
-            if len(ddcompressedsize) != 4:
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not enough data for compressed data field'}
                 return {'status': False, 'error': unpackingerror}
+            ddcompressedsize = int.from_bytes(checkbytes, byteorder='little')
             unpackedsize += 4
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
