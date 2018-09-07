@@ -2879,15 +2879,20 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 ## flag has been set in the general purpose
                 ## bit flag.
                 if datadescriptor:
-                    ddpos = checkbytes.find(b'PK\x07\x08')
-                    if ddpos != -1:
-                        ddsearched = True
-                        ddfound = True
-                        ## sanity check
-                        checkfile.seek(curpos + ddpos + 8)
-                        tmpcompressedsize = int.from_bytes(checkfile.read(4), byteorder='little')
-                        if curpos + ddpos - datastart == tmpcompressedsize:
-                            tmppos = ddpos
+                    ddpos = -1
+                    while True:
+                        ddpos = checkbytes.find(b'PK\x07\x08', ddpos+1)
+                        if ddpos != -1:
+                            ddsearched = True
+                            ddfound = True
+                            ## sanity check
+                            checkfile.seek(curpos + ddpos + 8)
+                            tmpcompressedsize = int.from_bytes(checkfile.read(4), byteorder='little')
+                            if curpos + ddpos - datastart == tmpcompressedsize:
+                                tmppos = ddpos
+                                break
+                        else:
+                            break
 
                 ## search for a local file header which indicates
                 ## the next entry in the ZIP file
