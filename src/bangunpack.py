@@ -67,6 +67,7 @@
 ## 38. ELF (whole files only, basic)
 ## 39. SWF
 ## 40. Android resource files (table type only, possibly not all types)
+## 41. Java/Android MANIFEST.MF files
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
