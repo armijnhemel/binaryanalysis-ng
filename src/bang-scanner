@@ -979,6 +979,12 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, f, 0, unpackresult['length']))
 
+                    ## store the labels for files that could be
+                    ## unpacked/verified completely.
+                    if unpackresult['length'] == filesize:
+                        labels += copy.deepcopy(unpackresult['labels'])
+                        labels = list(set(labels))
+
                     ## add a lot of information about the unpacked files
                     report = {}
                     report['offset'] = 0
