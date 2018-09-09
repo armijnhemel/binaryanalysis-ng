@@ -121,6 +121,7 @@ import subprocess
 import json
 import xml.dom.minidom
 import hashlib
+import base64
 import re
 import pathlib
 
@@ -15666,6 +15667,89 @@ def unpackCSS(filename, offset, unpackdir, temporarydirectory):
 
     labels.append('text')
     labels.append('css')
+
+    return {'status': True, 'length': filesize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+## parse Java/Android manifest files, assume text only for now
+## https://docs.oracle.com/javase/7/docs/technotes/guides/jar/jar.html#Manifest_Specification
+def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    validattributes = set(['Name',
+                           'Manifest-Version',
+                           'Created-By',
+                           'Signature-Version',
+                           'Class-Path',
+                           'Main-Class',
+                           'Extension-List',
+                           'Extension-Name',
+                           'Implementation-Title',
+                           'Implementation-Version',
+                           'Implementation-Vendor',
+                           'Implementation-Vendor-Id ',
+                           'Implementation-URL',
+                           'Specification-Title',
+                           'Specification-Version',
+                           'Specification-Vendor',
+                           'Sealed',
+                           'Content-Type',
+                           'Java-Bean',
+                           'Magic',])
+
+    extensionattributes = ['-Extension-Name',
+                           '-Specification-Version',
+                           '-Implementation-Version',
+                           '-Implementation-Vendor-Id',
+                           '-Implementation-URL',]
+
+    ## open the file in text only mode
+    checkfile = open(filename, 'r')
+    checkfile.seek(0)
+    for i in checkfile:
+        ## skip empty lines
+        if i.strip() == '':
+            continue
+        ## regular lines need to have : in them
+        if not ':' in i:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid manifest line'}
+            return {'status': False, 'error': unpackingerror}
+        manifestattribute = i.strip().split(':', 1)[0].strip()
+        if manifestattribute in validattributes:
+            continue
+        ## check the digest values
+        if manifestattribute == 'SHA1-Digest':
+            digest = i.strip().split(':', 1)[1].strip()
+            try:
+                base64.b64decode(digest)
+            except Exception as e:
+                print(e)
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid digest'}
+                return {'status': False, 'error': unpackingerror}
+            continue
+        ## check a few exceptions
+        validextensionattribute = False
+        for a in extensionattributes:
+            if manifestattribute.endswith(a):
+                validextensionattribute = True
+                break
+        if not validextensionattribute:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid manifest line'}
+            return {'status': False, 'error': unpackingerror}
+    checkfile.close()
+
+    labels.append('text')
+    labels.append('javamanifest')
 
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
