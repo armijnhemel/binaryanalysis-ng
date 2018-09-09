@@ -15708,44 +15708,55 @@ def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
                            '-Implementation-URL',]
 
     ## open the file in text only mode
-    checkfile = open(filename, 'r')
+    try:
+        checkfile = open(filename, 'r')
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a text file'}
+        return {'status': False, 'error': unpackingerror}
+
     checkfile.seek(0)
-    for i in checkfile:
-        ## skip empty lines
-        if i.strip() == '':
-            continue
-        ## regular lines need to have : in them
-        if not ':' in i:
-            checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'invalid manifest line'}
-            return {'status': False, 'error': unpackingerror}
-        manifestattribute = i.strip().split(':', 1)[0].strip()
-        if manifestattribute in validattributes:
-            continue
-        ## check the digest values
-        if manifestattribute == 'SHA1-Digest':
-            digest = i.strip().split(':', 1)[1].strip()
-            try:
-                base64.b64decode(digest)
-            except Exception as e:
-                print(e)
+
+    try:
+        for i in checkfile:
+            ## skip empty lines
+            if i.strip() == '':
+                continue
+            ## regular lines need to have : in them
+            if not ':' in i:
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
-                                  'reason': 'invalid digest'}
+                                  'reason': 'invalid manifest line'}
                 return {'status': False, 'error': unpackingerror}
-            continue
-        ## check a few exceptions
-        validextensionattribute = False
-        for a in extensionattributes:
-            if manifestattribute.endswith(a):
-                validextensionattribute = True
-                break
-        if not validextensionattribute:
-            checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'invalid manifest line'}
-            return {'status': False, 'error': unpackingerror}
+            manifestattribute = i.strip().split(':', 1)[0].strip()
+            if manifestattribute in validattributes:
+                continue
+            ## check the digest values
+            if manifestattribute == 'SHA1-Digest':
+                digest = i.strip().split(':', 1)[1].strip()
+                try:
+                    base64.b64decode(digest)
+                except Exception as e:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid digest'}
+                    return {'status': False, 'error': unpackingerror}
+                continue
+            ## check a few exceptions
+            validextensionattribute = False
+            for a in extensionattributes:
+                if manifestattribute.endswith(a):
+                    validextensionattribute = True
+                    break
+            if not validextensionattribute:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid manifest line'}
+                return {'status': False, 'error': unpackingerror}
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a text file'}
+        return {'status': False, 'error': unpackingerror}
     checkfile.close()
 
     labels.append('text')
