@@ -129,6 +129,7 @@ import PIL.Image
 import lz4
 import lz4.frame
 import snappy
+import tinycss2
 
 encodingstotranslate = [ 'utf-8','ascii','latin-1','euc_jp', 'euc_jis_2004'
                        , 'jisx0213', 'iso2022_jp', 'iso2022_jp_1'
@@ -15631,4 +15632,34 @@ def unpackAndroidResource(filename, offset, unpackdir, temporarydirectory):
     unpackedfilesandlabels.append((outfilename, ['binary', 'resource', 'android resource', 'unpacked']))
     checkfile.close()
     return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+## For now it is assumed that only files that are completely text
+## files can be CSS files
+def unpackCSS(filename, offset, unpackdir, temporarydirectory):
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    ## open the file in text only mode
+    checkfile = open(filename, 'r')
+    checkfile.seek(0)
+
+    ## then read the contents of the file
+    cssbytes = checkfile.read()
+    checkfile.close()
+
+    try:
+        tinycss2.parse_stylesheet(cssbytes)
+    except Exception as e:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'could not parse CSS'}
+        return {'status': False, 'error': unpackingerror}
+
+    labels.append('text')
+    labels.append('css')
+
+    return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
