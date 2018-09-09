@@ -15652,11 +15652,17 @@ def unpackCSS(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
 
     try:
-        tinycss2.parse_stylesheet(cssbytes)
+        cssres = tinycss2.parse_stylesheet(cssbytes)
     except Exception as e:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'could not parse CSS'}
         return {'status': False, 'error': unpackingerror}
+
+    for c in cssres:
+        if type(c) == tinycss2.ast.ParseError:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'CSS parse error'}
+            return {'status': False, 'error': unpackingerror}
 
     labels.append('text')
     labels.append('css')
