@@ -1000,6 +1000,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, {}))
 
                     fileresult['unpackedfiles'].append(report)
+                    break
 
         ## run individual scans for files and store them in a separate
         ## result file, but only do this once for every file, so check
