@@ -2825,6 +2825,12 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                                           'fatal': False,
                                           'reason': 'wrong minimal needed version for ZIP64'}
                         return {'status': False, 'error': unpackingerror}
+                    if extrafieldheaderlength != 28:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize,
+                                          'fatal': False,
+                                          'reason': 'wrong extra field header length for ZIP64'}
+                        return {'status': False, 'error': unpackingerror}
                     zip64uncompressedsize = int.from_bytes(extrafields[extrafieldcounter:extrafieldcounter+8], byteorder='little')
                     zip64compressedsize = int.from_bytes(extrafields[extrafieldcounter+8:extrafieldcounter+16], byteorder='little')
                     if compressedsize == 0xffffffff:
