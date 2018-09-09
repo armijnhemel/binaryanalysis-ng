@@ -178,6 +178,7 @@ extensiontofunction = {
     '.tar': bangunpack.unpackTar,
     'resources.arsc': bangunpack.unpackAndroidResource,
     'manifest.mf': bangunpack.unpackJavaManifest,
+    '.sf': bangunpack.unpackJavaManifest,
 }
 
 ## a lookup table to map extensions to a name
@@ -193,6 +194,7 @@ extensionprettyprint = {
     '.tar': 'tar',
     'resources.arsc': 'androidresource',
     'manifest.mf': 'javamanifest',
+    '.sf': 'javamanifest',
 }
 
 ## certain unpacking functions if the whole file is text

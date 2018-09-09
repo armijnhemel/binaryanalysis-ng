@@ -15706,7 +15706,8 @@ def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
                            '-Specification-Version',
                            '-Implementation-Version',
                            '-Implementation-Vendor-Id',
-                           '-Implementation-URL',]
+                           '-Implementation-URL',
+                           '-Digest-Manifest',]
 
     ## open the file in text only mode
     try:
