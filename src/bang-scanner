@@ -249,13 +249,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
     while True:
         ## grab a new file from the scanning queue
-        (checkfile, labels, extradata) = scanfilequeue.get()
+        (checkfile, labels, parent, extradata) = scanfilequeue.get()
 
         ## store the results of the file
         ## At minimum store:
         ## * file name (relative to the top level unpack directory))
         ## * labels
         fileresult = {'fullfilename': str(checkfile)}
+        if not 'root' in labels:
+            fileresult['parent'] = str(parent)[lenunpackdirectory:]
         fileresult['filename'] = str(checkfile)[lenunpackdirectory:]
 
         ## Check if the file is a directory
@@ -481,7 +483,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 for un in unpackresult['filesandlabels']:
                     (unpackedfile, unpackedlabel) = un
                     ## add the data, plus possibly any label
-                    scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, {}))
+                    scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, checkfile, {}))
 
                 ## whole file has already been unpacked, so no need for
                 ## further scanning.
@@ -844,7 +846,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
 
                         ## add the data, plus possibly any label
-                        scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, {}))
+                        scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, checkfile, {}))
 
                     fileresult['unpackedfiles'].append(report)
 
@@ -912,7 +914,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         unpackedlabel = ['synthesized']
 
                         ## add the data, plus labels, to the queue
-                        scanfilequeue.put((pathlib.Path(outfilename), unpackedlabel, {}))
+                        scanfilequeue.put((pathlib.Path(outfilename), unpackedlabel, checkfile, {}))
                     startoffset = u[1]
                 scanfile.close()
 
@@ -1008,7 +1010,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
 
                         ## add the data, plus possibly any label
-                        scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, {}))
+                        scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, checkfile, {}))
 
                     fileresult['unpackedfiles'].append(report)
                     break
@@ -1322,7 +1324,7 @@ def main(argv):
     ## Create a list of labels to pass around. The first element is
     ## tagged as 'root', as it is the root of the unpacking tree.
     labels = ['root']
-    scanfilequeue.put((unpackdirectory / os.path.basename(args.checkfile), labels, {}))
+    scanfilequeue.put((unpackdirectory / os.path.basename(args.checkfile), labels, None, {}))
 
     ## create a lock to control access to any shared data structures
     processlock = multiprocessing.Lock()
