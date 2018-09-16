@@ -313,15 +313,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         filesize = os.stat(checkfile).st_size
 
-        ## Don't scan an empty file
-        if filesize == 0:
-            labels.append('empty')
-            fileresult['labels'] = labels
-            fileresult['filesize'] = 0
-            resultqueue.put(fileresult)
-            scanfilequeue.task_done()
-            continue
-
         ## compute various checksums of the file
         hashresults = {}
         hashes = {}
@@ -355,6 +346,18 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 hashresults[f] = hashes[f].hexdigest()
             except:
                 pass
+
+        for i in hashresults:
+            fileresult[i] = hashresults[i]
+
+        ## Don't scan an empty file
+        if filesize == 0:
+            labels.append('empty')
+            fileresult['labels'] = labels
+            fileresult['filesize'] = 0
+            resultqueue.put(fileresult)
+            scanfilequeue.task_done()
+            continue
 
         fileresult['unpackedfiles'] = []
 
@@ -1042,7 +1045,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             resultout = {}
             for i in hashresults:
                 resultout[i] = hashresults[i]
-                fileresult[i] = hashresults[i]
 
             resultout['labels'] = labels
             if extradata != {}:
