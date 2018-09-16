@@ -13856,7 +13856,14 @@ def unpackDex(filename, offset, unpackdir, temporarydirectory, dryrun=False, ver
             ## several characters have been replaced as well (surrogate)
             ## TODO
 
-            stringid = stringid.decode()
+            try:
+                stringid = stringid.decode()
+            except Exception as e:
+                if not b'\xed' in stringid:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'invalid MUTF-8'}
+                    return {'status': False, 'error': unpackingerror}
             stringids[i] = stringid
             break
 
