@@ -1758,13 +1758,13 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
     ## These padding bytes are not read by Python's tarfile module and
     ## need to be explicitly checked and flagged as part of the file
     if unpackedsize % 512 == 0:
-         while offset + unpackedsize < filesize:
-             checkbytes = checkfile.read(512)
-             if len(checkbytes) != 512:
-                 break
-             if checkbytes != b'\x00' * 512:
-                 break
-             unpackedsize += 512
+        while offset + unpackedsize < filesize:
+            checkbytes = checkfile.read(512)
+            if len(checkbytes) != 512:
+                break
+            if checkbytes != b'\x00' * 512:
+                break
+            unpackedsize += 512
     if offset == 0 and unpackedsize == filesize:
         labels.append('tar')
         labels.append('archive')
