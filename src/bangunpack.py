@@ -1130,7 +1130,46 @@ def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfilety
 ## XZ has some extra data (footer) that can be used for
 ## verifying the integrity of the file.
 def unpackXZ(filename, offset, unpackdir, temporarydirectory):
-    return unpackLZMAWrapper(filename, offset, unpackdir, '.xz', 'xz', 'XZ', -1)
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    allowbroken = True
+
+    if not allowbroken:
+        ## header and footer combined are 24 bytes
+        if filesize - offset < 24:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough bytes'}
+            return {'status': False, 'error': unpackingerror}
+
+    xzres = unpackLZMAWrapper(filename, offset, unpackdir, '.xz', 'xz', 'XZ', -1)
+    if not allowbroken:
+        ## now check the header and footer, as the
+        ## stream flags have to be identical.
+        if xzres['status']:
+            ## open the file again
+            checkfile = open(filename, 'rb')
+
+            ## seek to where the streamflags start and read them
+            checkfile.seek(offset+6)
+            streamflagsheader = checkfile.read(2)
+
+            ## then seek to the end of the XZ file and
+            ## read the stream flags. This only works if
+            ## there are no padding bytes.
+            checkfile.seek(offset+xzres['length'] - 4)
+            streamflagsfooter = checkfile.read(2)
+            footermagic  = checkfile.read(2)
+            checkfile.close()
+            if streamflagsheader != streamflagsfooter:
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid stream flags in footer'}
+                return {'status': False, 'error': unpackingerror}
+            if footermagic != b'YZ':
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid footer magic'}
+                return {'status': False, 'error': unpackingerror}
+    return xzres
 
 ## timezone files
 ## Format is documented in the Linux man pages:
