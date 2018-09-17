@@ -15822,3 +15822,110 @@ def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
 
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+## Kernel configuration files that are embedded in Linux kernel
+## images: text only
+def unpackKernelConfig(filename, offset, unpackdir, temporarydirectory):
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    ## store some of the metadata for later use
+    kernelconfig = {}
+    kernelres = {}
+
+    ## first header line, was changed in Linux kernel commit
+    ## e54e692ba613c2170c66ce36a3791c009680af08
+    headerre = re.compile('# Automatically generated make config: don\'t edit$')
+    headerre_alt = re.compile('# Automatically generated file; DO NOT EDIT.$')
+
+    headerre2 = re.compile('# Linux kernel version: ([\d\.]+)$')
+    headerre2_alt = re.compile('# Linux/[\w\d\-]+ ([\d\.]+) Kernel Configuration$')
+    headerre3 = re.compile('# (\w{3} \w{3} [\d ]+ \d{2}:\d{2}:\d{2} \d{4})$')
+    headerre4 = re.compile('# Compiler: ([\w\d\.\-() ]+)$')
+
+    ## regular expression for the configuration header lines
+    configheaderre = re.compile('# [\w\d/\-;:\. ,()]+$')
+
+    ## regular expressions for the lines with configuration
+    configre = re.compile('# CONFIG_[\w\d_]+ is not set$')
+    configre2 = re.compile('(CONFIG_[\w\d_]+)=([ynm])$')
+    configre3 = re.compile('(CONFIG_[\w\d_]+)=([\w\d"\-/\.$]+$)')
+
+    ## open the file in text only mode
+    checkfile = open(filename, 'r')
+
+    headerfound = False
+    kernelconfigfound = False
+
+    ## first there is a header
+    ## followed by sections
+    ## followed by configuration statements
+    for i in checkfile:
+        ## skip empty lines
+        if i.strip() == '':
+            continue
+        ## skip empty comment lines
+        if i.strip() == '#':
+            continue
+        linematched = False
+        if i.strip().startswith('#'):
+            if configre.match(i.strip()) != None:
+                linematched = True
+                kernelconfigfound = True
+            else:
+                if not headerfound:
+                    if headerre.match(i.strip()) != None:
+                        linematched = True
+                    elif headerre_alt.match(i.strip()) != None:
+                        linematched = True
+                    elif headerre2.match(i.strip()) != None:
+                        kernelversion = headerre2.match(i.strip()).groups()[0]
+                        kernelres['version'] = kernelversion
+                        linematched = True
+                    elif headerre2_alt.match(i.strip()) != None:
+                        kernelversion = headerre2_alt.match(i.strip()).groups()[0]
+                        kernelres['version'] = kernelversion
+                        linematched = True
+                    elif headerre3.match(i.strip()) != None:
+                        kerneldate = headerre3.match(i.strip()).groups()[0]
+                        kernelres['date'] = kerneldate
+                        linematched = True
+                        headerfound = True
+                    elif headerre4.match(i.strip()) != None:
+                        compiler = headerre4.match(i.strip()).groups()[0]
+                        kernelres['compiler'] = compiler
+                        linematched = True
+                        headerfound = True
+                else:
+                    if configheaderre.match(i.strip()) != None:
+                        linematched = True
+        else:
+            if configre2.match(i.strip()) == None:
+                if configre3.match(i.strip()) != None:
+                    (conf, val) = configre3.match(i.strip()).groups()
+                    kernelconfig[conf] = val
+                    linematched = True
+                    kernelconfigfound = True
+            else:
+                (conf, val) = configre2.match(i.strip()).groups()
+                kernelconfig[conf] = val
+                linematched = True
+                kernelconfigfound = True
+        if not linematched:
+            break
+
+    checkfile.close()
+
+    if not kernelconfigfound:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not kernel configuration file'}
+        return {'status': False, 'error': unpackingerror}
+
+    labels.append('text')
+    labels.append('kernel configuration')
+
+    return {'status': True, 'length': filesize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
