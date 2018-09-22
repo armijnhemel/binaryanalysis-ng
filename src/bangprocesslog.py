@@ -23,7 +23,8 @@
 ## SPDX-License-Identifier: AGPL-3.0-only
 ##
 ## Processes a BANG log file to see which errors were triggered the
-## most, as this is useful to find which checks to tighten.
+## most, as this is useful to find which checks to tighten and see
+## which checks possibly need to be inlined into the main program.
 
 import os
 import sys
@@ -83,6 +84,7 @@ def main(argv):
                 break
     logfile.close()
 
+    ## print the error messages in descending order
     for e in bangerrors.most_common():
         print("Signature %s: %d" % e)
         for s in bangerrormessages[e[0]].most_common():
