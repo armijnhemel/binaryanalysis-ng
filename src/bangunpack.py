@@ -68,6 +68,8 @@
 ## 39. SWF
 ## 40. Android resource files (table type only, possibly not all types)
 ## 41. Java/Android MANIFEST.MF files
+## 42. Linux kernel configuration files
+## 43. Dockerfile files
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
