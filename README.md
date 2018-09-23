@@ -20,6 +20,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * python-snappy (possibly named python3-snappy)
 * python-tlsh (possibly named python3-tlsh)
 * tinycss2 (possibly named python3-tinycss2)
+* dockerfile-parse (possibly named python3-dockerfile-parse)
 
 ## Invocation
 

@@ -132,6 +132,7 @@ import lz4
 import lz4.frame
 import snappy
 import tinycss2
+import dockerfile_parse
 
 encodingstotranslate = [ 'utf-8','ascii','latin-1','euc_jp', 'euc_jis_2004'
                        , 'jisx0213', 'iso2022_jp', 'iso2022_jp_1'
@@ -15926,6 +15927,28 @@ def unpackKernelConfig(filename, offset, unpackdir, temporarydirectory):
 
     labels.append('text')
     labels.append('kernel configuration')
+
+    return {'status': True, 'length': filesize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+## Docker file parsing, only works on whole Dockerfiles
+def unpackDockerfile(filename, offset, unpackdir, temporarydirectory):
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    dockerfileparser = dockerfile_parse.DockerfileParser(str(filename))
+
+    try:
+        dfcontent = dockerfileparser.content
+    except Exception as e:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid Dockerfile'}
+        return {'status': False, 'error': unpackingerror}
+
+    labels.append('text')
+    labels.append('dockerfile')
 
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

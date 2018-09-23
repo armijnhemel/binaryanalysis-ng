@@ -179,6 +179,8 @@ extensiontofunction = {
     'resources.arsc': bangunpack.unpackAndroidResource,
     'manifest.mf': bangunpack.unpackJavaManifest,
     '.sf': bangunpack.unpackJavaManifest,
+    'dockerfile': bangunpack.unpackDockerfile,
+    '.dockerfile': bangunpack.unpackDockerfile,
 }
 
 ## a lookup table to map extensions to a name
@@ -195,6 +197,8 @@ extensionprettyprint = {
     'resources.arsc': 'androidresource',
     'manifest.mf': 'javamanifest',
     '.sf': 'javamanifest',
+    '.dockerfile': 'dockerfile',
+    'dockerfile': 'dockerfile',
 }
 
 ## certain unpacking functions if the whole file is text
