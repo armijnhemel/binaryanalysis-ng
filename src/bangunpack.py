@@ -15933,24 +15933,36 @@ def unpackKernelConfig(filename, offset, unpackdir, temporarydirectory):
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
-## Docker file parsing, only works on whole Dockerfiles
+## Docker file parsing, only works on whole Dockerfiles, that have to be text
 def unpackDockerfile(filename, offset, unpackdir, temporarydirectory):
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
-    dockerfileparser = dockerfile_parse.DockerfileParser(str(filename))
+
+    renamed = False
+    if not filename.name.endswith('Dockerfile'):
+        dockerdir = pathlib.Path(tempfile.mkdtemp(dir=temporarydirectory))
+        shutil.copy(filename, dockerdir / 'Dockerfile')
+        dockerfileparser = dockerfile_parse.DockerfileParser(str(dockerdir / 'Dockerfile'))
+        renamed = True
+    else:
+        dockerfileparser = dockerfile_parse.DockerfileParser(str(filename))
 
     try:
         dfcontent = dockerfileparser.content
     except Exception as e:
+        if renamed:
+            shutil.rmtree(dockerdir)
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'not a valid Dockerfile'}
         return {'status': False, 'error': unpackingerror}
 
     labels.append('text')
     labels.append('dockerfile')
+    if renamed:
+        shutil.rmtree(dockerdir)
 
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
