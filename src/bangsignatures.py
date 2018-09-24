@@ -92,6 +92,7 @@ signatures = {
     'swf': b'FWS',
     'swf_zlib': b'CWS',
     'swf_lzma': b'ZWS',
+    'ubootlegacy': b'\x27\x05\x19\x56',
 }
 
 ## some signatures do not start at the beginning of the file
