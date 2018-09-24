@@ -15965,3 +15965,204 @@ def unpackDockerfile(filename, offset, unpackdir, temporarydirectory):
 
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+## U-Boot legacy file format
+##
+## Described in:
+
+## http://git.denx.de/?p=u-boot.git;a=blob;f=include/image.h;hb=HEAD
+##
+## and not considered a derivative of the source code according to the
+## authors of u-boot
+def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    ostoname = {0: 'invalid',
+                1: 'OpenBSD',
+                2: 'NetBSD',
+                3: 'FreeBSD',
+                4: '4.4BSD',
+                5: 'Linux',
+                6: 'SVR4',
+                7: 'Esix',
+                8: 'Solaris',
+                9: 'Irix',
+                10: 'SCO',
+                11: 'Dell',
+                12: 'NCR',
+                13: 'LynxOS',
+                14: 'VxWorks',
+                15: 'pSOS',
+                16: 'QNX',
+                17: 'Firmware',
+                18: 'RTEMS',
+                19: 'ARTOS',
+                20: 'Unity OS',
+                21: 'INTEGRITY',
+                22: 'OSE',
+                23: 'Plan 9',
+                24: 'OpenRTOS',
+                25: 'ARM Trusted Firmware',
+                26: 'Trusted Execution Environment',
+               }
+
+    compressiontoname = {0: 'none',
+                         1: 'gzip',
+                         2: 'bzip2',
+                         3: 'lzma',
+                         4: 'lzo',
+                         5: 'lz4',
+                        }
+
+    ubootdata = {}
+
+    if filesize < 64:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
+
+    ## open the file and jump to the right offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset + 4)
+    unpackedsize += 4
+
+    ## header crc
+    checkbytes = checkfile.read(4)
+    headercrc = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+    ubootdata['headercrc'] = headercrc
+
+    ## image creation time stamp
+    checkbytes = checkfile.read(4)
+    imagetimestamp = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+    ubootdata['timestamp'] = imagetimestamp
+
+    ## image data size
+    checkbytes = checkfile.read(4)
+    imagedatasize = int.from_bytes(checkbytes, byteorder='big')
+    if offset + imagedatasize + 64 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'U-Boot image data outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+    ubootdata['imagesize'] = imagedatasize
+
+    ## load address, not relevant
+    checkbytes = checkfile.read(4)
+    loadaddress = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+    ubootdata['loadaddress'] = loadaddress
+
+    ## entry point address, not relevant
+    checkbytes = checkfile.read(4)
+    entrypoint = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+    ubootdata['entrypoint'] = entrypoint
+
+    ## image data crc
+    checkbytes = checkfile.read(4)
+    imagecrc = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+    ubootdata['imagecrc'] = imagecrc
+
+    ## operating system
+    checkbytes = checkfile.read(1)
+    ubootos = ord(checkbytes)
+    if not ubootos in ostoname:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unknown OS value'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+    ubootdata['os'] = ostoname[ubootos]
+
+    ## CPU architecture
+    checkbytes = checkfile.read(1)
+    ubootarch = ord(checkbytes)
+    unpackedsize += 1
+
+    ## image type
+    checkbytes = checkfile.read(1)
+    ubootimagetype = ord(checkbytes)
+    unpackedsize += 1
+
+    ## compression type
+    checkbytes = checkfile.read(1)
+    ubootcompression = ord(checkbytes)
+    if not ubootcompression in compressiontoname:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unknown compression'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+    ubootdata['compression'] = compressiontoname[ubootcompression]
+    unpackedsize += 1
+
+    ## image name
+    checkbytes = checkfile.read(32)
+    imagename = checkbytes.split(b'\x00')[0]
+    unpackedsize += 32
+
+    try:
+        imagename = imagename.decode()
+    except:
+        pass
+
+    ubootdata['name'] = imagename
+
+    ## now calculate the CRC of the header and compare it
+    ## to the stored one
+    checkfile.seek(offset)
+    checkbytes = bytearray(64)
+    checkfile.readinto(checkbytes)
+    crcmv = memoryview(checkbytes)
+
+    ## blank the header CRC field first
+    crcmv[4:8] = b'\x00' * 4
+    crccomputed = binascii.crc32(crcmv)
+
+    if not crccomputed == headercrc:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid header CRC'}
+        return {'status': False, 'error': unpackingerror}
+
+    ## now the image CRC
+    checkfile.seek(offset + 64)
+    crccomputed = binascii.crc32(b'')
+
+    bytestoread = imagedatasize
+    while bytestoread > 0:
+        readsize = min(bytestoread, 10000000)
+        checkbytes = checkfile.read(readsize)
+        crccomputed = binascii.crc32(checkbytes, crccomputed)
+        bytestoread = imagedatasize - readsize
+        
+    if not crccomputed == imagecrc:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid image CRC'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = imagedatasize + 64
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('u-boot')
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    ## else carve the file
+    outfilename = os.path.join(unpackdir, "unpacked.uboot")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    unpackedfilesandlabels.append((outfilename, ['u-boot', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
