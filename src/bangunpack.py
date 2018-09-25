@@ -11203,6 +11203,8 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
         p = subprocess.Popen(['e2ls', '-lai', str(filename) + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate()
         if p.returncode != 0:
+            if havetmpfile:
+                os.unlink(temporaryfile[1])
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'e2ls error'}
             return {'status': False, 'error': unpackingerror}
@@ -11227,9 +11229,11 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                except Exception as e:
                   pass
             if not namedecoded:
-               unpackingerror = {'offset': offset, 'fatal': False,
-                                 'reason': 'could not decode file name'}
-               return {'status': False, 'error': unpackingerror}
+                if havetmpfile:
+                    os.unlink(temporaryfile[1])
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'could not decode file name'}
+                return {'status': False, 'error': unpackingerror}
 
             ## Check the different file types
             if stat.S_ISDIR(filemode):
@@ -11267,6 +11271,8 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                     p = subprocess.Popen(['e2cp', str(filename) + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     (outputmsg, errormsg) = p.communicate()
                     if p.returncode != 0:
+                        if havetmpfile:
+                            os.unlink(temporaryfile[1])
                         unpackingerror = {'offset': offset, 'fatal': False,
                                           'reason': 'e2cp error'}
                         return {'status': False, 'error': unpackingerror}
