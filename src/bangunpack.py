@@ -3138,6 +3138,9 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
             ## as regular files.
             faultyzipfiles = []
             for z in zipinfolist:
+                ## https://setuptools.readthedocs.io/en/latest/formats.html
+                if z.filename == 'EGG-INFO/PKG-INFO':
+                    labels.append('python egg')
                 if z.file_size == 0 and not z.is_dir() and z.external_attr & 0x10 == 0x10:
                     faultyzipfiles.append(z)
             if len(faultyzipfiles) == 0:
