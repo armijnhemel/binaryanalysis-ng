@@ -207,7 +207,7 @@ textonlyfunctions = {
     'srec': bangunpack.unpackSREC,
     'css': bangunpack.unpackCSS,
     'kernelconfig': bangunpack.unpackKernelConfig,
-    'dockerfile': bangunpack.unpackDockerfile,
+    #'dockerfile': bangunpack.unpackDockerfile,
 }
 
 ## store the maximum look ahead window. This is unlikely to matter, but
