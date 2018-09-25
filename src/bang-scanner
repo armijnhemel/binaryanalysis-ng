@@ -137,6 +137,7 @@ signaturetofunction = {
     'swf': bangunpack.unpackSWF,
     'swf_zlib': bangunpack.unpackSWF,
     'swf_lzma': bangunpack.unpackSWF,
+    'ubootlegacy': bangunpack.unpackUBootLegacy,
 }
 
 ## a lookup table to map signatures to a name for
@@ -374,17 +375,22 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         ## remove any duplicate labels
         labels = list(set(labels))
 
+        needsunpacking = True
+        unpackedrange = []
+
         ## check for a dummy value to see if the file has already been
         ## unpacked and if so, simply report and skip the unpacking, and
         ## move on to just running the per file scans.
         if 'unpacked' in labels:
             labels.remove('unpacked')
-            needsunpacking = False
-            lastunpackedoffset = filesize
-            unpackedrange = [(0, filesize)]
-        else:
-            needsunpacking = True
-            unpackedrange = []
+            if 'rescan' in labels:
+                origunpackedrange = [(0, filesize)]
+                unpackedrange = [(0, 1)]
+                lastunpackedoffset = 1
+            else:
+                needsunpacking = False
+                lastunpackedoffset = filesize
+                unpackedrange = [(0, filesize)]
 
         ## keep track of whether or not a file consists of just
         ## ASCII characters. Initially assume it is text only.
@@ -1023,6 +1029,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     fileresult['unpackedfiles'].append(report)
                     break
+
+        if 'rescan' in labels:
+            unpackedrange = origunpackedrange
+            labels.remove('rescan')
 
         ## run individual scans for files and store them in a separate
         ## result file, but only do this once for every file, so check
