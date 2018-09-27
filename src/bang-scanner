@@ -182,6 +182,7 @@ extensiontofunction = {
     '.sf': bangunpack.unpackJavaManifest,
     'dockerfile': bangunpack.unpackDockerfile,
     '.dockerfile': bangunpack.unpackDockerfile,
+    'pkg-info': bangunpack.unpackPythonPkgInfo,
 }
 
 ## a lookup table to map extensions to a name
@@ -200,6 +201,7 @@ extensionprettyprint = {
     '.sf': 'javamanifest',
     '.dockerfile': 'dockerfile',
     'dockerfile': 'dockerfile',
+    'pkg-info': 'pkginfo',
 }
 
 ## certain unpacking functions if the whole file is text

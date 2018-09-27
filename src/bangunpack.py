@@ -70,6 +70,7 @@
 ## 41. Java/Android MANIFEST.MF files
 ## 42. Linux kernel configuration files
 ## 43. Dockerfile files
+## 44. Python PKG-INFO files
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -127,6 +128,7 @@ import hashlib
 import base64
 import re
 import pathlib
+import email.parser
 
 ## some external packages that are needed
 import PIL.Image
@@ -16174,4 +16176,207 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
 
     unpackedfilesandlabels.append((outfilename, ['u-boot', 'unpacked', 'rescan']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+## Python PKG-INFO file parsing
+## Described in PEP-566:
+## https://www.python.org/dev/peps/pep-0566/
+def unpackPythonPkgInfo(filename, offset, unpackdir, temporarydirectory):
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    validversions = ['1.0', '1.1', '1.2', '2.1']
+    strictcheck = False
+
+    ## the various PEP specifications define mandatory items but in
+    ## practice these are not followed and many mandator items are
+    ## simply not present. This could be because the PEPs are a bit
+    ## ambigious.
+
+    ## https://www.python.org/dev/peps/pep-0241/
+    mandatory10 = ['Metadata-Version',
+                   'Name',
+                   'Version',
+                   'Platform',
+                   'Summary',
+                   'Author-email',
+                   'License'
+                  ]
+
+    optional10 = ['Description',
+                  'Keywords',
+                  'Home-page',
+                  'Author']
+
+    ## https://www.python.org/dev/peps/pep-0314/
+    mandatory11 = ['Metadata-Version',
+                   'Name',
+                   'Version',
+                   'Platform',
+                   'Supported-Platform',
+                   'Summary',
+                   'Download-URL',
+                   'Author-email',
+                   'License',
+                   'Classifier',
+                   'Requires',
+                   'Provides',
+                   'Obsoletes'
+                  ]
+
+    optional11 = ['Description',
+                  'Keywords',
+                  'Home-page',
+                  'Author']
+
+    ## version 1.2 and 2.1 have the same mandatory fields
+    ## https://www.python.org/dev/peps/pep-0345/
+    ## https://www.python.org/dev/peps/pep-0566/
+    mandatory12 = ['Metadata-Version',
+                   'Name',
+                   'Version',
+                   'Platform',
+                   'Supported-Platform',
+                   'Summary',
+                   'Download-URL',
+                   'Classifier',
+                   'Requires-Dist',
+                   'Provides-Dist',
+                   'Obsoletes-Dist',
+                   'Requires-Python',
+                   'Requires-External',
+                   'Project-URL'
+                  ]
+
+    optional12 = ['Description',
+                  'Keywords',
+                  'Home-page',
+                  'Author',
+                  'Author-email',
+                  'Maintainer',
+                  'Maintainer-email',
+                  'License']
+
+    optional21 = ['Description',
+                  'Keywords',
+                  'Home-page',
+                  'Author',
+                  'Author-email',
+                  'Maintainer',
+                  'Maintainer-email',
+                  'License',
+                  'Description-Content-Type',
+                  'Provides-Extra']
+
+    alloptional = set()
+    alloptional.update(optional10)
+    alloptional.update(optional11)
+    alloptional.update(optional12)
+    alloptional.update(optional21)
+
+    ## open the file in text only mode
+    try:
+        checkfile = open(filename, 'r')
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid Python PKG-INFO'}
+        return {'status': False, 'error': unpackingerror}
+
+    try:
+        headerparser = email.parser.HeaderParser()
+        headers = headerparser.parse(checkfile)
+        checkfile.close()
+    except Exception as e:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid Python PKG-INFO'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    ## then some sanity checks
+    if not 'Metadata-Version' in headers:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'Metadata-Version missing'}
+        return {'status': False, 'error': unpackingerror}
+
+    metadataversion = headers['Metadata-Version']
+
+    if not metadataversion in validversions:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'Metadata-Version invalid'}
+        return {'status': False, 'error': unpackingerror}
+
+    ## keep track which mandatory items are missing
+    missing = set()
+
+    ## keep track of which items are in the wrong version
+    wrongversion = set()
+
+    if metadataversion == '1.0':
+        if strictcheck:
+            for i in mandatory10:
+                if not i in headers:
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': '%s missing' % i}
+                    return {'status': False, 'error': unpackingerror}
+        for i in headers:
+            if not (i in mandatory10 or i in optional10):
+                if i in alloptional:
+                    wrongversion.add(i)
+                else:
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'undefined tag: %s' % i}
+                    return {'status': False, 'error': unpackingerror}
+    elif metadataversion == '1.1':
+        if strictcheck:
+            for i in mandatory11:
+                if not i in headers:
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': '%s missing' % i}
+                    return {'status': False, 'error': unpackingerror}
+        for i in headers:
+            if not (i in mandatory11 or i in optional11):
+                if i in alloptional:
+                    wrongversion.add(i)
+                else:
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'undefined tag: %s' % i}
+                    return {'status': False, 'error': unpackingerror}
+    elif metadataversion == '1.2':
+        if strictcheck:
+            for i in mandatory12:
+                if not i in headers:
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': '%s missing' % i}
+                    return {'status': False, 'error': unpackingerror}
+        for i in headers:
+            if not (i in mandatory12 or i in optional12 or i in alloptional):
+                if i in alloptional:
+                    wrongversion.add(i)
+                else:
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'undefined tag: %s' % i}
+                    return {'status': False, 'error': unpackingerror}
+    elif metadataversion == '2.1':
+        if strictcheck:
+            for i in mandatory12:
+                if not i in headers:
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': '%s missing' % i}
+                    return {'status': False, 'error': unpackingerror}
+        for i in headers:
+            if not (i in mandatory12 or i in optional21):
+                if i in alloptional:
+                    wrongversion.add(i)
+                else:
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'undefined tag: %s' % i}
+                    return {'status': False, 'error': unpackingerror}
+
+    labels.append('python pkg-info')
+    return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
