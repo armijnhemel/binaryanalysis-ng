@@ -16408,22 +16408,58 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
             break
     checkfile.close()
 
-    ## now read the whole file (binary mode this time)
-    ## and run it through various decoders
-    checkfile = open(filename, 'rb')
+    ## now read the whole file and run it through various decoders
+    checkfile = open(filename, 'r')
     base64contents = checkfile.read()
     checkfile.close()
+    base64contents = base64contents.replace('\n', '')
 
     decoded = False
     encoding = ''
 
-    ## first regular base64
+    ## first base16
     try:
-        decodedcontents = base64.standard_b64decode(base64contents)
+        decodedcontents = base64.b16decode(base64contents)
         decoded = True
-        encoding = 'base64'
+        encoding = 'base16'
     except:
         pass
+
+    ## base32
+    if not decoded:
+        try:
+            decodedcontents = base64.b32decode(base64contents)
+            decoded = True
+            encoding = 'base32'
+        except Exception as e:
+            pass
+
+    ## base32, mapping
+    if not decoded:
+        try:
+            decodedcontents = base64.b32decode(base64contents, map01='I')
+            decoded = True
+            encoding = 'base32'
+        except Exception as e:
+            pass
+
+    ## base32, mapping
+    if not decoded:
+        try:
+            decodedcontents = base64.b32decode(base64contents, map01='L')
+            decoded = True
+            encoding = 'base32'
+        except Exception as e:
+            pass
+
+    ## regular base64
+    if not decoded:
+        try:
+            decodedcontents = base64.standard_b64decode(base64contents)
+            decoded = True
+            encoding = 'base64'
+        except:
+            pass
 
     ## URL safe base64
     if not decoded:
@@ -16432,24 +16468,6 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
             decoded = True
             encoding = 'base64'
             labels.append('urlsafe')
-        except:
-            pass
-
-    ## base32
-    if not decoded:
-        try:
-            decodedcontents = base64.b32decode(base64contents)
-            decoded = True
-            encoding = 'base32'
-        except:
-            pass
-
-    ## base16
-    if not decoded:
-        try:
-            decodedcontents = base64.b16decode(base64contents)
-            decoded = True
-            encoding = 'base16'
         except:
             pass
 
