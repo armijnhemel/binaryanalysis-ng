@@ -1,7 +1,7 @@
 # binaryanalysis-ng
 Binary Analysis Next Generation (BANG)
 
-BANG is a framework for unpacking files (like firmware) recursively and running checks on the unpacked files. Its intended use is to able to find out the provenance of the unpacked files and classify/label files, making them available for further analysis.
+BANG is a framework for unpacking files (like firmware) recursively and running checks on the unpacked files. Its intended use is to be able to find out the provenance of the unpacked files and classify/label files, making them available for further analysis.
 
 ## Requirements:
 
