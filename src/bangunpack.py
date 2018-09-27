@@ -16194,9 +16194,10 @@ def unpackPythonPkgInfo(filename, offset, unpackdir, temporarydirectory):
     strictcheck = False
 
     ## the various PEP specifications define mandatory items but in
-    ## practice these are not followed and many mandator items are
-    ## simply not present. This could be because the PEPs are a bit
-    ## ambigious.
+    ## practice these are not followed: many mandatory items are
+    ## simply not present and items defined in later versions are.
+    ## This could be because the PEPs are a bit ambigious and/or
+    ## tools/packagers are sloppy.
 
     ## https://www.python.org/dev/peps/pep-0241/
     mandatory10 = ['Metadata-Version',
