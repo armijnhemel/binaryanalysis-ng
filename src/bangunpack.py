@@ -16409,10 +16409,12 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
 
     ## now read the whole file and run it through various decoders
-    checkfile = open(filename, 'r')
-    base64contents = checkfile.read()
+    checkfile = open(filename, 'rb')
+    base64contents = bytearray(filesize)
+    checkfile.readinto(base64contents)
     checkfile.close()
-    base64contents = base64contents.replace('\n', '')
+    base64contents = base64contents.replace(b'\n', b'')
+    base64contents = base64contents.replace(b'\r', b'')
 
     decoded = False
     encoding = ''
