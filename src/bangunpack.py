@@ -16138,6 +16138,7 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
     ## blank the header CRC field first
     crcmv[4:8] = b'\x00' * 4
     crccomputed = binascii.crc32(crcmv)
+    crcmv.release()
 
     if not crccomputed == headercrc:
         checkfile.close()
