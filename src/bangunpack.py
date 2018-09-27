@@ -16380,3 +16380,91 @@ def unpackPythonPkgInfo(filename, offset, unpackdir, temporarydirectory):
     labels.append('python pkg-info')
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+## Base64/32/16
+def unpackBase64(filename, offset, unpackdir, temporarydirectory):
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    ## sanity checks, before attempting to run base64 check: see
+    ## if there is a space in the first 10 lines of the file, which
+    ## is not allowed in any of the alphabets.
+
+    ## open the file in text mode
+    checkfile = open(filename, 'r')
+    ctr = 0
+    for i in checkfile:
+        ctr += 1
+        if " " in i:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid character not in base16/32/64 alphabets'}
+            return {'status': False, 'error': unpackingerror}
+        if ctr == 10:
+            break
+    checkfile.close()
+
+    ## now read the whole file (binary mode this time)
+    ## and run it through various decoders
+    checkfile = open(filename, 'rb')
+    base64contents = checkfile.read()
+    checkfile.close()
+
+    decoded = False
+    encoding = ''
+
+    ## first regular base64
+    try:
+        decodedcontents = base64.standard_b64decode(base64contents)
+        decoded = True
+        encoding = 'base64'
+    except:
+        pass
+
+    ## URL safe base64
+    if not decoded:
+        try:
+            decodedcontents = base64.urlsafe_b64decode(base64contents)
+            decoded = True
+            encoding = 'base64'
+            labels.append('urlsafe')
+        except:
+            pass
+
+    ## base32
+    if not decoded:
+        try:
+            decodedcontents = base64.b32decode(base64contents)
+            decoded = True
+            encoding = 'base32'
+        except:
+            pass
+
+    ## base16
+    if not decoded:
+        try:
+            decodedcontents = base64.b16decode(base64contents)
+            decoded = True
+            encoding = 'base16'
+        except:
+            pass
+
+    if not decoded:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid base64 file'}
+        return {'status': False, 'error': unpackingerror}
+
+    labels.append(encoding)
+
+    ## write the output to a file
+    outfilename = os.path.join(unpackdir, "unpacked.%s" % encoding)
+    outfile = open(outfilename, 'wb')
+    outfile.write(decodedcontents)
+    outfile.close()
+
+    unpackedfilesandlabels.append((outfilename, []))
+    return {'status': True, 'length': filesize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}

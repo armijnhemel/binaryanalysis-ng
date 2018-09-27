@@ -211,6 +211,7 @@ textonlyfunctions = {
     'css': bangunpack.unpackCSS,
     'kernelconfig': bangunpack.unpackKernelConfig,
     #'dockerfile': bangunpack.unpackDockerfile,
+    'base64': bangunpack.unpackBase64,
 }
 
 ## store the maximum look ahead window. This is unlikely to matter, but
