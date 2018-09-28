@@ -72,6 +72,7 @@
 ## 43. Dockerfile files
 ## 44. Python PKG-INFO files
 ## 45. base64/32/16
+## 46. SSH known hosts files
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
