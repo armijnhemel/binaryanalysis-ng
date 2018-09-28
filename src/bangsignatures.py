@@ -94,6 +94,8 @@ signatures = {
     'swf_lzma': b'ZWS',
     'ubootlegacy': b'\x27\x05\x19\x56',
     'certificate': b'-----BEGIN ',
+    'git_index': b'DIRC',  # https://github.com/git/git/blob/master/Documentation/technical/index-format.txt
+
 }
 
 # some signatures do not start at the beginning of the file

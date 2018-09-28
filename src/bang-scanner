@@ -139,6 +139,7 @@ signaturetofunction = {
     'swf_lzma': bangunpack.unpackSWF,
     'ubootlegacy': bangunpack.unpackUBootLegacy,
     'certificate': bangunpack.unpackCertificate,
+    'git_index': bangunpack.unpackGitIndex,
 }
 
 # a lookup table to map signatures to a name for
