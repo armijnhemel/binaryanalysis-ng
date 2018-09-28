@@ -249,7 +249,10 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
 # * WAV
 # * ANI
 # https://en.wikipedia.org/wiki/Resource_Interchange_File_Format
-def unpackRIFF(filename, offset, unpackdir, validchunkfourcc, applicationname, applicationheader, filesize, brokenlength=False):
+def unpackRIFF(
+        filename, offset, unpackdir, validchunkfourcc,
+        applicationname, applicationheader, filesize,
+        brokenlength=False):
     labels = []
     # First check if the file size is 12 bytes or more. If not, then
     # it is not a valid RIFF file.
@@ -1033,7 +1036,9 @@ def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
 
 # wrapper for both LZMA and XZ
 # Uses standard Python code.
-def unpackLZMAWrapper(filename, offset, unpackdir, extension, filetype, ppfiletype, lzmaunpackedsize):
+def unpackLZMAWrapper(
+        filename, offset, unpackdir, extension,
+        filetype, ppfiletype, lzmaunpackedsize):
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
@@ -6163,7 +6168,10 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
 #
 # These fonts have a similar structure, but differ in the magic
 # header and the required tables.
-def unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, fontextension, fonttype, collectionoffset=None):
+def unpackFont(
+        filename, offset, unpackdir, temporarydirectory,
+        requiredtables, fontextension, fonttype,
+        collectionoffset=None):
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
@@ -6563,7 +6571,9 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
 # recorded in the fonts are relative to the start of the collection
 # not to the font itself.
 # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
-def unpackOpenTypeFontCollection(filename, offset, unpackdir, temporarydirectory):
+def unpackOpenTypeFontCollection(
+        filename, offset,
+        unpackdir, temporarydirectory):
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
@@ -13587,7 +13597,10 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
 # http://web.archive.org/web/20180520110013/https://source.android.com/devices/tech/dalvik/dex-format
 #
 # (sections "File layout" and "Items and related structures")
-def unpackDex(filename, offset, unpackdir, temporarydirectory, dryrun=False, verifychecksum=True):
+def unpackDex(
+        filename, offset, unpackdir,
+        temporarydirectory, dryrun=False,
+        verifychecksum=True):
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
@@ -16807,7 +16820,8 @@ def extractCertificate(filename, offset, unpackdir, temporarydirectory):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else fail
-    unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid certificate'}
+    unpackingerror = {'offset': offset, 'fatal': False,
+                      'reason': 'not a valid certificate'}
     return {'status': False, 'error': unpackingerror}
 
 
