@@ -1263,7 +1263,7 @@ def main(argv):
 
     # Check if the temporary directory is actually an existing
     # directory, but only if it was defined in the configuration file.
-    if temporarydirectory not is None:
+    if temporarydirectory is not None:
         if not os.path.exists(temporarydirectory):
             print("Temporary directory %s does not exist, exiting" % temporarydirectory, file=sys.stderr)
             sys.exit(1)
