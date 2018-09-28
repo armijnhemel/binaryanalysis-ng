@@ -14568,7 +14568,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
-    # ELF header is 52 bytes
+    # ELF header is at least 52 bytes
     if filesize - offset < 52:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'not enough data'}
@@ -14593,7 +14593,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 1
 
     if is64bit:
-        # 64 bit ELF header is 52 bytes
+        # 64 bit ELF header is 64 bytes
         if filesize - offset < 64:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
