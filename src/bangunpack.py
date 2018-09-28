@@ -8236,6 +8236,8 @@ def unpackRzip(filename, offset, unpackdir, temporarydirectory):
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
+    unpackedsize = 0
+
     if filesize - offset < 10:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'File too small (less than 10 bytes'}
