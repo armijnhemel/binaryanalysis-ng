@@ -1,29 +1,29 @@
 #!/usr/bin/python3
 
-## Binary Analysis Next Generation (BANG!)
-##
-## This file is part of BANG.
-##
-## BANG is free software: you can redistribute it and/or modify
-## it under the terms of the GNU Affero General Public License,
-## version 3, as published by the Free Software Foundation.
-##
-## BANG is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU Affero General Public License for more details.
-##
-## You should have received a copy of the GNU Affero General Public
-## License, version 3, along with BANG.  If not, see
-## <http://www.gnu.org/licenses/>
-##
-## Copyright 2018 - Armijn Hemel
-## Licensed under the terms of the GNU Affero General Public License
-## version 3
-## SPDX-License-Identifier: AGPL-3.0-only
-##
-## Program to generate test files from a base file using a few
-## common patterns: cutting data, adding data, replacing data
+# Binary Analysis Next Generation (BANG!)
+#
+# This file is part of BANG.
+#
+# BANG is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License,
+# version 3, as published by the Free Software Foundation.
+#
+# BANG is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License, version 3, along with BANG.  If not, see
+# <http://www.gnu.org/licenses/>
+#
+# Copyright 2018 - Armijn Hemel
+# Licensed under the terms of the GNU Affero General Public License
+# version 3
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Program to generate test files from a base file using a few
+# common patterns: cutting data, adding data, replacing data
 
 import os
 import sys
@@ -31,7 +31,8 @@ import stat
 import argparse
 import pathlib
 
-## first use case: add random data to a file
+
+# first use case: add random data to a file
 def generate_add_random_data(filepath, randombytes):
     """Adds random data to a file"""
     extension = filepath.suffix
@@ -40,26 +41,27 @@ def generate_add_random_data(filepath, randombytes):
     outfilename = filepath.with_name("%s-%s%s" % (filestem, "add-random-data", extension))
     filesize = filepath.stat().st_size
 
-    ## open the original file for reading
+    # open the original file for reading
     sourcefile = open(filepath, 'rb')
     offset = 0
     sourcefile.seek(offset)
 
-    ## open the target file for writing
+    # open the target file for writing
     outfile = open(outfilename, 'wb')
 
-    ## add original data
+    # add original data
     os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, filesize)
     outfile.flush()
 
-    ## add random data
+    # add random data
     outfile.write(randombytes)
     outfile.close()
 
-    ## close the original file
+    # close the original file
     sourcefile.close()
 
-## second use case: prepend random data to a file
+
+# second use case: prepend random data to a file
 def generate_prepend_random_data(filepath, randombytes):
     """Prepends random data to a file"""
     extension = filepath.suffix
@@ -68,27 +70,28 @@ def generate_prepend_random_data(filepath, randombytes):
     outfilename = filepath.with_name("%s-%s%s" % (filestem, "prepend-random-data", extension))
     filesize = filepath.stat().st_size
 
-    ## open the original file for reading
+    # open the original file for reading
     sourcefile = open(filepath, 'rb')
     offset = 0
     sourcefile.seek(offset)
 
-    ## open the target file for writing
+    # open the target file for writing
     outfile = open(outfilename, 'wb')
 
-    ## add random data
+    # add random data
     outfile.write(randombytes)
     outfile.flush()
 
-    ## add original data
+    # add original data
     os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, filesize)
     outfile.flush()
     outfile.close()
 
-    ## close the original file
+    # close the original file
     sourcefile.close()
 
-## third use case: cut data from the end
+
+# third use case: cut data from the end
 def generate_cut_bytes_end(filepath, cutlength):
     """Cuts data from the end of a file"""
     extension = filepath.suffix
@@ -97,24 +100,25 @@ def generate_cut_bytes_end(filepath, cutlength):
     outfilename = filepath.with_name("%s-%s%s" % (filestem, "cut-data-from-end", extension))
     filesize = filepath.stat().st_size
 
-    ## open the original file for reading
+    # open the original file for reading
     sourcefile = open(filepath, 'rb')
     offset = 0
     sourcefile.seek(offset)
 
-    ## open the target file for writing
+    # open the target file for writing
     outfile = open(outfilename, 'wb')
 
-    ## add original data, minus cutlength bytes
+    # add original data, minus cutlength bytes
     os.sendfile(outfile.fileno(), sourcefile.fileno(),
                 offset, filesize-cutlength)
     outfile.flush()
     outfile.close()
 
-    ## close the original file
+    # close the original file
     sourcefile.close()
 
-## fourth use case: cut data from the end, add random data
+
+# fourth use case: cut data from the end, add random data
 def generate_cut_bytes_add_random_data(filepath, randombytes, cutlength):
     """Cuts data from the end of a file and adds random data to a file"""
     extension = filepath.suffix
@@ -123,28 +127,29 @@ def generate_cut_bytes_add_random_data(filepath, randombytes, cutlength):
     outfilename = filepath.with_name("%s-%s%s" % (filestem, "cut-data-from-end-add-random", extension))
     filesize = filepath.stat().st_size
 
-    ## open the original file for reading
+    # open the original file for reading
     sourcefile = open(filepath, 'rb')
     offset = 0
     sourcefile.seek(offset)
 
-    ## open the target file for writing
+    # open the target file for writing
     outfile = open(outfilename, 'wb')
 
-    ## add original data, minus cutlength bytes
+    # add original data, minus cutlength bytes
     os.sendfile(outfile.fileno(), sourcefile.fileno(),
                 offset, filesize-cutlength)
     outfile.flush()
 
-    ## add random data
+    # add random data
     outfile.write(randombytes)
     outfile.flush()
     outfile.close()
 
-    ## close the original file
+    # close the original file
     sourcefile.close()
 
-## fifth use case: cut data from middle 
+
+# fifth use case: cut data from middle
 def generate_cut_bytes_from_middle(filepath, cutlength):
     """Cuts data from the middle of a file"""
     extension = filepath.suffix
@@ -153,30 +158,31 @@ def generate_cut_bytes_from_middle(filepath, cutlength):
     outfilename = filepath.with_name("%s-%s%s" % (filestem, "cut-data-from-middle", extension))
     filesize = filepath.stat().st_size
 
-    ## open the original file for reading
+    # open the original file for reading
     sourcefile = open(filepath, 'rb')
     offset = 0
     sourcefile.seek(offset)
 
     middle = filesize//2
 
-    ## open the target file for writing
+    # open the target file for writing
     outfile = open(outfilename, 'wb')
 
-    ## add half of original data
+    # add half of original data
     os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, middle)
     outfile.flush()
 
-    ## add rest of data, minus cutlength bytes
+    # add rest of data, minus cutlength bytes
     os.sendfile(outfile.fileno(), sourcefile.fileno(),
                 offset + middle + cutlength, filesize - middle - cutlength)
     outfile.flush()
     outfile.close()
 
-    ## close the original file
+    # close the original file
     sourcefile.close()
 
-## sixth use case: data added to middle 
+
+# sixth use case: data added to middle
 def generate_add_bytes_to_middle(filepath, randombytes):
     """Adds data in the middle of a file"""
     extension = filepath.suffix
@@ -185,33 +191,34 @@ def generate_add_bytes_to_middle(filepath, randombytes):
     outfilename = filepath.with_name("%s-%s%s" % (filestem, "data-added-to-middle", extension))
     filesize = filepath.stat().st_size
 
-    ## open the original file for reading
+    # open the original file for reading
     sourcefile = open(filepath, 'rb')
     offset = 0
     sourcefile.seek(offset)
 
     middle = filesize//2
 
-    ## open the target file for writing
+    # open the target file for writing
     outfile = open(outfilename, 'wb')
 
-    ## add half of original data
+    # add half of original data
     os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, middle)
     outfile.flush()
 
-    ## add random data
+    # add random data
     outfile.write(randombytes)
     outfile.flush()
 
-    ## add rest of data
+    # add rest of data
     os.sendfile(outfile.fileno(), sourcefile.fileno(), offset + middle, filesize - middle)
     outfile.flush()
     outfile.close()
 
-    ## close the original file
+    # close the original file
     sourcefile.close()
 
-## seventh use case: data replaced in middle 
+
+# seventh use case: data replaced in middle
 def generate_replace_bytes_in_middle(filepath, randombytes):
     """Replaces data in the middle of a file"""
     extension = filepath.suffix
@@ -220,33 +227,34 @@ def generate_replace_bytes_in_middle(filepath, randombytes):
     outfilename = filepath.with_name("%s-%s%s" % (filestem, "data-replaced-in-middle", extension))
     filesize = filepath.stat().st_size
 
-    ## open the original file for reading
+    # open the original file for reading
     sourcefile = open(filepath, 'rb')
     offset = 0
     sourcefile.seek(offset)
 
     middle = filesize//2
 
-    ## open the target file for writing
+    # open the target file for writing
     outfile = open(outfilename, 'wb')
 
-    ## add half of original data
+    # add half of original data
     os.sendfile(outfile.fileno(), sourcefile.fileno(), offset, middle)
     outfile.flush()
 
-    ## add random data
+    # add random data
     outfile.write(randombytes)
     outfile.flush()
 
-    ## add rest of data
+    # add rest of data
     os.sendfile(outfile.fileno(), sourcefile.fileno(),
                 offset + middle + len(randombytes),
                 filesize - middle - len(randombytes))
     outfile.flush()
     outfile.close()
 
-    ## close the original file
+    # close the original file
     sourcefile.close()
+
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -254,19 +262,19 @@ def main(argv):
                         help="path to original file", metavar="FILE")
     args = parser.parse_args()
 
-    ## sanity checks for the file to scan
-    if args.checkfile == None:
+    # sanity checks for the file to scan
+    if args.checkfile is None:
         parser.error("No file to scan provided, exiting")
 
-    ## the file to scan should exist ...
+    # the file to scan should exist ...
     if not os.path.exists(args.checkfile):
         parser.error("File %s does not exist, exiting." % args.checkfile)
 
-    ## ... and should be a real file
+    # ... and should be a real file
     if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
         parser.error("%s is not a regular file, exiting." % args.checkfile)
 
-    ## get a few random bytes of junk
+    # get a few random bytes of junk
     #randombytes = os.urandom(1024)
     randombytes = os.urandom(128)
 
