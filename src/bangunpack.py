@@ -8348,27 +8348,26 @@ def unpackRzip(filename, offset, unpackdir, temporarydirectory):
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
-    else:
-        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
-        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
-        os.fdopen(temporaryfile[0]).close()
-        checkfile.close()
-        p = subprocess.Popen(['rzip', '-d', temporaryfile[1], '-o', outfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
-        (outputmsg, errormsg) = p.communicate()
-        if p.returncode != 0:
-            os.unlink(temporaryfile[1])
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'invalid RZIP file'}
-            return {'status': False, 'error': unpackingerror}
-        if os.stat(outfilename).st_size != uncompressedsize:
-            os.unlink(outfilename)
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'unpacked RZIP data does not match declared uncompressed size'}
-            return {'status': False, 'error': unpackingerror}
-        unpackedfilesandlabels.append((outfilename, []))
+    temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+    os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+    os.fdopen(temporaryfile[0]).close()
+    checkfile.close()
+    p = subprocess.Popen(['rzip', '-d', temporaryfile[1], '-o', outfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+    (outputmsg, errormsg) = p.communicate()
+    if p.returncode != 0:
+        os.unlink(temporaryfile[1])
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid RZIP file'}
+        return {'status': False, 'error': unpackingerror}
+    if os.stat(outfilename).st_size != uncompressedsize:
+        os.unlink(outfilename)
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'unpacked RZIP data does not match declared uncompressed size'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedfilesandlabels.append((outfilename, []))
 
-        return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
 
 
 # Derived from specifications at:
