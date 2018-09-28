@@ -67,163 +67,6 @@ import bangfilescans
 # module.
 import tlsh
 
-# keep a list of signatures to the (built in) functions
-signaturetofunction = {
-    'webp': bangunpack.unpackWebP,
-    'wav': bangunpack.unpackWAV,
-    'ani': bangunpack.unpackANI,
-    'png': bangunpack.unpackPNG,
-    'mng': bangunpack.unpackMNG,
-    'gzip': bangunpack.unpackGzip,
-    'bmp': bangunpack.unpackBMP,
-    'xz': bangunpack.unpackXZ,
-    'lzma_var1': bangunpack.unpackLZMA,
-    'lzma_var2': bangunpack.unpackLZMA,
-    'lzma_var3': bangunpack.unpackLZMA,
-    'timezone': bangunpack.unpackTimeZone,
-    'tar_posix': bangunpack.unpackTar,
-    'tar_gnu': bangunpack.unpackTar,
-    'ar': bangunpack.unpackAr,
-    'squashfs_var1': bangunpack.unpackSquashfs,
-    'squashfs_var2': bangunpack.unpackSquashfs,
-    'appledouble': bangunpack.unpackAppleDouble,
-    'icc': bangunpack.unpackICC,
-    'zip': bangunpack.unpackZip,
-    'bzip2': bangunpack.unpackBzip2,
-    'xar': bangunpack.unpackXAR,
-    'gif87': bangunpack.unpackGIF,
-    'gif89': bangunpack.unpackGIF,
-    'iso9660': bangunpack.unpackISO9660,
-    'lzip': bangunpack.unpackLzip,
-    'jpeg': bangunpack.unpackJPEG,
-    'woff': bangunpack.unpackWOFF,
-    'opentype': bangunpack.unpackOpenTypeFont,
-    'ttc': bangunpack.unpackOpenTypeFontCollection,
-    'truetype': bangunpack.unpackTrueTypeFont,
-    'android_backup': bangunpack.unpackAndroidBackup,
-    'ico': bangunpack.unpackICO,
-    'gnu_message_catalog_le': bangunpack.unpackGNUMessageCatalog,
-    'gnu_message_catalog_be': bangunpack.unpackGNUMessageCatalog,
-    'cab': bangunpack.unpackCab,
-    'sgi': bangunpack.unpackSGI,
-    'aiff': bangunpack.unpackAIFF,
-    'terminfo': bangunpack.unpackTerminfo,
-    'rzip': bangunpack.unpackRzip,
-    'au': bangunpack.unpackAU,
-    'jffs2_little_endian': bangunpack.unpackJFFS2,
-    'jffs2_big_endian': bangunpack.unpackJFFS2,
-    'cpio_old': bangunpack.unpackCpio,
-    'cpio_portable': bangunpack.unpackCpio,
-    'cpio_newascii': bangunpack.unpackCpio,
-    'cpio_newcrc': bangunpack.unpackCpio,
-    '7z': bangunpack.unpack7z,
-    'chm': bangunpack.unpackCHM,
-    'mswim': bangunpack.unpackWIM,
-    'sunraster': bangunpack.unpackSunRaster,
-    'ext2': bangunpack.unpackExt2,
-    'rpm': bangunpack.unpackRPM,
-    'zstd_08': bangunpack.unpackZstd,
-    'apple_icon': bangunpack.unpackAppleIcon,
-    'androidsparse': bangunpack.unpackAndroidSparse,
-    'lz4': bangunpack.unpackLZ4,
-    'vmdk': bangunpack.unpackVMDK,
-    'qcow2': bangunpack.unpackQcow2,
-    'vdi': bangunpack.unpackVDI,
-    'javaclass': bangunpack.unpackJavaClass,
-    'dex': bangunpack.unpackDex,
-    'odex': bangunpack.unpackOdex,
-    'snappy_framed': bangunpack.unpackSnappy,
-    'elf': bangunpack.unpackELF,
-    'swf': bangunpack.unpackSWF,
-    'swf_zlib': bangunpack.unpackSWF,
-    'swf_lzma': bangunpack.unpackSWF,
-    'ubootlegacy': bangunpack.unpackUBootLegacy,
-    'certificate': bangunpack.unpackCertificate,
-    'git_index': bangunpack.unpackGitIndex,
-}
-
-# a lookup table to map signatures to a name for
-# pretty printing.
-signatureprettyprint = {
-    'lzma_var1': 'lzma',
-    'lzma_var2': 'lzma',
-    'lzma_var3': 'lzma',
-    'tar_posix': 'tar',
-    'tar_gnu': 'tar',
-    'squashfs_var1': 'squashfs',
-    'squashfs_var2': 'squashfs',
-    'gif87': 'gif',
-    'gif89': 'gif',
-    'jffs2_little_endian': 'jffs2',
-    'jffs2_big_endian': 'jffs2',
-    'cpio_old': 'cpio',
-    'cpio_portable': 'cpio',
-    'cpio_newascii': 'cpio',
-    'cpio_newcrc': 'cpio',
-    'zstd_08': 'zstd',
-    'swf_zlib': 'swf',
-    'swf_lzma': 'swf',
-}
-
-# extensions to unpacking functions. This should only be
-# used for files with a known extension that cannot be
-# reliably recognized any other way.
-# One example is the Android sparse data format.
-# These extensions should be lower case
-extensiontofunction = {
-    '.swp': bangunpack.unpackVimSwapfile,
-    '.new.dat': bangunpack.unpackAndroidSparseData,
-    '.pak': bangunpack.unpackChromePak,
-    '.ihex': bangunpack.unpackIHex,
-    '.hex': bangunpack.unpackIHex,
-    '.srec': bangunpack.unpackSREC,
-    '.xml': bangunpack.unpackXML,
-    '.tar': bangunpack.unpackTar,
-    'resources.arsc': bangunpack.unpackAndroidResource,
-    'manifest.mf': bangunpack.unpackJavaManifest,
-    '.sf': bangunpack.unpackJavaManifest,
-    'dockerfile': bangunpack.unpackDockerfile,
-    '.dockerfile': bangunpack.unpackDockerfile,
-    'pkg-info': bangunpack.unpackPythonPkgInfo,
-    'known_hosts': bangunpack.unpackSSHKnownHosts,
-    'ssh_known_hosts': bangunpack.unpackSSHKnownHosts,
-    '.rsa': bangunpack.unpackCertificate,
-    '.pem': bangunpack.unpackCertificate,
-}
-
-# a lookup table to map extensions to a name
-# for pretty printing.
-extensionprettyprint = {
-    '.swp': 'vimswapfile',
-    '.new.dat': 'androidsparsedata',
-    '.pak': 'pak',
-    '.ihex': 'ihex',
-    '.hex': 'ihex',
-    '.srec': 'srec',
-    '.xml': 'xml',
-    '.tar': 'tar',
-    'resources.arsc': 'androidresource',
-    'manifest.mf': 'javamanifest',
-    '.sf': 'javamanifest',
-    '.dockerfile': 'dockerfile',
-    'dockerfile': 'dockerfile',
-    'pkg-info': 'pkginfo',
-    'known_hosts': 'ssh_known_hosts',
-    'ssh_known_hosts': 'ssh_known_hosts',
-    '.rsa': 'certificate',
-    '.pem': 'certificate',
-}
-
-# certain unpacking functions if the whole file is text
-textonlyfunctions = {
-    'ihex': bangunpack.unpackIHex,
-    'srec': bangunpack.unpackSREC,
-    'css': bangunpack.unpackCSS,
-    'kernelconfig': bangunpack.unpackKernelConfig,
-    #'dockerfile': bangunpack.unpackDockerfile,
-    'base64': bangunpack.unpackBase64,
-}
-
 # store the maximum look ahead window. This is unlikely to matter, but
 # just in case.
 maxsignaturelength = max(map(lambda x: len(x), bangsignatures.signatures.values()))
@@ -426,9 +269,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # first process files with a known extension, but where
         # there is no clear magic header. A prime example is the
         # Android sparse data image format (system.new.dat and friends)
-        for e in extensiontofunction:
+        for e in bangsignatures.extensiontofunction:
             if checkfile.name.lower().endswith(e):
-                dataunpackdirectory = "%s-%s-%d" % (checkfile, extensionprettyprint[e], 1)
+                dataunpackdirectory = "%s-%s-%d" % (checkfile, bangsignatures.extensionprettyprint[e], 1)
                 os.mkdir(dataunpackdirectory)
 
                 # The result of the scan is a dictionary with the
@@ -442,7 +285,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 try:
                     # for these files the start offset of the
                     # files is always 0
-                    unpackresult = extensiontofunction[e](checkfile, 0, dataunpackdirectory, temporarydirectory)
+                    unpackresult = bangsignatures.extensiontofunction[e](checkfile, 0, dataunpackdirectory, temporarydirectory)
                 except AttributeError as ex:
                     os.rmdir(dataunpackdirectory)
                     continue
@@ -753,7 +596,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         continue
                     # first see if there actually is a method to unpack
                     # this type of file
-                    if not s[1] in signaturetofunction:
+                    if not s[1] in bangsignatures.signaturetofunction:
                         continue
                     # always first change to the original cwd
                     os.chdir(unpackdirectory)
@@ -764,7 +607,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     else:
                         namecounter = counterspersignature[s[1]] + 1
                     while True:
-                            dataunpackdirectory = "%s-%s-%d" % (checkfile, signatureprettyprint.get(s[1], s[1]), namecounter)
+                            dataunpackdirectory = "%s-%s-%d" % (checkfile, bangsignatures.signatureprettyprint.get(s[1], s[1]), namecounter)
                             try:
                                 os.mkdir(dataunpackdirectory)
                                 break
@@ -791,7 +634,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     #
                     # * errors that were encountered
                     try:
-                        unpackresult = signaturetofunction[s[1]](checkfile, s[0], dataunpackdirectory, temporarydirectory)
+                        unpackresult = bangsignatures.signaturetofunction[s[1]](checkfile, s[0], dataunpackdirectory, temporarydirectory)
                     except AttributeError as e:
                         os.rmdir(dataunpackdirectory)
                         continue
@@ -861,7 +704,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     report = {}
                     report['offset'] = s[0]
                     report['signature'] = s[1]
-                    report['type'] = signatureprettyprint.get(s[1], s[1])
+                    report['type'] = bangsignatures.signatureprettyprint.get(s[1], s[1])
                     report['size'] = unpackresult['length']
                     report['files'] = []
                     # set unpackdirectory, but only if needed
@@ -960,7 +803,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         if needsunpacking:
             if 'text' in labels and unpackedrange == []:
                 # finally try all the "text only" functions
-                for f in textonlyfunctions:
+                for f in bangsignatures.textonlyfunctions:
                     namecounter = 1
                     dataunpackdirectory = "%s-%s-%d" % (checkfile, f, namecounter)
                     while True:
@@ -972,7 +815,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     logging.debug("TRYING %s %s at offset: 0" % (checkfile, f))
                     try:
-                        unpackresult = textonlyfunctions[f](checkfile, 0, dataunpackdirectory, temporarydirectory)
+                        unpackresult = bangsignatures.textonlyfunctions[f](checkfile, 0, dataunpackdirectory, temporarydirectory)
                     except Exception as e:
                         os.rmdir(dataunpackdirectory)
                         continue

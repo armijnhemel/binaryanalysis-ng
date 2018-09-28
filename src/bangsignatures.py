@@ -22,6 +22,8 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import bangunpack
+
 # store a few standard signatures
 signatures = {
     'webp': b'WEBP',
@@ -108,4 +110,161 @@ signaturesoffset = {
     'icc': 36,
     'iso9660': 32769,
     'ext2': 0x438,
+}
+
+# keep a list of signatures to the (built in) functions
+signaturetofunction = {
+    'webp': bangunpack.unpackWebP,
+    'wav': bangunpack.unpackWAV,
+    'ani': bangunpack.unpackANI,
+    'png': bangunpack.unpackPNG,
+    'mng': bangunpack.unpackMNG,
+    'gzip': bangunpack.unpackGzip,
+    'bmp': bangunpack.unpackBMP,
+    'xz': bangunpack.unpackXZ,
+    'lzma_var1': bangunpack.unpackLZMA,
+    'lzma_var2': bangunpack.unpackLZMA,
+    'lzma_var3': bangunpack.unpackLZMA,
+    'timezone': bangunpack.unpackTimeZone,
+    'tar_posix': bangunpack.unpackTar,
+    'tar_gnu': bangunpack.unpackTar,
+    'ar': bangunpack.unpackAr,
+    'squashfs_var1': bangunpack.unpackSquashfs,
+    'squashfs_var2': bangunpack.unpackSquashfs,
+    'appledouble': bangunpack.unpackAppleDouble,
+    'icc': bangunpack.unpackICC,
+    'zip': bangunpack.unpackZip,
+    'bzip2': bangunpack.unpackBzip2,
+    'xar': bangunpack.unpackXAR,
+    'gif87': bangunpack.unpackGIF,
+    'gif89': bangunpack.unpackGIF,
+    'iso9660': bangunpack.unpackISO9660,
+    'lzip': bangunpack.unpackLzip,
+    'jpeg': bangunpack.unpackJPEG,
+    'woff': bangunpack.unpackWOFF,
+    'opentype': bangunpack.unpackOpenTypeFont,
+    'ttc': bangunpack.unpackOpenTypeFontCollection,
+    'truetype': bangunpack.unpackTrueTypeFont,
+    'android_backup': bangunpack.unpackAndroidBackup,
+    'ico': bangunpack.unpackICO,
+    'gnu_message_catalog_le': bangunpack.unpackGNUMessageCatalog,
+    'gnu_message_catalog_be': bangunpack.unpackGNUMessageCatalog,
+    'cab': bangunpack.unpackCab,
+    'sgi': bangunpack.unpackSGI,
+    'aiff': bangunpack.unpackAIFF,
+    'terminfo': bangunpack.unpackTerminfo,
+    'rzip': bangunpack.unpackRzip,
+    'au': bangunpack.unpackAU,
+    'jffs2_little_endian': bangunpack.unpackJFFS2,
+    'jffs2_big_endian': bangunpack.unpackJFFS2,
+    'cpio_old': bangunpack.unpackCpio,
+    'cpio_portable': bangunpack.unpackCpio,
+    'cpio_newascii': bangunpack.unpackCpio,
+    'cpio_newcrc': bangunpack.unpackCpio,
+    '7z': bangunpack.unpack7z,
+    'chm': bangunpack.unpackCHM,
+    'mswim': bangunpack.unpackWIM,
+    'sunraster': bangunpack.unpackSunRaster,
+    'ext2': bangunpack.unpackExt2,
+    'rpm': bangunpack.unpackRPM,
+    'zstd_08': bangunpack.unpackZstd,
+    'apple_icon': bangunpack.unpackAppleIcon,
+    'androidsparse': bangunpack.unpackAndroidSparse,
+    'lz4': bangunpack.unpackLZ4,
+    'vmdk': bangunpack.unpackVMDK,
+    'qcow2': bangunpack.unpackQcow2,
+    'vdi': bangunpack.unpackVDI,
+    'javaclass': bangunpack.unpackJavaClass,
+    'dex': bangunpack.unpackDex,
+    'odex': bangunpack.unpackOdex,
+    'snappy_framed': bangunpack.unpackSnappy,
+    'elf': bangunpack.unpackELF,
+    'swf': bangunpack.unpackSWF,
+    'swf_zlib': bangunpack.unpackSWF,
+    'swf_lzma': bangunpack.unpackSWF,
+    'ubootlegacy': bangunpack.unpackUBootLegacy,
+    'certificate': bangunpack.unpackCertificate,
+    'git_index': bangunpack.unpackGitIndex,
+}
+
+# a lookup table to map signatures to a name for
+# pretty printing.
+signatureprettyprint = {
+    'lzma_var1': 'lzma',
+    'lzma_var2': 'lzma',
+    'lzma_var3': 'lzma',
+    'tar_posix': 'tar',
+    'tar_gnu': 'tar',
+    'squashfs_var1': 'squashfs',
+    'squashfs_var2': 'squashfs',
+    'gif87': 'gif',
+    'gif89': 'gif',
+    'jffs2_little_endian': 'jffs2',
+    'jffs2_big_endian': 'jffs2',
+    'cpio_old': 'cpio',
+    'cpio_portable': 'cpio',
+    'cpio_newascii': 'cpio',
+    'cpio_newcrc': 'cpio',
+    'zstd_08': 'zstd',
+    'swf_zlib': 'swf',
+    'swf_lzma': 'swf',
+}
+
+# extensions to unpacking functions. This should only be
+# used for files with a known extension that cannot be
+# reliably recognized any other way.
+# One example is the Android sparse data format.
+# These extensions should be lower case
+extensiontofunction = {
+    '.swp': bangunpack.unpackVimSwapfile,
+    '.new.dat': bangunpack.unpackAndroidSparseData,
+    '.pak': bangunpack.unpackChromePak,
+    '.ihex': bangunpack.unpackIHex,
+    '.hex': bangunpack.unpackIHex,
+    '.srec': bangunpack.unpackSREC,
+    '.xml': bangunpack.unpackXML,
+    '.tar': bangunpack.unpackTar,
+    'resources.arsc': bangunpack.unpackAndroidResource,
+    'manifest.mf': bangunpack.unpackJavaManifest,
+    '.sf': bangunpack.unpackJavaManifest,
+    'dockerfile': bangunpack.unpackDockerfile,
+    '.dockerfile': bangunpack.unpackDockerfile,
+    'pkg-info': bangunpack.unpackPythonPkgInfo,
+    'known_hosts': bangunpack.unpackSSHKnownHosts,
+    'ssh_known_hosts': bangunpack.unpackSSHKnownHosts,
+    '.rsa': bangunpack.unpackCertificate,
+    '.pem': bangunpack.unpackCertificate,
+}
+
+# a lookup table to map extensions to a name
+# for pretty printing.
+extensionprettyprint = {
+    '.swp': 'vimswapfile',
+    '.new.dat': 'androidsparsedata',
+    '.pak': 'pak',
+    '.ihex': 'ihex',
+    '.hex': 'ihex',
+    '.srec': 'srec',
+    '.xml': 'xml',
+    '.tar': 'tar',
+    'resources.arsc': 'androidresource',
+    'manifest.mf': 'javamanifest',
+    '.sf': 'javamanifest',
+    '.dockerfile': 'dockerfile',
+    'dockerfile': 'dockerfile',
+    'pkg-info': 'pkginfo',
+    'known_hosts': 'ssh_known_hosts',
+    'ssh_known_hosts': 'ssh_known_hosts',
+    '.rsa': 'certificate',
+    '.pem': 'certificate',
+}
+
+# certain unpacking functions if the whole file is text
+textonlyfunctions = {
+    'ihex': bangunpack.unpackIHex,
+    'srec': bangunpack.unpackSREC,
+    'css': bangunpack.unpackCSS,
+    'kernelconfig': bangunpack.unpackKernelConfig,
+    #'dockerfile': bangunpack.unpackDockerfile,
+    'base64': bangunpack.unpackBase64,
 }
