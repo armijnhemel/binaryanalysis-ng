@@ -183,6 +183,8 @@ extensiontofunction = {
     'dockerfile': bangunpack.unpackDockerfile,
     '.dockerfile': bangunpack.unpackDockerfile,
     'pkg-info': bangunpack.unpackPythonPkgInfo,
+    'known_hosts': bangunpack.unpackSSHKnownHosts,
+    'ssh_known_hosts': bangunpack.unpackSSHKnownHosts,
 }
 
 ## a lookup table to map extensions to a name
@@ -202,6 +204,8 @@ extensionprettyprint = {
     '.dockerfile': 'dockerfile',
     'dockerfile': 'dockerfile',
     'pkg-info': 'pkginfo',
+    'known_hosts': 'ssh_known_hosts',
+    'ssh_known_hosts': 'ssh_known_hosts',
 }
 
 ## certain unpacking functions if the whole file is text

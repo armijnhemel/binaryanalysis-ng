@@ -16491,3 +16491,87 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
     unpackedfilesandlabels.append((outfilename, []))
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+## SSH known hosts file
+## man 8 sshd
+def unpackSSHKnownHosts(filename, offset, unpackdir, temporarydirectory):
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    ## valid key types
+    keytypes = ["ecdsa-sha2-nistp256", "ecdsa-sha2-nistp384",
+                "ecdsa-sha2-nistp521", "ssh-ed25519", "ssh-dss",
+                "ssh-rsa"]
+
+    ## assume it is a text file
+    try:
+        checkfile = open(filename, 'r')
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid ssh known hosts file'}
+        return {'status': False, 'error': unpackingerror}
+
+    dataunpacked = False
+
+    try:
+        for i in checkfile:
+            if i.startswith('#'):
+                continue
+            if i.strip == '':
+                continue
+            linesplit = i.strip().split(' ')
+            ## now process each element
+            linesplitcounter = 0
+            if linesplit[0].startswith('@'):
+                if not (linesplit[0] == '@cert-authority' or linesplit[0] == '@revoked'):
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid marker'}
+                linesplitcounter += 1
+            ## extra sanity check: there have to be at least three fields
+            if len(linesplit) - linesplitcounter < 3:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'not enough fields'}
+                return {'status': False, 'error': unpackingerror}
+
+            ## first the hostnames field
+            ## TODO: more checks
+            hostnamesfield = linesplit[linesplitcounter]
+            hostnames = hostnamesfield.split(',')
+
+            ## then the key type
+            keytype = linesplit[linesplitcounter+1]
+            if not keytype in keytypes:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid key type'}
+                return {'status': False, 'error': unpackingerror}
+            ## then the key, base64 encoded
+            try:
+                sshkey = base64.standard_b64decode(linesplit[linesplitcounter+2])
+            except:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid key (not base64)'}
+                return {'status': False, 'error': unpackingerror}
+            ## ignore any comments
+            dataunpacked = True
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid ssh known hosts file'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    if not dataunpacked:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid ssh known hosts file'}
+        return {'status': False, 'error': unpackingerror}
+
+    labels.append('ssh known hosts')
+    return {'status': True, 'length': filesize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
