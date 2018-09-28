@@ -138,6 +138,7 @@ signaturetofunction = {
     'swf_zlib': bangunpack.unpackSWF,
     'swf_lzma': bangunpack.unpackSWF,
     'ubootlegacy': bangunpack.unpackUBootLegacy,
+    'certificate': bangunpack.unpackCertificate,
 }
 
 ## a lookup table to map signatures to a name for
@@ -185,6 +186,8 @@ extensiontofunction = {
     'pkg-info': bangunpack.unpackPythonPkgInfo,
     'known_hosts': bangunpack.unpackSSHKnownHosts,
     'ssh_known_hosts': bangunpack.unpackSSHKnownHosts,
+    '.rsa': bangunpack.unpackCertificate,
+    '.pem': bangunpack.unpackCertificate,
 }
 
 ## a lookup table to map extensions to a name
@@ -206,6 +209,8 @@ extensionprettyprint = {
     'pkg-info': 'pkginfo',
     'known_hosts': 'ssh_known_hosts',
     'ssh_known_hosts': 'ssh_known_hosts',
+    '.rsa': 'certificate',
+    '.pem': 'certificate',
 }
 
 ## certain unpacking functions if the whole file is text

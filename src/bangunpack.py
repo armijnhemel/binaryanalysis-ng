@@ -73,6 +73,7 @@
 ## 44. Python PKG-INFO files
 ## 45. base64/32/16
 ## 46. SSH known hosts files
+## 47. various certificates (PEM, private key, etc.)
 ##
 ## Unpackers/carvers needing external Python libraries or other tools
 ##
@@ -16576,3 +16577,157 @@ def unpackSSHKnownHosts(filename, offset, unpackdir, temporarydirectory):
     labels.append('ssh known hosts')
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+## method to see if a file has one or more certificates in various formats
+## The SSL certificate formats themselves are defined in for example:
+## * X.690 - https://en.wikipedia.org/wiki/X.690
+## * X.509 - https://en.wikipedia.org/wiki/X.509
+def unpackCertificate(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    dataunpacked = False
+
+    ## For reasons unknown pyOpenSSL sometimes barfs on certs from Android, so use
+    ## an external tool (for now).
+    if shutil.which('openssl') == None:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'openssl program not found'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0:
+        certres = extractCertificate(filename, offset, unpackdir, temporarydirectory)
+        if certres['status']:
+            return certres
+
+    ## open the file
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(11)
+    if checkbytes != b'-----BEGIN ':
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid certificate'}
+        return {'status': False, 'error': unpackingerror}
+
+    ## rewind and read more data
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(2048)
+    certtype = None
+    if b'PRIVATE KEY' in checkbytes:
+        certtype = 'key'
+        outfilename = os.path.join(unpackdir, 'unpacked.key')
+    elif b'CERTIFICATE' in checkbytes:
+        certtype = 'certificate'
+        outfilename = os.path.join(unpackdir, 'unpacked.crt')
+    else:
+        outfilename = os.path.join(unpackdir, 'unpacked-certificate')
+
+    outfile = open(outfilename, 'wb')
+
+    ## this is a bit hackish, but hey, it works in most of the cases :-)
+    certbuf = checkbytes
+    certunpacked = False
+    tmplabels = []
+    while True:
+        endres = certbuf.find(b'-----END')
+        if endres != -1:
+            if certtype == 'key':
+                certendres = certbuf.find(b'KEY-----', endres)
+                if certendres != -1:
+                    tmplabels.append('private key')
+                    outfile.write(certbuf[:certendres+8])
+                    certunpacked = True
+                    break
+            elif certtype == 'certificate':
+                certendres = certbuf.find(b'CERTIFICATE-----', endres)
+                if certendres != -1:
+                    tmplabels.append('certificate')
+                    if b' TRUSTED ' in certbuf:
+                        tmplabels.append('trusted certificate')
+                    outfile.write(certbuf[:certendres+16])
+                    certunpacked = True
+                    break
+            else:
+                certendres = certbuf.find(b'-----', endres+1)
+                if certendres != -1:
+                    tmplabels.append('certificate')
+                    outfile.write(certbuf[:certendres+5])
+                    certunpacked = True
+                    break
+
+        ## only printables are allowed, so as soon as a non-printable
+        ## character is encountered exit. Only check the last bytes
+        ## that have been read.
+        if len(list(filter(lambda x: chr(x) not in string.printable, checkbytes))) != 0:
+            break
+        checkbytes = checkfile.read(2048)
+        if checkbytes == b'':
+            break
+        certbuf += checkbytes
+
+    outfile.close()
+    checkfile.close()
+
+    ## as an extra sanity check run it through the unpacker
+    certres = extractCertificate(outfilename, 0, unpackdir, temporarydirectory)
+    if certres['status']:
+        tmplabels += certres['labels']
+        tmplabels = list(set(tmplabels))
+        tmplabels.append('unpacked')
+        unpackedfilesandlabels.append((outfilename, tmplabels))
+        return {'status': True, 'length': filesize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    ## cleanup
+    os.unlink(outfilename)
+    unpackingerror = {'offset': offset, 'fatal': False,
+                      'reason': 'not a valid certificate'}
+    return {'status': False, 'error': unpackingerror}
+
+def extractCertificate(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+
+    ## First see if a file is in DER format
+    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER", "-in", filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (outputmsg, errormsg) = p.communicate()
+    if p.returncode == 0:
+        labels.append("binary")
+        labels.append("certificate")
+        labels.append('resource')
+        return {'status': True, 'length': filesize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    ## then check if it is a PEM
+    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "PEM", "-in", filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (outputmsg, errormsg) = p.communicate()
+    if p.returncode == 0:
+        labels.append("text")
+        labels.append('resource')
+        checkfile = open(filename, 'r')
+        ## there could be several certificates or keys
+        ## inside the file.
+        ## TODO: split into certificates and private keys
+        for checkline in checkfile:
+            ## then check if this is perhaps a private key
+            if "PRIVATE KEY" in checkline:
+                labels.append('private key')
+            ## or a certificate
+            if "BEGIN CERTIFICATE" in checkline:
+                labels.append("certificate")
+            ## or a trusted certificate
+            if "TRUSTED CERTIFICATE" in checkline:
+                labels.append("trusted certificate")
+        checkfile.close()
+        return {'status': True, 'length': filesize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    ## else fail
+    unpackingerror = {'offset': offset, 'fatal': False, 'reason': 'not a valid certificate'}
+    return {'status': False, 'error': unpackingerror}
