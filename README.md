@@ -37,3 +37,6 @@ GNU Affero General Public License, version 3 (AGPL-3.0)
 The recommended coding style is described in PEP 8:
 
 https://www.python.org/dev/peps/pep-0008/
+
+It is recommended to run PEP 8 verification tools, for example
+python3-pep8 (on Fedora).
