@@ -1328,7 +1328,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         unpackedsize += 1
 
         # then the abbreviation index, which points into the
-        # abbrevation strings, so cannot be larger than than tz_abbrevation_bytes
+        # abbrevation strings, so cannot be larger than than
+        # tz_abbrevation_bytes
         checkbytes = checkfile.read(1)
         if len(checkbytes) != 1:
             checkfile.close()
@@ -1453,7 +1454,8 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 15
 
-    # then the number of UT/local indicators in "standard byte order" (big endian)
+    # then the number of UT/local indicators
+    # in "standard byte order" (big endian)
     checkbytes = checkfile.read(4)
     ut_indicators = int.from_bytes(checkbytes, byteorder='big')
     unpackedsize += 4
@@ -2667,7 +2669,8 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                     unpackedsize += 8
                     androidsigningsize = int.from_bytes(checkbytes, byteorder='little')
 
-                    # APK signing V3 might pad to 4096 bytes first, introduced in
+                    # APK signing V3 might pad to 4096 bytes first,
+                    # introduced in:
                     # https://android.googlesource.com/platform/tools/apksig/+/edf96cb79f533eb4255ee1b6aa2ba8bf9c1729b2
                     if androidsigningsize == 0:
                         checkfile.seek(4096 - unpackedsize % 4096, os.SEEK_CUR)
