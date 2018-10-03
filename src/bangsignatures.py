@@ -97,6 +97,7 @@ signatures = {
     'ubootlegacy': b'\x27\x05\x19\x56',
     'certificate': b'-----BEGIN ',
     'git_index': b'DIRC',  # https://github.com/git/git/blob/master/Documentation/technical/index-format.txt
+    'flv': b'FLV',
 
 }
 
@@ -185,6 +186,7 @@ signaturetofunction = {
     'ubootlegacy': bangunpack.unpackUBootLegacy,
     'certificate': bangunpack.unpackCertificate,
     'git_index': bangunpack.unpackGitIndex,
+    'flv': bangunpack.unpackFLV,
 }
 
 # a lookup table to map signatures to a name for

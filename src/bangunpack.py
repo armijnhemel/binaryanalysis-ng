@@ -75,6 +75,7 @@
 # 46. SSH known hosts files
 # 47. various certificates (PEM, private key, etc.)
 # 48. Git index files
+# 49. FLV (Macromedia Flash Video)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -16992,5 +16993,229 @@ def unpackGitIndex(filename, offset, unpackdir, temporarydirectory):
     outfile.close()
     checkfile.close()
     unpackedfilesandlabels.append((outfilename, ['git index', 'resource', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Specifications (10.1.2.01) can be found on the Adobe site:
+# https://wwwimages2.adobe.com/content/dam/acom/en/devnet/flv/video_file_format_spec_v10_1.pdf
+# in Appendix E
+def unpackFLV(filename, offset, unpackdir, temporarydirectory):
+    filesize = os.stat(filename).st_size
+    labels = []
+    unpackingerror = {}
+    unpackedfilesandlabels = []
+
+    unpackedsize = 0
+
+    # First check if the file size is 9 bytes or more.
+    # If not, then it is not a valid FLV file
+    # FLV 10.1.2.01, E.2
+    if filesize - offset < 9:
+        unpackingerror = {'offset': offset,
+                          'reason': 'fewer than 9 bytes',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile = open(filename, 'rb')
+    # skip over the magic
+    checkfile.seek(offset+3)
+    unpackedsize += 3
+
+    # then the file version, always 0x01
+    checkbytes = checkfile.read(1)
+    if checkbytes != b'\x01':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'wrong file version',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    # then the type flags, do some sanity checks
+    typeflags = ord(checkfile.read(1))
+    if typeflags >> 1 & 1 != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'wrong value for TypeFlags',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+    if typeflags >> 3 != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'wrong value for TypeFlags',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    # then the size of the header, should be at least 9
+    checkbytes = checkfile.read(4)
+    sizeofheader = int.from_bytes(checkbytes, byteorder='big')
+    if sizeofheader < 9:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'wrong size header',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+    if offset + sizeofheader > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'not enough bytes for header',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+
+    # now skip over the header
+    checkfile.seek(offset + sizeofheader)
+    unpackedsize = sizeofheader
+
+    # then the tags (FLV 10.1.2.01, E.3)
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'not enough bytes for tag',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+
+    previoustagsize = int.from_bytes(checkbytes, byteorder='big')
+    if previoustagsize != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'wrong previous tag size',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    # remember if any data was unpacked. This is important to
+    # know in case there is trailing data, as FLV does not have
+    # a clear trailer.
+    dataunpacked = False
+
+    while True:
+        tagstart = checkfile.tell()
+        checkbytes = checkfile.read(1)
+        isfiltered = False
+        if len(checkbytes) != 1:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'not enough bytes for tag',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+        # highest two bits should be 0
+        if ord(checkbytes) & 192 != 0:
+            if dataunpacked:
+                unpackedsize = tagstart - offset
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'reserved bits not 0',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+        if ord(checkbytes) & 32 == 1:
+            isfiltered = True
+        tagtype = ord(checkbytes) & 31
+        unpackedsize += 1
+
+        # then the data size
+        checkbytes = checkfile.read(3)
+        if len(checkbytes) != 3:
+            if dataunpacked:
+                unpackedsize = tagstart - offset
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'not enough bytes for tag datasize',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+        tagdatasize = int.from_bytes(checkbytes, byteorder='big')
+        # tag cannot be outside of file
+        if tagstart + 11 + tagdatasize > filesize:
+            if dataunpacked:
+                unpackedsize = tagstart - offset
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'reason':
+                              'tag cannot be outside of file',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+
+        # then skip the time stamp information
+        checkfile.seek(4, os.SEEK_CUR)
+
+        # and read the streamid
+        checkbytes = checkfile.read(3)
+        if len(checkbytes) != 3:
+            if dataunpacked:
+                unpackedsize = tagstart - offset
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'not enough bytes for tag datasize',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+        streamid = int.from_bytes(checkbytes, byteorder='big')
+        if streamid != 0:
+            if dataunpacked:
+                unpackedsize = tagstart - offset
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'stream id not 0',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+
+        # then skip a number of bytes
+        checkfile.seek(tagdatasize, os.SEEK_CUR)
+        unpackedsize += tagdatasize
+
+        tagend = checkfile.tell()
+        # then size of last tag
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            if dataunpacked:
+                unpackedsize = tagstart - offset
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'not enough bytes for tag size',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+        previoustagsize = int.from_bytes(checkbytes, byteorder='big')
+        if previoustagsize != tagend - tagstart:
+            if dataunpacked:
+                unpackedsize = tagstart - offset
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'stored tag size does not match tag size',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+        dataunpacked = True
+        unpackedsize = tagend - offset + 4
+        if checkfile.tell() == filesize:
+            break
+
+    if not dataunpacked:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'no data could be unpacked',
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and filesize == unpackedsize:
+        checkfile.close()
+        labels.append('flv')
+        labels.append('video')
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # Carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.flv")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+    outlabels = ['flv', 'video', 'unpacked']
+    unpackedfilesandlabels.append((outfilename, outlabels))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
