@@ -73,9 +73,8 @@
 # 44. Python PKG-INFO files
 # 45. base64/32/16
 # 46. SSH known hosts files
-# 47. various certificates (PEM, private key, etc.)
+# 47. FLV (Macromedia Flash Video)
 # 48. Git index files
-# 49. FLV (Macromedia Flash Video)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -85,24 +84,25 @@
 #  4. BMP (needs PIL)
 #  5. GIF (needs PIL)
 #  6. JPEG (needs PIL)
-#  7. Microsoft Cabinet archives (requires cabextract)
+#  7. Microsoft Cabinet archives (needs cabextract)
 #  8. RZIP (requires rzip)
 #  9. 7z (requires external tools), single frame(?)
-# 10. Windows Compiled HTML Help (requires external tools, version 3
+# 10. Windows Compiled HTML Help (needs external tools, version 3
 #     only)
-# 11. Windows Imaging file format (requires external tools, single
+# 11. Windows Imaging file format (needs external tools, single
 #     image only)
 # 12. ext2/3/4 (missing: symbolic link support)
 # 13. zstd (needs zstd package)
 # 14. SGI image files (needs PIL)
 # 15. Apple Icon Image (needs PIL)
 # 16. LZ4 (requires LZ4 Python bindings)
-# 17. VMware VMDK (requires qemu-img, whole file only)
-# 18. QEMU qcow2 (requires qemu-img, whole file only)
-# 19. VirtualBox VDI (requires qemu-img, whole file only,
+# 17. VMware VMDK (needs qemu-img, whole file only)
+# 18. QEMU qcow2 (needs qemu-img, whole file only)
+# 19. VirtualBox VDI (needs qemu-img, whole file only,
 #     Oracle flavour only)
 # 20. XML
 # 21. Snappy (needs python-snappy)
+# 22. various certificates (PEM, private key, etc., needs openssl)
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
