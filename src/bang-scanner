@@ -107,7 +107,8 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio',
 # running.
 def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 maxsearchbytes, unpackdirectory, resultsdirectory,
-                temporarydirectory, dbconn, dbcursor, bangfunctions):
+                temporarydirectory, dbconn, dbcursor, bangfunctions,
+                scanenvironment):
     lenunpackdirectory = len(str(unpackdirectory)) + 1
     synthesizedminimum = 10
 
@@ -1208,6 +1209,9 @@ def main(argv):
     # create a shared dictionary
     checksumdict = processmanager.dict()
 
+    # create a scan environment, initially an empty dictionary
+    scanenvironment = {}
+
     # grab all the functions from the "bangfilescans" file
     bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
 
@@ -1223,7 +1227,8 @@ def main(argv):
                                               resultsdirectory,
                                               temporarydirectory,
                                               None, None,
-                                              bangfunctions))
+                                              bangfunctions,
+                                              scanenvironment))
         else:
             p = multiprocessing.Process(target=processfile,
                                         args=(scanfilequeue,
@@ -1235,7 +1240,8 @@ def main(argv):
                                               temporarydirectory,
                                               bangdbconns[i][0],
                                               bangdbconns[i][1],
-                                              bangfunctions))
+                                              bangfunctions,
+                                              scanenvironment))
         processes.append(p)
 
     # then start all the processes
