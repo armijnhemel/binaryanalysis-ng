@@ -28,7 +28,8 @@
 # * filename (pathlib.Path object)
 # * hashes (as a dict)
 # * database connection object (PostgreSQL)
-# * database cursor objec tPostgreSQL)
+# * database cursor object (PostgreSQL)
+# * scan environment (a dict)
 
 
 def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
