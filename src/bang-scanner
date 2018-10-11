@@ -910,7 +910,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # * hashes (dict 'hashresults')
 
             for b in bangfunctions:
-                res = b[1](checkfile, hashresults, dbconn, dbcursor)
+                res = b[1](checkfile, hashresults, dbconn, dbcursor, scanenvironment)
 
             # write a pickle with output data
             # The pickle contains:

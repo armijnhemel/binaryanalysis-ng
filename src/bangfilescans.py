@@ -31,7 +31,7 @@
 # * database cursor objec tPostgreSQL)
 
 
-def knownfileNSRL(filename, hashresults, dbconn, dbcursor):
+def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
     '''A method to search a hash of a file in the NSRL database
     '''
     # results is (for now) a list
