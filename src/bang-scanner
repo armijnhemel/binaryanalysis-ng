@@ -107,7 +107,7 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio',
 # running.
 def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 maxsearchbytes, unpackdirectory, resultsdirectory,
-                temporarydirectory, dbconn, dbcursor, bangfunctions,
+                temporarydirectory, dbconn, dbcursor, bangfilefunctions,
                 scanenvironment):
     lenunpackdirectory = len(str(unpackdirectory)) + 1
     synthesizedminimum = 10
@@ -909,7 +909,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # * filename (pathlib.Path object)
             # * hashes (dict 'hashresults')
 
-            for b in bangfunctions:
+            for b in bangfilefunctions:
                 res = b[1](checkfile, hashresults, dbconn, dbcursor, scanenvironment)
 
             # write a pickle with output data
@@ -1215,6 +1215,18 @@ def main(argv):
     # grab all the functions from the "bangfilescans" file
     bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
 
+    # split them functions in file functions and others
+    bangfilefunctions = []
+    for f in bangfunctions:
+        if f[1].__doc__ is None:
+            bangfilefunctions.append(f)
+        else:
+            for l in f[1].__doc__.split('\n'):
+                if l.strip().startswith('Context:'):
+                    context = l.split(':', 1)[1].strip()
+                    if context == 'file':
+                        bangfilefunctions.append(f)
+
     # create processes for unpacking archives
     for i in range(0, bangthreads):
         if not usedatabase:
@@ -1227,7 +1239,7 @@ def main(argv):
                                               resultsdirectory,
                                               temporarydirectory,
                                               None, None,
-                                              bangfunctions,
+                                              bangfilefunctions,
                                               scanenvironment))
         else:
             p = multiprocessing.Process(target=processfile,
@@ -1240,7 +1252,7 @@ def main(argv):
                                               temporarydirectory,
                                               bangdbconns[i][0],
                                               bangdbconns[i][1],
-                                              bangfunctions,
+                                              bangfilefunctions,
                                               scanenvironment))
         processes.append(p)
 

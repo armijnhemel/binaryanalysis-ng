@@ -34,6 +34,7 @@
 
 def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
     '''A method to search a hash of a file in the NSRL database
+       Context: file
     '''
     # results is (for now) a list
     results = []
