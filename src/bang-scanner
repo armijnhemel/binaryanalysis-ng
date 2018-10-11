@@ -1217,6 +1217,8 @@ def main(argv):
 
     # split them functions in file functions and others
     bangfilefunctions = []
+    bangwholecontextfunctions = []
+
     for f in bangfunctions:
         if f[1].__doc__ is None:
             bangfilefunctions.append(f)
@@ -1226,6 +1228,8 @@ def main(argv):
                     context = l.split(':', 1)[1].strip()
                     if context == 'file':
                         bangfilefunctions.append(f)
+                    elif context == 'whole':
+                        bangwholecontextfunctions.append(f)
 
     # create processes for unpacking archives
     for i in range(0, bangthreads):
