@@ -17340,16 +17340,19 @@ def unpackLSM(filename, offset, unpackdir, temporarydirectory):
             if i.strip() == '':
                 continue
             if firstline:
-                if i.strip() != 'Begin3' and i.strip() != 'Begin4':
+                if i.rstrip() != 'Begin3' and i.rstrip() != 'Begin4':
                     checkfile.close()
                     unpackingerror = {'offset': offset, 'fatal': False,
                                       'reason': 'invalid first line'}
                     return {'status': False, 'error': unpackingerror}
                 firstline = False
                 continue
-            if i.strip() == 'End':
+            if i.rstrip() == 'End':
                 endseen = True
-            linesplit = i.strip().split(':', 1)
+                continue
+            if i.startswith(' ') or i.startswith('\t'):
+                continue
+            linesplit = i.rstrip().split(':', 1)
             if len(linesplit) != 2:
                 break
 
