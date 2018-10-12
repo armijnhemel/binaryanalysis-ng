@@ -31,6 +31,11 @@
 # * database cursor object (PostgreSQL)
 # * scan environment (a dict)
 
+import pathlib
+
+# import BANG signatures
+import bangsignatures
+
 
 def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
     '''A method to search a hash of a file in the NSRL database
@@ -81,4 +86,17 @@ def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
         # add the result to the final list of results
         results.append(dbres)
 
+    return results
+
+
+def guessExtension(filename, hashresults, dbconn, dbcursor, scanenvironment):
+    '''Search the extension of the file in a list of known extensions.
+       Context: file
+    '''
+    # results is (for now) a list
+    results = []
+    if filename.suffix == '':
+        return results
+    if filename.suffix.lower() in bangsignatures.extensiontofiletype:
+        return bangsignatures.extensiontofiletype[filename.suffix.lower()]
     return results

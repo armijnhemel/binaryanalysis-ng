@@ -272,3 +272,12 @@ textonlyfunctions = {
     #'dockerfile': bangunpack.unpackDockerfile,
     'base64': bangunpack.unpackBase64,
 }
+
+# a lookup table to map various extensions to file types
+extensiontofiletype = {
+    '.py': ['Python source code'],
+    '.pyc': ['Python compiled code'],
+    '.pl': ['Perl source code'],
+    '.pm': ['Perl module'],
+    '.sh': ['shell script'],
+}
