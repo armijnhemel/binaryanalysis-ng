@@ -236,6 +236,7 @@ extensiontofunction = {
     'ssh_known_hosts': bangunpack.unpackSSHKnownHosts,
     '.rsa': bangunpack.unpackCertificate,
     '.pem': bangunpack.unpackCertificate,
+    '.lsm': bangunpack.unpackLSM,
 }
 
 # a lookup table to map extensions to a name
@@ -259,6 +260,7 @@ extensionprettyprint = {
     'ssh_known_hosts': 'ssh_known_hosts',
     '.rsa': 'certificate',
     '.pem': 'certificate',
+    '.lsm': 'lsm',
 }
 
 # certain unpacking functions if the whole file is text

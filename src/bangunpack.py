@@ -75,6 +75,7 @@
 # 46. SSH known hosts files
 # 47. FLV (Macromedia Flash Video)
 # 48. Git index files
+# 49. Linux Software Map files
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -17295,4 +17296,96 @@ def unpackFLV(filename, offset, unpackdir, temporarydirectory):
     outlabels = ['flv', 'video', 'unpacked']
     unpackedfilesandlabels.append((outfilename, outlabels))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Linux Software Map file
+# https://www.ibiblio.org/pub/Linux/docs/linux-software-map/lsm-template (version 3)
+# http://www.ibiblio.org/pub/linux/LSM-TEMPLATE.html (version 4)
+def unpackLSM(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a Linux Software Map file.'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # assume it is a text file
+    try:
+        checkfile = open(filename, 'r')
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a text file'}
+        return {'status': False, 'error': unpackingerror}
+
+    dataunpacked = False
+    mandatoryfields = ['Title', 'Version', 'Entered-date',
+                       'Description', 'Author', 'Primary-site']
+
+    allfields = ['Title', 'Version', 'Entered-date', 'Description', 'Keywords',
+                 'Author', 'Maintained-by', 'Primary-site', 'Alternate-site',
+                 'Original-site', 'Platforms', 'Copying-policy']
+
+    seenfields = set()
+
+    try:
+        firstline = True
+        endseen = False
+        for i in checkfile:
+            if endseen:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'trailing data'}
+                return {'status': False, 'error': unpackingerror}
+            if i.strip() == '':
+                continue
+            if firstline:
+                if i.strip() != 'Begin3' and i.strip() != 'Begin4':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid first line'}
+                    return {'status': False, 'error': unpackingerror}
+                firstline = False
+                continue
+            if i.strip() == 'End':
+                endseen = True
+            linesplit = i.strip().split(':', 1)
+            if len(linesplit) != 2:
+                break
+
+            # then the key type
+            lsmfield = linesplit[0]
+            if lsmfield not in allfields:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid LSM field %s' % lsmfield}
+                return {'status': False, 'error': unpackingerror}
+            seenfields.add(lsmfield)
+            dataunpacked = True
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid Linux Software Map file'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    if not dataunpacked:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'no data unpacked'}
+        return {'status': False, 'error': unpackingerror}
+
+    if not endseen:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'no end field'}
+        return {'status': False, 'error': unpackingerror}
+
+    for i in mandatoryfields:
+        if i not in seenfields:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'mandatory field %s missing' % i}
+            return {'status': False, 'error': unpackingerror}
+
+    labels.append('linux software map')
+    return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
