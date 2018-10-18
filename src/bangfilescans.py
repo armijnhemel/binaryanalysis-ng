@@ -32,9 +32,7 @@
 # * scan environment (a dict)
 
 import pathlib
-
-# import BANG signatures
-import bangsignatures
+import mimetypes
 
 
 def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
@@ -91,12 +89,8 @@ def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
 
 def guessExtension(filename, hashresults, dbconn, dbcursor, scanenvironment):
     '''Search the extension of the file in a list of known extensions.
+       and return the mime type
        Context: file
     '''
-    # results is (for now) a list
-    results = []
-    if filename.suffix == '':
-        return results
-    if filename.suffix.lower() in bangsignatures.extensiontofiletype:
-        return bangsignatures.extensiontofiletype[filename.suffix.lower()]
-    return results
+    # results is either a string (mime type) or None
+    return mimetypes.guess_type(filename.name)[0]
