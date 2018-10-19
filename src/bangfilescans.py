@@ -87,10 +87,18 @@ def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
     return results
 
 
+# https://www.iana.org/assignments/media-types/media-types.xhtml
 def guessExtension(filename, hashresults, dbconn, dbcursor, scanenvironment):
     '''Search the extension of the file in a list of known extensions.
        and return the mime type
        Context: file
     '''
-    # results is either a string (mime type) or None
-    return mimetypes.guess_type(filename.name)[0]
+    returnres = {}
+
+    # results is a dictionary
+    mimeres = mimetypes.guess_type(filename.name)[0]
+    if mimeres not is None:
+        returnres['key'] = 'mimetype'
+        returnres['type'] = 'informational'
+        returnres['value'] = mimeres[0]
+    return returnres
