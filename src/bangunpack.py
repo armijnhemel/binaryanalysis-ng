@@ -3215,6 +3215,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 labels.append('zip')
                 if androidsigning:
                     labels.append('apk')
+                    labels.append('android')
             if carved:
                 os.unlink(temporaryfile[1])
             checkfile.close()
@@ -6933,7 +6934,7 @@ def unpackAndroidSparseData(filename, offset, unpackdir, temporarydirectory):
 
     unpackedsize = filesize
 
-    labels += ['androidsparsedata']
+    labels += ['androidsparsedata', 'android']
     unpackedfilesandlabels.append((outputfilename, []))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
@@ -7048,7 +7049,8 @@ def unpackAndroidBackup(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # add the labels and pass on the results from the tar unpacking
-    labels.append('android backup')
+    labels.append('androidbackup')
+    labels.append('android')
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': tarresult['filesandlabels']}
 
@@ -12517,6 +12519,7 @@ def unpackAndroidSparse(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
     if offset == 0 and filesize == unpackedsize:
         labels.append('androidsparse')
+        labels.append('android')
     unpackedfilesandlabels.append((outputfilename, []))
     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                       'reason': 'Not a valid Android sparse file'}
@@ -15839,7 +15842,7 @@ def unpackAndroidResource(filename, offset, unpackdir, temporarydirectory):
         checkfile.close()
         labels.append('binary')
         labels.append('resource')
-        labels.append('android resource')
+        labels.append('android')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
