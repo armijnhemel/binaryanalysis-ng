@@ -11932,9 +11932,8 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
         labels.append('rpm')
         if issourcerpm:
             labels.append('srpm')
-            labels.append('source rpm')
         if payload == b'drpm':
-            labels.append('delta rpm')
+            labels.append('drpm')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
