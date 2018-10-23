@@ -97,7 +97,7 @@ def guessExtension(filename, hashresults, dbconn, dbcursor, scanenvironment):
 
     # results is a dictionary
     mimeres = mimetypes.guess_type(filename.name)[0]
-    if mimeres not is None:
+    if mimeres is not None:
         returnres['key'] = 'mimetype'
         returnres['type'] = 'informational'
         returnres['value'] = mimeres[0]
