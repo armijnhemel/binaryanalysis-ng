@@ -273,11 +273,200 @@ textonlyfunctions = {
     'base64': bangunpack.unpackBase64,
 }
 
-# a lookup table to map various extensions to file types
-extensiontofiletype = {
-    '.py': ['Python source code'],
-    '.pyc': ['Python compiled code'],
-    '.pl': ['Perl source code'],
-    '.pm': ['Perl module'],
-    '.sh': ['shell script'],
-}
+
+# license references extracted from a Fedora 28 system:
+# $ cd /usr/share/doc
+# $ grep -r license | grep http
+#
+# Keys are SPDX compatible as far as possible. Included are
+# references for both software and data. http://, https://,
+# www are removed, as are some extensions to avoid duplication.
+# Some of these URLs are no longer valid, or redirect to other
+# pages, but are still used in code.
+licensereferences = {}
+
+# GNU (licenses, URLs, e-mail)
+licensereferences['GNU'] = ["gnu.org/licenses/", "gnu.org/gethelp/",
+                     "gnu.org/software/", "@gnu.org"]
+
+# GNU GPL license family
+licensereferences['GPL family'] = ["General Public License"]
+
+# GNU GPL
+licensereferences['GPL'] = ["gnu.org/licenses/gpl."
+                     "gnu.org/copyleft/gpl."
+                     "gnu.org/copyleft/gpl.",
+                     "www.opensource.org/licenses/gpl-license.php",
+                     "www.fsf.org/copyleft/gpl.html"]
+licensereferences['GPL-2.0'] = ["gnu.org/licenses/gpl-2.0.",
+                         "gnu.org/licenses/old-licenses/gpl-2.0",
+                         "creativecommons.org/licenses/GPL/2.0/",
+                         "opensource.org/licenses/GPL-2.0"]
+licensereferences['GPL-3.0'] = ["opensource.org/licenses/gpl-3.0."]
+
+# GNU LGPL
+licensereferences['LGPL'] = ["www.fsf.org/copyleft/lesser.html",
+                      "www.fsf.org/licenses/lgpl.html",
+                      "gnu.org/licenses/lgpl.html",
+                      "opensource.org/licenses/lgpl-license"]
+licensereferences['LGPL-2.0'] = ["gnu.org/licenses/old-licenses/lgpl-2.0"]
+licensereferences['LGPL-2.1'] = ["gnu.org/licenses/old-licenses/lgpl-2.1",
+                          "creativecommons.org/licenses/LGPL/2.1/",
+                          "opensource.org/licenses/LGPL-2.1"]
+licensereferences['LGPL-3.0'] = ["opensource.org/licenses/lgpl-3.0."]
+
+# GNU FDL
+licensereferences['GFDL'] = ["gnu.org/copyleft/fdl.html",
+                      "www.fsf.org/licensing/licenses/fdl.html"]
+licensereferences['GFDL-1.3'] = ["gnu.org/licenses/fdl-1.3.html"]
+
+# SISSL
+licensereferences['SISSL'] = ["www.openoffice.org/licenses/sissl_license.html"]
+
+# Apache licenses
+licensereferences['Apache'] = ["apache.org/licenses/"]
+licensereferences['Apache-1.1'] = ["apache.org/licenses/LICENSE-1.1",
+                            "opensource.org/licenses/Apache-1.1"]
+licensereferences['Apache-2.0'] = ["apache.org/licenses/LICENSE-2.0",
+                            "opensource.org/licenses/apache2.0.php"]
+
+# Creative Commons
+licensereferences['CC-SA-1.0'] = ["creativecommons.org/licenses/sa/1.0"]
+licensereferences['CC-BY-2.0'] = ["creativecommons.org/licenses/by/2.0/"]
+licensereferences['CC-BY-SA-2.0'] = ["creativecommons.org/licenses/by-sa/2.0/"]
+licensereferences['CC-BY-SA-2.5'] = ["creativecommons.org/licenses/by-sa/2.5/"]
+licensereferences['CC-BY-SA-3.0'] = ["creativecommons.org/licenses/by-sa/3.0/"]
+licensereferences['CC-BY-3.0'] = ["creativecommons.org/licenses/by/3.0/"]
+licensereferences['CC-BY-4.0'] = ["creativecommons.org/licenses/by/4.0/"]
+licensereferences['CC-BY-SA-4.0'] = ["creativecommons.org/licenses/by-sa/4.0/"]
+
+# Unlicense
+licensereferences['Unlicense'] = ["unlicense.org"]
+
+# ODbL
+licensereferences['ODbL'] = ["opendatacommons.org/licenses/odbl/"]
+
+# LaTeX
+licensereferences['LaTeX'] = ["latex-project.org/lppl.txt"]
+
+# ImageMagick
+licensereferences['ImageMagick'] = ["www.imagemagick.org/script/license.php"]
+
+# Open LDAP
+licensereferences['OLDAP'] = ["www.OpenLDAP.org/license.html"]
+
+# infozip
+licensereferences['infozip'] = ["www.info-zip.org/pub/infozip/license.html"]
+
+# Perl
+licensereferences['Perl'] = ["dev.perl.org/licenses/"]
+
+# SIL Open Font License
+licensereferences['OFL'] = ["scripts.sil.org/OFL"]
+
+# font awesome
+licensereferences['fontawesome'] = ["fontawesome.io/license"]
+
+# GUST font license
+licensereferences["gust font license"] = ["www.gust.org.pl/fonts/licenses/GUST-FONT-LICENSE.txt"]
+
+# MTX licensing
+licensereferences['MTX'] = ["www.monotype.com/legal/mtx-licensing-statement/",
+                     "monotypeimaging.com/aboutus/mtx-license.aspx"]
+
+# MPL licenses
+licensereferences['MPL'] = ["mozilla.org/MPL"]
+licensereferences['MPL-1.0'] = ["opensource.org/licenses/MPL-1.0",
+                         "opensource.org/licenses/mozilla1.0.php"]
+licensereferences['MPL-1.1'] = ["mozilla.org/MPL/MPL-1.1.html",
+                         "opensource.org/licenses/MPL-1.1",
+                         "opensource.org/licenses/mozilla1.1.php"]
+licensereferences['MPL-2.0'] = ["mozilla.org/MPL/2.0/"]
+
+# MIT license
+licensereferences['MIT'] = ["opensource.org/licenses/mit-license",
+                     "opensource.org/licenses/MIT"]
+
+# lodash
+licensereferences['lodash'] = ["lodash.com/license"]
+
+# ncurses
+licensereferences['ncurses'] = ["invisible-island.net/ncurses/ncurses-license.html"]
+
+# BSD licenses
+licensereferences['BSD'] = ["opensource.org/licenses/bsd-license",
+                     "creativecommons.org/licenses/BSD/"]
+licensereferences['BSD-2-Clause'] = ["nmap.org/svn/docs/licenses/BSD-simplified"]
+licensereferences['BSD-3-Clause'] = ["opensource.org/licenses/BSD-3-Clause"]
+
+# FreeBSD
+licensereferences['freebsd'] = ['www.freebsd.org/copyright/freebsd-license.html']
+
+# Artistic
+licensereferences['Artistic'] = ["opensource.org/licenses/artistic-license.php"]
+licensereferences['Artistic-1.0'] = ["opensource.org/licenses/Artistic-1.0",
+                              "opensource.org/licenses/Artistic-Perl-1.0",
+                              "www.perlfoundation.org/artistic_license_1_0"]
+licensereferences['Artistic-2.0'] = ["www.perlfoundation.org/artistic_license_2_0",
+                              "opensource.org/licenses/artistic-license-2.0.php"]
+
+# OpenSSL
+licensereferencese['openssl'] = ["www.openssl.org/source/license.html"]
+
+# WTFPL
+licensereferences['WTFPL'] = ['sam.zoy.org/wtfpl/']
+
+# OpenOffice
+licensereferences['OpenOffice'] = ["www.openoffice.org/license.html"]
+
+# BitTorrent
+licensereferences['BitTorrent'] = ["www.bittorrent.com/license/"]
+
+# Tizen
+licensereferences['Tizen'] = ["www.tizenopensource.org/license"]
+
+# OpenSSL
+licensereferences['OpenSSL'] = ["www.openssl.org/source/license.html"]
+
+# Boost
+licensereferences['BSL-1.0'] = ["www.boost.org/LICENSE_1_0.txt", "pocoproject.org/license.html"]
+
+# zlib
+licensereferences['Zlib'] = ["www.zlib.net/zlib_license.html"]
+
+# jQuery
+licensereferences['jQuery'] = ["jquery.org/license"]
+
+# libxml
+licensereferences['libxml'] = ["xmlsoft.org/FAQ.html#License"]
+
+# ICU
+licensereferences['ICU'] = ["source.icu-project.org/repos/icu/icu/trunk/license.html",
+                     "source.icu-project.org/repos/icu/trunk/icu4c/LICENSE"]
+
+# Yui3
+licensereferences['yui'] = ["developer.yahoo.com/yui/license.html"]
+
+# Lua
+licensereferences['lua'] = ["www.lua.org/license.html"]
+
+# IETF
+licensereferences['IETF'] = ["trustee.ietf.org/license-info/"]
+
+# libstemmer
+licensereferences['libstemmer'] = ["snowball.tartarus.org/license.php"]
+
+# espeak
+licensereferences['espeak'] = ["espeak.sf.net/license.html"]
+
+# webm
+licensereferences['webm'] = ["www.webmproject.org/license/software/"]
+
+# firebird sql
+licensereferences['firebird'] = ["firebirdsql.org/en/licensing/"]
+
+# W3
+licensereferences['W3'] = ["www.w3.org/Consortium/Legal/copyright-software-19980720"]
+
+# PLOS
+licensereferences['PLOS'] = ["www.ploscompbiol.org/static/license"]
