@@ -287,37 +287,37 @@ licensereferences = {}
 
 # GNU (licenses, URLs, e-mail)
 licensereferences['GNU'] = ["gnu.org/licenses/", "gnu.org/gethelp/",
-                     "gnu.org/software/", "@gnu.org"]
+                            "gnu.org/software/", "@gnu.org"]
 
 # GNU GPL license family
 licensereferences['GPL family'] = ["General Public License"]
 
 # GNU GPL
 licensereferences['GPL'] = ["gnu.org/licenses/gpl."
-                     "gnu.org/copyleft/gpl."
-                     "gnu.org/copyleft/gpl.",
-                     "www.opensource.org/licenses/gpl-license.php",
-                     "www.fsf.org/copyleft/gpl.html"]
+                            "gnu.org/copyleft/gpl."
+                            "gnu.org/copyleft/gpl.",
+                            "www.opensource.org/licenses/gpl-license.php",
+                            "www.fsf.org/copyleft/gpl.html"]
 licensereferences['GPL-2.0'] = ["gnu.org/licenses/gpl-2.0.",
-                         "gnu.org/licenses/old-licenses/gpl-2.0",
-                         "creativecommons.org/licenses/GPL/2.0/",
-                         "opensource.org/licenses/GPL-2.0"]
+                                "gnu.org/licenses/old-licenses/gpl-2.0",
+                                "creativecommons.org/licenses/GPL/2.0/",
+                                "opensource.org/licenses/GPL-2.0"]
 licensereferences['GPL-3.0'] = ["opensource.org/licenses/gpl-3.0."]
 
 # GNU LGPL
 licensereferences['LGPL'] = ["www.fsf.org/copyleft/lesser.html",
-                      "www.fsf.org/licenses/lgpl.html",
-                      "gnu.org/licenses/lgpl.html",
-                      "opensource.org/licenses/lgpl-license"]
+                             "www.fsf.org/licenses/lgpl.html",
+                             "gnu.org/licenses/lgpl.html",
+                             "opensource.org/licenses/lgpl-license"]
 licensereferences['LGPL-2.0'] = ["gnu.org/licenses/old-licenses/lgpl-2.0"]
 licensereferences['LGPL-2.1'] = ["gnu.org/licenses/old-licenses/lgpl-2.1",
-                          "creativecommons.org/licenses/LGPL/2.1/",
-                          "opensource.org/licenses/LGPL-2.1"]
+                                 "creativecommons.org/licenses/LGPL/2.1/",
+                                 "opensource.org/licenses/LGPL-2.1"]
 licensereferences['LGPL-3.0'] = ["opensource.org/licenses/lgpl-3.0."]
 
 # GNU FDL
 licensereferences['GFDL'] = ["gnu.org/copyleft/fdl.html",
-                      "www.fsf.org/licensing/licenses/fdl.html"]
+                             "www.fsf.org/licensing/licenses/fdl.html"]
 licensereferences['GFDL-1.3'] = ["gnu.org/licenses/fdl-1.3.html"]
 
 # SISSL
@@ -326,9 +326,9 @@ licensereferences['SISSL'] = ["www.openoffice.org/licenses/sissl_license.html"]
 # Apache licenses
 licensereferences['Apache'] = ["apache.org/licenses/"]
 licensereferences['Apache-1.1'] = ["apache.org/licenses/LICENSE-1.1",
-                            "opensource.org/licenses/Apache-1.1"]
+                                   "opensource.org/licenses/Apache-1.1"]
 licensereferences['Apache-2.0'] = ["apache.org/licenses/LICENSE-2.0",
-                            "opensource.org/licenses/apache2.0.php"]
+                                   "opensource.org/licenses/apache2.0.php"]
 
 # Creative Commons
 licensereferences['CC-SA-1.0'] = ["creativecommons.org/licenses/sa/1.0"]
@@ -372,20 +372,20 @@ licensereferences["gust font license"] = ["www.gust.org.pl/fonts/licenses/GUST-F
 
 # MTX licensing
 licensereferences['MTX'] = ["www.monotype.com/legal/mtx-licensing-statement/",
-                     "monotypeimaging.com/aboutus/mtx-license.aspx"]
+                            "monotypeimaging.com/aboutus/mtx-license.aspx"]
 
 # MPL licenses
 licensereferences['MPL'] = ["mozilla.org/MPL"]
 licensereferences['MPL-1.0'] = ["opensource.org/licenses/MPL-1.0",
-                         "opensource.org/licenses/mozilla1.0.php"]
+                                "opensource.org/licenses/mozilla1.0.php"]
 licensereferences['MPL-1.1'] = ["mozilla.org/MPL/MPL-1.1.html",
-                         "opensource.org/licenses/MPL-1.1",
-                         "opensource.org/licenses/mozilla1.1.php"]
+                                "opensource.org/licenses/MPL-1.1",
+                                "opensource.org/licenses/mozilla1.1.php"]
 licensereferences['MPL-2.0'] = ["mozilla.org/MPL/2.0/"]
 
 # MIT license
 licensereferences['MIT'] = ["opensource.org/licenses/mit-license",
-                     "opensource.org/licenses/MIT"]
+                            "opensource.org/licenses/MIT"]
 
 # lodash
 licensereferences['lodash'] = ["lodash.com/license"]
@@ -395,7 +395,7 @@ licensereferences['ncurses'] = ["invisible-island.net/ncurses/ncurses-license.ht
 
 # BSD licenses
 licensereferences['BSD'] = ["opensource.org/licenses/bsd-license",
-                     "creativecommons.org/licenses/BSD/"]
+                            "creativecommons.org/licenses/BSD/"]
 licensereferences['BSD-2-Clause'] = ["nmap.org/svn/docs/licenses/BSD-simplified"]
 licensereferences['BSD-3-Clause'] = ["opensource.org/licenses/BSD-3-Clause"]
 
@@ -405,10 +405,10 @@ licensereferences['freebsd'] = ['www.freebsd.org/copyright/freebsd-license.html'
 # Artistic
 licensereferences['Artistic'] = ["opensource.org/licenses/artistic-license.php"]
 licensereferences['Artistic-1.0'] = ["opensource.org/licenses/Artistic-1.0",
-                              "opensource.org/licenses/Artistic-Perl-1.0",
-                              "www.perlfoundation.org/artistic_license_1_0"]
+                                     "opensource.org/licenses/Artistic-Perl-1.0",
+                                     "www.perlfoundation.org/artistic_license_1_0"]
 licensereferences['Artistic-2.0'] = ["www.perlfoundation.org/artistic_license_2_0",
-                              "opensource.org/licenses/artistic-license-2.0.php"]
+                                     "opensource.org/licenses/artistic-license-2.0.php"]
 
 # OpenSSL
 licensereferencese['openssl'] = ["www.openssl.org/source/license.html"]
@@ -442,7 +442,7 @@ licensereferences['libxml'] = ["xmlsoft.org/FAQ.html#License"]
 
 # ICU
 licensereferences['ICU'] = ["source.icu-project.org/repos/icu/icu/trunk/license.html",
-                     "source.icu-project.org/repos/icu/trunk/icu4c/LICENSE"]
+                            "source.icu-project.org/repos/icu/trunk/icu4c/LICENSE"]
 
 # Yui3
 licensereferences['yui'] = ["developer.yahoo.com/yui/license.html"]
