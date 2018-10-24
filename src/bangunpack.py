@@ -2071,7 +2071,7 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
 
     if offset == 0 and unpackedsize == filesize:
         labels.append('squashfs')
-        labels.append('file system')
+        labels.append('filesystem')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
@@ -5146,7 +5146,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = volume_space_size * logical_size
 
     if offset == 0 and unpackedsize == filesize:
-        labels += ['iso9660', 'file system']
+        labels += ['iso9660', 'filesystem']
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -9053,7 +9053,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
 
     if offset == 0 and filesize == unpackedsize:
         labels.append('jffs2')
-        labels.append('file system')
+        labels.append('filesystem')
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -11421,7 +11421,7 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
 
     if offset == 0 and filesize == unpackedsize:
         labels.append('ext2')
-        labels.append('file system')
+        labels.append('filesystem')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
@@ -12660,7 +12660,7 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
                 return {'status': False, 'error': unpackingerror}
 
             labels.append('vmdk')
-            labels.append('file system')
+            labels.append('filesystem')
             unpackedfilesandlabels.append((outputfilename, []))
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
@@ -12728,7 +12728,7 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
 
             labels.append('qemu')
             labels.append('qcow2')
-            labels.append('file system')
+            labels.append('filesystem')
             unpackedfilesandlabels.append((outputfilename, []))
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
@@ -12938,7 +12938,7 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
 
             labels.append('virtualbox')
             labels.append('vdi')
-            labels.append('file system')
+            labels.append('filesystem')
             unpackedfilesandlabels.append((outputfilename, []))
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}

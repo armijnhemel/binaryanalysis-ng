@@ -22,7 +22,7 @@ Generic categories:
 * audio :: file is an audio file
 * compressed :: file is a compressed file
 * debian :: file is specific to Debian (or derivates)
-* file system :: file is a file system
+* filesystem :: file is a file system
 * font :: file is a font
 * graphics :: file is a graphics file
 * resource :: file is a resource file (data, etc.)
