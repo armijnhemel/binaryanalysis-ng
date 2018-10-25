@@ -23,6 +23,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * dockerfile-parse (possibly named python3-dockerfile-parse)
 * openssl
 * libxml2 (for xmllint)
+* mailcap (for mime.types)
 
 ## Invocation
 
