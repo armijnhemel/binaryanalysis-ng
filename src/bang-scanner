@@ -910,7 +910,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # * hashes (dict 'hashresults')
 
             for b in bangfilefunctions:
-                res = b[1](checkfile, hashresults, dbconn, dbcursor, scanenvironment)
+                runscan = True
+                ignorelist = set(b[1])
+                filefunc = b[0]
+                for label in labels:
+                    if label in ignorelist:
+                        runscan = False
+                        break
+                if runscan:
+                    res = filefunc[1](checkfile, hashresults, dbconn, dbcursor, scanenvironment)
 
             # write a pickle with output data
             # The pickle contains:
@@ -1220,16 +1228,22 @@ def main(argv):
     bangwholecontextfunctions = []
 
     for f in bangfunctions:
+        context = None
+        ignorelist = []
         if f[1].__doc__ is None:
-            bangfilefunctions.append(f)
+            bangfilefunctions.append((f, []))
         else:
             for l in f[1].__doc__.split('\n'):
                 if l.strip().startswith('Context:'):
                     context = l.split(':', 1)[1].strip()
-                    if context == 'file':
-                        bangfilefunctions.append(f)
-                    elif context == 'whole':
-                        bangwholecontextfunctions.append(f)
+                elif l.strip().startswith('Ignore:'):
+                    ignoretypes = l.strip().split(',')
+                    for i in ignoretypes:
+                        ignorelist.append(i.strip())
+            if context == 'file':
+                bangfilefunctions.append((f, ignorelist))
+            elif context == 'whole':
+                bangwholecontextfunctions.append((f, ignorelist))
 
     # create processes for unpacking archives
     for i in range(0, bangthreads):
