@@ -429,7 +429,8 @@ licensereferences['Tizen'] = ["www.tizenopensource.org/license"]
 licensereferences['OpenSSL'] = ["www.openssl.org/source/license.html"]
 
 # Boost
-licensereferences['BSL-1.0'] = ["www.boost.org/LICENSE_1_0.txt", "pocoproject.org/license.html"]
+licensereferences['BSL-1.0'] = ["www.boost.org/LICENSE_1_0.txt",
+                                "pocoproject.org/license.html"]
 
 # zlib
 licensereferences['Zlib'] = ["www.zlib.net/zlib_license.html"]
@@ -481,7 +482,7 @@ licensereferences['PLOS'] = ["www.ploscompbiol.org/static/license"]
 # $ grep -r git  | grep http
 forgereferences = {}
 forgereferences['GitHub'] = ["github.com", "github.io",
-                              "raw.githubusercontent.com"]
+                             "raw.githubusercontent.com"]
 forgereferences['GitLab'] = ["gitlab.com", "gitlab.io"]
 forgereferences['Gitorious'] = ["gitorious.org"]
 forgereferences['Bitbucket'] = ["bitbucket.org"]
@@ -489,13 +490,13 @@ forgereferences['SourceForge'] = ["sourceforge.net"]
 forgereferences['GNOME'] = ["git.gnome.org", "gitlab.gnome.org"]
 forgereferences['Perl'] = ["git.perl.org"]
 forgereferences['Fedora'] = ["git.fedorahosted.org",
-                              "src.fedoraproject.org/cgit/",
-                              "pkgs.fedoraproject.org/cgit/"]
+                             "src.fedoraproject.org/cgit/",
+                             "pkgs.fedoraproject.org/cgit/"]
 forgereferences['Debian'] = ["git.debian.org", "anonscm.debian.org"]
 forgereferences['LibreOffice'] = ["gerrit.libreoffice.org"]
 forgereferences['kernel.org'] = ["git.kernel.org"]
 forgereferences['freedesktop.org'] = ["cvs.freedesktop.org",
-                                       "git.freedesktop.org"]
+                                      "git.freedesktop.org"]
 forgereferences['Google Code'] = ["code.google.com", "googlecode.com"]
 forgereferences['savannah.gnu.org'] = ["savannah.gnu.org", "git.sv.gnu.org"]
 forgereferences['bitbucket.org'] = ["bitbucket.org"]
