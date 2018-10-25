@@ -33,7 +33,10 @@
 
 import pathlib
 import mimetypes
+import os
 
+# import own code
+import bangsignatures
 
 def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
     '''Search a hash of a file in the NSRL database
@@ -101,4 +104,44 @@ def guessExtension(filename, hashresults, dbconn, dbcursor, scanenvironment):
         returnres['key'] = 'mimetype'
         returnres['type'] = 'informational'
         returnres['value'] = mimeres[0]
+    return returnres
+
+
+# search files for license references.
+def extractLicenseIdentifier(filename, hashresults, dbconn, dbcursor, scanenvironment):
+    '''Search the presence of license identifiers in a file
+       (URLs and other references)
+       Context: file
+       Ignore: archive, audio, audio, encrypted, filesystem, graphics, video
+    '''
+
+    # results is a dictionary
+    returnres = {}
+    licenseresults = {}
+
+    seekbuf = bytearray(1000000)
+    filesize = filename.stat().st_size
+
+    # open the file in binary mode
+    checkfile = open(filename, 'rb')
+    checkfile.seek(0)
+    while True:
+        bytesread = checkfile.readinto(seekbuf)
+        for r in bangsignatures.licensereferences:
+            for licenseref in bangsignatures.licensereferences[r]:
+                licenserefbytes = bytes(licenseref, 'utf-8')
+                if licenserefbytes in seekbuf:
+                    if r not in licenseresults:
+                        licenseresults[r] = []
+                    licenseresults[r].append(licenseref)
+        if checkfile.tell() == filesize:
+            break
+        checkfile.seek(-50, os.SEEK_CUR)
+    checkfile.close()
+
+    if licenseresults != {}:
+        returnres['key'] = 'license references'
+        returnres['type'] = 'informational'
+        returnres['value'] = licenseresults
+
     return returnres
