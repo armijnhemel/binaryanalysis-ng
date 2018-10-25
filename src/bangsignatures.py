@@ -411,7 +411,7 @@ licensereferences['Artistic-2.0'] = ["www.perlfoundation.org/artistic_license_2_
                                      "opensource.org/licenses/artistic-license-2.0.php"]
 
 # OpenSSL
-licensereferencese['openssl'] = ["www.openssl.org/source/license.html"]
+licensereferences['openssl'] = ["www.openssl.org/source/license.html"]
 
 # WTFPL
 licensereferences['WTFPL'] = ['sam.zoy.org/wtfpl/']
