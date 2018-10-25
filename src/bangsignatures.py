@@ -470,3 +470,36 @@ licensereferences['W3'] = ["www.w3.org/Consortium/Legal/copyright-software-19980
 
 # PLOS
 licensereferences['PLOS'] = ["www.ploscompbiol.org/static/license"]
+
+# forge references extracted from various sources Wikipedia:
+#
+# https://en.wikipedia.org/wiki/Forge_(software)
+#
+# and quite a few from Fedora 28:
+#
+# $ cd /usr/share/doc
+# $ grep -r git  | grep http
+forgereferences = {}
+forgereferences['GitHub'] = ["github.com", "github.io",
+                              "raw.githubusercontent.com"]
+forgereferences['GitLab'] = ["gitlab.com", "gitlab.io"]
+forgereferences['Gitorious'] = ["gitorious.org"]
+forgereferences['Bitbucket'] = ["bitbucket.org"]
+forgereferences['SourceForge'] = ["sourceforge.net"]
+forgereferences['GNOME'] = ["git.gnome.org", "gitlab.gnome.org"]
+forgereferences['Perl'] = ["git.perl.org"]
+forgereferences['Fedora'] = ["git.fedorahosted.org",
+                              "src.fedoraproject.org/cgit/",
+                              "pkgs.fedoraproject.org/cgit/"]
+forgereferences['Debian'] = ["git.debian.org", "anonscm.debian.org"]
+forgereferences['LibreOffice'] = ["gerrit.libreoffice.org"]
+forgereferences['kernel.org'] = ["git.kernel.org"]
+forgereferences['freedesktop.org'] = ["cvs.freedesktop.org",
+                                       "git.freedesktop.org"]
+forgereferences['Google Code'] = ["code.google.com", "googlecode.com"]
+forgereferences['savannah.gnu.org'] = ["savannah.gnu.org", "git.sv.gnu.org"]
+forgereferences['bitbucket.org'] = ["bitbucket.org"]
+forgereferences['tigris.org'] = ["tigris.org"]
+forgereferences['svn.apache.org'] = ["svn.apache.org"]
+forgereferences['launchpad.net'] = ["git.launchpad.net", "launchpad.net"]
+forgereferences['sourceware.org'] = ["sourceware.org/git/"]

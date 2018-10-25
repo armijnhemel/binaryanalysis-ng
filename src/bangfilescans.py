@@ -145,3 +145,45 @@ def extractLicenseIdentifier(filename, hashresults, dbconn, dbcursor, scanenviro
         returnres['value'] = licenseresults
 
     return returnres
+
+
+# search files for references to forges
+# https://en.wikipedia.org/wiki/Forge_(software)
+def extractForgeIdentifiers(filename, hashresults, dbconn, dbcursor, scanenvironment):
+    '''Search the presence of references to forges and other
+       collaborative software development sites in a file
+       (URLs and other references)
+       Context: file
+       Ignore: archive, audio, audio, encrypted, filesystem, graphics, video
+    '''
+
+    # results is a dictionary
+    returnres = {}
+    forgeresults = {}
+
+    seekbuf = bytearray(1000000)
+    filesize = filename.stat().st_size
+
+    # open the file in binary mode
+    checkfile = open(filename, 'rb')
+    checkfile.seek(0)
+    while True:
+        bytesread = checkfile.readinto(seekbuf)
+        for r in bangsignatures.forgereferences:
+            for forgeref in bangsignatures.forgereferences[r]:
+                forgerefbytes = bytes(forgeref, 'utf-8')
+                if forgerefbytes in seekbuf:
+                    if r not in forgeresults:
+                        forgeresults[r] = []
+                    forgeresults[r].append(forgeref)
+        if checkfile.tell() == filesize:
+            break
+        checkfile.seek(-50, os.SEEK_CUR)
+    checkfile.close()
+
+    if forgeresults != {}:
+        returnres['key'] = 'forge references'
+        returnres['type'] = 'informational'
+        returnres['value'] = forgeresults
+
+    return returnres
