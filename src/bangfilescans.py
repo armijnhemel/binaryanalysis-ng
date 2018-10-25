@@ -38,6 +38,7 @@ import os
 # import own code
 import bangsignatures
 
+
 def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
     '''Search a hash of a file in the NSRL database
        Context: file
