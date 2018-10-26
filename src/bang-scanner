@@ -44,6 +44,7 @@ import json
 import copy
 import subprocess
 import inspect
+import collections
 
 # import module for database
 import psycopg2
@@ -194,8 +195,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         scanfile.seek(0)
         readsize = 10000000
         hashingdata = scanfile.read(readsize)
+        bytecounter = collections.Counter()
 
         while hashingdata != b'':
+            bytecounter.update(hashingdata)
             for h in hashes:
                 hashes[h].update(hashingdata)
             if filesize >= 256:
@@ -927,6 +930,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             resultout = {}
             for i in hashresults:
                 resultout[i] = hashresults[i]
+
+            resultout['bytecount'] = list(bytecounter.items())
 
             resultout['labels'] = labels
             if extradata != {}:
