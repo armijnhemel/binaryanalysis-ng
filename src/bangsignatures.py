@@ -285,6 +285,10 @@ textonlyfunctions = {
 # pages, but are still used in code.
 licensereferences = {}
 
+# generic license reference
+licensereferences['license'] = ["license", "License", "LICENSE",
+                                "licence", "Licence", "LICENCE"]
+
 # GNU (licenses, URLs, e-mail)
 licensereferences['GNU'] = ["gnu.org/licenses/", "gnu.org/gethelp/",
                             "gnu.org/software/", "@gnu.org"]
