@@ -5,6 +5,10 @@ file can have multiple labels, such as a quite generic label about the type
 of file ('graphics', 'audio', etc.), or very specific ('animated' for an
 animated graphics file).
 
+Below is a list of labels that are used throughout BANG. They have been
+ordered per category to make it easier to search. There is some overlap
+between categories and some labels will appear multiple times, as they belong
+to several categories.
 
 Generic labels:
 
@@ -13,7 +17,7 @@ Generic labels:
 * corrupt :: file is corrupt
 * encrypted :: file is encrypted
 * partially unpacked :: file has been partially unpacked
-* unpacked :: this is a label for internal use
+* unpacked :: this is a label for internal use to flag that a file has already been unpacked, so it doesn't need further processing
 
 Generic categories:
 
