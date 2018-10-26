@@ -286,8 +286,8 @@ textonlyfunctions = {
 licensereferences = {}
 
 # generic license reference
-licensereferences['license'] = ["license", "License", "LICENSE",
-                                "licence", "Licence", "LICENCE"]
+licensereferences['license'] = ["license", "License", "LICENSE", "licensing",
+                                "licence", "Licence", "LICENCE", "licencing"]
 
 # GNU (licenses, URLs, e-mail)
 licensereferences['GNU'] = ["gnu.org/licenses/", "gnu.org/gethelp/",
