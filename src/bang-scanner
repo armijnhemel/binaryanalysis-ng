@@ -264,7 +264,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         #    several other Android or Google formats (Chrome PAK, etc.)
         #
         # 2. blobs, searching for known magic headers and carving them
-        #    from blobs, or regular files.
+        #    from blobs, or regular files. The majority of files will
+        #    likely be processed here.
         #
         # 3. text only files, where it is not immediately clear what
         #    is inside and where the file possibly first has to be
@@ -410,6 +411,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             # false positives for the built in unpack
                             # functions in BANG, as function calls are
                             # expensive so prevent them as much as possible.
+                            # For big files this can easily save hundreds of
+                            # thousands of function calls.
                             #
                             # Included here are checks for:
                             #
@@ -420,6 +423,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             # * SGI images
                             # * ICO
                             # * PNG
+                            # * MNG
                             # * TrueType and OpenType fonts
                             # * terminfo
                             if s in ['lzma_var1', 'lzma_var2', 'lzma_var3']:
@@ -587,15 +591,17 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 if namessectionsize < 2 or namessectionsize > 128:
                                     continue
 
-                            # default
+                            # default: store a tuple (offset, signature name)
                             if s in bangsignatures.signaturesoffset:
                                 candidateoffsetsfound.add((offset + offsetinfile - bangsignatures.signaturesoffset[s], s))
                             else:
                                 candidateoffsetsfound.add((offset + offsetinfile, s))
 
                 # For each of the found candidates see if any
-                # data can be unpacked.
+                # data can be unpacked. Process these in the order
+                # in which the signatures were found in the file.
                 for s in (sorted(candidateoffsetsfound)):
+                    # skip offsets which are not useful to look at
                     if s[0] < lastunpackedoffset:
                         continue
                     # first see if there actually is a method to unpack
@@ -620,7 +626,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     # run the scan for the offset that was found
                     # First log which identifier was found and
-                    # at which offset.
+                    # at which offset for possible later analysis.
                     logging.debug("TRYING %s %s at offset: %d" % (checkfile, s[1], s[0]))
 
                     # The result of the scan is a dictionary containing:
@@ -645,7 +651,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     if not unpackresult['status']:
                         # No data could be unpacked for some reason,
-                        # so check the status first
+                        # so log the status and error message
                         logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, s[1], s[0], unpackresult['error']['reason']))
 
                         # unpacking error contains:
@@ -678,6 +684,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 fullfilename = os.path.join(direntries[0], filename)
                                 if not os.path.islink(fullfilename):
                                     os.chmod(fullfilename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+                        # finally remove the unpacking directory,
+                        # and continue with the next candidate offset
                         shutil.rmtree(dataunpackdirectory)
                         continue
 
