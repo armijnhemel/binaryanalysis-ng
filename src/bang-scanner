@@ -758,7 +758,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     scanfile.seek(-maxsignaturesoffset, 1)
                 offsetinfile = scanfile.tell()
 
-                scanbytes = scanfile.read(scanenvironemtn['maxbytes'])
+                scanbytes = scanfile.read(scanenvironment['maxbytes'])
 
                 if istext:
                     if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
