@@ -801,6 +801,26 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                         unpackedlabel = ['synthesized']
 
+                        # try to see if the file contains NUL byte padding
+                        # and if so tag it as such
+                        ispadding = True
+                        outfile = open(outfilename, 'rb')
+                        checkbytes = outfile.read(1)
+                        if checkbytes == b'\x00':
+                            ## now read more bytes
+                            while True:
+                                scanbytes = outfile.read(scanenvironment['maxbytes'])
+                                if len(scanbytes) == 0:
+                                    break
+                                if scanbytes != scanenvironment['maxbytes'] * b'\x00':
+                                    ispadding = False
+                                    break
+                        else:
+                            ispadding = False
+                        outfile.close()
+                        if ispadding:
+                            unpackedlabel.append('padding')
+
                         # add the data, plus labels, to the queue
                         scanfilequeue.put((pathlib.Path(outfilename), unpackedlabel, checkfile, {}))
                     startoffset = u[1]
