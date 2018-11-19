@@ -879,6 +879,13 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     if unpackresult['length'] == filesize:
                         labels += copy.deepcopy(unpackresult['labels'])
                         labels = list(set(labels))
+                        # if unpackedfilesandlabels is empty, then no
+                        # files were unpacked, likely because the whole
+                        # file was the result and didn't contain any
+                        # files (i.e. it was not a container file or
+                        # compresed file).
+                        if len(unpackresult['filesandlabels']) == 0:
+                            os.rmdir(dataunpackdirectory)
 
                     # add a lot of information about the unpacked files
                     report = {}
