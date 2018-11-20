@@ -9303,6 +9303,9 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             cpiodatasize += int.from_bytes(checkbytes[2:4], byteorder='little')
             unpackedsize += 4
 
+            if issocket and cpiodatasize != 0:
+                break
+
             # data cannot be outside of the file
             if (offset + cpiodatasize + namesize) > filesize:
                 break
@@ -9577,6 +9580,9 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             except:
                 break
             unpackedsize += 11
+
+            if issocket and cpiodatasize != 0:
+                break
 
             # data cannot be outside of the file
             if (offset + namesize + cpiodatasize) > filesize:
@@ -9872,6 +9878,9 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 if cpiochecksum != 0:
                     break
             unpackedsize += 8
+
+            if issocket and cpiodatasize != 0:
+                break
 
             # data cannot be outside of the file
             if offset + namesize + cpiodatasize > filesize:
