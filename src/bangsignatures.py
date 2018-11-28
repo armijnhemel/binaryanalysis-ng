@@ -98,7 +98,7 @@ signatures = {
     'certificate': b'-----BEGIN ',
     'git_index': b'DIRC',  # https://github.com/git/git/blob/master/Documentation/technical/index-format.txt
     'flv': b'FLV',
-
+    'lzop': b'\x89\x4c\x5a\x4f\x00\x0d\x0a\x1a\x0a',
 }
 
 # some signatures do not start at the beginning of the file
@@ -187,6 +187,7 @@ signaturetofunction = {
     'certificate': bangunpack.unpackCertificate,
     'git_index': bangunpack.unpackGitIndex,
     'flv': bangunpack.unpackFLV,
+    'lzop': bangunpack.unpackLZOP,
 }
 
 # a lookup table to map signatures to a name for

@@ -17403,3 +17403,227 @@ def unpackLSM(filename, offset, unpackdir, temporarydirectory):
     labels.append('linux software map')
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+def unpackLZOP(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack a lzop compressed file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # header is at least 38 bytes, excluding file name
+    if offset + 38 > filesize:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file skip over the magic header bytes
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+9)
+    unpackedsize = 9
+
+    # then check the rest of the header
+
+    # version, has to be 0x00, 0x10 or 0x20 according
+    # to /usr/share/magic and 0x30 and 0x40 according
+    # to files observed in the wild.
+    checkbytes = checkfile.read(2)
+    version = int.from_bytes(checkbytes, byteorder='big')
+    if version & 0xf0 not in [0x00, 0x10, 0x20, 0x30, 0x40]:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'wrong version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # library version, skip
+    checkbytes = checkfile.read(2)
+    unpackedsize += 2
+
+    # version needed to extract, should be >= 0x940
+    checkbytes = checkfile.read(2)
+    versionneeded = int.from_bytes(checkbytes, byteorder='big')
+    if versionneeded < 0x940:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'unsupported version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # method, has to be 1, 2 or 3
+    checkbytes = checkfile.read(1)
+    if ord(checkbytes) not in [1,2,3]:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'wrong method'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    # level, cannot be > 9
+    checkbytes = checkfile.read(1)
+    if ord(checkbytes) > 9:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'wrong data for level'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    # LZOP flags
+    checkbytes = checkfile.read(4)
+    lzopflags = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # optional: if the filter flag is set, then skip 4 bytes
+    if (lzopflags & 0x800) != 0:
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+    # mode, skip for now
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # mtime, skip for now
+    checkfile.seek(8, os.SEEK_CUR)
+    unpackedsize += 8
+
+    # name length
+    checkbytes = checkfile.read(1)
+    name_length = ord(checkbytes)
+
+    if checkfile.tell() + name_length > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for file name'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    # name
+    if name_length != 0:
+        checkbytes = checkfile.read(name_length)
+        try:
+            lzopname = checkbytes.decode()
+        except:
+            lzopname = 'unpacked-from-lzo'
+    else:
+        lzopname = 'unpacked-from-lzo'
+
+    # some sanity checks
+    lzopname = os.path.normpath(lzopname)
+
+    # some sanity checks, need something nicer
+    if '/' in lzopname:
+        lzopname = 'unpacked-from-lzo'
+    if lzopname.startswith('..'):
+        lzopname = 'unpacked-from-lzo'
+    unpackedsize += name_length
+
+    # crc32 or adler32, skip
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for checksum'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # then the LZO compressed blocks: first uncompressed length,
+    # followed by compressed length, the data itself, and possibly
+    # checksums
+    haslzodata = False
+    lzolen = 0
+    while True:
+        lastblock = False
+        # decompressed length
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            break
+        unpackedsize += 4
+
+        decompressed_len = int.from_bytes(checkbytes, byteorder='big')
+        if decompressed_len == 0:
+            # last block has been reached
+            lzolen = checkfile.tell() - offset
+            break
+
+        # compressed length
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            break
+        compressed_len = int.from_bytes(checkbytes, byteorder='big')
+
+        if checkfile.tell() + compressed_len > filesize:
+            break
+        unpackedsize += 4
+
+        # skip over the data
+        checkfile.seek(compressed_len, os.SEEK_CUR)
+        unpackedsize += compressed_len
+
+        # adler32 uncompressed or crc32 uncompressed
+        if lzopflags & 0x01 != 0 or lzopflags & 0x100 != 0:
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+            unpackedsize += 4
+        # adler32 compressed or crc32 compressed
+        if lzopflags & 0x02 != 0 or lzopflags & 0x200 != 0:
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                break
+            unpackedsize += 4
+
+        haslzodata = True
+        lzolen = checkfile.tell() - offset
+
+        # stop if the end of the file has been reached
+        if checkfile.tell() == filesize:
+            break
+
+    carved = False
+    # carve the file if necessary
+    if offset != 0 or filesize != unpackedsize:
+        outfilename = os.path.join(unpackdir, "unpacked.lzo")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        carved = True
+    else:
+        outfilename = filename
+    checkfile.close()
+
+    p = subprocess.Popen(['lzop', '-t', outfilename], stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    (outputmsg, errormsg) = p.communicate()
+    if p.returncode != 0:
+        if carved:
+            os.unlink(outfilename)
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'lzop test failed'}
+        return {'status': False, 'error': unpackingerror}
+
+    outlzopname = os.path.join(unpackdir, lzopname)
+
+    p = subprocess.Popen(['lzop', '-d', '-o%s' % outlzopname, outfilename], stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    (outputmsg, errormsg) = p.communicate()
+    if p.returncode != 0:
+        if carved:
+            os.unlink(outfilename)
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'lzop test failed'}
+        return {'status': False, 'error': unpackingerror}
+
+    if carved:
+        os.unlink(outfilename)
+    else:
+        labels = ['compressed', 'lzop']
+
+    outfiles = os.listdir(unpackdir)
+    for o in outfiles:
+        outfilename = os.path.join(unpackdir, o)
+        outlabels = []
+        unpackedfilesandlabels.append((outfilename, outlabels))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}

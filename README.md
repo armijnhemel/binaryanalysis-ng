@@ -25,6 +25,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * rzip
 * libxml2 (for 'xmllint')
 * mailcap (for mime.types)
+* lzop
 
 ## Invocation
 
