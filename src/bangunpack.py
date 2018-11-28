@@ -3197,8 +3197,25 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                     labels.append('python egg')
                 if z.file_size == 0 and not z.is_dir() and z.external_attr & 0x10 == 0x10:
                     faultyzipfiles.append(z)
+                # only stored, deflate, bzip2 and lzma are supported
+                # in Python's zipfile module.
+                if z.compress_type not in [0, 8, 12, 14]:
+                    checkfile.close()
+                    if carved:
+                        os.unlink(temporaryfile[1])
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'Unknown compression method'}
+                    return {'status': False, 'error': unpackingerror}
             if len(faultyzipfiles) == 0:
-                unpackzipfile.extractall()
+                try:
+                    unpackzipfile.extractall()
+                except NotImplementedError:
+                    checkfile.close()
+                    if carved:
+                        os.unlink(temporaryfile[1])
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'Unknown compression method'}
+                    return {'status': False, 'error': unpackingerror}
             else:
                 for z in zipinfolist:
                     if z in faultyzipfiles:
