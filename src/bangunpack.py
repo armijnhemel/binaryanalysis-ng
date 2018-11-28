@@ -9307,6 +9307,9 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             if not possibletrailer and issocket and cpiodatasize != 0:
                 break
 
+            if not possibletrailer and isfifo and cpiodatasize != 0:
+                break
+
             # data cannot be outside of the file
             if (offset + cpiodatasize + namesize) > filesize:
                 break
@@ -9583,6 +9586,9 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             unpackedsize += 11
 
             if not possibletrailer and issocket and cpiodatasize != 0:
+                break
+
+            if not possibletrailer and isfifo and cpiodatasize != 0:
                 break
 
             # data cannot be outside of the file
@@ -9881,6 +9887,9 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             unpackedsize += 8
 
             if not possibletrailer and issocket and cpiodatasize != 0:
+                break
+
+            if not possibletrailer and isfifo and cpiodatasize != 0:
                 break
 
             # data cannot be outside of the file
