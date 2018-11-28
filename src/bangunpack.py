@@ -16867,7 +16867,7 @@ def unpackCertificate(filename, offset, unpackdir, temporarydirectory):
         tmplabels = list(set(tmplabels))
         tmplabels.append('unpacked')
         unpackedfilesandlabels.append((outfilename, tmplabels))
-        return {'status': True, 'length': filesize, 'labels': labels,
+        return {'status': True, 'length': certres['length'], 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # cleanup
