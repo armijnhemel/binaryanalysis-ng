@@ -1246,6 +1246,74 @@ class TestLzip(unittest.TestCase):
         self.assertFalse(testres['status'])
 
 
+# a test class for testing lzop files
+class TestLzop(unittest.TestCase):
+    # create a temporary directory and copy
+    # the test file to the temporary directory
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+
+    # remove the temporary directory
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    # now all the test cases.
+    # a test for the file being a single lzop
+    def testFullfileIsLzop(self):
+        filename = basetestdir / 'lzop' / 'test.lzo'
+        filesize = filename.stat().st_size
+        offset = 0
+        testres = bangunpack.unpackLZOP(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], filesize)
+
+    # a test for the file being a single lzop with data appended to it
+    def testDataAppendedToLzop(self):
+        filename = basetestdir / 'lzop' / 'test-add-random-data.lzo'
+        filesize = filename.stat().st_size
+        offset = 0
+        testres = bangunpack.unpackLZOP(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 588927)
+
+    # a test for the file being a single lzop with data in front
+    def testDataPrependedToLzop(self):
+        filename = basetestdir / 'lzop' / 'test-prepend-random-data.lzo'
+        filesize = filename.stat().st_size
+        offset = 128
+        testres = bangunpack.unpackLZOP(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 588927)
+
+    # a test for the file being a single lzop with data cut from the end
+    def testDataCutFromEndLzop(self):
+        filename = basetestdir / 'lzop' / 'test-cut-data-from-end.lzo'
+        offset = 0
+        testres = bangunpack.unpackLZOP(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    # a test for the file being a single lzop with data cut from the middle
+    def testDataCutFromMiddleLzop(self):
+        filename = basetestdir / 'lzop' / 'test-cut-data-from-middle.lzo'
+        offset = 0
+        testres = bangunpack.unpackLZOP(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    # a test for the file being a single lzop with data added in the middle
+    def testDataAddedInMiddleLzop(self):
+        filename = basetestdir / 'lzop' / 'test-data-added-to-middle.lzo'
+        offset = 0
+        testres = bangunpack.unpackLZOP(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+    # a test for the file being a single lzop with data replaced in the middle
+    def testDataReplacedInMiddleLzop(self):
+        filename = basetestdir / 'lzop' / 'test-data-replaced-in-middle.lzo'
+        offset = 0
+        testres = bangunpack.unpackLZOP(filename, offset, self.tempdir, None)
+        self.assertFalse(testres['status'])
+
+
 # a test class for testing zstd files
 class TestZstd(unittest.TestCase):
     # create a temporary directory and copy
