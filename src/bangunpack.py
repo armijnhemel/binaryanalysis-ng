@@ -16897,23 +16897,34 @@ def extractCertificate(filename, offset, unpackdir, temporarydirectory):
     p = subprocess.Popen(["openssl", "asn1parse", "-inform", "PEM", "-in", filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode == 0:
-        labels.append("text")
-        labels.append('resource')
-        checkfile = open(filename, 'r')
         # there could be several certificates or keys
         # inside the file.
         # TODO: split into certificates and private keys
-        for checkline in checkfile:
-            # then check if this is perhaps a private key
-            if "PRIVATE KEY" in checkline:
-                labels.append('private key')
-            # or a certificate
-            if "BEGIN CERTIFICATE" in checkline:
-                labels.append("certificate")
-            # or a trusted certificate
-            if "TRUSTED CERTIFICATE" in checkline:
-                labels.append("trusted certificate")
-        checkfile.close()
+        # The openssl program does also accept binary crap,
+        # so add some extra checks.
+        isopened = False
+        try:
+            checkfile = open(filename, 'r')
+            isopened = True
+            for checkline in checkfile:
+                # then check if this is perhaps a private key
+                if "PRIVATE KEY" in checkline:
+                    labels.append('private key')
+                # or a certificate
+                if "BEGIN CERTIFICATE" in checkline:
+                    labels.append("certificate")
+                # or a trusted certificate
+                if "TRUSTED CERTIFICATE" in checkline:
+                    labels.append("trusted certificate")
+            checkfile.close()
+        except UnicodeDecodeError:
+            if isopened:
+                checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not a valid certificate'}
+            return {'status': False, 'error': unpackingerror}
+        labels.append("text")
+        labels.append('resource')
         return {'status': True, 'length': filesize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
