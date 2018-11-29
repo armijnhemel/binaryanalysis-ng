@@ -792,10 +792,12 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     # set the name of the file in case it is "anonymous data"
     # otherwise just imitate whatever gunzip does. If the file has a
     # name recorded in the file it will be renamed later.
+    anonymous = False
     if filename.suffix.lower() == '.gz':
         outfilename = os.path.join(unpackdir, filename.stem)
     else:
         outfilename = os.path.join(unpackdir, "unpacked-from-gz")
+        anonymous = True
 
     # open a file to write any unpacked data to
     outfile = open(outfilename, 'wb')
@@ -874,7 +876,10 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
                 pass
 
     # add the unpacked file to the result list
-    unpackedfilesandlabels.append((outfilename, []))
+    if anonymous:
+        unpackedfilesandlabels.append((outfilename, ['anonymous']))
+    else:
+        unpackedfilesandlabels.append((outfilename, []))
 
     # if the whole file is the gzip file add some more labels
     if offset == 0 and offset + unpackedsize == filesize:
