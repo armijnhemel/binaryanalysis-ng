@@ -2406,7 +2406,7 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
-# Documenting version 6.3.4
+# Documenting version 6.3.5
 # This method first verifies a file to see where the ZIP data
 # starts and where it ends.
 #
@@ -2633,7 +2633,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 checkfile.seek(16, os.SEEK_CUR)
                 unpackedsize += 16
 
-            # check for of central directory (section 4.3.16)
+            # check for end of central directory (section 4.3.16)
             elif checkbytes == b'\x50\x4b\x05\x06':
                 if not seencentraldirectory:
                     checkfile.close()
