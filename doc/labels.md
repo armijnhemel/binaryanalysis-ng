@@ -18,6 +18,7 @@ Generic labels:
 * encrypted :: file is encrypted
 * partially unpacked :: file has been partially unpacked
 * unpacked :: this is a label for internal use to flag that a file has already been unpacked, so it doesn't need further processing
+* anonymous :: the file is data that was stored without a name (example: a gzip payload inside a Linux kernel)
 
 Generic categories:
 
@@ -68,6 +69,7 @@ Compressed specific
 * gzip :: file is gzip compressed
 * lz4 :: file is LZ4 compressed
 * lzip :: file is lzip compressed
+* lzop :: file is lzop compressed
 * lzma :: file is LZMA compressed
 * mswim :: file is a Microsoft Windows Imaging file
 * python egg :: file is a Python egg file
