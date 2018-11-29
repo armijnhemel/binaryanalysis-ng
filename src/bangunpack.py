@@ -16356,6 +16356,8 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
     while bytestoread > 0:
         readsize = min(bytestoread, 10000000)
         checkbytes = checkfile.read(readsize)
+        if len(checkbytes) == 0:
+            break
         crccomputed = binascii.crc32(checkbytes, crccomputed)
         bytestoread = imagedatasize - readsize
 
