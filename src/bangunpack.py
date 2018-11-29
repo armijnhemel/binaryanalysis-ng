@@ -3187,6 +3187,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
             zipinfolist = unpackzipfile.infolist()
             oldcwd = os.getcwd()
             os.chdir(unpackdir)
+            knowncompression = True
 
             # check if there have been directories stored
             # as regular files.
@@ -3200,34 +3201,35 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 # only stored, deflate, bzip2 and lzma are supported
                 # in Python's zipfile module.
                 if z.compress_type not in [0, 8, 12, 14]:
-                    checkfile.close()
-                    if carved:
-                        os.unlink(temporaryfile[1])
-                    unpackingerror = {'offset': offset, 'fatal': False,
-                                      'reason': 'Unknown compression method'}
-                    return {'status': False, 'error': unpackingerror}
-            if len(faultyzipfiles) == 0:
-                try:
-                    unpackzipfile.extractall()
-                except NotImplementedError:
-                    checkfile.close()
-                    if carved:
-                        os.unlink(temporaryfile[1])
-                    unpackingerror = {'offset': offset, 'fatal': False,
-                                      'reason': 'Unknown compression method'}
-                    return {'status': False, 'error': unpackingerror}
-            else:
-                for z in zipinfolist:
-                    if z in faultyzipfiles:
-                        # create the directory
-                        os.makedirs(os.path.join(unpackdir, z.filename), exist_ok=True)
-                    else:
-                        unpackzipfile.extract(z)
+                    knowncompression = False
+                    break
+            if knowncompression:
+                if len(faultyzipfiles) == 0:
+                    try:
+                        unpackzipfile.extractall()
+                    except NotImplementedError:
+                        checkfile.close()
+                        if carved:
+                            os.unlink(temporaryfile[1])
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'Unknown compression method'}
+                        return {'status': False, 'error': unpackingerror}
+                else:
+                    for z in zipinfolist:
+                        if z in faultyzipfiles:
+                            # create the directory
+                            os.makedirs(os.path.join(unpackdir, z.filename), exist_ok=True)
+                        else:
+                            unpackzipfile.extract(z)
             os.chdir(oldcwd)
             unpackzipfile.close()
 
-            for i in zipinfolist:
-                unpackedfilesandlabels.append((os.path.join(unpackdir, i.filename), []))
+            if knowncompression:
+                for i in zipinfolist:
+                    unpackedfilesandlabels.append((os.path.join(unpackdir, i.filename), []))
+            else:
+                labels.append("unknown compression")
+
             if offset == 0 and not carved:
                 labels.append('compressed')
                 labels.append('zip')
