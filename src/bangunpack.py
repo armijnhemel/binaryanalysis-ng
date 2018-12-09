@@ -11414,6 +11414,7 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                 newext2dir = os.path.join(ext2dir, ext2name)
                 ext2dirstoscan.append(newext2dir)
                 os.mkdir(os.path.join(unpackdir, newext2dir))
+                unpackedfilesandlabels.append((os.path.join(unpackdir, newext2dir), []))
             elif stat.S_ISBLK(filemode):
                 # ignore block devices
                 continue
