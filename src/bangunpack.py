@@ -76,6 +76,7 @@
 # 47. FLV (Macromedia Flash Video)
 # 48. Git index files
 # 49. Linux Software Map files
+# 50. JSON
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
