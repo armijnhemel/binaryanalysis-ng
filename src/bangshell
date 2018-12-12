@@ -298,8 +298,8 @@ class BangShell(cmd.Cmd):
                 else:
                     entrystr += l.ljust(maxentrysize + 2)
                     columnsleft -= (maxentrysize + 2)
-                if entrystr != "":
-                    print(entrystr)
+            if entrystr != "":
+                print(entrystr)
 
     def emptyline(self):
         return
