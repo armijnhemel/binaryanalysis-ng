@@ -17675,3 +17675,38 @@ def unpackLZOP(filename, offset, unpackdir, temporarydirectory):
         unpackedfilesandlabels.append((outfilename, outlabels))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+def unpackJSON(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a JSON file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file
+    checkfile = open(filename, 'rb')
+
+    # try to read the contents of the file as JSON
+    try:
+        json.load(checkfile)
+    except json.JSONDecodeError as e:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid JSON'}
+        return {'status': False, 'error': unpackingerror}
+    except UnicodeError as e:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid JSON'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    # whole file is JSON
+    unpackedsize = filesize
+
+    labels.append('json')
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}

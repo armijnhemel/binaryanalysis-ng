@@ -238,6 +238,7 @@ extensiontofunction = {
     '.rsa': bangunpack.unpackCertificate,
     '.pem': bangunpack.unpackCertificate,
     '.lsm': bangunpack.unpackLSM,
+    '.json': bangunpack.unpackJSON,
 }
 
 # a lookup table to map extensions to a name
@@ -262,6 +263,7 @@ extensionprettyprint = {
     '.rsa': 'certificate',
     '.pem': 'certificate',
     '.lsm': 'lsm',
+    '.json': 'json',
 }
 
 # certain unpacking functions if the whole file is text
