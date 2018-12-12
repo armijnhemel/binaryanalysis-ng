@@ -388,18 +388,20 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # keep track of where in the file the starting
             # point for scanning for signatures is
             offsetinfile = scanfile.tell()
-            scanbytes = scanfile.read(scanenvironment['maxbytes'])
+            scanbytesarray = bytearray(scanenvironment['maxbytes'])
+            bytesread = scanfile.readinto(scanbytesarray)
+            scanbytes = memoryview(scanbytesarray)
 
             # check if any of the characters read is a
             # non-ASCII character. If so, it is not a text file.
             if istext:
-                if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
+                if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes[:bytesread]))) != 0:
                     istext = False
 
             while True:
                 candidateoffsetsfound = set()
                 for s in bangsignatures.signatures:
-                    res = re.finditer(re.escape(bangsignatures.signatures[s]), scanbytes)
+                    res = re.finditer(re.escape(bangsignatures.signatures[s]), scanbytes[:bytesread])
                     if res is not None:
                         for r in res:
                             if s in bangsignatures.signaturesoffset:
@@ -436,7 +438,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 # Only do this if there are enough bytes
                                 # left to test on, otherwise let the sliding
                                 # window do its work
-                                if len(scanbytes) - offset >= 13:
+                                if bytesread - offset >= 13:
                                     # bytes 5 - 13 are the size field. It
                                     # could be that it is undefined, but if
                                     # it is defined then check if it is too
@@ -460,7 +462,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 # Only do this if there are enough bytes
                                 # left to test on, otherwise
                                 # let the sliding window do its work
-                                if len(scanbytes) - offset >= 10:
+                                if bytesread - offset >= 10:
                                     # the byte indicating the block size
                                     # has to be in the range 1 - 9
                                     try:
@@ -491,7 +493,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 #
                                 # RFC 1952 says that bit 6 and 7 should not
                                 # be set.
-                                if len(scanbytes) - offset >= 4:
+                                if bytesread - offset >= 4:
                                     gzipbyte = scanbytes[offset+3]
                                     if (gzipbyte >> 2 & 1) == 1:
                                         # continuation of multi-part gzip
@@ -509,7 +511,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 # header of BMP files is 26 bytes
                                 if filesize - (offset + offsetinfile) < 26:
                                     continue
-                                if len(scanbytes) - offset >= 6:
+                                if bytesread - offset >= 6:
                                     bmpsize = int.from_bytes(scanbytes[offset+2:offset+6], byteorder='little')
                                     if offsetinfile + offset + bmpsize > filesize:
                                         continue
@@ -517,7 +519,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 # header of SGI files is 512 bytes
                                 if filesize - (offset + offsetinfile) < 512:
                                     continue
-                                if len(scanbytes) - offset >= 3:
+                                if bytesread - offset >= 3:
                                     # storage format
                                     if not (scanbytes[offset+2] == 0 or scanbytes[offset+2] == 1):
                                         continue
@@ -555,7 +557,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 # minimum size of PNG files is 57 bytes
                                 if filesize - (offsetinfile + offset) < 57:
                                     continue
-                                if len(scanbytes) - offset >= 13:
+                                if bytesread - offset >= 13:
                                     # bytes 8 - 11 are always the same in
                                     # every PNG
                                     if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x0d':
@@ -564,7 +566,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 # minimum size of MNG files is 52 bytes
                                 if filesize - (offsetinfile + offset) < 52:
                                     continue
-                                if len(scanbytes) - offset >= 13:
+                                if bytesread - offset >= 13:
                                     # bytes 8 - 11 are always the same in
                                     # every MNG
                                     if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x1c':
@@ -758,10 +760,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     scanfile.seek(-maxsignaturesoffset, 1)
                 offsetinfile = scanfile.tell()
 
-                scanbytes = scanfile.read(scanenvironment['maxbytes'])
+                bytesread = scanfile.readinto(scanbytesarray)
 
                 if istext:
-                    if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes))) != 0:
+                    if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes[:bytesread]))) != 0:
                         istext = False
 
             scanfile.close()
@@ -1261,8 +1263,10 @@ def main(argv):
 
     # first determine how many bytes should be scanned for known
     # signatures using a sliding window. This should not be set too
-    # large for performance reasons.
-    maxbytes = 2000000
+    # large for performance reasons and not too low (to avoid a
+    # silly window). Ideally this is a few times the value of
+    # 'maxsignaturesoffset'
+    maxbytes = max(2000000, maxsignaturesoffset+1)
 
     scanenvironment['maxbytes'] = maxbytes
 
