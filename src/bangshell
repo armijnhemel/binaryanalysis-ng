@@ -292,6 +292,7 @@ class BangShell(cmd.Cmd):
             for l in entries:
                 if maxentrysize + 2 > columnsleft:
                     print(entrystr)
+                    columnsleft = termsize.columns
                     entrystr = ""
                     entrystr += l.ljust(maxentrysize + 2)
                     columnsleft -= (maxentrysize + 2)
