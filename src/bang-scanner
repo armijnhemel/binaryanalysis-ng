@@ -1266,7 +1266,7 @@ def main(argv):
     # large for performance reasons and not too low (to avoid a
     # silly window). Ideally this is a few times the value of
     # 'maxsignaturesoffset'
-    maxbytes = max(2000000, maxsignaturesoffset+1)
+    maxbytes = max(200000, maxsignaturesoffset+1)
 
     scanenvironment['maxbytes'] = maxbytes
 
