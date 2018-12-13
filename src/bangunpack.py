@@ -64,7 +64,7 @@
 # 35. Android sparse image files
 # 36. Java class file
 # 37. Android Dex/Odex (not OAT, just carving)
-# 38. ELF (whole files only, basic)
+# 38. ELF
 # 39. SWF
 # 40. Android resource files (table type only, possibly not all types)
 # 41. Java/Android MANIFEST.MF files
@@ -15152,12 +15152,18 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         return {'status': True, 'length': maxoffset, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
-    # TODO: carving
-
+    # Carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked-from-elf")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
+    outfile.close()
     checkfile.close()
-    unpackingerror = {'offset': offset, 'fatal': False,
-                      'reason': 'invalid ELF file'}
-    return {'status': False, 'error': unpackingerror}
+
+    outlabels = ['elf', 'unpacked', 'binary']
+    unpackedfilesandlabels.append((outfilename, outlabels))
+
+    return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
 
 
 # An unpacker for the SWF format, able to carve/label zlib &
