@@ -77,6 +77,7 @@
 # 48. Git index files
 # 49. Linux Software Map files
 # 50. JSON
+# 51. D-Link ROMFS
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -17709,5 +17710,212 @@ def unpackJSON(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = filesize
 
     labels.append('json')
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# D-Link ROMFS. This code is inspired by the unpacking code
+# from binwalk:
+#
+# https://github.com/ReFirmLabs/binwalk/blob/master/src/binwalk/plugins/dlromfsextract.py
+#
+# which was released under the MIT license. The license can be found in the file
+# README.md in the root of this project.
+def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack a D-Link ROMFS'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+
+    # check the endianness, don't support anything but little endian
+    checkbytes = checkfile.read(4)
+    if checkbytes != b'\x2emoR':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unsupported endianness'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize += 4
+
+    # skip 4 bytes
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # skip 4 bytes (file system size?, leave here for future reference)
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # skip the superblock
+    checkfile.seek(offset + 32)
+    unpackedsize = 32
+
+    endentry = sys.maxsize
+
+    entryuidtopath = {}
+
+    maxunpacked = unpackedsize
+
+    while True:
+        # read metadata entries, but stop as soon
+        # as the data part starts.
+        if checkfile.tell() >= offset + endentry:
+            break
+
+        if checkfile.tell() + 20 > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for entry'}
+            return {'status': False, 'error': unpackingerror}
+
+        # read the type
+        checkbytes = checkfile.read(4)
+        entrytype = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        isdir = False
+        if entrytype & 0x00000001 == 0x00000001:
+            isdir = True
+
+        isdata = False
+        if entrytype & 0x00000008 == 0x00000008:
+            isdata = True
+
+        iscompressed = False
+        if entrytype & 0x005B0000 == 0x005B0000:
+            iscompressed = True
+
+        # skip over a few fields
+        checkfile.seek(8, os.SEEK_CUR)
+        unpackedsize += 8
+
+        # read the size
+        checkbytes = checkfile.read(4)
+        entrysize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        # skip 4 bytes
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # read the offset
+        checkbytes = checkfile.read(4)
+        entryoffset = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        # entry cannot be outside of the file
+        if offset + entryoffset  + entrysize > filesize:
+            break
+
+        # offset cannot be smaller than previous offset
+        if endentry != sys.maxsize:
+            if entryoffset < endentry:
+                break
+        else:
+            endentry = entryoffset
+
+        # skip over a few bytes
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # uid
+        checkbytes = checkfile.read(4)
+        try:
+            entryuid = int(checkbytes.decode())
+        except:
+            break
+        unpackedsize += 4
+
+        if entryuid in entryuidtopath:
+            curdir = entryuidtopath[entryuid]
+        else:
+            curdir = ''
+
+        # store the current offset
+        oldoffset = checkfile.tell()
+        checkfile.seek(offset + entryoffset)
+
+        # read directory entries
+        if isdir:
+            if entryuid in entryuidtopath:
+                outfilename = os.path.join(unpackdir, entryuidtopath[entryuid])
+                os.mkdir(outfilename)
+                unpackedfilesandlabels.append((outfilename, []))
+            entrybytesread = 0
+            while entrybytesread < entrysize:
+                # directory uid
+                checkbytes = checkfile.read(4)
+                diruid = int.from_bytes(checkbytes, byteorder='little')
+                entrybytesread += 4
+
+                # skip 4 bytes
+                checkfile.seek(4, os.SEEK_CUR)
+                entrybytesread += 4
+
+                # directory name entry
+                dirname = b''
+                while True:
+                    checkbytes = checkfile.read(1)
+                    entrybytesread += 1
+                    if checkbytes == b'\x00':
+                        break
+                    if entrybytesread > entrysize:
+                        break
+                    dirname += checkbytes
+
+                # store the name of the entry so far:
+                # uid, 4 bytes skipped and NUL-terminated name
+                total_size = 4 + 4 + len(dirname)+1
+
+                try:
+                    dirname = dirname.decode()
+                except:
+                    pass
+
+                # no need to create/store current directory
+                # and the parent directory
+                if dirname not in ['.', '..']:
+                    entryuidtopath[diruid] = os.path.join(curdir, dirname)
+
+                # entries are aligned on 32 byte boundaries
+                count = total_size % 32
+
+                if count != 0:
+                    checkfile.seek(32 - count, os.SEEK_CUR)
+                    entrybytesread += (32 - count)
+            maxunpacked = max(maxunpacked, offset + entryoffset + entrysize)
+        elif isdata:
+            if entryuid in entryuidtopath:
+                outfilename = os.path.join(unpackdir, entryuidtopath[entryuid])
+                outfile = open(outfilename, 'wb')
+                if iscompressed:
+                    # try to decompress using LZMA. If this is not successful
+                    # simply copy the data. It happens that some data has the
+                    # compression flag set, but is included without being
+                    # compressed.
+                    try:
+                        outfile.write(lzma.decompress(checkfile.read(entrysize)))
+                    except:
+                        os.sendfile(outfile.fileno(), checkfile.fileno(), offset + entryoffset, entrysize)
+                else:
+                    os.sendfile(outfile.fileno(), checkfile.fileno(), offset + entryoffset, entrysize)
+                outfile.close()
+                unpackedfilesandlabels.append((outfilename, []))
+                maxunpacked = max(maxunpacked, offset + entryoffset + entrysize)
+
+        # return to the old offset
+        checkfile.seek(oldoffset)
+
+    unpackedsize = maxunpacked
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('filesystem')
+        labels.append('d-link')
+
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
