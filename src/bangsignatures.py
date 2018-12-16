@@ -99,6 +99,7 @@ signatures = {
     'git_index': b'DIRC',  # https://github.com/git/git/blob/master/Documentation/technical/index-format.txt
     'flv': b'FLV',
     'lzop': b'\x89\x4c\x5a\x4f\x00\x0d\x0a\x1a\x0a',
+    'dlinkromfs': b'ROMFS v',
 }
 
 # some signatures do not start at the beginning of the file
@@ -111,6 +112,7 @@ signaturesoffset = {
     'icc': 36,
     'iso9660': 32769,
     'ext2': 0x438,
+    'dlinkromfs': 16,
 }
 
 # keep a list of signatures to the (built in) functions
@@ -188,6 +190,7 @@ signaturetofunction = {
     'git_index': bangunpack.unpackGitIndex,
     'flv': bangunpack.unpackFLV,
     'lzop': bangunpack.unpackLZOP,
+    'dlinkromfs': bangunpack.unpackDlinkRomfs,
 }
 
 # a lookup table to map signatures to a name for
