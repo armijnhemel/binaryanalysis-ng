@@ -107,6 +107,7 @@
 # 21. Snappy (needs python-snappy)
 # 22. various certificates (PEM, private key, etc., needs openssl)
 # 23. lzop
+# 24. CSS
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
