@@ -15034,7 +15034,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     for i in range(0, shnum):
         sectionheaders[i] = {}
 
-        # sh_name, should be a valid index into SHT_STRTAB
+        # sh_name, should be a valid index into .shstrtab
         checkbytes = checkfile.read(4)
         if bigendian:
             sh_name = int.from_bytes(checkbytes, byteorder='big')
@@ -15144,6 +15144,25 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             unpackedsize += 4
 
     maxoffset = max(maxoffset, unpackedsize)
+
+    # sanity checks
+    if shstrndx not in sectionheaders:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'shstrndx not in sections'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.seek(offset + sectionheaders[shstrndx]['sh_offset'])
+    checkbytes = checkfile.read(sectionheaders[shstrndx]['sh_size'])
+    sectionnames = []
+    for i in sectionheaders:
+        # names start at sh_name_offset and end with \x00
+        endofname = checkbytes.find(b'\x00', sectionheaders[i]['sh_name_offset'])
+        if endofname == -1:
+            # something is horribly wrong here
+            continue
+        sectionname = checkbytes[sectionheaders[i]['sh_name_offset']:endofname].decode()
+        sectionheaders[i]['name'] = sectionname
 
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
