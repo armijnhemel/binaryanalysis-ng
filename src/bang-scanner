@@ -1154,25 +1154,6 @@ def main(argv):
             bangcursor = bangconn.cursor()
             bangdbconns.append((bangconn, bangcursor))
 
-    # sanity checks for the file to scan
-    if args.checkfile is None:
-        parser.error("No file to scan provided, exiting")
-
-    # the file to scan should exist ...
-    if not os.path.exists(args.checkfile):
-        parser.error("File %s does not exist, exiting." % args.checkfile)
-
-    # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.checkfile)
-
-    filesize = os.stat(args.checkfile).st_size
-
-    # Don't scan an empty file
-    if filesize == 0:
-        print("File to scan is empty, exiting", file=sys.stderr)
-        sys.exit(1)
-
     # Check if the base unpack directory was declared.
     if baseunpackdirectory == '':
         print("Base unpack directory not declared in configuration file, exiting", file=sys.stderr)
@@ -1213,6 +1194,25 @@ def main(argv):
         except:
             print("Temporary directory %s cannot be written to, exiting" % temporarydirectory, file=sys.stderr)
             sys.exit(1)
+
+    # sanity checks for the file to scan
+    if args.checkfile is None:
+        parser.error("No file to scan provided, exiting")
+
+    # the file to scan should exist ...
+    if not os.path.exists(args.checkfile):
+        parser.error("File %s does not exist, exiting." % args.checkfile)
+
+    # ... and should be a real file
+    if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
+        parser.error("%s is not a regular file, exiting." % args.checkfile)
+
+    filesize = os.stat(args.checkfile).st_size
+
+    # Don't scan an empty file
+    if filesize == 0:
+        print("File to scan is empty, exiting", file=sys.stderr)
+        sys.exit(1)
 
     # Now the real scanning starts.
     scandate = datetime.datetime.utcnow()
