@@ -15216,6 +15216,18 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                 # it is possible to extract the name of the module.
                 maxoffset = maxoffset + sigsize + 40
                 outfilename = os.path.join(unpackdir, "unpacked-from-elf")
+                if '.modinfo' in sectionnames:
+                    secnr = sectionnametonr['.modinfo']
+                    checkfile.seek(offset+sectionheaders[secnr]['sh_offset'])
+                    checkbytes = checkfile.read(sectionheaders[secnr]['sh_size'])
+                    modinfo = checkbytes.split(b'\x00')
+                    modulename = ''
+                    for m in modinfo:
+                        if b'name=' in m:
+                            modulename = m.decode().split('name=', 1)[1] + '.ko'
+                            break
+                    if modulename != '':
+                        outfilename = os.path.join(unpackdir, modulename)
                 outfile = open(outfilename, 'wb')
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
                 outfile.close()
