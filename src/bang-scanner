@@ -1019,9 +1019,14 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", action="store", dest="checkfile",
                         help="path to file to check", metavar="FILE")
+    parser.add_argument("-d", "--directory", action="store", dest="checkdirectory",
+                        help="path to directory with files to check", metavar="DIR")
     parser.add_argument("-c", "--config", action="store", dest="cfg",
                         help="path to configuration file", metavar="FILE")
     args = parser.parse_args()
+
+    if args.checkdirectory is not None and args.checkfile is not None:
+        parser.error("Cannot scan a directory and a single file, exiting")
 
     # sanity checks for the configuration file
     if args.cfg is None:
@@ -1195,101 +1200,12 @@ def main(argv):
             print("Temporary directory %s cannot be written to, exiting" % temporarydirectory, file=sys.stderr)
             sys.exit(1)
 
-    # sanity checks for the file to scan
-    if args.checkfile is None:
-        parser.error("No file to scan provided, exiting")
-
-    # the file to scan should exist ...
-    if not os.path.exists(args.checkfile):
-        parser.error("File %s does not exist, exiting." % args.checkfile)
-
-    # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.checkfile)
-
-    filesize = os.stat(args.checkfile).st_size
-
-    # Don't scan an empty file
-    if filesize == 0:
-        print("File to scan is empty, exiting", file=sys.stderr)
-        sys.exit(1)
-
-    # Now the real scanning starts.
-    scandate = datetime.datetime.utcnow()
-
-    # create a directory for the scan
-    scandirectory = pathlib.Path(tempfile.mkdtemp(prefix='bang-scan-',
-                                                  dir=baseunpackdirectory))
-
-    # create an empty file "STARTED" to easily identify
-    # active (or crashed) scans.
-    startedfile = open(scandirectory / "STARTED", 'wb')
-    startedfile.close()
-
-    # now create a directory structure inside the scandirectory:
-    # unpack/ -- this is where all the unpacked data will be stored
-    # results/ -- this is where files describing the unpacked data
-    #             will be stored
-    # logs/ -- this is where logs from the scan will be stored
-    unpackdirectory = scandirectory / "unpack"
-    unpackdirectory.mkdir()
-
-    resultsdirectory = scandirectory / "results"
-    resultsdirectory.mkdir()
-
-    logdirectory = scandirectory / "logs"
-    logdirectory.mkdir()
-
-    # create a log file inside the log directory
-    logging.basicConfig(filename=logdirectory / 'unpack.log',
-                        level=logging.DEBUG, format='%(asctime)s %(message)s')
-    logging.info("Started scanning %s" % args.checkfile)
-
-    processmanager = multiprocessing.Manager()
-
-    # first create two queues: one for scanning files, the other one
-    # for reporting results.
-    scanfilequeue = processmanager.JoinableQueue(maxsize=0)
-    resultqueue = processmanager.JoinableQueue(maxsize=0)
-    processes = []
-
-    # copy the file that needs to be scanned to the temporary
-    # directory.
-    try:
-        shutil.copy(args.checkfile, unpackdirectory)
-    except:
-        print("Could not copy %s to scanning directory %s" % (args.checkfile, unpackdirectory), file=sys.stderr)
-        sys.exit(1)
-
-    # The scan queue will be used to put files into that need to be
-    # scanned and processes. New files wil keep being added to it
-    # while results are being unpacked recursively.
-    # Initially one file will be in this queue, namely the first file.
-    # After files are unpacked they will be added to the queue, as they
-    # can be scanned in a trivially parallel way.
-
-    # Create a list of labels to pass around. The first element is
-    # tagged as 'root', as it is the root of the unpacking tree.
-    labels = ['root']
-    scanfilequeue.put((unpackdirectory / os.path.basename(args.checkfile), labels, None, {}))
-
-    # create a lock to control access to any shared data structures
-    processlock = multiprocessing.Lock()
-
-    # create a shared dictionary
-    checksumdict = processmanager.dict()
-
-    # create a scan environment, initially an empty dictionary
-    scanenvironment = {}
-
     # first determine how many bytes should be scanned for known
     # signatures using a sliding window. This should not be set too
     # large for performance reasons and not too low (to avoid a
     # silly window). Ideally this is a few times the value of
     # 'maxsignaturesoffset'
     maxbytes = max(200000, maxsignaturesoffset+1)
-
-    scanenvironment['maxbytes'] = maxbytes
 
     # grab all the functions from the "bangfilescans" file
     bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
@@ -1316,115 +1232,231 @@ def main(argv):
             elif context == 'whole':
                 bangwholecontextfunctions.append((f, ignorelist))
 
-    # create processes for unpacking archives
-    for i in range(0, bangthreads):
-        if not usedatabase:
-            p = multiprocessing.Process(target=processfile,
-                                        args=(scanfilequeue,
-                                              resultqueue,
-                                              processlock,
-                                              checksumdict,
-                                              unpackdirectory,
-                                              resultsdirectory,
-                                              temporarydirectory,
-                                              None, None,
-                                              bangfilefunctions,
-                                              scanenvironment))
-        else:
-            p = multiprocessing.Process(target=processfile,
-                                        args=(scanfilequeue,
-                                              resultqueue,
-                                              processlock,
-                                              checksumdict,
-                                              unpackdirectory,
-                                              resultsdirectory,
-                                              temporarydirectory,
-                                              bangdbconns[i][0],
-                                              bangdbconns[i][1],
-                                              bangfilefunctions,
-                                              scanenvironment))
-        processes.append(p)
+    checkfiles = []
+    if args.checkdirectory is not None:
+        for i in os.listdir(args.checkdirectory):
+            # the file to scan should exist ...
+            scanfilename = os.path.join(args.checkdirectory, i)
+            if not os.path.exists(scanfilename):
+                continue
 
-    # then start all the processes
-    for p in processes:
-        p.start()
+            # ... and should be a real file
+            if not stat.S_ISREG(os.stat(scanfilename).st_mode):
+                continue
 
-    # wait for the queues to be empty.
-    scanfilequeue.join()
+            filesize = os.stat(scanfilename).st_size
+            # Don't scan an empty file
+            if filesize == 0:
+                continue
+            checkfiles.append(scanfilename)
+    else:
+        # sanity checks for the file to scan
+        if args.checkfile is None:
+            parser.error("No file to scan provided, exiting")
 
-    # There is one result for each file in the result
-    # queue, which need to be merged into a structure
-    # matching the directory tree that was unpacked. The name
-    # of each file that is unpacked serves as key into
-    # the structure.
-    scantree = {}
+        # the file to scan should exist ...
+        if not os.path.exists(args.checkfile):
+            parser.error("File %s does not exist, exiting." % args.checkfile)
 
-    while True:
+        # ... and should be a real file
+        if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
+            parser.error("%s is not a regular file, exiting." % args.checkfile)
+
+        filesize = os.stat(args.checkfile).st_size
+
+        # Don't scan an empty file
+        if filesize == 0:
+            print("File to scan is empty, exiting", file=sys.stderr)
+            sys.exit(1)
+
+        checkfiles.append(args.checkfile)
+
+    if len(checkfiles) == 0:
+        print("No files to scan found, exiting", file=sys.stderr)
+        sys.exit(1)
+
+    for checkfile in checkfiles:
+        # Now the real scanning starts.
+        scandate = datetime.datetime.utcnow()
+
+        # create a directory for the scan
+        scandirectory = pathlib.Path(tempfile.mkdtemp(prefix='bang-scan-',
+                                                  dir=baseunpackdirectory))
+
+        # create an empty file "STARTED" to easily identify
+        # active (or crashed) scans.
+        startedfile = open(scandirectory / "STARTED", 'wb')
+        startedfile.close()
+
+        # now create a directory structure inside the scandirectory:
+        # unpack/ -- this is where all the unpacked data will be stored
+        # results/ -- this is where files describing the unpacked data
+        #             will be stored
+        # logs/ -- this is where logs from the scan will be stored
+        unpackdirectory = scandirectory / "unpack"
+        unpackdirectory.mkdir()
+
+        resultsdirectory = scandirectory / "results"
+        resultsdirectory.mkdir()
+
+        logdirectory = scandirectory / "logs"
+        logdirectory.mkdir()
+
+        # create a log file inside the log directory
+        logging.basicConfig(filename=logdirectory / 'unpack.log',
+                            level=logging.DEBUG, format='%(asctime)s %(message)s')
+        logging.info("Started scanning %s" % checkfile)
+
+        processmanager = multiprocessing.Manager()
+
+        # first create two queues: one for scanning files, the other one
+        # for reporting results.
+        scanfilequeue = processmanager.JoinableQueue(maxsize=0)
+        resultqueue = processmanager.JoinableQueue(maxsize=0)
+        processes = []
+
+        # copy the file that needs to be scanned to the temporary
+        # directory.
         try:
-            fileresult = resultqueue.get_nowait()
-            if 'filename' in fileresult:
-                scantree[fileresult['filename']] = copy.deepcopy(fileresult)
-                resultqueue.task_done()
-        except queue.Empty as e:
-            # Queue is empty
-            break
+            shutil.copy(checkfile, unpackdirectory)
+        except:
+            print("Could not copy %s to scanning directory %s" % (checkfile, unpackdirectory), file=sys.stderr)
+            sys.exit(1)
 
-    resultqueue.join()
+        # The scan queue will be used to put files into that need to be
+        # scanned and processes. New files wil keep being added to it
+        # while results are being unpacked recursively.
+        # Initially one file will be in this queue, namely the first file.
+        # After files are unpacked they will be added to the queue, as they
+        # can be scanned in a trivially parallel way.
 
-    # Done processing, terminate processes that were created
-    for p in processes:
-        p.terminate()
+        # Create a list of labels to pass around. The first element is
+        # tagged as 'root', as it is the root of the unpacking tree.
+        labels = ['root']
+        scanfilequeue.put((unpackdirectory / os.path.basename(checkfile), labels, None, {}))
 
-    # clean up the database connections and
-    # close all connections to the database
-    for c in bangdbconns:
-        # first close the cursor
-        c[1].close()
-        # then close the database connection
-        c[0].close()
+        # create a lock to control access to any shared data structures
+        processlock = multiprocessing.Lock()
 
-    scandatefinished = datetime.datetime.utcnow()
+        # create a shared dictionary
+        checksumdict = processmanager.dict()
 
-    # move the file "STARTED" to "FINISHED" to easily identify
-    # active (or crashed) scans
-    shutil.move(scandirectory / "STARTED",
-                scandirectory / "FINISHED")
-    os.utime(scandirectory / "FINISHED")
+        # create a scan environment for the new scan,
+        # initially an empty dictionary
+        scanenvironment = {}
 
-    # now store the scan tree results with other data
-    scanresult = {}
-    scanresult['scantree'] = scantree
+        # set the maximum size for the amont of bytes to be read
+        scanenvironment['maxbytes'] = maxbytes
 
-    # statistics about this particular session
-    scanresult['session'] = {}
-    scanresult['session']['start'] = scandate
-    scanresult['session']['stop'] = scandatefinished
-    scanresult['session']['duration'] = (scandatefinished - scandate).total_seconds()
-    scanresult['session']['user'] = getpass.getuser()
+        # create processes for unpacking archives
+        for i in range(0, bangthreads):
+            if not usedatabase:
+                p = multiprocessing.Process(target=processfile,
+                                            args=(scanfilequeue,
+                                                  resultqueue,
+                                                  processlock,
+                                                  checksumdict,
+                                                  unpackdirectory,
+                                                  resultsdirectory,
+                                                  temporarydirectory,
+                                                  None, None,
+                                                  bangfilefunctions,
+                                                  scanenvironment))
+            else:
+                p = multiprocessing.Process(target=processfile,
+                                            args=(scanfilequeue,
+                                                  resultqueue,
+                                                  processlock,
+                                                  checksumdict,
+                                                  unpackdirectory,
+                                                  resultsdirectory,
+                                                  temporarydirectory,
+                                                  bangdbconns[i][0],
+                                                  bangdbconns[i][1],
+                                                  bangfilefunctions,
+                                                  scanenvironment))
+            processes.append(p)
 
-    # some information about the platform
-    scanresult['platform'] = {}
-    scanresult['platform']['machine'] = platform.machine()
-    scanresult['platform']['architecture'] = platform.architecture()[0]
-    scanresult['platform']['processor'] = platform.processor()
-    scanresult['platform']['node'] = platform.node()
-    scanresult['platform']['system'] = platform.system()
-    scanresult['platform']['release'] = platform.release()
-    scanresult['platform']['libc'] = platform.libc_ver()[0]
-    scanresult['platform']['libcversion'] = platform.libc_ver()[1]
+        # then start all the processes
+        for p in processes:
+            p.start()
 
-    # some information about the used Python version
-    scanresult['python'] = {}
-    scanresult['python']['version'] = platform.python_version()
-    scanresult['python']['implementation'] = platform.python_implementation()
+        # wait for the queues to be empty.
+        scanfilequeue.join()
 
-    # write all results to a Python pickle
-    picklefile = open(scandirectory / 'bang.pickle', 'wb')
-    pickle.dump(scanresult, picklefile)
-    picklefile.close()
+        # There is one result for each file in the result
+        # queue, which need to be merged into a structure
+        # matching the directory tree that was unpacked. The name
+        # of each file that is unpacked serves as key into
+        # the structure.
+        scantree = {}
 
-    # The end.
-    logging.info("Finished scanning %s" % args.checkfile)
+        while True:
+            try:
+                fileresult = resultqueue.get_nowait()
+                if 'filename' in fileresult:
+                    scantree[fileresult['filename']] = copy.deepcopy(fileresult)
+                    resultqueue.task_done()
+            except queue.Empty as e:
+                # Queue is empty
+                break
+
+        resultqueue.join()
+
+        # Done processing, terminate processes that were created
+        for p in processes:
+            p.terminate()
+
+        # clean up the database connections and
+        # close all connections to the database
+        for c in bangdbconns:
+            # first close the cursor
+            c[1].close()
+            # then close the database connection
+            c[0].close()
+
+        scandatefinished = datetime.datetime.utcnow()
+
+        # move the file "STARTED" to "FINISHED" to easily identify
+        # active (or crashed) scans
+        shutil.move(scandirectory / "STARTED",
+                    scandirectory / "FINISHED")
+        os.utime(scandirectory / "FINISHED")
+
+        # now store the scan tree results with other data
+        scanresult = {}
+        scanresult['scantree'] = scantree
+
+        # statistics about this particular session
+        scanresult['session'] = {}
+        scanresult['session']['start'] = scandate
+        scanresult['session']['stop'] = scandatefinished
+        scanresult['session']['duration'] = (scandatefinished - scandate).total_seconds()
+        scanresult['session']['user'] = getpass.getuser()
+
+        # some information about the platform
+        scanresult['platform'] = {}
+        scanresult['platform']['machine'] = platform.machine()
+        scanresult['platform']['architecture'] = platform.architecture()[0]
+        scanresult['platform']['processor'] = platform.processor()
+        scanresult['platform']['node'] = platform.node()
+        scanresult['platform']['system'] = platform.system()
+        scanresult['platform']['release'] = platform.release()
+        scanresult['platform']['libc'] = platform.libc_ver()[0]
+        scanresult['platform']['libcversion'] = platform.libc_ver()[1]
+
+        # some information about the used Python version
+        scanresult['python'] = {}
+        scanresult['python']['version'] = platform.python_version()
+        scanresult['python']['implementation'] = platform.python_implementation()
+
+        # write all results to a Python pickle
+        picklefile = open(scandirectory / 'bang.pickle', 'wb')
+        pickle.dump(scanresult, picklefile)
+        picklefile.close()
+
+        # The end.
+        logging.info("Finished scanning %s" % checkfile)
 
 if __name__ == "__main__":
     main(sys.argv)
