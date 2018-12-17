@@ -116,6 +116,14 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
     lenunpackdirectory = len(str(unpackdirectory)) + 1
     synthesizedminimum = 10
 
+    emptyhashes = {}
+    emptyhashresults = {}
+
+    # pre-store empty hashes
+    for hashtocompute in ['sha256', 'md5', 'sha1']:
+        emptyhashes[hashtocompute] = hashlib.new(hashtocompute)
+        emptyhashresults[hashtocompute] = emptyhashes[hashtocompute].hexdigest()
+
     while True:
         # grab a new file from the scanning queue
         (checkfile, labels, parent, extradata) = scanfilequeue.get(timeout=86400)
@@ -182,6 +190,17 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         filesize = os.stat(checkfile).st_size
 
+        # Don't scan an empty file
+        if filesize == 0:
+            labels.append('empty')
+            fileresult['labels'] = labels
+            fileresult['filesize'] = 0
+            resultqueue.put(fileresult)
+            scanfilequeue.task_done()
+            for i in emptyhashresults:
+                fileresult[i] = emptyhashresults[i]
+            continue
+
         # compute various checksums of the file
         hashresults = {}
         hashes = {}
@@ -223,15 +242,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         for i in hashresults:
             fileresult[i] = hashresults[i]
-
-        # Don't scan an empty file
-        if filesize == 0:
-            labels.append('empty')
-            fileresult['labels'] = labels
-            fileresult['filesize'] = 0
-            resultqueue.put(fileresult)
-            scanfilequeue.task_done()
-            continue
 
         # create an empty list of files that were
         # unpacked/carved from this file
