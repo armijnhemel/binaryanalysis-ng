@@ -15189,11 +15189,37 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             checkfile.seek(-32, os.SEEK_END)
             checkbytes = checkfile.read(4)
             sigsize = int.from_bytes(checkbytes, byteorder='big')
-            if maxoffset + sigsize + 40 == filesize:
-                checkfile.close()
+            if offset == 0 and maxoffset + sigsize + 40 == filesize:
                 maxoffset = maxoffset + sigsize + 40
+                checkfile.close()
                 labels.append('elf')
                 labels.append('linuxkernelmodule')
+                return {'status': True, 'length': maxoffset, 'labels': labels,
+                        'filesandlabels': unpackedfilesandlabels}
+
+        # instead forward search to the signature and carve
+        checkfile.seek(offset + maxoffset)
+        # read a maximum of 2048 bytes, as that should be plenty for
+        # any real world use for a Linux kernel module signature.
+        checkbytes = checkfile.read(2048)
+        sigpos = checkbytes.find(b'~Module signature appended~\n')
+        if sigpos != -1:
+            # the four bytes before the signature are the signature
+            # size. This does not include the last 40 bytes. Magic is
+            # 28 bytes, so the difference should be 12.
+            sigsize = int.from_bytes(checkbytes[sigpos-4:sigpos], byteorder='big')
+            if sigsize + 12 == sigpos:
+                # Carve the file. In case the section .modinfo is present, then
+                # it is possible to extract the name of the module.
+                maxoffset = maxoffset + sigsize + 40
+                outfilename = os.path.join(unpackdir, "unpacked-from-elf")
+                outfile = open(outfilename, 'wb')
+                os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
+                outfile.close()
+                checkfile.close()
+                outlabels = ['elf', 'unpacked', 'binary', 'linuxkernelmodule']
+                unpackedfilesandlabels.append((outfilename, outlabels))
+
                 return {'status': True, 'length': maxoffset, 'labels': labels,
                         'filesandlabels': unpackedfilesandlabels}
 
