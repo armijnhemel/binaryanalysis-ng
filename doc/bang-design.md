@@ -6,7 +6,18 @@ use is to able to find out the provenance of the unpacked files and
 classify/label files, making them available for further analysis.
 
 This file explains the design of the program and how to write new unpackers
-for certain file types.
+for certain file types. But first something about why a new tool was needed.
+
+## Why BANG?
+
+There are quite a few open source licensed tools out there for analyzing
+firmware files. Most of these focus on either forensics, or on unpacking
+firmware, but none of them focus specifically on where open source, firmware
+reverse engineering and security meet.
+
+Experience creating earlier tools shows that the sometimes simplistic and
+naive approaches from other tools (assuming correct files instead of broken
+data) is not realistic.
 
 ## Framework
 
@@ -104,6 +115,9 @@ then the directory will not be returned. Examples of this are graphics files
 Files that have been unpacked are written to this directory and when returned
 will be added to the scanning queue.
 
+The offsets of the data inside the original file and the size will be stored
+in internal data structures with metadata.
+
 #### Carving
 
 Carving a file from a larger file is a bit different than unpacking data
@@ -141,12 +155,16 @@ An example of an error message:
 
 #### Optimizations
 
-There are various optimizations in BANG. One optimization is that during the
-search for magic headers some sanity checks are performed to see if the magic
+There are many optimizations in BANG aimed at reducing disk I/O to allow
+scanning of very large collections of files.
+
+In the main scaning loop some checks from the unpacking checks are duplicated
+to perform a look ahead during the search for magic headers to see if the magic
 headers really are valid, or if they are false positives. This is to prevent
 that methods are run unnecessarily. Method calls in Python are quite expensive
 and preventing large amounts of them can easily shave a few minutes off for
 large files (for example: Android firmwares).
 
-In the main scaning loop some checks from the unpacking checks are duplicated
-to essentially perform a look ahead.
+Carving some file types means parsing the file format (example: PNG, Java class
+files, etcetera). To prevent these files being scanned again they are
+explicitly flagged as already having been scanned.
