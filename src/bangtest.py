@@ -1932,6 +1932,15 @@ class TestTar(unittest.TestCase):
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
+    # a test for the file being a single tar with absolute paths
+    def testFullfileIsTarAbsolute(self):
+        filename = basetestdir / 'tar' / 'tar-abs.tar'
+        filesize = filename.stat().st_size
+        offset = 0
+        testres = bangunpack.unpackTar(filename, offset, self.tempdir, None)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], filesize)
+
     # a test for the file being a single tar with data appended to it
     def testDataAppendedToTar(self):
         filename = basetestdir / 'tar' / 'test-add-random-data.tar'
