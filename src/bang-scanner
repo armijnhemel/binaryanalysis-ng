@@ -233,6 +233,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             scanfilequeue.task_done()
             continue
 
+        # create an empty list of files that were
+        # unpacked/carved from this file
         fileresult['unpackedfiles'] = []
 
         # store the last known position in the file with successfully
@@ -314,7 +316,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     #   (boolean)
 
                     # log the file name, the extension and the
-                    # error message
+                    # error message for later analysis
                     logging.debug("FAIL %s known extension %s: %s" % (checkfile, e, unpackresult['error']['reason']))
 
                     # Fatal errors should lead to the program stopping
@@ -322,7 +324,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     if unpackresult['error']['fatal']:
                         pass
 
-                    # Remove the directory, so first change the
+                    # Remove the unpacking directory, including any data that
+                    # might accidentily be there, so first change the
                     # permissions of all the files so they can be safely.
                     dirwalk = os.walk(dataunpackdirectory)
 
@@ -386,7 +389,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # directory names
             counterspersignature = {}
 
-            # open the file in binary mode
+            # always open the file in binary mode
             scanfile = open(checkfile, 'rb')
             scanfile.seek(max(lastunpackedoffset, 0))
 
@@ -403,6 +406,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes[:bytesread]))) != 0:
                     istext = False
 
+            # search the data for known signatures in the data that was read
             while True:
                 candidateoffsetsfound = set()
                 for s in bangsignatures.signatures:
@@ -612,16 +616,22 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 # in which the signatures were found in the file.
                 for s in (sorted(candidateoffsetsfound)):
                     # skip offsets which are not useful to look at
+                    # for example because the data has already been
+                    # unpacked.
                     if s[0] < lastunpackedoffset:
                         continue
+
                     # first see if there actually is a method to unpack
                     # this type of file
                     if not s[1] in bangsignatures.signaturetofunction:
                         continue
-                    # always first change to the original cwd
+
+                    # always change to the declared unpacking directory
                     os.chdir(unpackdirectory)
 
-                    # then create an unpacking directory
+                    # then create an unpacking directory specifically
+                    # for the signature including the signature name
+                    # and a counter for the signature.
                     if not s[1] in counterspersignature:
                         namecounter = 1
                     else:
@@ -723,14 +733,17 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # store the range of the unpacked data
                     unpackedrange.append((s[0], s[0] + unpackresult['length']))
 
-                    # add a lot of information about the unpacked files
+                    # store lot of information about the unpacked files
                     report = {}
                     report['offset'] = s[0]
                     report['signature'] = s[1]
                     report['type'] = bangsignatures.signatureprettyprint.get(s[1], s[1])
                     report['size'] = unpackresult['length']
                     report['files'] = []
-                    # set unpackdirectory, but only if needed
+
+                    # set unpackdirectory, but only if needed: if the entire
+                    # file is a file that was verified (example: GIF or PNG)
+                    # then there will not be an unpacking directory.
                     if len(unpackresult['filesandlabels']) != 0:
                         report['unpackdirectory'] = dataunpackdirectory[lenunpackdirectory:]
 
@@ -914,7 +927,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         if len(unpackresult['filesandlabels']) == 0:
                             os.rmdir(dataunpackdirectory)
 
-                    # add a lot of information about the unpacked files
+                    # store lot of information about the unpacked files
                     report = {}
                     report['offset'] = 0
                     report['signature'] = f
@@ -937,6 +950,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     fileresult['unpackedfiles'].append(report)
                     break
 
+        # restore the original unpacked range for files
+        # that were rescanned.
         if 'rescan' in labels:
             unpackedrange = origunpackedrange
             labels.remove('rescan')
