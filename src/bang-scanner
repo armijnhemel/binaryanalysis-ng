@@ -1275,6 +1275,15 @@ def main(argv):
         print("No files to scan found, exiting", file=sys.stderr)
         sys.exit(1)
 
+    # set up logging
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
+    banglogger = logging.getLogger()
+
+    # remove the standard log handler, as it will be different
+    # per scan directory
+    for i in banglogger.handlers:
+        banglogger.removeHandler(i)
+
     for checkfile in checkfiles:
         # Now the real scanning starts.
         scandate = datetime.datetime.utcnow()
@@ -1302,9 +1311,10 @@ def main(argv):
         logdirectory = scandirectory / "logs"
         logdirectory.mkdir()
 
-        # create a log file inside the log directory
-        logging.basicConfig(filename=logdirectory / 'unpack.log',
-                            level=logging.DEBUG, format='%(asctime)s %(message)s')
+        # create a log file inside the log directory and
+        # add it to the BANG logger
+        bangloghandler = logging.FileHandler(filename=logdirectory / 'unpack.log')
+        banglogger.addHandler(bangloghandler)
         logging.info("Started scanning %s" % checkfile)
 
         processmanager = multiprocessing.Manager()
@@ -1457,6 +1467,9 @@ def main(argv):
 
         # The end.
         logging.info("Finished scanning %s" % checkfile)
+
+        # remove the log file from the system logger
+        banglogger.removeHandler(bangloghandler)
 
 if __name__ == "__main__":
     main(sys.argv)
