@@ -1158,6 +1158,20 @@ def main(argv):
             sys.exit(1)
         usedatabase = False
 
+    # tuple of database connection/database cursor
+    bangdbconns = []
+
+    # create database connections if any database is used
+    if usedatabase:
+        for i in range(0, bangthreads):
+            bangconn = psycopg2.connect(database=postgresql_db,
+                                        user=postgresql_user,
+                                        password=postgresql_password,
+                                        port=postgresql_port,
+                                        host=postgresql_host)
+            bangcursor = bangconn.cursor()
+            bangdbconns.append((bangconn, bangcursor))
+
     # Check if the base unpack directory was declared.
     if baseunpackdirectory == '':
         print("Base unpack directory not declared in configuration file, exiting", file=sys.stderr)
@@ -1252,20 +1266,6 @@ def main(argv):
     # Initially one file will be in this queue, namely the first file.
     # After files are unpacked they will be added to the queue, as they
     # can be scanned in a trivially parallel way.
-
-    # tuple of database connection/database cursor
-    bangdbconns = []
-
-    # create database connections if any database is used
-    if usedatabase:
-        for i in range(0, bangthreads):
-            bangconn = psycopg2.connect(database=postgresql_db,
-                                        user=postgresql_user,
-                                        password=postgresql_password,
-                                        port=postgresql_port,
-                                        host=postgresql_host)
-            bangcursor = bangconn.cursor()
-            bangdbconns.append((bangconn, bangcursor))
 
     # Create a list of labels to pass around. The first element is
     # tagged as 'root', as it is the root of the unpacking tree.
