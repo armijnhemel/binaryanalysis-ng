@@ -194,6 +194,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         if filesize >= 256:
             tlshhash = tlsh.Tlsh()
 
+        # open the file and read all the data. Unfortunately
+        # TLSH currently does not support Python's buffer protocol
+        # so this is a bit inefficient.
         scanfile = open(checkfile, 'rb')
         scanfile.seek(0)
         readsize = 10000000
