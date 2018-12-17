@@ -75,7 +75,7 @@ maxsignaturesoffset = max(bangsignatures.signaturesoffset.values()) + maxsignatu
 
 # not all files with TLSH should be looked at
 tlshlabelsignore = set(['compressed', 'graphics', 'audio',
-                        'file system', 'srec', 'ihex'])
+                        'filesystem', 'srec', 'ihex'])
 
 
 # Process a single file.
