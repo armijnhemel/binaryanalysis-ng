@@ -15183,7 +15183,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     if '__ksymtab_strings' in sectionnames or '.modinfo' in sectionnames:
         checkfile.seek(-28, os.SEEK_END)
         checkbytes = checkfile.read(28)
-        if b'~Module signature appended~\n':
+        if checkbytes == b'~Module signature appended~\n':
             # the four bytes before the signature are the signature
             # size. This does not include the last 40 bytes.
             checkfile.seek(-32, os.SEEK_END)
