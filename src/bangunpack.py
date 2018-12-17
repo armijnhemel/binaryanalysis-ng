@@ -1750,7 +1750,11 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
             unpackedsize = checkfile.tell() - offset
             tarunpacked = True
             if os.path.normpath(unpacktarinfo.name) not in ['.', '..']:
-                unpackedname = os.path.normpath(os.path.join(unpackdir, unpacktarinfo.name))
+                if os.path.isabs(unpacktarinfo.name):
+                    tarname = os.path.relpath(unpacktarinfo.name, '/')
+                    unpackedname = os.path.normpath(os.path.join(unpackdir, tarname))
+                else:
+                    unpackedname = os.path.normpath(os.path.join(unpackdir, unpacktarinfo.name))
 
                 # TODO: rename files properly with minimum chance of clashes
                 if unpackedname in unpackedtarfilenames:
