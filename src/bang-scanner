@@ -839,7 +839,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 scanbytes = outfile.read(scanenvironment['maxbytes'])
                                 if len(scanbytes) == 0:
                                     break
-                                if scanbytes != scanenvironment['maxbytes'] * b'\x00':
+                                if scanbytes != len(scanbytes) * b'\x00':
                                     ispadding = False
                                     break
                         else:
