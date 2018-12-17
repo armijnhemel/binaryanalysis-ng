@@ -15155,7 +15155,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
     checkfile.seek(offset + sectionheaders[shstrndx]['sh_offset'])
     checkbytes = checkfile.read(sectionheaders[shstrndx]['sh_size'])
-    sectionnames = []
+    sectionnames = set()
     for i in sectionheaders:
         # names start at sh_name_offset and end with \x00
         endofname = checkbytes.find(b'\x00', sectionheaders[i]['sh_name_offset'])
@@ -15164,13 +15164,38 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             continue
         sectionname = checkbytes[sectionheaders[i]['sh_name_offset']:endofname].decode()
         sectionheaders[i]['name'] = sectionname
+        sectionnames.add(sectionname)
 
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
         checkfile.close()
         labels.append('elf')
+        if '__ksymtab_strings' in sectionnames or '.modinfo' in sectionnames:
+            labels.append('linuxkernelmodule')
+        elif 'oat_patches' in sectionnames or '.text.oat_patches' in sectionnames:
+            labels.append('oat')
+            labels.append('android')
         return {'status': True, 'length': maxoffset, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
+
+    # it could be that the file is a Linux kernel module that has a signature
+    # as detailed in scripts/sign-file.c in the Linux kernel
+    if '__ksymtab_strings' in sectionnames or '.modinfo' in sectionnames:
+        checkfile.seek(-28, os.SEEK_END)
+        checkbytes = checkfile.read(28)
+        if b'~Module signature appended~\n':
+            # the four bytes before the signature are the signature
+            # size. This does not include the last 40 bytes.
+            checkfile.seek(-32, os.SEEK_END)
+            checkbytes = checkfile.read(4)
+            sigsize = int.from_bytes(checkbytes, byteorder='big')
+            if maxoffset + sigsize + 40 == filesize:
+                checkfile.close()
+                maxoffset = maxoffset + sigsize + 40
+                labels.append('elf')
+                labels.append('linuxkernelmodule')
+                return {'status': True, 'length': maxoffset, 'labels': labels,
+                        'filesandlabels': unpackedfilesandlabels}
 
     # Carve the file. It is anonymous, so just give it a name
     outfilename = os.path.join(unpackdir, "unpacked-from-elf")
