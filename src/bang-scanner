@@ -1234,6 +1234,10 @@ def main(argv):
 
     checkfiles = []
     if args.checkdirectory is not None:
+        # should be a directory
+        if not stat.S_ISDIR(os.stat(args.checkdirectory).st_mode):
+            parser.error("%s is not a directory, exiting." % args.checkfile)
+
         for i in os.listdir(args.checkdirectory):
             # the file to scan should exist ...
             scanfilename = os.path.join(args.checkdirectory, i)
