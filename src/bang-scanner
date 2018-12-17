@@ -242,6 +242,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         needsunpacking = True
         unpackedrange = []
 
+        # keep track of whether or not a file consists of just
+        # ASCII characters. Initially assume it is text only.
+        istext = True
+
         # check for a dummy value to see if the file has already been
         # unpacked and if so, simply report and skip the unpacking, and
         # move on to just running the per file scans.
@@ -255,10 +259,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 needsunpacking = False
                 lastunpackedoffset = filesize
                 unpackedrange = [(0, filesize)]
-
-        # keep track of whether or not a file consists of just
-        # ASCII characters. Initially assume it is text only.
-        istext = True
 
         # Now try to unpack the file. There are a few categories:
         #
@@ -370,10 +370,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 if unpackresult['length'] == filesize:
                     needsunpacking = False
 
-                # in case the file is a binary, then it obviously
-                # cannot be a text file.
-                if 'binary' in labels:
-                    istext = False
+        # in case the file is a binary, then it obviously
+        # cannot be a text file.
+        if 'binary' in labels:
+            istext = False
 
         # continue scanning if needed by searching for known signatures
         if needsunpacking:
