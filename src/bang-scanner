@@ -222,7 +222,17 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         hashingdata = scanfile.read(readsize)
         bytecounter = collections.Counter()
 
+        # keep track of whether or not a file consists of just
+        # ASCII characters. Initially assume it is text only.
+        istext = True
+
         while hashingdata != b'':
+            # check if any of the characters read is a
+            # non-ASCII character. If so, it is not a text file.
+            if istext:
+                if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
+                    istext = False
+
             bytecounter.update(hashingdata)
             for h in hashes:
                 hashes[h].update(hashingdata)
@@ -243,6 +253,12 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         for i in hashresults:
             fileresult[i] = hashresults[i]
 
+        # store if files are text or binary
+        if istext:
+            labels.append('text')
+        else:
+            labels.append('binary')
+
         # create an empty list of files that were
         # unpacked/carved from this file
         fileresult['unpackedfiles'] = []
@@ -258,10 +274,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         # keep a byte range of data that has already been looked at
         unpackedrange = []
-
-        # keep track of whether or not a file consists of just
-        # ASCII characters. Initially assume it is text only.
-        istext = True
 
         # check for a dummy value to see if the file has already been
         # unpacked and if so, simply report and skip the unpacking, and
@@ -388,11 +400,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 if unpackresult['length'] == filesize:
                     needsunpacking = False
 
-        # in case the file is a binary, then it obviously
-        # cannot be a text file.
-        if 'binary' in labels:
-            istext = False
-
         # continue scanning if needed by searching for known signatures
         if needsunpacking:
             # keep a counter per signature for the unpacking
@@ -409,12 +416,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             scanbytesarray = bytearray(scanenvironment['maxbytes'])
             bytesread = scanfile.readinto(scanbytesarray)
             scanbytes = memoryview(scanbytesarray)
-
-            # check if any of the characters read is a
-            # non-ASCII character. If so, it is not a text file.
-            if istext:
-                if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes[:bytesread]))) != 0:
-                    istext = False
 
             # search the data for known signatures in the data that was read
             while True:
@@ -790,10 +791,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                 bytesread = scanfile.readinto(scanbytesarray)
 
-                if istext:
-                    if len(list(filter(lambda x: chr(x) not in string.printable, scanbytes[:bytesread]))) != 0:
-                        istext = False
-
             scanfile.close()
 
         # Now carve any data that was not unpacked from the file and
@@ -855,13 +852,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         scanfilequeue.put((pathlib.Path(outfilename), unpackedlabel, checkfile, {}))
                     startoffset = u[1]
                 scanfile.close()
-
-        # fix the labels, in case it wasn't recorded whether
-        # or not the file is text or binary.
-        if istext:
-            labels.append('text')
-        else:
-            labels.append('binary')
 
         # no files were unpacked, so try to scan the entire file.
         # This happens for example with text only files like base64
