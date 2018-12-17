@@ -6782,7 +6782,6 @@ def unpackVimSwapfile(filename, offset, unpackdir, temporarydirectory):
             return {'status': False, 'error': unpackingerror}
 
     # else consider it a Vim swap file
-    labels.append('binary')
     labels.append('vim swap')
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
@@ -7420,7 +7419,6 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
 
     if endoffile + offset == filesize:
         checkfile.close()
-        labels.append('binary')
         labels.append('resource')
         labels.append('pak')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
@@ -7431,10 +7429,9 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
     outfile = open(outfilename, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, endoffile - offset)
     outfile.close()
-    unpackedfilesandlabels.append((outfilename, ['binary', 'resource', 'pak', 'unpacked']))
+    unpackedfilesandlabels.append((outfilename, ['resource', 'pak', 'unpacked']))
     checkfile.close()
 
-    labels.append('binary')
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -7586,7 +7583,6 @@ def unpackGNUMessageCatalog(filename, offset, unpackdir, temporarydirectory):
     # see if the whole file is a GNU message catalog
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
-        labels.append('binary')
         labels.append('resource')
         labels.append('GNU message catalog')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
@@ -7597,7 +7593,7 @@ def unpackGNUMessageCatalog(filename, offset, unpackdir, temporarydirectory):
     outfile = open(outfilename, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
-    unpackedfilesandlabels.append((outfilename, ['binary', 'resource', 'GNU message catalog', 'unpacked']))
+    unpackedfilesandlabels.append((outfilename, ['resource', 'GNU message catalog', 'unpacked']))
     checkfile.close()
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
@@ -10754,7 +10750,6 @@ def unpackSunRaster(filename, offset, unpackdir, temporarydirectory):
         checkfile.close()
         labels.append('sun raster')
         labels.append('raster')
-        labels.append('binary')
         labels.append('graphics')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
@@ -10767,7 +10762,7 @@ def unpackSunRaster(filename, offset, unpackdir, temporarydirectory):
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['binary', 'sun raster', 'raster', 'graphics', 'unpacked']))
+    unpackedfilesandlabels.append((outfilename, ['sun raster', 'raster', 'graphics', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -15273,7 +15268,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
                 outfile.close()
                 checkfile.close()
-                outlabels = ['elf', 'unpacked', 'binary', 'linuxkernelmodule']
+                outlabels = ['elf', 'unpacked', 'linuxkernelmodule']
                 unpackedfilesandlabels.append((outfilename, outlabels))
 
                 return {'status': True, 'length': maxoffset, 'labels': labels,
@@ -15286,7 +15281,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     outfile.close()
     checkfile.close()
 
-    outlabels = ['elf', 'unpacked', 'binary']
+    outlabels = ['elf', 'unpacked']
     unpackedfilesandlabels.append((outfilename, outlabels))
 
     return {'status': True, 'length': maxoffset, 'labels': labels,
@@ -16018,7 +16013,6 @@ def unpackAndroidResource(filename, offset, unpackdir, temporarydirectory):
     # see if the whole file is the android resource file
     if offset + totalchunksize == filesize:
         checkfile.close()
-        labels.append('binary')
         labels.append('resource')
         labels.append('android')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
@@ -16029,7 +16023,7 @@ def unpackAndroidResource(filename, offset, unpackdir, temporarydirectory):
     outfile = open(outfilename, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
-    unpackedfilesandlabels.append((outfilename, ['binary', 'resource', 'android resource', 'unpacked']))
+    unpackedfilesandlabels.append((outfilename, ['resource', 'android resource', 'unpacked']))
     checkfile.close()
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
@@ -17049,7 +17043,6 @@ def extractCertificate(filename, offset, unpackdir, temporarydirectory):
     p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER", "-in", filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode == 0:
-        labels.append("binary")
         labels.append("certificate")
         labels.append('resource')
         return {'status': True, 'length': filesize, 'labels': labels,
