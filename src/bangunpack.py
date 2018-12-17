@@ -1746,15 +1746,27 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
             if unpacktarinfo.isdev():
                 continue
             tounpack = unpacktarinfo.name
-            unpacktar.extract(unpacktarinfo, path=unpackdir, set_attrs=False)
-            unpackedsize = checkfile.tell() - offset
             tarunpacked = True
+
+            # unpack the file, after some sanity checks
             if os.path.normpath(unpacktarinfo.name) not in ['.', '..']:
                 if os.path.isabs(unpacktarinfo.name):
                     tarname = os.path.relpath(unpacktarinfo.name, '/')
                     unpackedname = os.path.normpath(os.path.join(unpackdir, tarname))
                 else:
                     unpackedname = os.path.normpath(os.path.join(unpackdir, unpacktarinfo.name))
+                if os.path.isabs(unpacktarinfo.name):
+                    os.makedirs(os.path.dirname(unpackedname), exist_ok=True)
+                    if unpacktarinfo.isfile() or unpacktarinfo.islnk() or unpacktarinfo.issym():
+                        outfile = open(unpackedname, 'wb')
+                        tarreader = unpacktar.extractfile(unpacktarinfo)
+                        outfile.write(tarreader.read())
+                        outfile.close()
+                    elif unpacktarinfo.isdir():
+                        os.makedirs(unpackedname, exist_ok=True)
+                else:
+                    unpacktar.extract(unpacktarinfo, path=unpackdir, set_attrs=False)
+                unpackedsize = checkfile.tell() - offset
 
                 # TODO: rename files properly with minimum chance of clashes
                 if unpackedname in unpackedtarfilenames:
@@ -1766,11 +1778,11 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
                     # them back to something a bit more sensible
                     os.chmod(unpackedname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
                     if not os.path.isdir(unpackedname):
-                        unpackedfilesandlabels.append((os.path.join(unpackdir, unpacktarinfo.name), []))
+                        unpackedfilesandlabels.append((unpackedname, []))
                     elif unpacktarinfo.issym():
-                        unpackedfilesandlabels.append((os.path.join(unpackdir, unpacktarinfo.name), ['symbolic link']))
+                        unpackedfilesandlabels.append((unpackedname, ['symbolic link']))
                     elif unpacktarinfo.isdir():
-                        unpackedfilesandlabels.append((os.path.join(unpackdir, unpacktarinfo.name), ['directory']))
+                        unpackedfilesandlabels.append((unpackedname, ['directory']))
                     tounpack = ''
         except Exception as e:
             unpackedsize = oldunpackedsize
