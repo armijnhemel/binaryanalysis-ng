@@ -243,6 +243,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         labels = list(set(labels))
 
         needsunpacking = True
+
+        # keep a byte range of data that has already been looked at
         unpackedrange = []
 
         # keep track of whether or not a file consists of just
