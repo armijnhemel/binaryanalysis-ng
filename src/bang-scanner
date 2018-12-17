@@ -1015,24 +1015,13 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
 
 def main(argv):
+    # first parse the arguments provided to the script
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", action="store", dest="checkfile",
                         help="path to file to check", metavar="FILE")
     parser.add_argument("-c", "--config", action="store", dest="cfg",
                         help="path to configuration file", metavar="FILE")
     args = parser.parse_args()
-
-    # sanity checks for the file to scan
-    if args.checkfile is None:
-        parser.error("No file to scan provided, exiting")
-
-    # the file to scan should exist ...
-    if not os.path.exists(args.checkfile):
-        parser.error("File %s does not exist, exiting." % args.checkfile)
-
-    # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.checkfile)
 
     # sanity checks for the configuration file
     if args.cfg is None:
@@ -1045,13 +1034,6 @@ def main(argv):
     # ... and should be a real file
     if not stat.S_ISREG(os.stat(args.cfg).st_mode):
         parser.error("%s is not a regular file, exiting." % args.cfg)
-
-    filesize = os.stat(args.checkfile).st_size
-
-    # Don't scan an empty file
-    if filesize == 0:
-        print("File to scan is empty, exiting", file=sys.stderr)
-        sys.exit(1)
 
     # read the configuration file. This is in Windows INI format.
     config = configparser.ConfigParser()
@@ -1171,6 +1153,25 @@ def main(argv):
                                         host=postgresql_host)
             bangcursor = bangconn.cursor()
             bangdbconns.append((bangconn, bangcursor))
+
+    # sanity checks for the file to scan
+    if args.checkfile is None:
+        parser.error("No file to scan provided, exiting")
+
+    # the file to scan should exist ...
+    if not os.path.exists(args.checkfile):
+        parser.error("File %s does not exist, exiting." % args.checkfile)
+
+    # ... and should be a real file
+    if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
+        parser.error("%s is not a regular file, exiting." % args.checkfile)
+
+    filesize = os.stat(args.checkfile).st_size
+
+    # Don't scan an empty file
+    if filesize == 0:
+        print("File to scan is empty, exiting", file=sys.stderr)
+        sys.exit(1)
 
     # Check if the base unpack directory was declared.
     if baseunpackdirectory == '':
