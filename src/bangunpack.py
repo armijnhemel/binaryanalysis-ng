@@ -15156,6 +15156,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     checkfile.seek(offset + sectionheaders[shstrndx]['sh_offset'])
     checkbytes = checkfile.read(sectionheaders[shstrndx]['sh_size'])
     sectionnames = set()
+    sectionnametonr = {}
     for i in sectionheaders:
         # names start at sh_name_offset and end with \x00
         endofname = checkbytes.find(b'\x00', sectionheaders[i]['sh_name_offset'])
@@ -15165,6 +15166,8 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         sectionname = checkbytes[sectionheaders[i]['sh_name_offset']:endofname].decode()
         sectionheaders[i]['name'] = sectionname
         sectionnames.add(sectionname)
+        if sectionname != '':
+            sectionnametonr[sectionname] = i
 
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
