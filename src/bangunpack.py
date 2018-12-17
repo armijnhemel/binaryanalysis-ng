@@ -13113,6 +13113,14 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
+    # store the results for Java:
+    # * methods
+    # * fields
+    # * source file name
+    # * class name
+    # * strings
+    javaresults = {}
+
     # The minimal size for a valid Java class file is 24 bytes: magic
     # (4 bytes) plus 2 bytes for minor_version, major_version,
     # constant_pool_count access_flags, this_class, super_class,
@@ -13153,6 +13161,8 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
     # a mapping of classes to corresponding entries in the constant
     # pool section 4.4.1
     class_table = {}
+
+    string_table = {}
 
     # read the constants. Many of these have pointers back into the
     # constant_pool for names (methods, signatures, etc.).
@@ -13216,6 +13226,7 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
                                   'fatal': False,
                                   'reason': 'no string_index'}
                 return {'status': False, 'error': unpackingerror}
+            string_table[i] = int.from_bytes(checkbytes, byteorder='big')
             unpackedsize += 2
         elif tag == CONSTANT_Integer or tag == CONSTANT_Float:
             # section 4.4.4
@@ -13343,11 +13354,21 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
     # sanity check: verify all the class objects have valid pointers
     # to valid indexes in the constant pool
     for c in class_table:
-        if not class_table[c] in constant_pool:
+        if class_table[c] not in constant_pool:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'class info object does not have valid pointer into constant pool'}
             return {'status': False, 'error': unpackingerror}
+
+    javaresults['strings'] = []
+
+    for s in string_table:
+        if string_table[s] not in constant_pool:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'string object does not have valid pointer into constant pool'}
+            return {'status': False, 'error': unpackingerror}
+        javaresults['strings'].append(constant_pool[string_table[s]])
 
     # read the access flags
     access_flags = checkfile.read(2)
@@ -13361,14 +13382,14 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
     # this_class
     # This points to an index in the constant pool table, which should
     # be a class file (which here are kept in class_table instead).
-    this_class = checkfile.read(2)
-    if len(this_class) != 2:
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'no this_class'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
-    this_class_index = int.from_bytes(this_class, byteorder='big')
+    this_class_index = int.from_bytes(checkbytes, byteorder='big')
     if this_class_index not in class_table:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -13376,12 +13397,13 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # super_class
-    super_class = checkfile.read(2)
-    if len(super_class) != 2:
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'no super_class'}
         return {'status': False, 'error': unpackingerror}
+    super_class_index = int.from_bytes(checkbytes, byteorder='big')
     unpackedsize += 2
 
     # interfaces_count
@@ -13422,6 +13444,8 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 2
     fields_count = int.from_bytes(checkbytes, byteorder='big')
 
+    javaresults['fields'] = []
+
     # read the fields, section 4.5
     for i in range(0, fields_count):
         # access flags
@@ -13448,6 +13472,7 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'not a valid name_index in constant pool'}
             return {'status': False, 'error': unpackingerror}
+        javaresults['fields'].append(constant_pool[field_name_index])
         unpackedsize += 2
 
         # field descriptor index
@@ -13517,6 +13542,8 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 2
     methods_count = int.from_bytes(checkbytes, byteorder='big')
 
+    javaresults['methods'] = []
+
     # read the methods, section 4.6
     for i in range(0, methods_count):
         # access flags
@@ -13545,6 +13572,7 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'not a valid name_index in constant pool'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 2
+        javaresults['methods'].append(constant_pool[method_name_index])
 
         # descriptor index
         checkbytes = checkfile.read(2)
@@ -13660,7 +13688,24 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'attribute length incorrect'}
             return {'status': False, 'error': unpackingerror}
+        if constant_pool[attribute_name_index] == 'SourceFile':
+            sourcefileindex = int.from_bytes(checkbytes, byteorder='big')
+            if sourcefileindex not in constant_pool:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid index for source file attribute'}
+                return {'status': False, 'error': unpackingerror}
+            javaresults['sourcefile'] = constant_pool[sourcefileindex]
         unpackedsize += attribute_info_length
+
+    # sometimes there is a full path inside the class file
+    # This can be found by first finding the right class
+    # in the constant pool and then using this index to
+    # find the corresponding name in the constant pool.
+    if this_class_index in class_table:
+        if class_table[this_class_index] in constant_pool:
+            classname = constant_pool[class_table[this_class_index]]
+            javaresults['classname'] = classname
 
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
@@ -13671,10 +13716,6 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
     # else carve the file. The name of the class file can often
     # be derived from the class data itself.
     if this_class_index in class_table:
-        # sometimes there is a full path inside the class file
-        # This can be found by first finding the right class
-        # in the constant pool and then using this index to
-        # find the corresponding name in the constant pool.
         if class_table[this_class_index] in constant_pool:
             classname = os.path.basename(constant_pool[class_table[this_class_index]])
             # sometimes the name ends in .class, but sometimes
