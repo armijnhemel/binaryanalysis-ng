@@ -3266,11 +3266,10 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
             unpackzipfile.close()
 
             if knowncompression:
-                for i in zipinfolist:
-                    dirwalk = os.walk(unpackdir)
-                    for entry in dirwalk:
-                        for direntry in entry[2]:
-                            unpackedfilesandlabels.append((os.path.join(entry[0], direntry), []))
+                dirwalk = os.walk(unpackdir)
+                for entry in dirwalk:
+                    for direntry in entry[2]:
+                        unpackedfilesandlabels.append((os.path.join(entry[0], direntry), []))
             else:
                 labels.append("unknown compression")
 
