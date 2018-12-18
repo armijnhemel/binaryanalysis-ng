@@ -1757,7 +1757,12 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
                     unpackedname = os.path.normpath(os.path.join(unpackdir, unpacktarinfo.name))
                 if os.path.isabs(unpacktarinfo.name):
                     os.makedirs(os.path.dirname(unpackedname), exist_ok=True)
-                    if unpacktarinfo.isfile() or unpacktarinfo.islnk() or unpacktarinfo.issym():
+                    if unpacktarinfo.issym():
+                        olddir = os.getcwd()
+                        os.chdir(os.path.dirname(unpackedname))
+                        os.symlink(unpacktarinfo.linkname, os.path.basename(unpackedname))
+                        os.chdir(olddir)
+                    if unpacktarinfo.isfile() or unpacktarinfo.islnk():
                         outfile = open(unpackedname, 'wb')
                         tarreader = unpacktar.extractfile(unpacktarinfo)
                         outfile.write(tarreader.read())
@@ -1773,15 +1778,16 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
                     pass
 
                 unpackedtarfilenames.add(unpackedname)
-                if unpacktarinfo.isreg() or unpacktarinfo.isdir():
+                if unpacktarinfo.isreg() or unpacktarinfo.isdir() or unpacktarinfo.issym():
                     # tar changes permissions after unpacking, so change
                     # them back to something a bit more sensible
-                    os.chmod(unpackedname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-                    if not os.path.isdir(unpackedname):
+                    if unpacktarinfo.isreg():
+                        os.chmod(unpackedname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
                         unpackedfilesandlabels.append((unpackedname, []))
                     elif unpacktarinfo.issym():
                         unpackedfilesandlabels.append((unpackedname, ['symbolic link']))
                     elif unpacktarinfo.isdir():
+                        os.chmod(unpackedname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
                         unpackedfilesandlabels.append((unpackedname, ['directory']))
                     tounpack = ''
         except Exception as e:
