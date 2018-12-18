@@ -16541,7 +16541,7 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = imagedatasize + 64
 
     if offset == 0 and unpackedsize == filesize:
-        labels.append('u-boot')
+        unpackedfilesandlabels.append((str(filename), ['u-boot', 'unpacked', 'rescan']))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
