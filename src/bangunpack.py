@@ -1762,7 +1762,15 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
                         os.chdir(os.path.dirname(unpackedname))
                         os.symlink(unpacktarinfo.linkname, os.path.basename(unpackedname))
                         os.chdir(olddir)
-                    if unpacktarinfo.isfile() or unpacktarinfo.islnk():
+                    elif unpacktarinfo.islnk():
+                        olddir = os.getcwd()
+                        os.chdir(os.path.dirname(unpackedname))
+                        if os.path.isabs(unpacktarinfo.linkname):
+                            linkname = os.path.normpath(os.path.join(unpackdir, os.path.relpath(unpacktarinfo.linkname, '/')))
+                            if os.path.exists(linkname):
+                                os.link(linkname, os.path.basename(unpackedname))
+                        os.chdir(olddir)
+                    elif unpacktarinfo.isfile():
                         outfile = open(unpackedname, 'wb')
                         tarreader = unpacktar.extractfile(unpacktarinfo)
                         outfile.write(tarreader.read())
@@ -1778,7 +1786,7 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
                     pass
 
                 unpackedtarfilenames.add(unpackedname)
-                if unpacktarinfo.isreg() or unpacktarinfo.isdir() or unpacktarinfo.issym():
+                if unpacktarinfo.isreg() or unpacktarinfo.isdir() or unpacktarinfo.issym() or unpacktarinfo.islnk():
                     # tar changes permissions after unpacking, so change
                     # them back to something a bit more sensible
                     if unpacktarinfo.isreg():
@@ -1786,6 +1794,8 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
                         unpackedfilesandlabels.append((unpackedname, []))
                     elif unpacktarinfo.issym():
                         unpackedfilesandlabels.append((unpackedname, ['symbolic link']))
+                    elif unpacktarinfo.islnk():
+                        unpackedfilesandlabels.append((unpackedname, ['hardlink']))
                     elif unpacktarinfo.isdir():
                         os.chmod(unpackedname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
                         unpackedfilesandlabels.append((unpackedname, ['directory']))
