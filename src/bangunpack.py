@@ -16542,6 +16542,7 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
 
     if offset == 0 and unpackedsize == filesize:
         unpackedfilesandlabels.append((str(filename), ['u-boot', 'unpacked', 'rescan']))
+        labels.append('u-boot')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
