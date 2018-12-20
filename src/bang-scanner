@@ -290,6 +290,14 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 lastunpackedoffset = filesize
                 unpackedrange = [(0, filesize)]
 
+                # store lot of information about the unpacked files
+                # TODO: add more information, such as signature
+                report = {}
+                report['offset'] = 0
+                report['size'] = filesize
+                report['files'] = []
+                fileresult['unpackedfiles'].append(report)
+
         # Now try to unpack the file. There are a few categories:
         #
         # 1. a known extension, without a known magic header. This is
