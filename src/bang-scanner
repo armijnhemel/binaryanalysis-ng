@@ -1226,6 +1226,8 @@ def main(argv):
     # 'maxsignaturesoffset'
     maxbytes = max(200000, maxsignaturesoffset+1)
 
+    removescandirectory = False
+
     # grab all the functions from the "bangfilescans" file
     bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
 
@@ -1528,6 +1530,9 @@ def main(argv):
 
         # remove the log file from the system logger
         banglogger.removeHandler(bangloghandler)
+
+        if removescandirectory:
+            shutil.rmtree(scandirectory)
 
 if __name__ == "__main__":
     main(sys.argv)
