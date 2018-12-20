@@ -1073,6 +1073,7 @@ def main(argv):
     # in the configuration file
     baseunpackdirectory = ''
     temporarydirectory = None
+    removescandirectory = False
 
     # some default values for the database, possibly
     # overridden in the configuration file
@@ -1111,6 +1112,13 @@ def main(argv):
             except Exception:
                 # use all available threads by default
                 bangthreads = multiprocessing.cpu_count()
+            try:
+                remove = config.get(section, 'removescandirectory')
+                if remove == 'yes':
+                    removescandirectory = True
+            except Exception:
+                pass
+
         elif section == 'database':
             # The default mode is to continue without having a database
             # and to just disable the functionality that requires a
@@ -1225,8 +1233,6 @@ def main(argv):
     # silly window). Ideally this is a few times the value of
     # 'maxsignaturesoffset'
     maxbytes = max(200000, maxsignaturesoffset+1)
-
-    removescandirectory = False
 
     # grab all the functions from the "bangfilescans" file
     bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
