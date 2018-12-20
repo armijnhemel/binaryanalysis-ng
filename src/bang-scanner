@@ -391,15 +391,25 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 if len(unpackresult['filesandlabels']) == 0:
                     os.rmdir(dataunpackdirectory)
 
-                for un in unpackresult['filesandlabels']:
-                    (unpackedfile, unpackedlabel) = un
-                    # add the data, plus possibly any label
-                    scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, checkfile, {}))
-
                 # whole file has already been unpacked, so no need for
                 # further scanning.
                 if unpackresult['length'] == filesize:
                     needsunpacking = False
+
+                # store lot of information about the unpacked files
+                report = {}
+                report['offset'] = 0
+                report['extension'] = e
+                report['type'] = bangsignatures.extensionprettyprint[e]
+                report['size'] = unpackresult['length']
+                report['files'] = []
+
+                for un in unpackresult['filesandlabels']:
+                    (unpackedfile, unpackedlabel) = un
+                    # add the data, plus possibly any label
+                    scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, checkfile, {}))
+                    report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
+                fileresult['unpackedfiles'].append(report)
 
         # continue scanning if needed by searching for known signatures
         if needsunpacking:
