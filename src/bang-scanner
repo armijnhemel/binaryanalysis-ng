@@ -1006,6 +1006,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # write a pickle with output data
             # The pickle contains:
             # * all available hashes
+            # * labels
+            # * byte count
             # * any extra data that might have been passed around
             resultout = {}
             for i in hashresults:
