@@ -8953,7 +8953,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
                 pass
             elif stat.S_ISDIR(filemode):
                 # create directories, but skip them otherwise
-                os.makedirs(os.path.join(unpackdir, inodetofilename[inodenumber]))
+                os.makedirs(os.path.join(unpackdir, inodetofilename[inodenumber]), exist_ok=True)
                 checkfile.seek(oldoffset + inodesize)
                 continue
             elif stat.S_ISLNK(filemode):
