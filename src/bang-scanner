@@ -1316,7 +1316,7 @@ def main(argv):
     for i in banglogger.handlers:
         banglogger.removeHandler(i)
 
-    for checkfile in checkfiles:
+    for checkfile in sorted(checkfiles):
         # Now the real scanning starts.
         scandate = datetime.datetime.utcnow()
 
