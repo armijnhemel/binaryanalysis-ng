@@ -558,7 +558,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 # header of SGI files is 512 bytes
                                 if filesize - (offset + offsetinfile) < 512:
                                     continue
-                                if bytesread - offset >= 3:
+                                if bytesread - offset > 512:
                                     # storage format
                                     if not (scanbytes[offset+2] == 0 or scanbytes[offset+2] == 1):
                                         continue
