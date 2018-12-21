@@ -1265,21 +1265,22 @@ def main(argv):
         if not stat.S_ISDIR(os.stat(args.checkdirectory).st_mode):
             parser.error("%s is not a directory, exiting." % args.checkfile)
 
-        for i in os.listdir(args.checkdirectory):
-            # the file to scan should exist ...
-            scanfilename = os.path.join(args.checkdirectory, i)
-            if not os.path.exists(scanfilename):
-                continue
+        dirwalk = os.walk(args.checkdirectory)
+        for i in dirwalk:
+            for j in i[2]:
+                scanfilename = os.path.join(i[0], j)
+                if not os.path.exists(scanfilename):
+                    continue
 
-            # ... and should be a real file
-            if not stat.S_ISREG(os.stat(scanfilename).st_mode):
-                continue
+                # ... and should be a real file
+                if not stat.S_ISREG(os.stat(scanfilename).st_mode):
+                    continue
 
-            filesize = os.stat(scanfilename).st_size
-            # Don't scan an empty file
-            if filesize == 0:
-                continue
-            checkfiles.append(scanfilename)
+                filesize = os.stat(scanfilename).st_size
+                # Don't scan an empty file
+                if filesize == 0:
+                    continue
+                checkfiles.append(scanfilename)
     else:
         # sanity checks for the file to scan
         if args.checkfile is None:
