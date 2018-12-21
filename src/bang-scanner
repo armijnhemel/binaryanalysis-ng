@@ -1021,6 +1021,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 pickleout = picklefilename.open('wb')
                 pickle.dump(resultout, pickleout)
                 pickleout.close()
+
+            # write a file with the distribution of bytes in the scanned file
+            bytescountfilename = resultsdirectory / ("%s.bytes" % hashresults['sha256'])
+            if not bytescountfilename.exists():
+                bytesout = bytescountfilename.open('w')
+                for by in resultout['bytecount']:
+                    bytesout.write("%d\t%d\n" % by)
+                bytesout.close()
+
         else:
             labels.append('duplicate')
 
