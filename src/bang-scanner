@@ -1263,7 +1263,7 @@ def main(argv):
     if args.checkdirectory is not None:
         # should be a directory
         if not stat.S_ISDIR(os.stat(args.checkdirectory).st_mode):
-            parser.error("%s is not a directory, exiting." % args.checkfile)
+            parser.error("%s is not a directory, exiting." % args.checkdirectory)
 
         dirwalk = os.walk(args.checkdirectory)
         for i in dirwalk:
