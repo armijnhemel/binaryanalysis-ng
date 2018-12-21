@@ -138,14 +138,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             fileresult['parent'] = str(parent)[lenunpackdirectory:]
         fileresult['filename'] = str(checkfile)[lenunpackdirectory:]
 
-        # Check if the file is a directory
-        if checkfile.is_dir():
-            labels.append('directory')
-            fileresult['labels'] = labels
-            resultqueue.put(fileresult)
-            scanfilequeue.task_done()
-            continue
-
         # First perform all kinds of checks to prevent the file being
         # scanned.
 
@@ -184,6 +176,14 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # Check if the file is a character device
         if stat.S_ISCHR(os.stat(checkfile).st_mode):
             labels.append('character device')
+            fileresult['labels'] = labels
+            resultqueue.put(fileresult)
+            scanfilequeue.task_done()
+            continue
+
+        # Check if the file is a directory
+        if checkfile.is_dir():
+            labels.append('directory')
             fileresult['labels'] = labels
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
