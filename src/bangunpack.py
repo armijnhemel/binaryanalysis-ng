@@ -4985,27 +4985,27 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     except:
                                         pass
 
-                        if len(symlinktarget) != 0:
-                            try:
-                                symlinktarget = symlinktarget.decode()
-                            except:
-                                pass
+                            if len(symlinktarget) != 0:
+                                try:
+                                    symlinktarget = symlinktarget.decode()
+                                except:
+                                    pass
 
-                            # absolute symlinks can always be created,
-                            # as can links to . and ..
-                            if os.path.isabs(symlinktarget):
-                                os.symlink(symlinktarget, outfilename)
-                            elif symlinktarget == '.' or symlinktarget == '..':
-                                os.symlink(symlinktarget, outfilename)
-                            else:
-                                # first chdir to the directory, then
-                                # create the link and go back
-                                olddir = os.getcwd()
-                                os.chdir(os.path.dirname(outfilename))
-                                os.symlink(symlinktarget, outfilename)
-                                os.chdir(olddir)
-                            unpackedfilesandlabels.append((outfilename, ['symbolic link']))
-                            createfile = False
+                                # absolute symlinks can always be created,
+                                # as can links to . and ..
+                                if os.path.isabs(symlinktarget):
+                                    os.symlink(symlinktarget, outfilename)
+                                elif symlinktarget == '.' or symlinktarget == '..':
+                                    os.symlink(symlinktarget, outfilename)
+                                else:
+                                    # first chdir to the directory, then
+                                    # create the link and go back
+                                    olddir = os.getcwd()
+                                    os.chdir(os.path.dirname(outfilename))
+                                    os.symlink(symlinktarget, outfilename)
+                                    os.chdir(olddir)
+                                unpackedfilesandlabels.append((outfilename, ['symbolic link']))
+                                createfile = False
 
                         if createfile:
                             outfile = open(outfilename, 'wb')
