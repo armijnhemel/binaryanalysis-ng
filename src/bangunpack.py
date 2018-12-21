@@ -2010,7 +2010,7 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
             squashfssize = int.from_bytes(checkbytes, byteorder='big')
         else:
             squashfssize = int.from_bytes(checkbytes, byteorder='little')
-    elif majorversion == 2:
+    elif majorversion == 1 or majorversion == 2:
         checkfile.seek(offset+8)
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
