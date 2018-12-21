@@ -1011,7 +1011,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             for i in hashresults:
                 resultout[i] = hashresults[i]
 
-            resultout['bytecount'] = list(bytecounter.items())
+            resultout['bytecount'] = sorted(bytecounter.items())
 
             resultout['labels'] = labels
             if extradata != {}:
