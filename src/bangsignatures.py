@@ -243,6 +243,7 @@ extensiontofunction = {
     '.lsm': bangunpack.unpackLSM,
     '.json': bangunpack.unpackJSON,
     'passwd': bangunpack.unpackPasswd,
+    'shadow': bangunpack.unpackShadow,
 }
 
 # a lookup table to map extensions to a name
@@ -269,6 +270,7 @@ extensionprettyprint = {
     '.lsm': 'lsm',
     '.json': 'json',
     'passwd': 'passwd',
+    'shadow': 'shadow',
 }
 
 # certain unpacking functions if the whole file is text

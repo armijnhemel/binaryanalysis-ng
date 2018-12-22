@@ -79,6 +79,7 @@
 # 50. JSON
 # 51. D-Link ROMFS
 # 52. Unix passwd files
+# 53. Unix shadow files
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -18139,6 +18140,95 @@ def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
 
     unpackedsize = filesize
     labels.append('passwd')
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# verify Unix shadow files
+# man 5 shadow
+def unpackShadow(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a Unix shadow file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    shadowentries = []
+
+    # open the file
+    try:
+        checkfile = open(filename, 'r')
+        for l in checkfile:
+            linesplits = l.strip().split(':')
+            if len(linesplits) != 9:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid passwd file entry'}
+                return {'status': False, 'error': unpackingerror}
+            try:
+                datechanged = int(linesplits[2])
+            except:
+                if linesplits[2] != '':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'invalid date changed in shadow entry'}
+                    return {'status': False, 'error': unpackingerror}
+            try:
+                minpasswdage = int(linesplits[3])
+            except:
+                if linesplits[3] != '':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'invalid minimum passwd age in shadow entry'}
+                    return {'status': False, 'error': unpackingerror}
+            try:
+                maxpasswdage = int(linesplits[4])
+            except:
+                if linesplits[4] != '':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'invalid maximum passwd age in shadow entry'}
+                    return {'status': False, 'error': unpackingerror}
+            try:
+                passwdwarning = int(linesplits[5])
+            except:
+                if linesplits[5] != '':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'invalid passwd warning period in shadow entry'}
+                    return {'status': False, 'error': unpackingerror}
+            try:
+                passwdwarning = int(linesplits[6])
+            except:
+                if linesplits[6] != '':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'invalid passwd inactivity period in shadow entry'}
+                    return {'status': False, 'error': unpackingerror}
+            try:
+                accountexpiration = int(linesplits[7])
+            except:
+                if linesplits[7] != '':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'invalid account expiration period in shadow entry'}
+                    return {'status': False, 'error': unpackingerror}
+            shadowentry = {}
+            shadowentry['name'] = linesplits[0]
+            shadowentry['passwd'] = linesplits[1]
+            shadowentries.append(shadowentry)
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for entry'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    unpackedsize = filesize
+    labels.append('shadow')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
