@@ -78,6 +78,7 @@
 # 49. Linux Software Map files
 # 50. JSON
 # 51. D-Link ROMFS
+# 52. Unix passwd files
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -18078,6 +18079,66 @@ def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
     if offset == 0 and unpackedsize == filesize:
         labels.append('filesystem')
         labels.append('d-link')
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# verify Unix passwd files
+# man 5 passwd
+def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a Unix password file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    passwdentries = []
+
+    # open the file
+    try:
+        checkfile = open(filename, 'r')
+        for l in checkfile:
+            linesplits = l.strip().split(':')
+            if len(linesplits) != 7:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid passwd file entry'}
+                return {'status': False, 'error': unpackingerror}
+            try:
+                uid = int(linesplits[2])
+            except:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid UID in passwd file entry'}
+                return {'status': False, 'error': unpackingerror}
+            try:
+                gid = int(linesplits[3])
+            except:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid GID in passwd file entry'}
+                return {'status': False, 'error': unpackingerror}
+            passwdentry = {}
+            passwdentry['name'] = linesplits[0]
+            passwdentry['passwd'] = linesplits[1]
+            passwdentry['uid'] = linesplits[2]
+            passwdentry['gid'] = linesplits[3]
+            passwdentry['gecos'] = linesplits[4]
+            passwdentry['directory'] = linesplits[5]
+            passwdentry['shell'] = linesplits[6]
+            passwdentries.append(passwdentry)
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for entry'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    unpackedsize = filesize
+    labels.append('passwd')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
