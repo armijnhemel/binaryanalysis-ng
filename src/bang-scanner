@@ -46,6 +46,7 @@ import subprocess
 import inspect
 import collections
 import functools
+import mimetypes
 
 # import module for database
 import psycopg2
@@ -259,6 +260,13 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             labels.append('text')
         else:
             labels.append('binary')
+
+        # Search the extension of the file in a list of known extensions.
+        # https://www.iana.org/assignments/media-types/media-types.xhtml
+
+        mimeres = mimetypes.guess_type(checkfile.name)[0]
+        if mimeres is not None:
+            fileresult['mimetype'] = mimeres
 
         # create an empty list of files that were
         # unpacked/carved from this file
