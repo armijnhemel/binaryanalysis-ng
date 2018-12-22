@@ -1374,7 +1374,15 @@ def main(argv):
             shutil.copy(checkfile, unpackdirectory)
         except:
             print("Could not copy %s to scanning directory %s" % (checkfile, unpackdirectory), file=sys.stderr)
-            sys.exit(1)
+            # move the file "STARTED" to "FINISHED" to easily identify
+            # active (or crashed) scans
+            shutil.move(scandirectory / "STARTED",
+                        scandirectory / "FINISHED")
+            os.utime(scandirectory / "FINISHED")
+
+            if removescandirectory:
+                shutil.rmtree(scandirectory)
+            continue
 
         # The scan queue will be used to put files into that need to be
         # scanned and processes. New files wil keep being added to it
