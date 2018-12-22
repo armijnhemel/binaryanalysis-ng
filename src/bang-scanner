@@ -1468,14 +1468,6 @@ def main(argv):
         for p in processes:
             p.terminate()
 
-        # clean up the database connections and
-        # close all connections to the database
-        for c in bangdbconns:
-            # first close the cursor
-            c[1].close()
-            # then close the database connection
-            c[0].close()
-
         scandatefinished = datetime.datetime.utcnow()
 
         # move the file "STARTED" to "FINISHED" to easily identify
@@ -1559,6 +1551,15 @@ def main(argv):
 
         if removescandirectory:
             shutil.rmtree(scandirectory)
+
+    # clean up the database connections and
+    # close all connections to the database
+    for c in bangdbconns:
+        # first close the cursor
+        c[1].close()
+        # then close the database connection
+        c[0].close()
+
 
 if __name__ == "__main__":
     main(sys.argv)
