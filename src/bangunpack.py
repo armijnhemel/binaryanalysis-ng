@@ -14782,6 +14782,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 4
     is64bit = False
     bigendian = False
+    byteorder = 'little'
 
     # check if the file is 32 bit or 64 bit
     checkbytes = checkfile.read(1)
@@ -14816,6 +14817,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
     if dataencoding == 2:
         bigendian = True
+        byteorder = 'big'
     unpackedsize += 1
 
     # version (in e_ident), has to be 1
@@ -14844,10 +14846,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
     # ELF type
     checkbytes = checkfile.read(2)
-    if bigendian:
-        elftype = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        elftype = int.from_bytes(checkbytes, byteorder='little')
+    elftype = int.from_bytes(checkbytes, byteorder=byteorder)
 
     # only a few types have been defined
     if elftype > 4 and not (elftype == 0xff00 or elftype == 0xffff):
@@ -14881,18 +14880,12 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
     # ELF machine
     checkbytes = checkfile.read(2)
-    if bigendian:
-        elfmachine = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        elfmachine = int.from_bytes(checkbytes, byteorder='little')
+    elfmachine = int.from_bytes(checkbytes, byteorder=byteorder)
     unpackedsize += 2
 
     # ELF version
     checkbytes = checkfile.read(4)
-    if bigendian:
-        elfversion = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        elfversion = int.from_bytes(checkbytes, byteorder='little')
+    elfversion = int.from_bytes(checkbytes, byteorder=byteorder)
     if elfversion != 1:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -14905,10 +14898,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(8)
     else:
         checkbytes = checkfile.read(4)
-    if bigendian:
-        entry_point = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        entry_point = int.from_bytes(checkbytes, byteorder='little')
+    entry_point = int.from_bytes(checkbytes, byteorder=byteorder)
     unpackedsize += 4
     if is64bit:
         unpackedsize += 4
@@ -14918,10 +14908,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(8)
     else:
         checkbytes = checkfile.read(4)
-    if bigendian:
-        phoff = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        phoff = int.from_bytes(checkbytes, byteorder='little')
+    phoff = int.from_bytes(checkbytes, byteorder=byteorder)
     if offset + phoff > filesize:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -14936,10 +14923,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(8)
     else:
         checkbytes = checkfile.read(4)
-    if bigendian:
-        shoff = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        shoff = int.from_bytes(checkbytes, byteorder='little')
+    shoff = int.from_bytes(checkbytes, byteorder=byteorder)
     if offset + shoff > filesize:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -14951,19 +14935,13 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
     # flags, don't process
     checkbytes = checkfile.read(4)
-    if bigendian:
-        elfflags = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        elfflags = int.from_bytes(checkbytes, byteorder='little')
+    elfflags = int.from_bytes(checkbytes, byteorder=byteorder)
     unpackedsize += 4
 
     # header size: 64 for 64 bit, 52 for 32 bit. There might be other
     # sizes but these are by far the most common.
     checkbytes = checkfile.read(2)
-    if bigendian:
-        elfheadersize = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        elfheadersize = int.from_bytes(checkbytes, byteorder='little')
+    elfheadersize = int.from_bytes(checkbytes, byteorder=byteorder)
     if (is64bit and elfheadersize != 64) or (not is64bit and elfheadersize != 52):
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -14973,42 +14951,27 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
     # program header table entry size
     checkbytes = checkfile.read(2)
-    if bigendian:
-        phentrysize = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        phentrysize = int.from_bytes(checkbytes, byteorder='little')
+    phentrysize = int.from_bytes(checkbytes, byteorder=byteorder)
     unpackedsize += 2
 
     # program header table entries
     checkbytes = checkfile.read(2)
-    if bigendian:
-        phnum = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        phnum = int.from_bytes(checkbytes, byteorder='little')
+    phnum = int.from_bytes(checkbytes, byteorder=byteorder)
     unpackedsize += 2
 
     # section header table entry size
     checkbytes = checkfile.read(2)
-    if bigendian:
-        shentrysize = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        shentrysize = int.from_bytes(checkbytes, byteorder='little')
+    shentrysize = int.from_bytes(checkbytes, byteorder=byteorder)
     unpackedsize += 2
 
     # section header table entries
     checkbytes = checkfile.read(2)
-    if bigendian:
-        shnum = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        shnum = int.from_bytes(checkbytes, byteorder='little')
+    shnum = int.from_bytes(checkbytes, byteorder=byteorder)
     unpackedsize += 2
 
     # section header index for section names
     checkbytes = checkfile.read(2)
-    if bigendian:
-        shstrndx = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        shstrndx = int.from_bytes(checkbytes, byteorder='little')
+    shstrndx = int.from_bytes(checkbytes, byteorder=byteorder)
     if shstrndx > shnum:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -15052,10 +15015,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     for i in range(0, phnum):
         # read the program header entry
         checkbytes = checkfile.read(4)
-        if bigendian:
-            p_type = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            p_type = int.from_bytes(checkbytes, byteorder='little')
+        p_type = int.from_bytes(checkbytes, byteorder=byteorder)
         unpackedsize += 4
 
         # there can only be one program interpreter
@@ -15077,10 +15037,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(8)
         else:
             checkbytes = checkfile.read(4)
-        if bigendian:
-            p_offset = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            p_offset = int.from_bytes(checkbytes, byteorder='little')
+        p_offset = int.from_bytes(checkbytes, byteorder=byteorder)
         # sanity check
         if offset + p_offset > filesize:
             checkfile.close()
@@ -15112,10 +15069,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(8)
         else:
             checkbytes = checkfile.read(4)
-        if bigendian:
-            p_filesz = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            p_filesz = int.from_bytes(checkbytes, byteorder='little')
+        p_filesz = int.from_bytes(checkbytes, byteorder=byteorder)
         # sanity check
         if offset + p_offset + p_filesz > filesize:
             checkfile.close()
@@ -15161,20 +15115,14 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
         # sh_name, should be a valid index into .shstrtab
         checkbytes = checkfile.read(4)
-        if bigendian:
-            sh_name = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            sh_name = int.from_bytes(checkbytes, byteorder='little')
+        sh_name = int.from_bytes(checkbytes, byteorder=byteorder)
         unpackedsize += 4
 
         sectionheaders[i]['sh_name_offset'] = sh_name
 
         # sh_type
         checkbytes = checkfile.read(4)
-        if bigendian:
-            sh_type = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            sh_type = int.from_bytes(checkbytes, byteorder='little')
+        sh_type = int.from_bytes(checkbytes, byteorder=byteorder)
         unpackedsize += 4
 
         sectionheaders[i]['sh_type'] = sh_type
@@ -15184,10 +15132,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(8)
         else:
             checkbytes = checkfile.read(4)
-        if bigendian:
-            sh_flags = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            sh_flags = int.from_bytes(checkbytes, byteorder='little')
+        sh_flags = int.from_bytes(checkbytes, byteorder=byteorder)
         unpackedsize += 4
         if is64bit:
             unpackedsize += 4
@@ -15206,10 +15151,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(8)
         else:
             checkbytes = checkfile.read(4)
-        if bigendian:
-            sh_offset = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            sh_offset = int.from_bytes(checkbytes, byteorder='little')
+        sh_offset = int.from_bytes(checkbytes, byteorder=byteorder)
         unpackedsize += 4
         if is64bit:
             unpackedsize += 4
@@ -15221,10 +15163,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(8)
         else:
             checkbytes = checkfile.read(4)
-        if bigendian:
-            sh_size = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            sh_size = int.from_bytes(checkbytes, byteorder='little')
+        sh_size = int.from_bytes(checkbytes, byteorder=byteorder)
         unpackedsize += 4
         if is64bit:
             unpackedsize += 4
@@ -15312,22 +15251,13 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(sectionheaders[sectionnr]['sh_size'])
 
         # notes segments start with a namesize
-        if bigendian:
-            namesz = int.from_bytes(checkbytes[:4], byteorder='big')
-        else:
-            namesz = int.from_bytes(checkbytes[:4], byteorder='little')
+        namesz = int.from_bytes(checkbytes[:4], byteorder=byteorder)
 
         # then description size
-        if bigendian:
-            descsz = int.from_bytes(checkbytes[4:8], byteorder='big')
-        else:
-            descsz = int.from_bytes(checkbytes[4:8], byteorder='little')
+        descsz = int.from_bytes(checkbytes[4:8], byteorder=byteorder)
 
         # then type
-        if bigendian:
-            notetype = int.from_bytes(checkbytes[8:12], byteorder='big')
-        else:
-            notetype = int.from_bytes(checkbytes[8:12], byteorder='little')
+        notetype = int.from_bytes(checkbytes[8:12], byteorder=byteorder)
 
         # read the name
         notename = checkbytes[12:12+namesz]
@@ -15366,51 +15296,25 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             # the data structure differs
             if is64bit:
                 # index into the string table
-                if bigendian:
-                    st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder='big')
-                else:
-                    st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder='little')
+                st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder=byteorder)
 
                 st_info = checkbytes[localoffset+5]
                 st_other = checkbytes[localoffset+6]
 
-                if bigendian:
-                    st_shndx = int.from_bytes(checkbytes[localoffset+6:localoffset+8], byteorder='big')
-                else:
-                    st_shndx = int.from_bytes(checkbytes[localoffset+6:localoffset+8], byteorder='little')
-                if bigendian:
-                    st_value = int.from_bytes(checkbytes[localoffset+8:localoffset+16], byteorder='big')
-                else:
-                    st_value = int.from_bytes(checkbytes[localoffset+8:localoffset+16], byteorder='little')
-                if bigendian:
-                    st_size = int.from_bytes(checkbytes[localoffset+16:localoffset+24], byteorder='big')
-                else:
-                    st_size = int.from_bytes(checkbytes[localoffset+16:localoffset+24], byteorder='little')
+                st_shndx = int.from_bytes(checkbytes[localoffset+6:localoffset+8], byteorder=byteorder)
+                st_value = int.from_bytes(checkbytes[localoffset+8:localoffset+16], byteorder=byteorder)
+                st_size = int.from_bytes(checkbytes[localoffset+16:localoffset+24], byteorder=byteorder)
                 localoffset += 24
             else:
                 # index into the string table
-                if bigendian:
-                    st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder='big')
-                else:
-                    st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder='little')
-
-                if bigendian:
-                    st_value = int.from_bytes(checkbytes[localoffset+4:localoffset+8], byteorder='big')
-                else:
-                    st_value = int.from_bytes(checkbytes[localoffset+4:localoffset+8], byteorder='little')
-
-                if bigendian:
-                    st_size = int.from_bytes(checkbytes[localoffset+8:localoffset+12], byteorder='big')
-                else:
-                    st_size = int.from_bytes(checkbytes[localoffset+8:localoffset+12], byteorder='little')
+                st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder=byteorder)
+                st_value = int.from_bytes(checkbytes[localoffset+4:localoffset+8], byteorder=byteorder)
+                st_size = int.from_bytes(checkbytes[localoffset+8:localoffset+12], byteorder=byteorder)
 
                 st_info = checkbytes[localoffset+12]
                 st_other = checkbytes[localoffset+13]
 
-                if bigendian:
-                    st_shndx = int.from_bytes(checkbytes[localoffset+14:localoffset+16], byteorder='big')
-                else:
-                    st_shndx = int.from_bytes(checkbytes[localoffset+14:localoffset+16], byteorder='little')
+                st_shndx = int.from_bytes(checkbytes[localoffset+14:localoffset+16], byteorder=byteorder)
                 localoffset += 16
 
     # entire file is ELF
