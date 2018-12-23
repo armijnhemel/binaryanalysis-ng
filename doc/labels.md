@@ -41,6 +41,7 @@ Android specific
 * androidsparsedata :: file is an Android sparse data file
 * apk :: file is an Android APK file
 * dex :: file is an Android Dex file
+* oat :: file is an Android OAT file
 * odex :: file is an Android Optimized Dex file
 
 Archive specific
@@ -82,6 +83,12 @@ Compressed specific
 Debian specific
 
 * deb :: file is a Debian archive file
+
+ELF
+
+* elf :: file is an ELF file
+* linuxkernelmodule :: file is a Linux kernel module
+* oat :: file is an Android OAT file
 
 File system
 
@@ -145,7 +152,9 @@ Text
 * ihex :: file is an Intel Hex file
 * javamanifest :: file is a Java manifest file
 * kernel configuration :: file is a Linux kernel configuration file
+* passwd :: file is a Unix passwd file
 * private key :: file contains a private key
+* shadow :: file is a Unix shadow passwd file
 * srec :: file is a Motorola SREC file
 * ssh known hosts :: file is a SSH known hosts file
 * trusted certificate :: file is a certificate
@@ -159,7 +168,6 @@ Misc
 
 * dockerfile :: file is a Dockerfile
 * drpm :: file is a delta RPM file
-* elf :: file is an ELF file
 * java class :: file is a Java class file
 * python pkg-info :: file is a Python PKG-INFO file
 * rpm :: file is a RPM file
