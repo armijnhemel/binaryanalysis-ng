@@ -15302,6 +15302,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
     # extract some interesting information, such as:
     # * build id: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/developer_guide/compiling-build-id
+    # * dynamic symbols
 
     # first extract the GNU build-id. This is an ELF notes segment
     if '.note.gnu.build-id' in sectionnames:
@@ -15351,6 +15352,66 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                 elfresults['build-id hash'] = 'sha1'
             elif len(buildid) == 32:
                 elfresults['build-id hash'] = 'md5'
+
+    # then extract dynamic symbols
+    # https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-79797/index.html
+    for s in sectionheaders:
+        if sectionheaders[s]['sh_type'] != 11:
+            continue
+        checkfile.seek(offset + sectionheaders[s]['sh_offset'])
+        checkbytes = checkfile.read(sectionheaders[s]['sh_size'])
+        localoffset = 0
+        while localoffset < len(checkbytes):
+            # depending on whether or not the file is 64 bit
+            # the data structure differs
+            if is64bit:
+                # index into the string table
+                if bigendian:
+                    st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder='big')
+                else:
+                    st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder='little')
+
+                st_info = checkbytes[localoffset+5]
+                st_other = checkbytes[localoffset+6]
+
+                if bigendian:
+                    st_shndx = int.from_bytes(checkbytes[localoffset+6:localoffset+8], byteorder='big')
+                else:
+                    st_shndx = int.from_bytes(checkbytes[localoffset+6:localoffset+8], byteorder='little')
+                if bigendian:
+                    st_value = int.from_bytes(checkbytes[localoffset+8:localoffset+16], byteorder='big')
+                else:
+                    st_value = int.from_bytes(checkbytes[localoffset+8:localoffset+16], byteorder='little')
+                if bigendian:
+                    st_size = int.from_bytes(checkbytes[localoffset+16:localoffset+24], byteorder='big')
+                else:
+                    st_size = int.from_bytes(checkbytes[localoffset+16:localoffset+24], byteorder='little')
+                localoffset += 24
+            else:
+                # index into the string table
+                if bigendian:
+                    st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder='big')
+                else:
+                    st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder='little')
+
+                if bigendian:
+                    st_value = int.from_bytes(checkbytes[localoffset+4:localoffset+8], byteorder='big')
+                else:
+                    st_value = int.from_bytes(checkbytes[localoffset+4:localoffset+8], byteorder='little')
+
+                if bigendian:
+                    st_size = int.from_bytes(checkbytes[localoffset+8:localoffset+12], byteorder='big')
+                else:
+                    st_size = int.from_bytes(checkbytes[localoffset+8:localoffset+12], byteorder='little')
+
+                st_info = checkbytes[localoffset+12]
+                st_other = checkbytes[localoffset+13]
+
+                if bigendian:
+                    st_shndx = int.from_bytes(checkbytes[localoffset+14:localoffset+16], byteorder='big')
+                else:
+                    st_shndx = int.from_bytes(checkbytes[localoffset+14:localoffset+16], byteorder='little')
+                localoffset += 16
 
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
