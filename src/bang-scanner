@@ -1384,6 +1384,8 @@ def main(argv):
             shutil.copy(checkfile, unpackdirectory)
         except:
             print("Could not copy %s to scanning directory %s" % (checkfile, unpackdirectory), file=sys.stderr)
+            logging.info("Could not copy %s to scanning directory" % checkfile)
+            logging.info("Finished scanning %s" % checkfile)
             # move the file "STARTED" to "FINISHED" to easily identify
             # active (or crashed) scans
             shutil.move(scandirectory / "STARTED",
