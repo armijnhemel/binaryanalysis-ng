@@ -14890,7 +14890,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
-    # e entry_point
+    # ELF entry point (virtual address)
     if is64bit:
         checkbytes = checkfile.read(8)
     else:
