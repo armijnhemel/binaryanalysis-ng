@@ -14769,6 +14769,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     elflabels = []
     unpackingerror = {}
     unpackedsize = 0
+    elfresults = {}
 
     # ELF header is at least 52 bytes
     if filesize - offset < 52:
@@ -14795,12 +14796,15 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 1
 
     if is64bit:
+        elfresults['bits'] = 64
         # 64 bit ELF header is 64 bytes
         if filesize - offset < 64:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'not enough data'}
             return {'status': False, 'error': unpackingerror}
+    else:
+        elfresults['bits'] = 64
 
     # check endianness of the file
     checkbytes = checkfile.read(1)
@@ -14858,16 +14862,22 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     # are not ELF executables, but ELF shared objects.
     if elftype == 0:
         elflabels.append('elf no type')
+        elfresults['type'] = None
     elif elftype == 1:
         elflabels.append('elf relocatable')
+        elfresults['type'] = 'relocatable'
     elif elftype == 2:
         elflabels.append('elf executable')
+        elfresults['type'] = 'executable'
     elif elftype == 3:
         elflabels.append('elf shared object')
+        elfresults['type'] = 'shared'
     elif elftype == 4:
         elflabels.append('elf core')
+        elfresults['type'] = 'core'
     else:
         elflabels.append('elf processor specific')
+        elfresults['type'] = 'processor specific'
 
     # ELF machine
     checkbytes = checkfile.read(2)
@@ -15321,6 +15331,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
         if notename == b'GNU\x00' and notetype == 3:
             buildid = binascii.hexlify(notedescription).decode()
+            elfresults['build-id'] = buildid
 
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
