@@ -207,12 +207,17 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         hashresults = {}
         hashes = {}
 
+        usetlsh = False
+        tlshmaximum = sys.maxsize
+        if filesize >= 256 and filesize <= tlshmaximum:
+            usetlsh = True
+
         for hashtocompute in ['sha256', 'md5', 'sha1']:
             hashes[hashtocompute] = hashlib.new(hashtocompute)
 
         # add TLSH hash as well, even though it might
         # not be used in the end.
-        if filesize >= 256:
+        if usetlsh:
             tlshhash = tlsh.Tlsh()
 
         # open the file and read all the data. Unfortunately
@@ -238,10 +243,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             bytecounter.update(hashingdata)
             for h in hashes:
                 hashes[h].update(hashingdata)
-            if filesize >= 256:
+            if usetlsh:
                 tlshhash.update(hashingdata)
             hashingdata = scanfile.read(readsize)
-        if filesize >= 256:
+        if usetlsh:
             tlshhash.final()
             hashes['tlsh'] = tlshhash
         scanfile.close()
