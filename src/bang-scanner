@@ -264,9 +264,11 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # Search the extension of the file in a list of known extensions.
         # https://www.iana.org/assignments/media-types/media-types.xhtml
 
-        mimeres = mimetypes.guess_type(checkfile.name)[0]
-        if mimeres is not None:
-            fileresult['mimetype'] = mimeres
+        mimeres = mimetypes.guess_type(checkfile.name)
+        if mimeres[0] is not None:
+            fileresult['mimetype'] = mimeres[0]
+            if mimeres[1] is not None:
+                fileresult['mimetype encoding'] = mimeres[1]
 
         # create an empty list of files that were
         # unpacked/carved from this file
