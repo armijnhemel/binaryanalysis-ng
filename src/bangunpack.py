@@ -15332,6 +15332,10 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         if notename == b'GNU\x00' and notetype == 3:
             buildid = binascii.hexlify(notedescription).decode()
             elfresults['build-id'] = buildid
+            if len(buildid) == 40:
+                elfresults['build-id hash'] = 'sha1'
+            elif len(buildid) == 32:
+                elfresults['build-id hash'] = 'md5'
 
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
