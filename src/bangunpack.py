@@ -14843,7 +14843,30 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         elftype = int.from_bytes(checkbytes, byteorder='big')
     else:
         elftype = int.from_bytes(checkbytes, byteorder='little')
+
+    # only a few types have been defined
+    if elftype > 4 and not (elftype == 0xff00 or elftype == 0xffff):
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'unsupported ELF type'}
+        return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
+
+    # label depending on the ELF type
+    # This is not always logical: on recent Fedora systems executables
+    # are not ELF executables, but ELF shared objects.
+    if elftype == 0:
+        labels.append('elf no type')
+    elif elftype == 1:
+        labels.append('elf relocatable')
+    elif elftype == 2:
+        labels.append('elf executable')
+    elif elftype == 3:
+        labels.append('elf shared object')
+    elif elftype == 4:
+        labels.append('elf core')
+    else:
+        labels.append('elf processor specific')
 
     # ELF machine
     checkbytes = checkfile.read(2)
