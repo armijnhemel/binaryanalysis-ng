@@ -14766,6 +14766,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
+    elflabels = []
     unpackingerror = {}
     unpackedsize = 0
 
@@ -14856,17 +14857,17 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     # This is not always logical: on recent Fedora systems executables
     # are not ELF executables, but ELF shared objects.
     if elftype == 0:
-        labels.append('elf no type')
+        elflabels.append('elf no type')
     elif elftype == 1:
-        labels.append('elf relocatable')
+        elflabels.append('elf relocatable')
     elif elftype == 2:
-        labels.append('elf executable')
+        elflabels.append('elf executable')
     elif elftype == 3:
-        labels.append('elf shared object')
+        elflabels.append('elf shared object')
     elif elftype == 4:
-        labels.append('elf core')
+        elflabels.append('elf core')
     else:
-        labels.append('elf processor specific')
+        elflabels.append('elf processor specific')
 
     # ELF machine
     checkbytes = checkfile.read(2)
@@ -15125,6 +15126,8 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
     sectionheaders = {}
 
+    isdynamicelf = False
+
     # sanity check for each of the section headers
     checkfile.seek(offset + shoff)
     unpackedsize = shoff
@@ -15239,6 +15242,13 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         unpackedsize += 4
         if is64bit:
             unpackedsize += 4
+        if sh_type == 6:
+            isdynamicelf = True
+
+    if isdynamicelf:
+        elflabels.append('dynamic')
+    else:
+        elflabels.append('static')
 
     maxoffset = max(maxoffset, unpackedsize)
 
@@ -15268,6 +15278,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
         checkfile.close()
+        labels = elflabels
         labels.append('elf')
         if '__ksymtab_strings' in sectionnames or '.modinfo' in sectionnames:
             labels.append('linuxkernelmodule')
@@ -15291,6 +15302,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             if offset == 0 and maxoffset + sigsize + 40 == filesize:
                 maxoffset = maxoffset + sigsize + 40
                 checkfile.close()
+                labels = elflabels
                 labels.append('elf')
                 labels.append('linuxkernelmodule')
                 return {'status': True, 'length': maxoffset, 'labels': labels,
@@ -15328,6 +15340,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
                 outfile.close()
                 checkfile.close()
+                outlabels = elflabels
                 outlabels = ['elf', 'unpacked', 'linuxkernelmodule']
                 unpackedfilesandlabels.append((outfilename, outlabels))
 
@@ -15340,8 +15353,10 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
     outfile.close()
     checkfile.close()
+    outlabels = elflabels
+    outlabels.append('elf')
+    outlabels.append('unpacked')
 
-    outlabels = ['elf', 'unpacked']
     unpackedfilesandlabels.append((outfilename, outlabels))
 
     return {'status': True, 'length': maxoffset, 'labels': labels,
