@@ -1533,6 +1533,9 @@ def main(argv):
             if 'filesize' in scanresult['scantree'][i]:
                 reportfilesize = scanresult['scantree'][i]['filesize']
                 print("Size:", reportfilesize, file=reportfile)
+            if 'mimetype' in scanresult['scantree'][i]:
+                mimetype = scanresult['scantree'][i]['mimetype']
+                print("MIME type:", mimetype, file=reportfile)
             if 'parent' in scanresult['scantree'][i]:
                 print("Parent: %s" % scanresult['scantree'][i]['parent'],  file=reportfile)
             reportlabels = functools.reduce(lambda x, y: x + ", " + y, sorted(scanresult['scantree'][i]['labels']))
