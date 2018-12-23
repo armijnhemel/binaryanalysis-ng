@@ -15044,13 +15044,28 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
     maxoffset = 0
 
-    # sanity check for each of the program headers
+    # sanity check each of the program headers
     checkfile.seek(offset + phoff)
     unpackedsize = phoff
+    seeninterpreter = False
+
     for i in range(0, phnum):
         # read the program header entry
         checkbytes = checkfile.read(4)
+        if bigendian:
+            p_type = int.from_bytes(checkbytes, byteorder='big')
+        else:
+            p_type = int.from_bytes(checkbytes, byteorder='little')
         unpackedsize += 4
+
+        # there can only be one program interpreter
+        if p_type == 3:
+            if seeninterpreter:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'multiple definitions for program interpreter'}
+                return {'status': False, 'error': unpackingerror}
+            seeninterpreter = True
 
         # p_flags (64 bit only)
         if is64bit:
