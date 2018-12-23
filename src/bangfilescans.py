@@ -32,7 +32,6 @@
 # * scan environment (a dict)
 
 import pathlib
-import mimetypes
 import os
 
 # import own code
