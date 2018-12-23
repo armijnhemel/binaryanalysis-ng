@@ -1962,17 +1962,16 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if checkbytes == b'hsqs':
         bigendian = False
+        byteorder = 'little'
     else:
         bigendian = True
+        byteorder = 'big'
 
     # then skip to the version, as this is an effective way to filter
     # false positives.
     checkfile.seek(offset+28)
     checkbytes = checkfile.read(2)
-    if bigendian:
-        majorversion = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        majorversion = int.from_bytes(checkbytes, byteorder='little')
+    majorversion = int.from_bytes(checkbytes, byteorder=byteorder)
 
     # So far only squashfs 1-4 have been released (June 2018)
     if majorversion == 0 or majorversion > 4:
@@ -1995,10 +1994,7 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
                               'fatal': False,
                               'reason': 'not enough data to read size'}
             return {'status': False, 'error': unpackingerror}
-        if bigendian:
-            squashfssize = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            squashfssize = int.from_bytes(checkbytes, byteorder='little')
+        squashfssize = int.from_bytes(checkbytes, byteorder=byteorder)
     elif majorversion == 3:
         checkfile.seek(offset+63)
         checkbytes = checkfile.read(8)
@@ -2008,10 +2004,7 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
                               'fatal': False,
                               'reason': 'not enough data to read size'}
             return {'status': False, 'error': unpackingerror}
-        if bigendian:
-            squashfssize = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            squashfssize = int.from_bytes(checkbytes, byteorder='little')
+        squashfssize = int.from_bytes(checkbytes, byteorder=byteorder)
     elif majorversion == 1 or majorversion == 2:
         checkfile.seek(offset+8)
         checkbytes = checkfile.read(4)
@@ -2021,10 +2014,7 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
                               'fatal': False,
                               'reason': 'not enough data to read size'}
             return {'status': False, 'error': unpackingerror}
-        if bigendian:
-            squashfssize = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            squashfssize = int.from_bytes(checkbytes, byteorder='little')
+        squashfssize = int.from_bytes(checkbytes, byteorder=byteorder)
 
     # file size sanity check
     if offset + squashfssize > filesize:
