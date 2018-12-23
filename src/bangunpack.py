@@ -15275,6 +15275,53 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         if sectionname != '':
             sectionnametonr[sectionname] = i
 
+    # extract some interesting information, such as:
+    # * build id: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/developer_guide/compiling-build-id
+
+    # first extract the GNU build-id. This is an ELF notes segment
+    if '.note.gnu.build-id' in sectionnames:
+        # read the section
+        sectionnr = sectionnametonr['.note.gnu.build-id']
+        checkfile.seek(offset + sectionheaders[sectionnr]['sh_offset'])
+        checkbytes = checkfile.read(sectionheaders[sectionnr]['sh_size'])
+
+        # notes segments start with a namesize
+        if bigendian:
+            namesz = int.from_bytes(checkbytes[:4], byteorder='big')
+        else:
+            namesz = int.from_bytes(checkbytes[:4], byteorder='little')
+
+        # then description size
+        if bigendian:
+            descsz = int.from_bytes(checkbytes[4:8], byteorder='big')
+        else:
+            descsz = int.from_bytes(checkbytes[4:8], byteorder='little')
+
+        # then type
+        if bigendian:
+            notetype = int.from_bytes(checkbytes[8:12], byteorder='big')
+        else:
+            notetype = int.from_bytes(checkbytes[8:12], byteorder='little')
+
+        # read the name
+        notename = checkbytes[12:12+namesz]
+        if len(notename) != namesz:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'note name outside note section'}
+            return {'status': False, 'error': unpackingerror}
+
+        # read the description
+        notedescription = checkbytes[12+namesz:12+namesz+descsz]
+        if len(notedescription) != descsz:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'note description outside note section'}
+            return {'status': False, 'error': unpackingerror}
+
+        if notename == b'GNU\x00' and notetype == 3:
+            buildid = binascii.hexlify(notedescription).decode()
+
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
         checkfile.close()
