@@ -124,6 +124,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
     readsize = scanenvironment['readsize']
     createbytecounter = scanenvironment['createbytecounter']
+    tlshmaximum = scanenvironment['tlshmaximum']
 
     while True:
         # grab a new file from the scanning queue
@@ -245,7 +246,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         hashes = {}
 
         usetlsh = False
-        tlshmaximum = sys.maxsize
         if filesize >= 256 and filesize <= tlshmaximum:
             usetlsh = True
 
@@ -1452,6 +1452,7 @@ def main(argv):
         # set the size of bytes to be read during scanning hashes
         scanenvironment['readsize'] = 10240
         scanenvironment['createbytecounter'] = True
+        scanenvironment['tlshmaximum'] = sys.maxsize
 
         # create processes for unpacking archives
         for i in range(0, bangthreads):
