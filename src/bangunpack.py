@@ -14759,7 +14759,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     elflabels = []
     unpackingerror = {}
     unpackedsize = 0
-    elfresults = {}
+    elfresult = {}
 
     # ELF header is at least 52 bytes
     if filesize - offset < 52:
@@ -14787,7 +14787,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 1
 
     if is64bit:
-        elfresults['bits'] = 64
+        elfresult['bits'] = 64
         # 64 bit ELF header is 64 bytes
         if filesize - offset < 64:
             checkfile.close()
@@ -14795,7 +14795,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'not enough data'}
             return {'status': False, 'error': unpackingerror}
     else:
-        elfresults['bits'] = 64
+        elfresult['bits'] = 64
 
     # check endianness of the file
     checkbytes = checkfile.read(1)
@@ -14851,22 +14851,22 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     # are not ELF executables, but ELF shared objects.
     if elftype == 0:
         elflabels.append('elf no type')
-        elfresults['type'] = None
+        elfresult['type'] = None
     elif elftype == 1:
         elflabels.append('elf relocatable')
-        elfresults['type'] = 'relocatable'
+        elfresult['type'] = 'relocatable'
     elif elftype == 2:
         elflabels.append('elf executable')
-        elfresults['type'] = 'executable'
+        elfresult['type'] = 'executable'
     elif elftype == 3:
         elflabels.append('elf shared object')
-        elfresults['type'] = 'shared'
+        elfresult['type'] = 'shared'
     elif elftype == 4:
         elflabels.append('elf core')
-        elfresults['type'] = 'core'
+        elfresult['type'] = 'core'
     else:
         elflabels.append('elf processor specific')
-        elfresults['type'] = 'processor specific'
+        elfresult['type'] = 'processor specific'
 
     # ELF machine
     checkbytes = checkfile.read(2)
@@ -15267,15 +15267,16 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
         if notename == b'GNU\x00' and notetype == 3:
             buildid = binascii.hexlify(notedescription).decode()
-            elfresults['build-id'] = buildid
+            elfresult['build-id'] = buildid
             if len(buildid) == 40:
-                elfresults['build-id hash'] = 'sha1'
+                elfresult['build-id hash'] = 'sha1'
             elif len(buildid) == 32:
-                elfresults['build-id hash'] = 'md5'
+                elfresult['build-id hash'] = 'md5'
 
     # store the libraries declared as NEEDED
     # These are stored in a list, as the order in which they appear matters
     dynamicneeded = []
+    dynamicsymbols = []
     soname = None
     rpath = None
     runpath = None
@@ -15508,6 +15509,19 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     unpackingerror = {'offset': offset, 'fatal': False,
                                       'reason': 'invalid symbol visibility'}
                     return {'status': False, 'error': unpackingerror}
+                dynamicsymbols.append({'name': symbolname, 'visibility': visibility,
+                                       'binding': binding, 'type': symboltype})
+
+    if dynamicneeded != []:
+        elfresult['needed'] = dynamicneeded
+    if soname is not None:
+        elfresult['soname'] = soname
+    if rpath is not None:
+        elfresult['rpath'] = rpath
+    if runpath is not None:
+        elfresult['runpath'] = runpath
+    if dynamicsymbols != []:
+        elfresult['dynamicsymbols'] = dynamicsymbols
 
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
