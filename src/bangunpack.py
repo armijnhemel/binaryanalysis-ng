@@ -15569,10 +15569,12 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     return {'status': False, 'error': unpackingerror}
                 if sectiontype == 'dynamic':
                     dynamicsymbols.append({'name': symbolname, 'visibility': visibility,
-                                           'binding': binding, 'type': symboltype})
+                                           'binding': binding, 'type': symboltype,
+                                           'sectionindex': st_shndx})
                 else:
                    symbols.append({'name': symbolname, 'visibility': visibility,
-                                   'binding': binding, 'type': symboltype})
+                                   'binding': binding, 'type': symboltype,
+                                   'section': st_shndx})
 
     if dynamicneeded != []:
         elfresult['needed'] = dynamicneeded
