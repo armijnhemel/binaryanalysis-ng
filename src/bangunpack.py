@@ -13807,7 +13807,7 @@ def unpackDex(
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong Dex version'}
         return {'status': False, 'error': unpackingerror}
-    dexversion = checkbytes
+    dexversion = checkbytes[:3].decode()
     unpackedsize += 4
 
     # first check if the file is little endian. The endianness
@@ -14517,7 +14517,7 @@ def unpackOdex(filename, offset, unpackdir, temporarydirectory):
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong Odex version'}
         return {'status': False, 'error': unpackingerror}
-    dexversion = checkbytes
+    dexversion = checkbytes[:3].decode()
     unpackedsize += 4
 
     # file offset to Dex header
