@@ -75,10 +75,6 @@ import tlsh
 maxsignaturelength = max(map(lambda x: len(x), bangsignatures.signatures.values()))
 maxsignaturesoffset = max(bangsignatures.signaturesoffset.values()) + maxsignaturelength
 
-# not all files with TLSH should be looked at
-tlshlabelsignore = set(['compressed', 'graphics', 'audio',
-                        'filesystem', 'srec', 'ihex'])
-
 
 # Process a single file.
 # This method has the following parameters:
@@ -203,6 +199,44 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 fileresult[i] = emptyhashresults[i]
             continue
 
+        # create an empty list of files that were
+        # unpacked/carved from this file
+        fileresult['unpackedfiles'] = []
+
+        # store the last known position in the file with successfully
+        # unpacked data
+        lastunpackedoffset = -1
+
+        # remove any duplicate labels
+        labels = list(set(labels))
+
+        needsunpacking = True
+
+        # keep a byte range of data that has already been looked at
+        unpackedrange = []
+
+        # check for a dummy value to see if the file has already been
+        # unpacked and if so, simply report and skip the unpacking, and
+        # move on to just running the per file scans.
+        if 'unpacked' in labels:
+            labels.remove('unpacked')
+            if 'rescan' in labels:
+                origunpackedrange = [(0, filesize)]
+                unpackedrange = [(0, 1)]
+                lastunpackedoffset = 1
+            else:
+                needsunpacking = False
+                lastunpackedoffset = filesize
+                unpackedrange = [(0, filesize)]
+
+                # store lot of information about the unpacked files
+                # TODO: add more information, such as signature
+                report = {}
+                report['offset'] = 0
+                report['size'] = filesize
+                report['files'] = []
+                fileresult['unpackedfiles'].append(report)
+
         # compute various checksums of the file
         hashresults = {}
         hashes = {}
@@ -211,6 +245,11 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         tlshmaximum = sys.maxsize
         if filesize >= 256 and filesize <= tlshmaximum:
             usetlsh = True
+
+        # not all files with TLSH should be looked at
+        tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'filesystem', 'srec', 'ihex'])
+        if set(labels).intersection(tlshlabelsignore) != set():
+            usetlsh = False
 
         for hashtocompute in ['sha256', 'md5', 'sha1']:
             hashes[hashtocompute] = hashlib.new(hashtocompute)
@@ -274,44 +313,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             fileresult['mimetype'] = mimeres[0]
             if mimeres[1] is not None:
                 fileresult['mimetype encoding'] = mimeres[1]
-
-        # create an empty list of files that were
-        # unpacked/carved from this file
-        fileresult['unpackedfiles'] = []
-
-        # store the last known position in the file with successfully
-        # unpacked data
-        lastunpackedoffset = -1
-
-        # remove any duplicate labels
-        labels = list(set(labels))
-
-        needsunpacking = True
-
-        # keep a byte range of data that has already been looked at
-        unpackedrange = []
-
-        # check for a dummy value to see if the file has already been
-        # unpacked and if so, simply report and skip the unpacking, and
-        # move on to just running the per file scans.
-        if 'unpacked' in labels:
-            labels.remove('unpacked')
-            if 'rescan' in labels:
-                origunpackedrange = [(0, filesize)]
-                unpackedrange = [(0, 1)]
-                lastunpackedoffset = 1
-            else:
-                needsunpacking = False
-                lastunpackedoffset = filesize
-                unpackedrange = [(0, filesize)]
-
-                # store lot of information about the unpacked files
-                # TODO: add more information, such as signature
-                report = {}
-                report['offset'] = 0
-                report['size'] = filesize
-                report['files'] = []
-                fileresult['unpackedfiles'].append(report)
 
         # Now try to unpack the file. There are a few categories:
         #
