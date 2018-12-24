@@ -122,6 +122,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         emptyhashes[hashtocompute] = hashlib.new(hashtocompute)
         emptyhashresults[hashtocompute] = emptyhashes[hashtocompute].hexdigest()
 
+    readsize = scanenvironment['readsize']
+
     while True:
         # grab a new file from the scanning queue
         (checkfile, labels, parent, extradata) = scanfilequeue.get(timeout=86400)
@@ -259,8 +261,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # keep track of whether or not a file consists of just
         # ASCII characters. Initially assume it is text only.
         istext = True
-
-        readsize = 10000000
 
         # open the file and seek to the start
         scanfile = open(checkfile, 'rb')
@@ -1442,8 +1442,11 @@ def main(argv):
         # initially an empty dictionary
         scanenvironment = {}
 
-        # set the maximum size for the amont of bytes to be read
+        # set the maximum size for the amount of bytes to be read
         scanenvironment['maxbytes'] = maxbytes
+
+        # set the size of bytes to be read during scanning hashes
+        scanenvironment['readsize'] = 10240
 
         # create processes for unpacking archives
         for i in range(0, bangthreads):
