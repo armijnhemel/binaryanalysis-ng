@@ -14588,8 +14588,8 @@ def unpackOdex(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'wrong Adler32'}
         return {'status': False, 'error': unpackingerror}
 
-    # now check to see if it is a valid Dex. This is extremely
-    # unlikely at this point.
+    # now check to see if it is an valid Dex. It is extremely
+    # unlikely at this point that it is an invalid file.
     dryrun = True
     verifychecksum = False
     dexres = unpackDex(filename, dexoffset, unpackdir, temporarydirectory, dryrun, verifychecksum)
