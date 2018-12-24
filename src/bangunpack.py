@@ -15494,7 +15494,10 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                         'filesandlabels': unpackedfilesandlabels}
 
     # Carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked-from-elf")
+    if soname is not None:
+        outfilename = os.path.join(unpackdir, soname)
+    else:
+        outfilename = os.path.join(unpackdir, "unpacked-from-elf")
     outfile = open(outfilename, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
     outfile.close()
