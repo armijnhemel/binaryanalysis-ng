@@ -15276,7 +15276,11 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     # store the libraries declared as NEEDED
     # These are stored in a list, as the order in which they appear matters
     dynamicneeded = []
+
+    # symbols and dynamic symbols (both can be present)
     dynamicsymbols = []
+    symbols = []
+
     soname = None
     rpath = None
     runpath = None
@@ -15304,6 +15308,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'invalid runtime linker name'}
             return {'status': False, 'error': unpackingerror}
 
+    # extract the table with the names of dynamic symbols
     dynamicstringstable = None
     if '.dynstr' in sectionnames:
         dynsection = sectionnametonr['.dynstr']
@@ -15316,6 +15321,20 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         # read the dynamic string section
         checkfile.seek(offset + sectionheaders[dynsection]['sh_offset'])
         dynamicstringstable = checkfile.read(sectionheaders[dynsection]['sh_size'])
+
+    # extract the table with the names of symbols
+    symbolstringstable = None
+    if '.strtab' in sectionnames:
+        symbolsection = sectionnametonr['.strtab']
+        # .strtab should be of type SHT_STRTAB
+        if sectionheaders[symbolsection]['sh_type'] != 3:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'wrong section type for dynstr section'}
+            return {'status': False, 'error': unpackingerror}
+        # read the symbols string section
+        checkfile.seek(offset + sectionheaders[symbolsection]['sh_offset'])
+        symbolstringstable = checkfile.read(sectionheaders[symbolsection]['sh_size'])
 
     # then extract data from the dynamic section and dynamic symbol table
     for s in sectionheaders:
@@ -15412,7 +15431,13 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                 else:
                     localoffset += 8
             continue
-        elif sectionheaders[s]['sh_type'] == 11:
+        elif sectionheaders[s]['sh_type'] == 11 or sectionheaders[s]['sh_type'] == 2:
+            if sectionheaders[s]['sh_type'] == 2:
+                sectiontype = 'symtab'
+            else:
+                sectiontype = 'dynamic'
+            if sectiontype == 'symtab' and sectionheaders[s]['name'] != '.symtab':
+                continue
             checkfile.seek(offset + sectionheaders[s]['sh_offset'])
             checkbytes = checkfile.read(sectionheaders[s]['sh_size'])
             localoffset = 0
@@ -15444,14 +15469,24 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     st_shndx = int.from_bytes(checkbytes[localoffset+14:localoffset+16], byteorder=byteorder)
                     localoffset += 16
 
-                endofsymbolname = dynamicstringstable.find(b'\x00', st_name)
-                try:
-                    symbolname = dynamicstringstable[st_name:endofsymbolname].decode()
-                except:
-                    checkfile.close()
-                    unpackingerror = {'offset': offset, 'fatal': False,
-                                      'reason': 'invalid RUNPATH'}
-                    return {'status': False, 'error': unpackingerror}
+                if sectiontype == 'dynamic':
+                    endofsymbolname = dynamicstringstable.find(b'\x00', st_name)
+                    try:
+                        symbolname = dynamicstringstable[st_name:endofsymbolname].decode()
+                    except:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'invalid dynamic symbol name'}
+                        return {'status': False, 'error': unpackingerror}
+                else:
+                    endofsymbolname = symbolstringstable.find(b'\x00', st_name)
+                    try:
+                        symbolname = symbolstringstable[st_name:endofsymbolname].decode()
+                    except:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'invalid  symbol name'}
+                        return {'status': False, 'error': unpackingerror}
 
                 # binding
                 if st_info >> 4 == 0:
@@ -15532,8 +15567,12 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     unpackingerror = {'offset': offset, 'fatal': False,
                                       'reason': 'invalid symbol visibility'}
                     return {'status': False, 'error': unpackingerror}
-                dynamicsymbols.append({'name': symbolname, 'visibility': visibility,
-                                       'binding': binding, 'type': symboltype})
+                if sectiontype == 'dynamic':
+                    dynamicsymbols.append({'name': symbolname, 'visibility': visibility,
+                                           'binding': binding, 'type': symboltype})
+                else:
+                   symbols.append({'name': symbolname, 'visibility': visibility,
+                                   'binding': binding, 'type': symboltype})
 
     if dynamicneeded != []:
         elfresult['needed'] = dynamicneeded
@@ -15547,6 +15586,8 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         elfresult['linker'] = interp
     if dynamicsymbols != []:
         elfresult['dynamicsymbols'] = dynamicsymbols
+    if symbols != []:
+        elfresult['symbols'] = symbols
 
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
