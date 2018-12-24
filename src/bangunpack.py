@@ -15285,6 +15285,29 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     soname = None
     rpath = None
     runpath = None
+    interp = None
+
+    if seeninterpreter:
+        if '.interp' not in sectionnames:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'missing interpreter section'}
+            return {'status': False, 'error': unpackingerror}
+        interpsection = sectionnametonr['.interp']
+        # check if the section is SHT_PROGBITS
+        if sectionheaders[interpsection]['sh_type'] != 1:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'wrong section type for interp section'}
+            return {'status': False, 'error': unpackingerror}
+        checkfile.seek(offset + sectionheaders[interpsection]['sh_offset'])
+        try:
+            interp = checkfile.read(sectionheaders[interpsection]['sh_size']).split(b'\x00')[0].decode()
+        except:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid runtime linker name'}
+            return {'status': False, 'error': unpackingerror}
 
     dynamicstringstable = None
     if '.dynstr' in sectionnames:
@@ -15525,6 +15548,8 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         elfresult['rpath'] = rpath
     if runpath is not None:
         elfresult['runpath'] = runpath
+    if interp is not None:
+        elfresult['linker'] = interp
     if dynamicsymbols != []:
         elfresult['dynamicsymbols'] = dynamicsymbols
 
