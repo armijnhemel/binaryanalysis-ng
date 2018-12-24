@@ -254,40 +254,58 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         for hashtocompute in ['sha256', 'md5', 'sha1']:
             hashes[hashtocompute] = hashlib.new(hashtocompute)
 
-        # add TLSH hash as well, even though it might
-        # not be used in the end.
-        if usetlsh:
-            tlshhash = tlsh.Tlsh()
-
-        # open the file and read all the data. Unfortunately
-        # TLSH currently does not support Python's buffer protocol
-        # so this is a bit inefficient.
-        scanfile = open(checkfile, 'rb')
-        scanfile.seek(0)
-        readsize = 10000000
-        hashingdata = scanfile.read(readsize)
         bytecounter = collections.Counter()
 
         # keep track of whether or not a file consists of just
         # ASCII characters. Initially assume it is text only.
         istext = True
 
-        while hashingdata != b'':
-            # check if any of the characters read is a
-            # non-ASCII character. If so, it is not a text file.
-            if istext:
-                if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
-                    istext = False
+        readsize = 10000000
 
-            bytecounter.update(hashingdata)
-            for h in hashes:
-                hashes[h].update(hashingdata)
-            if usetlsh:
-                tlshhash.update(hashingdata)
-            hashingdata = scanfile.read(readsize)
+        # open the file and seek to the start
+        scanfile = open(checkfile, 'rb')
+        scanfile.seek(0)
+
         if usetlsh:
+            # initialize a TLSH hash, even though it might
+            # not be used in the end.
+            tlshhash = tlsh.Tlsh()
+
+            # read all the data. Unfortunately TLSH currently does
+            # not support Python's buffer protocol so this is a bit
+            # inefficient.
+            hashingdata = scanfile.read(readsize)
+
+            while hashingdata != b'':
+                # check if any of the characters read is a
+                # non-ASCII character. If so, it is not a text file.
+                if istext:
+                    if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
+                        istext = False
+
+                bytecounter.update(hashingdata)
+                for h in hashes:
+                    hashes[h].update(hashingdata)
+                tlshhash.update(hashingdata)
+                hashingdata = scanfile.read(readsize)
             tlshhash.final()
             hashes['tlsh'] = tlshhash
+        else:
+            # use Python's buffer protocol
+            scanbytesarray = bytearray(readsize)
+            bytesread = scanfile.readinto(scanbytesarray)
+            hashingdata = memoryview(scanbytesarray[:bytesread])
+            while bytesread != 0:
+                if istext:
+                    if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
+                        istext = False
+                bytecounter.update(hashingdata)
+                for h in hashes:
+                    hashes[h].update(hashingdata)
+
+                bytesread = scanfile.readinto(scanbytesarray)
+                hashingdata = memoryview(scanbytesarray[:bytesread])
+
         scanfile.close()
 
         for f in hashes:
