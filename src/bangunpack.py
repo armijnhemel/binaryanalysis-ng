@@ -13782,6 +13782,8 @@ def unpackDex(
     unpackedsize = 0
     unpackingerror = {}
 
+    dexresult = {}
+
     if filesize - offset < 70:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'not enough data'}
@@ -13809,6 +13811,8 @@ def unpackDex(
         return {'status': False, 'error': unpackingerror}
     dexversion = checkbytes[:3].decode()
     unpackedsize += 4
+
+    dexresult['version'] = dexversion
 
     # first check if the file is little endian. The endianness
     # bytes can be found at offset 40
@@ -14150,7 +14154,7 @@ def unpackDex(
         # then jump to the new offset
         checkfile.seek(offset + string_data_offset)
 
-        # encountered. The first few bytes will be the size in
+        # The first few bytes will be the size in
         # ULEB128 encoding:
         #
         # https://en.wikipedia.org/wiki/LEB128
