@@ -15200,6 +15200,11 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             isdynamicelf = True
 
     if isdynamicelf:
+        if not seeninterpreter:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'no runtime linker defined for dynamically linked ELF'}
+            return {'status': False, 'error': unpackingerror}
         elflabels.append('dynamic')
     else:
         elflabels.append('static')
