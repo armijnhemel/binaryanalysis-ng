@@ -15388,38 +15388,69 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                 else:
                     localoffset += 8
             continue
-        elif sectionheaders[s]['sh_type'] != 11:
-            continue
-        checkfile.seek(offset + sectionheaders[s]['sh_offset'])
-        checkbytes = checkfile.read(sectionheaders[s]['sh_size'])
-        localoffset = 0
+        elif sectionheaders[s]['sh_type'] == 11:
+            checkfile.seek(offset + sectionheaders[s]['sh_offset'])
+            checkbytes = checkfile.read(sectionheaders[s]['sh_size'])
+            localoffset = 0
 
-        # https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-79797/index.html
-        while localoffset < len(checkbytes):
-            # depending on whether or not the file is 64 bit
-            # the data structure differs
-            if is64bit:
-                # index into the string table
-                st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder=byteorder)
+            # https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-79797/index.html
+            while localoffset < len(checkbytes):
+                # depending on whether or not the file is 64 bit
+                # the data structure differs
+                if is64bit:
+                    # index into the string table
+                    st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder=byteorder)
 
-                st_info = checkbytes[localoffset+5]
-                st_other = checkbytes[localoffset+6]
+                    st_info = checkbytes[localoffset+4]
+                    st_other = checkbytes[localoffset+5]
 
-                st_shndx = int.from_bytes(checkbytes[localoffset+6:localoffset+8], byteorder=byteorder)
-                st_value = int.from_bytes(checkbytes[localoffset+8:localoffset+16], byteorder=byteorder)
-                st_size = int.from_bytes(checkbytes[localoffset+16:localoffset+24], byteorder=byteorder)
-                localoffset += 24
-            else:
-                # index into the string table
-                st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder=byteorder)
-                st_value = int.from_bytes(checkbytes[localoffset+4:localoffset+8], byteorder=byteorder)
-                st_size = int.from_bytes(checkbytes[localoffset+8:localoffset+12], byteorder=byteorder)
+                    st_shndx = int.from_bytes(checkbytes[localoffset+6:localoffset+8], byteorder=byteorder)
+                    st_value = int.from_bytes(checkbytes[localoffset+8:localoffset+16], byteorder=byteorder)
+                    st_size = int.from_bytes(checkbytes[localoffset+16:localoffset+24], byteorder=byteorder)
+                    localoffset += 24
+                else:
+                    # index into the string table
+                    st_name = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder=byteorder)
+                    st_value = int.from_bytes(checkbytes[localoffset+4:localoffset+8], byteorder=byteorder)
+                    st_size = int.from_bytes(checkbytes[localoffset+8:localoffset+12], byteorder=byteorder)
 
-                st_info = checkbytes[localoffset+12]
-                st_other = checkbytes[localoffset+13]
+                    st_info = checkbytes[localoffset+12]
+                    st_other = checkbytes[localoffset+13]
 
-                st_shndx = int.from_bytes(checkbytes[localoffset+14:localoffset+16], byteorder=byteorder)
-                localoffset += 16
+                    st_shndx = int.from_bytes(checkbytes[localoffset+14:localoffset+16], byteorder=byteorder)
+                    localoffset += 16
+
+                endofsymbolname = dynamicstringstable.find(b'\x00', st_name)
+                try:
+                    symbolname = dynamicstringstable[st_name:endofsymbolname].decode()
+                except:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid RUNPATH'}
+                    return {'status': False, 'error': unpackingerror}
+
+                # binding
+                if st_info >> 4 == 0:
+                    binding = 'local'
+                elif st_info >> 4 == 1:
+                    binding = 'global'
+                elif st_info >> 4 == 2:
+                    binding = 'weak'
+
+                # visibility
+                if st_other & 0x3 == 0:
+                    visibility = 'default'
+                elif st_other & 0x3 == 1:
+                    visibility = 'internal'
+                elif st_other & 0x3 == 2:
+                    visibility = 'hidden'
+                elif st_other & 0x3 == 3:
+                    visibility = 'protected'
+                else:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid symbol visibility'}
+                    return {'status': False, 'error': unpackingerror}
 
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
