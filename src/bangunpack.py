@@ -13796,6 +13796,9 @@ def unpackDex(
     # DEX_FILE_MAGIC, but check it separately here to filter
     # any false positives.
 
+    # dex versions defined in:
+    # https://android.googlesource.com/platform/dalvik/+/master/tools/dexdeps/src/com/android/dexdeps/DexData.java
+
     dexversions = [b'035\x00', b'037\x00', b'038\x00', b'039\x00']
 
     checkbytes = checkfile.read(4)
