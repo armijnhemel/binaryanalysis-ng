@@ -15436,6 +15436,63 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     binding = 'global'
                 elif st_info >> 4 == 2:
                     binding = 'weak'
+                elif st_info >> 4 == 10:
+                    binding = 'loos'
+                elif st_info >> 4 == 10:
+                    # operating system specific. On some Linux systems
+                    # this is STB_GNU_UNIQUE
+                    binding = 'loos'
+                elif st_info >> 4 == 12:
+                    binding = 'hios'
+                elif st_info >> 4 == 13:
+                    binding = 'loproc'
+                elif st_info >> 4 == 15:
+                    binding = 'hiproc'
+                else:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid symbol binding'}
+                    return {'status': False, 'error': unpackingerror}
+
+                # type
+                if st_info & 0xf == 0:
+                    symboltype = 'notype'
+                elif st_info & 0xf == 1:
+                    symboltype = 'object'
+                elif st_info & 0xf == 2:
+                    symboltype = 'function'
+                elif st_info & 0xf == 3:
+                    symboltype = 'section'
+                elif st_info & 0xf == 4:
+                    symboltype = 'file'
+                elif st_info & 0xf == 5:
+                    symboltype = 'common'
+                elif st_info & 0xf == 6:
+                    symboltype = 'tls'
+                elif st_info & 0xf == 7:
+                    symboltype = 'num'
+                elif st_info & 0xf == 8:
+                    # STT_RELC 'complex relocation expression'
+                    symboltype = 'relc'
+                elif st_info & 0xf == 9:
+                    # STT_SRELC 'signed complex relocation expression'
+                    symboltype = 'srelc'
+                elif st_info & 0xf == 10:
+                    # GNU indirect functions are specific to GNU:
+                    # https://groups.google.com/forum/#!topic/generic-abi/DRLcm2TyK3U
+                    # TODO: check if this is STT_GNU_IFUNC or STT_LOOS
+                    symboltype = 'ifunc'
+                elif st_info & 0xf == 12:
+                    symboltype = 'hios'
+                elif st_info & 0xf == 13:
+                    symboltype = 'loproc'
+                elif st_info & 0xf == 15:
+                    symboltype = 'hiproc'
+                else:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid symbol type'}
+                    return {'status': False, 'error': unpackingerror}
 
                 # visibility
                 if st_other & 0x3 == 0:
