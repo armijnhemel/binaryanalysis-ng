@@ -316,6 +316,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             try:
                 hashresults[f] = hashes[f].hexdigest()
             except:
+                # in case there is no valid hex digest for a hash
+                # for example TLSH for files with all NUL bytes
                 pass
 
         for i in hashresults:
