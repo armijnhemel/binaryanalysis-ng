@@ -1594,7 +1594,7 @@ def main(argv):
         if removescandirectory:
             shutil.rmtree(scandirectory)
 
-    # clean up the database connections and
+    # clean up the database cursors and
     # close all connections to the database
     for c in bangdbconns:
         # first close the cursor
