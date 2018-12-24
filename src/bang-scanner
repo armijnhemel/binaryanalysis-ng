@@ -112,7 +112,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 unpackdirectory, resultsdirectory, temporarydirectory,
                 dbconn, dbcursor, bangfilefunctions, scanenvironment):
     lenunpackdirectory = len(str(unpackdirectory)) + 1
-    synthesizedminimum = 10
 
     emptyhashes = {}
     emptyhashresults = {}
@@ -125,6 +124,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
     readsize = scanenvironment['readsize']
     createbytecounter = scanenvironment['createbytecounter']
     tlshmaximum = scanenvironment['tlshmaximum']
+    synthesizedminimum = scanenvironment['synthesizedminimum']
 
     while True:
         # grab a new file from the scanning queue
@@ -1455,6 +1455,7 @@ def main(argv):
         scanenvironment['readsize'] = 10240
         scanenvironment['createbytecounter'] = True
         scanenvironment['tlshmaximum'] = sys.maxsize
+        scanenvironment['synthesizedminimum'] = 10
 
         # create processes for unpacking archives
         for i in range(0, bangthreads):
