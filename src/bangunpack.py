@@ -15273,14 +15273,128 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             elif len(buildid) == 32:
                 elfresults['build-id hash'] = 'md5'
 
-    # then extract dynamic symbols
-    # https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-79797/index.html
+    # store the libraries declared as NEEDED
+    # These are stored in a list, as the order in which they appear matters
+    dynamicneeded = []
+    soname = None
+    rpath = None
+    runpath = None
+
+    dynamicstringstable = None
+    if '.dynstr' in sectionnames:
+        dynsection = sectionnametonr['.dynstr']
+        # .dynstr should be of type SHT_STRTAB
+        if sectionheaders[dynsection]['sh_type'] != 3:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'wrong section type for dynstr section'}
+            return {'status': False, 'error': unpackingerror}
+        # read the dynamic string section
+        checkfile.seek(offset + sectionheaders[dynsection]['sh_offset'])
+        dynamicstringstable = checkfile.read(sectionheaders[dynsection]['sh_size'])
+
+    # then extract data from the dynamic section and dynamic symbol table
     for s in sectionheaders:
-        if sectionheaders[s]['sh_type'] != 11:
+        if sectionheaders[s]['sh_type'] == 6:
+            if sectionheaders[s]['name'] != '.dynamic':
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'wrong name for dynamic section'}
+                return {'status': False, 'error': unpackingerror}
+            if dynamicstringstable is None:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'dynamic section but no dynamic string table'}
+                return {'status': False, 'error': unpackingerror}
+
+            # read the dynamic section and process the dynamic tags
+            # https://docs.oracle.com/cd/E19683-01/816-1386/6m7qcoblk/index.html
+            checkfile.seek(offset + sectionheaders[s]['sh_offset'])
+            checkbytes = checkfile.read(sectionheaders[s]['sh_size'])
+            localoffset = 0
+            while localoffset < len(checkbytes):
+                # first the d_tag
+                if is64bit:
+                    d_tag = int.from_bytes(checkbytes[localoffset:localoffset+8], byteorder=byteorder)
+                else:
+                    d_tag = int.from_bytes(checkbytes[localoffset:localoffset+4], byteorder=byteorder)
+
+                # then the value/pointer/offset
+                if is64bit:
+                    d_val = int.from_bytes(checkbytes[localoffset+8:localoffset+16], byteorder=byteorder)
+                else:
+                    d_val = int.from_bytes(checkbytes[localoffset+4:localoffset+8], byteorder=byteorder)
+
+                # process various tags that are relevant
+                if d_tag == 1:
+                    if d_val > len(dynamicstringstable):
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'offset of NEEDED outside dynamic strings table'}
+                        return {'status': False, 'error': unpackingerror}
+                    endoftag = dynamicstringstable.find(b'\x00', d_val)
+                    try:
+                        dynamicneeded.append(dynamicstringstable[d_val:endoftag].decode())
+                    except:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'invalid library name'}
+                        return {'status': False, 'error': unpackingerror}
+                elif d_tag == 14:
+                    if d_val > len(dynamicstringstable):
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'offset of SONAME outside dynamic strings table'}
+                        return {'status': False, 'error': unpackingerror}
+                    endoftag = dynamicstringstable.find(b'\x00', d_val)
+                    try:
+                        soname = dynamicstringstable[d_val:endoftag].decode()
+                    except:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'invalid SONAME'}
+                        return {'status': False, 'error': unpackingerror}
+                elif d_tag == 15:
+                    if d_val > len(dynamicstringstable):
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'offset of RPATH outside dynamic strings table'}
+                        return {'status': False, 'error': unpackingerror}
+                    endoftag = dynamicstringstable.find(b'\x00', d_val)
+                    try:
+                        rpath = dynamicstringstable[d_val:endoftag].decode()
+                    except:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'invalid RPATH'}
+                        return {'status': False, 'error': unpackingerror}
+                elif d_tag == 29:
+                    if d_val > len(dynamicstringstable):
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'offset of RUNPATH outside dynamic strings table'}
+                        return {'status': False, 'error': unpackingerror}
+                    endoftag = dynamicstringstable.find(b'\x00', d_val)
+                    try:
+                        runpath = dynamicstringstable[d_val:endoftag].decode()
+                    except:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'invalid RUNPATH'}
+                        return {'status': False, 'error': unpackingerror}
+
+                if is64bit:
+                    localoffset += 16
+                else:
+                    localoffset += 8
+            continue
+        elif sectionheaders[s]['sh_type'] != 11:
             continue
         checkfile.seek(offset + sectionheaders[s]['sh_offset'])
         checkbytes = checkfile.read(sectionheaders[s]['sh_size'])
         localoffset = 0
+
+        # https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-79797/index.html
         while localoffset < len(checkbytes):
             # depending on whether or not the file is 64 bit
             # the data structure differs
