@@ -123,6 +123,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         emptyhashresults[hashtocompute] = emptyhashes[hashtocompute].hexdigest()
 
     readsize = scanenvironment['readsize']
+    createbytecounter = scanenvironment['createbytecounter']
 
     while True:
         # grab a new file from the scanning queue
@@ -256,7 +257,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         for hashtocompute in ['sha256', 'md5', 'sha1']:
             hashes[hashtocompute] = hashlib.new(hashtocompute)
 
-        bytecounter = collections.Counter()
+        if createbytecounter:
+            bytecounter = collections.Counter()
 
         # keep track of whether or not a file consists of just
         # ASCII characters. Initially assume it is text only.
@@ -283,7 +285,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
                         istext = False
 
-                bytecounter.update(hashingdata)
+                if createbytecounter:
+                    bytecounter.update(hashingdata)
                 for h in hashes:
                     hashes[h].update(hashingdata)
                 tlshhash.update(hashingdata)
@@ -299,7 +302,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 if istext:
                     if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
                         istext = False
-                bytecounter.update(hashingdata)
+                if createbytecounter:
+                    bytecounter.update(hashingdata)
                 for h in hashes:
                     hashes[h].update(hashingdata)
 
@@ -1044,10 +1048,18 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # * byte count
             # * any extra data that might have been passed around
             resultout = {}
+            if createbytecounter:
+                resultout['bytecount'] = sorted(bytecounter.items())
+                # write a file with the distribution of bytes in the scanned file
+                bytescountfilename = resultsdirectory / ("%s.bytes" % hashresults['sha256'])
+                if not bytescountfilename.exists():
+                    bytesout = bytescountfilename.open('w')
+                    for by in resultout['bytecount']:
+                        bytesout.write("%d\t%d\n" % by)
+                    bytesout.close()
+
             for i in hashresults:
                 resultout[i] = hashresults[i]
-
-            resultout['bytecount'] = sorted(bytecounter.items())
 
             resultout['labels'] = labels
             if extradata != {}:
@@ -1057,14 +1069,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 pickleout = picklefilename.open('wb')
                 pickle.dump(resultout, pickleout)
                 pickleout.close()
-
-            # write a file with the distribution of bytes in the scanned file
-            bytescountfilename = resultsdirectory / ("%s.bytes" % hashresults['sha256'])
-            if not bytescountfilename.exists():
-                bytesout = bytescountfilename.open('w')
-                for by in resultout['bytecount']:
-                    bytesout.write("%d\t%d\n" % by)
-                bytesout.close()
 
         else:
             labels.append('duplicate')
@@ -1447,6 +1451,7 @@ def main(argv):
 
         # set the size of bytes to be read during scanning hashes
         scanenvironment['readsize'] = 10240
+        scanenvironment['createbytecounter'] = True
 
         # create processes for unpacking archives
         for i in range(0, bangthreads):
