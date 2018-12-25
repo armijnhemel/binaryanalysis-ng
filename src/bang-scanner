@@ -241,94 +241,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 report['files'] = []
                 fileresult['unpackedfiles'].append(report)
 
-        # compute various checksums of the file
-        hashresults = {}
-        hashes = {}
-
-        usetlsh = False
-        if filesize >= 256 and filesize <= tlshmaximum:
-            usetlsh = True
-
-        # not all files with TLSH should be looked at
-        tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'filesystem', 'srec', 'ihex'])
-        if set(labels).intersection(tlshlabelsignore) != set():
-            usetlsh = False
-
-        for hashtocompute in ['sha256', 'md5', 'sha1']:
-            hashes[hashtocompute] = hashlib.new(hashtocompute)
-
-        if createbytecounter:
-            bytecounter = collections.Counter()
-
-        # keep track of whether or not a file consists of just
-        # ASCII characters. Initially assume it is text only.
-        istext = True
-
-        # open the file and seek to the start
-        scanfile = open(checkfile, 'rb')
-        scanfile.seek(0)
-
-        if usetlsh:
-            # initialize a TLSH hash, even though it might
-            # not be used in the end.
-            tlshhash = tlsh.Tlsh()
-
-            # read all the data. Unfortunately TLSH currently does
-            # not support Python's buffer protocol so this is a bit
-            # inefficient.
-            hashingdata = scanfile.read(readsize)
-
-            while hashingdata != b'':
-                # check if any of the characters read is a
-                # non-ASCII character. If so, it is not a text file.
-                if istext:
-                    if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
-                        istext = False
-
-                if createbytecounter:
-                    bytecounter.update(hashingdata)
-                for h in hashes:
-                    hashes[h].update(hashingdata)
-                tlshhash.update(hashingdata)
-                hashingdata = scanfile.read(readsize)
-            tlshhash.final()
-            hashes['tlsh'] = tlshhash
-        else:
-            # use Python's buffer protocol
-            scanbytesarray = bytearray(readsize)
-            bytesread = scanfile.readinto(scanbytesarray)
-            hashingdata = memoryview(scanbytesarray[:bytesread])
-            while bytesread != 0:
-                if istext:
-                    if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
-                        istext = False
-                if createbytecounter:
-                    bytecounter.update(hashingdata)
-                for h in hashes:
-                    hashes[h].update(hashingdata)
-
-                bytesread = scanfile.readinto(scanbytesarray)
-                hashingdata = memoryview(scanbytesarray[:bytesread])
-
-        scanfile.close()
-
-        for f in hashes:
-            try:
-                hashresults[f] = hashes[f].hexdigest()
-            except:
-                # in case there is no valid hex digest for a hash
-                # for example TLSH for files with all NUL bytes
-                pass
-
-        for i in hashresults:
-            fileresult[i] = hashresults[i]
-
-        # store if files are text or binary
-        if istext:
-            labels.append('text')
-        else:
-            labels.append('binary')
-
         # Search the extension of the file in a list of known extensions.
         # https://www.iana.org/assignments/media-types/media-types.xhtml
 
@@ -911,6 +823,94 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         scanfilequeue.put((pathlib.Path(outfilename), unpackedlabel, checkfile, {}))
                     startoffset = u[1]
                 scanfile.close()
+
+        # compute various checksums of the file
+        hashresults = {}
+        hashes = {}
+
+        usetlsh = False
+        if filesize >= 256 and filesize <= tlshmaximum:
+            usetlsh = True
+
+        # not all files with TLSH should be looked at
+        tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'filesystem', 'srec', 'ihex'])
+        if set(labels).intersection(tlshlabelsignore) != set():
+            usetlsh = False
+
+        for hashtocompute in ['sha256', 'md5', 'sha1']:
+            hashes[hashtocompute] = hashlib.new(hashtocompute)
+
+        if createbytecounter:
+            bytecounter = collections.Counter()
+
+        # keep track of whether or not a file consists of just
+        # ASCII characters. Initially assume it is text only.
+        istext = True
+
+        # open the file and seek to the start
+        scanfile = open(checkfile, 'rb')
+        scanfile.seek(0)
+
+        if usetlsh:
+            # initialize a TLSH hash, even though it might
+            # not be used in the end.
+            tlshhash = tlsh.Tlsh()
+
+            # read all the data. Unfortunately TLSH currently does
+            # not support Python's buffer protocol so this is a bit
+            # inefficient.
+            hashingdata = scanfile.read(readsize)
+
+            while hashingdata != b'':
+                # check if any of the characters read is a
+                # non-ASCII character. If so, it is not a text file.
+                if istext:
+                    if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
+                        istext = False
+
+                if createbytecounter:
+                    bytecounter.update(hashingdata)
+                for h in hashes:
+                    hashes[h].update(hashingdata)
+                tlshhash.update(hashingdata)
+                hashingdata = scanfile.read(readsize)
+            tlshhash.final()
+            hashes['tlsh'] = tlshhash
+        else:
+            # use Python's buffer protocol
+            scanbytesarray = bytearray(readsize)
+            bytesread = scanfile.readinto(scanbytesarray)
+            hashingdata = memoryview(scanbytesarray[:bytesread])
+            while bytesread != 0:
+                if istext:
+                    if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
+                        istext = False
+                if createbytecounter:
+                    bytecounter.update(hashingdata)
+                for h in hashes:
+                    hashes[h].update(hashingdata)
+
+                bytesread = scanfile.readinto(scanbytesarray)
+                hashingdata = memoryview(scanbytesarray[:bytesread])
+
+        scanfile.close()
+
+        for f in hashes:
+            try:
+                hashresults[f] = hashes[f].hexdigest()
+            except:
+                # in case there is no valid hex digest for a hash
+                # for example TLSH for files with all NUL bytes
+                pass
+
+        for i in hashresults:
+            fileresult[i] = hashresults[i]
+
+        # store if files are text or binary
+        if istext:
+            labels.append('text')
+        else:
+            labels.append('binary')
 
         # no files were unpacked, so try to scan the entire file.
         # This happens for example with text only files like base64
