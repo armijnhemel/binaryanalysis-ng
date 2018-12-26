@@ -5015,8 +5015,8 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     return {'status': False, 'error': unpackingerror}
 
                                 # first 8 bytes are the zisofs magic
-                                checkbytes = checkfile.read(8)
-                                if checkbytes != b'\x37\xe4\x53\x96\xc9\xdB\xd6\x07':
+                                zcheckbytes = checkfile.read(8)
+                                if zcheckbytes != b'\x37\xe4\x53\x96\xc9\xdB\xd6\x07':
                                     unpackingerror = {'offset': checkfile.tell() - offset,
                                                       'fatal': False,
                                                       'reason': 'wrong magic for zisofs data'}
@@ -5025,8 +5025,8 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
 
                                 # then the uncompressed size. Should be
                                 # the same as in the SUSP entry
-                                checkbytes = checkfile.read(4)
-                                if int.from_bytes(checkbytes, byteorder='little') != zisofs_uncompressed:
+                                zcheckbytes = checkfile.read(4)
+                                if int.from_bytes(zcheckbytes, byteorder='little') != zisofs_uncompressed:
                                     unpackingerror = {'offset': checkfile.tell() - offset,
                                                       'fatal': False,
                                                       'reason': 'mismatch for uncompressed size in zisofs header and SUSP'}
@@ -5034,8 +5034,8 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     return {'status': False, 'error': unpackingerror}
 
                                 # then the zisofs header size
-                                checkbytes = checkfile.read(1)
-                                if not ord(checkbytes) == zisofs_header_div_4:
+                                zcheckbytes = checkfile.read(1)
+                                if not ord(zcheckbytes) == zisofs_header_div_4:
                                     unpackingerror = {'offset': checkfile.tell() - offset,
                                                       'fatal': False,
                                                       'reason': 'mismatch between zisofs header and SUSP'}
@@ -5043,8 +5043,8 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     return {'status': False, 'error': unpackingerror}
 
                                 # then the zisofs log2(block size)
-                                checkbytes = checkfile.read(1)
-                                if not ord(checkbytes) == zisofs_header_log:
+                                zcheckbytes = checkfile.read(1)
+                                if not ord(zcheckbytes) == zisofs_header_log:
                                     unpackingerror = {'offset': checkfile.tell() - offset,
                                                       'fatal': False,
                                                       'reason': 'mismatch between zisofs header and SUSP'}
@@ -5054,8 +5054,8 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                 block_size = pow(2, zisofs_header_log)
 
                                 # then two reserved bytes
-                                checkbytes = checkfile.read(2)
-                                if not int.from_bytes(checkbytes, byteorder='little') == 0:
+                                zcheckbytes = checkfile.read(2)
+                                if not int.from_bytes(zcheckbytes, byteorder='little') == 0:
                                     unpackingerror = {'offset': checkfile.tell() - offset,
                                                       'fatal': False,
                                                       'reason': 'wrong value for reserved bytes'}
@@ -5066,14 +5066,14 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                 blockpointers = math.ceil(zisofs_uncompressed/block_size)+1
                                 blockpointerarray = []
                                 for b in range(0, blockpointers):
-                                    checkbytes = checkfile.read(4)
-                                    if not len(checkbytes) == 4:
+                                    zcheckbytes = checkfile.read(4)
+                                    if not len(zcheckbytes) == 4:
                                         unpackingerror = {'offset': checkfile.tell() - offset,
                                                           'fatal': False,
                                                           'reason': 'not enough data for block pointer'}
                                         checkfile.close()
                                         return {'status': False, 'error': unpackingerror}
-                                    blockpointer = int.from_bytes(checkbytes, byteorder='little')
+                                    blockpointer = int.from_bytes(zcheckbytes, byteorder='little')
                                     if blockpointer > directory_extent_length:
                                         unpackingerror = {'offset': checkfile.tell() - offset,
                                                           'fatal': False,
