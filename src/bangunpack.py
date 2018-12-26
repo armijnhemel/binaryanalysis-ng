@@ -18460,8 +18460,9 @@ def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
             'filesandlabels': unpackedfilesandlabels}
 
 
-# verify Unix passwd files
+# verify various types of Unix passwd files
 # man 5 passwd
+# https://www.freebsd.org/cgi/man.cgi?query=passwd&sektion=5
 def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
     '''Verify a Unix password file'''
     filesize = filename.stat().st_size
@@ -18472,12 +18473,18 @@ def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
 
     passwdentries = []
 
+    passwdfieldsallowed = [7, 10]
+    foundlen = 0
+
     # open the file
     try:
         checkfile = open(filename, 'r')
         for l in checkfile:
             linesplits = l.strip().split(':')
-            if len(linesplits) != 7:
+            if foundlen == 0:
+                if len(linesplits) in passwdfieldsallowed:
+                    foundlen = len(linesplits)
+            if len(linesplits) != foundlen:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'invalid passwd file entry'}
@@ -18515,6 +18522,10 @@ def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
 
     unpackedsize = filesize
     labels.append('passwd')
+    if foundlen == 10:
+        labels.append('bsd passwd')
+    else:
+        labels.append('linux passwd')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
