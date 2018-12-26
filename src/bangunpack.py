@@ -4353,15 +4353,19 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
     haverockridge = False
     havezisofs = False
 
+    isobuffer = bytearray(2048)
+
     # read all sectors, until there are none left, or
     # a volume set descriptor terminator is found
     while True:
-        checkbytes = checkfile.read(2048)
-        if len(checkbytes) != 2048:
+        bytesread = checkfile.readinto(isobuffer)
+        if bytesread != 2048:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'not enough bytes for sector'}
             return {'status': False, 'error': unpackingerror}
+
+        checkbytes = memoryview(isobuffer)
 
         # each volume descriptor has a type and an identifier
         # (ECMA 119, section 8.1)
