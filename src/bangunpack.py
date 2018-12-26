@@ -5273,12 +5273,13 @@ def unpackLzip(filename, offset, unpackdir, temporarydirectory):
     crccomputed = binascii.crc32(b'')
 
     readsize = 1000000
-    checkdata = bytearray(readsize)
-    checkfile.readinto(checkdata)
+    lzipbuffer = bytearray(readsize)
+    bytesread = checkfile.readinto(lzipbuffer)
+    checkbytes = lzipbuffer[:bytesread]
 
-    while checkdata != b'':
+    while bytesread != 0:
         try:
-            unpackeddata = decompressor.decompress(checkdata)
+            unpackeddata = decompressor.decompress(checkbytes)
         except EOFError as e:
             break
         except Exception as e:
@@ -5292,10 +5293,11 @@ def unpackLzip(filename, offset, unpackdir, temporarydirectory):
         outfile.write(unpackeddata)
         crccomputed = binascii.crc32(unpackeddata, crccomputed)
         # there is no more compressed data
-        unpackedsize += len(checkdata) - len(decompressor.unused_data)
+        unpackedsize += bytesread - len(decompressor.unused_data)
         if decompressor.unused_data != b'':
             break
-        checkfile.readinto(checkdata)
+        bytesread = checkfile.readinto(lzipbuffer)
+        checkbytes = lzipbuffer[:bytesread]
 
     outfile.close()
 
