@@ -812,9 +812,12 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
 
     # then continue
     readsize = 10000000
-    checkbytes = bytearray(readsize)
+    checkbuffer = bytearray(readsize)
     while True:
-        checkfile.readinto(checkbytes)
+        bytesread = checkfile.readinto(checkbuffer)
+        if bytesread == 0:
+            break
+        checkbytes = memoryview(checkbuffer[:bytesread])
         try:
             unpackeddata = decompressor.decompress(checkbytes)
             outfile.write(unpackeddata)
@@ -828,7 +831,7 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'File not a valid gzip file'}
             return {'status': False, 'error': unpackingerror}
 
-        unpackedsize += len(checkbytes) - len(decompressor.unused_data)
+        unpackedsize += bytesread - len(decompressor.unused_data)
         if decompressor.unused_data != b'':
             break
     outfile.close()
