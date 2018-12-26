@@ -1078,12 +1078,14 @@ def unpackLZMAWrapper(
     # Extract one 900k block of data as an extra sanity check.
     # First create a decompressor
     decompressor = lzma.LZMADecompressor()
-    checkdata = checkfile.read(900000)
+    checkbuffer = bytearray(900000)
+    bytesread = checkfile.readinto(checkbuffer)
+    checkbytes = memoryview(checkbuffer[:bytesread])
 
     # then try to decompress the data.
     try:
-        unpackeddata = decompressor.decompress(checkdata)
-    except Exception:
+        unpackeddata = decompressor.decompress(checkbytes)
+    except Exception as e:
         # no data could be successfully unpacked
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize,
@@ -1105,18 +1107,17 @@ def unpackLZMAWrapper(
     # unpacked, or if all data has been unpacked
     outfile = open(outfilename, 'wb')
     outfile.write(unpackeddata)
-    unpackedsize += len(checkdata) - len(decompressor.unused_data)
+    unpackedsize += bytesread - len(decompressor.unused_data)
 
     # there is still some data left to be unpacked, so
     # continue unpacking, as described in the Python documentation:
     # https://docs.python.org/3/library/bz2.html#incremental-de-compression
     # https://docs.python.org/3/library/lzma.html
-    # read some more data in chunks of 10 MB
-    datareadsize = 10000000
-    checkdata = checkfile.read(datareadsize)
-    while checkdata != b'':
+    bytesread = checkfile.readinto(checkbuffer)
+    checkbytes = memoryview(checkbuffer[:bytesread])
+    while bytesread != 0:
         try:
-            unpackeddata = decompressor.decompress(checkdata)
+            unpackeddata = decompressor.decompress(checkbytes)
         except EOFError as e:
             break
         except Exception as e:
@@ -1129,10 +1130,11 @@ def unpackLZMAWrapper(
             return {'status': False, 'error': unpackingerror}
         outfile.write(unpackeddata)
         # there is no more compressed data
-        unpackedsize += len(checkdata) - len(decompressor.unused_data)
+        unpackedsize += bytesread - len(decompressor.unused_data)
         if decompressor.unused_data != b'':
             break
-        checkdata = checkfile.read(datareadsize)
+        bytesread = checkfile.readinto(checkbuffer)
+        checkbytes = memoryview(checkbuffer[:bytesread])
     outfile.close()
     checkfile.close()
 
