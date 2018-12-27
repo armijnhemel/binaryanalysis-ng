@@ -846,6 +846,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         if createbytecounter:
             bytecounter = collections.Counter()
+            for i in range(0,256):
+                bytecounter[i] = 0
 
         # keep track of whether or not a file consists of just
         # ASCII characters. Initially assume it is text only.
