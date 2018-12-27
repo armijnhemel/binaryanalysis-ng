@@ -1592,6 +1592,12 @@ def main(argv):
         if writereport:
             # create a human readable report
             reportfile = open(scandirectory / 'report.txt', 'w')
+            print("SCAN RESULTS FOR: %s\n" % checkfile, file=reportfile)
+            print("Start: %s" % scandate.isoformat(), file=reportfile)
+            print("Stop: %s" % scandatefinished.isoformat(), file=reportfile)
+            print("Duration (seconds): %s" % (scandatefinished - scandate).total_seconds(), file=reportfile)
+            print("", file=reportfile)
+
             filenames = sorted(scanresult['scantree'].keys())
             for i in filenames:
                 print("File: %s" % i, file=reportfile)
