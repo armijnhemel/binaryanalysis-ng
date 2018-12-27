@@ -214,15 +214,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # remove any duplicate labels
         labels = list(set(labels))
 
+        # keep a byte range of data that has already been looked at
+        unpackedrange = []
+
         # padding files don't need to be scanned
         if 'padding' in labels:
             needsunpacking = False
             unpackedrange = [(0, filesize)]
         else:
             needsunpacking = True
-
-        # keep a byte range of data that has already been looked at
-        unpackedrange = []
 
         # check for a dummy value to see if the file has already been
         # unpacked and if so, simply report and skip the unpacking, and
