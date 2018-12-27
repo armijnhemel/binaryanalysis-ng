@@ -841,6 +841,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         for hashtocompute in ['sha256', 'md5', 'sha1']:
             hashes[hashtocompute] = hashlib.new(hashtocompute)
 
+        if 'padding' in labels:
+            createbytecounter = False
+
         if createbytecounter:
             bytecounter = collections.Counter()
 
