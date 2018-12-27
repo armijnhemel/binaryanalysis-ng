@@ -1142,6 +1142,7 @@ def main(argv):
     postgresql_port = None
     usedatabase = True
     dbconnectionerrorfatal = False
+    writereport = True
 
     # then process each individual section and extract
     # configuration options
@@ -1185,6 +1186,15 @@ def main(argv):
                 bytecounter = config.get(section, 'bytecounter')
                 if bytecounter != 'yes':
                     createbytecounter = False
+            except Exception:
+                pass
+
+            # If enabled (default: yes) create a file
+            # with a human readable report of the scan results
+            try:
+                report = config.get(section, 'report')
+                if report != 'yes':
+                    writereport = False
             except Exception:
                 pass
 
@@ -1574,43 +1584,44 @@ def main(argv):
         pickle.dump(scanresult, picklefile)
         picklefile.close()
 
-        # create a human readable report
-        reportfile = open(scandirectory / 'report.txt', 'w')
-        filenames = sorted(scanresult['scantree'].keys())
-        for i in filenames:
-            print("File: %s" % i, file=reportfile)
-            print("=" * (6 + len(i)), file=reportfile)
-            print(file=reportfile)
-            if 'md5' in scanresult['scantree'][i]:
-                print("MD5:", scanresult['scantree'][i]['md5'], file=reportfile)
-                print("SHA256:", scanresult['scantree'][i]['sha256'], file=reportfile)
-            if 'filesize' in scanresult['scantree'][i]:
-                reportfilesize = scanresult['scantree'][i]['filesize']
-                print("Size:", reportfilesize, file=reportfile)
-            if 'mimetype' in scanresult['scantree'][i]:
-                mimetype = scanresult['scantree'][i]['mimetype']
-                print("MIME type:", mimetype, file=reportfile)
-            if 'parent' in scanresult['scantree'][i]:
-                print("Parent: %s" % scanresult['scantree'][i]['parent'],  file=reportfile)
-            reportlabels = functools.reduce(lambda x, y: x + ", " + y, sorted(scanresult['scantree'][i]['labels']))
-            print("Labels: %s" % reportlabels, file=reportfile)
-            bytesscanned = 0
-            if 'unpackedfiles' in scanresult['scantree'][i]:
-                for l in scanresult['scantree'][i]['unpackedfiles']:
-                    bytesscanned += l['size']
-                print("Bytes identified: %d (%f %%)" % (bytesscanned, bytesscanned/reportfilesize * 100), file=reportfile)
-                for l in scanresult['scantree'][i]['unpackedfiles']:
-                    if len(l['files']) != 0:
-                        print("Data unpacked at offset %d from %s:" % (l['offset'], l['type']), file=reportfile)
-                        filesunpacked = []
-                        for f in l['files']:
-                            filesunpacked.append(f)
-                        if filesunpacked != []:
-                            for f in sorted(filesunpacked):
-                                print(" %s" % f, file=reportfile)
-            print(file=reportfile)
-            reportfile.flush()
-        reportfile.close()
+        if writereport:
+            # create a human readable report
+            reportfile = open(scandirectory / 'report.txt', 'w')
+            filenames = sorted(scanresult['scantree'].keys())
+            for i in filenames:
+                print("File: %s" % i, file=reportfile)
+                print("=" * (6 + len(i)), file=reportfile)
+                print(file=reportfile)
+                if 'md5' in scanresult['scantree'][i]:
+                    print("MD5:", scanresult['scantree'][i]['md5'], file=reportfile)
+                    print("SHA256:", scanresult['scantree'][i]['sha256'], file=reportfile)
+                if 'filesize' in scanresult['scantree'][i]:
+                    reportfilesize = scanresult['scantree'][i]['filesize']
+                    print("Size:", reportfilesize, file=reportfile)
+                if 'mimetype' in scanresult['scantree'][i]:
+                    mimetype = scanresult['scantree'][i]['mimetype']
+                    print("MIME type:", mimetype, file=reportfile)
+                if 'parent' in scanresult['scantree'][i]:
+                    print("Parent: %s" % scanresult['scantree'][i]['parent'],  file=reportfile)
+                reportlabels = functools.reduce(lambda x, y: x + ", " + y, sorted(scanresult['scantree'][i]['labels']))
+                print("Labels: %s" % reportlabels, file=reportfile)
+                bytesscanned = 0
+                if 'unpackedfiles' in scanresult['scantree'][i]:
+                    for l in scanresult['scantree'][i]['unpackedfiles']:
+                        bytesscanned += l['size']
+                    print("Bytes identified: %d (%f %%)" % (bytesscanned, bytesscanned/reportfilesize * 100), file=reportfile)
+                    for l in scanresult['scantree'][i]['unpackedfiles']:
+                        if len(l['files']) != 0:
+                            print("Data unpacked at offset %d from %s:" % (l['offset'], l['type']), file=reportfile)
+                            filesunpacked = []
+                            for f in l['files']:
+                                filesunpacked.append(f)
+                            if filesunpacked != []:
+                                for f in sorted(filesunpacked):
+                                    print(" %s" % f, file=reportfile)
+                print(file=reportfile)
+                reportfile.flush()
+            reportfile.close()
 
         # The end.
         logging.info("Finished scanning %s" % checkfile)
