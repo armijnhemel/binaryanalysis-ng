@@ -1174,6 +1174,11 @@ def main(argv):
             except Exception:
                 # use all available threads by default
                 bangthreads = multiprocessing.cpu_count()
+
+            # If enabled (default: no) remove the directory with
+            # the scan results. This is useful when processing large
+            # amounts of files where the results don't really matter
+            # such as testing.
             try:
                 remove = config.get(section, 'removescandirectory')
                 if remove == 'yes':
