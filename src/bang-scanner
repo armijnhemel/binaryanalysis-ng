@@ -1132,6 +1132,7 @@ def main(argv):
     baseunpackdirectory = ''
     temporarydirectory = None
     removescandirectory = False
+    createbytecounter = True
 
     # some default values for the database, possibly
     # overridden in the configuration file
@@ -1174,6 +1175,14 @@ def main(argv):
                 remove = config.get(section, 'removescandirectory')
                 if remove == 'yes':
                     removescandirectory = True
+            except Exception:
+                pass
+
+            # If enabled (default: yes) create a file with a byte count
+            try:
+                bytecounter = config.get(section, 'bytecounter')
+                if bytecounter != 'yes':
+                    createbytecounter = False
             except Exception:
                 pass
 
@@ -1460,7 +1469,7 @@ def main(argv):
 
         # set the size of bytes to be read during scanning hashes
         scanenvironment['readsize'] = 10240
-        scanenvironment['createbytecounter'] = True
+        scanenvironment['createbytecounter'] = createbytecounter
         scanenvironment['tlshmaximum'] = sys.maxsize
         scanenvironment['synthesizedminimum'] = 10
 
