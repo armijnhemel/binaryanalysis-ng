@@ -18508,9 +18508,18 @@ def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
             passwdentry['passwd'] = linesplits[1]
             passwdentry['uid'] = linesplits[2]
             passwdentry['gid'] = linesplits[3]
-            passwdentry['gecos'] = linesplits[4]
-            passwdentry['directory'] = linesplits[5]
-            passwdentry['shell'] = linesplits[6]
+
+            if foundlen == 7:
+                passwdentry['gecos'] = linesplits[4]
+                passwdentry['directory'] = linesplits[5]
+                passwdentry['shell'] = linesplits[6]
+            elif foundlen == 10:
+                passwdentry['class'] = linesplits[4]
+                passwdentry['change'] = linesplits[5]
+                passwdentry['expire'] = linesplits[6]
+                passwdentry['gecos'] = linesplits[7]
+                passwdentry['directory'] = linesplits[8]
+                passwdentry['shell'] = linesplits[9]
             passwdentries.append(passwdentry)
     except:
         checkfile.close()
