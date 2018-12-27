@@ -214,7 +214,11 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # remove any duplicate labels
         labels = list(set(labels))
 
-        needsunpacking = True
+        # padding files don't need to be scanned
+        if 'padding' in labels:
+            needsunpacking = False
+        else:
+            needsunpacking = True
 
         # keep a byte range of data that has already been looked at
         unpackedrange = []
@@ -243,7 +247,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         # Search the extension of the file in a list of known extensions.
         # https://www.iana.org/assignments/media-types/media-types.xhtml
-
         mimeres = mimetypes.guess_type(checkfile.name)
         if mimeres[0] is not None:
             fileresult['mimetype'] = mimeres[0]
@@ -917,9 +920,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             labels.append('text')
         else:
             labels.append('binary')
-
-        if 'padding' in labels:
-            needsunpacking = False
 
         # no files were unpacked, so try to scan the entire file.
         # This happens for example with text only files like base64
