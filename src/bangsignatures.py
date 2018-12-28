@@ -100,6 +100,7 @@ signatures = {
     'flv': b'FLV',
     'lzop': b'\x89\x4c\x5a\x4f\x00\x0d\x0a\x1a\x0a',
     'dlinkromfs': b'ROMFS v',
+    'pdf': b'%PDF-1.',
 }
 
 # some signatures do not start at the beginning of the file
@@ -191,6 +192,7 @@ signaturetofunction = {
     'flv': bangunpack.unpackFLV,
     'lzop': bangunpack.unpackLZOP,
     'dlinkromfs': bangunpack.unpackDlinkRomfs,
+    'pdf': bangunpack.unpackPDF,
 }
 
 # a lookup table to map signatures to a name for

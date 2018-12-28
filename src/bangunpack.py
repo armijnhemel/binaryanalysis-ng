@@ -18627,3 +18627,160 @@ def unpackShadow(filename, offset, unpackdir, temporarydirectory):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# The specifications for PDF 1.7 are an ISO standard and can be found
+# on the Adobe website:
+#
+# https://www.adobe.com/content/dam/acom/en/devnet/pdf/pdfs/PDF32000_2008.pdf
+#
+# with additional information at:
+#
+# https://www.adobe.com/devnet/pdf/pdf_reference.html
+#
+# The file structure is described in section 7.5.
+def unpackPDF(filename, offset, unpackdir, temporarydirectory):
+    '''Verify/carve a PDF file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file and skip the offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+7)
+    unpackedsize += 7
+
+    # read the version number
+    checkbytes = checkfile.read(1)
+    if len(checkbytes) != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for version number'}
+        return {'status': False, 'error': unpackingerror}
+
+    # section 7.5.2
+    if int(checkbytes) > 7:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid version number'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    # then either LF, CR, or CRLF (setion 7.5.1)
+    checkbytes = checkfile.read(1)
+    if checkbytes != b'\x0a' and checkbytes != b'\x0d':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong line ending'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    # check if the line ending is CRLF
+    if checkbytes == b'\x0d':
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'\x0a':
+            unpackedsize += 1
+        else:
+            checkfile.seek(-1, os.SEEK_CUR)
+
+    # The difficulty with PDF is that the body has no fixed structure
+    # but is referenced from a trailer at the end of the PDF, possibly
+    # followed by incremental updates (section 7.5.6). As files might
+    # have been concatenated simply jumping to the end of the file is
+    # not an option (although it would work for most files). Therefore
+    # the file needs to be read until the start of the trailer is found.
+    pdfbuffer = bytearray(10240)
+    trailerpos = -1
+    crossoffset = -1
+    while True:
+        bytesread = checkfile.readinto(pdfbuffer)
+        pdfpos = pdfbuffer.find(b'startxref')
+        if pdfpos != -1:
+            trailerpos = unpackedsize + pdfpos
+            # extra sanity checks to check if it is really EOF:
+            # * whitespace
+            # * valid byte offset to last cross reference
+            # * EOF marker
+
+            # skip over 'startxref'
+            checkfile.seek(offset + trailerpos + 9)
+            # then either LF, CR, or CRLF (setion 7.5.1)
+            checkbytes = checkfile.read(1)
+            if checkbytes != b'\x0a' and checkbytes != b'\x0d':
+                trailerpos = -1
+            if checkbytes == b'\x0d':
+                checkbytes = checkfile.read(1)
+                if checkbytes != b'\x0a':
+                    checkfile.seek(-1, os.SEEK_CUR)
+            crossbuf = b''
+            seeneol = False
+            while True:
+                checkbytes = checkfile.read(1)
+                if checkbytes == b'\x0a' or checkbytes == b'\x0d':
+                    seeneol = True
+                    break
+                if checkfile.tell() == filesize:
+                    break
+                crossbuf += checkbytes
+            if not seeneol:
+                break
+            if crossbuf != b'':
+                try:
+                    crossoffset = int(crossbuf)
+                except:
+                    break
+            if offset + crossoffset > checkfile.tell():
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'offset to cross table outside of file'}
+                return {'status': False, 'error': unpackingerror}
+            if checkbytes == b'\x0d':
+                checkbytes = checkfile.read(1)
+                if checkbytes != b'\x0a':
+                    checkfile.seek(-1, os.SEEK_CUR)
+            # now finally check EOF
+            checkbytes = checkfile.read(5)
+            seeneof = False
+            if checkbytes != b'%%EOF':
+                break
+            checkbytes = checkfile.read(1)
+            if checkbytes == b'\x0a' or checkbytes == b'\x0d':
+                if checkbytes == b'\x0d':
+                    checkbytes = checkfile.read(1)
+                    if checkbytes != b'\x0a':
+                        checkfile.seek(-1, os.SEEK_CUR)
+                seeneof = True
+            break
+        if checkfile.tell() == filesize:
+            break
+        # some overlap
+        unpackedsize += bytesread - 10
+        checkfile.seek(-10, os.SEEK_CUR)
+
+    if trailerpos == -1 or crossoffset == -1 or not seeneof:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'trailer not found'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = checkfile.tell() - offset
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels.append('pdf')
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # else carve the file
+    outfilename = os.path.join(unpackdir, "unpacked.pdf")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    unpackedfilesandlabels.append((outfilename, ['pdf', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
