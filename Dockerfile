@@ -4,24 +4,25 @@ COPY . /usr/src/bang
 WORKDIR /usr/src/bang/src
 
 RUN dnf update -y && \
-    dnf install -y python3 \
-                   binutils \
-                   squashfs-tools \
+    dnf install -y binutils \
                    cabextract \
-                   p7zip \
                    e2tools \
-                   zstd \
+                   libxml2 \
+                   lzop \
+                   mailcap \
+                   openssl \
+                   p7zip \
+                   python3 \
+                   python3-dockerfile-parse \
                    python3-lz4 \
-                   qemu-img \
+                   python3-pillow \
                    python3-psycopg2 \
                    python3-snappy \
-                   python3-tlsh \
                    python3-tinycss2 \
-                   python3-dockerfile-parse \
-                   openssl \
+                   python3-tlsh \
+                   qemu-img \
                    rzip \
-                   libxml2 \
-                   mailcap \
-                   lzop
+                   squashfs-tools \
+                   zstd
 
 CMD ["python3","bangshell"]
