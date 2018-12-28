@@ -80,6 +80,7 @@
 # 51. D-Link ROMFS
 # 52. Unix passwd files
 # 53. Unix shadow files
+# 54. PDF (simple verification, no incremental updates)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
