@@ -18749,9 +18749,10 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(1)
             if checkbytes == b'\x0a' or checkbytes == b'\x0d':
                 if checkbytes == b'\x0d':
-                    checkbytes = checkfile.read(1)
-                    if checkbytes != b'\x0a':
-                        checkfile.seek(-1, os.SEEK_CUR)
+                    if checkfile.tell() != filesize:
+                        checkbytes = checkfile.read(1)
+                        if checkbytes != b'\x0a':
+                            checkfile.seek(-1, os.SEEK_CUR)
                 seeneof = True
             break
         if checkfile.tell() == filesize:
