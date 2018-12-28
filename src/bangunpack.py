@@ -18693,24 +18693,24 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
     # not an option (although it would work for most files). Therefore
     # the file needs to be read until the start of the trailer is found.
     pdfbuffer = bytearray(10240)
-    trailerpos = -1
+    startxrefpos = -1
     crossoffset = -1
     while True:
         bytesread = checkfile.readinto(pdfbuffer)
         pdfpos = pdfbuffer.find(b'startxref')
         if pdfpos != -1:
-            trailerpos = unpackedsize + pdfpos
+            startxrefpos = unpackedsize + pdfpos
             # extra sanity checks to check if it is really EOF:
             # * whitespace
             # * valid byte offset to last cross reference
             # * EOF marker
 
             # skip over 'startxref'
-            checkfile.seek(offset + trailerpos + 9)
+            checkfile.seek(offset + startxrefpos + 9)
             # then either LF, CR, or CRLF (setion 7.5.1)
             checkbytes = checkfile.read(1)
             if checkbytes != b'\x0a' and checkbytes != b'\x0d':
-                trailerpos = -1
+                startxrefpos = -1
             if checkbytes == b'\x0d':
                 checkbytes = checkfile.read(1)
                 if checkbytes != b'\x0a':
@@ -18762,7 +18762,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
         unpackedsize += bytesread - 10
         checkfile.seek(-10, os.SEEK_CUR)
 
-    if trailerpos == -1 or crossoffset == -1 or not seeneof:
+    if startxrefpos == -1 or crossoffset == -1 or not seeneof:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'trailer not found'}
