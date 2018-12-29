@@ -18770,6 +18770,71 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
 
     unpackedsize = checkfile.tell() - offset
 
+    # extra sanity check: look at the contents of the trailer dictionary
+    checkfile.seek(startxrefpos-4)
+    checkbytes = checkfile.read(4)
+    if b'>>' not in checkbytes:
+        # possibly a cross reference stream (section 7.5.8)
+        # TODO
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unsupported PDF'}
+        return {'status': False, 'error': unpackingerror}
+
+    endoftrailerpos = checkbytes.find(b'>>') + startxrefpos - 4
+
+    trailerpos = -1
+
+    # search the data backwards for the word "trailer"
+    checkfile.seek(-50, os.SEEK_CUR)
+    isstart = False
+    while True:
+        curpos = checkfile.tell()
+        if curpos <= offset:
+            isstart = True
+        checkbytes = checkfile.read(50)
+        trailerpos = checkbytes.find(b'trailer')
+        if trailerpos != -1:
+            trailerpos = curpos + trailerpos
+            break
+        if isstart:
+            break
+        checkfile.seek(-60, os.SEEK_CUR)
+
+    # jump to the position where the trailer starts
+    checkfile.seek(trailerpos)
+
+    # and read the trailer, minus '>>'
+    checkbytes = checkfile.read(endoftrailerpos - trailerpos)
+
+    # extra sanity check: see if '<<' is present
+    if b'<<' not in checkbytes:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid PDF trailer'}
+        return {'status': False, 'error': unpackingerror}
+
+    # then split the entries
+    trailersplit = checkbytes.split(b'\x0d\x0a')
+    if len(trailersplit) == 1:
+        trailersplit = checkbytes.split(b'\x0d')
+        if len(trailersplit) == 1:
+            trailersplit = checkbytes.split(b'\x0a')
+
+    seenroot = False
+    for i in trailersplit:
+        if b'/' not in i:
+            continue
+        if b'/Root' in i:
+            seenroot = True
+
+    # /Root element is mandatory
+    if not seenroot:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': '/Root entry not found in trailer'}
+        return {'status': False, 'error': unpackingerror}
+
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
         labels.append('pdf')
