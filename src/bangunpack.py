@@ -4563,7 +4563,13 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                     # read the directory entry and process according
                     # to ECMA 119, 9.1
                     directory_entry = bytearray(extent_directory_length)
-                    checkfile.readinto(directory_entry)
+                    bytesread = checkfile.readinto(directory_entry)
+                    if bytesread != extent_directory_length:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize,
+                                          'fatal': False,
+                                          'reason': 'not enough data for extent directory'}
+                        return {'status': False, 'error': unpackingerror}
 
                     # extent location (ECMA 119, 9.1.3)
                     extent_location = int.from_bytes(directory_entry[2:6], byteorder='little')
@@ -15909,7 +15915,7 @@ def unpackSWF(filename, offset, unpackdir, temporarydirectory):
         checkbytes = bytearray(chunksize)
         decompressedlength = 0
         while True:
-            checkfile.readinto(checkbytes)
+            bytesread = checkfile.readinto(checkbytes)
             try:
                 # uncompress the data and count the length, but
                 # don't store the data.
