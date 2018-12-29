@@ -18686,168 +18686,207 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
         else:
             checkfile.seek(-1, os.SEEK_CUR)
 
+    validpdf = False
+    validpdfsize = -1
+
     # The difficulty with PDF is that the body has no fixed structure
     # but is referenced from a trailer at the end of the PDF, possibly
     # followed by incremental updates (section 7.5.6). As files might
     # have been concatenated simply jumping to the end of the file is
     # not an option (although it would work for most files). Therefore
     # the file needs to be read until the start of the trailer is found.
-    pdfbuffer = bytearray(10240)
-    startxrefpos = -1
-    crossoffset = -1
     while True:
-        bytesread = checkfile.readinto(pdfbuffer)
-        pdfpos = pdfbuffer.find(b'startxref')
-        if pdfpos != -1:
-            startxrefpos = unpackedsize + pdfpos
-            # extra sanity checks to check if it is really EOF:
-            # * whitespace
-            # * valid byte offset to last cross reference
-            # * EOF marker
+        # continuously look for trailers until there is no
+        # valid trailer anymore.
+        startxrefpos = -1
+        crossoffset = -1
 
-            # skip over 'startxref'
-            checkfile.seek(offset + startxrefpos + 9)
-            # then either LF, CR, or CRLF (setion 7.5.1)
-            checkbytes = checkfile.read(1)
-            if checkbytes != b'\x0a' and checkbytes != b'\x0d':
-                startxrefpos = -1
-            if checkbytes == b'\x0d':
+        # first seek to where data had already been read
+        checkfile.seek(offset + unpackedsize)
+        isvalidtrailer = True
+
+        while True:
+            # create a new buffer for every read
+            pdfbuffer = bytearray(10240)
+            bytesread = checkfile.readinto(pdfbuffer)
+            if bytesread == 0:
+                break
+            pdfpos = pdfbuffer.find(b'startxref')
+            if pdfpos != -1:
+                startxrefpos = unpackedsize + pdfpos
+                # extra sanity checks to check if it is really EOF:
+                # * whitespace
+                # * valid byte offset to last cross reference
+                # * EOF marker
+
+                # skip over 'startxref'
+                checkfile.seek(offset + startxrefpos + 9)
+
+                # then either LF, CR, or CRLF (setion 7.5.1)
                 checkbytes = checkfile.read(1)
+                if checkbytes != b'\x0a' and checkbytes != b'\x0d':
+                    startxrefpos = -1
+                if checkbytes == b'\x0d':
+                    checkbytes = checkfile.read(1)
+                    if checkbytes != b'\x0a':
+                        checkfile.seek(-1, os.SEEK_CUR)
+                crossbuf = b''
+                seeneol = False
+
+                while True:
+                    checkbytes = checkfile.read(1)
+                    if checkbytes == b'\x0a' or checkbytes == b'\x0d':
+                        seeneol = True
+                        break
+                    if checkfile.tell() == filesize:
+                        break
+                    crossbuf += checkbytes
+                if not seeneol:
+                    isvalidtrailer = False
+                    break
+
+                if crossbuf != b'':
+                    try:
+                        crossoffset = int(crossbuf)
+                    except:
+                        break
+                if offset + crossoffset > checkfile.tell():
+                    isvalidtrailer = False
+                    break
+                if checkbytes == b'\x0d':
+                    checkbytes = checkfile.read(1)
                 if checkbytes != b'\x0a':
                     checkfile.seek(-1, os.SEEK_CUR)
-            crossbuf = b''
-            seeneol = False
-            while True:
+
+                # now finally check EOF
+                checkbytes = checkfile.read(5)
+                seeneof = False
+                if checkbytes != b'%%EOF':
+                    isvalidtrailer = False
+                    break
                 checkbytes = checkfile.read(1)
                 if checkbytes == b'\x0a' or checkbytes == b'\x0d':
-                    seeneol = True
-                    break
-                if checkfile.tell() == filesize:
-                    break
-                crossbuf += checkbytes
-            if not seeneol:
+                    if checkbytes == b'\x0d':
+                        if checkfile.tell() != filesize:
+                            checkbytes = checkfile.read(1)
+                            if checkbytes != b'\x0a':
+                                checkfile.seek(-1, os.SEEK_CUR)
+                    seeneof = True
                 break
-            if crossbuf != b'':
-                try:
-                    crossoffset = int(crossbuf)
-                except:
-                    break
-            if offset + crossoffset > checkfile.tell():
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize,
-                                  'fatal': False,
-                                  'reason': 'offset to cross table outside of file'}
-                return {'status': False, 'error': unpackingerror}
-            if checkbytes == b'\x0d':
-                checkbytes = checkfile.read(1)
-                if checkbytes != b'\x0a':
-                    checkfile.seek(-1, os.SEEK_CUR)
-            # now finally check EOF
-            checkbytes = checkfile.read(5)
-            seeneof = False
-            if checkbytes != b'%%EOF':
+
+            # check if the end of file was reached, without
+            if checkfile.tell() == filesize:
+                isvalidtrailer = False
                 break
-            checkbytes = checkfile.read(1)
-            if checkbytes == b'\x0a' or checkbytes == b'\x0d':
-                if checkbytes == b'\x0d':
-                    if checkfile.tell() != filesize:
-                        checkbytes = checkfile.read(1)
-                        if checkbytes != b'\x0a':
-                            checkfile.seek(-1, os.SEEK_CUR)
-                seeneof = True
+            # some overlap
+            unpackedsize += bytesread - 10
+            checkfile.seek(-10, os.SEEK_CUR)
+
+        if not isvalidtrailer:
             break
-        if checkfile.tell() == filesize:
+        if startxrefpos == -1 or crossoffset == -1 or not seeneof:
             break
-        # some overlap
-        unpackedsize += bytesread - 10
-        checkfile.seek(-10, os.SEEK_CUR)
 
-    if startxrefpos == -1 or crossoffset == -1 or not seeneof:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'trailer not found'}
-        return {'status': False, 'error': unpackingerror}
+        unpackedsize = checkfile.tell() - offset
 
-    unpackedsize = checkfile.tell() - offset
-
-    # extra sanity check: look at the contents of the trailer dictionary
-    checkfile.seek(startxrefpos-4)
-    checkbytes = checkfile.read(4)
-    if b'>>' not in checkbytes:
-        # possibly a cross reference stream (section 7.5.8)
-        # TODO
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'unsupported PDF'}
-        return {'status': False, 'error': unpackingerror}
-
-    endoftrailerpos = checkbytes.find(b'>>') + startxrefpos - 4
-
-    trailerpos = -1
-
-    # search the data backwards for the word "trailer"
-    checkfile.seek(-50, os.SEEK_CUR)
-    isstart = False
-    while True:
-        curpos = checkfile.tell()
-        if curpos <= offset:
-            isstart = True
-        checkbytes = checkfile.read(50)
-        trailerpos = checkbytes.find(b'trailer')
-        if trailerpos != -1:
-            trailerpos = curpos + trailerpos
+        # extra sanity check: look at the contents of the trailer dictionary
+        checkfile.seek(startxrefpos-4)
+        checkbytes = checkfile.read(4)
+        if b'>>' not in checkbytes:
+            # possibly a cross reference stream (section 7.5.8)
+            # TODO
             break
-        if isstart:
+
+        endoftrailerpos = checkbytes.find(b'>>') + startxrefpos - 4
+
+        trailerpos = -1
+
+        # search the data backwards for the word "trailer"
+        checkfile.seek(-50, os.SEEK_CUR)
+        isstart = False
+        while True:
+            curpos = checkfile.tell()
+            if curpos <= offset:
+                isstart = True
+            checkbytes = checkfile.read(50)
+            trailerpos = checkbytes.find(b'trailer')
+            if trailerpos != -1:
+                trailerpos = curpos + trailerpos
+                break
+            if isstart:
+                break
+            checkfile.seek(-60, os.SEEK_CUR)
+
+        # jump to the position where the trailer starts
+        checkfile.seek(trailerpos)
+
+        # and read the trailer, minus '>>'
+        checkbytes = checkfile.read(endoftrailerpos - trailerpos)
+
+        # extra sanity check: see if '<<' is present
+        if b'<<' not in checkbytes:
             break
-        checkfile.seek(-60, os.SEEK_CUR)
 
-    # jump to the position where the trailer starts
-    checkfile.seek(trailerpos)
-
-    # and read the trailer, minus '>>'
-    checkbytes = checkfile.read(endoftrailerpos - trailerpos)
-
-    # extra sanity check: see if '<<' is present
-    if b'<<' not in checkbytes:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'invalid PDF trailer'}
-        return {'status': False, 'error': unpackingerror}
-
-    # then split the entries
-    trailersplit = checkbytes.split(b'\x0d\x0a')
-    if len(trailersplit) == 1:
-        trailersplit = checkbytes.split(b'\x0d')
+        # then split the entries
+        trailersplit = checkbytes.split(b'\x0d\x0a')
         if len(trailersplit) == 1:
-            trailersplit = checkbytes.split(b'\x0a')
+            trailersplit = checkbytes.split(b'\x0d')
+            if len(trailersplit) == 1:
+                trailersplit = checkbytes.split(b'\x0a')
 
-    seenroot = False
-    for i in trailersplit:
-        if b'/' not in i:
-            continue
-        if b'/Root' in i:
-            seenroot = True
+        seenroot = False
+        correctreference = True
+        for i in trailersplit:
+            if b'/' not in i:
+                continue
+            if b'/Root' in i:
+                seenroot = True
+            if b'/Prev' in i:
+                prevres = re.search('/Prev\s(\d+)', i.decode())
+                if prevres != None:
+                    prevxref = int(prevres.groups()[0])
+                    if offset + prevxref > filesize:
+                        correctreference = False
+                        break
+                    checkfile.seek(offset + prevxref)
+                    checkbytes = checkfile.read(4)
+                    if checkbytes != b'xref':
+                        correctreference = False
+                        break
 
-    # /Root element is mandatory
-    if not seenroot:
+        # /Root element is mandatory
+        if not seenroot:
+            break
+
+        # references should be correct
+        if not correctreference:
+            break
+
+        # so far the PDF file is valid (possibly including updates)
+        # so record it as such and record until where the PDF is
+        # considered valid.
+        validpdf = True
+        validpdfsize = unpackedsize
+
+    if validpdf:
+        if offset == 0 and validpdfsize == filesize:
+            checkfile.close()
+            labels.append('pdf')
+            return {'status': True, 'length': validpdfsize, 'labels': labels,
+                    'filesandlabels': unpackedfilesandlabels}
+
+        # else carve the file
+        outfilename = os.path.join(unpackdir, "unpacked.pdf")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, validpdfsize)
+        outfile.close()
         checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': '/Root entry not found in trailer'}
-        return {'status': False, 'error': unpackingerror}
 
-    if offset == 0 and unpackedsize == filesize:
-        checkfile.close()
-        labels.append('pdf')
+        unpackedfilesandlabels.append((outfilename, ['pdf', 'unpacked']))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
-    # else carve the file
-    outfilename = os.path.join(unpackdir, "unpacked.pdf")
-    outfile = open(outfilename, 'wb')
-    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-    outfile.close()
     checkfile.close()
-
-    unpackedfilesandlabels.append((outfilename, ['pdf', 'unpacked']))
-    return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+    unpackingerror = {'offset': offset, 'fatal': False,
+                      'reason': 'not a valid PDF'}
+    return {'status': False, 'error': unpackingerror}
