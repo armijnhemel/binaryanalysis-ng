@@ -18825,8 +18825,8 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
         unpackedsize = checkfile.tell() - offset
 
         # extra sanity check: look at the contents of the trailer dictionary
-        checkfile.seek(startxrefpos-4)
-        checkbytes = checkfile.read(4)
+        checkfile.seek(startxrefpos-5)
+        checkbytes = checkfile.read(5)
         if b'>>' not in checkbytes:
             # possibly a cross reference stream (section 7.5.8),
             # a comment line (iText seems to do this a lot)
