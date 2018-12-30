@@ -18793,7 +18793,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                             if checkbytes != b'\x0a':
                                 checkfile.seek(-1, os.SEEK_CUR)
                     seeneof = True
-                break
+                    break
 
             # check if the end of file was reached, without having
             # read a valid trailer.
