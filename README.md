@@ -114,7 +114,8 @@ larger file, unless stated otherwise.
 76. ar/deb (needs binutils)
 77. squashfs (needs squashfs-tools)
 78. BMP (needs PIL)
-79. PDF (simple verification, no incremental updates)
+79. PDF (simple verification, no object streams, incremental updates
+    at end of the file)
 
 ## Invocation
 
