@@ -18879,7 +18879,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
             if b'/Root' in i:
                 seenroot = True
             if b'/Prev' in i:
-                prevres = re.search('/Prev\s(\d+)', i.decode())
+                prevres = re.search(b'/Prev\s(\d+)', i)
                 if prevres != None:
                     prevxref = int(prevres.groups()[0])
                     if offset + prevxref > filesize:
