@@ -18676,9 +18676,9 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 1
 
-    # then either LF, CR, or CRLF (setion 7.5.1)
-    # exception: ImageMagick 6.5.8-10 2010-12-17 Q16 sometimes included
-    # an extra space directly after the PDF version.
+    # then either LF, CR, or CRLF (section 7.5.1)
+    # exception: ImageMagick 6.5.8-10 2010-12-17 Q16 (and possibly others)
+    # sometimes included an extra space directly after the PDF version.
     checkbytes = checkfile.read(1)
     if checkbytes == b'\x20':
         unpackedsize += 1
@@ -18707,6 +18707,9 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
     # have been concatenated simply jumping to the end of the file is
     # not an option (although it would work for most files). Therefore
     # the file needs to be read until the start of the trailer is found.
+    # As an extra complication sometimes the updates are not appended
+    # to the file, but prepended, making the PDF file more of a random
+    # access file.
     while True:
         # continuously look for trailers until there is no
         # valid trailer anymore.
@@ -18718,7 +18721,8 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
         isvalidtrailer = True
 
         while True:
-            # create a new buffer for every read
+            # create a new buffer for every read, as buffers are
+            # not flushed and old data might linger.
             pdfbuffer = bytearray(10240)
             bytesread = checkfile.readinto(pdfbuffer)
             if bytesread == 0:
@@ -18726,7 +18730,8 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
             pdfpos = pdfbuffer.find(b'startxref')
             if pdfpos != -1:
                 startxrefpos = unpackedsize + pdfpos
-                # extra sanity checks to check if it is really EOF:
+                # extra sanity checks to check if it is really EOF
+                # (defined in section 7.5.5):
                 # * whitespace
                 # * valid byte offset to last cross reference
                 # * EOF marker
@@ -18734,7 +18739,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                 # skip over 'startxref'
                 checkfile.seek(offset + startxrefpos + 9)
 
-                # then either LF, CR, or CRLF (setion 7.5.1)
+                # then either LF, CR, or CRLF (section 7.5.1)
                 checkbytes = checkfile.read(1)
                 if checkbytes != b'\x0a' and checkbytes != b'\x0d':
                     startxrefpos = -1
@@ -18757,11 +18762,15 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                     isvalidtrailer = False
                     break
 
+                # the value should be an integer followed by
+                # LF, CR or CRLF.
                 if crossbuf != b'':
                     try:
                         crossoffset = int(crossbuf)
                     except:
                         break
+                # the offset for the cross reference cannot
+                # be outside of the file.
                 if offset + crossoffset > checkfile.tell():
                     isvalidtrailer = False
                     break
@@ -18786,7 +18795,8 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                     seeneof = True
                 break
 
-            # check if the end of file was reached, without
+            # check if the end of file was reached, without having
+            # read a valid trailer.
             if checkfile.tell() == filesize:
                 isvalidtrailer = False
                 break
