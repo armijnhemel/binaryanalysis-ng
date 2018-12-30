@@ -18727,6 +18727,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
             bytesread = checkfile.readinto(pdfbuffer)
             if bytesread == 0:
                 break
+
             pdfpos = pdfbuffer.find(b'startxref')
             if pdfpos != -1:
                 startxrefpos = unpackedsize + pdfpos
@@ -18785,6 +18786,16 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                 if checkbytes != b'%%EOF':
                     isvalidtrailer = False
                     break
+
+                seeneof = True
+
+                # Optionally there could be whitespace. The PDF specification
+                # is not clear about this! Section 7.5.5 seems to indicate
+                # that whitespace is possibly a part of the end of file
+                # (depending on whether or not the concept 'line' should
+                # include whitespace) but section 7.2.3 says that comments
+                # should *not* include "end of line".
+                # The PDF of the PDF specification has CRLF at the end.
                 checkbytes = checkfile.read(1)
                 if checkbytes == b'\x0a' or checkbytes == b'\x0d':
                     if checkbytes == b'\x0d':
@@ -18792,7 +18803,8 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                             checkbytes = checkfile.read(1)
                             if checkbytes != b'\x0a':
                                 checkfile.seek(-1, os.SEEK_CUR)
-                    seeneof = True
+
+                if checkfile.tell() == filesize:
                     break
 
             # check if the end of file was reached, without having
@@ -18800,9 +18812,10 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
             if checkfile.tell() == filesize:
                 isvalidtrailer = False
                 break
-            # some overlap
-            unpackedsize += bytesread - 10
+
+            # continue searching, with some overlap
             checkfile.seek(-10, os.SEEK_CUR)
+            unpackedsize = checkfile.tell() - offset
 
         if not isvalidtrailer:
             break
