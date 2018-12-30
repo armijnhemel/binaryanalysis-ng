@@ -18676,7 +18676,12 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 1
 
     # then either LF, CR, or CRLF (setion 7.5.1)
+    # exception: ImageMagick 6.5.8-10 2010-12-17 Q16 sometimes included
+    # an extra space directly after the PDF version.
     checkbytes = checkfile.read(1)
+    if checkbytes == b'\x20':
+        unpackedsize += 1
+        checkbytes = checkfile.read(1)
     if checkbytes != b'\x0a' and checkbytes != b'\x0d':
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
