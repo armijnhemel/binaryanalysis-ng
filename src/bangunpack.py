@@ -18815,7 +18815,9 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
         checkfile.seek(startxrefpos-4)
         checkbytes = checkfile.read(4)
         if b'>>' not in checkbytes:
-            # possibly a cross reference stream (section 7.5.8)
+            # possibly a cross reference stream (section 7.5.8),
+            # a comment line (iText seems to do this a lot)
+            # or whitespace
             # TODO
             break
 
