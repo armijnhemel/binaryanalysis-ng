@@ -126,6 +126,11 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
     tlshmaximum = scanenvironment['tlshmaximum']
     synthesizedminimum = scanenvironment['synthesizedminimum']
 
+    if dbconn == None:
+        usedatabase = False
+    else:
+        usedatabase = True
+
     while True:
         # grab a new file from the scanning queue
         (checkfile, labels, parent, extradata) = scanfilequeue.get(timeout=86400)
