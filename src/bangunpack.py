@@ -18816,13 +18816,13 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
 
                 seeneof = True
 
-                # Optionally there could be whitespace. The PDF specification
-                # is not clear about this! Section 7.5.5 seems to indicate
-                # that whitespace is possibly a part of the end of file
-                # (depending on whether or not the concept 'line' should
-                # include whitespace) but section 7.2.3 says that comments
-                # should *not* include "end of line".
-                # The PDF of the PDF specification has CRLF at the end.
+                # Most likely there are EOL markers, although the PDF
+                # specification is not 100% clear about this:
+                # section 7.5.1 indicates that EOL markers are part of
+                # line by convention.
+                # Section 7.2.3 says that comments should *not*
+                # include "end of line" (but these two do not contradict)
+                # which likely confused people.
                 checkbytes = checkfile.read(1)
                 if checkbytes == b'\x0a' or checkbytes == b'\x0d':
                     if checkbytes == b'\x0d':
