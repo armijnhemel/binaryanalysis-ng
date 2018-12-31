@@ -18708,8 +18708,9 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
     # not an option (although it would work for most files). Therefore
     # the file needs to be read until the start of the trailer is found.
     # As an extra complication sometimes the updates are not appended
-    # to the file, but prepended, making the PDF file more of a random
-    # access file.
+    # to the file, but prepended using forward references instead of
+    # back references and then other parts of the PDF file having back
+    # references, making the PDF file more of a random access file.
     while True:
         # continuously look for trailers until there is no
         # valid trailer anymore.
@@ -18719,6 +18720,11 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
         # first seek to where data had already been read
         checkfile.seek(offset + unpackedsize)
         isvalidtrailer = True
+
+        # Sometimes the value for the reference table in startxref is 0.
+        # This typically only happens for some updates, and there should
+        # be a Prev entry in the trailer dictionary.
+        needsprev = False
 
         while True:
             # create a new buffer for every read, as buffers are
@@ -18770,11 +18776,14 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                         crossoffset = int(crossbuf)
                     except:
                         break
-                # the offset for the cross reference cannot
-                # be outside of the file.
-                if offset + crossoffset > checkfile.tell():
-                    isvalidtrailer = False
-                    break
+                if crossoffset != 0:
+                    # the offset for the cross reference cannot
+                    # be outside of the file.
+                    if offset + crossoffset > checkfile.tell():
+                        isvalidtrailer = False
+                        break
+                else:
+                    needsprev = True
                 if checkbytes == b'\x0d':
                     checkbytes = checkfile.read(1)
                 if checkbytes != b'\x0a':
@@ -18873,6 +18882,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
 
         seenroot = False
         correctreference = True
+        seenprev = False
         for i in trailersplit:
             if b'/' not in i:
                 continue
@@ -18882,6 +18892,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                 prevres = re.search(b'/Prev\s(\d+)', i)
                 if prevres != None:
                     prevxref = int(prevres.groups()[0])
+                    seenprev = True
                     if offset + prevxref > filesize:
                         correctreference = False
                         break
@@ -18893,6 +18904,9 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
 
         # /Root element is mandatory
         if not seenroot:
+            break
+
+        if needsprev and not seenprev:
             break
 
         # references should be correct
