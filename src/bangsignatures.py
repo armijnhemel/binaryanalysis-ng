@@ -100,7 +100,7 @@ signatures = {
     'flv': b'FLV',
     'lzop': b'\x89\x4c\x5a\x4f\x00\x0d\x0a\x1a\x0a',
     'dlinkromfs': b'ROMFS v',
-    'pdf': b'%PDF-1.',
+    'pdf': b'%PDF-',
 }
 
 # some signatures do not start at the beginning of the file

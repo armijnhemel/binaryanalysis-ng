@@ -18647,6 +18647,10 @@ def unpackShadow(filename, offset, unpackdir, temporarydirectory):
 # https://www.adobe.com/devnet/pdf/pdf_reference.html
 #
 # The file structure is described in section 7.5.
+#
+# Test files for PDF 2.0 can be found at:
+#
+# https://github.com/pdf-association/pdf20examples
 def unpackPDF(filename, offset, unpackdir, temporarydirectory):
     '''Verify/carve a PDF file'''
     filesize = filename.stat().st_size
@@ -18657,10 +18661,24 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
 
     # open the file and skip the offset
     checkfile = open(filename, 'rb')
-    checkfile.seek(offset+7)
-    unpackedsize += 7
+    checkfile.seek(offset+5)
+    unpackedsize += 5
 
-    # read the version number
+    # read the major version number and '.'
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for version number'}
+        return {'status': False, 'error': unpackingerror}
+    if checkbytes != b'1.' and checkbytes != b'2.':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid version number'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # read the minor version number
     checkbytes = checkfile.read(1)
     if len(checkbytes) != 1:
         checkfile.close()
