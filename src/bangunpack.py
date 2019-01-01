@@ -18675,6 +18675,8 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
+    pdfinfo = {}
+
     # open the file and skip the offset
     checkfile = open(filename, 'rb')
     checkfile.seek(offset+5)
@@ -18935,6 +18937,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                     if checkbytes != b'xref':
                         correctreference = False
                         break
+                    pdfinfo['updates'] = True
 
         # /Root element is mandatory
         if not seenroot:
