@@ -5824,11 +5824,15 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
                 unpackedsize += headerlength - 3
             else:
                 if not isrestart:
-                    checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize,
-                                      'fatal': False,
-                                      'reason': 'invalid value for start of scan'}
-                    return {'status': False, 'error': unpackingerror}
+                    if checkbytes != b'\xff\xd9':
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize,
+                                          'fatal': False,
+                                          'reason': 'invalid value for start of scan'}
+                        return {'status': False, 'error': unpackingerror}
+                    else:
+                        eofseen = True
+                        continue
 
             # now read the image data in chunks to search for
             # JPEG markers (section B.1.1.2)
