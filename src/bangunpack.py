@@ -502,8 +502,10 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     endoffilereached = False
     idatseen = False
     chunknames = set()
+    chunknametooffsets = {}
     while True:
         # read the chunk size
+        chunkoffset = checkfile.tell() - offset
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             unpackingerror = {'offset': offset + unpackedsize,
@@ -544,6 +546,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 
         # add the name of the chunk to the list of chunk names
         chunknames.add(chunktype)
+        if chunktype not in chunknametooffsets:
+            chunknametooffsets[chunktype] = []
+        chunknametooffsets[chunktype].append(chunkoffset)
         if chunktype == b'IEND':
             # IEND indicates the end of the file
             endoffilereached = True
