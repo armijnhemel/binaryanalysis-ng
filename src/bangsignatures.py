@@ -287,6 +287,7 @@ textonlyfunctions = {
     'kernelconfig': bangunpack.unpackKernelConfig,
     #'dockerfile': bangunpack.unpackDockerfile,
     'base64': bangunpack.unpackBase64,
+    'script': bangunpack.unpackScript,
 }
 
 

@@ -18959,3 +18959,71 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {'offset': offset, 'fatal': False,
                       'reason': 'not a valid PDF'}
     return {'status': False, 'error': unpackingerror}
+
+
+# simple, no frills, non-authorative way to see if text files are
+# scripts using a few simple checks, such as the shebang line and
+# a few more simple checks.
+def unpackScript(filename, offset, unpackdir, temporarydirectory):
+    '''Simple sanity checks to see a file is possibly a script'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file in text mode
+    checkfile = open(filename, 'r')
+
+    # some very basic rules:
+    # 1. check the first line to see if #! is found
+    # 2. parse the first line to see if the name of an interpreter
+    #    is found
+    # 3. look at the extension
+    checkline = checkfile.readline()
+    if '#!' in checkline:
+        if filename.suffix.lower() == '.py':
+            if 'python' in checkline.strip():
+                checkfile.close()
+                labels.append('script')
+                labels.append('python')
+                unpackedsize = filesize
+                return {'status': True, 'length': unpackedsize,
+                        'labels': labels,
+                        'filesandlabels': unpackedfilesandlabels}
+        elif filename.suffix.lower() == '.pl':
+            if 'perl' in checkline.strip():
+                checkfile.close()
+                labels.append('script')
+                labels.append('perl')
+                unpackedsize = filesize
+                return {'status': True, 'length': unpackedsize,
+                        'labels': labels,
+                        'filesandlabels': unpackedfilesandlabels}
+        elif filename.suffix.lower()== '.sh':
+            if '/bash' in checkline.strip():
+                checkfile.close()
+                labels.append('script')
+                labels.append('bash')
+                unpackedsize = filesize
+                return {'status': True, 'length': unpackedsize,
+                        'labels': labels,
+                        'filesandlabels': unpackedfilesandlabels}
+            if '/sh' in checkline.strip():
+                checkfile.close()
+                labels.append('script')
+                labels.append('shell')
+                unpackedsize = filesize
+                return {'status': True, 'length': unpackedsize,
+                        'labels': labels,
+                        'filesandlabels': unpackedfilesandlabels}
+    else:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'could not determine script status'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+    unpackingerror = {'offset': offset, 'fatal': False,
+                      'reason': 'could not determine script status'}
+    return {'status': False, 'error': unpackingerror}
