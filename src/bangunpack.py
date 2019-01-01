@@ -16461,12 +16461,30 @@ def unpackCSS(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
+    isopened = False
+
     # open the file in text only mode
-    checkfile = open(filename, 'r')
+    try:
+        checkfile = open(filename, 'r')
+        isopened = True
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a text file'}
+        return {'status': False, 'error': unpackingerror}
+
     checkfile.seek(0)
 
-    # then read the contents of the file
-    cssbytes = checkfile.read()
+    # read the file: Python's text reader will fairly quickly
+    # detect the binary files, so not a lot of extra data will
+    # be read.
+    try:
+        cssbytes = checkfile.read()
+    except:
+        if isopened:
+            checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a text file'}
+        return {'status': False, 'error': unpackingerror}
     checkfile.close()
 
     try:

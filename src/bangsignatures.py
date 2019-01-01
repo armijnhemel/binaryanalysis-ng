@@ -250,6 +250,7 @@ extensiontofunction = {
     '.json': bangunpack.unpackJSON,
     'passwd': bangunpack.unpackPasswd,
     'shadow': bangunpack.unpackShadow,
+    '.css': bangunpack.unpackCSS,
 }
 
 # a lookup table to map extensions to a name
@@ -279,13 +280,13 @@ extensionprettyprint = {
     '.json': 'json',
     'passwd': 'passwd',
     'shadow': 'shadow',
+    '.css': 'css',
 }
 
 # certain unpacking functions if the whole file is text
 textonlyfunctions = {
     'ihex': bangunpack.unpackIHex,
     'srec': bangunpack.unpackSREC,
-    'css': bangunpack.unpackCSS,
     'kernelconfig': bangunpack.unpackKernelConfig,
     #'dockerfile': bangunpack.unpackDockerfile,
     'base64': bangunpack.unpackBase64,
