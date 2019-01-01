@@ -6828,6 +6828,8 @@ def unpackVimSwapfile(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'not a valid Vim swap file block identifier'}
             return {'status': False, 'error': unpackingerror}
 
+    unpackedsize = filesize
+
     # else consider it a Vim swap file
     labels.append('vim swap')
     return {'status': True, 'length': unpackedsize, 'labels': labels,
