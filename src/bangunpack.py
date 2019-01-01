@@ -13095,17 +13095,13 @@ def unpackXML(filename, offset, unpackdir, temporarydirectory):
         if checkbytes == b'<':
             # a processing instruction (section 2.6) might follow.
             # The first one should start with "<?xml" (case insensitive)
-            checkbytes = checkfile.read(4)
-            if len(checkbytes) != 4:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False,
-                                  'reason': 'not enough data for XML'}
-                return {'status': False, 'error': unpackingerror}
-            if checkbytes.lower() != b'?xml':
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False,
-                                  'reason': 'invalid processing instruction at start of file'}
-                return {'status': False, 'error': unpackingerror}
+            checkbytes = checkfile.read(1)
+            if checkbytes[0] == b'?':
+                if checkbytes.lower() != b'?xml':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid processing instruction at start of file'}
+                    return {'status': False, 'error': unpackingerror}
             break
 
     checkfile.close()
