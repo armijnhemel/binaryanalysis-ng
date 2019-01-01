@@ -10964,7 +10964,6 @@ def unpackIHex(filename, offset, unpackdir, temporarydirectory):
 
     unpackedfilesandlabels.append((outfilename, []))
     if offset == 0 and filesize == unpackedsize:
-        labels.append('text')
         labels.append('ihex')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
