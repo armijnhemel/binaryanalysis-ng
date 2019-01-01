@@ -112,6 +112,7 @@
 # 22. various certificates (PEM, private key, etc., needs openssl)
 # 23. lzop
 # 24. CSS
+# 25. pack200 (needs unpack200)
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
@@ -19027,3 +19028,55 @@ def unpackScript(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {'offset': offset, 'fatal': False,
                       'reason': 'could not determine script status'}
     return {'status': False, 'error': unpackingerror}
+
+
+# Transform a pack200 file to a JAR file using the unpack200 tool.
+# This will not restore the original JAR file, as pack200 performs all kinds
+# of optimizations, such as removing redundant classes, and so on.
+#
+# https://docs.oracle.com/javase/7/docs/technotes/guides/pack200/pack-spec.html
+#
+# The header format is described in section 5.2
+def unpackPack200(filename, offset, unpackdir, temporarydirectory):
+    '''Convert a pack200 file back into a JAR'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # the unpack200 tool only works on whole files. For now just
+    # focus on complete files, without data before/after it
+    if offset != 0:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'only whole files for now'}
+        return {'status': False, 'error': unpackingerror}
+
+    if shutil.which('unpack200') is None:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unpack200 program not found'}
+        return {'status': False, 'error': unpackingerror}
+
+    outfilename = os.path.join(unpackdir, "unpacked.jar")
+
+    # then extract the file
+    p = subprocess.Popen(['unpack200', filename, outfilename],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         cwd=unpackdir)
+    (outputmsg, errormsg) = p.communicate()
+    if p.returncode != 0:
+        # try to remove any files that were left behind
+        try:
+             os.unlink(outfilename)
+        except:
+            pass
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'Not a valid pack200 file'}
+        return {'status': False, 'error': unpackingerror}
+
+    labels.append('pack200')
+    unpackedsize = filesize
+    unpackedfilesandlabels.append((outfilename, []))
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}

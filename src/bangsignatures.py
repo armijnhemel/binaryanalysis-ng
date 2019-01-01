@@ -101,6 +101,7 @@ signatures = {
     'lzop': b'\x89\x4c\x5a\x4f\x00\x0d\x0a\x1a\x0a',
     'dlinkromfs': b'ROMFS v',
     'pdf': b'%PDF-',
+    'pack200': b'\xca\xfe\xd0\x0d',
 }
 
 # some signatures do not start at the beginning of the file
@@ -193,6 +194,7 @@ signaturetofunction = {
     'lzop': bangunpack.unpackLZOP,
     'dlinkromfs': bangunpack.unpackDlinkRomfs,
     'pdf': bangunpack.unpackPDF,
+    'pack200': bangunpack.unpackPack200,
 }
 
 # a lookup table to map signatures to a name for
