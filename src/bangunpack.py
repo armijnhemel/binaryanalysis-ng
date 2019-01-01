@@ -19064,27 +19064,43 @@ def unpackPack200(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
-    # the unpack200 tool only works on whole files. For now just
-    # focus on complete files, without data before/after it
-    if offset != 0:
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'only whole files for now'}
-        return {'status': False, 'error': unpackingerror}
-
+    # first check if the unpack200 program is actually there
     if shutil.which('unpack200') is None:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'unpack200 program not found'}
         return {'status': False, 'error': unpackingerror}
 
+    # the unpack200 tool only works on whole files. Finding out
+    # where the file ends is TODO, but if there is data in front
+    # of a valid pack200 file it is not a problem.
+    if offset != 0:
+        # create a temporary file and copy the data into the
+        # temporary file if offset != 0
+        checkfile = open(filename, 'rb')
+        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, filesize - offset)
+        os.fdopen(temporaryfile[0]).close()
+        checkfile.close()
+
+    # write unpacked data to a JAR file
     outfilename = os.path.join(unpackdir, "unpacked.jar")
 
     # then extract the file
-    p = subprocess.Popen(['unpack200', filename, outfilename],
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                         cwd=unpackdir)
+    if offset != 0:
+        p = subprocess.Popen(['unpack200', temporaryfile[1], outfilename],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             cwd=unpackdir)
+    else:
+        p = subprocess.Popen(['unpack200', filename, outfilename],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             cwd=unpackdir)
     (outputmsg, errormsg) = p.communicate()
+
+    if offset != 0:
+        os.unlink(temporaryfile[1])
+
     if p.returncode != 0:
-        # try to remove any files that were left behind
+        # try to remove any files that were possibly left behind
         try:
              os.unlink(outfilename)
         except:
@@ -19093,8 +19109,11 @@ def unpackPack200(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'Not a valid pack200 file'}
         return {'status': False, 'error': unpackingerror}
 
-    labels.append('pack200')
-    unpackedsize = filesize
+    unpackedsize = filesize - offset
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('pack200')
+
     unpackedfilesandlabels.append((outfilename, []))
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
