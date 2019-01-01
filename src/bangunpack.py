@@ -883,6 +883,7 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
             try:
                 shutil.move(outfilename, os.path.join(unpackdir, origname))
                 outfilename = os.path.join(unpackdir, origname)
+                anonymous = False
             except:
                 pass
 
