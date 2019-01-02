@@ -118,6 +118,7 @@ larger file, unless stated otherwise.
 79. PDF (simple verification, no object streams, incremental updates
     at end of the file)
 80. pack200 (needs unpack200)
+81. GIMP brush (needs PIL)
 
 ## Invocation
 

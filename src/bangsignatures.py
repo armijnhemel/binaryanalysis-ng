@@ -101,6 +101,7 @@ signatures = {
     'lzop': b'\x89\x4c\x5a\x4f\x00\x0d\x0a\x1a\x0a',
     'dlinkromfs': b'ROMFS v',
     'pdf': b'%PDF-',
+    'gimpbrush': b'GIMP',
     'pack200': b'\xca\xfe\xd0\x0d',
 }
 
@@ -115,6 +116,7 @@ signaturesoffset = {
     'iso9660': 32769,
     'ext2': 0x438,
     'dlinkromfs': 16,
+    'gimpbrush': 20,
 }
 
 # keep a list of signatures to the (built in) functions
@@ -195,6 +197,7 @@ signaturetofunction = {
     'dlinkromfs': bangunpack.unpackDlinkRomfs,
     'pdf': bangunpack.unpackPDF,
     'pack200': bangunpack.unpackPack200,
+    'gimpbrush': bangunpack.unpackGimpBrush,
 }
 
 # a lookup table to map signatures to a name for
