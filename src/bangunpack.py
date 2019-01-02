@@ -15039,6 +15039,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
     # section header index for section names
     checkbytes = checkfile.read(2)
+    havestrndx = True
     shstrndx = int.from_bytes(checkbytes, byteorder=byteorder)
     if shstrndx > shnum:
         checkfile.close()
@@ -15046,6 +15047,10 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'invalid index for section header table entry'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
+
+    # if there is no section name string table this will be 0
+    if shstrndx == 0:
+        havestrndx = False
 
     # some sanity checks for size
     if offset + phoff + phentrysize * phnum > filesize:
