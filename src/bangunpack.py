@@ -6720,10 +6720,12 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
 # recorded in the fonts are relative to the start of the collection
 # not to the font itself.
 # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
+#
+# Good test files in google-noto-sans-cjk-ttc-fonts (name of Fedora package)
 def unpackOpenTypeFontCollection(
         filename, offset,
         unpackdir, temporarydirectory):
-    '''Verify and/or carve an OpenType font collection file.'''
+    '''Verify an OpenType font collection file.'''
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
