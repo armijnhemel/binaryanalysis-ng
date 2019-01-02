@@ -66,6 +66,8 @@ def main(argv):
     bangerrors = collections.Counter()
     bangerrormessages = {}
 
+    errorfiles = collections.Counter()
+
     # open the file, assume for now that everything is in UTF-8
     # (famous last words).
     logfile = open(args.checkfile, 'r')
@@ -75,15 +77,21 @@ def main(argv):
         # ignore the 'known extension' entries
         if ' known extension ' in i:
             continue
-        bangfail = i.strip().rsplit(':', 1)[1].strip()
+        bangfails = i[5:].strip().rsplit(':', 1)
+        bangfail = bangfails[1].strip()
         for s in bangsignatures.signatures:
             if " %s at offset" % s in i.strip():
                 bangerrors.update([s])
                 if s not in bangerrormessages:
                     bangerrormessages[s] = collections.Counter()
                 bangerrormessages[s].update([bangfail])
+                filename = bangfails[0].rsplit(s, 1)[0]
+                errorfiles.update([filename])
                 break
     logfile.close()
+
+    print("Failures per signature")
+    print("----------------------\n")
 
     # print the error messages in descending order
     for e in bangerrors.most_common():
@@ -91,6 +99,12 @@ def main(argv):
         for s in bangerrormessages[e[0]].most_common():
             print("%s: %d" % s)
         print()
+
+    # print the files with the most errors
+    print("Failures per file")
+    print("-----------------\n")
+    for e in errorfiles.most_common():
+        print("%s: %d failures\n" % e)
 
 if __name__ == "__main__":
     main(sys.argv)
