@@ -1140,7 +1140,7 @@ def main(argv):
     baseunpackdirectory = ''
     temporarydirectory = None
     removescandirectory = False
-    createbytecounter = True
+    createbytecounter = False
     tlshmaximum = sys.maxsize
 
     # some default values for the database, possibly
@@ -1193,11 +1193,11 @@ def main(argv):
             except Exception:
                 pass
 
-            # If enabled (default: yes) create a file with a byte count
+            # If enabled (default: no) create a file with a byte count
             try:
                 bytecounter = config.get(section, 'bytecounter')
-                if bytecounter != 'yes':
-                    createbytecounter = False
+                if bytecounter == 'yes':
+                    createbytecounter = True
             except Exception:
                 pass
 
