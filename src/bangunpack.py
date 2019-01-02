@@ -14121,13 +14121,10 @@ def unpackDex(
             return {'status': False, 'error': unpackingerror}
 
     # data size, "Must be an even multiple of sizeof(uint)"
+    # according to the docs but this seems to be completely
+    # ignored by Google.
     checkbytes = checkfile.read(4)
     datasize = int.from_bytes(checkbytes, byteorder='little')
-    if (datasize//4) % 2 != 0:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'incorrect data size'}
-        return {'status': False, 'error': unpackingerror}
 
     # data offset
     checkbytes = checkfile.read(4)
