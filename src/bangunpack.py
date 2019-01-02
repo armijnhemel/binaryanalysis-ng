@@ -16625,16 +16625,28 @@ def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
     manifestlinesseen = False
 
     try:
+        isnewline = True
         for i in checkfile:
             # skip empty lines
             if i.strip() == '':
                 continue
-            # regular lines need to have : in them
-            if ':' not in i:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False,
-                                  'reason': 'invalid manifest line'}
-                return {'status': False, 'error': unpackingerror}
+            # regular lines need to have : in them, unless they
+            # are a continuation of a previous line
+            if not isnewline:
+                if ':' not in i:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid manifest line'}
+                    return {'status': False, 'error': unpackingerror}
+            else:
+                if ':' not in i:
+                    if re.match('\s+[\.\w\d]+', i) is not None:
+                        continue
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid manifest line'}
+                    return {'status': False, 'error': unpackingerror}
+            isnewline = True
             manifestattribute = i.strip().split(':', 1)[0].strip()
             if manifestattribute in validattributes:
                 manifestlinesseen = True
