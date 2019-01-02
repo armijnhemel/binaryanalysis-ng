@@ -16635,7 +16635,7 @@ def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
             if manifestattribute in validattributes:
                 continue
             # check the digest values
-            if manifestattribute == 'SHA1-Digest':
+            if manifestattribute in ['SHA1-Digest', 'SHA-256-Digest']:
                 digest = i.strip().split(':', 1)[1].strip()
                 try:
                     base64.b64decode(digest)
