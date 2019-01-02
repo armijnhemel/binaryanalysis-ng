@@ -16610,15 +16610,19 @@ def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
                            '-Implementation-URL',
                            '-Digest-Manifest']
 
+    isopened = False
+
     # open the file in text only mode
     try:
         checkfile = open(filename, 'r')
+        isopened = True
     except:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'not a text file'}
         return {'status': False, 'error': unpackingerror}
 
     checkfile.seek(0)
+    manifestlinesseen = False
 
     try:
         for i in checkfile:
@@ -16633,6 +16637,7 @@ def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
                 return {'status': False, 'error': unpackingerror}
             manifestattribute = i.strip().split(':', 1)[0].strip()
             if manifestattribute in validattributes:
+                manifestlinesseen = True
                 continue
             # check the digest values
             if manifestattribute in ['SHA1-Digest', 'SHA-256-Digest']:
@@ -16657,10 +16662,17 @@ def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
                                   'reason': 'invalid manifest line'}
                 return {'status': False, 'error': unpackingerror}
     except:
+        if isopened:
+            checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'not a text file'}
         return {'status': False, 'error': unpackingerror}
     checkfile.close()
+
+    if not manifestlinesseen:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'no valid manifest lines seen'}
+        return {'status': False, 'error': unpackingerror}
 
     labels.append('text')
     labels.append('javamanifest')
