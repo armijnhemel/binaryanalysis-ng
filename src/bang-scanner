@@ -142,7 +142,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         fileresult = {'fullfilename': str(checkfile)}
         if 'root' not in labels:
             fileresult['parent'] = str(parent)[lenunpackdirectory:]
-        fileresult['filename'] = str(checkfile)[lenunpackdirectory:]
+        relativefilename = str(checkfile)[lenunpackdirectory:]
+        fileresult['filename'] = relativefilename
 
         # First perform all kinds of checks to prevent the file being
         # scanned.
@@ -309,7 +310,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     # log the file name, the extension and the
                     # error message for later analysis
-                    logging.debug("FAIL %s known extension %s: %s" % (checkfile, e, unpackresult['error']['reason']))
+                    logging.debug("FAIL %s known extension %s: %s" % (relativefilename, e, unpackresult['error']['reason']))
 
                     # Fatal errors should lead to the program stopping
                     # execution. Ignored for now.
@@ -339,7 +340,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                 # the file could be unpacked successfully,
                 # so log it as such.
-                logging.info("SUCCESS %s %s at offset: 0, length: %d" % (checkfile, e, unpackresult['length']))
+                logging.info("SUCCESS %s %s at offset: 0, length: %d" % (relativefilename, e, unpackresult['length']))
 
                 # store the location of where the successfully
                 # unpacked file ends (the offset is always 0  here).
@@ -638,7 +639,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # run the scan for the offset that was found
                     # First log which identifier was found and
                     # at which offset for possible later analysis.
-                    logging.debug("TRYING %s %s at offset: %d" % (checkfile, s[1], s[0]))
+                    logging.debug("TRYING %s %s at offset: %d" % (relativefilename, s[1], s[0]))
 
                     # The result of the scan is a dictionary containing:
                     #
@@ -663,7 +664,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     if not unpackresult['status']:
                         # No data could be unpacked for some reason,
                         # so log the status and error message
-                        logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, s[1], s[0], unpackresult['error']['reason']))
+                        logging.debug("FAIL %s %s at offset: %d: %s" % (relativefilename, s[1], s[0], unpackresult['error']['reason']))
 
                         # unpacking error contains:
                         #
@@ -703,7 +704,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     # the file could be unpacked successfully,
                     # so log it as such.
-                    logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, s[1], s[0], unpackresult['length']))
+                    logging.info("SUCCESS %s %s at offset: %d, length: %d" % (relativefilename, s[1], s[0], unpackresult['length']))
 
                     # store the name counter
                     counterspersignature[s[1]] = namecounter
@@ -943,7 +944,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         except:
                             namecounter += 1
 
-                    logging.debug("TRYING %s %s at offset: 0" % (checkfile, f))
+                    logging.debug("TRYING %s %s at offset: 0" % (relativefilename, f))
                     try:
                         unpackresult = bangsignatures.textonlyfunctions[f](checkfile, 0, dataunpackdirectory, temporarydirectory)
                     except Exception as e:
@@ -953,7 +954,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     if not unpackresult['status']:
                         # No data could be unpacked for some reason,
                         # so check the status first
-                        logging.debug("FAIL %s %s at offset: %d: %s" % (checkfile, f, 0, unpackresult['error']['reason']))
+                        logging.debug("FAIL %s %s at offset: %d: %s" % (relativefilename, f, 0, unpackresult['error']['reason']))
                         #print(s[1], unpackresult['error'])
                         #sys.stdout.flush()
                         # unpackerror contains:
@@ -986,7 +987,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         shutil.rmtree(dataunpackdirectory)
                         continue
 
-                    logging.info("SUCCESS %s %s at offset: %d, length: %d" % (checkfile, f, 0, unpackresult['length']))
+                    logging.info("SUCCESS %s %s at offset: %d, length: %d" % (relativefilename, f, 0, unpackresult['length']))
 
                     # store the labels for files that could be
                     # unpacked/verified completely.
