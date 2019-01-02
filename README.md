@@ -49,7 +49,7 @@ larger file, unless stated otherwise.
 14. ISO9660 (including RockRidge and zisofs)
 15. lzip
 16. WOFF (Web Open Font Format)
-17. TrueType fonts
+17. TrueType fonts/sfnt-housed fonts
 18. OpenType fonts
 19. Vim swap files (whole file only)
 20. Android sparse data image
