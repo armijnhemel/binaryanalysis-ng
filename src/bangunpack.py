@@ -574,6 +574,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         animated = True
 
     # check if the file is possibly a "NinePatch" image
+    # https://developer.android.com/reference/android/graphics/NinePatch
     ninepatch = False
     if b'npTc' in chunknames or b'npLb' in chunknames or b'npOl' in chunknames:
         ninepatch = True
