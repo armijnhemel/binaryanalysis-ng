@@ -573,6 +573,11 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     if b'acTL' in chunknames and b'fcTL' in chunknames and b'fdAT' in chunknames:
         animated = True
 
+    # check if the file is possibly a "NinePatch" image
+    ninepatch = False
+    if b'npTc' in chunknames or b'npLb' in chunknames or b'npOl' in chunknames:
+        ninepatch = True
+
     # There has to be exactly 1 IEND chunk (section 5.6)
     if endoffilereached:
         if offset == 0 and unpackedsize == filesize:
@@ -591,6 +596,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             if animated:
                 labels.append('animated')
                 labels.append('apng')
+            if ninepatch:
+                labels.append('ninepatch')
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
@@ -617,10 +624,13 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'invalid PNG data according to PIL'}
             return {'status': False, 'error': unpackingerror}
 
+        outlabels = ['png', 'graphics', 'unpacked']
         if animated:
-            unpackedfilesandlabels.append((outfilename, ['png', 'graphics', 'animated', 'apng', 'unpacked']))
-        else:
-            unpackedfilesandlabels.append((outfilename, ['png', 'graphics', 'unpacked']))
+            outlabels.append('animated')
+            outlabels.append('apng')
+        if ninepatch:
+            outlabels.append('ninepatch')
+        unpackedfilesandlabels.append((outfilename, outlabels))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
