@@ -6282,10 +6282,8 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
 #
 # These fonts have a similar structure, but differ in the magic
 # header and the required tables.
-def unpackFont(
-        filename, offset, unpackdir, temporarydirectory,
-        requiredtables, fontextension, fonttype,
-        collectionoffset=None):
+def unpackFont(filename, offset, unpackdir, temporarydirectory,
+               fontextension, collectionoffset=None):
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
@@ -6564,13 +6562,6 @@ def unpackFont(
         # and return to the old offset for the next entry
         checkfile.seek(oldoffset)
 
-    # first check if all the required tables are there.
-    if not tablesseen.intersection(requiredtables) == requiredtables:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'not all required tables present'}
-        return {'status': False, 'error': unpackingerror}
-
     unpackedsize = maxoffset - offset
 
     # in case the file is a font collection it ends here.
@@ -6610,9 +6601,9 @@ def unpackFont(
         checkfile.close()
         labels.append('font')
         labels.append('resource')
-        labels.append(fonttype)
         return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
+                'filesandlabels': unpackedfilesandlabels,
+                'tablesseen': tablesseen}
 
     # else carve the file
     # if the name was extracted from the 'name' table it could possibly
@@ -6629,10 +6620,10 @@ def unpackFont(
     outfile = open(outfilename, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
-    unpackedfilesandlabels.append((outfilename, ['font', 'resource', 'unpacked', fonttype]))
+    unpackedfilesandlabels.append((outfilename, ['font', 'resource', 'unpacked']))
     checkfile.close()
     return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+            'filesandlabels': unpackedfilesandlabels, 'tablesseen': tablesseen}
 
 
 # https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html
@@ -6652,11 +6643,34 @@ def unpackTrueTypeFont(filename, offset, unpackdir, temporarydirectory):
 
     # https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html
     # (table 2)
-    # the following tables are required in a font:
+    # the following tables are required for a TrueType font:
     requiredtables = set([b'cmap', b'glyf', b'head', b'hhea', b'hmtx',
                           b'loca', b'maxp', b'name', b'post'])
 
-    return unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 'ttf', 'TrueType')
+    fontres = unpackFont(filename, offset, unpackdir, temporarydirectory, 'ttf')
+    if not fontres['status']:
+        return fontres
+
+    labels = fontres['labels']
+    filesandlabels = fontres['filesandlabels']
+
+    # first check if all the required tables are there.
+    # It could be that the font is actually a "sfnt-housed font" and
+    # then not all the tables need to be there.
+    if not fontres['tablesseen'].intersection(requiredtables) == requiredtables:
+        if offset == 0 and fontres['length'] == filesize:
+            labels.append('sfnt')
+        else:
+            # fix labels for the carved file
+            filesandlabels[0][1].append('sfnt')
+    else:
+        if offset == 0 and fontres['length'] == filesize:
+            labels.append('TrueType')
+        else:
+            # fix labels for the carved file
+            filesandlabels[0][1].append('TrueType')
+    return {'status': True, 'length': fontres['length'], 'labels': labels,
+            'filesandlabels': filesandlabels}
 
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
@@ -6680,7 +6694,26 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
     requiredtables = set([b'cmap', b'head', b'hhea', b'hmtx',
                           b'maxp', b'name', b'OS/2', b'post'])
 
-    return unpackFont(filename, offset, unpackdir, temporarydirectory, requiredtables, 'otf', 'OpenType')
+    fontres = unpackFont(filename, offset, unpackdir, temporarydirectory, 'otf')
+    if not fontres['status']:
+        return fontres
+
+    # first check if all the required tables are there.
+    if not fontres['tablesseen'].intersection(requiredtables) == requiredtables:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not all required tables present'}
+        return {'status': False, 'error': unpackingerror}
+
+    labels = fontres['labels']
+    filesandlabels = fontres['filesandlabels']
+    if offset == 0 and fontres['length'] == filesize:
+        labels.append('OpenType')
+    else:
+        # fix labels for the carved file
+        filesandlabels[0][1].append('OpenType')
+    return {'status': True, 'length': fontres['length'], 'labels': labels,
+            'filesandlabels': filesandlabels}
 
 
 # Multiple fonts can be stored in font collections. The offsets
@@ -6759,7 +6792,7 @@ def unpackOpenTypeFontCollection(
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'font offset table outside of file'}
             return {'status': False, 'error': unpackingerror}
-        fontres = unpackFont(filename, offset + fontoffset, unpackdir, temporarydirectory, requiredtables, 'otf', 'OpenType', collectionoffset=offset)
+        fontres = unpackFont(filename, offset + fontoffset, unpackdir, temporarydirectory, 'otf', collectionoffset=offset)
         if not fontres['status']:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
