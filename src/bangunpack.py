@@ -596,7 +596,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             try:
                 keyword = textentries[0].decode()
                 value = textentries[1].decode()
-                pngtexts.append({'key': keyword, 'value': value})
+                pngtexts.append({'key': keyword, 'value': value, 'offset': o['offset']})
             except Exception as e:
                 pass
     if b'zTXt' in chunknames:
@@ -626,7 +626,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 value = zlib.decompress(checkbytes[endofkeyword+2:]).decode()
             except:
                 continue
-            pngtexts.append({'key': keyword, 'value': value})
+            pngtexts.append({'key': keyword, 'value': value, 'offset': o['offset']})
 
     # There has to be exactly 1 IEND chunk (section 5.6)
     if endoffilereached:
