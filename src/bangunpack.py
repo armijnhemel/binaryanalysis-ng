@@ -606,9 +606,16 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 
     # check if there are any sections with interesting metadata
 
-    # exIf is a proposed extension. ImageMagick supports it but
+    # eXIf is a recently adopted extension to PNG. ImageMagick supports it but
     # there does not seem to be widespread adoption yet.
     # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
+    # http://ftp-osl.osuosl.org/pub/libpng/documents/proposals/eXIf/png-proposed-eXIf-chunk-2017-06-15.html
+    if 'eXIf' in chunknames:
+        for o in chunknametooffsets['eXIf']:
+            # data starts at 8
+            checkfile.seek(offset + o['offset'] + 8)
+            checkbytes = checkfile.read(o['size'])
+    # unregistered name for test implementations
     if 'exIf' in chunknames:
         for o in chunknametooffsets['exIf']:
             # data starts at 8
