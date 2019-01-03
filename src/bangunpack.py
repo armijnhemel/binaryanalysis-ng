@@ -587,7 +587,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         ninepatch = True
 
     # check if the file is perhaps made by ImageMagick, which used a few
-    # private chunks
+    # private chunks:
+    # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
+    # https://transloadit.com/blog/2017/07/new-imagemagick/
     imagemagick = False
     if 'oFFs' in chunknames or 'vpAg' in chunknames or 'caNv' in chunknames:
         imagemagick = True
@@ -602,9 +604,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     pngtexts = []
 
     # check if there are any sections with interesting metadata
-    if b'tEXt' in chunknames:
+    if 'tEXt' in chunknames:
         # section 11.3.4.3
-        for o in chunknametooffsets[b'tEXt']:
+        for o in chunknametooffsets['tEXt']:
             # data starts at 8
             checkfile.seek(offset + o['offset'] + 8)
             checkbytes = checkfile.read(o['size'])
@@ -619,9 +621,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 pngtexts.append({'key': keyword, 'value': value, 'offset': o['offset']})
             except Exception as e:
                 pass
-    if b'zTXt' in chunknames:
+    if 'zTXt' in chunknames:
         # section 11.3.4.3
-        for o in chunknametooffsets[b'zTXt']:
+        for o in chunknametooffsets['zTXt']:
             # data starts at 8
             checkfile.seek(offset + o['offset'] + 8)
             checkbytes = checkfile.read(o['size'])
