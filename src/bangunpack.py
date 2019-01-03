@@ -525,7 +525,6 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 
         # read the chunk type, plus the chunk data
         checkbytes = checkfile.read(4+chunksize)
-        chunktype = checkbytes[0:4]
         if len(checkbytes) != 4+chunksize:
             unpackingerror = {'offset': offset + unpackedsize,
                               'fatal': False,
@@ -533,6 +532,14 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             checkfile.close()
             return {'status': False, 'error': unpackingerror}
 
+        try:
+            chunktype = checkbytes[0:4].decode()
+        except:
+            checkfile.close()
+            unpackingerror = {'offset': offset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid chunk name'}
+            return {'status': False, 'error': unpackingerror}
         unpackedsize += 4+chunksize
 
         # compute the CRC
@@ -550,12 +557,12 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         if chunktype not in chunknametooffsets:
             chunknametooffsets[chunktype] = []
         chunknametooffsets[chunktype].append({'offset': chunkoffset, 'size': chunksize})
-        if chunktype == b'IEND':
+        if chunktype == 'IEND':
             # IEND indicates the end of the file
             endoffilereached = True
             unpackedsize += 4
             break
-        elif chunktype == b'IDAT':
+        elif chunktype == 'IDAT':
             # a valid PNG file has to have a IDAT section
             idatseen = True
         unpackedsize += 4
@@ -570,27 +577,27 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     # Check whether or not the PNG is animated.
     # https://wiki.mozilla.org/APNG_Specification
     animated = False
-    if b'acTL' in chunknames and b'fcTL' in chunknames and b'fdAT' in chunknames:
+    if 'acTL' in chunknames and 'fcTL' in chunknames and 'fdAT' in chunknames:
         animated = True
 
     # check if the file is possibly a "NinePatch" image
     # https://developer.android.com/reference/android/graphics/NinePatch
     ninepatch = False
-    if b'npTc' in chunknames or b'npLb' in chunknames or b'npOl' in chunknames:
+    if 'npTc' in chunknames or 'npLb' in chunknames or 'npOl' in chunknames:
         ninepatch = True
 
     # check if the file is perhaps made by ImageMagick, which used a few
     # private chunks
     imagemagick = False
-    if b'oFFs' in chunknames or b'vpAg' in chunknames or b'caNv' in chunknames:
+    if 'oFFs' in chunknames or 'vpAg' in chunknames or 'caNv' in chunknames:
         imagemagick = True
 
     # a list of known chunks
-    knownchunks = set([b'IHDR', b'IDAT', b'IEND', b'PLTE', b'bKGD', b'cHRM',
-                       b'gAMA', b'hIST', b'iCCP', b'pHYs', b'sBIT', b'sPLT',
-                       b'sRGB', b'tEXt', b'tIME', b'tRNS', b'zTXt', b'iTXt',
-                       b'acTL', b'fcTL', b'fdAT', b'npTc', b'npLb', b'npOl',
-                       b'oFFs', b'vpAg', b'caNv'])
+    knownchunks = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM',
+                       'gAMA', 'hIST', 'iCCP', 'pHYs', 'sBIT', 'sPLT',
+                       'sRGB', 'tEXt', 'tIME', 'tRNS', 'zTXt', 'iTXt',
+                       'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
+                       'oFFs', 'vpAg', 'caNv'])
 
     pngtexts = []
 
