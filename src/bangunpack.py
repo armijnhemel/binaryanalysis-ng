@@ -605,6 +605,18 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     hasxmp = False
 
     # check if there are any sections with interesting metadata
+
+    # exIf is a proposed extension. ImageMagick supports it but
+    # there does not seem to be widespread adoption yet.
+    # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
+    if 'exIf' in chunknames:
+        for o in chunknametooffsets['exIf']:
+            # data starts at 8
+            checkfile.seek(offset + o['offset'] + 8)
+            checkbytes = checkfile.read(o['size'])
+
+    # tEXt contains key/value pairs with metadata about the PNG file.
+    # Multiple tEXt chunks are allowed.
     if 'tEXt' in chunknames:
         # section 11.3.4.3
         for o in chunknametooffsets['tEXt']:
@@ -622,8 +634,12 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 pngtexts.append({'key': keyword, 'value': value, 'offset': o['offset']})
             except Exception as e:
                 pass
+
+    # zTXt contains key/value pairs with metadata about the PNG file,
+    # zlib compressed.
+    # Multiple zTXt chunks are allowed.
     if 'zTXt' in chunknames:
-        # section 11.3.4.3
+        # section 11.3.4.4
         for o in chunknametooffsets['zTXt']:
             # data starts at 8
             checkfile.seek(offset + o['offset'] + 8)
