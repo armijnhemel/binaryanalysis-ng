@@ -673,9 +673,10 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             except:
                 continue
             pngtexts.append({'key': keyword, 'value': value, 'offset': o['offset']})
+
+    # chunk for XMP data. According to exiftool:
+    # 'obsolete location specified by a September 2001 XMP draft'
     if 'tXMP' in chunknames:
-        # chunk for XMP data. According to exiftool:
-        # 'obsolete location specified by a September 2001 XMP draft'
         for o in chunknametooffsets['tXMP']:
             # data starts at 8
             checkfile.seek(offset + o['offset'] + 8)
