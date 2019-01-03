@@ -579,6 +579,19 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     if b'npTc' in chunknames or b'npLb' in chunknames or b'npOl' in chunknames:
         ninepatch = True
 
+    # check if the file is perhaps made by ImageMagick, which used a few
+    # private chunks
+    imagemagick = False
+    if b'oFFs' in chunknames or b'vpAg' in chunknames or b'caNv' in chunknames:
+        imagemagick = True
+
+    # a list of known chunks
+    knownchunks = set([b'IHDR', b'IDAT', b'IEND', b'PLTE', b'bKGD', b'cHRM',
+                       b'gAMA', b'hIST', b'iCCP', b'pHYs', b'sBIT', b'sPLT',
+                       b'sRGB', b'tEXt', b'tIME', b'tRNS', b'zTXt', b'iTXt',
+                       b'acTL', b'fcTL', b'fdAT', b'npTc', b'npLb', b'npOl',
+                       b'oFFs', b'vpAg', b'caNv'])
+
     pngtexts = []
 
     # check if there are any sections with interesting metadata
@@ -648,6 +661,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 labels.append('apng')
             if ninepatch:
                 labels.append('ninepatch')
+            if imagemagick:
+                labels.append('imagemagick')
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
@@ -680,6 +695,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             outlabels.append('apng')
         if ninepatch:
             outlabels.append('ninepatch')
+        if imagemagick:
+            labels.append('imagemagick')
         unpackedfilesandlabels.append((outfilename, outlabels))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
