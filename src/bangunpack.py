@@ -549,7 +549,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         chunknames.add(chunktype)
         if chunktype not in chunknametooffsets:
             chunknametooffsets[chunktype] = []
-        chunknametooffsets[chunktype].append(chunkoffset)
+        chunknametooffsets[chunktype].append({'offset': chunkoffset, 'size': chunksize})
         if chunktype == b'IEND':
             # IEND indicates the end of the file
             endoffilereached = True
@@ -578,6 +578,55 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     ninepatch = False
     if b'npTc' in chunknames or b'npLb' in chunknames or b'npOl' in chunknames:
         ninepatch = True
+
+    pngtexts = []
+
+    # check if there are any sections with interesting metadata
+    if b'tEXt' in chunknames:
+        # section 11.3.4.3
+        for o in chunknametooffsets[b'tEXt']:
+            # data starts at 8
+            checkfile.seek(offset + o['offset'] + 8)
+            checkbytes = checkfile.read(o['size'])
+            textentries = checkbytes.split(b'\x00')
+            if len(textentries) != 2:
+                # broken data, this should not happen
+                continue
+            # keyword and value are both Latin-1
+            try:
+                keyword = textentries[0].decode()
+                value = textentries[1].decode()
+                pngtexts.append({'key': keyword, 'value': value})
+            except Exception as e:
+                pass
+    if b'zTXt' in chunknames:
+        # section 11.3.4.3
+        for o in chunknametooffsets[b'zTXt']:
+            # data starts at 8
+            checkfile.seek(offset + o['offset'] + 8)
+            checkbytes = checkfile.read(o['size'])
+
+            # first a keyword followed by \x00
+            endofkeyword = checkbytes.find(b'\x00')
+            if endofkeyword == -1 or endofkeyword == 0:
+                continue
+
+            # keyword should be Latin-1
+            try:
+                keyword = checkbytes[:endofkeyword].decode()
+            except:
+                continue
+
+            # then the encryption, only support deflate for now
+            if checkbytes[endofkeyword+1] != 0:
+                continue
+
+            # then try to decompress and then decode (Latin-1)
+            try:
+                value = zlib.decompress(checkbytes[endofkeyword+2:]).decode()
+            except:
+                continue
+            pngtexts.append({'key': keyword, 'value': value})
 
     # There has to be exactly 1 IEND chunk (section 5.6)
     if endoffilereached:
