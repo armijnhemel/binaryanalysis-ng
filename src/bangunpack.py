@@ -591,7 +591,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
     # https://transloadit.com/blog/2017/07/new-imagemagick/
     imagemagick = False
-    if 'oFFs' in chunknames or 'vpAg' in chunknames or 'caNv' in chunknames:
+    if 'vpAg' in chunknames or 'caNv' in chunknames:
         imagemagick = True
 
     # a list of known chunks
@@ -599,9 +599,10 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                        'gAMA', 'hIST', 'iCCP', 'pHYs', 'sBIT', 'sPLT',
                        'sRGB', 'tEXt', 'tIME', 'tRNS', 'zTXt', 'iTXt',
                        'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
-                       'oFFs', 'vpAg', 'caNv'])
+                       'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP'])
 
     pngtexts = []
+    hasxmp = False
 
     # check if there are any sections with interesting metadata
     if 'tEXt' in chunknames:
@@ -649,6 +650,18 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             except:
                 continue
             pngtexts.append({'key': keyword, 'value': value, 'offset': o['offset']})
+    if 'tXMP' in chunknames:
+        # chunk for XMP data. According to exiftool:
+        # 'obsolete location specified by a September 2001 XMP draft'
+        for o in chunknametooffsets['tXMP']:
+            # data starts at 8
+            checkfile.seek(offset + o['offset'] + 8)
+            checkbytes = checkfile.read(o['size'])
+            try:
+                xmpdata = checkbytes.decode()
+            except:
+                continue
+            hasxmp = True
 
     # There has to be exactly 1 IEND chunk (section 5.6)
     if endoffilereached:
