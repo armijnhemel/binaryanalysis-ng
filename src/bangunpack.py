@@ -598,7 +598,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
     # https://transloadit.com/blog/2017/07/new-imagemagick/
     imagemagick = False
-    if 'vpAg' in chunknames or 'caNv' in chunknames:
+    if 'vpAg' in chunknames or 'caNv' in chunknames or 'orNT' in chunknames:
         imagemagick = True
 
     # check if the file was made using Adobe Fireworks
@@ -614,7 +614,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                        'sRGB', 'tEXt', 'tIME', 'tRNS', 'zTXt', 'iTXt',
                        'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
                        'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT',
-                       'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF'])
+                       'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT'])
 
     unknownchunks = chunknames.difference(knownchunks)
     hasunknownchunks = False
