@@ -766,11 +766,18 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             # data starts at 8
             checkfile.seek(offset + o['offset'] + 8)
             checkbytes = checkfile.read(o['size'])
+            endofxmp = checkbytes.find(b'\x00')
             try:
-                xmpdata = checkbytes.decode()
-            except:
+                if endofxmp == -1:
+                    xmpdata = checkbytes.decode()
+                else:
+                    xmpdata = checkbytes[:endofxmp].decode()
+                # XMP should be valid XML
+                xmpdom = xml.dom.minidom.parseString(xmpdata)
+            except Exception as e:
                 continue
             hasxmp = True
+            pngtexts.append({'xmp': xmpdata, 'offset': o['offset']})
 
     # There has to be exactly 1 IEND chunk (section 5.6)
     if endoffilereached:
