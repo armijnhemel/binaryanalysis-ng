@@ -616,6 +616,12 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                        'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT',
                        'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF'])
 
+    unknownchunks = chunknames.difference(knownchunks)
+    hasunknownchunks = False
+
+    if len(unknownchunks) != 0:
+        hasunknownchunks = True
+
     pngtexts = []
     hasxmp = False
 
