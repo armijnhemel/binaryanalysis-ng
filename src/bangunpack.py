@@ -3367,6 +3367,10 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
                 # https://setuptools.readthedocs.io/en/latest/formats.html
                 if z.filename == 'EGG-INFO/PKG-INFO':
                     labels.append('python egg')
+                if z.filename == 'AndroidManifest.xml' or z.filename == 'classes.dex':
+                    if filename.suffix == '.apk':
+                        labels.append('android')
+                        labels.append('apk')
                 if z.file_size == 0 and not z.is_dir() and z.external_attr & 0x10 == 0x10:
                     faultyzipfiles.append(z)
                 # only stored, deflate, bzip2 and lzma are supported
