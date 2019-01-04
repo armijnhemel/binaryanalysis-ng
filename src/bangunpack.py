@@ -145,6 +145,7 @@ import base64
 import re
 import pathlib
 import email.parser
+import datetime
 
 # some external packages that are needed
 import PIL.Image
@@ -799,6 +800,22 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 continue
             hasxmp = True
             pngtexts.append({'xmp': xmpdata, 'offset': o['offset']})
+
+    if 'tIME' in chunknames:
+        for o in chunknametooffsets['tIME']:
+            # data starts at 8
+            checkfile.seek(offset + o['offset'] + 8)
+            if o['size'] != 7:
+                continue
+            checkbytes = checkfile.read(o['size'])
+            pngyear = int.from_bytes(checkbytes[:2], byteorder='big')
+            pngmonth = checkbytes[2]
+            pngday = checkbytes[3]
+            pnghour = checkbytes[4]
+            pngminute = checkbytes[5]
+            pngsecond = checkbytes[6]
+            pngdate = datetime.datetime(pngyear, pngmonth, pngday, pnghour, pngminute, pngsecond)
+            pngtexts.append({'time': pngdate, 'offset': o['offset']})
 
     # There has to be exactly 1 IEND chunk (section 5.6)
     if endoffilereached:
