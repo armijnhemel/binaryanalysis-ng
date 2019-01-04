@@ -753,6 +753,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 except:
                     continue
                 hasxmp = True
+                pngtexts.append({'xmp': itxt, 'offset': o['offset']})
             else:
                 pngtexts.append({'key': keyword, 'languagetag': languagetag,
                                  'translatedkey': translatedkeyword, 'value': itxt,
