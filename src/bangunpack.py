@@ -601,12 +601,20 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     if 'vpAg' in chunknames or 'caNv' in chunknames:
         imagemagick = True
 
+    # check if the file was made using Adobe Fireworks
+    fireworks = False
+    for i in ['prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF']:
+        if i in chunknames:
+            fireworks = True
+            break
+
     # a list of known chunks
     knownchunks = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM',
                        'gAMA', 'hIST', 'iCCP', 'pHYs', 'sBIT', 'sPLT',
                        'sRGB', 'tEXt', 'tIME', 'tRNS', 'zTXt', 'iTXt',
                        'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
-                       'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT'])
+                       'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT',
+                       'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF'])
 
     pngtexts = []
     hasxmp = False
@@ -810,6 +818,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 labels.append('imagemagick')
             if idot:
                 labels.append('apple')
+            if fireworks:
+                labels.append('adobe fireworks')
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
@@ -846,6 +856,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             outlabels.append('imagemagick')
         if idot:
             outlabels.append('apple')
+        if fireworks:
+            outlabels.append('adobe fireworks')
         unpackedfilesandlabels.append((outfilename, outlabels))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
