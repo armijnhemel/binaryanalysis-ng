@@ -3540,6 +3540,8 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory):
             if knowncompression:
                 dirwalk = os.walk(unpackdir)
                 for entry in dirwalk:
+                    for direntry in entry[1]:
+                        unpackedfilesandlabels.append((os.path.join(entry[0], direntry), []))
                     for direntry in entry[2]:
                         unpackedfilesandlabels.append((os.path.join(entry[0], direntry), []))
             else:
