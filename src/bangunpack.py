@@ -843,7 +843,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         if ninepatch:
             outlabels.append('ninepatch')
         if imagemagick:
-            labels.append('imagemagick')
+            outlabels.append('imagemagick')
         if idot:
             outlabels.append('apple')
         unpackedfilesandlabels.append((outfilename, outlabels))
