@@ -8022,7 +8022,7 @@ def unpackCab(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
     checkfile.close()
 
-    unpackedsize = cabinetsize - offset
+    unpackedsize = cabinetsize
 
     dirwalk = os.walk(unpackdir)
     for direntries in dirwalk:
@@ -8035,6 +8035,7 @@ def unpackCab(filename, offset, unpackdir, temporarydirectory):
             fullfilename = os.path.join(direntries[0], filename)
             unpackedfilesandlabels.append((fullfilename, []))
 
+    # whole file is cabinet
     if not havetmpfile:
         labels.append('cab')
         labels.append('archive')
