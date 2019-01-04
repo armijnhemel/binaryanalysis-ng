@@ -1604,6 +1604,7 @@ def main(argv):
         picklefile.close()
 
         if writereport:
+            labelcounter = collections.Counter()
             # create a human readable report
             reportfile = open(scandirectory / 'report.txt', 'w')
             print("SCAN RESULTS FOR: %s\n" % checkfile, file=reportfile)
@@ -1628,6 +1629,7 @@ def main(argv):
                     print("MIME type:", mimetype, file=reportfile)
                 if 'parent' in scanresult['scantree'][i]:
                     print("Parent: %s" % scanresult['scantree'][i]['parent'],  file=reportfile)
+                labelcounter.update(scanresult['scantree'][i]['labels'])
                 reportlabels = functools.reduce(lambda x, y: x + ", " + y, sorted(scanresult['scantree'][i]['labels']))
                 print("Labels: %s" % reportlabels, file=reportfile)
                 bytesscanned = 0
@@ -1646,6 +1648,13 @@ def main(argv):
                                     print(" %s" % f, file=reportfile)
                 print(file=reportfile)
                 reportfile.flush()
+
+            print("Total labels:", file=reportfile)
+            print("=" * 13, file=reportfile)
+            print(file=reportfile)
+            for l in labelcounter.most_common():
+                print("Name: %s" % l[0], file=reportfile)
+                print("Amount: %d\n" % l[1], file=reportfile)
             reportfile.close()
 
         # The end.
