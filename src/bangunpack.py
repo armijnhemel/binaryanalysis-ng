@@ -663,7 +663,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             except:
                 continue
 
-            # then the encryption, only support deflate for now
+            # then the compression, only support deflate for now
             if checkbytes[endofkeyword+1] != 0:
                 continue
 
