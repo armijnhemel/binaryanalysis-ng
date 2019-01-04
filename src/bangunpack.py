@@ -586,6 +586,13 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     if 'npTc' in chunknames or 'npLb' in chunknames or 'npOl' in chunknames:
         ninepatch = True
 
+    # check if the file has an iDOT chunk, which is an undocumented
+    # extension from Apple, not confirming to PNG specifications (it
+    # is seen as a critical chunk by many decoders)
+    idot = False
+    if 'iDOT' in chunknames:
+        idot = True
+
     # check if the file is perhaps made by ImageMagick, which used a few
     # private chunks:
     # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
@@ -599,7 +606,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                        'gAMA', 'hIST', 'iCCP', 'pHYs', 'sBIT', 'sPLT',
                        'sRGB', 'tEXt', 'tIME', 'tRNS', 'zTXt', 'iTXt',
                        'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
-                       'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP'])
+                       'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT'])
 
     pngtexts = []
     hasxmp = False
@@ -801,6 +808,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 labels.append('ninepatch')
             if imagemagick:
                 labels.append('imagemagick')
+            if idot:
+                labels.append('apple')
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
@@ -835,6 +844,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             outlabels.append('ninepatch')
         if imagemagick:
             labels.append('imagemagick')
+        if idot:
+            outlabels.append('apple')
         unpackedfilesandlabels.append((outfilename, outlabels))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
