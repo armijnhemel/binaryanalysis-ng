@@ -674,6 +674,90 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 continue
             pngtexts.append({'key': keyword, 'value': value, 'offset': o['offset']})
 
+    # internationalized text
+    # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
+    # section 4.2.3.3
+    if 'iTXt' in chunknames:
+        for o in chunknametooffsets['iTXt']:
+            # data starts at 8
+            checkfile.seek(offset + o['offset'] + 8)
+            checkbytes = checkfile.read(o['size'])
+
+            localoffset = 0
+
+            # first a keyword followed by \x00
+            endofkeyword = checkbytes.find(b'\x00')
+            if endofkeyword == -1 or endofkeyword == 0:
+                continue
+
+            localoffset += endofkeyword
+
+            try:
+                keyword = checkbytes[:localoffset].decode()
+            except:
+                continue
+
+            # then the compression flag, either 0 or 1
+            localoffset += 1
+            compressed = False
+            if checkbytes[localoffset] == 1:
+                compressed = True
+            elif checkbytes[localoffset] > 1:
+                continue
+
+            # then the compression, only support deflate for now
+            localoffset += 1
+            if compressed:
+                if checkbytes[localoffset] != 0:
+                    continue
+
+            # then the language tag (optional)
+            languagetag = ''
+            localoffset += 1
+            if checkbytes[localoffset] != 0:
+                endoflanguagetag = checkbytes.find(b'\x00', localoffset)
+                try:
+                    languagetag = checkbytes[localoffset:endoflanguagetag].decode()
+                except:
+                    continue
+                localoffset = endoflanguagetag
+
+            # then the translated keyword (optional)
+            translatedkeyword = ''
+            localoffset += 1
+            if checkbytes[localoffset] != 0:
+                endoftranslatedkeyword = checkbytes.find(b'\x00', localoffset)
+                try:
+                    translatedkeyword = checkbytes[localoffset:endoftranslatedkeyword].decode()
+                except:
+                    continue
+                localoffset = endoftranslatedkeyword
+
+            itxt = ''
+            localoffset += 1
+            if len(checkbytes) - localoffset > 0:
+                try:
+                    if compressed:
+                        itxt = zlib.decompress(checkbytes[localoffset:]).decode()
+                    else:
+                        itxt = checkbytes[localoffset:].decode()
+                except Exception as e:
+                    continue
+            if keyword == 'XML:com.adobe.xmp':
+                # the XMP specification (part 3) recommends
+                # using the iTXt chunk (section 1.1.5)
+                # https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart3.pdf
+                try:
+                    # XMP should be valid XML
+                    xmpdom = xml.dom.minidom.parseString(itxt)
+                except:
+                    continue
+                hasxmp = True
+            else:
+                pngtexts.append({'key': keyword, 'languagetag': languagetag,
+                                 'translatedkey': translatedkeyword, 'value': itxt,
+                                 'offset': o['offset']})
+
     # chunk for XMP data. According to exiftool:
     # 'obsolete location specified by a September 2001 XMP draft'
     if 'tXMP' in chunknames:
