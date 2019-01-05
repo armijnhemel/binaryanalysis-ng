@@ -675,7 +675,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                        'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
                        'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT',
                        'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT',
-                       'sCAL', 'sTER'])
+                       'sCAL', 'sTER', 'meTa'])
 
     unknownchunks = chunknames.difference(knownchunks)
     hasunknownchunks = False
@@ -887,6 +887,21 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             if 'time' not in pngresults:
                 pngresults['time'] = []
             pngresults['time'].append({'time': pngdate, 'offset': o['offset']})
+
+    # no idea what this chunk means or does, but
+    # found in a few files made with Adobe ImageReady
+    if 'meTa' in chunknames:
+        for o in chunknametooffsets['meTa']:
+            # data starts at 8
+            checkfile.seek(offset + o['offset'] + 8)
+            checkbytes = checkfile.read(o['size'])
+            try:
+                meta = checkbytes.decode('utf_16_le')
+            except:
+                continue
+            if 'meta' not in pngresults:
+                pngresults['meta'] = []
+            pngresults['meta'].append({'meta': meta, 'offset': o['offset']})
 
     # There has to be exactly 1 IEND chunk (section 5.6)
     if endoffilereached:
