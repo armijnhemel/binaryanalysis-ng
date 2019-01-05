@@ -632,6 +632,10 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     pngtexts = []
     hasxmp = False
 
+    pngresults = {}
+    pngresults['chunks'] = chunknametooffsets
+    pngresults['unknownchunks'] = unknownchunks
+
     # check if there are any sections with interesting metadata
 
     # eXIf is a recently adopted extension to PNG. ImageMagick supports it but
@@ -781,11 +785,15 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 except:
                     continue
                 hasxmp = True
-                pngtexts.append({'xmp': itxt, 'offset': o['offset']})
+                if 'xmp' not in pngresults:
+                    pngresults['xmp'] = []
+                pngresults['xmp'].append({'xmp': itxt, 'offset': o['offset']})
             else:
                 pngtexts.append({'key': keyword, 'languagetag': languagetag,
                                  'translatedkey': translatedkeyword, 'value': itxt,
                                  'offset': o['offset']})
+
+    pngresults['text'] = pngtexts
 
     # chunk for XMP data. According to exiftool:
     # 'obsolete location specified by a September 2001 XMP draft'
@@ -805,7 +813,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             except Exception as e:
                 continue
             hasxmp = True
-            pngtexts.append({'xmp': xmpdata, 'offset': o['offset']})
+            if 'xmp' not in pngresults:
+                pngresults['xmp'] = []
+            pngresults['xmp'].append({'xmp': itxt, 'offset': o['offset']})
 
     if 'tIME' in chunknames:
         for o in chunknametooffsets['tIME']:
@@ -821,7 +831,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             pngminute = checkbytes[5]
             pngsecond = checkbytes[6]
             pngdate = datetime.datetime(pngyear, pngmonth, pngday, pnghour, pngminute, pngsecond)
-            pngtexts.append({'time': pngdate, 'offset': o['offset']})
+            if 'time' not in pngresults:
+                pngresults['time'] = []
+            pngresults['time'].append({'time': pngdate, 'offset': o['offset']})
 
     # There has to be exactly 1 IEND chunk (section 5.6)
     if endoffilereached:
