@@ -466,7 +466,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'File too small (less than 57 bytes'}
         return {'status': False, 'error': unpackingerror}
 
-    # open the file skip over the magic header bytes (section 5.2)
+    # open the file, skip the magic header bytes (section 5.2)
     checkfile = open(filename, 'rb')
     checkfile.seek(offset+8)
     unpackedsize = 8
@@ -551,7 +551,10 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 25
 
-    # Then move on to the next chunks in similar fashion (section 5.3)
+    # Then move on to the next chunks in similar fashion (section 5.3).
+    # Extra sanity checks could be done here for the order in which
+    # the chunks appear, but likely there would be too many broken
+    # PNG files then.
     endoffilereached = False
     idatseen = False
     chunknames = set()
