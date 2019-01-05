@@ -477,9 +477,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     # when including length, chunk type and CRC fields (section 11.2.2)
     checkbytes = checkfile.read(25)
     if checkbytes[0:4] != b'\x00\x00\x00\x0d':
+        checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'no valid chunk length'}
-        checkfile.close()
         return {'status': False, 'error': unpackingerror}
 
     # store the results of the PNG
@@ -487,9 +487,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 
     # The first chunk *has* to be IHDR
     if checkbytes[4:8] != b'IHDR':
+        checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'no IHDR header'}
-        checkfile.close()
         return {'status': False, 'error': unpackingerror}
 
     # check the width, height, depth, compression, etc.
@@ -545,9 +545,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     crccomputed = binascii.crc32(checkbytes[4:21])
     crcstored = int.from_bytes(checkbytes[21:25], byteorder='big')
     if crccomputed != crcstored:
+        checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'Wrong CRC'}
-        checkfile.close()
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 25
 
@@ -561,27 +561,27 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         chunkoffset = checkfile.tell() - offset
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
+            checkfile.close()
             unpackingerror = {'offset': offset + unpackedsize,
                               'fatal': False,
                               'reason': 'Could not read chunk size'}
-            checkfile.close()
             return {'status': False, 'error': unpackingerror}
         chunksize = int.from_bytes(checkbytes, byteorder='big')
         if offset + chunksize > filesize:
+            checkfile.close()
             unpackingerror = {'offset': offset + unpackedsize,
                               'fatal': False,
                               'reason': 'PNG data bigger than file'}
-            checkfile.close()
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
 
         # read the chunk type, plus the chunk data
         checkbytes = checkfile.read(4+chunksize)
         if len(checkbytes) != 4+chunksize:
+            checkfile.close()
             unpackingerror = {'offset': offset + unpackedsize,
                               'fatal': False,
                               'reason': 'Could not read chunk type'}
-            checkfile.close()
             return {'status': False, 'error': unpackingerror}
 
         try:
@@ -599,9 +599,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         crcstored = int.from_bytes(checkbytes, byteorder='big')
         if crccomputed != crcstored:
+            checkfile.close()
             unpackingerror = {'offset': offset + unpackedsize,
                               'fatal': False, 'reason': 'Wrong CRC'}
-            checkfile.close()
             return {'status': False, 'error': unpackingerror}
 
         # add the name of the chunk to the list of chunk names
