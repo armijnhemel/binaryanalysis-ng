@@ -482,12 +482,63 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         checkfile.close()
         return {'status': False, 'error': unpackingerror}
 
+    # store the results of the PNG
+    pngresults = {}
+
     # The first chunk *has* to be IHDR
     if checkbytes[4:8] != b'IHDR':
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'no IHDR header'}
         checkfile.close()
         return {'status': False, 'error': unpackingerror}
+
+    # check the width, height, depth, compression, etc.
+    width = int.from_bytes(checkbytes[8:12], byteorder='big')
+    height = int.from_bytes(checkbytes[12:16], byteorder='big')
+    if width == 0 or height == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'width or height cannot be 0'}
+        return {'status': False, 'error': unpackingerror}
+
+    depth = checkbytes[16]
+    if depth not in [1, 2, 4, 8, 16]:
+        checkfile.close()
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'invalid depth'}
+        return {'status': False, 'error': unpackingerror}
+
+    colortype = checkbytes[17]
+    if colortype not in [0, 2, 3, 4, 6]:
+        checkfile.close()
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'invalid color type'}
+        return {'status': False, 'error': unpackingerror}
+
+    compressionmethod = checkbytes[18]
+    if compressionmethod != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'invalid compression method'}
+        return {'status': False, 'error': unpackingerror}
+
+    filtermethod = checkbytes[19]
+    if filtermethod != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'invalid filter method'}
+        return {'status': False, 'error': unpackingerror}
+
+    interlacemethod = checkbytes[20]
+    if interlacemethod > 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'invalid interlace method'}
+        return {'status': False, 'error': unpackingerror}
+
+    pngresults['height'] = height
+    pngresults['width'] = width
+    pngresults['depth'] = depth
 
     # then compute the CRC32 of bytes 4 - 21 (header + data)
     # and compare it to the CRC in the PNG file
@@ -629,12 +680,11 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     if len(unknownchunks) != 0:
         hasunknownchunks = True
 
-    pngtexts = []
-    hasxmp = False
-
-    pngresults = {}
     pngresults['chunks'] = chunknametooffsets
     pngresults['unknownchunks'] = unknownchunks
+
+    pngtexts = []
+    hasxmp = False
 
     # check if there are any sections with interesting metadata
 
