@@ -575,11 +575,16 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'No IDAT found'}
         return {'status': False, 'error': unpackingerror}
 
-    # Check whether or not the PNG is animated.
+    # check if the PNG is animated.
     # https://wiki.mozilla.org/APNG_Specification
     animated = False
     if 'acTL' in chunknames and 'fcTL' in chunknames and 'fdAT' in chunknames:
         animated = True
+
+    # Check if the file is a stereo image
+    stereo = False
+    if 'sTER' in chunknames:
+        stereo = True
 
     # check if the file is possibly a "NinePatch" image
     # https://developer.android.com/reference/android/graphics/NinePatch
@@ -615,7 +620,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                        'sRGB', 'tEXt', 'tIME', 'tRNS', 'zTXt', 'iTXt',
                        'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
                        'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT',
-                       'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT'])
+                       'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT',
+                       'sCAL', 'sTER'])
 
     unknownchunks = chunknames.difference(knownchunks)
     hasunknownchunks = False
@@ -835,6 +841,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             if animated:
                 labels.append('animated')
                 labels.append('apng')
+            if stereo:
+                labels.append('stereo')
             if ninepatch:
                 labels.append('ninepatch')
             if imagemagick:
@@ -873,6 +881,8 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
         if animated:
             outlabels.append('animated')
             outlabels.append('apng')
+        if stereo:
+            outlabels.append('stereo')
         if ninepatch:
             outlabels.append('ninepatch')
         if imagemagick:
