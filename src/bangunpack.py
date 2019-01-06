@@ -19230,7 +19230,15 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # section 7.5.2
-    if int(checkbytes) > 7:
+    try:
+        versionnumber = int(checkbytes)
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid version number'}
+        return {'status': False, 'error': unpackingerror}
+
+    if versionnumber > 7:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid version number'}
