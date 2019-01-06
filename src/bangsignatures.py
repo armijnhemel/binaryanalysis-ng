@@ -46,6 +46,7 @@ signatures = {
     'appledouble': b'\x00\x05\x16\x07',  # https://tools.ietf.org/html/rfc1740 Appendix B
     'icc': b'acsp',  # http://www.color.org/specification/ICC1v43_2010-12.pdf, section 7.2
     'zip': b'\x50\x4b\x03\04',  # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
+    'dahua': b'DH\x03\04', # https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/#post-288739
     'bzip2': b'BZh',  # https://en.wikipedia.org/wiki/Bzip2#File_format
     'xar': b'\x78\x61\x72\x21',  # https://github.com/mackyle/xar/wiki/xarformat
     'gif87': b'GIF87a',  # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
@@ -141,6 +142,7 @@ signaturetofunction = {
     'appledouble': bangunpack.unpackAppleDouble,
     'icc': bangunpack.unpackICC,
     'zip': bangunpack.unpackZip,
+    'dahua': bangunpack.unpackDahua,
     'bzip2': bangunpack.unpackBzip2,
     'xar': bangunpack.unpackXAR,
     'gif87': bangunpack.unpackGIF,
