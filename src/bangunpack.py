@@ -47,7 +47,8 @@
 # 19. Vim swap files (whole file only)
 # 20. Android sparse data image
 # 21. Android backup files
-# 22. ICO (MS Windows icons)
+# 22. PDF (simple verification, no object streams, incremental updates at
+#     end of the file)
 # 23. Chrome PAK (version 4 & 5, only if offset starts at 0)
 # 24. GNU message catalog
 # 25. RPM (missing: delta RPM)
@@ -80,8 +81,6 @@
 # 51. D-Link ROMFS
 # 52. Unix passwd files
 # 53. Unix shadow files
-# 54. PDF (simple verification, no object streams, incremental updates at
-#     end of the file)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -114,6 +113,7 @@
 # 24. CSS
 # 25. pack200 (needs unpack200)
 # 26. GIMP brush (needs PIL)
+# 27. ICO (MS Windows icons, needs PIL)
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
@@ -7737,6 +7737,17 @@ def unpackICO(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = maxoffset - offset
 
     if offset == 0 and unpackedsize == filesize:
+        # now load the file into PIL as an extra sanity check
+        try:
+            testimg = PIL.Image.open(checkfile)
+            testimg.load()
+            testimg.close()
+        except Exception as e:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid ICO data according to PIL'}
+            return {'status': False, 'error': unpackingerror}
+        checkfile.close()
         labels.append('graphics')
         labels.append('ico')
         labels.append('resource')
@@ -7748,6 +7759,15 @@ def unpackICO(filename, offset, unpackdir, temporarydirectory):
     outfile = open(outfilename, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
+    try:
+        testimg = PIL.Image.open(outfile)
+        testimg.load()
+        testimg.close()
+    except Exception as e:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid ICO data according to PIL'}
+        return {'status': False, 'error': unpackingerror}
     checkfile.close()
 
     unpackedfilesandlabels.append((outfilename, ['ico', 'graphics', 'resource', 'unpacked']))
