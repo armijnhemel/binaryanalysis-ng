@@ -13523,7 +13523,7 @@ def unpackXML(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
-        unpackingerror = {'offset': oldoffset, 'fatal': False,
+        unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'not enough data'}
 
     # XML files sometimes start with a Byte Order Mark
