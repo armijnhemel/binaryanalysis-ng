@@ -169,6 +169,8 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # * offset: offset inside the file where the file system, compressed
 #   file media file possibly starts
 # * unpackdir: the target directory where data should be written to
+# * temporarydirectory: a directory where temporary files are stored
+#   and temporary directories are created
 #
 # The unpackers are supposed to return a dictionary with the following
 # field:
