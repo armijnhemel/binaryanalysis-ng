@@ -4387,6 +4387,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
     allowbrokenxmp = True
     xmpdata = b''
     xmpdom = None
+    gifcomments = []
 
     while True:
         checkbytes = checkfile.read(1)
@@ -4470,6 +4471,8 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                         return {'status': False, 'error': unpackingerror}
                     gifcomment += checkfile.read(datasize)
                     unpackedsize += datasize
+                gifcomments.append(gifcomment)
+
             # process the application extension (section 26)
             elif checkbytes == b'\xff':
                 checkbytes = checkfile.read(1)
