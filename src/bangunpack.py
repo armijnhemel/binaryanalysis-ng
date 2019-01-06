@@ -13525,6 +13525,7 @@ def unpackXML(filename, offset, unpackdir, temporarydirectory):
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
 
     # XML files sometimes start with a Byte Order Mark
     # https://en.wikipedia.org/wiki/Byte_order_mark
