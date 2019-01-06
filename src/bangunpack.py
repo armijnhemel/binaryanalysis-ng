@@ -4281,7 +4281,7 @@ def unpackXAR(filename, offset, unpackdir, temporarydirectory):
 #
 # The references in the comments correspond to sections in this
 # document.
-# A grammer for the GIF format is described in Appendix B.
+# A grammar for the GIF format is described in Appendix B.
 def unpackGIF(filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a GIF file.'''
     filesize = filename.stat().st_size
