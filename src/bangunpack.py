@@ -3644,7 +3644,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
             # check if there have been directories stored
             # as regular files.
             faultyzipfiles = []
-            isopc = False
+            is_opc = False
             for z in zipinfolist:
                 # https://setuptools.readthedocs.io/en/latest/formats.html
                 if z.filename == 'EGG-INFO/PKG-INFO':
@@ -3657,7 +3657,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
                 # https://en.wikipedia.org/wiki/Open_Packaging_Conventions
                 if z.filename == '[Content_Types].xml':
                     labels.append("Open Packaging Conventions")
-                    isopc = True
+                    is_opc = True
                 if z.file_size == 0 and not z.is_dir() and z.external_attr & 0x10 == 0x10:
                     faultyzipfiles.append(z)
                 # only stored, deflate, bzip2 and lzma are supported
@@ -3667,7 +3667,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
                     break
             if knowncompression:
                 for z in zipinfolist:
-                    if filename.suffix == '.nupkg' and isopc:
+                    if filename.suffix == '.nupkg' and is_opc:
                         if z.filename.endswith('.nuspec'):
                             labels.append('NuGet')
                             break
