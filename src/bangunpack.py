@@ -4388,6 +4388,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
     xmpdata = b''
     xmpdom = None
     gifcomments = []
+    applicationextensions = []
 
     while True:
         checkbytes = checkfile.read(1)
@@ -4403,6 +4404,10 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
         if checkbytes == b'\x3b':
             havegiftrailer = True
             break
+
+        # store the current offset in the GIF file,
+        # relative to the GIF header
+        currentoffset = checkfile.tell() - offset
 
         # The various extensions all start with 0x21 (section 23, 24,
         # 25, 26, appendix C)
@@ -4507,6 +4512,11 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                 # and the application authentication code
                 applicationauth = checkfile.read(3)
                 unpackedsize += 11
+
+                # store the application extensions
+                applicationextensions.append({'identifier': applicationidentifier,
+                                              'auth': applicationauth,
+                                              'offset': currentoffset})
 
                 # Then process the application data for different
                 # extensions. Only a handful have been defined but
