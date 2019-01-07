@@ -10957,6 +10957,9 @@ def unpackCHM(filename, offset, unpackdir, temporarydirectory):
 
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
+        # cleanup
+        if havetmpfile:
+            os.unlink(temporaryfile[1])
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid CHM file'}
         return {'status': False, 'error': unpackingerror}
