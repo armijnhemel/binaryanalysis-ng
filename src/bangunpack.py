@@ -15793,7 +15793,13 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         if endofname == -1:
             # something is horribly wrong here
             continue
-        sectionname = checkbytes[sectionheaders[i]['sh_name_offset']:endofname].decode()
+        try:
+            sectionname = checkbytes[sectionheaders[i]['sh_name_offset']:endofname].decode()
+        except:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'broken section name'}
+            return {'status': False, 'error': unpackingerror}
         sectionheaders[i]['name'] = sectionname
         sectionnames.add(sectionname)
         if sectionname != '':
