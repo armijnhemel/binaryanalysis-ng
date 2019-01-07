@@ -4628,6 +4628,21 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                                               'reason': 'invalid XMP data'}
                             return {'status': False, 'error': unpackingerror}
                     xmps.append(xmpdata)
+                elif applicationidentifier == b'ADOBE:IR' and applicationauth == b'1.0':
+                    # extension specific to Adobe Image Ready(?)
+                    pass
+                elif applicationidentifier == b'STARDIV ' and applicationauth == b'5.0':
+                    # extension specific to old versions of StarOffice
+                    pass
+                elif applicationidentifier == b'ImageMag' and applicationauth == b'ick':
+                    # extension specific to ImageMagick
+                    pass
+                elif applicationidentifier == b'MGK8BIM0' and applicationauth == b'000':
+                    # extension specific to ImageMagick
+                    pass
+                elif applicationidentifier == b'MGKIPTC0' and applicationauth == b'000':
+                    # extension specific to ImageMagick
+                    pass
 
         # process the image descriptor (section 20)
         elif checkbytes == b'\x2c':
