@@ -6830,6 +6830,7 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory,
 
     addbytes = 0
     fontname = ''
+    seenhead = False
 
     # then read the table directory, with one entry per table
     for i in range(0, numtables):
@@ -7014,6 +7015,7 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory,
                 checkfile.seek(offset + tableoffset + 8)
             checkbytes = checkfile.read(4)
             checksumadjustment = int.from_bytes(checkbytes, byteorder='big')
+            seenhead = True
 
         # then store the maxoffset, including padding, but minus
         # any "virtual" bytes
@@ -7032,6 +7034,12 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory,
         checkfile.seek(oldoffset)
 
     unpackedsize = maxoffset - offset
+
+    if not seenhead:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a font file'}
+        return {'status': False, 'error': unpackingerror}
 
     # in case the file is a font collection it ends here.
     if collectionoffset is not None:
