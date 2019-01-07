@@ -20104,6 +20104,8 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
             clusterinfo[i] = {'size': offsetsize, 'compressed': compressed,
                               'bloboffsets': bloboffsets}
         else:
+            # TODO: this is where things get complex: the data is compressed
+            # but the offsets are only valid in the uncompressed data.
             clusterinfo[i] = {'size': offsetsize, 'compressed': compressed}
 
         # and return to the old offset
