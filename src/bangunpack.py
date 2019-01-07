@@ -4302,6 +4302,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    gifresults = {}
 
     # a minimal GIF file is 6 + 6 + 6 + 1 = 19
     if filesize - offset < 19:
@@ -4332,6 +4333,8 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
 
+    gifresults['width'] = logicalscreenwidth
+
     # then the logical screen height, cannot be 0
     checkbytes = checkfile.read(2)
     logicalscreenheight = int.from_bytes(checkbytes, byteorder='little')
@@ -4342,6 +4345,8 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'invalid logical screen height'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
+
+    gifresults['height'] = logicalscreenheight
 
     # Then extract the packed fields byte (section 18)
     # the fields describe:
@@ -4386,10 +4391,13 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
     havegiftrailer = False
     animated = False
     allowbrokenxmp = True
-    xmpdata = b''
-    xmpdom = None
-    gifcomments = []
+
+    # store extracted data from application extensions
+    # such as comments (multiple allowed), XMP (multiple allowed)
+    # and so on.
     applicationextensions = []
+    gifcomments = []
+    xmps = []
 
     while True:
         checkbytes = checkfile.read(1)
@@ -4409,6 +4417,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
         # store the current offset in the GIF file,
         # relative to the GIF header
         currentoffset = checkfile.tell() - offset
+        xmpdata = b''
 
         # The various extensions all start with 0x21 (section 23, 24,
         # 25, 26, appendix C)
@@ -4618,6 +4627,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                                               'fatal': False,
                                               'reason': 'invalid XMP data'}
                             return {'status': False, 'error': unpackingerror}
+                    xmps.append(xmpdata)
 
         # process the image descriptor (section 20)
         elif checkbytes == b'\x2c':
@@ -4696,9 +4706,8 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                           'fatal': False, 'reason': 'GIF trailer not found'}
         return {'status': False, 'error': unpackingerror}
 
-    extrareturn = {}
-    if xmpdata != b'' and xmpdom is not None:
-        extrareturn['xmp'] = xmpdom.toprettyxml()
+    if xmps != []:
+        gifresults['xmp'] = xmps
 
     if offset == 0 and unpackedsize == filesize:
         # now load the file into PIL as an extra sanity check
@@ -4717,8 +4726,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
         if animated:
             labels.append('animated')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels,
-                'extra': extrareturn}
+                'filesandlabels': unpackedfilesandlabels}
 
     # Carve the file. It is anonymous, so just give it a name
     outfilename = os.path.join(unpackdir, "unpacked.gif")
