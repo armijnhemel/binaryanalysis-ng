@@ -15918,6 +15918,11 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     # then extract data from the dynamic section and dynamic symbol table
     for s in sectionheaders:
         if sectionheaders[s]['sh_type'] == 6:
+            if 'name' not in sectionheaders[s]:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'dynamic section has no name'}
+                return {'status': False, 'error': unpackingerror}
             if sectionheaders[s]['name'] != '.dynamic':
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
