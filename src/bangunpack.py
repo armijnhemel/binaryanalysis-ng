@@ -81,6 +81,7 @@
 # 51. D-Link ROMFS
 # 52. Unix passwd files
 # 53. Unix shadow files
+# 54. ZIM (Wikipedia archive format)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -19798,5 +19799,522 @@ def unpackGimpBrush(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     unpackedfilesandlabels.append((outfilename, ['gimp brush', 'graphics', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# https://wiki.openzim.org/wiki/ZIM_file_format
+# https://wiki.openzim.org/wiki/ZIM_File_Example
+# Test files: https://wiki.kiwix.org/wiki/Content_in_all_languages
+def unpackZim(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack/verify a ZIM file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # ZIM header is 80 bytes
+    if offset + 80 > filesize:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+
+    unpackedsize += 4
+
+    # first the major version
+    checkbytes = checkfile.read(2)
+    majorversion = int.from_bytes(checkbytes, byteorder='little')
+    # only support version 5 now, as it is easier to parse
+    #if majorversion != 5 and majorversion != 6:
+    if majorversion != 5:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'unsupported version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # minor version
+    checkbytes = checkfile.read(2)
+    minorversion = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # zim uuid
+    checkbytes = checkfile.read(16)
+    unpackedsize += 16
+
+    # articlecount
+    checkbytes = checkfile.read(4)
+    articlecount = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # clustercount
+    checkbytes = checkfile.read(4)
+    clustercount = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # urlptrpos
+    checkbytes = checkfile.read(8)
+    urlptrpos = int.from_bytes(checkbytes, byteorder='little')
+    if offset + urlptrpos > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'urlPtrPos outside file'}
+        return {'status': False, 'error': unpackingerror}
+
+    # each URL pointer is 8 bytes long
+    if offset + urlptrpos + articlecount * 8 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'URL pointer outside file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 8
+
+    # titleptrpos
+    checkbytes = checkfile.read(8)
+    titleptrpos = int.from_bytes(checkbytes, byteorder='little')
+    if offset + titleptrpos > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'titlePtrPos outside file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 8
+
+    # clusterptrpos
+    checkbytes = checkfile.read(8)
+    clusterptrpos = int.from_bytes(checkbytes, byteorder='little')
+    if offset + clusterptrpos > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'clusterPtrPos outside file'}
+        return {'status': False, 'error': unpackingerror}
+    # extra sanity check: each cluster pointer is 8 bytes
+    if offset + clusterptrpos + clustercount * 8 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'clusterPtrPos outside file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 8
+
+    # mimelistpos
+    checkbytes = checkfile.read(8)
+    mimelistpos = int.from_bytes(checkbytes, byteorder='little')
+    if offset + mimelistpos > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'mimeListPos outside file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 8
+
+    # main page
+    checkbytes = checkfile.read(4)
+    mainpage = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # layout page
+    checkbytes = checkfile.read(4)
+    layoutpage = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # checksumpos
+    checkbytes = checkfile.read(8)
+    checksumpos = int.from_bytes(checkbytes, byteorder='little')
+    if offset + checksumpos > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'checksumPos outside file'}
+        return {'status': False, 'error': unpackingerror}
+    if offset + checksumpos + 16 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for checksum'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 8
+
+    # checksumpos should be the last entry in the file
+    if checksumpos != max(urlptrpos, titleptrpos, clusterptrpos, mimelistpos, checksumpos):
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'checksum not last in file'}
+        return {'status': False, 'error': unpackingerror}
+
+    # now start processing the articles
+    # first jump to the mimelistpos, which should be the same
+    # as the current position in the file
+    if mimelistpos != unpackedsize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'MIME type list not directly after header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # store the MIME types, in order
+    articlemimetypes = []
+
+    # now read the mime types, until the empty string is reached
+    while True:
+        articlemime = b''
+        while True:
+            checkbytes = checkfile.read(1)
+            if checkbytes == b'\x00':
+                break
+            articlemime += checkbytes
+        if articlemime == b'':
+            break
+        try:
+            articlemimetypes.append(articlemime.decode())
+        except:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid MIME type'}
+            return {'status': False, 'error': unpackingerror}
+
+    # then process the URLs
+    checkfile.seek(offset + urlptrpos)
+    unpackedsize = urlptrpos
+
+    urlpointers = []
+
+    for i in range(0, articlecount):
+        checkbytes = checkfile.read(8)
+        urlpointer = int.from_bytes(checkbytes, byteorder='little')
+        if offset + urlpointer > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'URL outside file'}
+            return {'status': False, 'error': unpackingerror}
+        urlpointers.append(urlpointer)
+        unpackedsize += 8
+
+    # then the title pointers. These point to indexes of the URL pointers
+    checkfile.seek(offset + titleptrpos)
+    unpackedsize = titleptrpos
+
+    titlepointers = []
+
+    for i in range(0, articlecount):
+        checkbytes = checkfile.read(4)
+        titlepointer = int.from_bytes(checkbytes, byteorder='little')
+        if titlepointer > articlecount:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'Title pointing to non-existent URL'}
+            return {'status': False, 'error': unpackingerror}
+        titlepointers.append(titlepointer)
+        unpackedsize += 4
+
+    # sanity check for the cluster pointers
+    clusterpointers = []
+    unpackedsize = clusterptrpos
+
+    # store the offset size and compression per cluster
+    clusterinfo = {}
+
+    checkfile.seek(offset + clusterptrpos)
+    for i in range(0, clustercount):
+        checkbytes = checkfile.read(8)
+        clusterpointer = int.from_bytes(checkbytes, byteorder='little')
+        if offset + clusterpointer > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'cluster outside file'}
+            return {'status': False, 'error': unpackingerror}
+        clusterpointers.append(clusterpointer)
+
+        # now check the offset size for each cluster
+        # first store the current offset
+        oldoffset = checkfile.tell()
+
+        # jump to the cluster
+        checkfile.seek(offset + clusterpointer)
+
+        # read the first byte
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'\x00':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'cluster outside file'}
+            return {'status': False, 'error': unpackingerror}
+
+        compressed = False
+        if ord(checkbytes) & 15 == 4:
+            compressed = True
+
+        offsetsize = 4
+        if (ord(checkbytes) >> 4) & 1 == 1:
+            offsetsize = 8
+
+        # try to determine the offsets in each cluster
+        if not compressed:
+            checkbytes = checkfile.read(offsetsize)
+            if len(checkbytes) != offsetsize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'cluster outside file'}
+                return {'status': False, 'error': unpackingerror}
+
+            firstoffset = int.from_bytes(checkbytes, byteorder='little')
+            if firstoffset % offsetsize != 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'wrong value for blob offset'}
+                return {'status': False, 'error': unpackingerror}
+            blobcount = firstoffset//offsetsize
+            bloboffsets = [firstoffset]
+
+            for b in range(1, blobcount):
+                checkbytes = checkfile.read(offsetsize)
+                bloboffset = int.from_bytes(checkbytes, byteorder='little')
+                # sanity check
+                if offset + clusterpointer + 1 + bloboffset > filesize:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'wrong value for blob offset'}
+                    return {'status': False, 'error': unpackingerror}
+                bloboffsets.append(bloboffset)
+            clusterinfo[i] = {'size': offsetsize, 'compressed': compressed, 'bloboffsets': bloboffsets}
+        else:
+            clusterinfo[i] = {'size': offsetsize, 'compressed': compressed}
+
+        # and return to the old offset
+        checkfile.seek(oldoffset)
+        unpackedsize += 8
+
+    # list of valid name spaces. The documentation omits 'Z',
+    # which can be found in libzim/src/search.cpp and is related
+    # to Xapian indexes.
+    validnamespaces = set(['-', 'A', 'B', 'I', 'J', 'M', 'U', 'V', 'W', 'X', 'Z'])
+
+    # a list of name spaces with actual content, and no metadata
+    contentnamespaces = set(['-', 'A', 'I'])
+
+    # then process all the articles
+    for i in urlpointers:
+        checkfile.seek(offset + i)
+        unpackedsize = i
+
+        # there should be at least 12 bytes in each directory entry
+        if offset + i + 12 > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'directory entry outside file'}
+            return {'status': False, 'error': unpackingerror}
+
+        # read the MIME type number
+        checkbytes = checkfile.read(2)
+        mimetypenumber = int.from_bytes(checkbytes, byteorder='little')
+
+        # first check if an entry is a redirect, link target, or deleted
+        if mimetypenumber == 0xffff:
+            # redirect
+            pass
+        elif mimetypenumber == 0xfffe or mimetypenumber == 0xfffd:
+            # link target (0xfffe)
+            # deleted (0xfffd)
+            pass
+        else:
+            # check if the MIME type number is correct
+            # numbering starts at 0
+            if mimetypenumber >= len(articlemimetypes):
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'wrong MIME type number'}
+                return {'status': False, 'error': unpackingerror}
+
+        # then the parameterlength
+        checkbytes = checkfile.read(1)
+        parameterlength = ord(checkbytes)
+
+        # namespace
+        checkbytes = checkfile.read(1)
+        try:
+            namespace = checkbytes.decode()
+        except:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'wrong value for namespace'}
+            return {'status': False, 'error': unpackingerror}
+        if namespace not in validnamespaces:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid namespace'}
+            return {'status': False, 'error': unpackingerror}
+
+        # revision
+        checkbytes = checkfile.read(4)
+        revision = int.from_bytes(checkbytes, byteorder='little')
+
+        # here is where the different entries start to diverge
+        if mimetypenumber == 0xffff:
+            # redirect
+            pass
+        elif mimetypenumber == 0xfffe or mimetypenumber == 0xfffd:
+            # link target (0xfffe)
+            # deleted (0xfffd)
+            pass
+        else:
+            # cluster number
+            checkbytes = checkfile.read(4)
+            clusternumber = int.from_bytes(checkbytes, byteorder='little')
+
+            # check if the MIME type number is correct
+            # numbering starts at 0
+            if clusternumber >= clustercount:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'wrong cluster number'}
+                return {'status': False, 'error': unpackingerror}
+
+            # blob number
+            checkbytes = checkfile.read(4)
+            blobnumber = int.from_bytes(checkbytes, byteorder='little')
+
+            # URL
+            memberurl = b''
+            while True:
+                checkbytes = checkfile.read(1)
+                if checkbytes == b'':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'not enough data for URL'}
+                    return {'status': False, 'error': unpackingerror}
+                if checkbytes == b'\x00':
+                    break
+                memberurl += checkbytes
+            try:
+                memberurl = memberurl.decode()
+            except:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid URL'}
+                return {'status': False, 'error': unpackingerror}
+
+            # title
+            membertitle = b''
+            while True:
+                checkbytes = checkfile.read(1)
+                if checkbytes == b'':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'not enough data for Title'}
+                    return {'status': False, 'error': unpackingerror}
+                if checkbytes == b'\x00':
+                    break
+                membertitle += checkbytes
+
+            try:
+                membertitle = membertitle.decode()
+            except:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid Title'}
+                return {'status': False, 'error': unpackingerror}
+
+            if memberurl == '' and membertitle == '':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'no URL and no Title'}
+                return {'status': False, 'error': unpackingerror}
+
+            # then try to extract the data from the blob,
+            # but only for the relevant entries for now.
+            if namespace not in contentnamespaces:
+                continue
+
+            # store the old offset
+            oldoffset = checkfile.tell()
+
+            # jump to the cluster and skip the first byte
+            checkfile.seek(offset + clusterpointers[clusternumber] + 1)
+            if clusterinfo[clusternumber]['compressed']:
+
+                decompressor = lzma.LZMADecompressor()
+                checkbytes = checkfile.read(1024)
+                # then try to decompress the data.
+                try:
+                    unpackeddata = decompressor.decompress(checkbytes)
+                except Exception as e:
+                    # no data could be successfully unpacked
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'not valid XZ data'}
+                    return {'status': False, 'error': unpackingerror}
+            else:
+                bloboffsets = clusterinfo[clusternumber]['bloboffsets']
+                if blobnumber >= len(bloboffsets) - 1:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'wrong blob number'}
+                    return {'status': False, 'error': unpackingerror}
+
+                # first create the output file
+                if memberurl ==  '':
+                    outfilename = membertitle
+                else:
+                    outfilename = memberurl
+
+                if os.path.isabs(outfilename):
+                    os.makedirs(os.path.dirname(outfilename), exist_ok=True)
+                    outfilename = os.path.relpath(outfilename.name, '/')
+
+                blobsize = bloboffsets[blobnumber+1] - bloboffsets[blobnumber]
+
+                checkfile.seek(bloboffsets[blobnumber], os.SEEK_CUR)
+
+                unpackedname = os.path.normpath(os.path.join(unpackdir, outfilename))
+                os.makedirs(os.path.dirname(unpackedname), exist_ok=True)
+                outfile = open(unpackedname, 'wb')
+                os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), blobsize)
+                outfile.close()
+                unpackedfilesandlabels.append((unpackedname, []))
+
+            # and return to the old offset
+            checkfile.seek(oldoffset)
+
+    # finally read the checksum, which involves reading
+    # *all* data up until the checksum
+    # First read the checksum stored in the file.
+    checkfile.seek(offset + checksumpos)
+    checksum = checkfile.read(16)
+
+    # then seek to the start of the archive
+    checkfile.seek(offset)
+
+    bytestoread = checksumpos
+    readsize = min(10240, bytestoread)
+    bytebuffer = bytearray(readsize)
+    zimmd5 = hashlib.new('md5')
+
+    while True:
+        bytesread = checkfile.readinto(bytebuffer)
+        if bytesread == 0:
+            break
+        bufferlen = min(readsize, bytestoread)
+        checkbytes = memoryview(bytebuffer[:bufferlen])
+        zimmd5.update(checkbytes)
+        bytestoread -= bufferlen
+        if bytestoread == 0:
+            break
+
+    checkfile.close()
+
+    if checksum != zimmd5.digest():
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'wrong checksum'}
+        return {'status': False, 'error': unpackingerror}
+
+    # file is a ZIM file, so record how much data was unpacked
+    unpackedsize = checksumpos + 16
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('zim')
+        labels.append('archive')
+
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

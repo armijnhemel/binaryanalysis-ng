@@ -119,6 +119,7 @@ larger file, unless stated otherwise.
     at end of the file)
 80. pack200 (needs unpack200)
 81. GIMP brush (needs PIL)
+82. ZIM (Wikipedia archive format)
 
 ## Invocation
 

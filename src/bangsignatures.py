@@ -103,6 +103,7 @@ signatures = {
     'dlinkromfs': b'ROMFS v',
     'pdf': b'%PDF-',
     'gimpbrush': b'GIMP',
+    'zim': b'\x5a\x49\x4d\x04',
     'pack200': b'\xca\xfe\xd0\x0d',
 }
 
@@ -200,6 +201,7 @@ signaturetofunction = {
     'pdf': bangunpack.unpackPDF,
     'pack200': bangunpack.unpackPack200,
     'gimpbrush': bangunpack.unpackGimpBrush,
+    'zim': bangunpack.unpackZim,
 }
 
 # a lookup table to map signatures to a name for
