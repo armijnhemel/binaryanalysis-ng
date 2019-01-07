@@ -20060,14 +20060,16 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(offsetsize)
             if len(checkbytes) != offsetsize:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
                                   'reason': 'cluster outside file'}
                 return {'status': False, 'error': unpackingerror}
 
             firstoffset = int.from_bytes(checkbytes, byteorder='little')
             if firstoffset % offsetsize != 0:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
                                   'reason': 'wrong value for blob offset'}
                 return {'status': False, 'error': unpackingerror}
             blobcount = firstoffset//offsetsize
@@ -20079,11 +20081,13 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
                 # sanity check
                 if offset + clusterpointer + 1 + bloboffset > filesize:
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
                                       'reason': 'wrong value for blob offset'}
                     return {'status': False, 'error': unpackingerror}
                 bloboffsets.append(bloboffset)
-            clusterinfo[i] = {'size': offsetsize, 'compressed': compressed, 'bloboffsets': bloboffsets}
+            clusterinfo[i] = {'size': offsetsize, 'compressed': compressed,
+                              'bloboffsets': bloboffsets}
         else:
             clusterinfo[i] = {'size': offsetsize, 'compressed': compressed}
 
@@ -20128,7 +20132,8 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
             # numbering starts at 0
             if mimetypenumber >= len(articlemimetypes):
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
                                   'reason': 'wrong MIME type number'}
                 return {'status': False, 'error': unpackingerror}
 
@@ -20172,7 +20177,8 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
             # numbering starts at 0
             if clusternumber >= clustercount:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
                                   'reason': 'wrong cluster number'}
                 return {'status': False, 'error': unpackingerror}
 
@@ -20186,7 +20192,8 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(1)
                 if checkbytes == b'':
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
                                       'reason': 'not enough data for URL'}
                     return {'status': False, 'error': unpackingerror}
                 if checkbytes == b'\x00':
@@ -20196,7 +20203,8 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
                 memberurl = memberurl.decode()
             except:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
                                   'reason': 'invalid URL'}
                 return {'status': False, 'error': unpackingerror}
 
@@ -20206,7 +20214,8 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(1)
                 if checkbytes == b'':
                     checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
                                       'reason': 'not enough data for Title'}
                     return {'status': False, 'error': unpackingerror}
                 if checkbytes == b'\x00':
@@ -20217,13 +20226,15 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
                 membertitle = membertitle.decode()
             except:
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
                                   'reason': 'invalid Title'}
                 return {'status': False, 'error': unpackingerror}
 
             if memberurl == '' and membertitle == '':
                 checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
                                   'reason': 'no URL and no Title'}
                 return {'status': False, 'error': unpackingerror}
 
