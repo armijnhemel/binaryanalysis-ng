@@ -11975,6 +11975,11 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
             # ignore deleted files
             if d.strip().startswith(b'>'):
                 continue
+            dirsplit = re.split(b'\s+', d.strip(), 7)
+            if len(dirsplit) != 8:
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'not enough data in directory entry'}
+                return {'status': False, 'error': unpackingerror}
             (inode, filemode, userid, groupid, size, filedate, filetime, ext2name) = re.split(b'\s+', d.strip(), 7)
             filemode = int(filemode, base=8)
 
