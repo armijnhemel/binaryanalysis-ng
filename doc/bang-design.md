@@ -156,6 +156,25 @@ An example of an error message:
 
     {'offset': 0, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
 
+#### Data stored
+
+The data generated during the scan is separated in two parts:
+
+1. data describing the structure of the data, as well as certain metadata (UID,
+   GID, permissions, parent file, offset in the archive, etc.)
+2. data specific to the file
+
+The difference between the two is that the latter will always be the same
+(except when the scanner changes), while the former can change: an ELF
+executable can be included in an archive twice, but with different permissions,
+or a different parent file. The data specific to the file wouldn't change,
+but the metadata would.
+
+The structure of the scan is stored in a Python pickle file called
+"bang.pickle" found at the top level of the scan directory. The file
+specific data is stored as Python pickle files in the directory "results"
+found at the top level of the scan directory.
+
 #### Optimizations
 
 There are many optimizations in BANG aimed at reducing disk I/O to allow
