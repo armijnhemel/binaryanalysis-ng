@@ -20477,10 +20477,13 @@ def unpackMidi(filename, offset, unpackdir, temporarydirectory):
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
-    # else carve the file
-
+    # else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.midi")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
     checkfile.close()
-    unpackingerror = {'offset': offset,
-                      'fatal': False,
-                      'reason': 'not a valid MIDI file'}
-    return {'status': False, 'error': unpackingerror}
+
+    unpackedfilesandlabels.append((outfilename, ['midi', 'audio', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
