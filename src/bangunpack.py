@@ -82,6 +82,7 @@
 # 52. Unix passwd files
 # 53. Unix shadow files
 # 54. ZIM (Wikipedia archive format)
+# 55. MIDI
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #

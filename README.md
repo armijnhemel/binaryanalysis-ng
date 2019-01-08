@@ -120,6 +120,7 @@ larger file, unless stated otherwise.
 80. pack200 (needs unpack200)
 81. GIMP brush (needs PIL)
 82. ZIM (Wikipedia archive format)
+83. MIDI
 
 ## Invocation
 
