@@ -20391,3 +20391,96 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# https://www.csie.ntu.edu.tw/~r92092/ref/midi/
+def unpackMidi(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack/verify a MIDI file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file and skip the offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # read the chunk size
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for chunk size'}
+        return {'status': False, 'error': unpackingerror}
+    chunksize = int.from_bytes(checkbytes, byteorder='big')
+
+    if checkfile.tell() + chunksize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for chunk'}
+        return {'status': False, 'error': unpackingerror}
+
+    # in practice the MIDI chunk header length is always 6.
+    if chunksize != 6:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'unsupported chunk length'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # process the header chunk
+    checkbytes = checkfile.read(2)
+    midiformat = int.from_bytes(checkbytes, byteorder='big')
+
+    if midiformat > 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'unsupported format'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkbytes = checkfile.read(2)
+    miditracks = int.from_bytes(checkbytes, byteorder='big')
+
+    checkbytes = checkfile.read(2)
+    midiformat = int.from_bytes(checkbytes, byteorder='big')
+
+    unpackedsize += chunksize
+
+    # now process any remaining chunks
+    while True:
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            break
+        if checkbytes != b'MTrk':
+            break
+        # read the chunk size
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            break
+        chunksize = int.from_bytes(checkbytes, byteorder='big')
+        if checkfile.tell() + chunksize > filesize:
+            break
+        # skip chunk
+        unpackedsize += 8 + chunksize
+        checkfile.seek(chunksize, os.SEEK_CUR)
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('midi')
+        labels.append('audio')
+        checkfile.close()
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # else carve the file
+
+    checkfile.close()
+    unpackingerror = {'offset': offset,
+                      'fatal': False,
+                      'reason': 'not a valid MIDI file'}
+    return {'status': False, 'error': unpackingerror}

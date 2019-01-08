@@ -105,6 +105,7 @@ signatures = {
     'gimpbrush': b'GIMP',
     'zim': b'\x5a\x49\x4d\x04',
     'pack200': b'\xca\xfe\xd0\x0d',
+    'midi': b'MThd',
 }
 
 # some signatures do not start at the beginning of the file
@@ -202,6 +203,7 @@ signaturetofunction = {
     'pack200': bangunpack.unpackPack200,
     'gimpbrush': bangunpack.unpackGimpBrush,
     'zim': bangunpack.unpackZim,
+    'midi': bangunpack.unpackMidi,
 }
 
 # a lookup table to map signatures to a name for
