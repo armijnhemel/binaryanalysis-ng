@@ -12028,6 +12028,7 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                 # TODO: process symbolic links
                 pass
             elif stat.S_ISREG(filemode):
+                fileunpacked = False
                 if inode not in inodetofile:
                     inodetofile[inode] = fullext2name
                     # use e2cp to copy the file
@@ -12039,11 +12040,15 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                         unpackingerror = {'offset': offset, 'fatal': False,
                                           'reason': 'e2cp error'}
                         return {'status': False, 'error': unpackingerror}
+                    fileunpacked = True
                 else:
                     # hardlink the file to an existing
                     # file and record it as such.
-                    os.link(os.path.join(unpackdir, inodetofile[inode]), os.path.join(unpackdir, fullext2name))
-                unpackedfilesandlabels.append((os.path.join(unpackdir, fullext2name), []))
+                    if inodetofile[inode] != fullext2name:
+                        os.link(os.path.join(unpackdir, inodetofile[inode]), os.path.join(unpackdir, fullext2name))
+                        fileunpacked = True
+                if fileunpacked:
+                    unpackedfilesandlabels.append((os.path.join(unpackdir, fullext2name), []))
 
     # cleanup
     if havetmpfile:
