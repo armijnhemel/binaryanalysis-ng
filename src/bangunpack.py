@@ -16024,6 +16024,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'symbol section has no name'}
+                return {'status': False, 'error': unpackingerror}
             if sectiontype == 'symtab' and sectionheaders[s]['name'] != '.symtab':
                 continue
             checkfile.seek(offset + sectionheaders[s]['sh_offset'])
