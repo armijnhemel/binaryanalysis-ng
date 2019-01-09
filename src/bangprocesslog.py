@@ -67,6 +67,7 @@ def main(argv):
     bangerrormessages = {}
 
     errorfiles = collections.Counter()
+    totalerrors = 0
 
     # open the file, assume for now that everything is in UTF-8
     # (famous last words).
@@ -87,6 +88,7 @@ def main(argv):
                 bangerrormessages[s].update([bangfail])
                 filename = bangfails[0].rsplit(s, 1)[0]
                 errorfiles.update([filename])
+                totalerrors += 1
                 break
     logfile.close()
 
@@ -95,7 +97,7 @@ def main(argv):
 
     # print the error messages in descending order
     for e in bangerrors.most_common():
-        print("Signature %s: %d" % e)
+        print("Signature %s: %d (%f%%)" % (e[0], e[1], e[1]/totalerrors*100))
         for s in bangerrormessages[e[0]].most_common():
             print("%s: %d" % s)
         print()
