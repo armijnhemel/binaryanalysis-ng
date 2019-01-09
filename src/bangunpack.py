@@ -9855,12 +9855,14 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(2)
             if len(checkbytes) != 2:
                 break
+            uid = int.from_bytes(checkbytes, byteorder='little')
             unpackedsize += 2
 
             # gid
             checkbytes = checkfile.read(2)
             if len(checkbytes) != 2:
                 break
+            gid = int.from_bytes(checkbytes, byteorder='little')
             unpackedsize += 2
 
             # number of links
