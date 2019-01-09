@@ -9938,13 +9938,21 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 unpackedsize += namesize
                 trailerfound = True
 
-                # if necessary add a padding byte
-                if unpackedsize % 2 != 0:
-                    padbytes = 1
-                    checkbytes = checkfile.read(padbytes)
-                    if len(checkbytes) != padbytes:
-                        break
-                    unpackedsize += padbytes
+            # "This count includes the trailing NUL byte."
+            if checkbytes[-1] != 0:
+                break
+
+            # if necessary a padding NUL byte was added
+            if namesize % 2 != 0:
+                padbytes = 1
+                checkbytes = checkfile.read(padbytes)
+                if len(checkbytes) != padbytes:
+                    break
+                if checkbytes != b'\x00':
+                    break
+                unpackedsize += padbytes
+
+            if trailerfound:
                 break
 
             # a real trailer would have been found, so if this point
