@@ -413,6 +413,7 @@ def unpackRIFF(
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
+    unpackedfilesandlabels.append(outfilename)
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels,
