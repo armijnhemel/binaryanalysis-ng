@@ -351,14 +351,14 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                 # store any labels that were passed as a result and
                 # add them to the current list of labels
-                labels += copy.deepcopy(unpackresult['labels'])
+                labels += unpackresult['labels']
                 labels = list(set(labels))
 
                 # if unpackedfilesandlabels is empty, then no files
                 # were unpacked likely because the whole file was the
                 # result and didn't contain any files (it was not a
                 # container or compresed file)
-                if len(unpackresult['filesandlabels']) == 0:
+                if unpackresult['filesandlabels'] == []:
                     os.rmdir(dataunpackdirectory)
 
                 # whole file has already been unpacked, so no need for
@@ -720,14 +720,14 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # store the labels for files that could be
                     # unpacked/verified completely.
                     if s[0] == 0 and unpackresult['length'] == filesize:
-                        labels += copy.deepcopy(unpackresult['labels'])
+                        labels += unpackresult['labels']
                         labels = list(set(labels))
                         # if unpackedfilesandlabels is empty, then no
                         # files were unpacked, likely because the whole
                         # file was the result and didn't contain any
                         # files (i.e. it was not a container file or
                         # compresed file).
-                        if len(unpackresult['filesandlabels']) == 0:
+                        if unpackresult['filesandlabels'] == []:
                             os.rmdir(dataunpackdirectory)
 
                     # store the range of the unpacked data
@@ -744,7 +744,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # set unpackdirectory, but only if needed: if the entire
                     # file is a file that was verified (example: GIF or PNG)
                     # then there will not be an unpacking directory.
-                    if len(unpackresult['filesandlabels']) != 0:
+                    if unpackresult['filesandlabels'] != []:
                         report['unpackdirectory'] = dataunpackdirectory[lenunpackdirectory:]
 
                     for un in unpackresult['filesandlabels']:
@@ -826,7 +826,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             ## now read more bytes
                             while True:
                                 scanbytes = outfile.read(scanenvironment['maxbytes'])
-                                if len(scanbytes) == 0:
+                                if scanbytes == b'':
                                     break
                                 if scanbytes != len(scanbytes) * b'\x00':
                                     ispadding = False
@@ -889,7 +889,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 # check if any of the characters read is a
                 # non-ASCII character. If so, it is not a text file.
                 if istext:
-                    if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
+                    if list(filter(lambda x: chr(x) not in string.printable, hashingdata)) != []:
                         istext = False
 
                 if createbytecounter:
@@ -907,7 +907,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             hashingdata = memoryview(scanbytesarray[:bytesread])
             while bytesread != 0:
                 if istext:
-                    if len(list(filter(lambda x: chr(x) not in string.printable, hashingdata))) != 0:
+                    if list(filter(lambda x: chr(x) not in string.printable, hashingdata)) != []:
                         istext = False
                 if createbytecounter:
                     bytecounter.update(hashingdata)
@@ -1000,14 +1000,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # store the labels for files that could be
                     # unpacked/verified completely.
                     if unpackresult['length'] == filesize:
-                        labels += copy.deepcopy(unpackresult['labels'])
+                        labels += unpackresult['labels']
                         labels = list(set(labels))
                         # if unpackedfilesandlabels is empty, then no
                         # files were unpacked, likely because the whole
                         # file was the result and didn't contain any
                         # files (i.e. it was not a container file or
                         # compresed file).
-                        if len(unpackresult['filesandlabels']) == 0:
+                        #if len(unpackresult['filesandlabels']) == 0:
+                        if unpackresult['filesandlabels'] == []:
                             os.rmdir(dataunpackdirectory)
 
                     # store lot of information about the unpacked files
@@ -1559,7 +1560,7 @@ def main(argv):
             try:
                 fileresult = resultqueue.get_nowait()
                 if 'filename' in fileresult:
-                    scantree[fileresult['filename']] = copy.deepcopy(fileresult)
+                    scantree[fileresult['filename']] = fileresult
                     resultqueue.task_done()
             except queue.Empty as e:
                 # Queue is empty
