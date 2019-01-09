@@ -381,6 +381,12 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
                 fileresult['unpackedfiles'].append(report)
 
+        # keep track of the signatures that were found, but
+        # only for successful unpacking, or when no data could
+        # be unpacked. Since the rest of the data could be unpacked
+        # it is not interesting.
+        signaturesfound = []
+
         # continue scanning if needed by searching for known signatures
         if needsunpacking:
             # keep a counter per signature for the unpacking
@@ -617,6 +623,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # this type of file
                     if not s[1] in bangsignatures.signaturetofunction:
                         continue
+
+                    signaturesfound.append(s)
 
                     # always change to the declared unpacking directory
                     os.chdir(unpackdirectory)
