@@ -1025,19 +1025,20 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'not enough data'}
         return {'status': False, 'error': unpackingerror}
-    if (checkbytes[0] >> 2 & 1) == 1:
+    flags = ord(checkbytes)
+    if (flags >> 2 & 1) == 1:
         # continuation of multi-part gzip
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'unsupported multi-part gzip'}
         return {'status': False, 'error': unpackingerror}
-    if (checkbytes[0] >> 5 & 1) == 1:
+    if (flags >> 5 & 1) == 1:
         # encrypted
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'unsupported encrypted'}
         return {'status': False, 'error': unpackingerror}
-    if (checkbytes[0] >> 6 & 1) == 1 or (checkbytes[0] >> 7 & 1) == 1:
+    if (flags >> 6 & 1) == 1 or (flags >> 7 & 1) == 1:
         # reserved
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -1046,23 +1047,23 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 1
 
     havecrc16 = False
-    # if bit on is set then there is a CRC16
-    if (checkbytes[0] >> 1 & 1) == 1:
+    # if bit one is set then there is a CRC16
+    if (flags >> 1 & 1) == 1:
         havecrc16 = True
 
     havefextra = False
     # if bit two is set then there is extra info
-    if (checkbytes[0] >> 2 & 1) == 1:
+    if (flags >> 2 & 1) == 1:
         havefextra = True
 
     havefname = False
     # if bit three is set then there is a name
-    if (checkbytes[0] >> 3 & 1) == 1:
+    if (flags >> 3 & 1) == 1:
         havefname = True
 
     havecomment = False
     # if bit four is set then there is a comment
-    if (checkbytes[0] >> 4 & 1) == 1:
+    if (flags >> 4 & 1) == 1:
         havecomment = True
 
     # skip over the MIME field
