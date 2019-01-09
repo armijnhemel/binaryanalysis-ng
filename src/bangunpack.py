@@ -227,7 +227,7 @@ def unpackWebP(filename, offset, unpackdir, temporarydirectory):
                            b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP', filesize)
     if unpackres['status']:
-        labels = copy.deepcopy(unpackres['labels'])
+        labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
             labels += ['webp', 'graphics']
         for u in unpackres['filesandlabels']:
@@ -253,7 +253,7 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
                             b'note', b'plst', b'smpl'])
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
     if unpackres['status']:
-        labels = copy.deepcopy(unpackres['labels'])
+        labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
             labels += ['wav', 'audio']
         for u in unpackres['filesandlabels']:
@@ -439,7 +439,7 @@ def unpackANI(filename, offset, unpackdir, temporarydirectory):
 
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', filesize, brokenlength)
     if unpackres['status']:
-        labels = copy.deepcopy(unpackres['labels'])
+        labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
             labels += ['ani', 'graphics']
         for u in unpackres['filesandlabels']:
