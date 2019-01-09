@@ -141,7 +141,7 @@ import bz2
 import stat
 import subprocess
 import json
-import xml.dom.minidom
+import defusedxml.minidom
 import hashlib
 import base64
 import re
@@ -838,7 +838,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 # https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart3.pdf
                 try:
                     # XMP should be valid XML
-                    xmpdom = xml.dom.minidom.parseString(itxt)
+                    xmpdom = defusedxml.minidom.parseString(itxt)
                 except:
                     continue
                 hasxmp = True
@@ -866,7 +866,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 else:
                     xmpdata = checkbytes[:endofxmp].decode()
                 # XMP should be valid XML
-                xmpdom = xml.dom.minidom.parseString(xmpdata)
+                xmpdom = defusedxml.minidom.parseString(xmpdata)
             except Exception as e:
                 continue
             hasxmp = True
@@ -3968,7 +3968,7 @@ def unpackXAR(filename, offset, unpackdir, temporarydirectory):
 
     # the toc is an XML file, so parse it
     try:
-        tocdom = xml.dom.minidom.parseString(toc)
+        tocdom = defusedxml.minidom.parseString(toc)
     except:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -4620,7 +4620,7 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
                         unpackedsize += datasize
                     xmpdata = xmpdata[:-257]
                     try:
-                        xmpdom = xml.dom.minidom.parseString(xmpdata)
+                        xmpdom = defusedxml.minidom.parseString(xmpdata)
                     except:
                         if not allowbrokenxmp:
                             checkfile.close()
@@ -11202,7 +11202,7 @@ def unpackWIM(filename, offset, unpackdir, temporarydirectory):
     # extra sanity check: parse the XML if any was extracted
     if wimxml is not None:
         try:
-            xml.dom.minidom.parseString(wimxml)
+            defusedxml.minidom.parseString(wimxml)
         except:
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid XML stored in WIM'}

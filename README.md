@@ -27,6 +27,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * mailcap (for mime.types)
 * lzop
 * OpenJDK (for 'unpack200')
+* defusedxml (possibly named python3-defusedxml)
 
 ## Supported file types
 
