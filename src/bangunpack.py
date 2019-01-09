@@ -282,6 +282,7 @@ def unpackRIFF(
 
     unpackedsize = 0
     unpackedfilesandlabels = []
+    chunkstooffsets = {}
 
     # Then open the file and read the first four bytes to see if
     # they are "RIFF".
@@ -335,6 +336,7 @@ def unpackRIFF(
             if checkfile.tell() == offset + rifflength + 8:
                 break
         haspadding = False
+        chunkoffset = checkfile.tell() - offset
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             checkfile.close()
@@ -348,6 +350,9 @@ def unpackRIFF(
                               'reason': 'no valid chunk FourCC %s' % checkbytes,
                               'fatal': False}
             return {'status': False, 'error': unpackingerror}
+        if checkbytes not in chunkstooffsets:
+            chunkstooffsets[checkbytes] = []
+        chunkstooffsets[checkbytes].append(chunkoffset)
         unpackedsize += 4
 
         # then the chunk size
@@ -399,7 +404,8 @@ def unpackRIFF(
         checkfile.close()
         labels.append('riff')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
+                'filesandlabels': unpackedfilesandlabels,
+                'offsets': chunkstooffsets}
 
     # else carve the file. It is anonymous, so just give it a name
     outfilename = os.path.join(unpackdir, "unpacked.%s" % applicationname.lower())
@@ -409,7 +415,8 @@ def unpackRIFF(
     checkfile.close()
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+            'filesandlabels': unpackedfilesandlabels,
+            'offsets': chunkstooffsets}
 
 
 # test files for ANI: http://www.anicursor.com/diercur.html
