@@ -6923,10 +6923,10 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory,
         bytesadded = False
 
         # extra sanity check, as there might now be padding bytes
-        checkbytes = checkfile.read(tablelength + padding)
-        if len(checkbytes) != tablelength + padding:
-            if len(checkbytes) == tablelength:
-                checkbytes += b'\x00' * padding
+        checkbuf = checkfile.read(tablelength + padding)
+        if len(checkbuf) != tablelength + padding:
+            if len(checkbuf) == tablelength:
+                checkbuf += b'\x00' * padding
                 addbytes = padding
                 bytesadded = True
             else:
@@ -6935,6 +6935,8 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory,
                                   'fatal': False,
                                   'reason': 'not enough data for table'}
                 return {'status': False, 'error': unpackingerror}
+
+        checkbytes = memoryview(checkbuf)
 
         # parse the name table to see if there is a font name
         # https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6name.html
