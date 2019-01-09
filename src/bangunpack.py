@@ -402,7 +402,7 @@ def unpackRIFF(
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked-%s" % applicationname.lower())
+    outfilename = os.path.join(unpackdir, "unpacked.%s" % applicationname.lower())
     outfile = open(outfilename, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
