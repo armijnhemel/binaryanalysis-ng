@@ -253,6 +253,33 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
                             b'note', b'plst', b'smpl'])
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
     if unpackres['status']:
+        # first a sanity check for the 'fmt' chunk
+        if len(unpackres['offsets'][b'fmt ']) != 1:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'multiple fmt chunks'}
+            return {'status': False, 'error': unpackingerror}
+        # open the file for reading
+        checkfile = open(filename, 'rb')
+
+        # seek to just after the fmt chunk id
+        checkfile.seek(offset + unpackres['offsets'][b'fmt '][0] + 4)
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid fmt chunk'}
+            return {'status': False, 'error': unpackingerror}
+
+        fmtsize = int.from_bytes(checkbytes, byteorder='little')
+        if fmtsize not in [16, 18, 40]:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid fmt chunk size'}
+            return {'status': False, 'error': unpackingerror}
+
+        # close the file again
+        checkfile.close()
+
         labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
             labels += ['wav', 'audio']
