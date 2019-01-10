@@ -126,6 +126,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
     tlshmaximum = scanenvironment['tlshmaximum']
     synthesizedminimum = scanenvironment['synthesizedminimum']
     uselogging = scanenvironment['logging']
+    if 'paddingname' in scanenvironment:
+        paddingname = scanenvironment['paddingname']
+    else:
+        paddingname = None
 
     if dbconn == None:
         usedatabase = False
@@ -842,6 +846,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         outfile.close()
                         if ispadding:
                             unpackedlabel.append('padding')
+                            if paddingname != None:
+                                newoutfilename = os.path.join(dataunpackdirectory, paddingname)
+                                shutil.move(outfilename, newoutfilename)
+                                outfilename = newoutfilename
 
                         # add the data, plus labels, to the queue
                         scanfilequeue.put((pathlib.Path(outfilename), unpackedlabel, checkfile, {}))
@@ -1535,6 +1543,7 @@ def main(argv):
         scanenvironment['tlshmaximum'] = tlshmaximum
         scanenvironment['synthesizedminimum'] = 10
         scanenvironment['logging'] = uselogging
+        scanenvironment['paddingname'] = 'PADDING'
 
         # create processes for unpacking archives
         for i in range(0, bangthreads):
