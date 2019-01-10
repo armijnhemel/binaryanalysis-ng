@@ -248,10 +248,12 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
     unpackedfilesandlabels = []
 
     # a list of valid WAV chunk FourCC, plus a few non-standard ones
-    # such as CDif
+    # such as CDif and SAUR
+    # SAUR: private chunk from Wavosaur:
+    # https://www.wavosaur.com/forum/click-at-end-of-sounds-t315.html
     validchunkfourcc = set([b'LGWV', b'bext', b'cue ', b'data', b'fact',
                             b'fmt ', b'inst', b'labl', b'list', b'ltxt',
-                            b'note', b'plst', b'smpl', b'CDif'])
+                            b'note', b'plst', b'smpl', b'CDif', b'SAUR'])
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
     if unpackres['status']:
         # first a sanity check for the 'fmt' chunk
