@@ -8051,7 +8051,7 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
         checkfile.close()
         labels.append('resource')
         labels.append('pak')
-        return {'status': True, 'length': unpackedsize, 'labels': labels,
+        return {'status': True, 'length': endoffile, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file
@@ -8062,7 +8062,7 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
     unpackedfilesandlabels.append((outfilename, ['resource', 'pak', 'unpacked']))
     checkfile.close()
 
-    return {'status': True, 'length': unpackedsize, 'labels': labels,
+    return {'status': True, 'length': endoffile, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
 
