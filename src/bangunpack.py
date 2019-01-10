@@ -247,10 +247,11 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
 
-    # a list of valid WAV chunk FourCC
+    # a list of valid WAV chunk FourCC, plus a few non-standard ones
+    # such as CDif
     validchunkfourcc = set([b'LGWV', b'bext', b'cue ', b'data', b'fact',
                             b'fmt ', b'inst', b'labl', b'list', b'ltxt',
-                            b'note', b'plst', b'smpl'])
+                            b'note', b'plst', b'smpl', b'CDif'])
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
     if unpackres['status']:
         # first a sanity check for the 'fmt' chunk
@@ -310,6 +311,12 @@ def unpackRIFF(
     unpackedsize = 0
     unpackedfilesandlabels = []
     chunkstooffsets = {}
+
+    # http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/riffmci.pdf
+    listchunks = set([b'IARL', b'IART', b'ICMS', b'ICMT', b'ICOP', b'ICRD',
+                      b'ICRP', b'IDIM', b'IDPI', b'IENG', b'IGNR', b'IKEY',
+                      b'ILGT', b'IMED', b'INAM', b'IPLT', b'IPRD', b'ISBJ',
+                      b'ISFT', b'ISHP', b'ISRC', b'ISRF', b'ITCH'])
 
     # Then open the file and read the first four bytes to see if
     # they are "RIFF".
@@ -371,7 +378,7 @@ def unpackRIFF(
                               'reason': 'no valid chunk header',
                               'fatal': False}
             return {'status': False, 'error': unpackingerror}
-        if checkbytes not in validchunkfourcc:
+        if checkbytes not in validchunkfourcc and checkbytes != b'LIST':
             checkfile.close()
             unpackingerror = {'offset': offset + unpackedsize,
                               'reason': 'no valid chunk FourCC %s' % checkbytes,
@@ -455,8 +462,7 @@ def unpackANI(filename, offset, unpackdir, temporarydirectory):
     unpackedfilesandlabels = []
 
     # a list of valid ANI chunk FourCC
-    validchunkfourcc = set([b'IART', b'ICON', b'INAM', b'LIST',
-                            b'anih', b'rate', b'seq '])
+    validchunkfourcc = set([b'ICON', b'anih', b'rate', b'seq '])
 
     # Some ANI files have a broken RIFF header, so try to
     # detect if that is the case. This is not 100% foolproof.
