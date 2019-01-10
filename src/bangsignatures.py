@@ -260,6 +260,7 @@ extensiontofunction = {
     'passwd': bangunpack.unpackPasswd,
     'shadow': bangunpack.unpackShadow,
     '.css': bangunpack.unpackCSS,
+    'tzdata': bangunpack.unpackAndroidTzdata,
 }
 
 # a lookup table to map extensions to a name
@@ -290,6 +291,7 @@ extensionprettyprint = {
     'passwd': 'passwd',
     'shadow': 'shadow',
     '.css': 'css',
+    'tzdata': 'tzdata',
 }
 
 # certain unpacking functions if the whole file is text

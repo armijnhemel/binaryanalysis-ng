@@ -83,6 +83,7 @@
 # 53. Unix shadow files
 # 54. ZIM (Wikipedia archive format)
 # 55. MIDI
+# 56. Android tzdata
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -20552,5 +20553,222 @@ def unpackMidi(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
 
     unpackedfilesandlabels.append((outfilename, ['midi', 'audio', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Android tzdata file. These are actually time zone files, with
+# some extra metadata.
+# The structure is defined in Android's source code, for example:
+# https://android.googlesource.com/platform/bionic/+/lollipop-mr1-dev/libc/tools/zoneinfo/ZoneCompactor.java
+def unpackAndroidTzdata(filename, offset, unpackdir, temporarydirectory):
+    ''''''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if offset + 24 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not a valid Android tzdata header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(8)
+    if checkbytes != b'tzdata20':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not a valid Android tzdata header'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 8
+
+    # the next two bytes have to be integers,
+    # followed by a character and then a NUL byte
+    checkbytes = checkfile.read(4)
+    tzrs = re.match(b"\d{2}\w\x00", checkbytes)
+    if tzrs == None:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not a valid Android tzdata header'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # index_offset
+    checkbytes = checkfile.read(4)
+    index_offset = int.from_bytes(checkbytes, byteorder='big')
+    if offset + index_offset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'offset outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # data_offset
+    checkbytes = checkfile.read(4)
+    data_offset = int.from_bytes(checkbytes, byteorder='big')
+    if offset + data_offset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'offset outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # zonetab_offset
+    checkbytes = checkfile.read(4)
+    zonetab_offset = int.from_bytes(checkbytes, byteorder='big')
+    if offset + zonetab_offset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'offset outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # seek to the index_offset, should be the same as unpackedsize
+    if index_offset != unpackedsize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'wrong value for index_offset'}
+        return {'status': False, 'error': unpackingerror}
+
+    maxoffset = unpackedsize
+    dataunpacked = False
+    tzcounter = 0
+
+    # read all the fonts, until either the data_offset or zonetab_offset
+    while True:
+        if offset + unpackedsize + 52 >= filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for entry'}
+            return {'status': False, 'error': unpackingerror}
+
+        # first the zone name
+        checkbytes = checkfile.read(40)
+        if checkbytes == b'':
+            break
+        unpackedsize += 40
+        try:
+            zonename = checkbytes.split(b'\x00', 1)[0].decode()
+        except:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid name for timezone'}
+            return {'status': False, 'error': unpackingerror}
+        if zonename == '':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid name for timezone'}
+            return {'status': False, 'error': unpackingerror}
+
+        # then the offset
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+        tzoffset = int.from_bytes(checkbytes, byteorder='big')
+
+        # then the length
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+        tzlength = int.from_bytes(checkbytes, byteorder='big')
+
+        if offset + tzoffset + tzlength > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'timezone data outside of file'}
+            return {'status': False, 'error': unpackingerror}
+
+        # then raw gmt offset, ignore
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+        if unpackedsize >= data_offset:
+            break
+        if unpackedsize >= zonetab_offset:
+            break
+
+        # first open a target file for writing
+        # and create directories first if needed
+        outfilename = os.path.join(unpackdir, zonename)
+        if '/' in zonename:
+            os.makedirs(os.path.dirname(outfilename), exist_ok=True)
+
+        # open the output file for writing
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset + data_offset + tzoffset, tzlength)
+        outfile.close()
+
+        unpackedfilesandlabels.append((outfilename, []))
+
+        maxoffset = max(maxoffset, data_offset + tzoffset + tzlength)
+        dataunpacked = True
+        tzcounter += 1
+
+    if not dataunpacked:
+        checkfile.close()
+        unpackingerror = {'offset': offset,
+                          'fatal': False,
+                          'reason': 'no timezone data found'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = maxoffset
+    if unpackedsize != zonetab_offset:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'wrong value for zonetab_offset'}
+        return {'status': False, 'error': unpackingerror}
+
+    # now the zone.tab information. Compared to the original file
+    # the comments have been stripped, but it is the same otherwise.
+    # first write the conntents of the file.
+    outfilename = os.path.join(unpackdir, 'zone.tab')
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset + zonetab_offset, filesize - maxoffset)
+    outfile.close()
+    checkfile.close()
+
+    # now reopen the target file read only in text mode. The zone.tab
+    # file should have ASCII characters only.
+    isopened = False
+
+    # open the new file in text only mode
+    try:
+        checkfile = open(outfilename, 'r')
+        isopened = True
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not valid zone.tab data'}
+        return {'status': False, 'error': unpackingerror}
+
+    linesread = 0
+    try:
+        for checkline in checkfile:
+            linesread += 1
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not valid zone.tab data'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0:
+        labels.append('resource')
+        labels.append('timezone')
+        labels.append('android')
+
+    unpackedsize = filesize - offset
+
+    unpackedfilesandlabels.append((outfilename, ['resource']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
