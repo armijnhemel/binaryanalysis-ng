@@ -513,6 +513,11 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'File too small (less than 57 bytes'}
         return {'status': False, 'error': unpackingerror}
 
+    # There are files that have an extra newline ('\n') at the end
+    # of the file. Technically these aren't correct PNG files, but
+    # the extra character has no other significant meaning.
+    allowextranewline = True
+
     # open the file, skip the magic header bytes (section 5.2)
     checkfile = open(filename, 'rb')
     checkfile.seek(offset+8)
@@ -952,6 +957,11 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 
     # There has to be exactly 1 IEND chunk (section 5.6)
     if endoffilereached:
+        if offset == 0 and unpackedsize == filesize - 1 and allowextranewline:
+            checkfile.seek(unpackedsize)
+            checkbytes = checkfile.read(1)
+            if checkbytes == b'\n':
+                unpackedsize += 1
         if offset == 0 and unpackedsize == filesize:
             # now load the file into PIL as an extra sanity check
             try:
