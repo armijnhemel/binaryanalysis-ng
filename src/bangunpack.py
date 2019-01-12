@@ -365,6 +365,8 @@ def unpackRIFF(
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
+    validriffchunks = [b'LIST', b'DISP', b'JUNK']
+
     # then read chunks
     while True:
         if brokenlength:
@@ -382,7 +384,7 @@ def unpackRIFF(
                               'reason': 'no valid chunk header',
                               'fatal': False}
             return {'status': False, 'error': unpackingerror}
-        if checkbytes not in validchunkfourcc and checkbytes != b'LIST':
+        if checkbytes not in validchunkfourcc and checkbytes not in validriffchunks:
             checkfile.close()
             unpackingerror = {'offset': offset + unpackedsize,
                               'reason': 'no valid chunk FourCC %s' % checkbytes,
