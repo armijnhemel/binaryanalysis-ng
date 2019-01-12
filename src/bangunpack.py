@@ -20572,7 +20572,7 @@ def unpackMidi(filename, offset, unpackdir, temporarydirectory):
 # The structure is defined in Android's source code, for example:
 # https://android.googlesource.com/platform/bionic/+/lollipop-mr1-dev/libc/tools/zoneinfo/ZoneCompactor.java
 def unpackAndroidTzdata(filename, offset, unpackdir, temporarydirectory):
-    ''''''
+    '''Verify Android's tzdata file and unpack data from it'''
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
