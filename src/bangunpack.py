@@ -316,7 +316,8 @@ def unpackRIFF(
     chunkstooffsets = {}
 
     # http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/riffmci.pdf
-    listchunks = set([b'IARL', b'IART', b'ICMS', b'ICMT', b'ICOP', b'ICRD',
+    # chapter 2
+    infochunks = set([b'IARL', b'IART', b'ICMS', b'ICMT', b'ICOP', b'ICRD',
                       b'ICRP', b'IDIM', b'IDPI', b'IENG', b'IGNR', b'IKEY',
                       b'ILGT', b'IMED', b'INAM', b'IPLT', b'IPRD', b'ISBJ',
                       b'ISFT', b'ISHP', b'ISRC', b'ISRF', b'ITCH'])
@@ -389,7 +390,8 @@ def unpackRIFF(
             return {'status': False, 'error': unpackingerror}
         if checkbytes not in chunkstooffsets:
             chunkstooffsets[checkbytes] = []
-        chunkstooffsets[checkbytes].append(chunkoffset)
+        chunkname = checkbytes
+        chunkstooffsets[chunkname].append(chunkoffset)
         unpackedsize += 4
 
         # then the chunk size
@@ -405,6 +407,14 @@ def unpackRIFF(
                               'reason': 'wrong chunk length',
                               'fatal': False}
             return {'status': False, 'error': unpackingerror}
+        # extra sanity for LIST chunks
+        if chunkname == b'LIST':
+            if chunklength < 4 and chunklength != 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset + unpackedsize,
+                                  'reason': 'wrong chunk length',
+                                  'fatal': False}
+                return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
 
         # finally skip over the bytes in the file
