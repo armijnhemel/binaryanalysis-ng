@@ -365,7 +365,8 @@ def unpackRIFF(
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
-    validriffchunks = [b'LIST', b'DISP', b'JUNK']
+    # https://resources.oreilly.com/examples/9781565920583/blob/beb34c319e422d01ee485c5d423aad3bc8a69ce0/CDROM/GFF/VENDSPEC/MICRIFF/MS_RIFF.TXT
+    validriffchunks = [b'LIST', b'DISP', b'JUNK', b'PAD']
 
     # then read chunks
     while True:
