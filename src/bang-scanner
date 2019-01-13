@@ -794,7 +794,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         # Now carve any data that was not unpacked from the file and
         # put it back into the scanning queue to see if something
-        # could be unpacked after all.
+        # could be unpacked after all, or to more quickly recognize
+        # padding data.
         #
         # This also makes it easier for doing a "post mortem".
         if unpackedrange != []:
