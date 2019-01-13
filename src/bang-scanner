@@ -136,6 +136,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
     else:
         usedatabase = True
 
+    carveunpacked = True
+
     while True:
         # grab a new file from the scanning queue
         (checkfile, labels, parent, extradata) = scanfilequeue.get(timeout=86400)
@@ -792,70 +794,71 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
             scanfile.close()
 
-        # Now carve any data that was not unpacked from the file and
-        # put it back into the scanning queue to see if something
-        # could be unpacked after all, or to more quickly recognize
-        # padding data.
-        #
-        # This also makes it easier for doing a "post mortem".
-        if unpackedrange != []:
-            # first check if the first entry covers the entire file
-            # because if so there is nothing to do
-            if not (unpackedrange[0][0] == 0 and unpackedrange[0][1] == filesize):
-                synthesizedcounter = 1
-                startoffset = 0
-                scanfile = open(checkfile, 'rb')
-                scanfile.seek(0)
-                # then try to see if the any useful data can be uncarved.
-                # Add an artifical entry for the end of the file
-                for u in unpackedrange + [(filesize, filesize)]:
-                    if u[0] > startoffset:
-                        #if u[0] - startoffset < synthesizedminimum:
-                        #        startoffset = u[1]
-                        #        continue
-                        dataunpackdirectory = "%s-%s-%d" % (checkfile, "synthesized", synthesizedcounter)
-                        try:
-                            os.mkdir(dataunpackdirectory)
-                        except:
-                            break
-                        synthesizedcounter += 1
+        if carveunpacked:
+            # Now carve any data that was not unpacked from the file and
+            # put it back into the scanning queue to see if something
+            # could be unpacked after all, or to more quickly recognize
+            # padding data.
+            #
+            # This also makes it easier for doing a "post mortem".
+            if unpackedrange != []:
+                # first check if the first entry covers the entire file
+                # because if so there is nothing to do
+                if not (unpackedrange[0][0] == 0 and unpackedrange[0][1] == filesize):
+                    synthesizedcounter = 1
+                    startoffset = 0
+                    scanfile = open(checkfile, 'rb')
+                    scanfile.seek(0)
+                    # then try to see if the any useful data can be uncarved.
+                    # Add an artifical entry for the end of the file
+                    for u in unpackedrange + [(filesize, filesize)]:
+                        if u[0] > startoffset:
+                            #if u[0] - startoffset < synthesizedminimum:
+                            #        startoffset = u[1]
+                            #        continue
+                            dataunpackdirectory = "%s-%s-%d" % (checkfile, "synthesized", synthesizedcounter)
+                            try:
+                                os.mkdir(dataunpackdirectory)
+                            except:
+                                break
+                            synthesizedcounter += 1
 
-                        outfilename = os.path.join(dataunpackdirectory, "unpacked")
-                        outfile = open(outfilename, 'wb')
-                        os.sendfile(outfile.fileno(), scanfile.fileno(), startoffset, u[0] - startoffset)
-                        outfile.close()
-                        startoffset = u[1]+1
+                            outfilename = os.path.join(dataunpackdirectory, "unpacked")
+                            outfile = open(outfilename, 'wb')
+                            os.sendfile(outfile.fileno(), scanfile.fileno(), startoffset, u[0] - startoffset)
+                            outfile.close()
+                            startoffset = u[1]+1
 
-                        unpackedlabel = ['synthesized']
+                            unpackedlabel = ['synthesized']
 
-                        # try to see if the file contains NUL byte padding
-                        # and if so tag it as such
-                        ispadding = True
-                        outfile = open(outfilename, 'rb')
-                        checkbytes = outfile.read(1)
-                        if checkbytes == b'\x00':
-                            ## now read more bytes
-                            while True:
-                                scanbytes = outfile.read(scanenvironment['maxbytes'])
-                                if scanbytes == b'':
-                                    break
-                                if scanbytes != len(scanbytes) * b'\x00':
-                                    ispadding = False
-                                    break
-                        else:
-                            ispadding = False
-                        outfile.close()
-                        if ispadding:
-                            unpackedlabel.append('padding')
-                            if paddingname != None:
-                                newoutfilename = os.path.join(dataunpackdirectory, paddingname)
-                                shutil.move(outfilename, newoutfilename)
-                                outfilename = newoutfilename
+                            # try to see if the file contains NUL byte padding
+                            # and if so tag it as such
+                            ispadding = True
+                            outfile = open(outfilename, 'rb')
+                            checkbytes = outfile.read(1)
+                            if checkbytes == b'\x00':
+                                ## now read more bytes
+                                while True:
+                                    scanbytes = outfile.read(scanenvironment['maxbytes'])
+                                    if scanbytes == b'':
+                                        break
+                                    if scanbytes != len(scanbytes) * b'\x00':
+                                        ispadding = False
+                                        break
+                            else:
+                                ispadding = False
+                            outfile.close()
+                            if ispadding:
+                                unpackedlabel.append('padding')
+                                if paddingname != None:
+                                    newoutfilename = os.path.join(dataunpackdirectory, paddingname)
+                                    shutil.move(outfilename, newoutfilename)
+                                    outfilename = newoutfilename
 
-                        # add the data, plus labels, to the queue
-                        scanfilequeue.put((pathlib.Path(outfilename), unpackedlabel, checkfile, {}))
-                    startoffset = u[1]
-                scanfile.close()
+                            # add the data, plus labels, to the queue
+                            scanfilequeue.put((pathlib.Path(outfilename), unpackedlabel, checkfile, {}))
+                        startoffset = u[1]
+                    scanfile.close()
 
         # compute various checksums of the file
         hashresults = {}
