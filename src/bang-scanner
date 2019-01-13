@@ -823,7 +823,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 break
                             synthesizedcounter += 1
 
-                            outfilename = os.path.join(dataunpackdirectory, "unpacked")
+                            outfilename = os.path.join(dataunpackdirectory, "unpacked-%s-%s" % (hex(startoffset), hex(u[0])))
                             outfile = open(outfilename, 'wb')
                             os.sendfile(outfile.fileno(), scanfile.fileno(), startoffset, u[0] - startoffset)
                             outfile.close()
