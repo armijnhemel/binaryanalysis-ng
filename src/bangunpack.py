@@ -7896,6 +7896,7 @@ def unpackICO(filename, offset, unpackdir, temporarydirectory):
 #
 # version 4:
 # http://dev.chromium.org/developers/design-documents/linuxresourcesandlocalizedstrings
+# https://chromium.googlesource.com/chromium/src/tools/grit/+/22f7a68bb5ad68fe4192d0f34466049038735b9c/grit/format/data_pack.py
 #
 # version 5:
 # https://chromium.googlesource.com/chromium/src/tools/grit/+/master/grit/format/data_pack.py
