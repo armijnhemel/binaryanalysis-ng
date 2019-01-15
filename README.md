@@ -123,6 +123,7 @@ larger file, unless stated otherwise.
 82. ZIM (Wikipedia archive format)
 83. MIDI
 84. Android tzdata
+85. Java key store (version 2 only)
 
 ## Invocation
 

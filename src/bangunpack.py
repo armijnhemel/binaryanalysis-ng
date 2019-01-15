@@ -84,6 +84,7 @@
 # 54. ZIM (Wikipedia archive format)
 # 55. MIDI
 # 56. Android tzdata
+# 57. Java key store (version 2 only)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -20783,5 +20784,167 @@ def unpackAndroidTzdata(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = filesize - offset
 
     unpackedfilesandlabels.append((outfilename, ['resource']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Java key store files
+# format described in:
+#
+# https://github.com/openjdk-mirror/jdk7u-jdk/blob/master/src/share/classes/sun/security/provider/JavaKeyStore.java
+#
+# and extra clarifications from pyjks (MIT licensed):
+#
+# https://github.com/kurtbrose/pyjks
+def unpackJavaKeyStore(filename, offset, unpackdir, temporarydirectory):
+    '''Verify Java KeyStore files (Sun/Oracle format)'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file and skip the offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # read the version numner
+    checkbytes = checkfile.read(4)
+    version = int.from_bytes(checkbytes, byteorder='big')
+    if version != 1 and version != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong version number'}
+        return {'status': False, 'error': unpackingerror}
+    if version == 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'currently unsupported version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # then the count
+    checkbytes = checkfile.read(4)
+    count = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # depending on the version things change here different
+    if version == 1:
+        pass
+    elif version == 2:
+        for i in range(0, count):
+            # first read the tag
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for tag'}
+                return {'status': False, 'error': unpackingerror}
+            jkstag = int.from_bytes(checkbytes, byteorder='big')
+            if jkstag != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'wrong tag'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += 4
+
+            # then read the alias size
+            checkbytes = checkfile.read(2)
+            aliassize = int.from_bytes(checkbytes, byteorder='big')
+            if offset + unpackedsize + aliassize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'alias outside of file'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += 2
+
+            # then the alias, should be UTF-8
+            checkbytes = checkfile.read(aliassize)
+            try:
+                jksalias = checkbytes.decode()
+            except Exception as e:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'cannot decode alias'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += aliassize
+
+            # timestamp (milliseconds since epoch)
+            checkbytes = checkfile.read(8)
+            jkstimestamp = int.from_bytes(checkbytes, byteorder='big')
+            unpackedsize += 8
+
+            # then the certificate name length
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for certificate name length'}
+                return {'status': False, 'error': unpackingerror}
+            certnamelength = int.from_bytes(checkbytes, byteorder='big')
+            if offset + unpackedsize + certnamelength > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'certificate name outside of file'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += 2
+
+            # read the certificate name
+            certname = checkfile.read(certnamelength)
+            unpackedsize += certnamelength
+
+            # then read the certificate length
+            checkbytes = checkfile.read(4)
+            if len(checkbytes) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for certificate length'}
+                return {'status': False, 'error': unpackingerror}
+            certlength = int.from_bytes(checkbytes, byteorder='big')
+            if offset + unpackedsize + certlength > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'certificate outside of file'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += 4
+
+            cert = checkfile.read(certlength)
+            unpackedsize += certlength
+
+    # then a SHA1 hash. This cannot be verified without a password,
+    # so just do a few sanity checks.
+    if offset + unpackedsize + 20 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for checksum'}
+        return {'status': False, 'error': unpackingerror}
+    checkfile.seek(20, os.SEEK_CUR)
+    unpackedsize += 20
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('resource')
+        labels.append('java key store')
+
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.jks")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    unpackedfilesandlabels.append((outfilename, ['resource', 'java key store', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

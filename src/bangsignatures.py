@@ -106,6 +106,7 @@ signatures = {
     'zim': b'\x5a\x49\x4d\x04',
     'pack200': b'\xca\xfe\xd0\x0d',
     'midi': b'MThd',
+    'javakeystore': b'\xfe\xed\xfe\xed',
 }
 
 # some signatures do not start at the beginning of the file
@@ -204,6 +205,7 @@ signaturetofunction = {
     'gimpbrush': bangunpack.unpackGimpBrush,
     'zim': bangunpack.unpackZim,
     'midi': bangunpack.unpackMidi,
+    'javakeystore': bangunpack.unpackJavaKeyStore,
 }
 
 # a lookup table to map signatures to a name for
