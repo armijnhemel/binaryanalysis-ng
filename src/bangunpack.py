@@ -7949,6 +7949,7 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'not enough data for resource id'}
                 return {'status': False, 'error': unpackingerror}
+            resourceid = int.from_bytes(checkbytes, byteorder='little')
             unpackedsize += 2
 
             checkbytes = checkfile.read(4)
