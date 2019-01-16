@@ -17871,9 +17871,16 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
+    # add a cut off value to prevent many false positives
+    base64cutoff = 8
+
     # sanity checks, before attempting to run base64 check: see
     # if there is a space in the first 10 lines of the file, which
     # is not allowed in any of the alphabets.
+    if filesize < base64cutoff:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'file too small'}
+        return {'status': False, 'error': unpackingerror}
 
     # open the file in text mode
     checkfile = open(filename, 'r')
