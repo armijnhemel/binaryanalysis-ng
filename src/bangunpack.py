@@ -17875,8 +17875,9 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
     base64cutoff = 8
 
     # sanity checks, before attempting to run base64 check: see
-    # if there is a space in the first 10 lines of the file, which
-    # is not allowed in any of the alphabets.
+    # if there is a space in the file, which is not allowed in
+    # any of the alphabets. Although whitespace "should be ignored"
+    # in practice there are few files with extra whitespace characters.
     if filesize < base64cutoff:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'file too small'}
@@ -17892,8 +17893,6 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid character not in base16/32/64 alphabets'}
             return {'status': False, 'error': unpackingerror}
-        if ctr == 10:
-            break
     checkfile.close()
 
     # now read the whole file and run it through various decoders
