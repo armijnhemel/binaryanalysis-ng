@@ -7941,6 +7941,8 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
         pakencoding = ord(checkbytes)
         unpackedsize += 1
 
+        resourceidtooffset = {}
+
         # then all the resources
         for p in range(0, paknumberofresources):
             # resource id
@@ -7966,6 +7968,7 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
                                   'reason': 'resource offset outside file'}
                 return {'status': False, 'error': unpackingerror}
             unpackedsize += 4
+            resourceidtooffset[resourceid] = resourceoffset
 
         # two zero bytes
         checkbytes = checkfile.read(2)
@@ -7995,6 +7998,20 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'end of file cannot be outside of file'}
             return {'status': False, 'error': unpackingerror}
+
+        sorteditems = sorted(resourceidtooffset.items(), key=lambda x: x[1])
+        for i in range(0, len(sorteditems)):
+            checkfile.seek(offset + sorteditems[i][1])
+            if i == len(sorteditems) - 1:
+                lenbytes = endoffile - sorteditems[i][1]
+            else:
+                lenbytes = sorteditems[i+1][1] - sorteditems[i][1]
+            outfilename = os.path.join(unpackdir, 'resource-%d' % sorteditems[i][0])
+            outfile = open(outfilename, 'wb')
+            outfile.write(checkfile.read(lenbytes))
+            outfile.flush()
+            outfile.close()
+            unpackedfilesandlabels.append((outfilename, []))
 
     elif pakversion == 5:
         # read the encoding
