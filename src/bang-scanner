@@ -158,7 +158,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # Check if the file is a symbolic link.
         if filename.is_symlink():
             labels.append('symbolic link')
-            fileresult['labels'] = labels
+            fileresult['labels'] = list(set(labels))
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
             continue
@@ -166,7 +166,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # Check if the file is a socket
         if stat.S_ISSOCK(os.stat(filename).st_mode):
             labels.append('socket')
-            fileresult['labels'] = labels
+            fileresult['labels'] = list(set(labels))
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
             continue
@@ -174,7 +174,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # Check if the file is a FIFO
         if stat.S_ISFIFO(os.stat(filename).st_mode):
             labels.append('fifo')
-            fileresult['labels'] = labels
+            fileresult['labels'] = list(set(labels))
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
             continue
@@ -182,7 +182,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # Check if the file is a block device
         if stat.S_ISBLK(os.stat(filename).st_mode):
             labels.append('block device')
-            fileresult['labels'] = labels
+            fileresult['labels'] = list(set(labels))
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
             continue
@@ -190,7 +190,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # Check if the file is a character device
         if stat.S_ISCHR(os.stat(filename).st_mode):
             labels.append('character device')
-            fileresult['labels'] = labels
+            fileresult['labels'] = list(set(labels))
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
             continue
@@ -198,7 +198,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # Check if the file is a directory
         if filename.is_dir():
             labels.append('directory')
-            fileresult['labels'] = labels
+            fileresult['labels'] = list(set(labels))
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
             continue
@@ -208,7 +208,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # Don't scan an empty file
         if filesize == 0:
             labels.append('empty')
-            fileresult['labels'] = labels
+            fileresult['labels'] = list(set(labels))
             fileresult['filesize'] = 0
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
