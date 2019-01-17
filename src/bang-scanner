@@ -233,7 +233,11 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # padding files don't need to be scanned
         if 'padding' in labels:
             needsunpacking = False
-            unpackedrange = [(0, filesize)]
+            report = {}
+            report['offset'] = 0
+            report['size'] = filesize
+            report['files'] = []
+            fileresult['unpackedfiles'].append(report)
         else:
             needsunpacking = True
 
