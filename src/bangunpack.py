@@ -287,6 +287,79 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'invalid fmt chunk size'}
             return {'status': False, 'error': unpackingerror}
 
+        # format code, skip
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'no format code'}
+            return {'status': False, 'error': unpackingerror}
+
+        # number of channels
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'no data for number of channels'}
+            return {'status': False, 'error': unpackingerror}
+        numberofchannels = int.from_bytes(checkbytes, byteorder='little')
+
+        # sampling rate
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'no data for sampling rate'}
+            return {'status': False, 'error': unpackingerror}
+        samplingrate = int.from_bytes(checkbytes, byteorder='little')
+
+        # data rate
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'no data for data rate'}
+            return {'status': False, 'error': unpackingerror}
+        datarate = int.from_bytes(checkbytes, byteorder='little')
+
+        # data block size
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'no data for data block size'}
+            return {'status': False, 'error': unpackingerror}
+        datablocksize = int.from_bytes(checkbytes, byteorder='little')
+
+        # bits per sample
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'no data for data block size'}
+            return {'status': False, 'error': unpackingerror}
+        bitspersample = int.from_bytes(checkbytes, byteorder='little')
+
+        if fmtsize != 16:
+            # extension size
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'no data for extension size'}
+                return {'status': False, 'error': unpackingerror}
+            extensionsize = int.from_bytes(checkbytes, byteorder='little')
+
+        # extra sanity checks, from:
+        # http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
+        if fmtsize == 16:
+            # data rate = sampling rate * datablocksize
+            if datarate != samplingrate * datablocksize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'wrong value for data rate'}
+                return {'status': False, 'error': unpackingerror}
+
         # close the file again
         checkfile.close()
 
