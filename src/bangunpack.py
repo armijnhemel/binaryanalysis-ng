@@ -16414,6 +16414,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         # any real world use for a Linux kernel module signature.
         checkbytes = checkfile.read(2048)
         sigpos = checkbytes.find(b'~Module signature appended~\n')
+        outfilename = os.path.join(unpackdir, "unpacked-from-elf")
         if sigpos != -1:
             # the four bytes before the signature are the signature
             # size. This does not include the last 40 bytes. Magic is
@@ -16423,7 +16424,6 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                 # Carve the file. In case the section .modinfo is present, then
                 # it is possible to extract the name of the module.
                 maxoffset = maxoffset + sigsize + 40
-                outfilename = os.path.join(unpackdir, "unpacked-from-elf")
                 if '.modinfo' in sectionnames:
                     secnr = sectionnametonr['.modinfo']
                     checkfile.seek(offset+sectionheaders[secnr]['sh_offset'])
@@ -16436,16 +16436,16 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                             break
                     if modulename != '':
                         outfilename = os.path.join(unpackdir, modulename)
-                outfile = open(outfilename, 'wb')
-                os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
-                outfile.close()
-                checkfile.close()
-                outlabels = elflabels
-                outlabels = ['elf', 'unpacked', 'linuxkernelmodule']
-                unpackedfilesandlabels.append((outfilename, outlabels))
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
+        outfile.close()
+        checkfile.close()
+        outlabels = elflabels
+        outlabels += ['elf', 'unpacked', 'linuxkernelmodule']
+        unpackedfilesandlabels.append((outfilename, outlabels))
 
-                return {'status': True, 'length': maxoffset, 'labels': labels,
-                        'filesandlabels': unpackedfilesandlabels}
+        return {'status': True, 'length': maxoffset, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
 
     # Carve the file. It is anonymous, so just give it a name
     if soname is not None:
