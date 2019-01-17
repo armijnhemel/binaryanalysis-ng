@@ -15271,7 +15271,7 @@ def unpackOdex(filename, offset, unpackdir, temporarydirectory):
     # unlikely at this point that it is an invalid file.
     dryrun = True
     verifychecksum = False
-    dexres = unpackDex(filename, dexoffset, unpackdir, temporarydirectory, dryrun, verifychecksum)
+    dexres = unpackDex(filename, offset + dexoffset, unpackdir, temporarydirectory, dryrun, verifychecksum)
     if not dexres['status']:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
