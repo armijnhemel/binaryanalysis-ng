@@ -258,6 +258,11 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
                             b'note', b'plst', b'smpl', b'CDif', b'SAUR'])
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
     if unpackres['status']:
+        # see if any fmt chunks were found at all
+        if not b'fmt ' in unpackres['offsets']:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'no fmt chunk found'}
+            return {'status': False, 'error': unpackingerror}
         # first a sanity check for the 'fmt' chunk
         if len(unpackres['offsets'][b'fmt ']) != 1:
             unpackingerror = {'offset': offset, 'fatal': False,
