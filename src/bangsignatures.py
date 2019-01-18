@@ -108,6 +108,7 @@ signatures = {
     'midi': b'MThd',
     'javakeystore': b'\xfe\xed\xfe\xed',
     'xg3d': b'XG3D',
+    'acdb': b'QCMSNDDB',
 }
 
 # some signatures do not start at the beginning of the file
@@ -208,6 +209,7 @@ signaturetofunction = {
     'midi': bangunpack.unpackMidi,
     'javakeystore': bangunpack.unpackJavaKeyStore,
     'xg3d': bangunpack.unpackXG3D,
+    'acdb': bangunpack.unpackACDB,
 }
 
 # a lookup table to map signatures to a name for

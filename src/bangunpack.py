@@ -86,6 +86,8 @@
 # 56. Android tzdata
 # 57. Java key store (version 2 only)
 # 58. XG3D (proprietary file format from 3D Studio Max, labeling only)
+# 59. ACDB (audio callibration database, proprietary file format from
+#     Qualcomm, labeling only)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -21130,6 +21132,104 @@ def unpackXG3D(filename, offset, unpackdir, temporarydirectory):
     if offset == 0 and recordedfilesize == filesize:
         labels.append('xg3d')
         labels.append('3D Studio Max')
+        labels.append('resource')
+
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+
+# Label audio calibration database files from Qualcomm.
+# This analysis was based on a few samples found inside the
+# firmware of several Android devices using a Qualcomm chipset.
+def unpackACDB(filename, offset, unpackdir, temporarydirectory):
+    '''Verify Qualcomm's ACDB files'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # only support files starting at offset 0 for now
+    if offset != 0:
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'offset other than 0 not supported'}
+        return {'status': False, 'error': unpackingerror}
+
+    # header seems to be at least 32 bytes
+    if filesize - offset < 32:
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the offset.
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+8)
+    unpackedsize += 8
+
+    # next 8 bytes are NULL bytes
+    checkbytes = checkfile.read(8)
+    if checkbytes != b'\x00\x00\x00\x00\x00\x00\x00\x00':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'invalid header data'}
+        return {'status': False, 'error': unpackingerror}
+
+    # next 4 bytes can be various values, such as "AVDB"
+    # or "GCDB"
+    checkbytes = checkfile.read(4)
+    if checkbytes not in [b'AVDB', b'GCDB']:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'invalid header data'}
+        return {'status': False, 'error': unpackingerror}
+
+    # then four NULL bytes
+    checkbytes = checkfile.read(4)
+    if checkbytes != b'\x00\x00\x00\x00':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'invalid header data'}
+        return {'status': False, 'error': unpackingerror}
+
+    # read four bytes to find the file size, minus 0x20 (32) bytes
+    checkbytes = checkfile.read(4)
+    recordedfilesize = int.from_bytes(checkbytes, byteorder='little')
+
+    # and then apparently again (why? no idea)
+    checkbytes = checkfile.read(4)
+    recordedfilesize2 = int.from_bytes(checkbytes, byteorder='little')
+    if recordedfilesize != recordedfilesize2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'invalid header data'}
+        return {'status': False, 'error': unpackingerror}
+
+    # data cannot be outside of the file
+    if recordedfilesize + 32 - offset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for ACDB data'}
+        return {'status': False, 'error': unpackingerror}
+
+    # don't support carving right now
+    if recordedfilesize + 32 - offset < filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'carving not supported'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = recordedfilesize + 32
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('acdb')
         labels.append('resource')
 
         return {'status': True, 'length': unpackedsize, 'labels': labels,
