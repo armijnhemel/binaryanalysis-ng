@@ -12122,8 +12122,22 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
     # preceding the file system then some carving has to be done first.
     havetmpfile = False
     if not offset == 0:
+        # if files are larger than a certain limit, then os.sendfile()
+        # won't write more data than 2147479552 so write bytes
+        # out in chunks. Reference:
+        # https://bugzilla.redhat.com/show_bug.cgi?id=612839
         temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
-        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+        if unpackedsize > 2147479552:
+            bytesleft = unpackedsize
+            bytestowrite = min(bytesleft, 2147479552)
+            readoffset = offset
+            while bytesleft > 0:
+                os.sendfile(temporaryfile[0], checkfile.fileno(), readoffset, bytestowrite)
+                bytesleft -= bytestowrite
+                readoffset += bytestowrite
+                bytestowrite = min(bytesleft, 2147479552)
+        else:
+            os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
         os.fdopen(temporaryfile[0]).close()
         havetmpfile = True
     checkfile.close()
@@ -12152,7 +12166,10 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
         except IndexError:
             # there are no more entries to process
             break
-        p = subprocess.Popen(['e2ls', '-lai', str(filename) + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if havetmpfile:
+            p = subprocess.Popen(['e2ls', '-lai', temporaryfile[1] + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            p = subprocess.Popen(['e2ls', '-lai', str(filename) + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate()
         if p.returncode != 0:
             if havetmpfile:
@@ -12227,7 +12244,10 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                 if inode not in inodetofile:
                     inodetofile[inode] = fullext2name
                     # use e2cp to copy the file
-                    p = subprocess.Popen(['e2cp', str(filename) + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if havetmpfile:
+                        p = subprocess.Popen(['e2cp', temporaryfile[1] + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    else:
+                        p = subprocess.Popen(['e2cp', str(filename) + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     (outputmsg, errormsg) = p.communicate()
                     if p.returncode != 0:
                         if havetmpfile:
