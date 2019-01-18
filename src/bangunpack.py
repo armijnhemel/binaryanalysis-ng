@@ -85,6 +85,7 @@
 # 55. MIDI
 # 56. Android tzdata
 # 57. Java key store (version 2 only)
+# 58. XG3D (proprietary file format from 3D Studio Max, labeling only)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -21057,3 +21058,79 @@ def unpackJavaKeyStore(filename, offset, unpackdir, temporarydirectory):
     unpackedfilesandlabels.append((outfilename, ['resource', 'java key store', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# a seemingly proprietary file format from 3D Studio Max. There is not
+# much to extract, but at least the size of the file can be verified.
+# This analysis was based on just a few samples found inside the
+# firmware of an Android phone made by LG Electronics.
+def unpackXG3D(filename, offset, unpackdir, temporarydirectory):
+    '''Verify XG files (3D Studio Max format)'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # only support files starting at offset 0 for now
+    if offset != 0:
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'offset other than 0 not supported'}
+        return {'status': False, 'error': unpackingerror}
+
+    # header seems to be at least 70 bytes
+    if filesize - offset < 70:
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip to offset 29, as that
+    # is where the file size can be found.
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+29)
+    unpackedsize += 29
+
+    # read two bytes to find the file size. Perhaps this
+    # value starts earlier and four bytes are needed instead?
+    checkbytes = checkfile.read(2)
+    recordedfilesize = int.from_bytes(checkbytes, byteorder='little')
+
+    # data cannot be outside of the file
+    if recordedfilesize - offset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for XG3D data'}
+        return {'status': False, 'error': unpackingerror}
+
+    # don't support carving right now
+    if recordedfilesize - offset < filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'carving not supported'}
+        return {'status': False, 'error': unpackingerror}
+
+    # the same value also appears at offset 0x21?
+    # check the tool string, which should be
+    # "3D Studio Max XG Exporter" followed by a number
+    checkfile.seek(offset + 0x25)
+    checkbytes = checkfile.read(25)
+    if checkbytes != b'3D Studio Max XG Exporter':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not a valid 3D Studio Max string'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = recordedfilesize
+
+    if offset == 0 and recordedfilesize == filesize:
+        labels.append('xg3d')
+        labels.append('3D Studio Max')
+        labels.append('resource')
+
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}

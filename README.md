@@ -124,6 +124,7 @@ larger file, unless stated otherwise.
 83. MIDI
 84. Android tzdata
 85. Java key store (version 2 only)
+86. XG3D (proprietary file format from 3D Studio Max, labeling only)
 
 ## Invocation
 
