@@ -126,6 +126,7 @@ larger file, unless stated otherwise.
 85. Java key store (version 2 only)
 86. XG3D (proprietary file format from 3D Studio Max, labeling only)
 87. ACDB (audio callibration database, proprietary file format from Qualcomm, labeling only)
+88. Microsoft DirectDraw Surface (structure checks and very limited sanity checking)
 
 ## Invocation
 

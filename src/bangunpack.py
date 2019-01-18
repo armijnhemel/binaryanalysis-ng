@@ -88,6 +88,8 @@
 # 58. XG3D (proprietary file format from 3D Studio Max, labeling only)
 # 59. ACDB (audio callibration database, proprietary file format from
 #     Qualcomm, labeling only)
+# 60. Microsoft DirectDraw Surface (structure checks and very limited
+#     sanity checking)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -21234,3 +21236,210 @@ def unpackACDB(filename, offset, unpackdir, temporarydirectory):
 
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
+
+
+# Microsoft DirectDraw Surface files
+# https://docs.microsoft.com/en-us/windows/desktop/direct3ddds/dx-graphics-dds-pguide
+def unpackDDS(filename, offset, unpackdir, temporarydirectory):
+    '''Verify/carve Microsoft DirectDraw Surface files'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if filesize - offset < 128:
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # then process the dds header
+    # https://docs.microsoft.com/en-us/windows/desktop/direct3ddds/dds-header
+
+    # first dwsize
+    checkbytes = checkfile.read(4)
+    dwsize = int.from_bytes(checkbytes, byteorder='little')
+    if dwsize != 124:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'wrong value for dwSize'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # dwflags
+    checkbytes = checkfile.read(4)
+    dwflags = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # check if the file is compressed or uncompressed
+    compressed = False
+    if dwflags & 0x8 == 0x8 and dwflags & 0x80000 == 0x80000:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'conflicting flags'}
+        return {'status': False, 'error': unpackingerror}
+    if dwflags & 0x80000 == 0x80000:
+        compressed = True
+
+    # only support compressed files for now
+    if not compressed:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'uncompressed file currently not supported'}
+        return {'status': False, 'error': unpackingerror}
+
+    # dwheight
+    checkbytes = checkfile.read(4)
+    dwheight = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # dwwidth
+    checkbytes = checkfile.read(4)
+    dwwidth = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # dwPitchOrLinearSize
+    checkbytes = checkfile.read(4)
+    dwpitchorlinearsize = int.from_bytes(checkbytes, byteorder='little')
+    if compressed:
+        # in this case it is the size of the data
+        # that is following the header
+        if offset + dwpitchorlinearsize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'data outside of file'}
+            return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # dwdepth
+    checkbytes = checkfile.read(4)
+    dwdepth = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # dwMipMapCount
+    checkbytes = checkfile.read(4)
+    dwmipmapcount = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # dwreserved, should all be NULL
+    for i in range(0,11):
+        checkbytes = checkfile.read(4)
+        if checkbytes != b'\x00\x00\x00\x00':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'wrong value for dwReserved'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+    # dds pixel format
+    # https://docs.microsoft.com/en-us/windows/desktop/direct3ddds/dds-pixelformat
+    checkbytes = checkfile.read(4)
+    pixeldwsize = int.from_bytes(checkbytes, byteorder='little')
+    if pixeldwsize != 32:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'wrong value for pixel format dwSize'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # pixel flags
+    checkbytes = checkfile.read(4)
+    pixeldwflags = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # FourCC
+    pixelfourcc = checkfile.read(4)
+    unpackedsize += 4
+
+    # don't support DXT10 right now
+    if pixelfourcc == b'DX10':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'DXT10 file currently not supported'}
+        return {'status': False, 'error': unpackingerror}
+
+    # dwRGBBitCount
+    checkbytes = checkfile.read(4)
+    pixeldwrgbbitcount = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # red bit mask
+    checkbytes = checkfile.read(4)
+    pixelrbitmask = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # green bit mask
+    checkbytes = checkfile.read(4)
+    pixelgbitmask = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # blue bit mask
+    checkbytes = checkfile.read(4)
+    pixelbbitmask = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # alpha bit mask
+    checkbytes = checkfile.read(4)
+    pixelabitmask = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # dwcaps
+    checkbytes = checkfile.read(4)
+    dwcaps = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # dwcaps2
+    checkbytes = checkfile.read(4)
+    dwcaps2 = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # dwcaps3
+    checkbytes = checkfile.read(4)
+    dwcaps3 = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # dwcaps4
+    checkbytes = checkfile.read(4)
+    dwcaps4 = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # dwreserved2
+    checkbytes = checkfile.read(4)
+    dwreserved2 = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    unpackedsize += dwpitchorlinearsize
+
+    # TODO: verify with PIL, although PIL only supports
+    # a limited number of DDS variants.
+
+    if offset == 0 and filesize == unpackedsize:
+        labels.append('dds')
+        labels.append('graphics')
+
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.dds")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    unpackedfilesandlabels.append((outfilename, ['graphics', 'dds', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}

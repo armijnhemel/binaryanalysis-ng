@@ -109,6 +109,7 @@ signatures = {
     'javakeystore': b'\xfe\xed\xfe\xed',
     'xg3d': b'XG3D',
     'acdb': b'QCMSNDDB',
+    'dds': b'DDS ',
 }
 
 # some signatures do not start at the beginning of the file
@@ -210,6 +211,7 @@ signaturetofunction = {
     'javakeystore': bangunpack.unpackJavaKeyStore,
     'xg3d': bangunpack.unpackXG3D,
     'acdb': bangunpack.unpackACDB,
+    'dds': bangunpack.unpackDDS,
 }
 
 # a lookup table to map signatures to a name for
