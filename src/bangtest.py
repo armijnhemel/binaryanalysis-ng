@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU Affero General Public License,
 # version 3, along with BANG.  If not, see <http://www.gnu.org/licenses/>
 #
-# Copyright 2018 - Armijn Hemel
+# Copyright 2018-2019 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
