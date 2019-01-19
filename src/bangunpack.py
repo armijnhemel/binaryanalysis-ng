@@ -8103,6 +8103,8 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
             unpackedfilesandlabels.append((outfilename, []))
 
     elif pakversion == 5:
+        resourceidtooffset = {}
+
         # read the encoding
         checkbytes = checkfile.read(1)
         pakencoding = ord(checkbytes)
@@ -8131,6 +8133,7 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'not enough data for resource id'}
                 return {'status': False, 'error': unpackingerror}
+            resourceid = int.from_bytes(checkbytes, byteorder='little')
             unpackedsize += 2
 
             checkbytes = checkfile.read(4)
@@ -8146,6 +8149,7 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
                                   'reason': 'resource offset outside file'}
                 return {'status': False, 'error': unpackingerror}
             unpackedsize += 4
+            resourceidtooffset[resourceid] = resourceoffset
 
         # extra entry at the end with the end of file
         checkbytes = checkfile.read(2)
@@ -8187,6 +8191,20 @@ def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
                                   'reason': 'resource offset outside file'}
                 return {'status': False, 'error': unpackingerror}
             unpackedsize += 4
+
+        sorteditems = sorted(resourceidtooffset.items(), key=lambda x: x[1])
+        for i in range(0, len(sorteditems)):
+            checkfile.seek(offset + sorteditems[i][1])
+            if i == len(sorteditems) - 1:
+                lenbytes = endoffile - sorteditems[i][1]
+            else:
+                lenbytes = sorteditems[i+1][1] - sorteditems[i][1]
+            outfilename = os.path.join(unpackdir, 'resource-%d' % sorteditems[i][0])
+            outfile = open(outfilename, 'wb')
+            outfile.write(checkfile.read(lenbytes))
+            outfile.flush()
+            outfile.close()
+            unpackedfilesandlabels.append((outfilename, []))
 
     if endoffile + offset == filesize:
         checkfile.close()
