@@ -7,12 +7,14 @@ RUN dnf update -y && \
     dnf install -y binutils \
                    cabextract \
                    e2tools \
+                   java-1.8.0-openjdk-headless \
                    libxml2 \
                    lzop \
                    mailcap \
                    openssl \
                    p7zip \
                    python3 \
+                   python3-defusedxml \
                    python3-dockerfile-parse \
                    python3-lz4 \
                    python3-pillow \
@@ -23,8 +25,6 @@ RUN dnf update -y && \
                    qemu-img \
                    rzip \
                    squashfs-tools \
-                   zstd \
-                   python3-defusedxml \
-                   java-1.8.0-openjdk-headless
+                   zstd
 
 CMD ["python3","bangshell"]
