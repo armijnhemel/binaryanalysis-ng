@@ -18031,14 +18031,20 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
 
     # open the file in text mode
     checkfile = open(filename, 'r')
-    ctr = 0
+    linelengths = set()
     for i in checkfile:
-        ctr += 1
-        if " " in i:
+        if " " in i.strip():
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid character not in base16/32/64 alphabets'}
             return {'status': False, 'error': unpackingerror}
+        if len(i.strip()) != 0:
+            linelengths.add(len(i))
+            if len(linelengths) > 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'inconsistent line wrapping'}
+                return {'status': False, 'error': unpackingerror}
     checkfile.close()
 
     # now read the whole file and run it through various decoders
