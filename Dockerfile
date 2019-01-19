@@ -23,6 +23,8 @@ RUN dnf update -y && \
                    qemu-img \
                    rzip \
                    squashfs-tools \
-                   zstd
+                   zstd \
+                   python3-defusedxml \
+                   java-1.8.0-openjdk-headless
 
 CMD ["python3","bangshell"]
