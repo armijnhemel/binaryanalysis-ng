@@ -17246,7 +17246,7 @@ def unpackAndroidResource(filename, offset, unpackdir, temporarydirectory):
             unpackedsize = checkfile.tell() - offset
     else:
         checkfile.close()
-        unpackingerror = {'offset': oldoffset, 'fatal': False,
+        unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'cannot process chunk with resource type %d' % resourcetype}
         return {'status': False, 'error': unpackingerror}
 
