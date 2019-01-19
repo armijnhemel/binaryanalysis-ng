@@ -631,61 +631,63 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     # (section 7).
     # First read the size of the first chunk, which is always 25 bytes
     # when including length, chunk type and CRC fields (section 11.2.2)
-    checkbytes = checkfile.read(25)
-    if checkbytes[0:4] != b'\x00\x00\x00\x0d':
+    checkbytes = checkfile.read(4)
+    if checkbytes != b'\x00\x00\x00\x0d':
         checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'no valid chunk length'}
         return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
 
     # store the results of the PNG
     pngresults = {}
 
+    checkbytes = checkfile.read(17)
     # The first chunk *has* to be IHDR
-    if checkbytes[4:8] != b'IHDR':
+    if checkbytes[:4] != b'IHDR':
         checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'no IHDR header'}
         return {'status': False, 'error': unpackingerror}
 
     # check the width, height, depth, compression, etc.
-    width = int.from_bytes(checkbytes[8:12], byteorder='big')
-    height = int.from_bytes(checkbytes[12:16], byteorder='big')
+    width = int.from_bytes(checkbytes[4:8], byteorder='big')
+    height = int.from_bytes(checkbytes[8:12], byteorder='big')
     if width == 0 or height == 0:
         checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'width or height cannot be 0'}
         return {'status': False, 'error': unpackingerror}
 
-    depth = checkbytes[16]
+    depth = checkbytes[12]
     if depth not in [1, 2, 4, 8, 16]:
         checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'invalid depth'}
         return {'status': False, 'error': unpackingerror}
 
-    colortype = checkbytes[17]
+    colortype = checkbytes[13]
     if colortype not in [0, 2, 3, 4, 6]:
         checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'invalid color type'}
         return {'status': False, 'error': unpackingerror}
 
-    compressionmethod = checkbytes[18]
+    compressionmethod = checkbytes[14]
     if compressionmethod != 0:
         checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'invalid compression method'}
         return {'status': False, 'error': unpackingerror}
 
-    filtermethod = checkbytes[19]
+    filtermethod = checkbytes[15]
     if filtermethod != 0:
         checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'invalid filter method'}
         return {'status': False, 'error': unpackingerror}
 
-    interlacemethod = checkbytes[20]
+    interlacemethod = checkbytes[16]
     if interlacemethod > 1:
         checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
@@ -698,14 +700,17 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 
     # then compute the CRC32 of bytes 4 - 21 (header + data)
     # and compare it to the CRC in the PNG file
-    crccomputed = binascii.crc32(checkbytes[4:21])
-    crcstored = int.from_bytes(checkbytes[21:25], byteorder='big')
+    crccomputed = binascii.crc32(checkbytes[:17])
+    unpackedsize += 17
+
+    checkbytes = checkfile.read(4)
+    crcstored = int.from_bytes(checkbytes, byteorder='big')
     if crccomputed != crcstored:
         checkfile.close()
         unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
                           'reason': 'Wrong CRC'}
         return {'status': False, 'error': unpackingerror}
-    unpackedsize += 25
+    unpackedsize += 4
 
     # Then move on to the next chunks in similar fashion (section 5.3).
     # Extra sanity checks could be done here for the order in which
