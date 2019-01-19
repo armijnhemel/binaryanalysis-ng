@@ -18097,8 +18097,12 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
     if not decoded:
         try:
             decodedcontents = base64.standard_b64decode(base64contents)
-            decoded = True
-            encoding = 'base64'
+            # sanity check: in an ideal situation the base64 data is
+            # 1/3 larger than the decoded data.
+            # Anything 1.5 times larger (or more) is bogus.
+            if len(base64contents)/len(decodedcontents) < 1.5:
+                decoded = True
+                encoding = 'base64'
         except:
             pass
 
@@ -18106,9 +18110,13 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
     if not decoded:
         try:
             decodedcontents = base64.urlsafe_b64decode(base64contents)
-            decoded = True
-            encoding = 'base64'
-            labels.append('urlsafe')
+            # sanity check: in an ideal situation the base64 data is
+            # 1/3 larger than the decoded data.
+            # Anything 1.5 times larger (or more) is bogus.
+            if len(base64contents)/len(decodedcontents) < 1.5:
+                decoded = True
+                encoding = 'base64'
+                labels.append('urlsafe')
         except:
             pass
 
