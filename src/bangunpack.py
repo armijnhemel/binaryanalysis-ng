@@ -13830,7 +13830,13 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
     return {'status': False, 'error': unpackingerror}
 
 
-# XML specification: https://www.w3.org/TR/2008/REC-xml-20081126/
+# There are a few variants of XML. The first one is the "regular"
+# one, which is documented at:
+# https://www.w3.org/TR/2008/REC-xml-20081126/
+#
+# Android has a "binary XML", where the XML data has been translated
+# into a binary file. This one will eventually be covered by
+# unpackAndroidResource()
 def unpackXML(filename, offset, unpackdir, temporarydirectory):
     '''Verify a XML file.'''
     filesize = filename.stat().st_size
@@ -13839,17 +13845,25 @@ def unpackXML(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
-    if shutil.which('xmllint') is None:
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'xmllint program not found'}
-        return {'status': False, 'error': unpackingerror}
-
+    # first check if it is and Android XML
     checkfile = open(filename, 'rb')
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
+
+    if checkbytes == b'\x03\x00\x08\x00':
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'Android binary XML not supported'}
+        return {'status': False, 'error': unpackingerror}
+
+    if shutil.which('xmllint') is None:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'xmllint program not found'}
         return {'status': False, 'error': unpackingerror}
 
     # XML files sometimes start with a Byte Order Mark
@@ -16885,10 +16899,10 @@ def unpackAndroidResource(filename, offset, unpackdir, temporarydirectory):
 
     # first check the kind of file. There are four types of
     # top level files.
-    # * NULL type
-    # * string type
-    # * table type (resources.asrc typically is a table)
-    # * XML (Android's "binary XML")
+    # * NULL type (0x0000)
+    # * string type (0x0001)
+    # * table type (resources.asrc typically is a table) (0x0002)
+    # * XML (Android's "binary XML") (0x0003)
     # In ResourceTypes.h this part is the resChunk_header
     # Only the table type is currently supported.
     checkfile = open(filename, 'rb')
