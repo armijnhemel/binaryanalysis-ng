@@ -21911,6 +21911,35 @@ def unpackAVB(filename, offset, unpackdir, temporarydirectory):
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
+    extrabytesread = 0
+    # it could be that there is also a AVB footer, so keep reading
+    while filesize - checkfile.tell() >= 4096:
+        checkbytes = checkfile.read(4096)
+        if b'AVBf' in checkbytes:
+            footerpos = checkbytes.find(b'AVBf')
+            if footerpos != 0:
+                if checkbytes[:footerpos] != b'\x00' * footerpos:
+                    break
+            if len(checkbytes) - footerpos < 64:
+                break
+            majorversion = int.from_bytes(checkbytes[footerpos+4:footerpos+8], byteorder='big')
+            minorversion = int.from_bytes(checkbytes[footerpos+8:footerpos+12], byteorder='big')
+            originalsize = int.from_bytes(checkbytes[footerpos+12:footerpos+20], byteorder='big')
+            vbmetaoffset = int.from_bytes(checkbytes[footerpos+20:footerpos+28], byteorder='big')
+            vbmetasize = int.from_bytes(checkbytes[footerpos+28:footerpos+36], byteorder='big')
+            if checkbytes[footerpos+36:footerpos+64] != b'\x00' * 28:
+                break
+            extrabytesread += footerpos + 64
+
+            # vbmetaoffset should correspond with offset
+            if checkfile.tell() - unpackedsize - extrabytesread == offset:
+                unpackedsize += extrabytesread
+            break
+        else:
+           if checkbytes != b'\x00' * 4096:
+               break
+        extrabytesread += 4096
+
     # else carve the file. It is anonymous, so just give it a name
     outfilename = os.path.join(unpackdir, "unpacked.img")
     outfile = open(outfilename, 'wb')
