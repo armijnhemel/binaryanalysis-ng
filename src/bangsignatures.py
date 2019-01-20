@@ -110,6 +110,7 @@ signatures = {
     'xg3d': b'XG3D',
     'acdb': b'QCMSNDDB',
     'dds': b'DDS ',
+    'ktx11': b'\xabKTX 11\xbb\r\n\x1a\n',
 }
 
 # some signatures do not start at the beginning of the file
@@ -212,6 +213,7 @@ signaturetofunction = {
     'xg3d': bangunpack.unpackXG3D,
     'acdb': bangunpack.unpackACDB,
     'dds': bangunpack.unpackDDS,
+    'ktx11': bangunpack.unpackKTX11,
 }
 
 # a lookup table to map signatures to a name for
@@ -235,6 +237,7 @@ signatureprettyprint = {
     'zstd_08': 'zstd',
     'swf_zlib': 'swf',
     'swf_lzma': 'swf',
+    'ktx11': 'ktx',
 }
 
 # extensions to unpacking functions. This should only be

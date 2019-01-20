@@ -90,6 +90,7 @@
 #     Qualcomm, labeling only)
 # 60. Microsoft DirectDraw Surface (structure checks and very limited
 #     sanity checking)
+# 61. Khronos KTX files (version 1)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -21512,5 +21513,234 @@ def unpackDDS(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
 
     unpackedfilesandlabels.append((outfilename, ['graphics', 'dds', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/
+def unpackKTX11(filename, offset, unpackdir, temporarydirectory):
+    '''Verify/carve Khronos KTX texture files'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if filesize - offset < 64:
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+12)
+    unpackedsize += 12
+
+    # endianness
+    endianness = 'little'
+    checkbytes = checkfile.read(4)
+    if checkbytes != b'\x01\x02\x03\x04':
+        if checkbytes != b'\x04\x03\x02\x01':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'wrong endianness bytes'}
+            return {'status': False, 'error': unpackingerror}
+        endianness = 'big'
+    unpackedsize += 4
+
+    # gltype, either compressed or something else
+    checkbytes = checkfile.read(4)
+    gltype = int.from_bytes(checkbytes, byteorder=endianness)
+    unpackedsize += 4
+
+    if gltype == 0:
+        compressed = True
+    else:
+        compressed = False
+
+    # gltypesize
+    checkbytes = checkfile.read(4)
+    gltypesize = int.from_bytes(checkbytes, byteorder=endianness)
+
+    # sanity check: if compressed, then gltypesize must be 1
+    if compressed and gltypesize != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'wrong value for glTypeSize'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # glformat
+    checkbytes = checkfile.read(4)
+    glformat = int.from_bytes(checkbytes, byteorder=endianness)
+
+    # sanity check: if compressed, then glformat must be 0
+    if compressed and glformat != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'wrong value for glFormat'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # glinternalformat
+    checkbytes = checkfile.read(4)
+    glinternalformat = int.from_bytes(checkbytes, byteorder=endianness)
+    unpackedsize += 4
+
+    # glbaseinternalformat
+    checkbytes = checkfile.read(4)
+    glbaseinternalformat = int.from_bytes(checkbytes, byteorder=endianness)
+    unpackedsize += 4
+
+    # pixel width
+    checkbytes = checkfile.read(4)
+    pixelwidth = int.from_bytes(checkbytes, byteorder=endianness)
+    unpackedsize += 4
+
+    # pixel height
+    checkbytes = checkfile.read(4)
+    pixelheight = int.from_bytes(checkbytes, byteorder=endianness)
+    unpackedsize += 4
+
+    # pixel depth
+    checkbytes = checkfile.read(4)
+    pixeldepth = int.from_bytes(checkbytes, byteorder=endianness)
+    unpackedsize += 4
+
+    # number of array elements
+    checkbytes = checkfile.read(4)
+    numberofarrayelements = int.from_bytes(checkbytes, byteorder=endianness)
+    unpackedsize += 4
+
+    # number of faces
+    checkbytes = checkfile.read(4)
+    numberoffaces = int.from_bytes(checkbytes, byteorder=endianness)
+    if numberoffaces != 1 and numberoffaces != 6:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'wrong value for numberOfFaces'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # number of mipmap levels
+    checkbytes = checkfile.read(4)
+    numberofmipmaplevels = int.from_bytes(checkbytes, byteorder=endianness)
+    unpackedsize += 4
+
+    # bytes of key value data
+    checkbytes = checkfile.read(4)
+    bytesofkeyvaluedata = int.from_bytes(checkbytes, byteorder=endianness)
+    if offset + unpackedsize + bytesofkeyvaluedata > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for key/value data'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # read the key/value data
+    bytestoread = bytesofkeyvaluedata
+    while bytestoread > 0:
+        checkbytes = checkfile.read(4)
+        keyvaluesize = int.from_bytes(checkbytes, byteorder=endianness)
+        if checkfile.tell() + keyvaluesize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for key/value data'}
+            return {'status': False, 'error': unpackingerror}
+        bytestoread -= 4
+
+        if keyvaluesize > bytestoread:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for key/value data'}
+            return {'status': False, 'error': unpackingerror}
+        keyvalue = checkfile.read(keyvaluesize)
+        bytestoread -= keyvaluesize
+
+        # padding
+        paddingsize = 0
+        if keyvaluesize % 4 != 0:
+            paddingsize = 4 - keyvaluesize%4
+            checkbytes = checkfile.read(paddingsize)
+            if checkbytes != paddingsize * b'\x00':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'wrong value for padding bytes'}
+                return {'status': False, 'error': unpackingerror}
+        bytestoread -= paddingsize
+
+    unpackedsize += bytesofkeyvaluedata
+
+    # then process the mipmaplevels
+    if numberofmipmaplevels == 0:
+        nrlevels = 1
+    elif glinternalformat in [0x8B90, 0x8B91, 0x8B92, 0x8B93, 0x8B94,
+                              0x8B95, 0x8B96, 0x8B97, 0x8B98, 0x8B99]:
+        # GL_PALETTE_*, so set to 1
+        nrlevels = 1
+    else:
+        nrlevels = numberofmipmaplevels
+
+    for i in range(0, nrlevels):
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for mipmap level size'}
+            return {'status': False, 'error': unpackingerror}
+
+        # image size per face, so multiply with number of faces
+        imagesize = numberoffaces*int.from_bytes(checkbytes, byteorder=endianness)
+        if checkfile.tell() + imagesize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for mipmap image'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        # skip image size bytes
+        checkfile.seek(imagesize, os.SEEK_CUR)
+        unpackedsize += imagesize
+
+        # padding
+        paddingsize = 0
+        if imagesize % 4 != 0:
+            paddingsize = 4 - imagesize%4
+            checkbytes = checkfile.read(paddingsize)
+            if checkbytes != paddingsize * b'\x00':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'wrong value for padding bytes'}
+                return {'status': False, 'error': unpackingerror}
+        unpackedsize += paddingsize
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels.append('ktx')
+        labels.append('graphics')
+
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.ktx")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    unpackedfilesandlabels.append((outfilename, ['graphics', 'ktx', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
