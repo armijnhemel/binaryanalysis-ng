@@ -111,6 +111,7 @@ signatures = {
     'acdb': b'QCMSNDDB',
     'dds': b'DDS ',
     'ktx11': b'\xabKTX 11\xbb\r\n\x1a\n',
+    'avb': b'AVB0',
 }
 
 # some signatures do not start at the beginning of the file
@@ -214,6 +215,7 @@ signaturetofunction = {
     'acdb': bangunpack.unpackACDB,
     'dds': bangunpack.unpackDDS,
     'ktx11': bangunpack.unpackKTX11,
+    'avb': bangunpack.unpackAVB,
 }
 
 # a lookup table to map signatures to a name for

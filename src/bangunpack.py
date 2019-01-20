@@ -91,6 +91,7 @@
 # 60. Microsoft DirectDraw Surface (structure checks and very limited
 #     sanity checking)
 # 61. Khronos KTX files (version 1)
+# 62. Android verified boot image
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -21742,5 +21743,181 @@ def unpackKTX11(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
 
     unpackedfilesandlabels.append((outfilename, ['graphics', 'ktx', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Android verfied boot images
+# https://android.googlesource.com/platform/external/avb/+/master/avbtool
+def unpackAVB(filename, offset, unpackdir, temporarydirectory):
+    '''Label/verify/carve Android verified boot images'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if filesize - offset < 256:
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # major version
+    checkbytes = checkfile.read(4)
+    majorversion = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # minor version
+    checkbytes = checkfile.read(4)
+    minorversion = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # authentication block size
+    checkbytes = checkfile.read(8)
+    authenticationblocksize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # auxiliary block size
+    checkbytes = checkfile.read(8)
+    auxiliaryblocksize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # algorithm type
+    checkbytes = checkfile.read(4)
+    algorithmtype = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # hash offset
+    checkbytes = checkfile.read(8)
+    hashoffset = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # hash size
+    checkbytes = checkfile.read(8)
+    hashsize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # signature offset
+    checkbytes = checkfile.read(8)
+    signatureoffset = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # signature size
+    checkbytes = checkfile.read(8)
+    signaturesize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # public key offset
+    checkbytes = checkfile.read(8)
+    publickeyoffset = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # public key size
+    checkbytes = checkfile.read(8)
+    publickeysize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # public key metadata offset
+    checkbytes = checkfile.read(8)
+    publickeymetadataoffset = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # public key metadata size
+    checkbytes = checkfile.read(8)
+    publickeymetadatasize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # descriptors offset
+    checkbytes = checkfile.read(8)
+    descriptorsoffset = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # descriptors size
+    checkbytes = checkfile.read(8)
+    descriptorssize = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # rollback index
+    checkbytes = checkfile.read(8)
+    rollbackindex = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 8
+
+    # flags
+    checkbytes = checkfile.read(4)
+    flags = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # 4 padding bytes
+    checkbytes = checkfile.read(4)
+    unpackedsize += 4
+
+    # release string (NUL terminated)
+    checkbytes = checkfile.read(48)
+    try:
+        releasestring = checkbytes.split(b'\x00')[0].decode()
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'invalid release string'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 48
+
+    # 80 padding bytes
+    checkbytes = checkfile.read(80)
+    unpackedsize += 80
+
+    authoffset = unpackedsize
+    auxoffset = authoffset + authenticationblocksize
+
+    maxoffset = max(auxoffset + authenticationblocksize,
+                    authoffset + hashoffset + hashsize,
+                    authoffset + signatureoffset + signaturesize,
+                    auxoffset + publickeyoffset + publickeysize,
+                    auxoffset + descriptorsoffset + descriptorssize)
+    unpackedsize = maxoffset
+    if offset + unpackedsize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset,
+                          'fatal': False,
+                          'reason': 'data outside of file'}
+        return {'status': False, 'error': unpackingerror}
+
+    # block is padded to 4096 in standard Android images
+    # but could have been changed. Ignore other sizes for now.
+    paddinglength = 4096-unpackedsize%4096
+    if paddinglength != 0:
+        checkfile.seek(offset + unpackedsize)
+        checkbytes = checkfile.read(paddinglength)
+        if checkbytes != b'\x00' * paddinglength:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid value for padding'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += paddinglength
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels.append('android')
+        labels.append('android verified boot')
+
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.img")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    unpackedfilesandlabels.append((outfilename, ['android', 'android verified boot', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
