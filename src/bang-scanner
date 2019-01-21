@@ -131,7 +131,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
     else:
         paddingname = None
 
-    if dbconn == None:
+    if dbconn is None:
         usedatabase = False
     else:
         usedatabase = True
@@ -841,7 +841,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             outfile = open(outfilename, 'rb')
                             checkbytes = outfile.read(1)
                             if checkbytes == b'\x00':
-                                ## now read more bytes
+                                # now read more bytes
                                 while True:
                                     scanbytes = outfile.read(scanenvironment['maxbytes'])
                                     if scanbytes == b'':
@@ -854,7 +854,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             outfile.close()
                             if ispadding:
                                 unpackedlabel.append('padding')
-                                if paddingname != None:
+                                if paddingname is not None:
                                     newoutfilename = os.path.join(dataunpackdirectory, paddingname)
                                     shutil.move(outfilename, newoutfilename)
                                     outfilename = newoutfilename
@@ -886,7 +886,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         if createbytecounter:
             bytecounter = collections.Counter()
-            for i in range(0,256):
+            for i in range(0, 256):
                 bytecounter[i] = 0
 
         # keep track of whether or not a file consists of just
@@ -1465,7 +1465,7 @@ def main(argv):
 
         # create a directory for the scan
         scandirectory = pathlib.Path(tempfile.mkdtemp(prefix='bang-scan-',
-                                                  dir=baseunpackdirectory))
+                                                      dir=baseunpackdirectory))
 
         # create an empty file "STARTED" to easily identify
         # active (or crashed) scans.
