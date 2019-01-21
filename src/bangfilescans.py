@@ -99,7 +99,7 @@ def extractIdentifier(filename, hashresults, dbconn, dbcursor, scanenvironment):
        collaborative software development sites in a file
        (URLs and other references)
        Context: file
-       Ignore: archive, audio, audio, encrypted, filesystem, graphics, video
+       Ignore: archive, audio, audio, database, encrypted, filesystem, graphics, video
     '''
 
     # results is a dictionary, constructed as:
