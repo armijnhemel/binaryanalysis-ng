@@ -129,6 +129,7 @@ larger file, unless stated otherwise.
 88. Microsoft DirectDraw Surface (structure checks and very limited sanity checking)
 89. Khronos KTX files (version 1)
 90. Android verified boot image
+91. SQLite 3
 
 ## Invocation
 
