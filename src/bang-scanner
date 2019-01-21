@@ -874,7 +874,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         # not all files with TLSH should be looked at
         tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'archive',
-                                'filesystem', 'srec', 'ihex', 'padding'])
+                                'filesystem', 'srec', 'ihex', 'padding',
+                                'database'])
         if set(labels).intersection(tlshlabelsignore) != set():
             usetlsh = False
 
