@@ -266,13 +266,13 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
     if unpackres['status']:
         # see if any data chunks were found at all
-        if not b'data' in unpackres['offsets']:
+        if b'data' not in unpackres['offsets']:
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'no data chunk found'}
             return {'status': False, 'error': unpackingerror}
 
         # see if any fmt chunks were found at all
-        if not b'fmt ' in unpackres['offsets']:
+        if b'fmt ' not in unpackres['offsets']:
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'no fmt chunk found'}
             return {'status': False, 'error': unpackingerror}
@@ -3750,20 +3750,20 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
     unpackedsize = checkfile.tell() - offset
     if not encrypted:
         if dahuaformat:
-             # first close the file
-             checkfile.close()
+            # first close the file
+            checkfile.close()
 
-             # reopen for writing
-             checkfile = open(filename, 'r+b')
+            # reopen for writing
+            checkfile = open(filename, 'r+b')
 
-             # seek to the offset and change the identifier
-             # from DH to PK
-             checkfile.seek(offset)
-             checkfile.write(b'PK')
-             checkfile.close()
+            # seek to the offset and change the identifier
+            # from DH to PK
+            checkfile.seek(offset)
+            checkfile.write(b'PK')
+            checkfile.close()
 
-             # reopen in read mode
-             checkfile = open(filename, 'rb')
+            # reopen in read mode
+            checkfile = open(filename, 'rb')
 
         # if the ZIP file is at the end of the file then the ZIP module
         # from Python will do a lot of the heavy lifting.
@@ -3794,20 +3794,20 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
             knowncompression = True
 
             if dahuaformat:
-                 # first close the file
-                 checkfile.close()
+                # first close the file
+                checkfile.close()
 
-                 # reopen for writing
-                 checkfile = open(filename, 'r+b')
+                # reopen for writing
+                checkfile = open(filename, 'r+b')
 
-                 # seek to the offset and change the identifier
-                 # back from PK to DH
-                 checkfile.seek(offset)
-                 checkfile.write(b'DH')
-                 checkfile.close()
+                # seek to the offset and change the identifier
+                # back from PK to DH
+                checkfile.seek(offset)
+                checkfile.write(b'DH')
+                checkfile.close()
 
-                 # reopen in read mode
-                 checkfile = open(filename, 'rb')
+                # reopen in read mode
+                checkfile = open(filename, 'rb')
             # check if there have been directories stored
             # as regular files.
             faultyzipfiles = []
@@ -3883,14 +3883,14 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
         except zipfile.BadZipFile:
             checkfile.close()
             if dahuaformat:
-                 # reopen for writing
-                 checkfile = open(filename, 'r+b')
+                # reopen for writing
+                checkfile = open(filename, 'r+b')
 
-                 # seek to the offset and change the identifier
-                 # back from PK to DH
-                 checkfile.seek(offset)
-                 checkfile.write(b'DH')
-                 checkfile.close()
+                # seek to the offset and change the identifier
+                # back from PK to DH
+                checkfile.seek(offset)
+                checkfile.write(b'DH')
+                checkfile.close()
             if carved:
                 os.unlink(temporaryfile[1])
             unpackingerror = {'offset': offset, 'fatal': False,
@@ -16420,9 +16420,9 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                                            'binding': binding, 'type': symboltype,
                                            'sectionindex': st_shndx})
                 else:
-                   symbols.append({'name': symbolname, 'visibility': visibility,
-                                   'binding': binding, 'type': symboltype,
-                                   'section': st_shndx})
+                    symbols.append({'name': symbolname, 'visibility': visibility,
+                                    'binding': binding, 'type': symboltype,
+                                    'section': st_shndx})
 
     if dynamicneeded != []:
         elfresult['needed'] = dynamicneeded
@@ -18935,7 +18935,7 @@ def unpackLZOP(filename, offset, unpackdir, temporarydirectory):
 
     # method, has to be 1, 2 or 3
     checkbytes = checkfile.read(1)
-    if ord(checkbytes) not in [1,2,3]:
+    if ord(checkbytes) not in [1, 2, 3]:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'wrong method'}
@@ -19240,7 +19240,7 @@ def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
         unpackedsize += 4
 
         # entry cannot be outside of the file
-        if offset + entryoffset  + entrysize > filesize:
+        if offset + entryoffset + entrysize > filesize:
             break
 
         # offset cannot be smaller than previous offset
@@ -19802,7 +19802,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                 seenroot = True
             if b'/Prev' in i:
                 prevres = re.search(b'/Prev\s(\d+)', i)
-                if prevres != None:
+                if prevres is not None:
                     prevxref = int(prevres.groups()[0])
                     seenprev = True
                     if offset + prevxref > filesize:
@@ -19895,7 +19895,7 @@ def unpackScript(filename, offset, unpackdir, temporarydirectory):
                 return {'status': True, 'length': unpackedsize,
                         'labels': labels,
                         'filesandlabels': unpackedfilesandlabels}
-        elif filename.suffix.lower()== '.sh':
+        elif filename.suffix.lower() == '.sh':
             if '/bash' in checkline.strip():
                 checkfile.close()
                 labels.append('script')
@@ -19977,7 +19977,7 @@ def unpackPack200(filename, offset, unpackdir, temporarydirectory):
     if p.returncode != 0:
         # try to remove any files that were possibly left behind
         try:
-             os.unlink(outfilename)
+            os.unlink(outfilename)
         except:
             pass
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -20595,7 +20595,7 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
                     return {'status': False, 'error': unpackingerror}
 
                 # first create the output file
-                if memberurl ==  '':
+                if memberurl == '':
                     outfilename = membertitle
                 else:
                     outfilename = memberurl
@@ -20792,7 +20792,7 @@ def unpackAndroidTzdata(filename, offset, unpackdir, temporarydirectory):
     # followed by a character and then a NUL byte
     checkbytes = checkfile.read(4)
     tzrs = re.match(b"\d{2}\w\x00", checkbytes)
-    if tzrs == None:
+    if tzrs is None:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False,
@@ -21405,7 +21405,7 @@ def unpackDDS(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 4
 
     # dwreserved, should all be NULL
-    for i in range(0,11):
+    for i in range(0, 11):
         checkbytes = checkfile.read(4)
         if checkbytes != b'\x00\x00\x00\x00':
             checkfile.close()
@@ -21669,7 +21669,7 @@ def unpackKTX11(filename, offset, unpackdir, temporarydirectory):
         # padding
         paddingsize = 0
         if keyvaluesize % 4 != 0:
-            paddingsize = 4 - keyvaluesize%4
+            paddingsize = 4 - keyvaluesize % 4
             checkbytes = checkfile.read(paddingsize)
             if checkbytes != paddingsize * b'\x00':
                 checkfile.close()
@@ -21717,7 +21717,7 @@ def unpackKTX11(filename, offset, unpackdir, temporarydirectory):
         # padding
         paddingsize = 0
         if imagesize % 4 != 0:
-            paddingsize = 4 - imagesize%4
+            paddingsize = 4 - imagesize % 4
             checkbytes = checkfile.read(paddingsize)
             if checkbytes != paddingsize * b'\x00':
                 checkfile.close()
@@ -21891,7 +21891,7 @@ def unpackAVB(filename, offset, unpackdir, temporarydirectory):
 
     # block is padded to 4096 in standard Android images
     # but could have been changed. Ignore other sizes for now.
-    paddinglength = 4096-unpackedsize%4096
+    paddinglength = 4096 - (unpackedsize % 4096)
     if paddinglength != 0:
         checkfile.seek(offset + unpackedsize)
         checkbytes = checkfile.read(paddinglength)
@@ -21936,8 +21936,8 @@ def unpackAVB(filename, offset, unpackdir, temporarydirectory):
                 unpackedsize += extrabytesread
             break
         else:
-           if checkbytes != b'\x00' * 4096:
-               break
+            if checkbytes != b'\x00' * 4096:
+                break
         extrabytesread += 4096
 
     # else carve the file. It is anonymous, so just give it a name
