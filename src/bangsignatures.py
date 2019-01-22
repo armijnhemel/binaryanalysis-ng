@@ -277,6 +277,7 @@ extensiontofunction = {
     'shadow': bangunpack.unpackShadow,
     '.css': bangunpack.unpackCSS,
     'tzdata': bangunpack.unpackAndroidTzdata,
+    'fstab': bangunpack.unpackFstab,
 }
 
 # a lookup table to map extensions to a name
@@ -309,6 +310,7 @@ extensionprettyprint = {
     'shadow': 'shadow',
     '.css': 'css',
     'tzdata': 'tzdata',
+    'fstab': 'fstab',
 }
 
 # certain unpacking functions if the whole file is text

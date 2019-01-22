@@ -93,6 +93,7 @@
 # 61. Khronos KTX files (version 1)
 # 62. Android verified boot image
 # 63. SQLite 3
+# 64. Linux fstab files
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -22231,5 +22232,68 @@ def unpackSQLite(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     unpackedfilesandlabels.append((outfilename, ['database', 'sqlite3', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# verify Linux fstab files
+# man 5 fstab
+def unpackFstab(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a Linux fstab file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    fstabentries = []
+
+    foundlen = 0
+    isopened = False
+
+    # open the file in text mode
+    try:
+        checkfile = open(filename, 'r')
+        isopened = True
+        for l in checkfile:
+            # skip blank lines
+            if l.strip() == '':
+                continue
+            # skip comments
+            if l.startswith('#'):
+                continue
+            linesplits = l.strip().split()
+            if len(linesplits) < 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'not enough data for fstab entry'}
+                return {'status': False, 'error': unpackingerror}
+            if len(linesplits) > 6:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'too much data for fstab entry'}
+                return {'status': False, 'error': unpackingerror}
+            fstabentry = {}
+            fstabentry['device'] = linesplits[0]
+            fstabentry['path'] = linesplits[1]
+            fstabentry['fstype'] = linesplits[2]
+            fstabentry['options'] = linesplits[3].split(',')
+            if len(linesplits) > 4:
+                fstabentry['frequency'] = linesplits[4]
+            if len(linesplits) > 5:
+                fstabentry['pass'] = linesplits[5]
+            fstabentries.append(fstabentry)
+    except:
+        if isopened:
+            checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong encoding'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    unpackedsize = filesize
+    labels.append('fstab')
+
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

@@ -130,6 +130,7 @@ larger file, unless stated otherwise.
 89. Khronos KTX files (version 1)
 90. Android verified boot image
 91. SQLite 3
+92. Linux fstab files
 
 ## Invocation
 
