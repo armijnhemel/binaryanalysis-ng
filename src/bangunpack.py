@@ -18037,6 +18037,7 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
     # open the file in text mode
     checkfile = open(filename, 'r')
     linelengths = set()
+    linectr = 0
     prevlinelength = sys.maxsize
     for i in checkfile:
         if " " in i.strip():
@@ -18057,6 +18058,7 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'inconsistent line wrapping'}
                 return {'status': False, 'error': unpackingerror}
+        linectr += 1
     checkfile.close()
 
     # now read the whole file and run it through various decoders
@@ -18069,6 +18071,18 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
 
     decoded = False
     encoding = ''
+
+    if linectr == 1:
+        # a few sanity checks: there are frequently false positives
+        # for MD5, SHA1, SHA256, etc.
+        if len(base64contents) in [32, 40, 64]:
+            try:
+                binascii.unhexlify(base64contents)
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'inconsistent line wrapping'}
+                return {'status': False, 'error': unpackingerror}
+            except:
+               pass
 
     # first base16
     try:
