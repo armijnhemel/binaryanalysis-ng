@@ -18037,6 +18037,7 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
     # open the file in text mode
     checkfile = open(filename, 'r')
     linelengths = set()
+    prevlinelength = sys.maxsize
     for i in checkfile:
         if " " in i.strip():
             checkfile.close()
@@ -18044,6 +18045,12 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'invalid character not in base16/32/64 alphabets'}
             return {'status': False, 'error': unpackingerror}
         if len(i.strip()) != 0:
+            if len(i) > prevlinelength:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'inconsistent line wrapping'}
+                return {'status': False, 'error': unpackingerror}
+            prevlinelength = len(i)
             linelengths.add(len(i))
             if len(linelengths) > 2:
                 checkfile.close()
