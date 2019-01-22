@@ -18121,30 +18121,46 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
 
     # regular base64
     if not decoded:
-        try:
-            decodedcontents = base64.standard_b64decode(base64contents)
-            # sanity check: in an ideal situation the base64 data is
-            # 1/3 larger than the decoded data.
-            # Anything 1.5 times larger (or more) is bogus.
-            if len(base64contents)/len(decodedcontents) < 1.5:
-                decoded = True
-                encoding = 'base64'
-        except:
-            pass
+        invalidbase64 = False
+        validbase64chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r')
+        # check if the characters are in the base64 index table
+        for i in base64contents:
+            if chr(i) not in validbase64chars:
+                invalidbase64 = True
+                break
+        if not invalidbase64:
+            try:
+                decodedcontents = base64.standard_b64decode(base64contents)
+                # sanity check: in an ideal situation the base64 data is
+                # 1/3 larger than the decoded data.
+                # Anything 1.5 times larger (or more) is bogus.
+                if len(base64contents)/len(decodedcontents) < 1.5:
+                    decoded = True
+                    encoding = 'base64'
+            except:
+                pass
 
-    # URL safe base64
+    # URL safe base64 (RFC 4648, section 5)
     if not decoded:
-        try:
-            decodedcontents = base64.urlsafe_b64decode(base64contents)
-            # sanity check: in an ideal situation the base64 data is
-            # 1/3 larger than the decoded data.
-            # Anything 1.5 times larger (or more) is bogus.
-            if len(base64contents)/len(decodedcontents) < 1.5:
-                decoded = True
-                encoding = 'base64'
-                labels.append('urlsafe')
-        except:
-            pass
+        invalidbase64 = False
+        validbase64chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=\n\r')
+        # check if the characters are in the base64 index table
+        for i in base64contents:
+            if chr(i) not in validbase64chars:
+                invalidbase64 = True
+                break
+        if not invalidbase64:
+            try:
+                decodedcontents = base64.urlsafe_b64decode(base64contents)
+                # sanity check: in an ideal situation the base64 data is
+                # 1/3 larger than the decoded data.
+                # Anything 1.5 times larger (or more) is bogus.
+                if len(base64contents)/len(decodedcontents) < 1.5:
+                    decoded = True
+                    encoding = 'base64'
+                    labels.append('urlsafe')
+            except:
+                pass
 
     if not decoded:
         unpackingerror = {'offset': offset, 'fatal': False,
