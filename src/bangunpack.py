@@ -94,6 +94,7 @@
 # 62. Android verified boot image
 # 63. SQLite 3
 # 64. Linux fstab files
+# 65. Linux flattened device tree
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -22332,5 +22333,172 @@ def unpackFstab(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = filesize
     labels.append('fstab')
 
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# https://github.com/devicetree-org/devicetree-specification/releases/download/v0.2/devicetree-specification-v0.2.pdf
+def unpackDeviceTree(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a Linux device tree'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if offset + 40 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset + 4)
+    unpackedsize += 4
+
+    # total size
+    checkbytes = checkfile.read(4)
+    totalsize = int.from_bytes(checkbytes, byteorder='big')
+    # sanity check: declared size cannot be less than 40
+    if totalsize < 40:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'declared size cannot be smaller than header'}
+        return {'status': False, 'error': unpackingerror}
+    if offset + totalsize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'declared size cannot be larger than file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # off_dt_struct
+    checkbytes = checkfile.read(4)
+    off_dt_struct = int.from_bytes(checkbytes, byteorder='big')
+    if off_dt_struct < 40:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'offset cannot be smaller than header'}
+        return {'status': False, 'error': unpackingerror}
+    if offset + off_dt_struct > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'offset cannot be larger than file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # off_dt_strings
+    checkbytes = checkfile.read(4)
+    off_dt_strings = int.from_bytes(checkbytes, byteorder='big')
+    if off_dt_struct < 40:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'offset cannot be smaller than header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # off_mem_rsvmap
+    checkbytes = checkfile.read(4)
+    off_mem_rsvmap = int.from_bytes(checkbytes, byteorder='big')
+    if off_mem_rsvmap < 40:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'offset cannot be smaller than header'}
+        return {'status': False, 'error': unpackingerror}
+    if offset + off_mem_rsvmap > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'offset cannot be larger than file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # version
+    checkbytes = checkfile.read(4)
+    dtversion = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # last compatible version
+    checkbytes = checkfile.read(4)
+    lastcompatibleversion = int.from_bytes(checkbytes, byteorder='big')
+    if dtversion > 16:
+        if lastcompatibleversion != 16:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid compatible version'}
+            return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # boot_cpu_physid
+    checkbytes = checkfile.read(4)
+    boot_cpu_physid = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # size dt strings
+    checkbytes = checkfile.read(4)
+    size_dt_strings = int.from_bytes(checkbytes, byteorder='big')
+    if offset + off_dt_strings + size_dt_strings > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'strings block cannot be outside file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # size dt struct
+    checkbytes = checkfile.read(4)
+    size_dt_struct = int.from_bytes(checkbytes, byteorder='big')
+    if offset + off_dt_struct + size_dt_struct > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'struct block cannot be outside file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # section 5 says that the strings sections is last
+    if off_dt_struct + size_dt_struct > off_dt_strings:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'struct block cannot be after strings'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # extra sanity checks for the memory block
+    checkfile.seek(offset + off_mem_rsvmap)
+    unpackedsize = off_mem_rsvmap
+    while True:
+        checkbytes = checkfile.read(8)
+        if len(checkbytes) != 8:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for memory reservation entry'}
+            return {'status': False, 'error': unpackingerror}
+
+        memaddress = int.from_bytes(checkbytes, byteorder='big')
+        checkbytes = checkfile.read(8)
+        memsize = int.from_bytes(checkbytes, byteorder='big')
+        if len(checkbytes) != 8:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for memory reservation entry'}
+            return {'status': False, 'error': unpackingerror}
+        if memaddress == 0 and memsize == 0:
+            break
+
+    unpackedsize = totalsize
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels.append('dtb')
+        labels.append('flattened device tree')
+
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.dtb")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+
+    unpackedfilesandlabels.append((outfilename, ['dtb', 'flattened device tree', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

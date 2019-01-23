@@ -113,6 +113,7 @@ signatures = {
     'ktx11': b'\xabKTX 11\xbb\r\n\x1a\n',
     'avb': b'AVB0',
     'sqlite3': b'SQLite format 3\x00',
+    'dtb': b'\xd0\x0d\xfe\xed',
 }
 
 # some signatures do not start at the beginning of the file
@@ -218,6 +219,7 @@ signaturetofunction = {
     'ktx11': bangunpack.unpackKTX11,
     'avb': bangunpack.unpackAVB,
     'sqlite3': bangunpack.unpackSQLite,
+    'dtb': bangunpack.unpackDeviceTree,
 }
 
 # a lookup table to map signatures to a name for
