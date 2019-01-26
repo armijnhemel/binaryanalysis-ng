@@ -19957,8 +19957,78 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
             if b'/Root' in i:
                 seenroot = True
             if b'/Info' in i:
-                # section 14.3.3
-                pass
+                # indirect reference, section 7.3.10
+                # Don't treat errors as fatal right now.
+                infores = re.search(b'/Info\s+(\d+)\s+(\d+)\s+R', i)
+                if infores == None:
+                    continue
+                (objectref, generation) = infores.groups()
+                objectref = int(objectref)
+                generation = int(generation)
+                if objectref in objectreferences:
+                    # seek to the position of the object in the
+                    # file and read the data
+                    checkfile.seek(offset + objectreferences[objectref]['offset'])
+
+                    # first read a few bytes to check if it is
+                    # actually the right object
+                    checkbytes = checkfile.read(len(str(objectref)))
+                    try:
+                        cb = int(checkbytes)
+                    except:
+                        continue
+                    if cb != objectref:
+                        continue
+
+                    # read a space
+                    checkbytes = checkfile.read(1)
+                    if checkbytes != b' ':
+                        continue
+
+                    # read the generation
+                    checkbytes = checkfile.read(len(str(generation)))
+                    try:
+                        gen = int(checkbytes)
+                    except:
+                        continue
+                    if gen != generation:
+                        continue
+
+                    # read a space
+                    checkbytes = checkfile.read(1)
+                    if checkbytes != b' ':
+                        continue
+
+                    # then read 'obj'
+                    checkbytes = checkfile.read(3)
+                    if checkbytes != b'obj':
+                        continue
+
+                    # now read until 'endobj' is reached
+                    infobytes = b''
+                    validinfobytes = True
+                    while True:
+                        checkbytes = checkfile.read(20)
+                        infobytes += checkbytes
+                        if infobytes == b'':
+                            validinfobytes = False
+                            break
+                        if b'endobj' in infobytes:
+                            break
+                    if not validinfobytes:
+                        continue
+                    infobytes = infobytes.split(b'endobj', 1)[0].strip()
+                    if b'<<' not in infobytes:
+                        continue
+                    if b'>>' not in infobytes:
+                        continue
+                    if infobytes[0] == b'<<' and infobytes[-1] == b'>>':
+                        infobytes = infobytes[1:-1]
+                    else:
+                        infobytes = infobytes.split(b'>>', 1)[0]
+                        infobytes = infobytes.split(b'<<', 1)[1]
+                    # process according to section 14.3.3
+                    # TODO
             if b'/Prev' in i:
                 prevres = re.search(b'/Prev\s(\d+)', i)
                 if prevres is not None:
