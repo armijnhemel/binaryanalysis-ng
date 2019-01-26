@@ -19776,6 +19776,8 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
 
                 if checkfile.tell() == filesize:
                     break
+                if seeneof:
+                    break
 
             # check if the end of file was reached, without having
             # read a valid trailer.
