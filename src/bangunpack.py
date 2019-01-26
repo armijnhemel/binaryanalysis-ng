@@ -19654,6 +19654,9 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
     validpdf = False
     validpdfsize = -1
 
+    # keep a list of referencs for the entire document
+    documentobjectreferences = {}
+
     # The difficulty with PDF is that the body has no fixed structure
     # but is referenced from a trailer at the end of the PDF, possibly
     # followed by incremental updates (section 7.5.6). As files might
@@ -19669,6 +19672,11 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
         # valid trailer anymore.
         startxrefpos = -1
         crossoffset = -1
+
+        # keep track of the object references in a single
+        # part of the document (either the original document
+        # or an update to the document)
+        objectreferences = {}
 
         # first seek to where data had already been read
         checkfile.seek(offset + unpackedsize)
@@ -19816,6 +19824,111 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                 break
             checkfile.seek(-60, os.SEEK_CUR)
 
+        # read the xref entries (section 7.5.4) as those
+        # might be referenced in the trailer.
+        checkfile.seek(offset+crossoffset+4)
+        validxref = True
+        if trailerpos - crossoffset > 0:
+            checkbytes = checkfile.read(trailerpos - crossoffset - 4).strip()
+            if b'\r\n' in checkbytes:
+                objectdefs = checkbytes.split(b'\r\n')
+            elif b'\r' in checkbytes:
+                objectdefs = checkbytes.split(b'\r')
+            else:
+                objectdefs = checkbytes.split(b'\n')
+            firstlineseen = False
+            xrefseen = 0
+            xrefcount = 0
+            # the cross reference section might have
+            # subsections. The first line is always
+            # two integers
+            for o in objectdefs:
+                if not firstlineseen:
+                    # first line has to be two integers
+                    linesplits = o.split()
+                    if len(linesplits) != 2:
+                        validxref = False
+                        break
+                    try:
+                        startxref = int(linesplits[0])
+                        xrefcount = int(linesplits[1])
+                        xrefcounter = int(linesplits[0])
+                    except:
+                        validxref = False
+                        break
+                    firstlineseen = True
+                    xrefseen = 0
+                    continue
+                linesplits = o.split()
+                if len(linesplits) != 2 and len(linesplits) != 3:
+                    validxref = False
+                    break
+                if len(linesplits) == 2:
+                    # start of a new subsection, so first
+                    # check if the previous subsection was
+                    # actually valid.
+                    if xrefcount != xrefseen:
+                        validxref = False
+                        break
+                    linesplits = o.split()
+                    if len(linesplits) != 2:
+                        validxref = False
+                        break
+                    try:
+                        startxref = int(linesplits[0])
+                        xrefcount = int(linesplits[1])
+                        xrefcounter = int(linesplits[0])
+                    except:
+                        validxref = False
+                        break
+                    xrefseen = 0
+                    continue
+                elif len(linesplits) == 3:
+                    # each of the lines consists of:
+                    # * offset
+                    # * generation number
+                    # * keyword to indicate in use/free
+                    if len(linesplits[0]) != 10:
+                        validxref = False
+                        break
+                    if len(linesplits[1]) != 5:
+                        validxref = False
+                        break
+                    if len(linesplits[2]) != 1:
+                        validxref = False
+                        break
+                    try:
+                        objectoffset = int(linesplits[0])
+                    except:
+                        validxref = False
+                        break
+                    try:
+                        generation = int(linesplits[1])
+                    except:
+                        validxref = False
+                        break
+                    if linesplits[2] == b'n':
+                        objectreferences[xrefcounter] = {}
+                        objectreferences[xrefcounter]['offset'] = objectoffset
+                        objectreferences[xrefcounter]['generation'] = generation
+                        objectreferences[xrefcounter]['keyword'] = 'new'
+                    elif linesplits[2] == b'f':
+                        objectreferences[xrefcounter] = {}
+                        objectreferences[xrefcounter]['offset'] = objectoffset
+                        objectreferences[xrefcounter]['generation'] = generation
+                        objectreferences[xrefcounter]['keyword'] = 'free'
+                    else:
+                        validxref = False
+                        break
+                    xrefcounter += 1
+                    xrefseen += 1
+
+            if xrefcount != xrefseen:
+                validxref = False
+
+            if not validxref:
+                break
+
         # jump to the position where the trailer starts
         checkfile.seek(trailerpos)
 
@@ -19841,6 +19954,9 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                 continue
             if b'/Root' in i:
                 seenroot = True
+            if b'/Info' in i:
+                # section 14.3.3
+                pass
             if b'/Prev' in i:
                 prevres = re.search(b'/Prev\s(\d+)', i)
                 if prevres is not None:
