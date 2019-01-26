@@ -3817,6 +3817,9 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
             faultyzipfiles = []
             is_opc = False
             for z in zipinfolist:
+                # https://www.python.org/dev/peps/pep-0427/
+                if 'dist-info/WHEEL' in z.filename:
+                    labels.append('python wheel')
                 # https://setuptools.readthedocs.io/en/latest/formats.html
                 if z.filename == 'EGG-INFO/PKG-INFO':
                     labels.append('python egg')
