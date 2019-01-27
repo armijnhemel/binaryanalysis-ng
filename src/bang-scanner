@@ -815,7 +815,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     scanfile.seek(0)
                     # then try to see if the any useful data can be uncarved.
                     # Add an artifical entry for the end of the file
-                    for u in unpackedrange + [(filesize, filesize)]:
+                    for u in unpackedrange + [(filesize+1, filesize+1)]:
                         if u[0] > startoffset:
                             #if u[0] - startoffset < synthesizedminimum:
                             #        startoffset = u[1]
@@ -827,7 +827,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 break
                             synthesizedcounter += 1
 
-                            outfilename = os.path.join(dataunpackdirectory, "unpacked-%s-%s" % (hex(startoffset), hex(u[0])))
+                            outfilename = os.path.join(dataunpackdirectory, "unpacked-%s-%s" % (hex(startoffset), hex(u[0]-1)))
                             outfile = open(outfilename, 'wb')
                             os.sendfile(outfile.fileno(), scanfile.fileno(), startoffset, u[0] - startoffset)
                             outfile.close()
@@ -854,7 +854,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             if ispadding:
                                 unpackedlabel.append('padding')
                                 if paddingname is not None:
-                                    newoutfilename = os.path.join(dataunpackdirectory, "%s-%s-%s" % (paddingname, hex(startoffset), hex(u[0])))
+                                    newoutfilename = os.path.join(dataunpackdirectory, "%s-%s-%s" % (paddingname, hex(startoffset), hex(u[0]-1)))
                                     shutil.move(outfilename, newoutfilename)
                                     outfilename = newoutfilename
 
