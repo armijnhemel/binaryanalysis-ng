@@ -95,6 +95,7 @@
 # 63. SQLite 3
 # 64. Linux fstab files
 # 65. Linux flattened device tree
+# 66. Broadcom TRX
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -22696,5 +22697,169 @@ def unpackDeviceTree(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
 
     unpackedfilesandlabels.append((outfilename, ['dtb', 'flattened device tree', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Many firmware files for Broadcom devices start with a TRX header. While
+# data can be perfectly unpacked without looking at the header (as the
+# partitions are simply concatenated) this is looked at to be a bit more
+# accurate.
+#
+# Specifications:
+#
+# https://openwrt.org/docs/techref/header
+# http://web.archive.org/web/20190127154419/https://openwrt.org/docs/techref/header
+def unpackTRX(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a Broadcom TRX file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if offset + 28 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset + 4)
+    unpackedsize += 4
+
+    # length of header plus data
+    checkbytes = checkfile.read(4)
+    trxlength = int.from_bytes(checkbytes, byteorder='little')
+    if offset + trxlength > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'data outside of file'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset + trxlength < 28:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid length for header'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # CRC32 value, ignore for now
+    checkbytes = checkfile.read(4)
+    unpackedsize += 4
+
+    # TRX flags, ignore for now
+    checkbytes = checkfile.read(2)
+    unpackedsize += 2
+
+    # TRX version
+    checkbytes = checkfile.read(2)
+    trxversion = int.from_bytes(checkbytes, byteorder='little')
+    if trxversion != 1 and trxversion != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid TRX version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # depending on the TRX version there are 3 or 4 partition offsets
+    checkbytes = checkfile.read(4)
+    offset1 = int.from_bytes(checkbytes, byteorder='little')
+    if offset + offset1 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'partition 1 data outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    checkbytes = checkfile.read(4)
+    offset2 = int.from_bytes(checkbytes, byteorder='little')
+    if offset + offset2 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'partition 2 data outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    checkbytes = checkfile.read(4)
+    offset3 = int.from_bytes(checkbytes, byteorder='little')
+    if offset + offset3 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'partition 3 data outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    if trxversion == 2:
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for partition'}
+            return {'status': False, 'error': unpackingerror}
+        offset4 = int.from_bytes(checkbytes, byteorder='little')
+        if offset + offset4 > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'partition 4 data outside of file'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+    # write partition 1
+    if offset1 != 0:
+        if offset2 != 0:
+            partitionsize = offset2 - offset1
+        elif offset3 != 0:
+            partitionsize = offset3 - offset1
+        else:
+            if trxversion == 2:
+                partitionsize = offset4 - offset1
+            else:
+                partitionsize = trxlength - offset1
+        outfilename = os.path.join(unpackdir, "partition1")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset1, partitionsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, []))
+
+    # write partition 2
+    if offset2 != 0:
+        if offset3 != 0:
+            partitionsize = offset3 - offset2
+        else:
+            if trxversion == 2:
+                partitionsize = offset4 - offset2
+            else:
+                partitionsize = trxlength - offset2
+        outfilename = os.path.join(unpackdir, "partition2")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset2, partitionsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, []))
+
+    # write partition 3
+    if offset3 != 0:
+        if trxversion == 2 and offset4 != 0:
+            partitionsize = offset4 - offset3
+        else:
+            partitionsize = trxlength - offset3
+        outfilename = os.path.join(unpackdir, "partition3")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset3, partitionsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, []))
+
+    # write partition 4 if needed
+    if trxversion == 2:
+        if offset4 != 0:
+            partitionsize = trxlength - offset4
+            outfilename = os.path.join(unpackdir, "partition4")
+            outfile = open(outfilename, 'wb')
+            os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset4, partitionsize)
+            outfile.close()
+            unpackedfilesandlabels.append((outfilename, []))
+
+    checkfile.close()
+    unpackedsize = trxlength
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

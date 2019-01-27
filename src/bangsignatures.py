@@ -114,6 +114,7 @@ signatures = {
     'avb': b'AVB0',
     'sqlite3': b'SQLite format 3\x00',
     'dtb': b'\xd0\x0d\xfe\xed',
+    'trx': b'HDR0',
 }
 
 # some signatures do not start at the beginning of the file
@@ -220,6 +221,7 @@ signaturetofunction = {
     'avb': bangunpack.unpackAVB,
     'sqlite3': bangunpack.unpackSQLite,
     'dtb': bangunpack.unpackDeviceTree,
+    'trx': bangunpack.unpackTRX,
 }
 
 # a lookup table to map signatures to a name for
