@@ -18092,7 +18092,7 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
                                   'reason': 'inconsistent line wrapping'}
                 return {'status': False, 'error': unpackingerror}
             except:
-               pass
+                pass
 
     # first base16
     try:
@@ -19969,7 +19969,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                 # indirect reference, section 7.3.10
                 # Don't treat errors as fatal right now.
                 infores = re.search(b'/Info\s+(\d+)\s+(\d+)\s+R', i)
-                if infores == None:
+                if infores is None:
                     continue
                 (objectref, generation) = infores.groups()
                 objectref = int(objectref)
@@ -22233,7 +22233,7 @@ def unpackSQLite(filename, offset, unpackdir, temporarydirectory):
 
     # file format write version, 1 or 2
     checkbytes = checkfile.read(1)
-    if ord(checkbytes) not in [1,2]:
+    if ord(checkbytes) not in [1, 2]:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False,
