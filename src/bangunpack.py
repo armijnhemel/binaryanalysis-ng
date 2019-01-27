@@ -22861,5 +22861,10 @@ def unpackTRX(filename, offset, unpackdir, temporarydirectory):
 
     checkfile.close()
     unpackedsize = trxlength
+    if offset == 0 and filesize == unpackedsize:
+        labels.append('trx')
+        labels.append('firmware')
+        labels.append('broadcom')
+
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
