@@ -96,6 +96,7 @@
 # 64. Linux fstab files
 # 65. Linux flattened device tree
 # 66. Broadcom TRX
+# 67. pkg-config files
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -23104,5 +23105,107 @@ def unpackPSD(filename, offset, unpackdir, temporarydirectory):
 
     checkfile.close()
     unpackedfilesandlabels.append((outfilename, ['graphics', 'psd', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# verify pkg-config files
+# man 5 pc
+def unpackPkgConfig(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a pkg-config file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    isopened = False
+
+    # lists of known property keywords from # the pkg-config specification
+    # split into mandatory keywords and optional keywords.
+    #
+    # The specification actually says 'URL' is mandatory,
+    # but many files leave it out so here it is labeled as optional
+    mandatorykeywords = set(['Name', 'Version', 'Description'])
+    optionalkeywords = ['Cflags', 'Cflags.private', 'Libs', 'Libs.private',
+                        'Requires', 'Requires.private', 'Conflicts',
+                        'Provides', 'URL']
+
+    keywordsfound = set()
+
+    # open the file in text mode
+    try:
+        checkfile = open(filename, 'r')
+        isopened = True
+        validpc = True
+        continued = False
+        for l in checkfile:
+            keywordfound = False
+            # skip blank lines
+            if l.strip() == '':
+                continued = False
+                continue
+            # skip comments
+            if l.startswith('#'):
+                continue
+            for k in mandatorykeywords:
+                if l.startswith(k+':'):
+                    keywordsfound.add(k)
+                    keywordfound = True
+                    break
+            if keywordfound:
+                if l.strip().endswith('\\'):
+                    continued = True
+                else:
+                    continued = False
+                continue
+            for k in optionalkeywords:
+                if l.startswith(k+':'):
+                    keywordsfound.add(k)
+                    keywordfound = True
+                    break
+            if keywordfound:
+                if l.strip().endswith('\\'):
+                    continued = True
+                else:
+                    continued = False
+                continue
+
+            # process variable definitions
+            if not continued:
+                if '=' not in l:
+                    validpc = False
+                    break
+                pcres = re.match('[\w\d_]+=', l)
+                if pcres is None:
+                    validpc = False
+                    break
+            if l.strip().endswith('\\'):
+                continued = True
+            else:
+                continued = False
+    except:
+        if isopened:
+            checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong encoding'}
+        return {'status': False, 'error': unpackingerror}
+
+    if isopened:
+        checkfile.close()
+
+    if not validpc:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid format or unknown keyword'}
+        return {'status': False, 'error': unpackingerror}
+
+    if keywordsfound.intersection(mandatorykeywords) != mandatorykeywords:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'mandatory keyword missing'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = filesize
+    labels.append('pkg-config')
+
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

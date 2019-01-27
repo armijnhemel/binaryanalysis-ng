@@ -134,6 +134,7 @@ larger file, unless stated otherwise.
 93. Linux flattened device tree
 94. Broadcom TRX
 95. Photoshop PSD (raw bytes and RLE encoding only)
+96. pkg-config files
 
 ## Invocation
 
