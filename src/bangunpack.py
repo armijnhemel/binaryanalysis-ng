@@ -129,6 +129,7 @@
 # 25. pack200 (needs unpack200)
 # 26. GIMP brush (needs PIL)
 # 27. ICO (MS Windows icons, needs PIL)
+# 28. Photoshop PSD (RLE encoding only)
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
@@ -22866,5 +22867,232 @@ def unpackTRX(filename, offset, unpackdir, temporarydirectory):
         labels.append('firmware')
         labels.append('broadcom')
 
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Try to read Photoshop PSD files.
+# Specifications:
+#
+# https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
+def unpackPSD(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a Broadcom TRX file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # header + length field of color mode data section is 30
+    if offset + 30 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset + 4)
+    unpackedsize += 4
+
+    # version, always 1
+    checkbytes = checkfile.read(2)
+    version = int.from_bytes(checkbytes, byteorder='big')
+    if version != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong version number'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # reserved "must be zero"
+    checkbytes = checkfile.read(6)
+    reserved = int.from_bytes(checkbytes, byteorder='big')
+    if reserved != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'reserved bytes not 0 '}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 6
+
+    # number of channels, range 1-56
+    checkbytes = checkfile.read(2)
+    numberofchannels = int.from_bytes(checkbytes, byteorder='big')
+    if numberofchannels < 1 or numberofchannels > 56:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong number of channels'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # image height, range 1-30,000
+    checkbytes = checkfile.read(4)
+    imageheight = int.from_bytes(checkbytes, byteorder='big')
+    if imageheight < 1 or imageheight > 30000:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid image height'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # image width, range 1-30,000
+    checkbytes = checkfile.read(4)
+    imagewidth = int.from_bytes(checkbytes, byteorder='big')
+    if imagewidth < 1 or imagewidth > 30000:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid image width'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # depth
+    checkbytes = checkfile.read(2)
+    imagedepth = int.from_bytes(checkbytes, byteorder='big')
+    if imagedepth not in [1, 8, 16, 32]:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid image depth'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # color mode
+    checkbytes = checkfile.read(2)
+    colormode = int.from_bytes(checkbytes, byteorder='big')
+    if colormode not in [0, 1, 2, 3, 4, 7, 8, 9]:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid color mode'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # color mode data section
+    checkbytes = checkfile.read(4)
+    colormodelength = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # skip any data from the color mode data section if defined
+    if colormodelength > 0:
+        checkfile.seek(colormodelength, os.SEEK_CUR)
+        unpackedsize += colormodelength
+
+    # images resources section: TODO: process
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for images resources section'}
+        return {'status': False, 'error': unpackingerror}
+    resourceslength = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    if checkfile.tell() + resourceslength > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for images resources section'}
+        return {'status': False, 'error': unpackingerror}
+    if resourceslength > 0:
+        checkfile.seek(resourceslength, os.SEEK_CUR)
+        unpackedsize += resourceslength
+
+    # layer and mask information section
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for layer and mask information section'}
+        return {'status': False, 'error': unpackingerror}
+    layersectionlength = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    if checkfile.tell() + layersectionlength > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for layer and mask information section'}
+        return {'status': False, 'error': unpackingerror}
+    if layersectionlength > 0:
+        checkfile.seek(layersectionlength, os.SEEK_CUR)
+        unpackedsize += layersectionlength
+
+    # image pixel data
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for pixel data compression method'}
+        return {'status': False, 'error': unpackingerror}
+    compressionmethod = int.from_bytes(checkbytes, byteorder='big')
+    if compressionmethod not in [0, 1, 2, 3]:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid pixel data compression method'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # only support compression method 1 right now
+    if compressionmethod != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unsupported pixel data compression method'}
+        return {'status': False, 'error': unpackingerror}
+    if compressionmethod == 1:
+        totbytes = 0
+        for i in range(imageheight * numberofchannels):
+            checkbytes = checkfile.read(2)
+            if len(checkbytes) != 2:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for RLE byte count'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += 2
+            bytecounts = int.from_bytes(checkbytes, byteorder='big')
+            totbytes += bytecounts
+        if checkfile.tell() + totbytes > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for RLE encoded data'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += totbytes
+
+    if offset == 0 and unpackedsize == filesize:
+        # now load the file into PIL as an extra sanity check
+        try:
+            testimg = PIL.Image.open(checkfile)
+            testimg.load()
+            testimg.close()
+        except Exception as e:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid PSD data according to PIL'}
+            return {'status': False, 'error': unpackingerror}
+        checkfile.close()
+        labels += ['psd', 'graphics']
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.psd")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+
+    # reopen as read only
+    outfile = open(outfilename, 'rb')
+
+    # now load the file into PIL as an extra sanity check
+    try:
+        testimg = PIL.Image.open(outfile)
+        testimg.load()
+        testimg.close()
+        outfile.close()
+    except Exception as e:
+        outfile.close()
+        os.unlink(outfilename)
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid PSD data according to PIL'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+    unpackedfilesandlabels.append((outfilename, ['graphics', 'psd', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

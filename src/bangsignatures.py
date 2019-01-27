@@ -115,6 +115,7 @@ signatures = {
     'sqlite3': b'SQLite format 3\x00',
     'dtb': b'\xd0\x0d\xfe\xed',
     'trx': b'HDR0',
+    'psd': b'8BPS',
 }
 
 # some signatures do not start at the beginning of the file
@@ -222,6 +223,7 @@ signaturetofunction = {
     'sqlite3': bangunpack.unpackSQLite,
     'dtb': bangunpack.unpackDeviceTree,
     'trx': bangunpack.unpackTRX,
+    'psd': bangunpack.unpackPSD,
 }
 
 # a lookup table to map signatures to a name for

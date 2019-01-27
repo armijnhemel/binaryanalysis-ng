@@ -133,6 +133,7 @@ larger file, unless stated otherwise.
 92. Linux fstab files
 93. Linux flattened device tree
 94. Broadcom TRX
+95. Photoshop PSD (RLE encoding only)
 
 ## Invocation
 
