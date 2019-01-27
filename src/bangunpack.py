@@ -129,7 +129,7 @@
 # 25. pack200 (needs unpack200)
 # 26. GIMP brush (needs PIL)
 # 27. ICO (MS Windows icons, needs PIL)
-# 28. Photoshop PSD (RLE encoding only)
+# 28. Photoshop PSD (raw bytes and RLE encoding only)
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
@@ -23030,12 +23030,20 @@ def unpackPSD(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 2
 
     # only support compression method 1 right now
-    if compressionmethod != 1:
+    if compressionmethod != 0 and compressionmethod != 1:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'unsupported pixel data compression method'}
         return {'status': False, 'error': unpackingerror}
-    if compressionmethod == 1:
+
+    if compressionmethod == 0:
+        totbytes = numberofchannels * imageheight * imagewidth
+        if checkfile.tell() + totbytes > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for raw mode'}
+            return {'status': False, 'error': unpackingerror}
+    elif compressionmethod == 1:
         totbytes = 0
         for i in range(imageheight * numberofchannels):
             checkbytes = checkfile.read(2)
@@ -23054,7 +23062,7 @@ def unpackPSD(filename, offset, unpackdir, temporarydirectory):
                               'fatal': False,
                               'reason': 'not enough data for RLE encoded data'}
             return {'status': False, 'error': unpackingerror}
-        unpackedsize += totbytes
+    unpackedsize += totbytes
 
     if offset == 0 and unpackedsize == filesize:
         # now load the file into PIL as an extra sanity check
