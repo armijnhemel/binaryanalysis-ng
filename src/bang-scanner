@@ -831,7 +831,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             outfile = open(outfilename, 'wb')
                             os.sendfile(outfile.fileno(), scanfile.fileno(), startoffset, u[0] - startoffset)
                             outfile.close()
-                            startoffset = u[1]+1
 
                             unpackedlabel = ['synthesized']
 
@@ -858,6 +857,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                     newoutfilename = os.path.join(dataunpackdirectory, "%s-%s-%s" % (paddingname, hex(startoffset), hex(u[0])))
                                     shutil.move(outfilename, newoutfilename)
                                     outfilename = newoutfilename
+
+                            startoffset = u[1]+1
 
                             # add the data, plus labels, to the queue
                             scanfilequeue.put((pathlib.Path(outfilename), unpackedlabel, filename, {}))
