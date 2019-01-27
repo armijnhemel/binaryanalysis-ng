@@ -855,7 +855,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             if ispadding:
                                 unpackedlabel.append('padding')
                                 if paddingname is not None:
-                                    newoutfilename = os.path.join(dataunpackdirectory, paddingname)
+                                    newoutfilename = os.path.join(dataunpackdirectory, "%s-%s-%s" % (paddingname, hex(startoffset), hex(u[0])))
                                     shutil.move(outfilename, newoutfilename)
                                     outfilename = newoutfilename
 
