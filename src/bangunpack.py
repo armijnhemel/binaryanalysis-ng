@@ -22876,7 +22876,7 @@ def unpackTRX(filename, offset, unpackdir, temporarydirectory):
 #
 # https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
 def unpackPSD(filename, offset, unpackdir, temporarydirectory):
-    '''Verify a Broadcom TRX file'''
+    '''Verify a Photoshop PSD file'''
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
