@@ -22974,7 +22974,7 @@ def unpackPSD(filename, offset, unpackdir, temporarydirectory):
         checkfile.seek(colormodelength, os.SEEK_CUR)
         unpackedsize += colormodelength
 
-    # images resources section: TODO: process
+    # images resources section
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
@@ -22989,6 +22989,8 @@ def unpackPSD(filename, offset, unpackdir, temporarydirectory):
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'not enough data for images resources section'}
         return {'status': False, 'error': unpackingerror}
+
+    # skip the resources now. TODO: process
     if resourceslength > 0:
         checkfile.seek(resourceslength, os.SEEK_CUR)
         unpackedsize += resourceslength
