@@ -5137,7 +5137,12 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
             extent_filename = root_directory_entry[33:33+file_name_length]
 
             # ECMA 119, 7.6: file name for root directory is 0x00
-            if extent_filename != b'\x00':
+            # Some ISO file systems instead said it to 0x01, which
+            # according to 6.8.2.2 should not be for the first root
+            # entry.
+            # Seen in an ISO file included in an ASUS firmware file
+            # Modem_FW_4G_AC55U_30043808102_M14.zip
+            if extent_filename != b'\x00' and extent_filename != b'\x01':
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
