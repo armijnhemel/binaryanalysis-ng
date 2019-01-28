@@ -16260,7 +16260,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     endoftag = dynamicstringstable.find(b'\x00', d_val)
                     try:
                         soname = dynamicstringstable[d_val:endoftag].decode()
-                    except:
+                    except UnicodeDecodeError:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
                                           'reason': 'invalid SONAME'}
@@ -16274,7 +16274,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     endoftag = dynamicstringstable.find(b'\x00', d_val)
                     try:
                         rpath = dynamicstringstable[d_val:endoftag].decode()
-                    except:
+                    except UnicodeDecodeError:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
                                           'reason': 'invalid RPATH'}
@@ -16288,7 +16288,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     endoftag = dynamicstringstable.find(b'\x00', d_val)
                     try:
                         runpath = dynamicstringstable[d_val:endoftag].decode()
-                    except:
+                    except UnicodeDecodeError:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
                                           'reason': 'invalid RUNPATH'}
@@ -16346,7 +16346,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     endofsymbolname = dynamicstringstable.find(b'\x00', st_name)
                     try:
                         symbolname = dynamicstringstable[st_name:endofsymbolname].decode()
-                    except:
+                    except UnicodeDecodeError:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
                                           'reason': 'invalid dynamic symbol name'}
@@ -16355,7 +16355,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     endofsymbolname = symbolstringstable.find(b'\x00', st_name)
                     try:
                         symbolname = symbolstringstable[st_name:endofsymbolname].decode()
-                    except:
+                    except UnicodeDecodeError:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
                                           'reason': 'invalid  symbol name'}
@@ -17197,7 +17197,7 @@ def unpackAndroidResource(filename, offset, unpackdir, temporarydirectory):
                 try:
                     # try to decode the string to UTF-8
                     stringtable[s] = strentry.decode()
-                except:
+                except UnicodeDecodeError:
                     stringtable[s] = strentry
             else:
                 stringtable[s] = strentry
@@ -17770,7 +17770,7 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
 
     try:
         imagename = imagename.decode()
-    except:
+    except UnicodeDecodeError:
         pass
 
     ubootdata['name'] = imagename
@@ -19047,7 +19047,7 @@ def unpackLZOP(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(name_length)
         try:
             lzopname = checkbytes.decode()
-        except:
+        except UnicodeDecodeError:
             lzopname = 'unpacked-from-lzo'
     else:
         lzopname = 'unpacked-from-lzo'
@@ -19317,7 +19317,7 @@ def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         try:
             entryuid = int(checkbytes.decode())
-        except:
+        except UnicodeDecodeError:
             break
         unpackedsize += 4
 
@@ -19364,7 +19364,7 @@ def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
 
                 try:
                     dirname = dirname.decode()
-                except:
+                except UnicodeDecodeError:
                     pass
 
                 # no need to create/store current directory
@@ -20318,7 +20318,7 @@ def unpackGimpBrush(filename, offset, unpackdir, temporarydirectory):
     namebytes = checkfile.read(namelength)
     try:
         brushname = namebytes.split(b'\x00', 1)[0].decode()
-    except:
+    except UnicodeDecodeError:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid brush name'}
@@ -20542,7 +20542,7 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
             break
         try:
             articlemimetypes.append(articlemime.decode())
-        except:
+        except UnicodeDecodeError:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'invalid MIME type'}
@@ -20715,7 +20715,7 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(1)
         try:
             namespace = checkbytes.decode()
-        except:
+        except UnicodeDecodeError:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'wrong value for namespace'}
@@ -20771,7 +20771,7 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
                 memberurl += checkbytes
             try:
                 memberurl = memberurl.decode()
-            except:
+            except UnicodeDecodeError:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
@@ -20794,7 +20794,7 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
 
             try:
                 membertitle = membertitle.decode()
-            except:
+            except UnicodeDecodeError:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
@@ -21108,7 +21108,7 @@ def unpackAndroidTzdata(filename, offset, unpackdir, temporarydirectory):
         unpackedsize += 40
         try:
             zonename = checkbytes.split(b'\x00', 1)[0].decode()
-        except:
+        except UnicodeDecodeError:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize,
                               'fatal': False,
@@ -21300,7 +21300,7 @@ def unpackJavaKeyStore(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(aliassize)
             try:
                 jksalias = checkbytes.decode()
-            except Exception as e:
+            except UnicodeDecodeError:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
@@ -22108,7 +22108,7 @@ def unpackAVB(filename, offset, unpackdir, temporarydirectory):
     checkbytes = checkfile.read(48)
     try:
         releasestring = checkbytes.split(b'\x00')[0].decode()
-    except:
+    except UnicodeDecodeError:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False,
