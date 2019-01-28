@@ -851,7 +851,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
     unknownchunks = chunknames.difference(knownchunks)
     hasunknownchunks = False
 
-    if len(unknownchunks) != 0:
+    if unknownchunks != set():
         hasunknownchunks = True
 
     pngresults['chunks'] = chunknametooffsets
@@ -1410,7 +1410,7 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
 
     # now rename the file in case the file name was known
     if havefname:
-        if len(origname) != 0:
+        if origname != b'':
             origname = origname.decode()
             # in this case report the original name as well in a
             # different data structure
@@ -3853,7 +3853,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
                             labels.append('NuGet')
                             break
             if knowncompression:
-                if len(faultyzipfiles) == 0:
+                if faultyzipfiles == []:
                     try:
                         unpackzipfile.extractall()
                     except NotImplementedError:
@@ -17798,7 +17798,7 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
     while bytestoread > 0:
         readsize = min(bytestoread, 10000000)
         checkbytes = checkfile.read(readsize)
-        if len(checkbytes) == 0:
+        if checkbytes == b'':
             break
         crccomputed = binascii.crc32(checkbytes, crccomputed)
         bytestoread = imagedatasize - readsize
@@ -19072,7 +19072,6 @@ def unpackLZOP(filename, offset, unpackdir, temporarydirectory):
     # followed by compressed length, the data itself, and possibly
     # checksums
     haslzodata = False
-    lzolen = 0
     while True:
         lastblock = False
         # decompressed length
@@ -19084,7 +19083,6 @@ def unpackLZOP(filename, offset, unpackdir, temporarydirectory):
         decompressed_len = int.from_bytes(checkbytes, byteorder='big')
         if decompressed_len == 0:
             # last block has been reached
-            lzolen = checkfile.tell() - offset
             break
 
         # compressed length
@@ -19115,7 +19113,6 @@ def unpackLZOP(filename, offset, unpackdir, temporarydirectory):
             unpackedsize += 4
 
         haslzodata = True
-        lzolen = checkfile.tell() - offset
 
         # stop if the end of the file has been reached
         if checkfile.tell() == filesize:
