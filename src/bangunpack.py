@@ -402,6 +402,7 @@ def unpackRIFF(
         filename, offset, unpackdir, validchunkfourcc,
         applicationname, applicationheader, filesize,
         brokenlength=False):
+    '''Helper method to unpack RIFF based files'''
     labels = []
     # First check if the file size is 12 bytes or more. If not, then
     # it is not a valid RIFF file.
@@ -1603,6 +1604,7 @@ def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
 def unpackLZMAWrapper(
         filename, offset, unpackdir, extension,
         filetype, ppfiletype, lzmaunpackedsize):
+    '''Wrapper method to unpack LZMA and XZ based files'''
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
@@ -2657,6 +2659,7 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
 # following them and copying the data. This is used in squashfs
 # unpacking amongst others.
 def local_copy2(src, dest):
+    '''Wrapper around shutil.copy2 for squashfs unpacking'''
     return shutil.copy2(src, dest, follow_symlinks=False)
 
 
@@ -2983,6 +2986,7 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
 # Dahua is a Chinese vendor that is using the ZIP format for its firmware
 # updates, but has changed the first two characters of the file from PK to DH
 def unpackDahua(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack modified ZIP compressed data from Dahua.'''
     return unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=True)
 
 
@@ -6934,6 +6938,7 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
 # header and the required tables.
 def unpackFont(filename, offset, unpackdir, temporarydirectory,
                fontextension, collectionoffset=None):
+    '''Helper method to unpack various fonts'''
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
@@ -8012,6 +8017,7 @@ def unpackICO(filename, offset, unpackdir, temporarydirectory):
 # version 5:
 # https://chromium.googlesource.com/chromium/src/tools/grit/+/master/grit/format/data_pack.py
 def unpackChromePak(filename, offset, unpackdir, temporarydirectory):
+    '''Verify and extract data from Chrome PAK files.'''
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
@@ -18392,6 +18398,7 @@ def unpackCertificate(filename, offset, unpackdir, temporarydirectory):
 
 
 def extractCertificate(filename, offset, unpackdir, temporarydirectory):
+    '''Helper method to extract certificate files.'''
     filesize = os.stat(filename).st_size
     unpackedfilesandlabels = []
     labels = []
