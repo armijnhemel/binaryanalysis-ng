@@ -760,7 +760,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 
         try:
             chunktype = checkbytes[0:4].decode()
-        except:
+        except UnicodeDecodeError:
             checkfile.close()
             unpackingerror = {'offset': offset + unpackedsize,
                               'fatal': False,
@@ -913,10 +913,10 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             if endofkeyword == -1 or endofkeyword == 0:
                 continue
 
-            # keyword should be Latin-1
+            # keyword should be Latin-1, UTF-8 will do as well
             try:
                 keyword = checkbytes[:endofkeyword].decode()
-            except:
+            except UnicodeDecodeError:
                 continue
 
             # then the compression, only support deflate for now
@@ -926,7 +926,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
             # then try to decompress and then decode (Latin-1)
             try:
                 value = zlib.decompress(checkbytes[endofkeyword+2:]).decode()
-            except:
+            except UnicodeDecodeError:
                 continue
             pngtexts.append({'key': keyword, 'value': value, 'offset': o['offset']})
 
@@ -950,7 +950,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 
             try:
                 keyword = checkbytes[:localoffset].decode()
-            except:
+            except UnicodeDecodeError:
                 continue
 
             # then the compression flag, either 0 or 1
@@ -974,7 +974,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 endoflanguagetag = checkbytes.find(b'\x00', localoffset)
                 try:
                     languagetag = checkbytes[localoffset:endoflanguagetag].decode()
-                except:
+                except UnicodeDecodeError:
                     continue
                 localoffset = endoflanguagetag
 
@@ -985,7 +985,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 endoftranslatedkeyword = checkbytes.find(b'\x00', localoffset)
                 try:
                     translatedkeyword = checkbytes[localoffset:endoftranslatedkeyword].decode()
-                except:
+                except UnicodeDecodeError:
                     continue
                 localoffset = endoftranslatedkeyword
 
@@ -5638,7 +5638,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                         try:
                                             alternatename = alternatename.decode()
                                             extent_unpackdir = os.path.join(this_extent_unpackdir, alternatename)
-                                        except:
+                                        except UnicodeDecodeError:
                                             pass
                             extenttoname[extent_location] = extent_unpackdir
                             os.mkdir(extent_unpackdir)
@@ -5655,13 +5655,13 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                     try:
                                         alternatename = alternatename.decode()
                                         outfilename = os.path.join(this_extent_unpackdir, alternatename)
-                                    except:
+                                    except UnicodeDecodeError:
                                         pass
 
                             if len(symlinktarget) != 0:
                                 try:
                                     symlinktarget = symlinktarget.decode()
-                                except:
+                                except UnicodeDecodeError:
                                     pass
 
                                 # absolute symlinks can always be created,
@@ -7280,7 +7280,7 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory,
         try:
             fontname = fontname.decode()
             outfilename = os.path.join(unpackdir, fontname + "." + fontextension)
-        except:
+        except UnicodeDecodeError:
             outfilename = os.path.join(unpackdir, "unpacked." + fontextension)
     else:
         outfilename = os.path.join(unpackdir, "unpacked." + fontextension)
@@ -9667,7 +9667,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
 
             try:
                 inodename = checkbytes.decode()
-            except:
+            except UnicodeDecodeError:
                 break
 
             # compute the CRC of the name
@@ -9762,7 +9762,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
                     os.symlink(checkbytes.decode(), os.path.join(unpackdir, inodetofilename[inodenumber]))
                     unpackedfilesandlabels.append((os.path.join(unpackdir, inodetofilename[inodenumber]), ['symbolic link']))
                     dataunpacked = True
-                except Exception as e:
+                except UnicodeDecodeError:
                     break
             elif stat.S_ISREG(filemode):
                 # skip ahead 20 bytes to the offset of where to write data
@@ -10201,7 +10201,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 break
             try:
                 unpackname = unpackname.decode()
-            except:
+            except UnicodeDecodeError:
                 break
 
             # pad to even bytes
@@ -10237,7 +10237,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 targetname = checkbytes.split(b'\x00', 1)[0]
                 try:
                     targetname = targetname.decode()
-                except:
+                except UnicodeDecodeError:
                     break
 
                 os.symlink(targetname, os.path.join(unpackdir, unpackname))
@@ -10478,7 +10478,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                     unpackname = unpackname.decode(c)
                     namedecoded = True
                     break
-                except Exception as e:
+                except:
                     pass
             if not namedecoded:
                 break
@@ -10507,7 +10507,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 targetname = checkbytes.split(b'\x00', 1)[0]
                 try:
                     targetname = targetname.decode()
-                except:
+                except UnicodeDecodeError:
                     break
 
                 os.symlink(targetname, os.path.join(unpackdir, unpackname))
@@ -10824,7 +10824,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 targetname = checkbytes.split(b'\x00', 1)[0]
                 try:
                     targetname = targetname.decode()
-                except:
+                except UnicodeDecodeError:
                     break
 
                 dataunpacked = True
@@ -14164,7 +14164,7 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
             # used. This is a mistake.
             try:
                 constant_pool[i] = utf8bytes.decode()
-            except:
+            except UnicodeDecodeError:
                 constant_pool[i] = utf8bytes
             if len(utf8bytes) != utf8len:
                 checkfile.close()
@@ -15022,7 +15022,7 @@ def unpackDex(
 
             try:
                 stringid = stringid.decode()
-            except Exception as e:
+            except UnicodeDecodeError:
                 if b'\xed' not in stringid:
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -16082,7 +16082,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
             continue
         try:
             sectionname = checkbytes[sectionheaders[i]['sh_name_offset']:endofname].decode()
-        except:
+        except UnicodeDecodeError:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'broken section name'}
@@ -16165,7 +16165,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         checkfile.seek(offset + sectionheaders[interpsection]['sh_offset'])
         try:
             interp = checkfile.read(sectionheaders[interpsection]['sh_size']).split(b'\x00')[0].decode()
-        except:
+        except UnicodeDecodeError:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid runtime linker name'}
@@ -16246,7 +16246,7 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
                     endoftag = dynamicstringstable.find(b'\x00', d_val)
                     try:
                         dynamicneeded.append(dynamicstringstable[d_val:endoftag].decode())
-                    except:
+                    except UnicodeDecodeError:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
                                           'reason': 'invalid library name'}
