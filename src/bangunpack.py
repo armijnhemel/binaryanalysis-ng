@@ -143,7 +143,6 @@ import os
 import shutil
 import binascii
 import string
-import copy
 import tempfile
 import struct
 import collections
@@ -156,7 +155,6 @@ import bz2
 import stat
 import subprocess
 import json
-import defusedxml.minidom
 import xml.dom
 import hashlib
 import base64
@@ -167,6 +165,7 @@ import datetime
 import sqlite3
 
 # some external packages that are needed
+import defusedxml.minidom
 import PIL.Image
 import lz4
 import lz4.frame
@@ -241,7 +240,7 @@ def unpackWebP(filename, offset, unpackdir, temporarydirectory):
     # a list of valid WebP chunk FourCC
     # also contains the deprecated FRGM
     validchunkfourcc = set([b'ALPH', b'ANIM', b'ANMF', b'EXIF', b'FRGM',
-                           b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
+                            b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
     unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP', filesize)
     if unpackres['status']:
         labels = unpackres['labels']
@@ -5775,7 +5774,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                             outfile.seek(zisofs_uncompressed - totalwritten, os.SEEK_CUR)
                                             totalwritten += (zisofs_uncompressed - totalwritten)
                                     else:
-                                            totalwritten += outfile.write(zlib.decompress(checkfile.read(nextblockpointer-blockpointer)))
+                                        totalwritten += outfile.write(zlib.decompress(checkfile.read(nextblockpointer-blockpointer)))
 
                                 # extra sanity check, unsure if this is correct, but seems so
                                 if blockpointerarray[-1] < directory_extent_length:
@@ -5923,9 +5922,9 @@ def unpackLzip(filename, offset, unpackdir, temporarydirectory):
     lzma_lp = 0
     lzma_pb = 2
 
-    lzip_filters = [
-         {"id": lzma.FILTER_LZMA1, "dict_size": dictionarybasesize, 'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb},
-    ]
+    lzip_filters = [{'id': lzma.FILTER_LZMA1, 'dict_size': dictionarybasesize,
+                     'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb},
+                   ]
 
     decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=lzip_filters)
     if not filename.suffix.lower() == '.lz':
@@ -6062,7 +6061,7 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
 
     # RST0-7
     rstmarkers = set([b'\xff\xd0', b'\xff\xd1', b'\xff\xd2', b'\xff\xd3',
-                     b'\xff\xd4', b'\xff\xd5', b'\xff\xd6', b'\xff\xd7'])
+                      b'\xff\xd4', b'\xff\xd5', b'\xff\xd6', b'\xff\xd7'])
 
     # JPEG extension markers -- are these actually being used by someone?
     jpegextmarkers = set([b'\xff\xc8', b'\xff\xf0', b'\xff\xf1', b'\xff\xf2',
@@ -9839,9 +9838,11 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
                     # The data is LZMA compressed, so create a
                     # LZMA decompressor with custom filter, as the data
                     # is stored without LZMA headers.
-                    jffs_filters = [
-                         {"id": lzma.FILTER_LZMA1, "dict_size": lzma_dict_size, 'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb},
-                    ]
+                    jffs_filters = [{'id': lzma.FILTER_LZMA1,
+                                     'dict_size': lzma_dict_size,
+                                     'lc': lzma_lc, 'lp': lzma_lp,
+                                     'pb': lzma_pb},
+                                   ]
 
                     decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=jffs_filters)
 
@@ -10046,7 +10047,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 modes.add(islink)
 
                 isdevice = False
-                if (stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode)):
+                if stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode):
                     if True in modes:
                         break
                     isdevice = True
@@ -10334,7 +10335,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 modes.add(islink)
 
                 isdevice = False
-                if (stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode)):
+                if stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode):
                     if True in modes:
                         break
                     isdevice = True
@@ -10585,7 +10586,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 modes.add(islink)
 
                 isdevice = False
-                if (stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode)):
+                if stat.S_ISCHR(cpiomode) or stat.S_ISBLK(cpiomode):
                     if True in modes:
                         break
                     isdevice = True
@@ -12819,7 +12820,7 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
                                   'reason': 'could not unpack CPIO payload'}
                 return {'status': False, 'error': unpackingerror}
             for i in unpackresult['filesandlabels']:
-                    unpackedfilesandlabels.append((os.path.normpath(i[0]), i[1]))
+                unpackedfilesandlabels.append((os.path.normpath(i[0]), i[1]))
         elif payload == b'drpm':
             unpackedfilesandlabels.append((payloadfile, ['delta rpm data']))
 
@@ -16834,13 +16835,12 @@ def unpackSWF(filename, offset, unpackdir, temporarydirectory):
 
     # Create a LZMA decompressor with custom filter, as the data
     # is stored without LZMA headers.
-    swf_filters = [
-         {'id': lzma.FILTER_LZMA1,
-          'dict_size': dictionarysize,
-          'lc': lzma_lc,
-          'lp': lzma_lp,
-          'pb': lzma_pb},
-    ]
+    swf_filters = [{'id': lzma.FILTER_LZMA1,
+                    'dict_size': dictionarysize,
+                    'lc': lzma_lc,
+                    'lp': lzma_lp,
+                    'pb': lzma_pb},
+                  ]
 
     try:
         decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=swf_filters)
