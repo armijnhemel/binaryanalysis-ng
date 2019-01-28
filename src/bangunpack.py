@@ -12247,7 +12247,7 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
             namedecoded = False
             for c in encodingstotranslate:
                 try:
-                    ext2name = ext2name.decode()
+                    ext2name = ext2name.decode(c)
                     namedecoded = True
                     break
                 except Exception as e:
