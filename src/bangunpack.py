@@ -7317,7 +7317,7 @@ def unpackTrueTypeFont(filename, offset, unpackdir, temporarydirectory):
         return fontres
 
     labels = fontres['labels']
-    filesandlabels = fontres['filesandlabels']
+    unpackedfilesandlabels = fontres['filesandlabels']
 
     # first check if all the required tables are there.
     # It could be that the font is actually a "sfnt-housed font" and
@@ -7327,15 +7327,15 @@ def unpackTrueTypeFont(filename, offset, unpackdir, temporarydirectory):
             labels.append('sfnt')
         else:
             # fix labels for the carved file
-            filesandlabels[0][1].append('sfnt')
+            unpackedfilesandlabels[0][1].append('sfnt')
     else:
         if offset == 0 and fontres['length'] == filesize:
             labels.append('TrueType')
         else:
             # fix labels for the carved file
-            filesandlabels[0][1].append('TrueType')
+            unpackedfilesandlabels[0][1].append('TrueType')
     return {'status': True, 'length': fontres['length'], 'labels': labels,
-            'filesandlabels': filesandlabels}
+            'filesandlabels': unpackedfilesandlabels}
 
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
@@ -7371,14 +7371,14 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     labels = fontres['labels']
-    filesandlabels = fontres['filesandlabels']
+    unpackedfilesandlabels = fontres['filesandlabels']
     if offset == 0 and fontres['length'] == filesize:
         labels.append('OpenType')
     else:
         # fix labels for the carved file
-        filesandlabels[0][1].append('OpenType')
+        unpackedfilesandlabels[0][1].append('OpenType')
     return {'status': True, 'length': fontres['length'], 'labels': labels,
-            'filesandlabels': filesandlabels}
+            'filesandlabels': unpackedfilesandlabels}
 
 
 # Multiple fonts can be stored in font collections. The offsets
@@ -7738,7 +7738,6 @@ def unpackAndroidSparseData(filename, offset, unpackdir, temporarydirectory):
 def unpackAndroidBackup(filename, offset, unpackdir, temporarydirectory):
     '''Unpack an Android backup file.'''
     filesize = filename.stat().st_size
-    unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
