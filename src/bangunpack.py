@@ -181,7 +181,7 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 
 # Each unpacker has a specific interface:
 #
-# def unpacker(filename, offset, unpackdir)
+# def unpacker(filename, offset, unpackdir, temporarydirectory)
 #
 # * filename: full file name (pathlib.PosixPath object)
 # * offset: offset inside the file where the file system, compressed
