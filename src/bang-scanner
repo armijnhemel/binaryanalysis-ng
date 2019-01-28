@@ -41,15 +41,10 @@ import string
 import math
 import pickle
 import json
-import copy
-import subprocess
 import inspect
 import collections
 import functools
 import mimetypes
-
-# import module for database
-import psycopg2
 
 # import modules needed for multiprocessing
 import multiprocessing
@@ -60,6 +55,9 @@ import queue
 import logging
 import platform
 import getpass
+
+# import module for database
+import psycopg2
 
 # import the local file with unpacking methods
 import bangunpack
@@ -625,7 +623,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 # For each of the found candidates see if any
                 # data can be unpacked. Process these in the order
                 # in which the signatures were found in the file.
-                for s in (sorted(candidateoffsetsfound)):
+                for s in sorted(candidateoffsetsfound):
                     # skip offsets which are not useful to look at
                     # for example because the data has already been
                     # unpacked.
@@ -1681,7 +1679,7 @@ def main(argv):
                     mimetype = scanresult['scantree'][i]['mimetype']
                     print("MIME type:", mimetype, file=reportfile)
                 if 'parent' in scanresult['scantree'][i]:
-                    print("Parent: %s" % scanresult['scantree'][i]['parent'],  file=reportfile)
+                    print("Parent: %s" % scanresult['scantree'][i]['parent'], file=reportfile)
                 labelcounter.update(scanresult['scantree'][i]['labels'])
                 reportlabels = functools.reduce(lambda x, y: x + ", " + y, sorted(scanresult['scantree'][i]['labels']))
                 print("Labels: %s" % reportlabels, file=reportfile)
