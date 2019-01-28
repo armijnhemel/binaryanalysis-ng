@@ -286,9 +286,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # first process files with a known extension, but where
         # there is no clear magic header. A prime example is the
         # Android sparse data image format (system.new.dat and friends)
-        for e in bangsignatures.extensiontofunction:
-            if filename.name.lower().endswith(e):
-                dataunpackdirectory = "%s-%s-%d" % (filename, bangsignatures.extensionprettyprint[e], 1)
+        for extension in bangsignatures.extensiontofunction:
+            if filename.name.lower().endswith(extension):
+                dataunpackdirectory = "%s-%s-%d" % (filename, bangsignatures.extensionprettyprint[extension], 1)
                 os.mkdir(dataunpackdirectory)
 
                 # The result of the scan is a dictionary with the
@@ -302,7 +302,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 try:
                     # for these files the start offset of the
                     # files is always 0
-                    unpackresult = bangsignatures.extensiontofunction[e](filename, 0, dataunpackdirectory, temporarydirectory)
+                    unpackresult = bangsignatures.extensiontofunction[extension](filename, 0, dataunpackdirectory, temporarydirectory)
                 except AttributeError as ex:
                     os.rmdir(dataunpackdirectory)
                     continue
@@ -320,7 +320,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # log the file name, the extension and the
                     # error message for later analysis
                     if uselogging:
-                        logging.debug("FAIL %s known extension %s: %s" % (relativefilename, e, unpackresult['error']['reason']))
+                        logging.debug("FAIL %s known extension %s: %s" % (relativefilename, extension, unpackresult['error']['reason']))
 
                     # Fatal errors should lead to the program stopping
                     # execution. Ignored for now.
@@ -351,7 +351,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 # the file could be unpacked successfully,
                 # so log it as such.
                 if uselogging:
-                    logging.info("SUCCESS %s %s at offset: 0, length: %d" % (relativefilename, e, unpackresult['length']))
+                    logging.info("SUCCESS %s %s at offset: 0, length: %d" % (relativefilename, extension, unpackresult['length']))
 
                 # store the location of where the successfully
                 # unpacked file ends (the offset is always 0  here).
@@ -380,8 +380,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 # store lot of information about the unpacked files
                 report = {}
                 report['offset'] = 0
-                report['extension'] = e
-                report['type'] = bangsignatures.extensionprettyprint[e]
+                report['extension'] = extension
+                report['type'] = bangsignatures.extensionprettyprint[extension]
                 report['size'] = unpackresult['length']
                 report['files'] = []
 
@@ -648,12 +648,12 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     else:
                         namecounter = counterspersignature[s[1]] + 1
                     while True:
-                            dataunpackdirectory = "%s-%s-%d" % (filename, bangsignatures.signatureprettyprint.get(s[1], s[1]), namecounter)
-                            try:
-                                os.mkdir(dataunpackdirectory)
-                                break
-                            except:
-                                namecounter += 1
+                        dataunpackdirectory = "%s-%s-%d" % (filename, bangsignatures.signatureprettyprint.get(s[1], s[1]), namecounter)
+                        try:
+                            os.mkdir(dataunpackdirectory)
+                            break
+                        except:
+                            namecounter += 1
 
                     # run the scan for the offset that was found
                     # First log which identifier was found and
