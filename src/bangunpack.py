@@ -157,6 +157,7 @@ import stat
 import subprocess
 import json
 import defusedxml.minidom
+import xml.dom
 import hashlib
 import base64
 import re
