@@ -10290,7 +10290,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 break
             try:
                 dev = int(checkbytes, base=8)
-            except:
+            except ValueError:
                 break
             unpackedsize += 6
 
@@ -10300,7 +10300,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 break
             try:
                 inode = int(checkbytes, base=8)
-            except:
+            except ValueError:
                 break
             unpackedsize += 6
 
@@ -10310,7 +10310,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 break
             try:
                 cpiomode = int(checkbytes, base=8)
-            except:
+            except ValueError:
                 break
             if not possibletrailer:
                 # the mode for any entry cannot be 0
@@ -10385,7 +10385,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 break
             try:
                 nr_of_links = int(checkbytes, base=8)
-            except:
+            except ValueError:
                 break
             unpackedsize += 6
 
@@ -10399,7 +10399,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 break
             try:
                 rdev = int(checkbytes, base=8)
-            except:
+            except ValueError:
                 break
             # "For all other entry types, it should be set to zero by
             # writers and ignored by readers."
@@ -10424,7 +10424,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 break
             try:
                 namesize = int(checkbytes, base=8)
-            except:
+            except ValueError:
                 break
             if namesize == 0:
                 break
@@ -10436,7 +10436,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 break
             try:
                 cpiodatasize = int(checkbytes, base=8)
-            except:
+            except ValueError:
                 break
             unpackedsize += 11
 
@@ -19442,14 +19442,14 @@ def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
                 return {'status': False, 'error': unpackingerror}
             try:
                 uid = int(linesplits[2])
-            except:
+            except ValueError:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'invalid UID in passwd file entry'}
                 return {'status': False, 'error': unpackingerror}
             try:
                 gid = int(linesplits[3])
-            except:
+            except ValueError:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'invalid GID in passwd file entry'}
@@ -19515,7 +19515,7 @@ def unpackShadow(filename, offset, unpackdir, temporarydirectory):
                 return {'status': False, 'error': unpackingerror}
             try:
                 datechanged = int(linesplits[2])
-            except:
+            except ValueError:
                 if linesplits[2] != '':
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -19523,7 +19523,7 @@ def unpackShadow(filename, offset, unpackdir, temporarydirectory):
                     return {'status': False, 'error': unpackingerror}
             try:
                 minpasswdage = int(linesplits[3])
-            except:
+            except ValueError:
                 if linesplits[3] != '':
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -19531,7 +19531,7 @@ def unpackShadow(filename, offset, unpackdir, temporarydirectory):
                     return {'status': False, 'error': unpackingerror}
             try:
                 maxpasswdage = int(linesplits[4])
-            except:
+            except ValueError:
                 if linesplits[4] != '':
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -19539,7 +19539,7 @@ def unpackShadow(filename, offset, unpackdir, temporarydirectory):
                     return {'status': False, 'error': unpackingerror}
             try:
                 passwdwarning = int(linesplits[5])
-            except:
+            except ValueError:
                 if linesplits[5] != '':
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -19547,7 +19547,7 @@ def unpackShadow(filename, offset, unpackdir, temporarydirectory):
                     return {'status': False, 'error': unpackingerror}
             try:
                 passwdwarning = int(linesplits[6])
-            except:
+            except ValueError:
                 if linesplits[6] != '':
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -19555,7 +19555,7 @@ def unpackShadow(filename, offset, unpackdir, temporarydirectory):
                     return {'status': False, 'error': unpackingerror}
             try:
                 accountexpiration = int(linesplits[7])
-            except:
+            except ValueError:
                 if linesplits[7] != '':
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -19634,7 +19634,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
     # section 7.5.2
     try:
         versionnumber = int(checkbytes)
-    except:
+    except ValueError:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid version number'}
@@ -19753,7 +19753,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                 if crossbuf != b'':
                     try:
                         crossoffset = int(crossbuf)
-                    except:
+                    except ValueError:
                         break
                 if crossoffset != 0:
                     # the offset for the cross reference cannot
@@ -19873,7 +19873,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                         startxref = int(linesplits[0])
                         xrefcount = int(linesplits[1])
                         xrefcounter = int(linesplits[0])
-                    except:
+                    except ValueError:
                         validxref = False
                         break
                     firstlineseen = True
@@ -19898,7 +19898,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                         startxref = int(linesplits[0])
                         xrefcount = int(linesplits[1])
                         xrefcounter = int(linesplits[0])
-                    except:
+                    except ValueError:
                         validxref = False
                         break
                     xrefseen = 0
@@ -19919,12 +19919,12 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                         break
                     try:
                         objectoffset = int(linesplits[0])
-                    except:
+                    except ValueError:
                         validxref = False
                         break
                     try:
                         generation = int(linesplits[1])
-                    except:
+                    except ValueError:
                         validxref = False
                         break
                     if linesplits[2] == b'n':
@@ -19993,7 +19993,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                     checkbytes = checkfile.read(len(str(objectref)))
                     try:
                         cb = int(checkbytes)
-                    except:
+                    except ValueError:
                         continue
                     if cb != objectref:
                         continue
@@ -20007,7 +20007,7 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
                     checkbytes = checkfile.read(len(str(generation)))
                     try:
                         gen = int(checkbytes)
-                    except:
+                    except ValueError:
                         continue
                     if gen != generation:
                         continue
