@@ -7180,8 +7180,8 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory,
                         if platformid == 0 or platformid == 1:
                             fontname = checkbytes[nametablestringoffset+nameoffset:nametablestringoffset+nameoffset+namelength]
         computedsum = 0
-        for i in range(0, tablelength + padding, 4):
-            computedsum += int.from_bytes(checkbytes[i:i+4], byteorder='big')
+        for j in range(0, tablelength + padding, 4):
+            computedsum += int.from_bytes(checkbytes[j:j+4], byteorder='big')
 
         # only grab the lowest 32 bits (4294967295 = (2^32)-1)
         computedsum = computedsum & 4294967295
@@ -8488,8 +8488,8 @@ def unpackCab(filename, offset, unpackdir, temporarydirectory):
             subdirname = os.path.join(direntries[0], subdir)
             if not os.path.islink(subdirname):
                 os.chmod(subdirname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        for filename in direntries[2]:
-            fullfilename = os.path.join(direntries[0], filename)
+        for fn in direntries[2]:
+            fullfilename = os.path.join(direntries[0], fn)
             unpackedfilesandlabels.append((fullfilename, []))
 
     # whole file is cabinet
@@ -11053,8 +11053,8 @@ def unpack7z(filename, offset, unpackdir, temporarydirectory):
             subdirname = os.path.join(direntries[0], subdir)
             if not os.path.islink(subdirname):
                 os.chmod(subdirname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        for filename in direntries[2]:
-            fullfilename = os.path.join(direntries[0], filename)
+        for fn in direntries[2]:
+            fullfilename = os.path.join(direntries[0], fn)
             unpackedfilesandlabels.append((fullfilename, []))
 
     # cleanup
@@ -11209,8 +11209,8 @@ def unpackCHM(filename, offset, unpackdir, temporarydirectory):
             subdirname = os.path.join(direntries[0], subdir)
             if not os.path.islink(subdirname):
                 os.chmod(subdirname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        for filename in direntries[2]:
-            fullfilename = os.path.join(direntries[0], filename)
+        for fn in direntries[2]:
+            fullfilename = os.path.join(direntries[0], fn)
             unpackedfilesandlabels.append((fullfilename, []))
 
     # cleanup
@@ -11477,8 +11477,8 @@ def unpackWIM(filename, offset, unpackdir, temporarydirectory):
             subdirname = os.path.join(direntries[0], subdir)
             if not os.path.islink(subdirname):
                 os.chmod(subdirname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        for filename in direntries[2]:
-            fullfilename = os.path.join(direntries[0], filename)
+        for fn in direntries[2]:
+            fullfilename = os.path.join(direntries[0], fn)
             unpackedfilesandlabels.append((fullfilename, []))
 
     if not havetmpfile:
