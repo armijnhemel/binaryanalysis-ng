@@ -895,7 +895,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                 keyword = textentries[0].decode()
                 value = textentries[1].decode()
                 pngtexts.append({'key': keyword, 'value': value, 'offset': o['offset']})
-            except Exception as e:
+            except UnicodeDecodeError:
                 pass
 
     # zTXt contains key/value pairs with metadata about the PNG file,
@@ -997,7 +997,7 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                         itxt = zlib.decompress(checkbytes[localoffset:]).decode()
                     else:
                         itxt = checkbytes[localoffset:].decode()
-                except Exception as e:
+                except UnicodeDecodeError:
                     continue
             if keyword == 'XML:com.adobe.xmp':
                 # the XMP specification (part 3) recommends
@@ -1032,9 +1032,12 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
                     xmpdata = checkbytes.decode()
                 else:
                     xmpdata = checkbytes[:endofxmp].decode()
+            except UnicodeError:
+                continue
+            try:
                 # XMP should be valid XML
                 xmpdom = defusedxml.minidom.parseString(xmpdata)
-            except Exception as e:
+            except:
                 continue
             hasxmp = True
             if 'xmp' not in pngresults:
@@ -6176,7 +6179,7 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
         # a valid JPEG according to section B.5, although not
         # all markers would be allowed.
         if checkbytes == b'\xff\xd9':
-            if len(seenmarkers) == 0:
+            if seenmarkers == set():
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
@@ -10250,7 +10253,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 outfile = open(os.path.join(unpackdir, unpackname), 'wb')
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset+unpackedsize, cpiodatasize)
                 outfile.close()
-                if not (inode, dev) in devinodes:
+                if (inode, dev) not in devinodes:
                     devinodes[(inode, dev)] = []
                 devinodes[(inode, dev)].append(unpackname)
                 unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
@@ -10520,7 +10523,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 outfile = open(os.path.join(unpackdir, unpackname), 'wb')
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset+unpackedsize, cpiodatasize)
                 outfile.close()
-                if not (inode, dev) in devinodes:
+                if (inode, dev) not in devinodes:
                     devinodes[(inode, dev)] = []
                 devinodes[(inode, dev)].append(unpackname)
                 unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
@@ -10839,7 +10842,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
                 outfile = open(os.path.join(unpackdir, unpackname), 'wb')
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset+unpackedsize, cpiodatasize)
                 outfile.close()
-                if not (inode, devmajor, devminor) in devinodes:
+                if (inode, devmajor, devminor) not in devinodes:
                     devinodes[(inode, devmajor, devminor)] = []
                 devinodes[(inode, devmajor, devminor)].append(unpackname)
                 unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
