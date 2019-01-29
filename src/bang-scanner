@@ -814,6 +814,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # then try to see if the any useful data can be uncarved.
                     # Add an artifical entry for the end of the file
                     for u in unpackedrange + [(filesize+1, filesize+1)]:
+                        if startoffset == filesize:
+                            break
                         if u[0] > startoffset:
                             #if u[0] - startoffset < synthesizedminimum:
                             #        startoffset = u[1]
