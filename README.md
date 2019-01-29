@@ -135,6 +135,7 @@ larger file, unless stated otherwise.
 94. Broadcom TRX
 95. Photoshop PSD (raw bytes and RLE encoding only)
 96. pkg-config files
+97. minidump files
 
 ## Invocation
 

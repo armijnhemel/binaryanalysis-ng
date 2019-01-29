@@ -116,6 +116,7 @@ signatures = {
     'dtb': b'\xd0\x0d\xfe\xed',
     'trx': b'HDR0',
     'psd': b'8BPS',
+    'minidump': b'MDMP',
 }
 
 # some signatures do not start at the beginning of the file
@@ -224,6 +225,7 @@ signaturetofunction = {
     'dtb': bangunpack.unpackDeviceTree,
     'trx': bangunpack.unpackTRX,
     'psd': bangunpack.unpackPSD,
+    'minidump': bangunpack.unpackMinidump,
 }
 
 # a lookup table to map signatures to a name for

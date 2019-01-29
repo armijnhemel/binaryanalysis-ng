@@ -97,6 +97,7 @@
 # 65. Linux flattened device tree
 # 66. Broadcom TRX
 # 67. pkg-config files
+# 68. minidump files
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -23214,5 +23215,153 @@ def unpackPkgConfig(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = filesize
     labels.append('pkg-config')
 
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# minidump files, used in for example Firefox crash reports
+# https://chromium.googlesource.com/breakpad/breakpad/+/master/src/google_breakpad/common/minidump_format.h
+def unpackMinidump(filename, offset, unpackdir, temporarydirectory):
+    ''''''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # header is 32 bytes long
+    if offset + 32 > filesize:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the signature
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # version
+    checkbytes = checkfile.read(4)
+    if checkbytes != b'\x93\xa7\x00\x00':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # stream count
+    checkbytes = checkfile.read(4)
+    streamcount = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # offset to an array with MDRawDirectory structures
+    checkbytes = checkfile.read(4)
+    mdrawoffset = int.from_bytes(checkbytes, byteorder='little')
+    if offset + mdrawoffset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'MDRawDirectory array outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # checksum, often set to 0, so ignore
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # time/date stamp. Use later.
+    checkbytes = checkfile.read(4)
+    datetimestamp = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # flags
+    checkbytes = checkfile.read(8)
+    flags = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 8
+
+    # now jump to the offset to read array
+    # with directory entries.
+    checkfile.seek(offset+mdrawoffset)
+    unpackedsize = mdrawoffset
+
+    # store the maximum offset seen so far
+    maxoffset = unpackedsize
+
+    # known stream types, with some additional
+    # information taken from:
+    # https://github.com/chromium/crashpad/blob/master/minidump/minidump_extensions.h
+    knownstreamtypes = set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+                            14, 15, 16, 17, 18, 19, 20, 21, 22, 0xffff,
+                            0x47670001, 0x47670002, 0x47670003, 0x47670004,
+                            0x47670005, 0x47670006, 0x47670007, 0x47670008,
+                            0x47670009, 0x4767000A, 0x43500001, 0x4350ffff])
+
+    # read MDRawDirectory structures. These consist of:
+    # * stream type
+    # * data size
+    # * offset
+    for i in range(0, streamcount):
+        # stream type
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for stream type'}
+            return {'status': False, 'error': unpackingerror}
+        streamtype = int.from_bytes(checkbytes, byteorder='little')
+        if streamtype not in knownstreamtypes:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'unknown stream type'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        # datasize
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for MDRaw data size'}
+            return {'status': False, 'error': unpackingerror}
+        mdrawdatasize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        # offset
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for MDRaw offset'}
+            return {'status': False, 'error': unpackingerror}
+        mdrawoffset = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        if offset + mdrawoffset + mdrawdatasize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'data outside of file'}
+            return {'status': False, 'error': unpackingerror}
+        maxoffset = max(maxoffset, mdrawoffset + mdrawdatasize)
+
+    unpackedsize = maxoffset
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels += ['minidump']
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.dmp")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+
+    checkfile.close()
+    unpackedfilesandlabels.append((outfilename, ['minidump', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
