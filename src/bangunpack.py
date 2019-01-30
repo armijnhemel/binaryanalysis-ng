@@ -132,6 +132,7 @@
 # 26. GIMP brush (needs PIL)
 # 27. ICO (MS Windows icons, needs PIL)
 # 28. Photoshop PSD (raw bytes and RLE encoding only)
+# 29. PPM files ('raw' PPM files only, needs PIL)
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
@@ -23363,5 +23364,237 @@ def unpackMinidump(filename, offset, unpackdir, temporarydirectory):
 
     checkfile.close()
     unpackedfilesandlabels.append((outfilename, ['minidump', 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Read PPM files
+# man 5 ppm
+def unpackPPM(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a 'raw' PPM file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+2)
+    unpackedsize += 2
+
+    # then there should be whitespace
+    seenwhitespace = False
+    while True:
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for header whitespace'}
+            return {'status': False, 'error': unpackingerror}
+        if chr(ord(checkbytes)) in string.whitespace:
+            seenwhitespace = True
+        else:
+            if seenwhitespace:
+                checkfile.seek(-1, os.SEEK_CUR)
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'no whitespace in header'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 1
+
+    # width, in ASCII digital
+    widthbytes = b''
+    seenint = False
+    while True:
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for width'}
+            return {'status': False, 'error': unpackingerror}
+        try:
+            int(checkbytes)
+            widthbytes += checkbytes
+            seenint = True
+        except Exception as e:
+            if seenint:
+                checkfile.seek(-1, os.SEEK_CUR)
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'no integer in header'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 1
+    width = int(widthbytes)
+
+    # then more whitespace
+    seenwhitespace = False
+    while True:
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for header whitespace'}
+            return {'status': False, 'error': unpackingerror}
+        if chr(ord(checkbytes)) in string.whitespace:
+            seenwhitespace = True
+        else:
+            if seenwhitespace:
+                checkfile.seek(-1, os.SEEK_CUR)
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'no whitespace in header'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 1
+
+    # height, in ASCII digital
+    heightbytes = b''
+    seenint = False
+    while True:
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for height'}
+            return {'status': False, 'error': unpackingerror}
+        try:
+            int(checkbytes)
+            heightbytes += checkbytes
+            seenint = True
+        except Exception as e:
+            if seenint:
+                checkfile.seek(-1, os.SEEK_CUR)
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'no integer in header'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 1
+    height = int(heightbytes)
+
+    # then more whitespace
+    seenwhitespace = False
+    while True:
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for header whitespace'}
+            return {'status': False, 'error': unpackingerror}
+        if chr(ord(checkbytes)) in string.whitespace:
+            seenwhitespace = True
+        else:
+            if seenwhitespace:
+                checkfile.seek(-1, os.SEEK_CUR)
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'no whitespace in header'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 1
+
+    # maximum color value, in ASCII digital
+    maxbytes = b''
+    seenint = False
+    while True:
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data for maximum color value'}
+            return {'status': False, 'error': unpackingerror}
+        try:
+            int(checkbytes)
+            maxbytes += checkbytes
+            seenint = True
+        except Exception as e:
+            if seenint:
+                checkfile.seek(-1, os.SEEK_CUR)
+                break
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'no integer in header'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 1
+    maxvalue = int(maxbytes)
+
+    # single whitespace
+    checkbytes = checkfile.read(1)
+    if checkbytes == b'':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for header whitespace'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    if maxvalue < 256:
+        lendatabytes = width * height * 3
+    else:
+        lendatabytes = width * height * 3 * 2
+    if offset + unpackedsize + lendatabytes > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'not enough data for raster'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize += lendatabytes
+
+    if offset == 0 and unpackedsize == filesize:
+        # now load the file into PIL as an extra sanity check
+        try:
+            testimg = PIL.Image.open(checkfile)
+            testimg.load()
+            testimg.close()
+        except Exception as e:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid PPM data according to PIL'}
+            return {'status': False, 'error': unpackingerror}
+        checkfile.close()
+        labels += ['ppm', 'graphics']
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # else carve the file. It is anonymous, so just give it a name
+    outfilename = os.path.join(unpackdir, "unpacked.ppm")
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+
+    # reopen as read only
+    outfile = open(outfilename, 'rb')
+
+    # now load the file into PIL as an extra sanity check
+    try:
+        testimg = PIL.Image.open(outfile)
+        testimg.load()
+        testimg.close()
+        outfile.close()
+    except Exception as e:
+        outfile.close()
+        os.unlink(outfilename)
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid PPM data according to PIL'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+    unpackedfilesandlabels.append((outfilename, ['graphics', 'ppm', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
