@@ -17636,6 +17636,10 @@ def unpackDockerfile(filename, offset, unpackdir, temporarydirectory):
 #
 # and not considered a derivative of the source code according to the
 # authors of u-boot
+#
+# https://www.denx.de/wiki/DULG/UBootImages
+# 'U-Boot operates on "image" files which can be basically anything,
+# preceeded by a special header'
 def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a U-Boot file.'''
     filesize = filename.stat().st_size
@@ -17815,12 +17819,9 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = imagedatasize + 64
 
     if offset == 0 and unpackedsize == filesize:
-        unpackedfilesandlabels.append((str(filename), ['u-boot', 'unpacked', 'rescan']))
         labels.append('u-boot')
-        return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
 
-    # else carve the file
+    # carve the image, without the U-Boot header
     if 'name' in ubootdata:
         if os.path.isabs(imagename):
              outfilename = os.path.join(unpackdir, os.path.relpath(imagename, '/'))
@@ -17829,11 +17830,11 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
     else:
         outfilename = os.path.join(unpackdir, "unpacked.uboot")
     outfile = open(outfilename, 'wb')
-    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset+64, unpackedsize)
     outfile.close()
     checkfile.close()
 
-    unpackedfilesandlabels.append((outfilename, ['u-boot', 'unpacked', 'rescan']))
+    unpackedfilesandlabels.append((outfilename, []))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
