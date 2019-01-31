@@ -17771,10 +17771,9 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
 
     try:
         imagename = imagename.decode()
+        ubootdata['name'] = imagename
     except UnicodeDecodeError:
         pass
-
-    ubootdata['name'] = imagename
 
     # now calculate the CRC of the header and compare it
     # to the stored one
@@ -17821,7 +17820,13 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file
-    outfilename = os.path.join(unpackdir, "unpacked.uboot")
+    if 'name' in ubootdata:
+        if os.path.isabs(imagename):
+             outfilename = os.path.join(unpackdir, os.path.relpath(imagename, '/'))
+        else:
+             outfilename = os.path.join(unpackdir, imagename)
+    else:
+        outfilename = os.path.join(unpackdir, "unpacked.uboot")
     outfile = open(outfilename, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
