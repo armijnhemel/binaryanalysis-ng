@@ -22827,11 +22827,12 @@ def unpackTRX(filename, offset, unpackdir, temporarydirectory):
                 partitionsize = offset4 - offset1
             else:
                 partitionsize = trxlength - offset1
-        outfilename = os.path.join(unpackdir, "partition1")
-        outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset1, partitionsize)
-        outfile.close()
-        unpackedfilesandlabels.append((outfilename, []))
+        if partitionsize > 0:
+            outfilename = os.path.join(unpackdir, "partition1")
+            outfile = open(outfilename, 'wb')
+            os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset1, partitionsize)
+            outfile.close()
+            unpackedfilesandlabels.append((outfilename, []))
 
     # write partition 2
     if offset2 != 0:
@@ -22842,11 +22843,12 @@ def unpackTRX(filename, offset, unpackdir, temporarydirectory):
                 partitionsize = offset4 - offset2
             else:
                 partitionsize = trxlength - offset2
-        outfilename = os.path.join(unpackdir, "partition2")
-        outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset2, partitionsize)
-        outfile.close()
-        unpackedfilesandlabels.append((outfilename, []))
+        if partitionsize > 0:
+            outfilename = os.path.join(unpackdir, "partition2")
+            outfile = open(outfilename, 'wb')
+            os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset2, partitionsize)
+            outfile.close()
+            unpackedfilesandlabels.append((outfilename, []))
 
     # write partition 3
     if offset3 != 0:
@@ -22854,21 +22856,23 @@ def unpackTRX(filename, offset, unpackdir, temporarydirectory):
             partitionsize = offset4 - offset3
         else:
             partitionsize = trxlength - offset3
-        outfilename = os.path.join(unpackdir, "partition3")
-        outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset3, partitionsize)
-        outfile.close()
-        unpackedfilesandlabels.append((outfilename, []))
+        if partitionsize > 0:
+            outfilename = os.path.join(unpackdir, "partition3")
+            outfile = open(outfilename, 'wb')
+            os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset3, partitionsize)
+            outfile.close()
+            unpackedfilesandlabels.append((outfilename, []))
 
     # write partition 4 if needed
     if trxversion == 2:
         if offset4 != 0:
             partitionsize = trxlength - offset4
-            outfilename = os.path.join(unpackdir, "partition4")
-            outfile = open(outfilename, 'wb')
-            os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset4, partitionsize)
-            outfile.close()
-            unpackedfilesandlabels.append((outfilename, []))
+            if partitionsize > 0:
+                outfilename = os.path.join(unpackdir, "partition4")
+                outfile = open(outfilename, 'wb')
+                os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset4, partitionsize)
+                outfile.close()
+                unpackedfilesandlabels.append((outfilename, []))
 
     checkfile.close()
     unpackedsize = trxlength
