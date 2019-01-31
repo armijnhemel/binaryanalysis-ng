@@ -12123,49 +12123,50 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
     else:
         sparsesuperblocks = False
 
-    # Now check for each block group if there is a copy of the
-    # superblock except if the sparse super block features is set
-    # (section 2.5).
-    # Find the right offset and then check if the magic byte is at
-    # that location, unless the block size is 1024, then it will be at
-    # the location + 1024.
-    for i in range(1, blockgroups):
-        # super blocks are always present in block group 0 and 1, except
-        # if the block size = 1024
-        # Block group 0 contains the original superblock, which has
-        # already been processed.
-        if not sparsesuperblocks:
-            if blocksize == 1024:
-                blockoffset = offset + i*blocksize*blocks_per_group+1024
+    if revision != 0:
+        # Now check for each block group if there is a copy of the
+        # superblock except if the sparse super block features is set
+        # (section 2.5).
+        # Find the right offset and then check if the magic byte is at
+        # that location, unless the block size is 1024, then it will be at
+        # the location + 1024.
+        for i in range(1, blockgroups):
+            # super blocks are always present in block group 0 and 1, except
+            # if the block size = 1024
+            # Block group 0 contains the original superblock, which has
+            # already been processed.
+            if not sparsesuperblocks:
+                if blocksize == 1024:
+                    blockoffset = offset + i*blocksize*blocks_per_group+1024
+                else:
+                    blockoffset = offset + i*blocksize*blocks_per_group
             else:
-                blockoffset = offset + i*blocksize*blocks_per_group
-        else:
-            # if the sparse superblock feature is enabled
-            # the superblock can be found in each superblock
-            # that is a power of 3, 5 or 7
-            sparsefound = False
-            for p in [3, 5, 7]:
-                if pow(p, int(math.log(i, p))) == i:
-                    if blocksize == 1024:
-                        blockoffset = offset + i*blocksize*blocks_per_group+1024
-                    else:
-                        blockoffset = offset + i*blocksize*blocks_per_group
-                    sparsefound = True
-                    break
-            if not sparsefound:
-                # for anything that is not a power of 3, 5 or 7
-                continue
+                # if the sparse superblock feature is enabled
+                # the superblock can be found in each superblock
+                # that is a power of 3, 5 or 7
+                sparsefound = False
+                for p in [3, 5, 7]:
+                    if pow(p, int(math.log(i, p))) == i:
+                        if blocksize == 1024:
+                            blockoffset = offset + i*blocksize*blocks_per_group+1024
+                        else:
+                            blockoffset = offset + i*blocksize*blocks_per_group
+                        sparsefound = True
+                        break
+                if not sparsefound:
+                    # for anything that is not a power of 3, 5 or 7
+                    continue
 
-        # jump to the location of the magic header (section 3.1.16)
-        # and check its value. In a valid super block this value should
-        # always be the same.
-        checkfile.seek(blockoffset + 0x38)
-        checkbytes = checkfile.read(2)
-        if not checkbytes == b'\x53\xef':
-            checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'invalid super block copy'}
-            return {'status': False, 'error': unpackingerror}
+            # jump to the location of the magic header (section 3.1.16)
+            # and check its value. In a valid super block this value should
+            # always be the same.
+            checkfile.seek(blockoffset + 0x38)
+            checkbytes = checkfile.read(2)
+            if not checkbytes == b'\x53\xef':
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid super block copy'}
+                return {'status': False, 'error': unpackingerror}
 
     unpackedsize = totalblockcount * blocksize
 
