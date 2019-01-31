@@ -7370,7 +7370,6 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
 
     # first check if all the required tables are there.
     if not fontres['tablesseen'].intersection(requiredtables) == requiredtables:
-        checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'not all required tables present'}
         return {'status': False, 'error': unpackingerror}
