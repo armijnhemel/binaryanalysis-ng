@@ -16069,35 +16069,36 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         elflabels.append('static')
 
     maxoffset = max(maxoffset, unpackedsize)
+    sectionnames = set()
 
     # sanity checks
-    if shstrndx not in sectionheaders:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'shstrndx not in sections'}
-        return {'status': False, 'error': unpackingerror}
-
-    checkfile.seek(offset + sectionheaders[shstrndx]['sh_offset'])
-    checkbytes = checkfile.read(sectionheaders[shstrndx]['sh_size'])
-    sectionnames = set()
-    sectionnametonr = {}
-    for i in sectionheaders:
-        # names start at sh_name_offset and end with \x00
-        endofname = checkbytes.find(b'\x00', sectionheaders[i]['sh_name_offset'])
-        if endofname == -1:
-            # something is horribly wrong here
-            continue
-        try:
-            sectionname = checkbytes[sectionheaders[i]['sh_name_offset']:endofname].decode()
-        except UnicodeDecodeError:
+    if shnum != 0:
+        if shstrndx not in sectionheaders:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'broken section name'}
+                              'reason': 'shstrndx not in sections'}
             return {'status': False, 'error': unpackingerror}
-        sectionheaders[i]['name'] = sectionname
-        sectionnames.add(sectionname)
-        if sectionname != '':
-            sectionnametonr[sectionname] = i
+
+        checkfile.seek(offset + sectionheaders[shstrndx]['sh_offset'])
+        checkbytes = checkfile.read(sectionheaders[shstrndx]['sh_size'])
+        sectionnametonr = {}
+        for i in sectionheaders:
+            # names start at sh_name_offset and end with \x00
+            endofname = checkbytes.find(b'\x00', sectionheaders[i]['sh_name_offset'])
+            if endofname == -1:
+                # something is horribly wrong here
+                continue
+            try:
+                sectionname = checkbytes[sectionheaders[i]['sh_name_offset']:endofname].decode()
+            except UnicodeDecodeError:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'broken section name'}
+                return {'status': False, 'error': unpackingerror}
+            sectionheaders[i]['name'] = sectionname
+            sectionnames.add(sectionname)
+            if sectionname != '':
+                sectionnametonr[sectionname] = i
 
     # extract some interesting information, such as:
     # * build id: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/developer_guide/compiling-build-id
