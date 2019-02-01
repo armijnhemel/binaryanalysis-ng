@@ -15885,6 +15885,8 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
     unpackedsize = phoff
     seeninterpreter = False
 
+    programheaders = {}
+
     for i in range(0, phnum):
         # read the program header entry
         checkbytes = checkfile.read(4)
@@ -15975,6 +15977,11 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
         else:
             checkbytes = checkfile.read(4)
             unpackedsize += 4
+
+        programheaders[i] = {}
+        programheaders[i]['offset'] = p_offset
+        programheaders[i]['size'] = p_filesz
+        programheaders[i]['type'] = p_type
 
     sectionheaders = {}
 
