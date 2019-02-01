@@ -141,6 +141,7 @@ larger file, unless stated otherwise.
 99. PBM files ('raw' PBM only)
 100. Android bootloader for Qualcomm Snapdragon
 101. Android bootloader image
+102. Android bootloader for Huawei devices
 
 ## Invocation
 

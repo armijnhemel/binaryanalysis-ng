@@ -100,6 +100,7 @@
 # 68. minidump files
 # 69. Android bootloader for Qualcomm Snapdragon
 # 70. Android bootloader image
+# 71. Android bootloader for Huawei devices
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -23941,6 +23942,125 @@ def unpackAndroidBootImg(filename, offset, unpackdir, temporarydirectory):
 
     if offset == 0 and unpackedsize == filesize:
         labels.append("android")
+        labels.append("bootloader")
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# unpack boot files found on certain Android devices from Huawei
+#
+# Example sources:
+# https://android.googlesource.com/device/huawei/angler/+/master/releasetools.py
+#
+# Example device: Nexus 6P
+def unpackAndroidBootHuawei(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack Android bootloader images (Huawei)'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if offset + 76 > filesize:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # major version
+    checkbytes = checkfile.read(2)
+    majorversion = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # minor version
+    checkbytes = checkfile.read(2)
+    minorversion = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # img_version
+    checkbytes = checkfile.read(64)
+    try:
+        imgversion = checkbytes.split(b'\x00', 1)[0].decode()
+    except UnicodeDecodeError:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid img_version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 64
+
+    # header size
+    checkbytes = checkfile.read(2)
+    headersize = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # list size, contains all the entries
+    # each entry is 80 bytes long
+    checkbytes = checkfile.read(2)
+    listsize = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+    if listsize % 80 != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid img_hdr_sz'}
+        return {'status': False, 'error': unpackingerror}
+
+    numimages = listsize//80
+
+    imginfo = []
+
+    # img info array
+    for i in range(0, numimages):
+        # name
+        checkbytes = checkfile.read(72)
+        try:
+            imgname = checkbytes.split(b'\x00')[0].decode()
+        except UnicodeDecodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid partition name'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 72
+
+        # offset
+        checkbytes = checkfile.read(4)
+        startoffset = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        # size
+        checkbytes = checkfile.read(4)
+        imgsize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        if offset + startoffset + imgsize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'data cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+
+        # store name, offset and size, if not empty
+        if imgsize != 0:
+            imginfo.append((imgname, startoffset, imgsize))
+
+    maxoffset = unpackedsize
+    for i in imginfo:
+        (imgname, startoffset, imgsize) = i
+        checkfile.seek(offset + startoffset)
+        outfilename = os.path.join(unpackdir, imgname)
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), imgsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, []))
+        maxoffset = max(maxoffset, startoffset + imgsize)
+
+    unpackedsize = maxoffset
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append("huawei")
         labels.append("bootloader")
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
