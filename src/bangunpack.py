@@ -2739,10 +2739,16 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'incomplete entry'}
             return {'status': False, 'error': unpackingerror}
-        if int.from_bytes(checkbytes, byteorder='big') == 0:
+        entryid = int.from_bytes(checkbytes, byteorder='big')
+        if entryid == 0:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'no valid entry id'}
+            return {'status': False, 'error': unpackingerror}
+        if entryid == 1:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'AppleDouble file cannot have data fork'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
 
