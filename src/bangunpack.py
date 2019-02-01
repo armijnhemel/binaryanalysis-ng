@@ -98,6 +98,7 @@
 # 66. Broadcom TRX
 # 67. pkg-config files
 # 68. minidump files
+# 69. Android bootloader for Qualcomm Snapdragon
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -23642,5 +23643,103 @@ def unpackPNM(filename, offset, unpackdir, temporarydirectory):
 
     checkfile.close()
     unpackedfilesandlabels.append((outfilename, ['graphics', pnmtype, 'unpacked']))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# unpack boot files found on certain Android devices equiped with
+# Qualcomm Snapdragon chips.
+#
+# Example sources:
+# https://android.googlesource.com/device/lge/mako/+/master/releasetools.py
+def unpackAndroidBootMSM(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack Android bootloader images (Qualcomm Snapdragon)'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+8)
+    unpackedsize += 8
+
+    # number of images
+    checkbytes = checkfile.read(4)
+    numimages = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # start offset
+    checkbytes = checkfile.read(4)
+    startoffset = int.from_bytes(checkbytes, byteorder='little')
+    if offset + startoffset > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'data cannot be outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # boot loader size
+    checkbytes = checkfile.read(4)
+    bootloadersize = int.from_bytes(checkbytes, byteorder='little')
+    if offset + bootloadersize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'data cannot be outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    imginfo = []
+
+    maxsize = startoffset
+
+    # img info array
+    for i in range(0, numimages):
+        # name
+        checkbytes = checkfile.read(64)
+        try:
+            imgname = checkbytes.split(b'\x00')[0].decode()
+        except UnicodeDecodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid partition name'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 64
+
+        # size
+        checkbytes = checkfile.read(4)
+        imgsize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+        maxsize += imgsize
+        if offset + maxsize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'image outside of file'}
+            return {'status': False, 'error': unpackingerror}
+
+        # store name and size, check later
+        imginfo.append((imgname, imgsize))
+
+    if maxsize != bootloadersize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'size of images and bootloader size do not match'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.seek(offset+startoffset)
+    for i in imginfo:
+        outfilename = os.path.join(unpackdir, i[0])
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), i[1])
+        outfile.close()
+        checkfile.seek(i[1], os.SEEK_CUR)
+        unpackedfilesandlabels.append((outfilename, []))
+    unpackedsize = bootloadersize
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append("snapdragon")
+        labels.append("bootloader")
+
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

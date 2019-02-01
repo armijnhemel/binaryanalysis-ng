@@ -120,6 +120,7 @@ signatures = {
     'ppm': b'P6',
     'pgm': b'P5',
     'pbm': b'P4',
+    'androidbootmsm': b'BOOTLDR!',
 }
 
 # some signatures do not start at the beginning of the file
@@ -232,6 +233,7 @@ signaturetofunction = {
     'ppm': bangunpack.unpackPNM,
     'pgm': bangunpack.unpackPNM,
     'pbm': bangunpack.unpackPNM,
+    'androidbootmsm': bangunpack.unpackAndroidBootMSM,
 }
 
 # a lookup table to map signatures to a name for

@@ -139,6 +139,7 @@ larger file, unless stated otherwise.
 98. PPM files ('raw' PPM only)
 98. PGM files ('raw' PGM only)
 99. PBM files ('raw' PBM only)
+100. Android bootloader for Qualcomm Snapdragon
 
 ## Invocation
 
