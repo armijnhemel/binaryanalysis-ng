@@ -137,6 +137,7 @@ larger file, unless stated otherwise.
 96. pkg-config files
 97. minidump files
 98. PPM files ('raw' PPM only)
+98. PGM files ('raw' PGM only)
 
 ## Invocation
 

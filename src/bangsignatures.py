@@ -118,6 +118,7 @@ signatures = {
     'psd': b'8BPS',
     'minidump': b'MDMP',
     'ppm': b'P6',
+    'pgm': b'P5',
 }
 
 # some signatures do not start at the beginning of the file
@@ -227,7 +228,8 @@ signaturetofunction = {
     'trx': bangunpack.unpackTRX,
     'psd': bangunpack.unpackPSD,
     'minidump': bangunpack.unpackMinidump,
-    'ppm': bangunpack.unpackPPM,
+    'ppm': bangunpack.unpackPNM,
+    'pgm': bangunpack.unpackPNM,
 }
 
 # a lookup table to map signatures to a name for

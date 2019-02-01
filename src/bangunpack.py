@@ -133,6 +133,7 @@
 # 27. ICO (MS Windows icons, needs PIL)
 # 28. Photoshop PSD (raw bytes and RLE encoding only)
 # 29. PPM files ('raw' PPM files only, needs PIL)
+# 30. PGM files ('raw' PGM files only, needs PIL)
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
@@ -23378,9 +23379,10 @@ def unpackMinidump(filename, offset, unpackdir, temporarydirectory):
             'filesandlabels': unpackedfilesandlabels}
 
 
-# Read PPM files
+# Read PPM files and PGM files
 # man 5 ppm
-def unpackPPM(filename, offset, unpackdir, temporarydirectory):
+# man 5 pgm
+def unpackPNM(filename, offset, unpackdir, temporarydirectory):
     '''Verify a 'raw' PPM file'''
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
@@ -23388,9 +23390,14 @@ def unpackPPM(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
-    # open the file and skip the magic
+    # open the file and read the magic
     checkfile = open(filename, 'rb')
-    checkfile.seek(offset+2)
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(2)
+    if checkbytes == b'P6':
+        pnmtype = 'ppm'
+    elif checkbytes == b'P5':
+        pnmtype = 'pgm'
     unpackedsize += 2
 
     # then there should be whitespace
@@ -23554,9 +23561,13 @@ def unpackPPM(filename, offset, unpackdir, temporarydirectory):
     unpackedsize += 1
 
     if maxvalue < 256:
-        lendatabytes = width * height * 3
+        lendatabytes = width * height
+        if pnmtype == 'ppm':
+            lendatabytes = lendatabytes * 3
     else:
-        lendatabytes = width * height * 3 * 2
+        lendatabytes = width * height * 2
+        if pnmtype == 'ppm':
+            lendatabytes = lendatabytes * 3
     if offset + unpackedsize + lendatabytes > filesize:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize,
@@ -23574,16 +23585,20 @@ def unpackPPM(filename, offset, unpackdir, temporarydirectory):
             testimg.close()
         except Exception as e:
             checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'invalid PPM data according to PIL'}
+            if pnmtype == 'pgm':
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid PGM data according to PIL'}
+            elif pnmtype == 'ppm':
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid PPM data according to PIL'}
             return {'status': False, 'error': unpackingerror}
         checkfile.close()
-        labels += ['ppm', 'graphics']
+        labels += [pnmtype, 'graphics']
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.ppm")
+    outfilename = os.path.join(unpackdir, "unpacked." + pnmtype)
     outfile = open(outfilename, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -23600,11 +23615,15 @@ def unpackPPM(filename, offset, unpackdir, temporarydirectory):
     except Exception as e:
         outfile.close()
         os.unlink(outfilename)
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'invalid PPM data according to PIL'}
+        if pnmtype == 'pgm':
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid PGM data according to PIL'}
+        elif pnmtype == 'ppm':
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid PPM data according to PIL'}
         return {'status': False, 'error': unpackingerror}
 
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['graphics', 'ppm', 'unpacked']))
+    unpackedfilesandlabels.append((outfilename, ['graphics', pnmtype, 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
