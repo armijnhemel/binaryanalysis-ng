@@ -23384,7 +23384,7 @@ def unpackMinidump(filename, offset, unpackdir, temporarydirectory):
 # man 5 ppm
 # man 5 pgm
 def unpackPNM(filename, offset, unpackdir, temporarydirectory):
-    '''Verify a 'raw' PPM file'''
+    '''Verify a 'raw' PNM file (PPM, PGM, PBM)'''
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
