@@ -244,22 +244,17 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # move on to just running the per file scans.
         if 'unpacked' in labels:
             labels.remove('unpacked')
-            if 'rescan' in labels:
-                origunpackedrange = [(0, filesize)]
-                unpackedrange = [(0, 1)]
-                lastunpackedoffset = 1
-            else:
-                needsunpacking = False
-                lastunpackedoffset = filesize
-                unpackedrange = [(0, filesize)]
+            needsunpacking = False
+            lastunpackedoffset = filesize
+            unpackedrange = [(0, filesize)]
 
-                # store lot of information about the unpacked files
-                # TODO: add more information, such as signature
-                report = {}
-                report['offset'] = 0
-                report['size'] = filesize
-                report['files'] = []
-                fileresult['unpackedfiles'].append(report)
+            # store lot of information about the unpacked files
+            # TODO: add more information, such as signature
+            report = {}
+            report['offset'] = 0
+            report['size'] = filesize
+            report['files'] = []
+            fileresult['unpackedfiles'].append(report)
 
         # Search the extension of the file in a list of known extensions.
         # https://www.iana.org/assignments/media-types/media-types.xhtml
@@ -1062,12 +1057,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     fileresult['unpackedfiles'].append(report)
                     break
-
-        # restore the original unpacked range for files
-        # that were rescanned.
-        if 'rescan' in labels:
-            unpackedrange = origunpackedrange
-            labels.remove('rescan')
 
         # run individual scans for files and store them in a separate
         # result file, but only do this once for every file, so check
