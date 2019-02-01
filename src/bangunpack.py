@@ -12151,6 +12151,9 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
     else:
         sparsesuperblocks = False
 
+    # store the current offset
+    oldoffset = checkfile.tell()
+
     if revision != 0:
         # Now check for each block group if there is a copy of the
         # superblock except if the sparse super block features is set
@@ -12197,6 +12200,21 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                 return {'status': False, 'error': unpackingerror}
 
     unpackedsize = totalblockcount * blocksize
+
+    # return to the old offset
+    checkfile.seek(oldoffset)
+
+    # read the volume id
+    checkbytes = checkfile.read(16)
+    volumeid = binascii.hexlify(checkbytes).decode()
+
+    # read the volume name
+    checkbytes = checkfile.read(16)
+    volumename = ''
+    try:
+        volumename = checkbytes.split(b'\x00')[0].decode()
+    except UnicodeDecodeError:
+        pass
 
     # e2tools can work with trailing data, but if there is any data
     # preceding the file system then some carving has to be done first.
