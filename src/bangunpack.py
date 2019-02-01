@@ -2731,6 +2731,9 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
     # "The entries in the AppleDouble Header file can appear in any order"
     maxoffset = unpackedsize
 
+    # store the found offset ranges
+    offsets = []
+
     for i in range(0, appledoubleentries):
         # first the entry id, which cannot be 0
         checkbytes = checkfile.read(4)
@@ -2784,7 +2787,17 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'not enough data'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
+        offsets.append((entryoffset, entryoffset + entrysize))
         maxoffset = max(maxoffset, entrysize + entryoffset)
+
+    # sanity checks: entries cannot overlap
+    offsets.sort()
+    for i in range(1, len(offsets)):
+        if not offsets[i][0] > offsets[i-1][1]:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'entries should not overlap'}
+            return {'status': False, 'error': unpackingerror}
 
     unpackedsize = maxoffset
 
