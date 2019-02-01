@@ -18458,6 +18458,12 @@ def extractCertificate(filename, offset, unpackdir, temporarydirectory):
     labels = []
     unpackingerror = {}
 
+    if shutil.which('openssl') is None:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'openssl program not found'}
+        return {'status': False, 'error': unpackingerror}
+
     # First see if a file is in DER format
     p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER", "-in", filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
@@ -19007,6 +19013,12 @@ def unpackLZOP(filename, offset, unpackdir, temporarydirectory):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+
+    if shutil.which('lzop') is None:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'lzop program not found'}
+        return {'status': False, 'error': unpackingerror}
 
     # header is at least 38 bytes, excluding file name
     if offset + 38 > filesize:
