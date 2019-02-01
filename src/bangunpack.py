@@ -17806,11 +17806,19 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
     imagename = checkbytes.split(b'\x00')[0]
     unpackedsize += 32
 
-    try:
-        imagename = imagename.decode()
+    if imagename == b'':
+        # some default values
+        if ubootimagetype == 2:
+            imagename = 'kernel'
+        elif ubootimagetype == 3:
+            imagename = 'ramdisk'
         ubootdata['name'] = imagename
-    except UnicodeDecodeError:
-        pass
+    else:
+        try:
+            imagename = imagename.decode()
+            ubootdata['name'] = imagename
+        except UnicodeDecodeError:
+            pass
 
     # now calculate the CRC of the header and compare it
     # to the stored one
@@ -17854,7 +17862,7 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
         labels.append('u-boot')
 
     # carve the image, without the U-Boot header
-    if 'name' in ubootdata:
+    if 'name' in ubootdata and ubootdata['name'] != '':
         if os.path.isabs(imagename):
              outfilename = os.path.join(unpackdir, os.path.relpath(imagename, '/'))
         else:
