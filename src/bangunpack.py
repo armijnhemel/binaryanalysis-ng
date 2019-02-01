@@ -99,6 +99,7 @@
 # 67. pkg-config files
 # 68. minidump files
 # 69. Android bootloader for Qualcomm Snapdragon
+# 70. Android bootloader image
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -23750,6 +23751,196 @@ def unpackAndroidBootMSM(filename, offset, unpackdir, temporarydirectory):
 
     if offset == 0 and unpackedsize == filesize:
         labels.append("snapdragon")
+        labels.append("bootloader")
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Android bootloader
+#
+# https://android.googlesource.com/platform/system/core.git/+/master/mkbootimg/include/bootimg/bootimg.h
+def unpackAndroidBootImg(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack Android bootloader images'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # version 0 header is 48 bytes, other headers more
+    if offset + 48 > filesize:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+8)
+    unpackedsize += 8
+
+    # kernel size
+    checkbytes = checkfile.read(4)
+    kernelsize = int.from_bytes(checkbytes, byteorder='little')
+    if kernelsize == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'kernel cannot be empty'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # kernel load address, currently not interesting
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # ramdisk size
+    checkbytes = checkfile.read(4)
+    ramdisksize = int.from_bytes(checkbytes, byteorder='little')
+    if ramdisksize == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'ramdisk cannot be empty'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # ramdisk load address, currently not interesting
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # second stage bootloader size
+    checkbytes = checkfile.read(4)
+    secondsize = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # second stage bootloader load address, currently not interesting
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # tag address, currently not interesting
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # page size, use for sanity checks
+    checkbytes = checkfile.read(4)
+    pagesize = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # header version, only 0, 1 and 2 have been defined so far
+    checkbytes = checkfile.read(4)
+    headerversion = int.from_bytes(checkbytes, byteorder='little')
+    if headerversion > 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'unknown boot image header version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # os version, skip for now
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # boot name (default: 16 bytes)
+    checkbytes = checkfile.read(16)
+    try:
+        bootname = checkbytes.split(b'\x00', 1)[0].decode()
+    except UnicodeError:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid boot name'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 16
+
+    # boot args (default: 512 bytes)
+    checkbytes = checkfile.read(512)
+    try:
+        bootargs = checkbytes.split(b'\x00', 1)[0].decode()
+    except UnicodeError:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid boot args'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 512
+
+    # various other identifiers, skip for now
+    checkfile.seek(32, os.SEEK_CUR)
+    unpackedsize += 32
+
+    # boot extra args (default: 1024 bytes)
+    checkbytes = checkfile.read(1024)
+    try:
+        bootextraargs = checkbytes.split(b'\x00', 1)[0].decode()
+    except UnicodeError:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid boot extra args'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1024
+
+    # now extra data for version 1 and version 2, wait for
+    # test files first to verify.
+    if headerversion != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'currently unsupported header version'}
+        return {'status': False, 'error': unpackingerror}
+
+    # extra sanity check: the header is one page
+    if unpackedsize > pagesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid page size'}
+        return {'status': False, 'error': unpackingerror}
+
+    # skip the rest of the header
+    checkfile.seek(offset + pagesize)
+    unpackedsize = pagesize
+
+    # write the kernel data
+    outfilename = os.path.join(unpackdir, 'kernel')
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), kernelsize)
+    outfile.close()
+    checkfile.seek(kernelsize, os.SEEK_CUR)
+    unpackedfilesandlabels.append((outfilename, []))
+    unpackedsize += kernelsize
+
+    # padding
+    if kernelsize % pagesize != 0:
+        paddingneeded = pagesize - (kernelsize % pagesize)
+        checkfile.seek(paddingneeded, os.SEEK_CUR)
+        unpackedsize += paddingneeded
+
+    # write the ramdisk
+    outfilename = os.path.join(unpackdir, 'ramdisk')
+    outfile = open(outfilename, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), ramdisksize)
+    outfile.close()
+    checkfile.seek(ramdisksize, os.SEEK_CUR)
+    unpackedfilesandlabels.append((outfilename, []))
+    unpackedsize += ramdisksize
+
+    if ramdisksize % pagesize != 0:
+        paddingneeded = pagesize - (ramdisksize % pagesize)
+        checkfile.seek(paddingneeded, os.SEEK_CUR)
+        unpackedsize += paddingneeded
+
+    if secondsize != 0:
+        # write the second stage bootloader
+        outfilename = os.path.join(unpackdir, 'second')
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), ramdisksize)
+        outfile.close()
+        checkfile.seek(ramdisksize, os.SEEK_CUR)
+        unpackedfilesandlabels.append((outfilename, []))
+        unpackedsize += ramdisksize
+
+        if ramdisksize % pagesize != 0:
+            paddingneeded = pagesize - (ramdisksize % pagesize)
+            checkfile.seek(paddingneeded, os.SEEK_CUR)
+            unpackedsize += paddingneeded
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append("android")
         labels.append("bootloader")
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
