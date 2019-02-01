@@ -23660,6 +23660,11 @@ def unpackAndroidBootMSM(filename, offset, unpackdir, temporarydirectory):
     unpackingerror = {}
     unpackedsize = 0
 
+    if offset + 20 > filesize:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
     # open the file and skip the magic
     checkfile = open(filename, 'rb')
     checkfile.seek(offset+8)
@@ -23694,6 +23699,12 @@ def unpackAndroidBootMSM(filename, offset, unpackdir, temporarydirectory):
 
     maxsize = startoffset
 
+    if offset + unpackedsize + numimages * (64+4) > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for imginfo array'}
+        return {'status': False, 'error': unpackingerror}
+
     # img info array
     for i in range(0, numimages):
         # name
@@ -23710,13 +23721,13 @@ def unpackAndroidBootMSM(filename, offset, unpackdir, temporarydirectory):
         # size
         checkbytes = checkfile.read(4)
         imgsize = int.from_bytes(checkbytes, byteorder='little')
-        unpackedsize += 4
         maxsize += imgsize
         if offset + maxsize > filesize:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'image outside of file'}
             return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
 
         # store name and size, check later
         imginfo.append((imgname, imgsize))
