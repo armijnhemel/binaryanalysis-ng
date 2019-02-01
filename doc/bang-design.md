@@ -17,7 +17,7 @@ reverse engineering and security meet.
 
 Experience creating earlier tools shows that the sometimes simplistic and
 naive approaches from other tools (assuming correct files instead of broken
-data) is not realistic.
+data, reliance on magic headers) is not realistic.
 
 ## Framework
 
