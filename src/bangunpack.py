@@ -23654,6 +23654,8 @@ def unpackPNM(filename, offset, unpackdir, temporarydirectory):
 #
 # Example sources:
 # https://android.googlesource.com/device/lge/mako/+/master/releasetools.py
+#
+# Example device: Pixel 2
 def unpackAndroidBootMSM(filename, offset, unpackdir, temporarydirectory):
     '''Unpack Android bootloader images (Qualcomm Snapdragon)'''
     filesize = filename.stat().st_size
