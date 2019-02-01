@@ -10968,6 +10968,10 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
 #
 # This unpacker can recognize 7z formats, but only if the 7z file
 # consists of a single frame.
+#
+# Variants exist: Texas Instruments' AR7 uses a modified
+# version with that identifies itself as version 48.50
+# which cannot be unpacked with an unmodified 7z
 def unpack7z(filename, offset, unpackdir, temporarydirectory):
     '''Unpack 7z compressed data.'''
     filesize = filename.stat().st_size
