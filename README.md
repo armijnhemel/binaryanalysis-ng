@@ -138,6 +138,7 @@ larger file, unless stated otherwise.
 97. minidump files
 98. PPM files ('raw' PPM only)
 98. PGM files ('raw' PGM only)
+99. PBM files ('raw' PBM only)
 
 ## Invocation
 

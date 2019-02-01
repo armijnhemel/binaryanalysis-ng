@@ -134,6 +134,7 @@
 # 28. Photoshop PSD (raw bytes and RLE encoding only)
 # 29. PPM files ('raw' PPM files only, needs PIL)
 # 30. PGM files ('raw' PGM files only, needs PIL)
+# 31. PBM files ('raw' PBM files only, needs PIL)
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
@@ -23398,6 +23399,8 @@ def unpackPNM(filename, offset, unpackdir, temporarydirectory):
         pnmtype = 'ppm'
     elif checkbytes == b'P5':
         pnmtype = 'pgm'
+    elif checkbytes == b'P4':
+        pnmtype = 'pbm'
     unpackedsize += 2
 
     # then there should be whitespace
@@ -23500,55 +23503,56 @@ def unpackPNM(filename, offset, unpackdir, temporarydirectory):
         unpackedsize += 1
     height = int(heightbytes)
 
-    # then more whitespace
-    seenwhitespace = False
-    while True:
-        checkbytes = checkfile.read(1)
-        if checkbytes == b'':
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize,
-                              'fatal': False,
-                              'reason': 'not enough data for header whitespace'}
-            return {'status': False, 'error': unpackingerror}
-        if chr(ord(checkbytes)) in string.whitespace:
-            seenwhitespace = True
-        else:
-            if seenwhitespace:
-                checkfile.seek(-1, os.SEEK_CUR)
-                break
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize,
-                              'fatal': False,
-                              'reason': 'no whitespace in header'}
-            return {'status': False, 'error': unpackingerror}
-        unpackedsize += 1
+    if pnmtype != 'pbm':
+        # then more whitespace
+        seenwhitespace = False
+        while True:
+            checkbytes = checkfile.read(1)
+            if checkbytes == b'':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for header whitespace'}
+                return {'status': False, 'error': unpackingerror}
+            if chr(ord(checkbytes)) in string.whitespace:
+                seenwhitespace = True
+            else:
+                if seenwhitespace:
+                    checkfile.seek(-1, os.SEEK_CUR)
+                    break
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no whitespace in header'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += 1
 
-    # maximum color value, in ASCII digital
-    maxbytes = b''
-    seenint = False
-    while True:
-        checkbytes = checkfile.read(1)
-        if checkbytes == b'':
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize,
-                              'fatal': False,
-                              'reason': 'not enough data for maximum color value'}
-            return {'status': False, 'error': unpackingerror}
-        try:
-            int(checkbytes)
-            maxbytes += checkbytes
-            seenint = True
-        except Exception as e:
-            if seenint:
-                checkfile.seek(-1, os.SEEK_CUR)
-                break
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize,
-                              'fatal': False,
-                              'reason': 'no integer in header'}
-            return {'status': False, 'error': unpackingerror}
-        unpackedsize += 1
-    maxvalue = int(maxbytes)
+        # maximum color value, in ASCII digital
+        maxbytes = b''
+        seenint = False
+        while True:
+            checkbytes = checkfile.read(1)
+            if checkbytes == b'':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'not enough data for maximum color value'}
+                return {'status': False, 'error': unpackingerror}
+            try:
+                int(checkbytes)
+                maxbytes += checkbytes
+                seenint = True
+            except Exception as e:
+                if seenint:
+                    checkfile.seek(-1, os.SEEK_CUR)
+                    break
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'no integer in header'}
+                return {'status': False, 'error': unpackingerror}
+            unpackedsize += 1
+        maxvalue = int(maxbytes)
 
     # single whitespace
     checkbytes = checkfile.read(1)
@@ -23560,14 +23564,21 @@ def unpackPNM(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 1
 
-    if maxvalue < 256:
-        lendatabytes = width * height
-        if pnmtype == 'ppm':
-            lendatabytes = lendatabytes * 3
+    if pnmtype == 'pbm':
+        # each row is width bits
+        rowlength = width//8
+        if width % 8 != 0:
+            rowlength += 1
+        lendatabytes = rowlength * height
     else:
-        lendatabytes = width * height * 2
-        if pnmtype == 'ppm':
-            lendatabytes = lendatabytes * 3
+        if maxvalue < 256:
+            lendatabytes = width * height
+            if pnmtype == 'ppm':
+                lendatabytes = lendatabytes * 3
+        else:
+            lendatabytes = width * height * 2
+            if pnmtype == 'ppm':
+                lendatabytes = lendatabytes * 3
     if offset + unpackedsize + lendatabytes > filesize:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize,
@@ -23591,6 +23602,9 @@ def unpackPNM(filename, offset, unpackdir, temporarydirectory):
             elif pnmtype == 'ppm':
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid PPM data according to PIL'}
+            elif pnmtype == 'pbm':
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid PBM data according to PIL'}
             return {'status': False, 'error': unpackingerror}
         checkfile.close()
         labels += [pnmtype, 'graphics']
@@ -23621,6 +23635,9 @@ def unpackPNM(filename, offset, unpackdir, temporarydirectory):
         elif pnmtype == 'ppm':
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid PPM data according to PIL'}
+        elif pnmtype == 'pbm':
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid PBM data according to PIL'}
         return {'status': False, 'error': unpackingerror}
 
     checkfile.close()

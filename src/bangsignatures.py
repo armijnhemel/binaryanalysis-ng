@@ -119,6 +119,7 @@ signatures = {
     'minidump': b'MDMP',
     'ppm': b'P6',
     'pgm': b'P5',
+    'pbm': b'P4',
 }
 
 # some signatures do not start at the beginning of the file
@@ -230,6 +231,7 @@ signaturetofunction = {
     'minidump': bangunpack.unpackMinidump,
     'ppm': bangunpack.unpackPNM,
     'pgm': bangunpack.unpackPNM,
+    'pbm': bangunpack.unpackPNM,
 }
 
 # a lookup table to map signatures to a name for
