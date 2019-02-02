@@ -12216,6 +12216,14 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
     except UnicodeDecodeError:
         pass
 
+    # 'last mounted' path, likely empty
+    checkbytes = checkfile.read(64)
+    lastmountedpath = ''
+    try:
+        lastmountedpath = checkbytes.split(b'\x00')[0].decode()
+    except UnicodeDecodeError:
+        pass
+
     # e2tools can work with trailing data, but if there is any data
     # preceding the file system then some carving has to be done first.
     havetmpfile = False
