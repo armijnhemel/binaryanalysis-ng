@@ -142,6 +142,7 @@ larger file, unless stated otherwise.
 100. Android bootloader for Qualcomm Snapdragon
 101. Android bootloader image
 102. Android bootloader for Huawei devices
+103. FAT16 file systems (8.3 file names)
 
 ## Invocation
 

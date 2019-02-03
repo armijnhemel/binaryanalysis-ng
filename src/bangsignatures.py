@@ -123,6 +123,7 @@ signatures = {
     'androidbootmsm': b'BOOTLDR!',
     'androidbootimg': b'ANDROID!',
     'androidboothuawei': b'\x3c\xd6\x1a\xce',
+    'fat': b'\x55\xaa',
 }
 
 # some signatures do not start at the beginning of the file
@@ -137,6 +138,7 @@ signaturesoffset = {
     'ext2': 0x438,
     'dlinkromfs': 16,
     'gimpbrush': 20,
+    'fat': 0x1fe
 }
 
 # keep a list of signatures to the (built in) functions
@@ -238,6 +240,7 @@ signaturetofunction = {
     'androidbootmsm': bangunpack.unpackAndroidBootMSM,
     'androidbootimg': bangunpack.unpackAndroidBootImg,
     'androidboothuawei': bangunpack.unpackAndroidBootHuawei,
+    'fat': bangunpack.unpackFAT,
 }
 
 # a lookup table to map signatures to a name for
