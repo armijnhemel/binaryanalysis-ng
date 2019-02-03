@@ -7,7 +7,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 
 * a recent Linux distribution (Fedora 27 or higher, or equivalent)
 * Python 3.6.x or higher (as some Python 3.6 specific features are used)
-* pillow, a drop in replacement for PIL ( http://python-pillow.github.io/ )
+* pillow (possibly named python3-pillow), a drop in replacement for PIL ( http://python-pillow.github.io/ )
 * GNU binutils (for 'ar')
 * squashfs-tools (for 'unsquashfs')
 * cabextract
