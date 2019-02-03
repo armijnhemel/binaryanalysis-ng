@@ -24186,12 +24186,12 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
     # bytes per logical sector, power of two, minimum of 32
     checkbytes = checkfile.read(2)
     bytespersector = int.from_bytes(checkbytes, byteorder='little')
-    if pow(2, int(math.log(bytespersector, 2))) != bytespersector:
+    if bytespersector < 32:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid bytes per sector'}
         return {'status': False, 'error': unpackingerror}
-    if bytespersector < 32:
+    if pow(2, int(math.log(bytespersector, 2))) != bytespersector:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid bytes per sector'}
