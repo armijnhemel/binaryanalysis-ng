@@ -28,6 +28,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * lzop
 * OpenJDK (for 'unpack200')
 * defusedxml (possibly named python3-defusedxml)
+* icalendar (possibly named python3-icalendar)
 
 ## Supported file types
 
@@ -143,6 +144,7 @@ larger file, unless stated otherwise.
 101. Android bootloader image
 102. Android bootloader for Huawei devices
 103. FAT16 file systems (8.3 file names)
+104. iCalendar (RFC 5545) files (whole file only)
 
 ## Invocation
 

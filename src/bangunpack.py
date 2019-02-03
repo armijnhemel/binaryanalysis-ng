@@ -139,6 +139,7 @@
 # 29. PPM files ('raw' PPM files only, needs PIL)
 # 30. PGM files ('raw' PGM files only, needs PIL)
 # 31. PBM files ('raw' PBM files only, needs PIL)
+# 32. iCalendar (RFC 5545) files (whole file only)
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
@@ -180,6 +181,7 @@ import lz4.frame
 import snappy
 import tinycss2
 import dockerfile_parse
+import icalendar
 
 encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                         'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
@@ -24679,6 +24681,59 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
     if offset == 0 and unpackedsize == filesize:
         labels.append("fat")
         labels.append('filesystem')
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# iCalendar files
+# https://www.ietf.org/rfc/rfc5545.txt
+def unpackICS(filename, offset, unpackdir, temporarydirectory):
+    '''Verify and label iCalendar files'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    isopened = False
+
+    # open the file in text only mode
+    try:
+        checkfile = open(filename, 'r')
+        isopened = True
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a text file'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.seek(0)
+
+    # read the file: Python's text reader will fairly quickly
+    # detect the binary files, so not a lot of extra data will
+    # be read.
+    try:
+        icsbytes = checkfile.read()
+    except:
+        if isopened:
+            checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a text file'}
+        return {'status': False, 'error': unpackingerror}
+    checkfile.close()
+
+    try:
+        icalendar.Calendar.from_ical(icsbytes)
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not valid ICS data'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = filesize
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append("ics")
+        labels.append('resource')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

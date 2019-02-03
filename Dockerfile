@@ -16,6 +16,7 @@ RUN dnf update -y && \
                    python3 \
                    python3-defusedxml \
                    python3-dockerfile-parse \
+                   python3-icalendar \
                    python3-lz4 \
                    python3-pillow \
                    python3-psycopg2 \

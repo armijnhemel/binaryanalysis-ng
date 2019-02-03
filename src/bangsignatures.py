@@ -303,6 +303,7 @@ extensiontofunction = {
     'tzdata': bangunpack.unpackAndroidTzdata,
     'fstab': bangunpack.unpackFstab,
     '.pc': bangunpack.unpackPkgConfig,
+    '.ics': bangunpack.unpackICS,
 }
 
 # a lookup table to map extensions to a name
@@ -338,6 +339,7 @@ extensionprettyprint = {
     'tzdata': 'tzdata',
     'fstab': 'fstab',
     '.pc': 'pc',
+    '.ics': 'ics',
 }
 
 # certain unpacking functions if the whole file is text
