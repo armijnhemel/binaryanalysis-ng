@@ -5959,8 +5959,7 @@ def unpackLzip(filename, offset, unpackdir, temporarydirectory):
     lzma_pb = 2
 
     lzip_filters = [{'id': lzma.FILTER_LZMA1, 'dict_size': dictionarybasesize,
-                     'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb},
-                   ]
+                     'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb}]
 
     decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=lzip_filters)
     if not filename.suffix.lower() == '.lz':
@@ -9877,8 +9876,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
                     jffs_filters = [{'id': lzma.FILTER_LZMA1,
                                      'dict_size': lzma_dict_size,
                                      'lc': lzma_lc, 'lp': lzma_lp,
-                                     'pb': lzma_pb},
-                                   ]
+                                     'pb': lzma_pb}]
 
                     decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=jffs_filters)
 
@@ -16914,8 +16912,7 @@ def unpackSWF(filename, offset, unpackdir, temporarydirectory):
                     'dict_size': dictionarysize,
                     'lc': lzma_lc,
                     'lp': lzma_lp,
-                    'pb': lzma_pb},
-                  ]
+                    'pb': lzma_pb}]
 
     try:
         decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=swf_filters)
@@ -17897,9 +17894,9 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
     # carve the image, without the U-Boot header
     if 'name' in ubootdata and ubootdata['name'] != '':
         if os.path.isabs(imagename):
-             outfilename = os.path.join(unpackdir, os.path.relpath(imagename, '/'))
+            outfilename = os.path.join(unpackdir, os.path.relpath(imagename, '/'))
         else:
-             outfilename = os.path.join(unpackdir, imagename)
+            outfilename = os.path.join(unpackdir, imagename)
     else:
         outfilename = os.path.join(unpackdir, "unpacked.uboot")
     outfile = open(outfilename, 'wb')
@@ -24673,7 +24670,7 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
                         elif fileattributes & 0x20 == 0x20:
                             chainstoprocess.append((cluster, 'file', chaindir, entrysize, fullname))
                         else:
-                             pass
+                            pass
 
                     chainbytesread += 32
 
