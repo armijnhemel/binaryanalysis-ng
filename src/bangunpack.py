@@ -24598,7 +24598,7 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
                 # were read. If so, jump to the next sector in the chain.
                 chainbytesread = 0
                 while True:
-                    if chainbytesread == bytespersector:
+                    if chainbytesread == clustersize:
                         chainindex += 1
                         if chainindex == len(clustertochain[startchain]):
                             break
