@@ -24439,6 +24439,8 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
                     # bad block, unsure what to do here
                     if chainindex == 0xfff7:
                         break
+                    if chainindex == 0:
+                        break
                 clusterchainsperfat[i].append(chain)
 
     clustertochain = {}
