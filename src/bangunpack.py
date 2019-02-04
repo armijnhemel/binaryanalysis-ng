@@ -3058,6 +3058,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
     # and process like section 4.3.7
     checkfile = open(filename, 'rb')
     checkfile.seek(offset)
+    minzipversion = 0
     maxzipversion = 90
 
     seencentraldirectory = False
@@ -3388,7 +3389,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
                               'reason': 'not enough data for local file header'}
             return {'status': False, 'error': unpackingerror}
         minversion = int.from_bytes(checkbytes, byteorder='little')
-        if minversion < 10:
+        if minversion < minzipversion:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize,
                               'fatal': False,
