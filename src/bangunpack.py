@@ -3304,9 +3304,25 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
                 checkfile.seek(12, os.SEEK_CUR)
             else:
                 # then check to see if this is possibly an Android
-                # signing block
+                # signing block:
+                #
                 # https://source.android.com/security/apksigning/v2
-                if androidsigning or checkbytes == b'\x00\x00\x00\x00':
+                #
+                # The Android signing block is squeeze in between the
+                # latest entry and the central directory, despite the
+                # ZIP specification not allowing this. There have been
+                # various versions.
+                #
+                # The following code is triggered under three conditions:
+                #
+                # 1. data descriptors are used and it was already determined
+                #    that there is an Android signing block.
+                # 2. the bytes read are 0x00 0x00 0x00 0x00 which could
+                #    possibly be an APK signing v3 block, as it is possibly
+                #    padded.
+                # 3. no data descriptors are used, meaning it might be a
+                #    length of a signing block.
+                if androidsigning or checkbytes == b'\x00\x00\x00\x00' or not datadescriptor:
                     # first go back four bytes
                     checkfile.seek(-4, os.SEEK_CUR)
                     unpackedsize = checkfile.tell() - offset
@@ -3324,6 +3340,7 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
 
                     # APK signing V3 might pad to 4096 bytes first,
                     # introduced in:
+                    #
                     # https://android.googlesource.com/platform/tools/apksig/+/edf96cb79f533eb4255ee1b6aa2ba8bf9c1729b2
                     if androidsigningsize == 0:
                         checkfile.seek(4096 - unpackedsize % 4096, os.SEEK_CUR)
@@ -3340,6 +3357,17 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
                         unpackedsize += 8
                         androidsigningsize = int.from_bytes(checkbytes, byteorder='little')
 
+                    # as the last 16 bytes are for the Android signing block
+                    # the block has to be at least 16 bytes.
+                    if androidsigningsize < 16:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset+unpackedsize,
+                                          'fatal': False,
+                                          'reason': 'wrong size for Android signing block'}
+                        return {'status': False, 'error': unpackingerror}
+
+                    # the signing block cannot be (partially)
+                    # outside of the file
                     if checkfile.tell() + androidsigningsize > filesize:
                         checkfile.close()
                         unpackingerror = {'offset': offset+unpackedsize,
