@@ -1703,8 +1703,12 @@ def main(argv):
         if uselogging:
             logging.info("Finished scanning %s" % checkfile)
 
+            # flush any remaining data
+            bangloghandler.flush()
+
             # remove the log file from the system logger
             banglogger.removeHandler(bangloghandler)
+            bangloghandler.close()
 
         if removescandirectory:
             shutil.rmtree(scandirectory)
@@ -1716,6 +1720,9 @@ def main(argv):
         c[1].close()
         # then close the database connection
         c[0].close()
+
+    # finally shut down logging
+    logging.shutdown()
 
 
 if __name__ == "__main__":
