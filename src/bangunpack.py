@@ -7654,9 +7654,14 @@ def unpackAndroidSparseData(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'invalid transfer list version number'}
         return {'status': False, 'error': unpackingerror}
 
-    if versionnumber != 4:
+    if versionnumber > 4:
         unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'only transfer list version 4 supported'}
+                          'reason': 'invalid version number'}
+        return {'status': False, 'error': unpackingerror}
+
+    if versionnumber < 2:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'only transfer list version 2-4 supported'}
         return {'status': False, 'error': unpackingerror}
 
     # the next line is the amount of blocks (1 block is 4096 bytes)
