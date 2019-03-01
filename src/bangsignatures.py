@@ -124,6 +124,7 @@ signatures = {
     'androidbootimg': b'ANDROID!',
     'androidboothuawei': b'\x3c\xd6\x1a\xce',
     'fat': b'\x55\xaa',
+    'cbfs': b'LARCHIVE', # https://www.coreboot.org/CBFS
 }
 
 # some signatures do not start at the beginning of the file
@@ -241,6 +242,7 @@ signaturetofunction = {
     'androidbootimg': bangunpack.unpackAndroidBootImg,
     'androidboothuawei': bangunpack.unpackAndroidBootHuawei,
     'fat': bangunpack.unpackFAT,
+    'cbfs': bangunpack.unpackCBFS,
 }
 
 # a lookup table to map signatures to a name for

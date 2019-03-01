@@ -145,6 +145,7 @@ larger file, unless stated otherwise.
 102. Android bootloader for Huawei devices
 103. FAT16 file systems (8.3 file names)
 104. iCalendar (RFC 5545) files (whole file only)
+105. Coreboot images
 
 ## Invocation
 
