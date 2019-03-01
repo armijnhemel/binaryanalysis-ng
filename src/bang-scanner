@@ -719,6 +719,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         shutil.rmtree(dataunpackdirectory)
                         continue
 
+                    # first rewrite the offset, if needed
+                    if 'offset' in unpackresult:
+                        offset = unpackresult['offset']
+
                     # the file could be unpacked successfully,
                     # so log it as such.
                     if uselogging:
