@@ -139,6 +139,9 @@ will also be present:
 *   list of files and labels: a list of tuples with the name of each file
     that was unpacked, plus a list of associated labels (empty most of the time)
 *   labels: a list of labels for the file that was scanned
+*   offset (optional): an offset where the data starts. Only needs to be set
+    if the offset where the data starts isn't the offset that was given as a
+    parameter (example: coreboot images)
 
 If the scan was unsuccessful then the dictionary will contain:
 
