@@ -622,12 +622,13 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # skip offsets which are not useful to look at
                     # for example because the data has already been
                     # unpacked.
-                    if s[0] < lastunpackedoffset:
+                    (offset, signature) = s
+                    if offset < lastunpackedoffset:
                         continue
 
                     # first see if there actually is a method to unpack
                     # this type of file
-                    if not s[1] in bangsignatures.signaturetofunction:
+                    if not signature in bangsignatures.signaturetofunction:
                         continue
 
                     signaturesfound.append(s)
@@ -638,12 +639,12 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # then create an unpacking directory specifically
                     # for the signature including the signature name
                     # and a counter for the signature.
-                    if not s[1] in counterspersignature:
+                    if not signature in counterspersignature:
                         namecounter = 1
                     else:
-                        namecounter = counterspersignature[s[1]] + 1
+                        namecounter = counterspersignature[signature] + 1
                     while True:
-                        dataunpackdirectory = "%s-%s-%d" % (filename, bangsignatures.signatureprettyprint.get(s[1], s[1]), namecounter)
+                        dataunpackdirectory = "%s-%s-%d" % (filename, bangsignatures.signatureprettyprint.get(signature, signature), namecounter)
                         try:
                             os.mkdir(dataunpackdirectory)
                             break
@@ -654,7 +655,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # First log which identifier was found and
                     # at which offset for possible later analysis.
                     if uselogging:
-                        logging.debug("TRYING %s %s at offset: %d" % (relativefilename, s[1], s[0]))
+                        logging.debug("TRYING %s %s at offset: %d" % (relativefilename, signature, offset))
 
                     # The result of the scan is a dictionary containing:
                     #
@@ -671,7 +672,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     #
                     # * errors that were encountered
                     try:
-                        unpackresult = bangsignatures.signaturetofunction[s[1]](filename, s[0], dataunpackdirectory, temporarydirectory)
+                        unpackresult = bangsignatures.signaturetofunction[signature](filename, offset, dataunpackdirectory, temporarydirectory)
                     except AttributeError as e:
                         os.rmdir(dataunpackdirectory)
                         continue
@@ -680,7 +681,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         # No data could be unpacked for some reason,
                         # so log the status and error message
                         if uselogging:
-                            logging.debug("FAIL %s %s at offset: %d: %s" % (relativefilename, s[1], s[0], unpackresult['error']['reason']))
+                            logging.debug("FAIL %s %s at offset: %d: %s" % (relativefilename, signature, offset, unpackresult['error']['reason']))
 
                         # unpacking error contains:
                         #
@@ -721,14 +722,14 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # the file could be unpacked successfully,
                     # so log it as such.
                     if uselogging:
-                        logging.info("SUCCESS %s %s at offset: %d, length: %d" % (relativefilename, s[1], s[0], unpackresult['length']))
+                        logging.info("SUCCESS %s %s at offset: %d, length: %d" % (relativefilename, signature, offset, unpackresult['length']))
 
                     # store the name counter
-                    counterspersignature[s[1]] = namecounter
+                    counterspersignature[signature] = namecounter
 
                     # store the labels for files that could be
                     # unpacked/verified completely.
-                    if s[0] == 0 and unpackresult['length'] == filesize:
+                    if offset == 0 and unpackresult['length'] == filesize:
                         labels += unpackresult['labels']
                         labels = list(set(labels))
                         # if unpackedfilesandlabels is empty, then no
@@ -740,13 +741,13 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             os.rmdir(dataunpackdirectory)
 
                     # store the range of the unpacked data
-                    unpackedrange.append((s[0], s[0] + unpackresult['length']))
+                    unpackedrange.append((offset, offset + unpackresult['length']))
 
                     # store lot of information about the unpacked files
                     report = {}
-                    report['offset'] = s[0]
-                    report['signature'] = s[1]
-                    report['type'] = bangsignatures.signatureprettyprint.get(s[1], s[1])
+                    report['offset'] = offset
+                    report['signature'] = signature
+                    report['type'] = bangsignatures.signatureprettyprint.get(signature, signature)
                     report['size'] = unpackresult['length']
                     report['files'] = []
 
@@ -769,7 +770,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     # skip over all of the indexes that are now known
                     # to be false positives
-                    lastunpackedoffset = s[0] + unpackresult['length']
+                    lastunpackedoffset = offset + unpackresult['length']
 
                     # something was unpacked, so record it as such
                     needsunpacking = False
