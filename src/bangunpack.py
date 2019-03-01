@@ -219,6 +219,7 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # * a list of labels for the file
 # * a dict with extra information (structure depending on type
 #   of scan)
+# * (optional) offset indicating the start of the data
 #
 # If the scan was unsuccessful (unpack status == False), the following
 # should be present:
