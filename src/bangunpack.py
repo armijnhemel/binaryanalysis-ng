@@ -1352,6 +1352,8 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
     anonymous = False
     if filename.suffix.lower() == '.gz':
         outfilename = os.path.join(unpackdir, filename.stem)
+    elif filename.suffix.lower() == '.tgz':
+        outfilename = os.path.join(unpackdir, filename.stem) + ".tar"
     else:
         outfilename = os.path.join(unpackdir, "unpacked-from-gz")
         anonymous = True
