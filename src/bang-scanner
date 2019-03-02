@@ -628,7 +628,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     # first see if there actually is a method to unpack
                     # this type of file
-                    if not signature in bangsignatures.signaturetofunction:
+                    if signature not in bangsignatures.signaturetofunction:
                         continue
 
                     signaturesfound.append(s)
@@ -639,7 +639,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # then create an unpacking directory specifically
                     # for the signature including the signature name
                     # and a counter for the signature.
-                    if not signature in counterspersignature:
+                    if signature not in counterspersignature:
                         namecounter = 1
                     else:
                         namecounter = counterspersignature[signature] + 1
