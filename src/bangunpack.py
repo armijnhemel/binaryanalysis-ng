@@ -4034,7 +4034,7 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
     # Special case: tbz2 (tar)
     if filename.suffix.lower() == '.bz2':
         outfilename = os.path.join(unpackdir, filename.stem)
-    elif filename.suffix.lower() == '.tbz2':
+    elif filename.suffix.lower() in ['.tbz', '.tbz2', '.tb2']:
         outfilename = os.path.join(unpackdir, filename.stem) + ".tar"
     else:
         outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
