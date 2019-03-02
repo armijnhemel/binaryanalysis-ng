@@ -4031,8 +4031,11 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
 
     # set the name of the file in case it is "anonymous data"
     # otherwise just imitate whatever bunzip2 does.
+    # Special case: tbz2 (tar)
     if filename.suffix.lower() == '.bz2':
         outfilename = os.path.join(unpackdir, filename.stem)
+    elif filename.suffix.lower() == '.tbz2':
+        outfilename = os.path.join(unpackdir, filename.stem) + ".tar"
     else:
         outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
 
@@ -4081,16 +4084,6 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
         outfile.close()
 
         if offset == 0 and unpackedsize == filesize:
-            # in case the file name ends in either bz2 or tbz2 (tar)
-            # rename the file to mimic the behaviour of "bunzip2"
-            if filename.suffix.lower() == '.bz2':
-                newoutfilename = os.path.join(unpackdir, filename.stem)
-                shutil.move(outfilename, newoutfilename)
-                outfilename = newoutfilename
-            elif filename.suffix.lower() == '.tbz2':
-                newoutfilename = os.path.join(unpackdir, filename.stem) + ".tar"
-                shutil.move(outfilename, newoutfilename)
-                outfilename = newoutfilename
             labels += ['bzip2', 'compressed']
         unpackedfilesandlabels.append((outfilename, []))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
