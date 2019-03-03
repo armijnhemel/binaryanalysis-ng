@@ -24834,12 +24834,12 @@ def unpackCBFS(filename, offset, unpackdir, temporarydirectory):
         # "The difference between the size of the header and offset
         # is the size of the component name."
         checkbytes = checkfile.read(componentoffset - 24)
-        if not b'\x00' in checkbytes:
+        if b'\x00' not in checkbytes:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid component name'}
             return {'status': False, 'error': unpackingerror}
-        try :
+        try:
             componentname = checkbytes.split(b'\x00')[0].decode()
         except:
             checkfile.close()
@@ -24933,7 +24933,7 @@ def unpackCBFS(filename, offset, unpackdir, temporarydirectory):
         checkfile.seek(componentlength, os.SEEK_CUR)
 
         # then read some more alignment bytes, if necessary
-        if (checkfile.tell() - offset)%align != 0:
+        if (checkfile.tell() - offset) % align != 0:
             padbytes = align - (checkfile.tell() - offset) % align
             checkfile.seek(padbytes, os.SEEK_CUR)
 
