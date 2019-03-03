@@ -25286,11 +25286,24 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
             unpackedfilesandlabels.append((outfilename, ['directory']))
             dataunpacked = True
         elif stat.S_ISLNK(inodes[i]['mode']):
-            # TODO
+            outfilename = os.path.join(unpackdir, inodetoname[i])
+            destinationname = ''
             for z in inodes[i]['zones']:
                 if z == 0:
                     break
+                dataoffset = offset + z * blocksize
+                checkfile.seek(dataoffset)
+                checkbytes = checkfile.read(blocksize)
+                try:
+                    destinationname += checkbytes.split(b'\x00', 1)[0].decode()
+                except:
+                    destinationname = ''
+                    break
                 maxoffset = max(maxoffset, z * blocksize + blocksize)
+            if destinationname != '':
+                os.symlink(destinationname, outfilename)
+            unpackedfilesandlabels.append((outfilename, ['symbolic link']))
+            dataunpacked = True
         elif stat.S_ISDIR(inodes[i]['mode']):
             seenzones = 1
             curdirname = inodetoname[i]
