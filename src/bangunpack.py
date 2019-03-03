@@ -25067,7 +25067,7 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
 
     inodes = {}
 
-    # Next are the inodes. The start inode is 1.
+    # Next are the inodes. The root inode is always 1.
     for i in range(1, nrinodes+1):
         # first the mode
         checkbytes = checkfile.read(2)
@@ -25285,6 +25285,14 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
             outfile.close()
             unpackedfilesandlabels.append((outfilename, ['directory']))
             dataunpacked = True
+        elif stat.S_ISCHR(inodes[i]['mode']):
+            pass
+        elif stat.S_ISBLK(inodes[i]['mode']):
+            pass
+        elif stat.S_ISFIFO(inodes[i]['mode']):
+            pass
+        elif stat.S_ISSOCK(inodes[i]['mode']):
+            pass
         elif stat.S_ISLNK(inodes[i]['mode']):
             outfilename = os.path.join(unpackdir, inodetoname[i])
             destinationname = ''
@@ -25372,6 +25380,9 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'invalid Minix file system'}
         return {'status': False, 'error': unpackingerror}
 
+    # It is very difficult to distinguish padding from actual
+    # file system data, as unused bytes are NUL bytes and no
+    # file system length is actually recorded in the superblock.
     if offset == 0 and maxoffset == filesize:
         labels.append('minix')
         labels.append('filesystem')
