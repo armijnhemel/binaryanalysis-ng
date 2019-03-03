@@ -1652,6 +1652,7 @@ def unpackLZMAWrapper(
     # set the name of the file in case it is "anonymous data"
     # otherwise just imitate whatever unxz and lzma do. If the file
     # has a name recorded in the file it will be renamed later.
+    outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
     if filetype == 'xz':
         if filename.suffix.lower() == '.xz':
             outfilename = os.path.join(unpackdir, filename.stem)
@@ -1662,8 +1663,6 @@ def unpackLZMAWrapper(
             outfilename = os.path.join(unpackdir, filename.stem)
         elif filename.suffix.lower() == '.tlz':
             outfilename = os.path.join(unpackdir, filename.stem) + ".tar"
-    else:
-        outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
 
     # data has been unpacked, so open a file and write the data to it.
     # unpacked, or if all data has been unpacked
