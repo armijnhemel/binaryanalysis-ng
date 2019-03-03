@@ -146,6 +146,7 @@ larger file, unless stated otherwise.
 103. FAT16 file systems (8.3 file names)
 104. iCalendar (RFC 5545) files (whole file only)
 105. Coreboot images
+106. Minix V1 file system (Linux variant)
 
 ## Invocation
 

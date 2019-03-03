@@ -125,6 +125,7 @@ signatures = {
     'androidboothuawei': b'\x3c\xd6\x1a\xce',
     'fat': b'\x55\xaa',
     'cbfs': b'LARCHIVE', # https://www.coreboot.org/CBFS
+    'minix_1l': b'\x8f\x13', # minix v1, linux variant
 }
 
 # some signatures do not start at the beginning of the file
@@ -139,7 +140,8 @@ signaturesoffset = {
     'ext2': 0x438,
     'dlinkromfs': 16,
     'gimpbrush': 20,
-    'fat': 0x1fe
+    'fat': 0x1fe,
+    'minix_1l': 0x410
 }
 
 # keep a list of signatures to the (built in) functions
@@ -243,6 +245,7 @@ signaturetofunction = {
     'androidboothuawei': bangunpack.unpackAndroidBootHuawei,
     'fat': bangunpack.unpackFAT,
     'cbfs': bangunpack.unpackCBFS,
+    'minix_1l': bangunpack.unpackMinix1L,
 }
 
 # a lookup table to map signatures to a name for
@@ -267,6 +270,7 @@ signatureprettyprint = {
     'swf_zlib': 'swf',
     'swf_lzma': 'swf',
     'ktx11': 'ktx',
+    'minix_1l': 'minix',
 }
 
 # extensions to unpacking functions. This should only be

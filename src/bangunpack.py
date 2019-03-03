@@ -103,6 +103,7 @@
 # 71. Android bootloader for Huawei devices
 # 72. FAT16 file systems (8.3 file names)
 # 73. Coreboot images
+# 74. Minix V1 file system (Linux variant)
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -24967,3 +24968,400 @@ def unpackCBFS(filename, offset, unpackdir, temporarydirectory):
     unpackedfilesandlabels.append((outfilename, ['coreboot', 'unpacked']))
     return {'status': True, 'length': romsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels, 'offset': cbfsstart}
+
+
+# /usr/share/magic
+# https://en.wikipedia.org/wiki/MINIX_file_system
+# https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/fs/mfs
+# https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/usr.sbin/mkfs.mfs/v1l
+def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack Minix V1 file systems (extended Linux variant)'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # boot block and super block are both 1K
+    if offset + 2048 > filesize:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for superblock'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+
+    blocksize = 1024
+
+    # the first block is the boot block, which can
+    # be skipped
+    checkfile.seek(blocksize, os.SEEK_CUR)
+    unpackedsize += blocksize
+
+    # Then read the superblock. All this data is little endian.
+
+    # the number of inodes
+    checkbytes = checkfile.read(2)
+    nrinodes = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # there always has to be at least one inode
+    if nrinodes == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough inodes'}
+        return {'status': False, 'error': unpackingerror}
+
+    # the number of zones
+    checkbytes = checkfile.read(2)
+    zones = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # inode bitmap blocks
+    checkbytes = checkfile.read(2)
+    inodeblocks = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # zone bitmap blocks
+    checkbytes = checkfile.read(2)
+    zoneblocks = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # first data zone
+    checkbytes = checkfile.read(2)
+    firstdatazone = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # log zone size
+    checkbytes = checkfile.read(2)
+    logzonesize = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # max size
+    checkbytes = checkfile.read(4)
+    maxsize = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # magic, skip
+    checkfile.seek(2, os.SEEK_CUR)
+    unpackedsize += 2
+
+    # state
+    checkbytes = checkfile.read(2)
+    minixstate = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 2
+
+    # some sanity checks
+    # superblock is followed by the inode bitmap and zone bitmap
+    # and then by the inodes. Each inode is 32 bytes.
+    if offset + 2048 + (inodeblocks + zoneblocks) * blocksize + nrinodes * 32 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for bitmaps or inodes'}
+        return {'status': False, 'error': unpackingerror}
+
+    # skip over the bitmaps
+    checkfile.seek(offset + 2048 + (inodeblocks + zoneblocks) * blocksize)
+    unpackedsize = 2048 + (inodeblocks + zoneblocks) * blocksize
+
+    inodes = {}
+
+    # Next are the inodes. The start inode is 1.
+    for i in range(1, nrinodes+1):
+        # first the mode
+        checkbytes = checkfile.read(2)
+        inodemode = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 2
+
+        # then the uid
+        checkbytes = checkfile.read(2)
+        inodeuid = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 2
+
+        # the inode size
+        checkbytes = checkfile.read(4)
+        inodesize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        # the inode time
+        checkbytes = checkfile.read(4)
+        inodetime = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        # the inode gid
+        checkbytes = checkfile.read(1)
+        inodegid = ord(checkbytes)
+        unpackedsize += 1
+
+        # the number of links
+        checkbytes = checkfile.read(1)
+        inodenrlinks = ord(checkbytes)
+        unpackedsize += 1
+
+        # 9 izones. First 7 are direct zones,
+        # 8th is for indirect zones, 9th is for
+        # double indirect zones.
+        zones = []
+        for z in range(0, 9):
+            checkbytes = checkfile.read(2)
+            inodezone = int.from_bytes(checkbytes, byteorder='little')
+            zones.append(inodezone)
+            unpackedsize += 2
+        if inodemode != 0:
+            inodes[i] = {'mode': inodemode, 'uid': inodeuid, 'size': inodesize,
+                         'time': inodetime, 'gid': inodegid,
+                         'links': inodenrlinks, 'zones': zones}
+
+    # store the (relative) end of the inodes
+    endofinodes = checkfile.tell() - offset
+
+    # sanity check: data zone cannot be earlier than end of inodes
+    if firstdatazone * blocksize < endofinodes:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'data zones cannot be before inodes'}
+        return {'status': False, 'error': unpackingerror}
+
+    # map inode to name
+    inodetoname = {}
+
+    # relative root
+    inodetoname[1] = ''
+
+    # sanity check, root dir is always 1
+    if not stat.S_ISDIR(inodes[1]['mode']):
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'wrong type for inode 1'}
+        return {'status': False, 'error': unpackingerror}
+
+    dataunpacked = False
+
+    maxoffset = blocksize * 2
+
+    # now process the inodes. Actually only the inodes that
+    # are in the inode bitmap should be looked at. This is a TODO.
+    for i in inodes:
+        if i not in inodetoname:
+            # dangling inode?
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'unknown inode'}
+            return {'status': False, 'error': unpackingerror}
+        if stat.S_ISREG(inodes[i]['mode']):
+            outfilename = os.path.join(unpackdir, inodetoname[i])
+            # open the file for writing
+            outfile = open(outfilename, 'wb')
+            seenzones = 1
+            zonestowrite = []
+            for z in inodes[i]['zones']:
+                if z == 0:
+                    break
+
+                # the zone cannot be smaller than the first data zone
+                if z < firstdatazone:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid zone number'}
+                    return {'status': False, 'error': unpackingerror}
+
+                # zone has to be in the file
+                if offset + z * blocksize + blocksize > filesize:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'not enough data for zone'}
+                    return {'status': False, 'error': unpackingerror}
+
+                if seenzones == 8:
+                    # this is an indirect zone, containing more data
+                    # First seek to the right zone offset
+                    checkfile.seek(offset + z * blocksize)
+
+                    # Then get the zone numbers. Like the direct zone
+                    # numbers these are two bytes.
+                    for iz in range(0, 512):
+                        checkbytes = checkfile.read(2)
+                        inodezone = int.from_bytes(checkbytes, byteorder='little')
+                        if inodezone != 0:
+                            # the zone cannot be smaller
+                            # than the first data zone
+                            if inodezone < firstdatazone:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset,
+                                                  'fatal': False,
+                                                  'reason': 'invalid zone number'}
+                                return {'status': False, 'error': unpackingerror}
+
+                            # zone has to be in the file
+                            if offset + inodezone * blocksize + blocksize > filesize:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset,
+                                                  'fatal': False,
+                                                  'reason': 'not enough data for zone'}
+                                return {'status': False, 'error': unpackingerror}
+
+                            # write the data to the output file
+                            zonestowrite.append(inodezone)
+                elif seenzones == 9:
+                    # this is a double indirect zone
+                    # First seek to the right zone offset
+                    checkfile.seek(offset + z * blocksize)
+
+                    # Then get the indirect zone numbers. Like the direct zone
+                    # numbers these are two bytes.
+                    indirectzones = []
+                    for iz in range(0, 512):
+                        checkbytes = checkfile.read(2)
+                        inodezone = int.from_bytes(checkbytes, byteorder='little')
+                        if inodezone != 0:
+                            # the zone cannot be smaller
+                            # than the first data zone
+                            if inodezone < firstdatazone:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset,
+                                                  'fatal': False,
+                                                  'reason': 'invalid zone number'}
+                                return {'status': False, 'error': unpackingerror}
+
+                            # zone has to be in the file
+                            if offset + inodezone * blocksize + blocksize > filesize:
+                                checkfile.close()
+                                outfile.close()
+                                os.unlink(outfilename)
+                                unpackingerror = {'offset': offset,
+                                                  'fatal': False,
+                                                  'reason': 'not enough data for zone'}
+                                return {'status': False, 'error': unpackingerror}
+                            indirectzones.append(inodezone)
+
+                    # now process each indirect zone
+                    for iz in indirectzones:
+                        checkfile.seek(offset + iz * blocksize)
+
+                        # then read each indirect zone
+                        for izz in range(0, 512):
+                            checkbytes = checkfile.read(2)
+                            inodezone = int.from_bytes(checkbytes, byteorder='little')
+                            if inodezone != 0:
+                                # the zone cannot be smaller than
+                                # the first data zone
+                                if inodezone < firstdatazone:
+                                    checkfile.close()
+                                    outfile.close()
+                                    os.unlink(outfilename)
+                                    unpackingerror = {'offset': offset,
+                                                      'fatal': False,
+                                                      'reason': 'invalid zone number'}
+                                    return {'status': False, 'error': unpackingerror}
+
+                                # zone has to be in the file
+                                if offset + inodezone * blocksize + blocksize > filesize:
+                                    checkfile.close()
+                                    outfile.close()
+                                    os.unlink(outfilename)
+                                    unpackingerror = {'offset': offset,
+                                                      'fatal': False,
+                                                      'reason': 'not enough data for zone'}
+                                    return {'status': False, 'error': unpackingerror}
+
+                                zonestowrite.append(inodezone)
+                else:
+                    zonestowrite.append(z)
+                seenzones += 1
+
+            # write all the data
+            for z in zonestowrite:
+                dataoffset = offset + z * blocksize
+                os.sendfile(outfile.fileno(), checkfile.fileno(), dataoffset, blocksize)
+                maxoffset = max(maxoffset, z * blocksize + blocksize)
+            outfile.truncate(inodes[i]['size'])
+            outfile.close()
+            unpackedfilesandlabels.append((outfilename, ['directory']))
+            dataunpacked = True
+        elif stat.S_ISLNK(inodes[i]['mode']):
+            # TODO
+            for z in inodes[i]['zones']:
+                if z == 0:
+                    break
+                maxoffset = max(maxoffset, z * blocksize + blocksize)
+        elif stat.S_ISDIR(inodes[i]['mode']):
+            seenzones = 1
+            curdirname = inodetoname[i]
+            if curdirname != '':
+                outfilename = os.path.join(unpackdir, curdirname)
+                os.makedirs(outfilename)
+                dataunpacked = True
+            for z in inodes[i]['zones']:
+                if z == 0:
+                    break
+                if seenzones == 8:
+                    # this is an indirect zone, not supported yet
+                    break
+                if seenzones == 9:
+                    # this is a double indirect zone, not supported yet
+                    break
+
+                # the zone cannot be smaller than the first data zone
+                if z < firstdatazone:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid zone number'}
+                    return {'status': False, 'error': unpackingerror}
+
+                # zone has to be in the file
+                if offset + z * blocksize + blocksize > filesize:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'not enough data for zone'}
+                    return {'status': False, 'error': unpackingerror}
+
+                maxoffset = max(maxoffset, z * blocksize + blocksize)
+
+                # seek to the start of the zone and process
+                # all entries.
+                checkfile.seek(offset + z * blocksize)
+                for r in range(0, blocksize//32):
+                    checkbytes = checkfile.read(2)
+                    inodenr = int.from_bytes(checkbytes, byteorder='little')
+
+                    checkbytes = checkfile.read(30)
+
+                    if inodenr == 0:
+                        continue
+                    try:
+                        inodename = checkbytes.split(b'\x00', 1)[0].decode()
+                    except:
+                        checkfile.close()
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'invalid inode name'}
+                        return {'status': False, 'error': unpackingerror}
+                    if inodename != '.' and inodename != '..':
+                        inodetoname[inodenr] = os.path.join(curdirname, inodename)
+                        # now check to see if the inode is a directory
+                        if inodenr not in inodes:
+                            # dangling inode?
+                            checkfile.close()
+                            unpackingerror = {'offset': offset, 'fatal': False,
+                                              'reason': 'invalid inode'}
+                            return {'status': False, 'error': unpackingerror}
+                seenzones += 1
+
+    if not dataunpacked:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid Minix file system'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('minix')
+        labels.append('filesystem')
+
+    return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
