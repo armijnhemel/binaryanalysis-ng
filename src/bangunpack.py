@@ -142,6 +142,8 @@
 # 30. PGM files ('raw' PGM files only, needs PIL)
 # 31. PBM files ('raw' PBM files only, needs PIL)
 # 32. iCalendar (RFC 5545) files (whole file only)
+# 33. Unix compress (needs 'uncompress'), only if end
+#     of the file is compress'd data
 #
 # For these unpackers it has been attempted to reduce disk I/O as much
 # as possible using the os.sendfile() method, as well as techniques
@@ -25388,4 +25390,102 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
         labels.append('filesystem')
 
     return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# /usr/share/magic
+# https://en.wikipedia.org/wiki/Compress
+# https://github.com/vapier/ncompress/releases
+# https://wiki.wxwidgets.org/Development:_Z_File_Format
+def unpackCompress(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack UNIX compress'd data'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file, skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+2)
+
+    # the next byte contains the "bits per code" field
+    # which has to be between 9 (inclusive) and 16 (inclusive)
+    checkbytes = checkfile.read(1)
+    if len(checkbytes) != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for'}
+        return {'status': False, 'error': unpackingerror}
+
+    bitspercode = ord(checkbytes) & 0x1f
+    if bitspercode < 9 or bitspercode > 16:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid bits per code'}
+        return {'status': False, 'error': unpackingerror}
+
+    # like deflate compress can work on streams
+    # As a test some data can be uncompressed.
+    # First seek back to the original offset...
+    checkfile.seek(offset)
+
+    # ... read some data...
+    testdata = checkfile.read(1024)
+
+    # ...and run 'uncompress' to see if anything can be compressed at all
+    p = subprocess.Popen(['uncompress'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (standard_out, standard_error) = p.communicate(testdata)
+    if len(standard_out) == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid compress\'d data'}
+        return {'status': False, 'error': unpackingerror}
+
+    havetmpfile = False
+    if offset != 0:
+        temporaryfile = tempfile.mkstemp(dir=temporarydirectory, suffix='.Z')
+        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, filesize - offset)
+        os.fdopen(temporaryfile[0]).close()
+        havetmpfile = True
+
+    checkfile.close()
+
+    if filename.suffix.lower() == '.z':
+        outfilename = os.path.join(unpackdir, filename.stem)
+    elif filename.suffix.lower() == '.tz':
+        outfilename = os.path.join(unpackdir, filename.stem) + ".tar"
+    else:
+        outfilename = os.path.join(unpackdir, "unpacked-from-compress")
+
+    outfile = open(outfilename, 'wb')
+
+    if havetmpfile:
+        p = subprocess.Popen(['uncompress', '-c', temporaryfile[1]], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+    else:
+        p = subprocess.Popen(['uncompress', '-c', filename], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+
+    (standard_out, standard_error) = p.communicate()
+    if p.returncode != 0 and standard_error != b'':
+        outfile.close()
+        os.unlink(outfilename)
+        if havetmpfile:
+            os.unlink(temporaryfile[1])
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid compress file'}
+        return {'status': False, 'error': unpackingerror}
+
+    outfile.close()
+
+    # clean up
+    if havetmpfile:
+        os.unlink(temporaryfile[1])
+
+    unpackedfilesandlabels.append((outfilename, []))
+    unpackedsize = filesize - offset
+
+    if offset == 0:
+        labels.append('compress')
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

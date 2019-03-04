@@ -126,6 +126,7 @@ signatures = {
     'fat': b'\x55\xaa',
     'cbfs': b'LARCHIVE', # https://www.coreboot.org/CBFS
     'minix_1l': b'\x8f\x13', # minix v1, linux variant
+    'compress': b'\x1f\x9d', # /usr/share/magic
 }
 
 # some signatures do not start at the beginning of the file
@@ -246,6 +247,7 @@ signaturetofunction = {
     'fat': bangunpack.unpackFAT,
     'cbfs': bangunpack.unpackCBFS,
     'minix_1l': bangunpack.unpackMinix1L,
+    'compress': bangunpack.unpackCompress,
 }
 
 # a lookup table to map signatures to a name for

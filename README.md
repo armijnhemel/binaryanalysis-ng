@@ -29,6 +29,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * OpenJDK (for 'unpack200')
 * defusedxml (possibly named python3-defusedxml)
 * icalendar (possibly named python3-icalendar)
+* ncompress
 
 ## Supported file types
 
@@ -147,6 +148,9 @@ larger file, unless stated otherwise.
 104. iCalendar (RFC 5545) files (whole file only)
 105. Coreboot images
 106. Minix V1 file system (Linux variant)
+107. Unix compress (needs 'uncompress'), only if end
+     of the file is compress'd data
+
 
 ## Invocation
 
