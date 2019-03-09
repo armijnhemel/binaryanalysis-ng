@@ -2639,7 +2639,13 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
             os.chdir(squashfsunpackdirectory)
         listoffiles = os.listdir()
         for l in listoffiles:
-            shutil.move(l, unpackdir, copy_function=local_copy2)
+            try:
+                shutil.move(l, unpackdir, copy_function=local_copy2)
+            except:
+                # TODO: report
+                # not all files can be copied.
+                # example: named pipe /dev/initctl in FW_WL_600g_1036A.zip
+                pass
 
     # clean up the temporary directory
     shutil.rmtree(squashfsunpackdirectory)
