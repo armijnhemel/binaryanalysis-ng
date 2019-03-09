@@ -25114,14 +25114,13 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
             inodes[i] = {'mode': inodemode, 'uid': inodeuid, 'size': inodesize,
                          'time': inodetime, 'gid': inodegid,
                          'links': inodenrlinks, 'zones': zones}
-
-
-    # data for inode 1 has to be present
-    if 1 not in inodes:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'no valid data for inode 1'}
-        return {'status': False, 'error': unpackingerror}
+        else:
+            # data for inode 1 has to be present
+            if i == 1:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'no valid data for inode 1'}
+                return {'status': False, 'error': unpackingerror}
 
     # store the (relative) end of the inodes
     endofinodes = checkfile.tell() - offset
