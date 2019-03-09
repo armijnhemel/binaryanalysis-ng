@@ -24482,7 +24482,7 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
         # now check to see whether this is FAT 12, FAT 16
         if not isfat32:
             checkbytes = checkfile.read(3)
-            if checkbytes == b'\xff\xff\xff' and not 'FAT12' in filesystemtype:
+            if checkbytes == b'\xff\xff\xff' and 'FAT12' not in filesystemtype:
                 fattype = 'fat16'
             else:
                 fattype = 'fat12'
