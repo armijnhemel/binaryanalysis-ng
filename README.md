@@ -150,6 +150,7 @@ larger file, unless stated otherwise.
 106. Minix V1 file system (Linux variant)
 107. Unix compress (needs 'uncompress'), only if end
      of the file is compress'd data
+108. Unix group files (whole file)
 
 
 ## Invocation

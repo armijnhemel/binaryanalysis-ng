@@ -104,6 +104,7 @@
 # 72. FAT16 file systems (8.3 file names)
 # 73. Coreboot images
 # 74. Minix V1 file system (Linux variant)
+# 75. Unix group files
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -19627,6 +19628,66 @@ def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
 
 
 # verify Unix shadow files
+# man 5 group
+def unpackGroup(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a Unix group file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    groupentries = []
+
+    # open the file
+    try:
+        checkfile = open(filename, 'r')
+        for l in checkfile:
+            linesplits = l.strip().split(':')
+            if len(linesplits) != 4:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid group file entry'}
+                return {'status': False, 'error': unpackingerror}
+            if linesplits[0] == '':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid group name'}
+                return {'status': False, 'error': unpackingerror}
+            try:
+                groupid = int(linesplits[2])
+            except ValueError:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid GID in entry'}
+                return {'status': False, 'error': unpackingerror}
+            if linesplits[3] != '':
+                members = linesplits[3].split(',')
+            else:
+                members = []
+
+            groupentry = {}
+            groupentry['name'] = linesplits[0]
+            groupentry['passwd'] = linesplits[1]
+            groupentry['gid'] = groupid
+            groupentry['members'] = members
+            groupentries.append(groupentry)
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for entry'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    unpackedsize = filesize
+    labels.append('group')
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# verify Unix group files
 # man 5 shadow
 def unpackShadow(filename, offset, unpackdir, temporarydirectory):
     '''Verify a Unix shadow file'''
