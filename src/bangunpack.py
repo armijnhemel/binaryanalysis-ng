@@ -19707,7 +19707,7 @@ def unpackShadow(filename, offset, unpackdir, temporarydirectory):
             if len(linesplits) != 9:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                                  'reason': 'invalid passwd file entry'}
+                                  'reason': 'invalid shadow file entry'}
                 return {'status': False, 'error': unpackingerror}
             try:
                 datechanged = int(linesplits[2])
