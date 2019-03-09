@@ -25067,6 +25067,16 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
     checkfile.seek(offset + 2048 + (inodeblocks + zoneblocks) * blocksize)
     unpackedsize = 2048 + (inodeblocks + zoneblocks) * blocksize
 
+    # store the (relative) end of the inodes
+    endofinodes = checkfile.tell() + 32 * nrinodes - offset
+
+    # sanity check: data zone cannot be earlier than end of inodes
+    if firstdatazone * blocksize < endofinodes:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'data zones cannot be before inodes'}
+        return {'status': False, 'error': unpackingerror}
+
     inodes = {}
 
     # Next are the inodes. The root inode is always 1.
@@ -25075,6 +25085,18 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(2)
         inodemode = int.from_bytes(checkbytes, byteorder='little')
         unpackedsize += 2
+
+        if i == 1:
+            if inodemode == 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'no valid data for inode 1'}
+                return {'status': False, 'error': unpackingerror}
+            if not stat.S_ISDIR(inodemode):
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'wrong type for inode 1'}
+                return {'status': False, 'error': unpackingerror}
 
         # then the uid
         checkbytes = checkfile.read(2)
@@ -25114,36 +25136,12 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
             inodes[i] = {'mode': inodemode, 'uid': inodeuid, 'size': inodesize,
                          'time': inodetime, 'gid': inodegid,
                          'links': inodenrlinks, 'zones': zones}
-        else:
-            # data for inode 1 has to be present
-            if i == 1:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False,
-                                  'reason': 'no valid data for inode 1'}
-                return {'status': False, 'error': unpackingerror}
-
-    # store the (relative) end of the inodes
-    endofinodes = checkfile.tell() - offset
-
-    # sanity check: data zone cannot be earlier than end of inodes
-    if firstdatazone * blocksize < endofinodes:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'data zones cannot be before inodes'}
-        return {'status': False, 'error': unpackingerror}
 
     # map inode to name
     inodetoname = {}
 
     # relative root
     inodetoname[1] = ''
-
-    # sanity check, root dir is always 1
-    if not stat.S_ISDIR(inodes[1]['mode']):
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'wrong type for inode 1'}
-        return {'status': False, 'error': unpackingerror}
 
     dataunpacked = False
 
