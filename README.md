@@ -151,6 +151,7 @@ larger file, unless stated otherwise.
 107. Unix compress (needs 'uncompress'), only if end
      of the file is compress'd data
 108. Unix group files (whole file)
+109. TRANS.TBL files
 
 
 ## Invocation

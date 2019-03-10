@@ -105,6 +105,7 @@
 # 73. Coreboot images
 # 74. Minix V1 file system (Linux variant)
 # 75. Unix group files
+# 76. TRANS.TBL files
 #
 # Unpackers/carvers needing external Python libraries or other tools
 #
@@ -25558,6 +25559,55 @@ def unpackCompress(filename, offset, unpackdir, temporarydirectory):
 
     if offset == 0:
         labels.append('compress')
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# verify TRANS.TBL files
+# https://en.wikipedia.org/wiki/TRANS.TBL
+def unpackTransTbl(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a TRANS.TBL file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    shadowentries = []
+
+    # open the file in text mode
+    try:
+        checkfile = open(filename, 'r')
+        for l in checkfile:
+            linesplits = l.strip().split()
+            if len(linesplits) < 3:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'not enough data for entry'}
+                return {'status': False, 'error': unpackingerror}
+            # check if the line has the correct file type indicator:
+            # * file
+            # * directory
+            # * link
+            # * fifo
+            # (missing: sockets and device files)
+            if linesplits[0] not in ['F', 'D', 'L', 'P']:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'wrong file type indicator'}
+                return {'status': False, 'error': unpackingerror}
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for entry'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    unpackedsize = filesize
+    labels.append('trans.tbl')
+    labels.append('resource')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

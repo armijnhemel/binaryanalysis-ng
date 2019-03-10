@@ -313,6 +313,7 @@ extensiontofunction = {
     'fstab': bangunpack.unpackFstab,
     '.pc': bangunpack.unpackPkgConfig,
     '.ics': bangunpack.unpackICS,
+    'trans.tbl': bangunpack.unpackTransTbl,
 }
 
 # a lookup table to map extensions to a name
@@ -350,6 +351,7 @@ extensionprettyprint = {
     'fstab': 'fstab',
     '.pc': 'pc',
     '.ics': 'ics',
+    'trans.tbl': 'trans.tbl',
 }
 
 # certain unpacking functions if the whole file is text
