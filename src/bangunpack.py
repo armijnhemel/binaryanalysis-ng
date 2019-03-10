@@ -11894,7 +11894,9 @@ def unpackSREC(filename, offset, unpackdir, temporarydirectory):
 
             # then the type. S0 is optional and has no data, S4 is
             # reserved and S5 and S6 are not that interesting.
-            if line[:2] == 'S1' or line[:2] == 'S2' or line[:2] == 'S3':
+            if line[:2] == 'S0':
+                pass
+            elif line[:2] == 'S1' or line[:2] == 'S2' or line[:2] == 'S3':
                 isdata = True
             elif line[:2] == 'S7' or line[:2] == 'S8' or line[:2] == 'S9':
                 seenterminator = True
