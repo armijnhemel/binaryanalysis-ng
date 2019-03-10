@@ -11953,6 +11953,7 @@ def unpackSREC(filename, offset, unpackdir, temporarydirectory):
             try:
                 if recordtype == 'S0':
                     # metadata that should not be part of the file
+                    # TODO: store
                     srecdata = bytes.fromhex(line[8:8+(bytescount-3)*2])
                 elif recordtype == 'S1':
                     srecdata = bytes.fromhex(line[8:8+(bytescount-3)*2])
