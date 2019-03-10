@@ -23,6 +23,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import bangunpack
+import bangfilesystems
 
 # store a few standard signatures
 signatures = {
@@ -162,8 +163,8 @@ signaturetofunction = {
     'tar_posix': bangunpack.unpackTar,
     'tar_gnu': bangunpack.unpackTar,
     'ar': bangunpack.unpackAr,
-    'squashfs_var1': bangunpack.unpackSquashfs,
-    'squashfs_var2': bangunpack.unpackSquashfs,
+    'squashfs_var1': bangfilesystems.unpackSquashfs,
+    'squashfs_var2': bangfilesystems.unpackSquashfs,
     'appledouble': bangunpack.unpackAppleDouble,
     'icc': bangunpack.unpackICC,
     'zip': bangunpack.unpackZip,
@@ -172,7 +173,7 @@ signaturetofunction = {
     'xar': bangunpack.unpackXAR,
     'gif87': bangunpack.unpackGIF,
     'gif89': bangunpack.unpackGIF,
-    'iso9660': bangunpack.unpackISO9660,
+    'iso9660': bangfilesystems.unpackISO9660,
     'lzip': bangunpack.unpackLzip,
     'jpeg': bangunpack.unpackJPEG,
     'woff': bangunpack.unpackWOFF,
@@ -189,8 +190,8 @@ signaturetofunction = {
     'terminfo': bangunpack.unpackTerminfo,
     'rzip': bangunpack.unpackRzip,
     'au': bangunpack.unpackAU,
-    'jffs2_little_endian': bangunpack.unpackJFFS2,
-    'jffs2_big_endian': bangunpack.unpackJFFS2,
+    'jffs2_little_endian': bangfilesystems.unpackJFFS2,
+    'jffs2_big_endian': bangfilesystems.unpackJFFS2,
     'cpio_old': bangunpack.unpackCpio,
     'cpio_portable': bangunpack.unpackCpio,
     'cpio_newascii': bangunpack.unpackCpio,
@@ -199,15 +200,15 @@ signaturetofunction = {
     'chm': bangunpack.unpackCHM,
     'mswim': bangunpack.unpackWIM,
     'sunraster': bangunpack.unpackSunRaster,
-    'ext2': bangunpack.unpackExt2,
+    'ext2': bangfilesystems.unpackExt2,
     'rpm': bangunpack.unpackRPM,
     'zstd_08': bangunpack.unpackZstd,
     'apple_icon': bangunpack.unpackAppleIcon,
     'androidsparse': bangunpack.unpackAndroidSparse,
     'lz4': bangunpack.unpackLZ4,
-    'vmdk': bangunpack.unpackVMDK,
-    'qcow2': bangunpack.unpackQcow2,
-    'vdi': bangunpack.unpackVDI,
+    'vmdk': bangfilesystems.unpackVMDK,
+    'qcow2': bangfilesystems.unpackQcow2,
+    'vdi': bangfilesystems.unpackVDI,
     'javaclass': bangunpack.unpackJavaClass,
     'dex': bangunpack.unpackDex,
     'odex': bangunpack.unpackOdex,
@@ -221,7 +222,7 @@ signaturetofunction = {
     'git_index': bangunpack.unpackGitIndex,
     'flv': bangunpack.unpackFLV,
     'lzop': bangunpack.unpackLZOP,
-    'dlinkromfs': bangunpack.unpackDlinkRomfs,
+    'dlinkromfs': bangfilesystems.unpackDlinkRomfs,
     'pdf': bangunpack.unpackPDF,
     'pack200': bangunpack.unpackPack200,
     'gimpbrush': bangunpack.unpackGimpBrush,
@@ -244,9 +245,9 @@ signaturetofunction = {
     'androidbootmsm': bangunpack.unpackAndroidBootMSM,
     'androidbootimg': bangunpack.unpackAndroidBootImg,
     'androidboothuawei': bangunpack.unpackAndroidBootHuawei,
-    'fat': bangunpack.unpackFAT,
-    'cbfs': bangunpack.unpackCBFS,
-    'minix_1l': bangunpack.unpackMinix1L,
+    'fat': bangfilesystems.unpackFAT,
+    'cbfs': bangfilesystems.unpackCBFS,
+    'minix_1l': bangfilesystems.unpackMinix1L,
     'compress': bangunpack.unpackCompress,
 }
 

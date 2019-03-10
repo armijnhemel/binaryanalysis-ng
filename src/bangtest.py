@@ -29,6 +29,7 @@ import pathlib
 
 # load own modules
 import bangunpack
+import bangfilesystems
 
 basetestdir = pathlib.Path('/home/armijn/git/binaryanalysis-ng/test')
 tmpdirectory = '/home/armijn/tmp'
@@ -1689,7 +1690,7 @@ class TestSquashfs(unittest.TestCase):
         filename = basetestdir / 'squashfs' / 'test.sqsh'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackSquashfs(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1697,7 +1698,7 @@ class TestSquashfs(unittest.TestCase):
     def testDataAppendedToSquashfs(self):
         filename = basetestdir / 'squashfs' / 'test-add-random-data.sqsh'
         offset = 0
-        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackSquashfs(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 577536)
 
@@ -1705,7 +1706,7 @@ class TestSquashfs(unittest.TestCase):
     def testDataPrependedToSquashfs(self):
         filename = basetestdir / 'squashfs' / 'test-prepend-random-data.sqsh'
         offset = 128
-        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackSquashfs(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 577536)
 
@@ -1713,21 +1714,21 @@ class TestSquashfs(unittest.TestCase):
     def testDataCutFromEndSquashfs(self):
         filename = basetestdir / 'squashfs' / 'test-cut-data-from-end.sqsh'
         offset = 0
-        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackSquashfs(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single squashfs with data cut from the middle
     def testDataCutFromMiddleSquashfs(self):
         filename = basetestdir / 'squashfs' / 'test-cut-data-from-middle.sqsh'
         offset = 0
-        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackSquashfs(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single squashfs with data added in the middle
     def testDataAddedInMiddleSquashfs(self):
         filename = basetestdir / 'squashfs' / 'test-data-added-to-middle.sqsh'
         offset = 0
-        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackSquashfs(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single squashfs
@@ -1735,7 +1736,7 @@ class TestSquashfs(unittest.TestCase):
     def testDataReplacedInMiddleSquashfs(self):
         filename = basetestdir / 'squashfs' / 'test-data-replaced-in-middle.sqsh'
         offset = 0
-        testres = bangunpack.unpackSquashfs(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackSquashfs(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
 
@@ -1823,7 +1824,7 @@ class TestISO9660(unittest.TestCase):
         filename = basetestdir / 'iso9660' / 'test.iso'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackISO9660(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1831,7 +1832,7 @@ class TestISO9660(unittest.TestCase):
     def testDataAppendedToISO9660(self):
         filename = basetestdir / 'iso9660' / 'test-add-random-data.iso'
         offset = 0
-        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackISO9660(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 952320)
 
@@ -1839,7 +1840,7 @@ class TestISO9660(unittest.TestCase):
     def testDataPrependedToISO9660(self):
         filename = basetestdir / 'iso9660' / 'test-prepend-random-data.iso'
         offset = 128
-        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackISO9660(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 952320)
 
@@ -1847,21 +1848,21 @@ class TestISO9660(unittest.TestCase):
     def testDataCutFromEndISO9660(self):
         filename = basetestdir / 'iso9660' / 'test-cut-data-from-end.iso'
         offset = 0
-        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackISO9660(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single iso9660 with data cut from the middle
     def testDataCutFromMiddleISO9660(self):
         filename = basetestdir / 'iso9660' / 'test-cut-data-from-middle.iso'
         offset = 0
-        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackISO9660(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single iso9660 with data added in the middle
     def testDataAddedInMiddleISO9660(self):
         filename = basetestdir / 'iso9660' / 'test-data-added-to-middle.iso'
         offset = 0
-        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackISO9660(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single iso9660
@@ -1869,7 +1870,7 @@ class TestISO9660(unittest.TestCase):
     def testDataReplacedInMiddleISO9660(self):
         filename = basetestdir / 'iso9660' / 'test-data-replaced-in-middle.iso'
         offset = 0
-        testres = bangunpack.unpackISO9660(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackISO9660(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
 
@@ -1973,7 +1974,7 @@ class TestJFFS2(unittest.TestCase):
         filename = basetestdir / 'jffs2' / 'test-little.jffs2'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1982,7 +1983,7 @@ class TestJFFS2(unittest.TestCase):
         filename = basetestdir / 'jffs2' / 'test-big.jffs2'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1990,7 +1991,7 @@ class TestJFFS2(unittest.TestCase):
     def testDataAppendedToJFFS2Little(self):
         filename = basetestdir / 'jffs2' / 'test-little-add-random-data.jffs2'
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 594192)
 
@@ -1998,7 +1999,7 @@ class TestJFFS2(unittest.TestCase):
     def testDataAppendedToJFFS2Big(self):
         filename = basetestdir / 'jffs2' / 'test-big-add-random-data.jffs2'
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 594192)
 
@@ -2006,7 +2007,7 @@ class TestJFFS2(unittest.TestCase):
     def testDataPrependedToJFFS2Little(self):
         filename = basetestdir / 'jffs2' / 'test-little-prepend-random-data.jffs2'
         offset = 128
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 594192)
 
@@ -2014,7 +2015,7 @@ class TestJFFS2(unittest.TestCase):
     def testDataPrependedToJFFS2Big(self):
         filename = basetestdir / 'jffs2' / 'test-big-prepend-random-data.jffs2'
         offset = 128
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 594192)
 
@@ -2022,56 +2023,56 @@ class TestJFFS2(unittest.TestCase):
     def testDataCutFromEndJFFS2Little(self):
         filename = basetestdir / 'jffs2' / 'test-little-cut-data-from-end.jffs2'
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data cut from the end
     def testDataCutFromEndJFFS2Big(self):
         filename = basetestdir / 'jffs2' / 'test-big-cut-data-from-end.jffs2'
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data cut from the middle
     def testDataCutFromMiddleJFFS2Little(self):
         filename = basetestdir / 'jffs2' / 'test-little-cut-data-from-middle.jffs2'
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data cut from the middle
     def testDataCutFromMiddleJFFS2Big(self):
         filename = basetestdir / 'jffs2' / 'test-big-cut-data-from-middle.jffs2'
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data added in the middle
     def testDataAddedInMiddleJFFS2Little(self):
         filename = basetestdir / 'jffs2' / 'test-little-data-added-to-middle.jffs2'
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data added in the middle
     def testDataAddedInMiddleJFFS2Big(self):
         filename = basetestdir / 'jffs2' / 'test-big-data-added-to-middle.jffs2'
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data replaced in the middle
     def testDataReplacedInMiddleJFFS2Little(self):
         filename = basetestdir / 'jffs2' / 'test-little-data-replaced-in-middle.jffs2'
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data replaced in the middle
     def testDataReplacedInMiddleJFFS2Big(self):
         filename = basetestdir / 'jffs2' / 'test-big-data-replaced-in-middle.jffs2'
         offset = 0
-        testres = bangunpack.unpackJFFS2(filename, offset, self.tempdir, None)
+        testres = bangfilesystems.unpackJFFS2(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
 
