@@ -19627,7 +19627,7 @@ def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
             'filesandlabels': unpackedfilesandlabels}
 
 
-# verify Unix shadow files
+# verify Unix group files
 # man 5 group
 def unpackGroup(filename, offset, unpackdir, temporarydirectory):
     '''Verify a Unix group file'''
@@ -19687,7 +19687,7 @@ def unpackGroup(filename, offset, unpackdir, temporarydirectory):
             'filesandlabels': unpackedfilesandlabels}
 
 
-# verify Unix group files
+# verify Unix shadow files
 # man 5 shadow
 def unpackShadow(filename, offset, unpackdir, temporarydirectory):
     '''Verify a Unix shadow file'''
