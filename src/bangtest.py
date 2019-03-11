@@ -30,6 +30,7 @@ import pathlib
 # load own modules
 import bangunpack
 import bangfilesystems
+import bangmedia
 
 basetestdir = pathlib.Path('/home/armijn/git/binaryanalysis-ng/test')
 tmpdirectory = '/home/armijn/tmp'
@@ -54,7 +55,7 @@ class TestGIF(unittest.TestCase):
         filename = basetestdir / 'gif' / 'test.gif'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackGIF(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -63,7 +64,7 @@ class TestGIF(unittest.TestCase):
         '''Test a single GIF with data appended'''
         filename = basetestdir / 'gif' / 'test-add-random-data.gif'
         offset = 0
-        testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackGIF(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 7073713)
 
@@ -72,7 +73,7 @@ class TestGIF(unittest.TestCase):
         '''Test a single GIF with data prepended'''
         filename = basetestdir / 'gif' / 'test-prepend-random-data.gif'
         offset = 128
-        testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackGIF(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 7073713)
 
@@ -81,7 +82,7 @@ class TestGIF(unittest.TestCase):
         '''Test a single GIF with data cut from the end'''
         filename = basetestdir / 'gif' / 'test-cut-data-from-end.gif'
         offset = 0
-        testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackGIF(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single GIF with data cut from the middle
@@ -89,7 +90,7 @@ class TestGIF(unittest.TestCase):
         '''Test a single GIF with data cut from the middle'''
         filename = basetestdir / 'gif' / 'test-cut-data-from-middle.gif'
         offset = 0
-        testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackGIF(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single GIF with data added in the middle
@@ -97,7 +98,7 @@ class TestGIF(unittest.TestCase):
         '''Test a single GIF with data added in the middle'''
         filename = basetestdir / 'gif' / 'test-data-added-to-middle.gif'
         offset = 0
-        testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackGIF(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single GIF with data replaced in the middle
@@ -105,7 +106,7 @@ class TestGIF(unittest.TestCase):
         '''Test a single GIF with data replaced in the middle'''
         filename = basetestdir / 'gif' / 'test-data-replaced-in-middle.gif'
         offset = 0
-        testres = bangunpack.unpackGIF(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackGIF(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
 
@@ -127,7 +128,7 @@ class TestPNG(unittest.TestCase):
         filename = basetestdir / 'png' / 'test.png'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -137,7 +138,7 @@ class TestPNG(unittest.TestCase):
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball.png'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
         self.assertIn('animated', testres['labels'])
@@ -147,7 +148,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single PNG with data appended'''
         filename = basetestdir / 'png' / 'test-add-random-data.png'
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 6001452)
 
@@ -156,7 +157,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single animated PNG with data appended'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-add-random-data.png'
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 63435)
         self.assertIn('animated', testres['filesandlabels'][0][1])
@@ -166,7 +167,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single PNG with data prepended'''
         filename = basetestdir / 'png' / 'test-prepend-random-data.png'
         offset = 128
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 6001452)
 
@@ -175,7 +176,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single PNG with data appended'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-prepend-random-data.png'
         offset = 128
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 63435)
         self.assertIn('animated', testres['filesandlabels'][0][1])
@@ -185,7 +186,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single PNG with data cut from the end'''
         filename = basetestdir / 'png' / 'test-cut-data-from-end.png'
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data cut from the end
@@ -193,7 +194,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single animated PNG with data cut from the end'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-cut-data-from-end.png'
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data cut from the middle
@@ -201,7 +202,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single PNG with data cut from the middle'''
         filename = basetestdir / 'png' / 'test-cut-data-from-middle.png'
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single animated PNG
@@ -210,7 +211,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single animated PNG with data cut from the middle'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-cut-data-from-middle.png'
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data added in the middle
@@ -218,7 +219,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single PNG with data added in the middle'''
         filename = basetestdir / 'png' / 'test-data-added-to-middle.png'
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single animated PNG
@@ -227,7 +228,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single animated PNG with data added in the middle'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-data-added-to-middle.png'
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data replaced in the middle
@@ -235,7 +236,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single PNG with data replaced in the middle'''
         filename = basetestdir / 'png' / 'test-data-replaced-in-middle.png'
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single animated PNG
@@ -244,7 +245,7 @@ class TestPNG(unittest.TestCase):
         '''Test a single animated PNG with data replaced in the middle'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-data-replaced-in-middle.png'
         offset = 0
-        testres = bangunpack.unpackPNG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackPNG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
 
@@ -266,7 +267,7 @@ class TestJPEG(unittest.TestCase):
         filename = basetestdir / 'jpeg' / 'test.jpg'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackJPEG(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -274,7 +275,7 @@ class TestJPEG(unittest.TestCase):
     def testDataAppendedToJPEG(self):
         filename = basetestdir / 'jpeg' / 'test-add-random-data.jpg'
         offset = 0
-        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackJPEG(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 4676767)
 
@@ -282,7 +283,7 @@ class TestJPEG(unittest.TestCase):
     def testDataPrependedToJPEG(self):
         filename = basetestdir / 'jpeg' / 'test-prepend-random-data.jpg'
         offset = 128
-        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackJPEG(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 4676767)
 
@@ -290,28 +291,28 @@ class TestJPEG(unittest.TestCase):
     def testDataCutFromEndJPEG(self):
         filename = basetestdir / 'jpeg' / 'test-cut-data-from-end.jpg'
         offset = 0
-        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackJPEG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single JPEG with data cut from the middle
     def testDataCutFromMiddleJPEG(self):
         filename = basetestdir / 'jpeg' / 'test-cut-data-from-middle.jpg'
         offset = 0
-        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackJPEG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single JPEG with data added in the middle
     def testDataAddedInMiddleJPEG(self):
         filename = basetestdir / 'jpeg' / 'test-data-added-to-middle.jpg'
         offset = 0
-        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackJPEG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single JPEG with data replaced in the middle
     def testDataReplacedInMiddleJPEG(self):
         filename = basetestdir / 'jpeg' / 'test-data-replaced-in-middle.jpg'
         offset = 0
-        testres = bangunpack.unpackJPEG(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackJPEG(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
 
@@ -332,7 +333,7 @@ class TestBMP(unittest.TestCase):
         filename = basetestdir / 'bmp' / 'test.bmp'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackBMP(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -340,7 +341,7 @@ class TestBMP(unittest.TestCase):
     def testDataAppendedToBMP(self):
         filename = basetestdir / 'bmp' / 'test-add-random-data.bmp'
         offset = 0
-        testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackBMP(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 572666)
 
@@ -348,7 +349,7 @@ class TestBMP(unittest.TestCase):
     def testDataPrependedToBMP(self):
         filename = basetestdir / 'bmp' / 'test-prepend-random-data.bmp'
         offset = 128
-        testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackBMP(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 572666)
 
@@ -356,28 +357,28 @@ class TestBMP(unittest.TestCase):
     def testDataCutFromEndBMP(self):
         filename = basetestdir / 'bmp' / 'test-cut-data-from-end.bmp'
         offset = 0
-        testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackBMP(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single BMP with data cut from the middle
     def testDataCutFromMiddleBMP(self):
         filename = basetestdir / 'bmp' / 'test-cut-data-from-middle.bmp'
         offset = 0
-        testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackBMP(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single BMP with data added in the middle
     def testDataAddedInMiddleBMP(self):
         filename = basetestdir / 'bmp' / 'test-data-added-to-middle.bmp'
         offset = 0
-        testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackBMP(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single BMP with data replaced in the middle
     def testDataReplacedInMiddleBMP(self):
         filename = basetestdir / 'bmp' / 'test-data-replaced-in-middle.bmp'
         offset = 0
-        testres = bangunpack.unpackBMP(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackBMP(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
 
@@ -398,7 +399,7 @@ class TestSGI(unittest.TestCase):
         filename = basetestdir / 'sgi' / 'test.sgi'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -408,7 +409,7 @@ class TestSGI(unittest.TestCase):
         filename = basetestdir / 'sgi' / 'test-verbatim.sgi'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -416,7 +417,7 @@ class TestSGI(unittest.TestCase):
     def testDataAppendedToSGI(self):
         filename = basetestdir / 'sgi' / 'test-add-random-data.sgi'
         offset = 0
-        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 592418)
 
@@ -424,7 +425,7 @@ class TestSGI(unittest.TestCase):
     def testDataAppendedToSGIVerbatim(self):
         filename = basetestdir / 'sgi' / 'test-verbatim-add-random-data.sgi'
         offset = 0
-        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 572048)
 
@@ -432,7 +433,7 @@ class TestSGI(unittest.TestCase):
     def testDataPrependedToSGI(self):
         filename = basetestdir / 'sgi' / 'test-prepend-random-data.sgi'
         offset = 128
-        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 592418)
 
@@ -440,7 +441,7 @@ class TestSGI(unittest.TestCase):
     def testDataPrependedToSGIVerbatim(self):
         filename = basetestdir / 'sgi' / 'test-verbatim-prepend-random-data.sgi'
         offset = 128
-        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 572048)
 
@@ -448,56 +449,56 @@ class TestSGI(unittest.TestCase):
     def testDataCutFromEndSGI(self):
         filename = basetestdir / 'sgi' / 'test-cut-data-from-end.sgi'
         offset = 0
-        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single SGI with data cut from the end
     def testDataCutFromEndSGIVerbatim(self):
         filename = basetestdir / 'sgi' / 'test-verbatim-cut-data-from-end.sgi'
         offset = 0
-        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single SGI with data cut from the middle
     def testDataCutFromMiddleSGI(self):
         filename = basetestdir / 'sgi' / 'test-cut-data-from-middle.sgi'
         offset = 0
-        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single SGI with data cut from the middle
     def testDataCutFromMiddleSGIVerbatim(self):
         filename = basetestdir / 'sgi' / 'test-verbatim-cut-data-from-middle.sgi'
         offset = 0
-        testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+        testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data added in the middle
     #def testDataAddedInMiddleSGI(self):
     #    filename = basetestdir / 'sgi' / 'test-data-added-to-middle.sgi'
     #    offset = 0
-    #    testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+    #    testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
     #    self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data added in the middle
     #def testDataAddedInMiddleSGIVerbatim(self):
     #    filename = basetestdir / 'sgi' / 'test-verbatim-data-added-to-middle.sgi'
     #    offset = 0
-    #    testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+    #    testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
     #    self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data replaced in the middle
     #def testDataReplacedInMiddleSGI(self):
     #    filename = basetestdir / 'sgi' / 'test-data-replaced-in-middle.sgi'
     #    offset = 0
-    #    testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+    #    testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
     #    self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data replaced in the middle
     #def testDataReplacedInMiddleSGIVerbatim(self):
     #    filename = basetestdir / 'sgi' / 'test-verbatim-data-replaced-in-middle.sgi'
     #    offset = 0
-    #    testres = bangunpack.unpackSGI(filename, offset, self.tempdir, None)
+    #    testres = bangmedia.unpackSGI(filename, offset, self.tempdir, None)
     #    self.assertFalse(testres['status'])
 
 

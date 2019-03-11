@@ -62,6 +62,7 @@ import psycopg2
 # import the local file with unpacking methods
 import bangunpack
 import bangfilesystems
+import bangmedia
 import bangfilescans
 import bangsignatures
 
