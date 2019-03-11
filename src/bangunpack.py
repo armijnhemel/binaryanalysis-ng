@@ -58,7 +58,6 @@ import sqlite3
 
 # some external packages that are needed
 import defusedxml.minidom
-import PIL.Image
 import lz4
 import lz4.frame
 import snappy
