@@ -1132,7 +1132,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         resultqueue.put(fileresult)
         scanfilequeue.task_done()
 
-def connectToBangDatabase(options):
+def connect_to_bang_database(options):
     return psycopg2.connect(database=options.postgresql_db, user=options.postgresql_user,
         password=options.postgresql_password,
         port=options.postgresql_port, host=options.postgresql_host)
@@ -1145,7 +1145,7 @@ def main(argv):
     # continue without using any of the database functionality.
     if options.usedatabase:
         try:
-            c = connectToBangDatabase(options)
+            c = connect_to_bang_database(options)
             c.close()
         except Exception as e:
             if options.dbconnectionerrorfatal:
@@ -1159,7 +1159,7 @@ def main(argv):
     # create database connections if any database is used
     if options.usedatabase:
         for i in range(0, options.bangthreads):
-            bangconn = connectToBangDatabase(options)
+            bangconn = connect_to_bang_database(options)
             bangcursor = bangconn.cursor()
             bangdbconns.append((bangconn, bangcursor))
 
