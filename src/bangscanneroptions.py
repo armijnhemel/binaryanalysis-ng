@@ -187,7 +187,7 @@ class BangScannerOptions:
             self._error("Base unpack directory %s is not a directory, exiting"
                     % self.options.baseunpackdirectory)
         # and writable
-        if self.check_if_directory_is_writable(self.options.baseunpackdirectory):
+        if not self.check_if_directory_is_writable(self.options.baseunpackdirectory):
             self._error("Base unpack directory %s cannot be written to, exiting"
                     % self.options.baseunpackdirectory)
         # if temporarydirectory is defined
@@ -201,7 +201,7 @@ class BangScannerOptions:
                 self._error("Temporary directory %s is not a directory, exiting"
                         % self.options.temporarydirectory)
             # .. and writable
-            if self.check_if_directory_is_writable(
+            if not self.check_if_directory_is_writable(
                     self.options.baseunpackdirectory):
                 self._error("Temporary directory %s cannot be written to, exiting"
                         % self.options.temporarydirectory)
