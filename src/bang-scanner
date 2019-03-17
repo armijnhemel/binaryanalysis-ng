@@ -1385,31 +1385,33 @@ def main(argv):
         os.utime(scandirectory / "FINISHED")
 
         # now store the scan tree results with other data
-        scanresult = {}
-        scanresult['scantree'] = scantree
+        scanresult = {
+            'scantree'] = scantree,
+            # statistics about this particular session
+            'session': {
+                    'start': scandate,
+                    'stop': scandatefinished,
+                    'duration': (scandatefinished - scandate).total_seconds(),
+                    'user': getpass.getuser(),
+                    'checkfile': checkfile,
+            },
+            'platform' : {
+                    'machine': platform.machine(),
+                    'architecture': platform.architecture()[0],
+                    'processor': platform.processor(),
+                    'node': platform.node(),
+                    'system': platform.system(),
+                    'release': platform.release(),
+                    'libc': platform.libc_ver()[0],
+                    'libcversion': platform.libc_ver()[1],
+            },
+            # some information about the used Python version
+            'python'] = {
+                    'version': platform.python_version(),
+                    'implementation': platform.python_implementation(),
+            },
+        }
 
-        # statistics about this particular session
-        scanresult['session'] = {}
-        scanresult['session']['start'] = scandate
-        scanresult['session']['stop'] = scandatefinished
-        scanresult['session']['duration'] = (scandatefinished - scandate).total_seconds()
-        scanresult['session']['user'] = getpass.getuser()
-
-        # some information about the platform
-        scanresult['platform'] = {}
-        scanresult['platform']['machine'] = platform.machine()
-        scanresult['platform']['architecture'] = platform.architecture()[0]
-        scanresult['platform']['processor'] = platform.processor()
-        scanresult['platform']['node'] = platform.node()
-        scanresult['platform']['system'] = platform.system()
-        scanresult['platform']['release'] = platform.release()
-        scanresult['platform']['libc'] = platform.libc_ver()[0]
-        scanresult['platform']['libcversion'] = platform.libc_ver()[1]
-
-        # some information about the used Python version
-        scanresult['python'] = {}
-        scanresult['python']['version'] = platform.python_version()
-        scanresult['python']['implementation'] = platform.python_implementation()
 
         # write all results to a Python pickle
         picklefile = open(scandirectory / 'bang.pickle', 'wb')
@@ -1420,7 +1422,7 @@ def main(argv):
             labelcounter = collections.Counter()
             # create a human readable report
             reportfile = open(scandirectory / 'report.txt', 'w')
-            print("SCAN RESULTS FOR: %s\n" % options.checkfile, file=reportfile)
+            print("SCAN RESULTS FOR: %s\n" % checkfile, file=reportfile)
             print("Start: %s" % scandate.isoformat(), file=reportfile)
             print("Stop: %s" % scandatefinished.isoformat(), file=reportfile)
             print("Duration (seconds): %s" % (scandatefinished - scandate).total_seconds(), file=reportfile)
