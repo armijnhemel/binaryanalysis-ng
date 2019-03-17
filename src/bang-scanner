@@ -1386,7 +1386,7 @@ def main(argv):
 
         # now store the scan tree results with other data
         scanresult = {
-            'scantree'] = scantree,
+                'scantree': scantree,
             # statistics about this particular session
             'session': {
                     'start': scandate,
@@ -1406,7 +1406,7 @@ def main(argv):
                     'libcversion': platform.libc_ver()[1],
             },
             # some information about the used Python version
-            'python'] = {
+            'python': {
                     'version': platform.python_version(),
                     'implementation': platform.python_implementation(),
             },
