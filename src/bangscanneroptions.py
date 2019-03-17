@@ -43,8 +43,7 @@ class BangScannerOptions:
             'writereport': True,
             'uselogging': True,
             'bangthreads': multiprocessing.cpu_count(),
-            'checkdirectory': None,
-            'checkfile': None,
+            'checkpath': None,
         }
         self.options = ObjectDict(dict(self.defaults))
 
@@ -58,11 +57,11 @@ class BangScannerOptions:
     def _parse_arguments(self):
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument("-f", "--file",
-                                action="store", dest="checkfile",
-                                help="path to file to check", metavar="FILE")
+                                action="store", dest="checkpath",
+                                help="path to file/directory to check", metavar="FILE")
         self.parser.add_argument("-d", "--directory",
-                                action="store", dest="checkdirectory",
-                                help="path to directory with files to check",
+                                action="store", dest="checkpath",
+                                help="path to file/directory to check",
                                 metavar="DIR")
         self.parser.add_argument("-c", "--config",
                                 action="store", dest="cfg",
@@ -160,8 +159,7 @@ class BangScannerOptions:
         self._set_integer_option_from_config('postgresql_port', section='database')
 
     def _set_options_from_arguments(self):
-        self.options.checkdirectory = self.args.checkdirectory
-        self.options.checkfile = self.args.checkfile
+        self.options.checkpath = self.args.checkpath
 
     def _validate_options(self):
         # bangthreads >= 1
@@ -207,29 +205,22 @@ class BangScannerOptions:
                         % self.options.temporarydirectory)
 
         # either a check directory or a check file must be specified
-        if self.options.checkdirectory is None and \
-                self.options.checkfile is None:
+        if self.options.checkpath is None:
             self._error("No file(s) provided to scan, exiting")
-        if self.options.checkdirectory is not None and \
-                self.options.checkfile is not None:
-            self._error("Cannot scan a directory and a single file, exiting")
-        if self.options.checkdirectory is not None:
-            if not stat.S_ISDIR(os.stat(self.options.checkdirectory).st_mode):
-                self._error("%s is not a directory, exiting."
-                        % self.options.checkdirectory)
-        if self.options.checkfile is not None:
+        if self.options.checkpath is not None:
             # the file to scan should exist ...
-            if not os.path.exists(self.options.checkfile):
-                self._error("File %s does not exist, exiting."
-                        % self.options.checkfile)
-            # ... and should be a real file
-            if not stat.S_ISREG(os.stat(self.options.checkfile).st_mode):
+            if not os.path.exists(self.options.checkpath):
+                self._error("Path %s does not exist, exiting."
+                        % self.options.checkpath)
+            # ... and should be a regular file or directory
+            if not stat.S_ISREG(os.stat(self.options.checkpath).st_mode) and \
+                    not os.path.isdir(self.options.checkpath):
                 self._error("%s is not a regular file, exiting."
-                        % self.options.checkfile)
+                        % self.options.checkpath)
             # ... and not empty
-            if os.stat(self.options.checkfile).st_size == 0:
+            if os.stat(self.options.checkpath).st_size == 0:
                 self._error("%s is an empty file, exiting"
-                        % self.options.checkfile)
+                        % self.options.checkpath)
 
     def check_if_directory_is_writable(self, dirname):
         try:

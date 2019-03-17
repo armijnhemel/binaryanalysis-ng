@@ -1201,8 +1201,8 @@ def main(argv):
                 bangwholecontextfunctions.append((f, ignorelist))
 
     checkfiles = []
-    if options.checkdirectory is not None:
-        dirwalk = os.walk(options.checkdirectory)
+    if os.path.isdir(options.checkpath):
+        dirwalk = os.walk(options.checkpath)
         for i in dirwalk:
             for j in i[2]:
                 scanfilename = os.path.join(i[0], j)
@@ -1219,7 +1219,7 @@ def main(argv):
                     continue
                 checkfiles.append(scanfilename)
     else:
-        checkfiles.append(options.checkfile)
+        checkfiles.append(options.checkpath)
 
     if not checkfiles:
         print("No files to scan found, exiting", file=sys.stderr)
