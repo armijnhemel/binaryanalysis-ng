@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# Usage: loop-scan <iterations> <firmware file>
+#
 
 basedir=`dirname $0`
 
