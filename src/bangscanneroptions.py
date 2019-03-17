@@ -68,6 +68,14 @@ class BangScannerOptions:
                                 help="path to configuration file",
                                 metavar="FILE",
                                 default=self.defaults['cfg'])
+        self.parser.add_argument("-u", "--unpack-directory",
+                                action="store", dest="baseunpackdirectory",
+                                help="path to unpack directory",
+                                metavar="FILE")
+        self.parser.add_argument("-t", "--temporary-directory",
+                                action="store", dest="temporarydirectory",
+                                help="path to temporary directory",
+                                metavar="FILE")
         self.args = self.parser.parse_args()
         self._check_configuration_file()
 
@@ -160,6 +168,10 @@ class BangScannerOptions:
 
     def _set_options_from_arguments(self):
         self.options.checkpath = self.args.checkpath
+        if self.args.baseunpackdirectory:
+            self.options.baseunpackdirectory = self.args.baseunpackdirectory
+        if self.args.temporarydirectory:
+            self.options.temporarydirectory = self.args.temporarydirectory
 
     def _validate_options(self):
         # bangthreads >= 1
