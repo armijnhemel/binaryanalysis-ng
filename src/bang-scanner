@@ -1453,7 +1453,7 @@ def main(argv):
                         bytesscanned += l['size']
                     print("Bytes identified: %d (%f %%)" % (bytesscanned, bytesscanned/reportfilesize * 100), file=reportfile)
                     for l in scanresult['scantree'][i]['unpackedfiles']:
-                        if not l['files']:
+                        if l['files']:
                             print("Data unpacked at offset %d from %s:" % (l['offset'], l['type']), file=reportfile)
                             filesunpacked = []
                             for f in l['files']:
