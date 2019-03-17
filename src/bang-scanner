@@ -1138,8 +1138,7 @@ def connectToBangDatabase(options):
         port=options.postgresql_port, host=options.postgresql_host)
 
 def main(argv):
-    options = BangScannerOptions().getOptions()
-    print(options)
+    options = BangScannerOptions().get()
 
     # test the database. If the connection fails it depends on whether
     # or not it should be treated as a fatal error. If not, then
@@ -1217,7 +1216,7 @@ def main(argv):
     else:
         checkfiles.append(options.checkfile)
 
-    if len(checkfiles) == 0:
+    if not checkfiles:
         print("No files to scan found, exiting", file=sys.stderr)
         sys.exit(1)
 
@@ -1459,7 +1458,7 @@ def main(argv):
                         bytesscanned += l['size']
                     print("Bytes identified: %d (%f %%)" % (bytesscanned, bytesscanned/reportfilesize * 100), file=reportfile)
                     for l in scanresult['scantree'][i]['unpackedfiles']:
-                        if len(l['files']) != 0:
+                        if not l['files']:
                             print("Data unpacked at offset %d from %s:" % (l['offset'], l['type']), file=reportfile)
                             filesunpacked = []
                             for f in l['files']:

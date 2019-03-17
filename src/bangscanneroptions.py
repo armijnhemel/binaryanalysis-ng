@@ -4,73 +4,87 @@ import multiprocessing
 import argparse
 import stat
 import configparser
+import tempfile
 
-class objectdict(dict):
-    def __setattr__(self,name,value):
+
+class ObjectDict(dict):
+    def __setattr__(self, name, value):
         self[name] = value
-    def __getattr__(self,name):
+
+    def __getattr__(self, name):
         return self[name]
+
 
 class BangScannerOptions:
     def __init__(self):
-        self._setDefaultOptions()
-        self._parseArguments()
-        self._readConfigurationFile()
-        self._setOptionsFromConfigurationFile()
-        self._setOptionsFromArguments()
-        self._validateOptions()
+        self._set_default_options()
+        self._parse_arguments()
+        self._read_configuration_file()
+        self._set_options_from_configuration_file()
+        self._set_options_from_arguments()
+        self._validate_options()
 
-    def _setDefaultOptions(self):
+    def _set_default_options(self):
         self.defaults = {
-                'cfg' : os.path.join(os.path.dirname(sys.argv[0]),'bang.config'),
-                'baseunpackdirectory' : '',
-                'temporarydirectory' : None,
-                'removescandirectory' : False,
-                'createbytecounter' : False,
-                'tlshmaximum' : sys.maxsize,
-                'postgresql_host' : None,
-                'postgresql_port' : None,
-                'postgresql_user' : None,
-                'postgresql_password' : None,
-                'postgresql_db' : None,
-                'usedatabase' : True,
-                'dbconnectionerrorfatal' : False,
-                'writereport' : True,
-                'uselogging' : True,
-                'bangthreads' : multiprocessing.cpu_count(),
-                'checkdirectory' : None,
-                'checkfile' : None,
-                'usedatabase' : False,
+            'cfg':
+                os.path.join(os.path.dirname(sys.argv[0]), 'bang.config'),
+            'baseunpackdirectory': '',
+            'temporarydirectory': None,
+            'removescandirectory': False,
+            'createbytecounter': False,
+            'tlshmaximum': sys.maxsize,
+            'postgresql_host': None,
+            'postgresql_port': None,
+            'postgresql_user': None,
+            'postgresql_password': None,
+            'postgresql_db': None,
+            'usedatabase': True,
+            'dbconnectionerrorfatal': False,
+            'writereport': True,
+            'uselogging': True,
+            'bangthreads': multiprocessing.cpu_count(),
+            'checkdirectory': None,
+            'checkfile': None,
         }
-        self.options = objectdict(dict(self.defaults))
+        self.options = ObjectDict(dict(self.defaults))
 
-    def getOptions(self):
+    def get(self):
         return self.options
 
-    def _error(self,msg):
+    def _error(self, msg):
         print(msg, file=sys.stderr)
         sys.exit(1)
-    def _parseArguments(self):
+
+    def _parse_arguments(self):
         self.parser = argparse.ArgumentParser()
-        self.parser.add_argument("-f", "--file", action="store", dest="checkfile",
-                            help="path to file to check", metavar="FILE")
-        self.parser.add_argument("-d", "--directory", action="store", dest="checkdirectory",
-                            help="path to directory with files to check", metavar="DIR")
-        self.parser.add_argument("-c", "--config", action="store", dest="cfg",
-                            help="path to configuration file", metavar="FILE",default=self.defaults['cfg'])
+        self.parser.add_argument("-f", "--file",
+                                action="store", dest="checkfile",
+                                help="path to file to check", metavar="FILE")
+        self.parser.add_argument("-d", "--directory",
+                                action="store", dest="checkdirectory",
+                                help="path to directory with files to check",
+                                metavar="DIR")
+        self.parser.add_argument("-c", "--config",
+                                action="store", dest="cfg",
+                                help="path to configuration file",
+                                metavar="FILE",
+                                default=self.defaults['cfg'])
         self.args = self.parser.parse_args()
-        self._checkConfigurationFile()
-    def _checkConfigurationFile(self):
+        self._check_configuration_file()
+
+    def _check_configuration_file(self):
         if self.args.cfg is None:
             self.parser.error("No configuration file provided, exiting")
         # the configuration file should exist ...
         if not os.path.exists(self.args.cfg):
-            self.parser.error("File %s does not exist, exiting." % self.args.cfg)
+            self.parser.error("File %s does not exist, exiting." %
+                                self.args.cfg)
         # ... and should be a real file
         if not stat.S_ISREG(os.stat(self.args.cfg).st_mode):
-            self.parser.error("%s is not a regular file, exiting." % self.args.cfg)
+            self.parser.error("%s is not a regular file, exiting." %
+                                self.args.cfg)
 
-    def _readConfigurationFile(self):
+    def _read_configuration_file(self):
         # read the configuration file. This is in Windows INI format.
         self.config = configparser.ConfigParser(os.environ)
         try:
@@ -79,34 +93,24 @@ class BangScannerOptions:
         except:
             self._error("Cannot open configuration file, exiting")
 
-    def _setStringOptionFromConfig(self,option_name, section=None,option=None):
-        if option == None: option = option_name
+    def _set_string_option_from_config(self, option_name, section=None,
+            option=None):
+        if option is None:
+            option = option_name
         try:
-            v = self.config.get(section,option)
+            v = self.config.get(section, option)
         except configparser.NoOptionError:
             return
         except KeyError:
             return
         self.options[option_name] = v
-        # self.options.__setattr__(option_name,v)
 
-    def _setIntegerOptionFromConfig(self,option_name, section=None,option=None):
-        if option == None: option = option_name
+    def _set_integer_option_from_config(self, option_name, section=None,
+            option=None):
+        if option is None:
+            option = option_name
         try:
-            v = int(self.config.get(section,option))
-        except configparser.NoOptionError:
-            return
-        except KeyError:
-            return
-        except ValueError:
-            return
-        self.options[option_name] = v
-        # self.options.__setattr__(option_name,v)
-
-    def _setBooleanOptionFromConfig(self,option_name, section=None,option=None):
-        if option == None: option = option_name
-        try:
-            v = self.config.get(section,option) == 'yes'
+            v = int(self.config.get(section, option))
         except configparser.NoOptionError:
             return
         except KeyError:
@@ -114,87 +118,123 @@ class BangScannerOptions:
         except ValueError:
             return
         self.options[option_name] = v
-        # self.options.__setattr__(option_name,v)
 
-    def _setOptionsFromConfigurationFile(self):
-        self._setStringOptionFromConfig('baseunpackdirectory', section='configuration')
-        self._setStringOptionFromConfig('temporarydirectory', section='configuration')
-        self._setIntegerOptionFromConfig('bangthreads', section='configuration',option='threads')
-        self._setBooleanOptionFromConfig('removescandirectory', section='configuration')
-        self._setBooleanOptionFromConfig('createbytecounter', section='configuration',option='bytecounter')
-        self._setIntegerOptionFromConfig('tlshmaximum', section='configuration')
-        self._setBooleanOptionFromConfig('writereport', section='configuration',option='report')
-        self._setBooleanOptionFromConfig('uselogging', section='configuration',option='logging')
-        self._setBooleanOptionFromConfig('dbconnectionerrorfatal', section='database')
-        self._setStringOptionFromConfig('postgresql_user', section='database')
-        self._setStringOptionFromConfig('postgresql_password', section='database')
-        self._setStringOptionFromConfig('postgresql_db', section='database')
-        self._setStringOptionFromConfig('postgresql_host', section='database')
-        self._setIntegerOptionFromConfig('postgresql_port', section='database')
+    def _set_boolean_option_from_config(self, option_name, section=None,
+            option=None):
+        if option is None:
+            option = option_name
+        try:
+            v = self.config.get(section, option) == 'yes'
+        except configparser.NoOptionError:
+            return
+        except KeyError:
+            return
+        except ValueError:
+            return
+        self.options[option_name] = v
 
-    def _setOptionsFromArguments(self):
+    def _set_options_from_configuration_file(self):
+        self._set_string_option_from_config('baseunpackdirectory',
+                section='configuration')
+        self._set_string_option_from_config('temporarydirectory',
+                section='configuration')
+        self._set_integer_option_from_config('bangthreads',
+                section='configuration', option='threads')
+        self._set_boolean_option_from_config('removescandirectory',
+                section='configuration')
+        self._set_boolean_option_from_config('createbytecounter',
+                section='configuration', option='bytecounter')
+        self._set_integer_option_from_config('tlshmaximum',
+                section='configuration')
+        self._set_boolean_option_from_config('writereport',
+                section='configuration', option='report')
+        self._set_boolean_option_from_config('uselogging',
+                section='configuration', option='logging')
+        self._set_boolean_option_from_config('dbconnectionerrorfatal',
+                section='database')
+        self._set_string_option_from_config('postgresql_user', section='database')
+        self._set_string_option_from_config('postgresql_password',
+                section='database')
+        self._set_string_option_from_config('postgresql_db', section='database')
+        self._set_string_option_from_config('postgresql_host', section='database')
+        self._set_integer_option_from_config('postgresql_port', section='database')
+
+    def _set_options_from_arguments(self):
         self.options.checkdirectory = self.args.checkdirectory
         self.options.checkfile = self.args.checkfile
 
-    def _validateOptions(self):
+    def _validate_options(self):
         # bangthreads >= 1
         if self.options.bangthreads < 1:
             self.options.bangthreads = self.defaults['bangthreads']
         # option usedatabase true if db parameters set
         self.options.usedatabase = self.options.postgresql_db and \
-                self.options.postgresql_user and \
-                self.options.postgresql_password
+            self.options.postgresql_user and \
+            self.options.postgresql_password
         # if dbconnectionerrorfatal, db parameters must be set
-        if self.options.dbconnectionerrorfatal and self.options.usedatabase == False:
+        if self.options.dbconnectionerrorfatal and \
+                self.options.usedatabase is False:
             self._error('Missing or invalid database information')
         # baseunpackdirectory must be declared
         if not self.options.baseunpackdirectory:
             self._error('Missing base unpack directory')
         # baseunpackdirectory must exist
         if not os.path.exists(self.options.baseunpackdirectory):
-            self._error("Base unpack directory %s does not exist, exiting" % self.options.baseunpackdirectory)
+            self._error("Base unpack directory %s does not exist, exiting"
+                    % self.options.baseunpackdirectory)
         # .. be a directory
         if not os.path.isdir(self.options.baseunpackdirectory):
-            self._error("Base unpack directory %s is not a directory, exiting" % self.options.baseunpackdirectory)
+            self._error("Base unpack directory %s is not a directory, exiting"
+                    % self.options.baseunpackdirectory)
         # and writable
-        if self.checkIfDirectoryIsWritable(self.options.baseunpackdirectory):
-            self._error("Base unpack directory %s cannot be written to, exiting" % self.options.baseunpackdirectory)
+        if self.check_if_directory_is_writable(self.options.baseunpackdirectory):
+            self._error("Base unpack directory %s cannot be written to, exiting"
+                    % self.options.baseunpackdirectory)
         # if temporarydirectory is defined
-        if self.options.temporarydirectory != None:
+        if self.options.temporarydirectory is not None:
             # it must exist,
             if not os.path.exists(self.options.baseunpackdirectory):
-                self._error("Temporary directory %s does not exist, exiting" % self.options.temporarydirectory)
+                self._error("Temporary directory %s does not exist, exiting"
+                        % self.options.temporarydirectory)
             # .. be a directory
             if not os.path.isdir(self.options.baseunpackdirectory):
-                self._error("Temporary directory %s is not a directory, exiting" % self.options.temporarydirectory)
+                self._error("Temporary directory %s is not a directory, exiting"
+                        % self.options.temporarydirectory)
             # .. and writable
-            if self.checkIfDirectoryIsWritable(self.options.baseunpackdirectory):
-                self._error("Temporary directory %s cannot be written to, exiting" % self.options.temporarydirectory)
+            if self.check_if_directory_is_writable(
+                    self.options.baseunpackdirectory):
+                self._error("Temporary directory %s cannot be written to, exiting"
+                        % self.options.temporarydirectory)
 
         # either a check directory or a check file must be specified
-        if self.options.checkdirectory == None and self.options.checkfile == None:
+        if self.options.checkdirectory is None and \
+                self.options.checkfile is None:
             self._error("No file(s) provided to scan, exiting")
-        if self.options.checkdirectory != None and self.options.checkfile != None:
+        if self.options.checkdirectory is not None and \
+                self.options.checkfile is not None:
             self._error("Cannot scan a directory and a single file, exiting")
-        if self.options.checkdirectory != None:
+        if self.options.checkdirectory is not None:
             if not stat.S_ISDIR(os.stat(self.options.checkdirectory).st_mode):
-                self._error("%s is not a directory, exiting." % self.options.checkdirectory)
-        if self.options.checkfile != None:
+                self._error("%s is not a directory, exiting."
+                        % self.options.checkdirectory)
+        if self.options.checkfile is not None:
             # the file to scan should exist ...
             if not os.path.exists(self.options.checkfile):
-                self._error("File %s does not exist, exiting." % self.options.checkfile)
+                self._error("File %s does not exist, exiting."
+                        % self.options.checkfile)
             # ... and should be a real file
             if not stat.S_ISREG(os.stat(self.options.checkfile).st_mode):
-                self._error("%s is not a regular file, exiting." % self.options.checkfile)
+                self._error("%s is not a regular file, exiting."
+                        % self.options.checkfile)
             # ... and not empty
             if os.stat(self.options.checkfile).st_size == 0:
-                self._error("%s is an empty file, exiting" % self.options.checkfile)
+                self._error("%s is an empty file, exiting"
+                        % self.options.checkfile)
 
-    def checkIfDirectoryIsWritable(self,dirname):
+    def check_if_directory_is_writable(self, dirname):
         try:
             testfile = tempfile.mkstemp(dir=dirname)
             os.unlink(testfile[1])
             return True
         except:
             return False
-
