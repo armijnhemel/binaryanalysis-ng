@@ -65,6 +65,11 @@ import bangfilescans
 import bangsignatures
 from bangscanneroptions import BangScannerOptions
 
+from reporter.picklereport import *
+from reporter.jsonreport import *
+from reporter.humanreadablereport import *
+
+
 # For proximity matching use the TLSH module. This is not a standard
 # module.
 import tlsh
@@ -1415,61 +1420,16 @@ def main(argv):
 
         # write all results to a Python pickle
         picklefile = open(scandirectory / 'bang.pickle', 'wb')
-        pickle.dump(scanresult, picklefile)
+        PickleReporter(picklefile).report(scanresult)
         picklefile.close()
 
+        jsonfile = open(scandirectory / 'bang.json','w')
+        JsonReporter(jsonfile).report(scanresult)
+        jsonfile.close()
+
         if options.writereport:
-            labelcounter = collections.Counter()
-            # create a human readable report
             reportfile = open(scandirectory / 'report.txt', 'w')
-            print("SCAN RESULTS FOR: %s\n" % checkfile, file=reportfile)
-            print("Start: %s" % scandate.isoformat(), file=reportfile)
-            print("Stop: %s" % scandatefinished.isoformat(), file=reportfile)
-            print("Duration (seconds): %s" % (scandatefinished - scandate).total_seconds(), file=reportfile)
-            print("", file=reportfile)
-
-            filenames = sorted(scanresult['scantree'].keys())
-            for i in filenames:
-                print("File: %s" % i, file=reportfile)
-                print("=" * (6 + len(i)), file=reportfile)
-                print(file=reportfile)
-                if 'md5' in scanresult['scantree'][i]:
-                    print("MD5:", scanresult['scantree'][i]['md5'], file=reportfile)
-                    print("SHA256:", scanresult['scantree'][i]['sha256'], file=reportfile)
-                if 'filesize' in scanresult['scantree'][i]:
-                    reportfilesize = scanresult['scantree'][i]['filesize']
-                    print("Size:", reportfilesize, file=reportfile)
-                if 'mimetype' in scanresult['scantree'][i]:
-                    mimetype = scanresult['scantree'][i]['mimetype']
-                    print("MIME type:", mimetype, file=reportfile)
-                if 'parent' in scanresult['scantree'][i]:
-                    print("Parent: %s" % scanresult['scantree'][i]['parent'], file=reportfile)
-                labelcounter.update(scanresult['scantree'][i]['labels'])
-                reportlabels = functools.reduce(lambda x, y: x + ", " + y, sorted(scanresult['scantree'][i]['labels']))
-                print("Labels: %s" % reportlabels, file=reportfile)
-                bytesscanned = 0
-                if 'unpackedfiles' in scanresult['scantree'][i]:
-                    for l in scanresult['scantree'][i]['unpackedfiles']:
-                        bytesscanned += l['size']
-                    print("Bytes identified: %d (%f %%)" % (bytesscanned, bytesscanned/reportfilesize * 100), file=reportfile)
-                    for l in scanresult['scantree'][i]['unpackedfiles']:
-                        if l['files']:
-                            print("Data unpacked at offset %d from %s:" % (l['offset'], l['type']), file=reportfile)
-                            filesunpacked = []
-                            for f in l['files']:
-                                filesunpacked.append(f)
-                            if filesunpacked != []:
-                                for f in sorted(filesunpacked):
-                                    print(" %s" % f, file=reportfile)
-                print(file=reportfile)
-                reportfile.flush()
-
-            print("Total labels:", file=reportfile)
-            print("=" * 13, file=reportfile)
-            print(file=reportfile)
-            for l in labelcounter.most_common():
-                print("Name: %s" % l[0], file=reportfile)
-                print("Amount: %d\n" % l[1], file=reportfile)
+            HumanReadableReporter(reportfile).report(scanresult)
             reportfile.close()
 
         # The end.
