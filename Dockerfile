@@ -26,6 +26,7 @@ RUN dnf update -y && \
                    qemu-img \
                    rzip \
                    squashfs-tools \
-                   zstd
+                   zstd \
+                   ncompress
 
 CMD ["python3","bangshell"]
