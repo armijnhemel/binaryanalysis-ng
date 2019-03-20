@@ -31,8 +31,6 @@ import os
 import pathlib
 import stat
 import shutil
-import argparse
-import configparser
 import datetime
 import tempfile
 import re
@@ -65,6 +63,12 @@ import bangfilesystems
 import bangmedia
 import bangfilescans
 import bangsignatures
+from bangscanneroptions import BangScannerOptions
+
+from reporter.picklereport import *
+from reporter.jsonreport import *
+from reporter.humanreadablereport import *
+
 
 # For proximity matching use the TLSH module. This is not a standard
 # module.
@@ -1133,241 +1137,36 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         resultqueue.put(fileresult)
         scanfilequeue.task_done()
 
+def connect_to_bang_database(options):
+    return psycopg2.connect(database=options.postgresql_db, user=options.postgresql_user,
+        password=options.postgresql_password,
+        port=options.postgresql_port, host=options.postgresql_host)
 
 def main(argv):
-    # first parse the arguments provided to the script
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", action="store", dest="checkfile",
-                        help="path to file to check", metavar="FILE")
-    parser.add_argument("-d", "--directory", action="store", dest="checkdirectory",
-                        help="path to directory with files to check", metavar="DIR")
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    args = parser.parse_args()
-
-    if args.checkdirectory is not None and args.checkfile is not None:
-        parser.error("Cannot scan a directory and a single file, exiting")
-
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    # the configuration file should exist ...
-    if not os.path.exists(args.cfg):
-        parser.error("File %s does not exist, exiting." % args.cfg)
-
-    # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.cfg).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.cfg)
-
-    # read the configuration file. This is in Windows INI format.
-    config = configparser.ConfigParser()
-
-    try:
-        configfile = open(args.cfg, 'r')
-        config.read_file(configfile)
-    except:
-        print("Cannot open configuration file, exiting", file=sys.stderr)
-        sys.exit(1)
-
-    # set a few default values that can be redefined
-    # in the configuration file
-    baseunpackdirectory = ''
-    temporarydirectory = None
-    removescandirectory = False
-    createbytecounter = False
-    tlshmaximum = sys.maxsize
-
-    # some default values for the database, possibly
-    # overridden in the configuration file
-    postgresql_host = None
-    postgresql_port = None
-    usedatabase = True
-    dbconnectionerrorfatal = False
-    writereport = True
-    uselogging = True
-
-    # then process each individual section and extract
-    # configuration options
-    for section in config.sections():
-        if section == 'configuration':
-            # The base unpack directory is where the unpacked files
-            # will be written. This is mandatory.
-            try:
-                baseunpackdirectory = config.get(section, 'baseunpackdirectory')
-            except Exception:
-                break
-            # The temporary directory is where temporary files will be
-            # written.  This is optional. If not set the system's
-            # temporary directory (usually /tmp ) will be used.
-            try:
-                temporarydirectory = config.get(section, 'temporarydirectory')
-            except Exception:
-                pass
-
-            # The number of threads to be created to scan the files
-            # recursively, next to the main thread. Defaults to "all
-            # availabe threads" (number of CPUs on a machine).
-            try:
-                bangthreads = min(int(config.get(section, 'threads')), multiprocessing.cpu_count())
-                # if 0 or a negative number was configured, then use
-                # all available threads
-                if bangthreads < 1:
-                    bangthreads = multiprocessing.cpu_count()
-            except Exception:
-                # use all available threads by default
-                bangthreads = multiprocessing.cpu_count()
-
-            # If enabled (default: no) remove the directory with
-            # the scan results. This is useful when processing large
-            # amounts of files where the results don't really matter
-            # such as testing.
-            try:
-                remove = config.get(section, 'removescandirectory')
-                if remove == 'yes':
-                    removescandirectory = True
-            except Exception:
-                pass
-
-            # If enabled (default: no) create a file with a byte count
-            try:
-                bytecounter = config.get(section, 'bytecounter')
-                if bytecounter == 'yes':
-                    createbytecounter = True
-            except Exception:
-                pass
-
-            # maximum size to look at for TLSH (default: sys.maxsize)
-            try:
-                tlshmaximum = int(config.get(section, 'tlshmaximum'))
-            except Exception:
-                pass
-
-            # If enabled (default: yes) create a file
-            # with a human readable report of the scan results
-            try:
-                report = config.get(section, 'report')
-                if report != 'yes':
-                    writereport = False
-            except Exception:
-                pass
-
-            # If enabled (default: yes) log results of the
-            # scan to a log file in the scan directory
-            try:
-                banglogging = config.get(section, 'logging')
-                if banglogging != 'yes':
-                    uselogging = False
-            except Exception:
-                pass
-
-        elif section == 'database':
-            # The default mode is to continue without having a database
-            # and to just disable the functionality that requires a
-            # database, but this makes it harder to detect that a
-            # database might be down.
-            try:
-                connectionerrorfatal = config.get(section,
-                                                  'dbconnectionerrorfatal')
-                if connectionerrorfatal == 'yes':
-                    dbconnectionerrorfatal = True
-            except:
-                pass
-
-            # Extract the minimally necessary information for
-            # PostgreSQL to be able to connect.
-            try:
-                postgresql_user = config.get(section, 'postgresql_user')
-                postgresql_password = config.get(section, 'postgresql_password')
-                postgresql_db = config.get(section, 'postgresql_db')
-            except:
-                usedatabase = False
-                if dbconnectionerrorfatal:
-                    print("Configuration file malformed: missing or wrong database information", file=sys.stderr)
-                    configfile.close()
-                    sys.exit(1)
-
-            # Extract some extra, optional, connection information
-            try:
-                postgresql_host = config.get(section, 'postgresql_host')
-            except:
-                pass
-            try:
-                postgresql_port = config.get(section, 'postgresql_port')
-            except:
-                pass
-
-    configfile.close()
+    options = BangScannerOptions().get()
 
     # test the database. If the connection fails it depends on whether
     # or not it should be treated as a fatal error. If not, then
     # continue without using any of the database functionality.
-    try:
-        c = psycopg2.connect(database=postgresql_db, user=postgresql_user,
-                             password=postgresql_password,
-                             port=postgresql_port, host=postgresql_host)
-        c.close()
-    except Exception as e:
-        if dbconnectionerrorfatal:
-            print("Configuration file malformed: missing or wrong database information", file=sys.stderr)
-            configfile.close()
-            sys.exit(1)
-        usedatabase = False
+    if options.usedatabase:
+        try:
+            c = connect_to_bang_database(options)
+            c.close()
+        except Exception as e:
+            if options.dbconnectionerrorfatal:
+                print("Configuration file malformed: missing or wrong database information", file=sys.stderr)
+                sys.exit(1)
+            options.usedatabase = False
 
     # tuple of database connection/database cursor
     bangdbconns = []
 
     # create database connections if any database is used
-    if usedatabase:
-        for i in range(0, bangthreads):
-            bangconn = psycopg2.connect(database=postgresql_db,
-                                        user=postgresql_user,
-                                        password=postgresql_password,
-                                        port=postgresql_port,
-                                        host=postgresql_host)
+    if options.usedatabase:
+        for i in range(0, options.bangthreads):
+            bangconn = connect_to_bang_database(options)
             bangcursor = bangconn.cursor()
             bangdbconns.append((bangconn, bangcursor))
-
-    # Check if the base unpack directory was declared.
-    if baseunpackdirectory == '':
-        print("Base unpack directory not declared in configuration file, exiting", file=sys.stderr)
-        sys.exit(1)
-
-    # Check if the base unpack directory exists
-    if not os.path.exists(baseunpackdirectory):
-        print("Base unpack directory %s does not exist, exiting" % baseunpackdirectory, file=sys.stderr)
-        sys.exit(1)
-
-    if not os.path.isdir(baseunpackdirectory):
-        print("Base unpack directory %s is not a directory, exiting" % baseunpackdirectory, file=sys.stderr)
-        sys.exit(1)
-
-    # Check if the base unpack directory can be written to
-    try:
-        testfile = tempfile.mkstemp(dir=baseunpackdirectory)
-        os.unlink(testfile[1])
-    except:
-        print("Base unpack directory %s cannot be written to, exiting" % baseunpackdirectory, file=sys.stderr)
-        sys.exit(1)
-
-    # Check if the temporary directory is actually an existing
-    # directory, but only if it was defined in the configuration file.
-    if temporarydirectory is not None:
-        if not os.path.exists(temporarydirectory):
-            print("Temporary directory %s does not exist, exiting" % temporarydirectory, file=sys.stderr)
-            sys.exit(1)
-
-        if not os.path.isdir(temporarydirectory):
-            print("Temporary directory %s is not a directory, exiting" % temporarydirectory, file=sys.stderr)
-            sys.exit(1)
-
-        # Check if the temporary directory can be written to
-        try:
-            testfile = tempfile.mkstemp(dir=temporarydirectory)
-            os.unlink(testfile[1])
-        except:
-            print("Temporary directory %s cannot be written to, exiting" % temporarydirectory, file=sys.stderr)
-            sys.exit(1)
 
     # first determine how many bytes should be scanned for known
     # signatures using a sliding window. This should not be set too
@@ -1402,12 +1201,8 @@ def main(argv):
                 bangwholecontextfunctions.append((f, ignorelist))
 
     checkfiles = []
-    if args.checkdirectory is not None:
-        # should be a directory
-        if not stat.S_ISDIR(os.stat(args.checkdirectory).st_mode):
-            parser.error("%s is not a directory, exiting." % args.checkdirectory)
-
-        dirwalk = os.walk(args.checkdirectory)
+    if os.path.isdir(options.checkpath):
+        dirwalk = os.walk(options.checkpath)
         for i in dirwalk:
             for j in i[2]:
                 scanfilename = os.path.join(i[0], j)
@@ -1424,32 +1219,13 @@ def main(argv):
                     continue
                 checkfiles.append(scanfilename)
     else:
-        # sanity checks for the file to scan
-        if args.checkfile is None:
-            parser.error("No file to scan provided, exiting")
+        checkfiles.append(options.checkpath)
 
-        # the file to scan should exist ...
-        if not os.path.exists(args.checkfile):
-            parser.error("File %s does not exist, exiting." % args.checkfile)
-
-        # ... and should be a real file
-        if not stat.S_ISREG(os.stat(args.checkfile).st_mode):
-            parser.error("%s is not a regular file, exiting." % args.checkfile)
-
-        filesize = os.stat(args.checkfile).st_size
-
-        # Don't scan an empty file
-        if filesize == 0:
-            print("File to scan is empty, exiting", file=sys.stderr)
-            sys.exit(1)
-
-        checkfiles.append(args.checkfile)
-
-    if len(checkfiles) == 0:
+    if not checkfiles:
         print("No files to scan found, exiting", file=sys.stderr)
         sys.exit(1)
 
-    if uselogging:
+    if options.uselogging:
         # set up logging
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
         banglogger = logging.getLogger()
@@ -1465,7 +1241,7 @@ def main(argv):
 
         # create a directory for the scan
         scandirectory = pathlib.Path(tempfile.mkdtemp(prefix='bang-scan-',
-                                                      dir=baseunpackdirectory))
+                                                      dir=options.baseunpackdirectory))
 
         # create an empty file "STARTED" to easily identify
         # active (or crashed) scans.
@@ -1483,7 +1259,7 @@ def main(argv):
         resultsdirectory = scandirectory / "results"
         resultsdirectory.mkdir()
 
-        if uselogging:
+        if options.uselogging:
             logdirectory = scandirectory / "logs"
             logdirectory.mkdir()
 
@@ -1507,7 +1283,7 @@ def main(argv):
             shutil.copy(checkfile, unpackdirectory)
         except:
             print("Could not copy %s to scanning directory %s" % (checkfile, unpackdirectory), file=sys.stderr)
-            if uselogging:
+            if options.uselogging:
                 logging.warning("Could not copy %s to scanning directory" % checkfile)
                 logging.info("Finished scanning %s" % checkfile)
             # move the file "STARTED" to "FINISHED" to easily identify
@@ -1516,7 +1292,7 @@ def main(argv):
                         scandirectory / "FINISHED")
             os.utime(scandirectory / "FINISHED")
 
-            if removescandirectory:
+            if options.removescandirectory:
                 shutil.rmtree(scandirectory)
             continue
 
@@ -1547,39 +1323,32 @@ def main(argv):
 
         # set the size of bytes to be read during scanning hashes
         scanenvironment['readsize'] = 10240
-        scanenvironment['createbytecounter'] = createbytecounter
-        scanenvironment['tlshmaximum'] = tlshmaximum
+        scanenvironment['createbytecounter'] = options.createbytecounter
+        scanenvironment['tlshmaximum'] = options.tlshmaximum
         scanenvironment['synthesizedminimum'] = 10
-        scanenvironment['logging'] = uselogging
+        scanenvironment['logging'] = options.uselogging
         scanenvironment['paddingname'] = 'PADDING'
 
         # create processes for unpacking archives
-        for i in range(0, bangthreads):
-            if not usedatabase:
-                p = multiprocessing.Process(target=processfile,
-                                            args=(scanfilequeue,
-                                                  resultqueue,
-                                                  processlock,
-                                                  checksumdict,
-                                                  unpackdirectory,
-                                                  resultsdirectory,
-                                                  temporarydirectory,
-                                                  None, None,
-                                                  bangfilefunctions,
-                                                  scanenvironment))
+        for i in range(0, options.bangthreads):
+            if not options.usedatabase:
+                dbconn0 = None
+                dbconn1 = None
             else:
-                p = multiprocessing.Process(target=processfile,
-                                            args=(scanfilequeue,
-                                                  resultqueue,
-                                                  processlock,
-                                                  checksumdict,
-                                                  unpackdirectory,
-                                                  resultsdirectory,
-                                                  temporarydirectory,
-                                                  bangdbconns[i][0],
-                                                  bangdbconns[i][1],
-                                                  bangfilefunctions,
-                                                  scanenvironment))
+                dbconn0 = bangdbconns[i][0]
+                dbconn1 = bangdbconns[i][1]
+            p = multiprocessing.Process(target=processfile,
+                                        args=(scanfilequeue,
+                                              resultqueue,
+                                              processlock,
+                                              checksumdict,
+                                              unpackdirectory,
+                                              resultsdirectory,
+                                              options.temporarydirectory,
+                                              dbconn0,
+                                              dbconn1,
+                                              bangfilefunctions,
+                                              scanenvironment))
             processes.append(p)
 
         # then start all the processes
@@ -1621,93 +1390,50 @@ def main(argv):
         os.utime(scandirectory / "FINISHED")
 
         # now store the scan tree results with other data
-        scanresult = {}
-        scanresult['scantree'] = scantree
+        scanresult = {
+                'scantree': scantree,
+            # statistics about this particular session
+            'session': {
+                    'start': scandate,
+                    'stop': scandatefinished,
+                    'duration': (scandatefinished - scandate).total_seconds(),
+                    'user': getpass.getuser(),
+                    'checkfile': checkfile,
+            },
+            'platform' : {
+                    'machine': platform.machine(),
+                    'architecture': platform.architecture()[0],
+                    'processor': platform.processor(),
+                    'node': platform.node(),
+                    'system': platform.system(),
+                    'release': platform.release(),
+                    'libc': platform.libc_ver()[0],
+                    'libcversion': platform.libc_ver()[1],
+            },
+            # some information about the used Python version
+            'python': {
+                    'version': platform.python_version(),
+                    'implementation': platform.python_implementation(),
+            },
+        }
 
-        # statistics about this particular session
-        scanresult['session'] = {}
-        scanresult['session']['start'] = scandate
-        scanresult['session']['stop'] = scandatefinished
-        scanresult['session']['duration'] = (scandatefinished - scandate).total_seconds()
-        scanresult['session']['user'] = getpass.getuser()
-
-        # some information about the platform
-        scanresult['platform'] = {}
-        scanresult['platform']['machine'] = platform.machine()
-        scanresult['platform']['architecture'] = platform.architecture()[0]
-        scanresult['platform']['processor'] = platform.processor()
-        scanresult['platform']['node'] = platform.node()
-        scanresult['platform']['system'] = platform.system()
-        scanresult['platform']['release'] = platform.release()
-        scanresult['platform']['libc'] = platform.libc_ver()[0]
-        scanresult['platform']['libcversion'] = platform.libc_ver()[1]
-
-        # some information about the used Python version
-        scanresult['python'] = {}
-        scanresult['python']['version'] = platform.python_version()
-        scanresult['python']['implementation'] = platform.python_implementation()
 
         # write all results to a Python pickle
         picklefile = open(scandirectory / 'bang.pickle', 'wb')
-        pickle.dump(scanresult, picklefile)
+        PickleReporter(picklefile).report(scanresult)
         picklefile.close()
 
-        if writereport:
-            labelcounter = collections.Counter()
-            # create a human readable report
+        jsonfile = open(scandirectory / 'bang.json','w')
+        JsonReporter(jsonfile).report(scanresult)
+        jsonfile.close()
+
+        if options.writereport:
             reportfile = open(scandirectory / 'report.txt', 'w')
-            print("SCAN RESULTS FOR: %s\n" % checkfile, file=reportfile)
-            print("Start: %s" % scandate.isoformat(), file=reportfile)
-            print("Stop: %s" % scandatefinished.isoformat(), file=reportfile)
-            print("Duration (seconds): %s" % (scandatefinished - scandate).total_seconds(), file=reportfile)
-            print("", file=reportfile)
-
-            filenames = sorted(scanresult['scantree'].keys())
-            for i in filenames:
-                print("File: %s" % i, file=reportfile)
-                print("=" * (6 + len(i)), file=reportfile)
-                print(file=reportfile)
-                if 'md5' in scanresult['scantree'][i]:
-                    print("MD5:", scanresult['scantree'][i]['md5'], file=reportfile)
-                    print("SHA256:", scanresult['scantree'][i]['sha256'], file=reportfile)
-                if 'filesize' in scanresult['scantree'][i]:
-                    reportfilesize = scanresult['scantree'][i]['filesize']
-                    print("Size:", reportfilesize, file=reportfile)
-                if 'mimetype' in scanresult['scantree'][i]:
-                    mimetype = scanresult['scantree'][i]['mimetype']
-                    print("MIME type:", mimetype, file=reportfile)
-                if 'parent' in scanresult['scantree'][i]:
-                    print("Parent: %s" % scanresult['scantree'][i]['parent'], file=reportfile)
-                labelcounter.update(scanresult['scantree'][i]['labels'])
-                reportlabels = functools.reduce(lambda x, y: x + ", " + y, sorted(scanresult['scantree'][i]['labels']))
-                print("Labels: %s" % reportlabels, file=reportfile)
-                bytesscanned = 0
-                if 'unpackedfiles' in scanresult['scantree'][i]:
-                    for l in scanresult['scantree'][i]['unpackedfiles']:
-                        bytesscanned += l['size']
-                    print("Bytes identified: %d (%f %%)" % (bytesscanned, bytesscanned/reportfilesize * 100), file=reportfile)
-                    for l in scanresult['scantree'][i]['unpackedfiles']:
-                        if len(l['files']) != 0:
-                            print("Data unpacked at offset %d from %s:" % (l['offset'], l['type']), file=reportfile)
-                            filesunpacked = []
-                            for f in l['files']:
-                                filesunpacked.append(f)
-                            if filesunpacked != []:
-                                for f in sorted(filesunpacked):
-                                    print(" %s" % f, file=reportfile)
-                print(file=reportfile)
-                reportfile.flush()
-
-            print("Total labels:", file=reportfile)
-            print("=" * 13, file=reportfile)
-            print(file=reportfile)
-            for l in labelcounter.most_common():
-                print("Name: %s" % l[0], file=reportfile)
-                print("Amount: %d\n" % l[1], file=reportfile)
+            HumanReadableReporter(reportfile).report(scanresult)
             reportfile.close()
 
         # The end.
-        if uselogging:
+        if options.uselogging:
             logging.info("Finished scanning %s" % checkfile)
 
             # flush any remaining data
@@ -1717,7 +1443,7 @@ def main(argv):
             banglogger.removeHandler(bangloghandler)
             bangloghandler.close()
 
-        if removescandirectory:
+        if options.removescandirectory:
             shutil.rmtree(scandirectory)
 
     # clean up the database cursors and
