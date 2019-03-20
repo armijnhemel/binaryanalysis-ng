@@ -25,6 +25,7 @@
 import bangunpack
 import bangfilesystems
 import bangmedia
+import bangandroid
 
 # store a few standard signatures
 signatures = {
@@ -129,6 +130,7 @@ signatures = {
     'cbfs': b'LARCHIVE', # https://www.coreboot.org/CBFS
     'minix_1l': b'\x8f\x13', # minix v1, linux variant
     'compress': b'\x1f\x9d', # /usr/share/magic
+    'romfs': b'-rom1fs-',
 }
 
 # some signatures do not start at the beginning of the file
@@ -181,7 +183,7 @@ signaturetofunction = {
     'opentype': bangunpack.unpackOpenTypeFont,
     'ttc': bangunpack.unpackOpenTypeFontCollection,
     'truetype': bangunpack.unpackTrueTypeFont,
-    'android_backup': bangunpack.unpackAndroidBackup,
+    'android_backup': bangandroid.unpackAndroidBackup,
     'ico': bangmedia.unpackICO,
     'gnu_message_catalog_le': bangunpack.unpackGNUMessageCatalog,
     'gnu_message_catalog_be': bangunpack.unpackGNUMessageCatalog,
@@ -205,14 +207,14 @@ signaturetofunction = {
     'rpm': bangunpack.unpackRPM,
     'zstd_08': bangunpack.unpackZstd,
     'apple_icon': bangmedia.unpackAppleIcon,
-    'androidsparse': bangunpack.unpackAndroidSparse,
+    'androidsparse': bangandroid.unpackAndroidSparse,
     'lz4': bangunpack.unpackLZ4,
     'vmdk': bangfilesystems.unpackVMDK,
     'qcow2': bangfilesystems.unpackQcow2,
     'vdi': bangfilesystems.unpackVDI,
     'javaclass': bangunpack.unpackJavaClass,
-    'dex': bangunpack.unpackDex,
-    'odex': bangunpack.unpackOdex,
+    'dex': bangandroid.unpackDex,
+    'odex': bangandroid.unpackOdex,
     'snappy_framed': bangunpack.unpackSnappy,
     'elf': bangunpack.unpackELF,
     'swf': bangmedia.unpackSWF,
@@ -234,7 +236,7 @@ signaturetofunction = {
     'acdb': bangunpack.unpackACDB,
     'dds': bangmedia.unpackDDS,
     'ktx11': bangmedia.unpackKTX11,
-    'avb': bangunpack.unpackAVB,
+    'avb': bangandroid.unpackAVB,
     'sqlite3': bangunpack.unpackSQLite,
     'dtb': bangunpack.unpackDeviceTree,
     'trx': bangunpack.unpackTRX,
@@ -243,13 +245,14 @@ signaturetofunction = {
     'ppm': bangmedia.unpackPNM,
     'pgm': bangmedia.unpackPNM,
     'pbm': bangmedia.unpackPNM,
-    'androidbootmsm': bangunpack.unpackAndroidBootMSM,
-    'androidbootimg': bangunpack.unpackAndroidBootImg,
-    'androidboothuawei': bangunpack.unpackAndroidBootHuawei,
+    'androidbootmsm': bangandroid.unpackAndroidBootMSM,
+    'androidbootimg': bangandroid.unpackAndroidBootImg,
+    'androidboothuawei': bangandroid.unpackAndroidBootHuawei,
     'fat': bangfilesystems.unpackFAT,
     'cbfs': bangfilesystems.unpackCBFS,
     'minix_1l': bangfilesystems.unpackMinix1L,
     'compress': bangunpack.unpackCompress,
+    #'romfs': bangfilesystems.unpackRomfs,
 }
 
 # a lookup table to map signatures to a name for
@@ -284,8 +287,8 @@ signatureprettyprint = {
 # These extensions should be lower case
 extensiontofunction = {
     '.swp': bangunpack.unpackVimSwapfile,
-    '.new.dat': bangunpack.unpackAndroidSparseData,
-    '.pak': bangunpack.unpackChromePak,
+    '.new.dat': bangandroid.unpackAndroidSparseData,
+    '.pak': bangandroid.unpackChromePak,
     '.ihex': bangunpack.unpackIHex,
     '.hex': bangunpack.unpackIHex,
     '.srec': bangunpack.unpackSREC,
@@ -295,7 +298,7 @@ extensiontofunction = {
     '.opf': bangunpack.unpackXML,
     '.svg': bangunpack.unpackXML,
     '.tar': bangunpack.unpackTar,
-    'resources.arsc': bangunpack.unpackAndroidResource,
+    'resources.arsc': bangandroid.unpackAndroidResource,
     'manifest.mf': bangunpack.unpackJavaManifest,
     '.sf': bangunpack.unpackJavaManifest,
     'dockerfile': bangunpack.unpackDockerfile,
@@ -311,7 +314,7 @@ extensiontofunction = {
     'shadow': bangunpack.unpackShadow,
     'group': bangunpack.unpackGroup,
     '.css': bangunpack.unpackCSS,
-    'tzdata': bangunpack.unpackAndroidTzdata,
+    'tzdata': bangandroid.unpackAndroidTzdata,
     'fstab': bangunpack.unpackFstab,
     '.pc': bangunpack.unpackPkgConfig,
     '.ics': bangunpack.unpackICS,

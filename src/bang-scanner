@@ -59,6 +59,7 @@ import psycopg2
 
 # import the local file with unpacking methods
 import bangunpack
+import bangandroid
 import bangfilesystems
 import bangmedia
 import bangfilescans

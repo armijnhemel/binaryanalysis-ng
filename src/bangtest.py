@@ -519,7 +519,7 @@ class TestAndroidSparse(unittest.TestCase):
         filename = basetestdir / 'simg' / 'zero.img'
         filesize = filename.stat().st_size
         offset = 0
-        testres = bangunpack.unpackAndroidSparse(filename, offset, self.tempdir, None)
+        testres = bangandroid.unpackAndroidSparse(filename, offset, self.tempdir, None)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
