@@ -80,32 +80,12 @@ import tlsh
 maxsignaturelength = max(map(lambda x: len(x), bangsignatures.signatures.values()))
 maxsignaturesoffset = max(bangsignatures.signaturesoffset.values()) + maxsignaturelength
 
-class LogMessage:
-    def __init__(self,level,message):
-        self.level = level
-        self.message = message
-
-
-# Log messages
-def log(use_logging):
-    global loggingqueue
-    while True:
-        log_message = loggingqueue.get()
-        # print("logmessage: %s" % log_message, file=sys.stderr)
-        logging.log(log_message.level,log_message.message)
-        loggingqueue.task_done()
-
-def log_to_queue(level,message,uselogging=False):
-    global loggingqueue
-    if uselogging:
-        loggingqueue.put(LogMessage(level,message))
 
 # Process a single file.
 # This method has the following parameters:
 #
 # * scanfilequeue :: a queue where files to scan will be fetched from
 # * resultqueue :: a queue where results will be written to
-# * loggingqueue :: a queue that will log information
 # * processlock :: a lock object that guards access to shared objects
 # * checksumdict :: a shared dictionary to store hashes of files so
 #   unnecessary scans of duplicate files can be prevented.
@@ -133,7 +113,7 @@ def log_to_queue(level,message,uselogging=False):
 # 'graphics') will be stored. These labels can be used to feed extra
 # information to the unpacking process, such as preventing scans from
 # running.
-def processfile(scanfilequeue, resultqueue, loggingqueue, processlock, checksumdict,
+def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 unpackdirectory, resultsdirectory, temporarydirectory,
                 dbconn, dbcursor, bangfilefunctions, scanenvironment):
     lenunpackdirectory = len(str(unpackdirectory)) + 1
@@ -341,11 +321,8 @@ def processfile(scanfilequeue, resultqueue, loggingqueue, processlock, checksumd
 
                     # log the file name, the extension and the
                     # error message for later analysis
-                    log_to_queue(logging.DEBUG,
-                            "FAIL %s known extension %s: %s" %
-                            (relativefilename, extension,
-                                unpackresult['error']['reason']),
-                            uselogging)
+                    if uselogging:
+                        logging.debug("FAIL %s known extension %s: %s" % (relativefilename, extension, unpackresult['error']['reason']))
 
                     # Fatal errors should lead to the program stopping
                     # execution. Ignored for now.
@@ -375,10 +352,8 @@ def processfile(scanfilequeue, resultqueue, loggingqueue, processlock, checksumd
 
                 # the file could be unpacked successfully,
                 # so log it as such.
-                log_to_queue(logging.INFO,
-                        "SUCCESS %s %s at offset: 0, length: %d" %
-                        (relativefilename, extension, unpackresult['length']),
-                        uselogging)
+                if uselogging:
+                    logging.info("SUCCESS %s %s at offset: 0, length: %d" % (relativefilename, extension, unpackresult['length']))
 
                 # store the location of where the successfully
                 # unpacked file ends (the offset is always 0  here).
@@ -686,10 +661,8 @@ def processfile(scanfilequeue, resultqueue, loggingqueue, processlock, checksumd
                     # run the scan for the offset that was found
                     # First log which identifier was found and
                     # at which offset for possible later analysis.
-                    log_to_queue(logging.DEBUG,
-                            "TRYING %s %s at offset: %d" %
-                            (relativefilename, signature, offset),
-                            uselogging)
+                    if uselogging:
+                        logging.debug("TRYING %s %s at offset: %d" % (relativefilename, signature, offset))
 
                     # The result of the scan is a dictionary containing:
                     #
@@ -714,11 +687,8 @@ def processfile(scanfilequeue, resultqueue, loggingqueue, processlock, checksumd
                     if not unpackresult['status']:
                         # No data could be unpacked for some reason,
                         # so log the status and error message
-                        log_to_queue(logging.DEBUG,
-                                "FAIL %s %s at offset: %d: %s" %
-                                (relativefilename, signature, offset,
-                                    unpackresult['error']['reason']),
-                                uselogging)
+                        if uselogging:
+                            logging.debug("FAIL %s %s at offset: %d: %s" % (relativefilename, signature, offset, unpackresult['error']['reason']))
 
                         # unpacking error contains:
                         #
@@ -762,11 +732,8 @@ def processfile(scanfilequeue, resultqueue, loggingqueue, processlock, checksumd
 
                     # the file could be unpacked successfully,
                     # so log it as such.
-                    log_to_queue(logging.INFO,
-                            "SUCCESS %s %s at offset: %d, length: %d" %
-                            (relativefilename, signature, offset,
-                                unpackresult['length']),
-                            uselogging)
+                    if uselogging:
+                        logging.info("SUCCESS %s %s at offset: %d, length: %d" % (relativefilename, signature, offset, unpackresult['length']))
 
                     # store the name counter
                     counterspersignature[signature] = namecounter
@@ -1018,10 +985,8 @@ def processfile(scanfilequeue, resultqueue, loggingqueue, processlock, checksumd
                         except:
                             namecounter += 1
 
-                    log_to_queue(logging.DEBUG,
-                            "TRYING %s %s at offset: 0" %
-                            (relativefilename, f),
-                            uselogging)
+                    if uselogging:
+                        logging.debug("TRYING %s %s at offset: 0" % (relativefilename, f))
                     try:
                         unpackresult = bangsignatures.textonlyfunctions[f](filename, 0, dataunpackdirectory, temporarydirectory)
                     except Exception as e:
@@ -1031,11 +996,8 @@ def processfile(scanfilequeue, resultqueue, loggingqueue, processlock, checksumd
                     if not unpackresult['status']:
                         # No data could be unpacked for some reason,
                         # so check the status first
-                        log_to_queue(logging.DEBUG,
-                                "FAIL %s %s at offset: %d: %s" %
-                                (relativefilename, f, 0,
-                                    unpackresult['error']['reason']),
-                                uselogging)
+                        if uselogging:
+                            logging.debug("FAIL %s %s at offset: %d: %s" % (relativefilename, f, 0, unpackresult['error']['reason']))
                         #print(s[1], unpackresult['error'])
                         #sys.stdout.flush()
                         # unpackerror contains:
@@ -1068,10 +1030,8 @@ def processfile(scanfilequeue, resultqueue, loggingqueue, processlock, checksumd
                         shutil.rmtree(dataunpackdirectory)
                         continue
 
-                    log_to_queue(logging.INFO,
-                            "SUCCESS %s %s at offset: %d, length: %d" %
-                            (relativefilename, f, 0, unpackresult['length']),
-                            uselogging)
+                    if uselogging:
+                        logging.info("SUCCESS %s %s at offset: %d, length: %d" % (relativefilename, f, 0, unpackresult['length']))
 
                     # store the labels for files that could be
                     # unpacked/verified completely.
@@ -1172,7 +1132,7 @@ def processfile(scanfilequeue, resultqueue, loggingqueue, processlock, checksumd
 
         fileresult['labels'] = list(set(labels))
         fileresult['filesize'] = filesize
-        log_to_queue(logging.INFO,json.dumps(fileresult),uselogging)
+        print(json.dumps(fileresult))
         sys.stdout.flush()
 
         resultqueue.put(fileresult)
@@ -1184,7 +1144,6 @@ def connect_to_bang_database(options):
         port=options.postgresql_port, host=options.postgresql_host)
 
 def main(argv):
-    global loggingqueue
     options = BangScannerOptions().get()
 
     # test the database. If the connection fails it depends on whether
@@ -1301,7 +1260,6 @@ def main(argv):
         resultsdirectory = scandirectory / "results"
         resultsdirectory.mkdir()
 
-
         if options.uselogging:
             logdirectory = scandirectory / "logs"
             logdirectory.mkdir()
@@ -1310,15 +1268,9 @@ def main(argv):
             # add it to the BANG logger
             bangloghandler = logging.FileHandler(filename=logdirectory / 'unpack.log')
             banglogger.addHandler(bangloghandler)
+            logging.info("Started scanning %s" % checkfile)
 
         processmanager = multiprocessing.Manager()
-
-        loggingqueue = processmanager.JoinableQueue(maxsize=0)
-        log_process = multiprocessing.Process(target=log,
-                args=(options.uselogging,))
-        log_process.start()
-        log_to_queue(logging.INFO,"Started scanning %s" % checkfile,
-                    options.uselogging)
 
         # first create two queues: one for scanning files, the other one
         # for reporting results.
@@ -1332,8 +1284,9 @@ def main(argv):
             shutil.copy(checkfile, unpackdirectory)
         except:
             print("Could not copy %s to scanning directory %s" % (checkfile, unpackdirectory), file=sys.stderr)
-            log_to_queue(logging.WARNING,"Could not copy %s to scanning directory" % checkfile, options.uselogging)
-            log_to_queue(logging.INFO,"Finished scanning %s" % checkfile, options.uselogging)
+            if options.uselogging:
+                logging.warning("Could not copy %s to scanning directory" % checkfile)
+                logging.info("Finished scanning %s" % checkfile)
             # move the file "STARTED" to "FINISHED" to easily identify
             # active (or crashed) scans
             shutil.move(scandirectory / "STARTED",
@@ -1388,7 +1341,6 @@ def main(argv):
             p = multiprocessing.Process(target=processfile,
                                         args=(scanfilequeue,
                                               resultqueue,
-                                              loggingqueue,
                                               processlock,
                                               checksumdict,
                                               unpackdirectory,
@@ -1399,7 +1351,6 @@ def main(argv):
                                               bangfilefunctions,
                                               scanenvironment))
             processes.append(p)
-
 
         # then start all the processes
         for p in processes:
@@ -1426,7 +1377,6 @@ def main(argv):
                 break
 
         resultqueue.join()
-
 
         # Done processing, terminate processes that were created
         for p in processes:
@@ -1483,12 +1433,9 @@ def main(argv):
             HumanReadableReporter(reportfile).report(scanresult)
             reportfile.close()
 
-        loggingqueue.join()
-        log_process.terminate()
-
         # The end.
-        log_to_queue(logging.INFO,"Finished scanning %s" % checkfile, options.uselogging)
         if options.uselogging:
+            logging.info("Finished scanning %s" % checkfile)
 
             # flush any remaining data
             bangloghandler.flush()
@@ -1507,8 +1454,6 @@ def main(argv):
         c[1].close()
         # then close the database connection
         c[0].close()
-
-
 
     # finally shut down logging
     logging.shutdown()
