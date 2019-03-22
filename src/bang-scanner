@@ -84,6 +84,75 @@ tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'archive',
                         'filesystem', 'srec', 'ihex', 'padding',
                         'database'])
 
+hash_algorithms = ['sha256', 'md5', 'sha1']
+
+def compute_empty_hash_results():
+    global hash_algorithms
+    emptyhashes = {}
+    results = {}
+
+    # pre-store empty hashes
+    for hashtocompute in hash_algorithms:
+        emptyhashes[hashtocompute] = hashlib.new(hashtocompute)
+        results[hashtocompute] = emptyhashes[hashtocompute].hexdigest()
+    return results
+
+emptyhashresults = compute_empty_hash_results()
+
+class ScanJob:
+    def __init__(self,filename, labels, parent, propagatedlabels, extradata):
+        self.filename = filename
+        self.labels = labels
+        self.parent = parent
+        self.propagatedlabels = propagatedlabels
+        self.extradata = extradata
+        self.type = None
+        self.stat = None
+    def is_unpacking_root(self):
+        # assumption: there is no situation where parent = None and 'root' not in labels?
+        return self.parent is None
+        # return 'root' in self.labels
+    def get_type(self):
+        return self.type
+    def _stat_file(self):
+        self.stat = os.stat(self.filename)
+    def _is_symlink(self):
+        r = self.filename.is_symlink()
+        if r: self.type = 'symbolic link'
+        return r
+    def _is_socket(self):
+        r = stat.S_ISSOCK(self.stat.st_mode)
+        if r: self.type = 'socket'
+        return r
+    def _is_fifo(self):
+        r = stat.S_ISFIFO(self.stat.st_mode)
+        if r: self.type = 'fifo'
+        return r
+    def _is_block_device(self):
+        r = stat.S_ISBLK(self.stat.st_mode)
+        if r: self.type = 'block device'
+        return r
+    def _is_character_device(self):
+        r = stat.S_ISCHR(self.stat.st_mode)
+        if r: self.type = 'character device'
+        return r
+    def _is_directory(self):
+        r = self.filename.is_dir()
+        if r: self.type = 'directory'
+        return r
+    def _is_empty(self):
+        r = self.stat.st_size == 0
+        if r: self.type = 'empty'
+        return r
+    def not_scannable(self):
+        self._stat_file()
+        return self._is_symlink() or \
+                self._is_socket() or \
+                self._is_fifo() or \
+                self._is_block_device() or \
+                self._is_character_device() or \
+                self._is_directory() or \
+                self._is_empty()
 
 def log(level,message):
     global uselogging
@@ -126,16 +195,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 unpackdirectory, resultsdirectory, temporarydirectory,
                 dbconn, dbcursor, bangfilefunctions, scanenvironment):
     global tlshlabelsignore
+    global emptyhashresults
 
     lenunpackdirectory = len(str(unpackdirectory)) + 1
-
-    emptyhashes = {}
-    emptyhashresults = {}
-
-    # pre-store empty hashes
-    for hashtocompute in ['sha256', 'md5', 'sha1']:
-        emptyhashes[hashtocompute] = hashlib.new(hashtocompute)
-        emptyhashresults[hashtocompute] = emptyhashes[hashtocompute].hexdigest()
 
     readsize = scanenvironment['readsize']
     createbytecounter = scanenvironment['createbytecounter']
@@ -156,81 +218,33 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
     while True:
         # grab a new file from the scanning queue
-        (filename, labels, parent, propagatedlabels, extradata) = scanfilequeue.get(timeout=86400)
+        scanjob = scanfilequeue.get(timeout=86400)
+        if not scanjob: continue
+        # (filename, labels, parent, propagatedlabels, extradata) = scanfilequeue.get(timeout=86400)
+        labels = scanjob.labels
 
         # store the results of the file
         # At minimum store:
         # * file name (relative to the top level unpack directory))
         # * labels
-        fileresult = {'fullfilename': str(filename)}
-        if 'root' not in labels:
-            fileresult['parent'] = str(parent)[lenunpackdirectory:]
-        relativefilename = str(filename)[lenunpackdirectory:]
+        fileresult = {'fullfilename': str(scanjob.filename)}
+        if not scanjob.is_unpacking_root():
+            fileresult['parent'] = str(scanjob.parent)[lenunpackdirectory:]
+        relativefilename = str(scanjob.filename)[lenunpackdirectory:]
         fileresult['filename'] = relativefilename
 
-        # First perform all kinds of checks to prevent the file being
-        # scanned.
-
-        # Check if the file is a symbolic link.
-        if filename.is_symlink():
-            labels.append('symbolic link')
+        if scanjob.not_scannable():
+            labels.append(scanjob.get_type())
             fileresult['labels'] = list(set(labels))
+            if scanjob.get_type() == 'empty':
+                fileresult['filesize'] = 0
+                for i in emptyhashresults:
+                    fileresult[i] = emptyhashresults[i]
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
             continue
 
-        # Check if the file is a socket
-        if stat.S_ISSOCK(os.stat(filename).st_mode):
-            labels.append('socket')
-            fileresult['labels'] = list(set(labels))
-            resultqueue.put(fileresult)
-            scanfilequeue.task_done()
-            continue
-
-        # Check if the file is a FIFO
-        if stat.S_ISFIFO(os.stat(filename).st_mode):
-            labels.append('fifo')
-            fileresult['labels'] = list(set(labels))
-            resultqueue.put(fileresult)
-            scanfilequeue.task_done()
-            continue
-
-        # Check if the file is a block device
-        if stat.S_ISBLK(os.stat(filename).st_mode):
-            labels.append('block device')
-            fileresult['labels'] = list(set(labels))
-            resultqueue.put(fileresult)
-            scanfilequeue.task_done()
-            continue
-
-        # Check if the file is a character device
-        if stat.S_ISCHR(os.stat(filename).st_mode):
-            labels.append('character device')
-            fileresult['labels'] = list(set(labels))
-            resultqueue.put(fileresult)
-            scanfilequeue.task_done()
-            continue
-
-        # Check if the file is a directory
-        if filename.is_dir():
-            labels.append('directory')
-            fileresult['labels'] = list(set(labels))
-            resultqueue.put(fileresult)
-            scanfilequeue.task_done()
-            continue
-
-        filesize = os.stat(filename).st_size
-
-        # Don't scan an empty file
-        if filesize == 0:
-            labels.append('empty')
-            fileresult['labels'] = list(set(labels))
-            fileresult['filesize'] = 0
-            resultqueue.put(fileresult)
-            scanfilequeue.task_done()
-            for i in emptyhashresults:
-                fileresult[i] = emptyhashresults[i]
-            continue
+        filesize = os.stat(scanjob.filename).st_size
 
         # create an empty list of files that were
         # unpacked/carved from this file
@@ -249,10 +263,11 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # padding files don't need to be scanned
         if 'padding' in labels:
             needsunpacking = False
-            report = {}
-            report['offset'] = 0
-            report['size'] = filesize
-            report['files'] = []
+            report = {
+                'offset': 0,
+                'size': filesize,
+                'files': [],
+            }
             fileresult['unpackedfiles'].append(report)
         else:
             needsunpacking = True
@@ -277,7 +292,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         # Search the extension of the file in a list of known extensions.
         # https://www.iana.org/assignments/media-types/media-types.xhtml
-        mimeres = mimetypes.guess_type(filename.name)
+        mimeres = mimetypes.guess_type(scanjob.filename.name)
         if mimeres[0] is not None:
             fileresult['mimetype'] = mimeres[0]
             if mimeres[1] is not None:
@@ -301,8 +316,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # there is no clear magic header. A prime example is the
         # Android sparse data image format (system.new.dat and friends)
         for extension in bangsignatures.extensiontofunction:
-            if filename.name.lower().endswith(extension):
-                dataunpackdirectory = "%s-%s-%d" % (filename, bangsignatures.extensionprettyprint[extension], 1)
+            if scanjob.filename.name.lower().endswith(extension):
+                dataunpackdirectory = "%s-%s-%d" % (scanjob.filename, bangsignatures.extensionprettyprint[extension], 1)
                 os.mkdir(dataunpackdirectory)
 
                 # The result of the scan is a dictionary with the
@@ -316,7 +331,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 try:
                     # for these files the start offset of the
                     # files is always 0
-                    unpackresult = bangsignatures.extensiontofunction[extension](filename, 0, dataunpackdirectory, temporarydirectory)
+                    unpackresult = bangsignatures.extensiontofunction[extension](scanjob.filename, 0, dataunpackdirectory, temporarydirectory)
                 except AttributeError as ex:
                     os.rmdir(dataunpackdirectory)
                     continue
@@ -404,7 +419,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 for un in unpackresult['filesandlabels']:
                     (unpackedfile, unpackedlabel) = un
                     # add the data, plus possibly any label
-                    scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, filename, [], {}))
+                    j = ScanJob(pathlib.Path(unpackedfile), unpackedlabel, scanjob.filename, [], {})
+                    scanfilequeue.put(j)
                     report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
                 fileresult['unpackedfiles'].append(report)
 
@@ -421,7 +437,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             counterspersignature = {}
 
             # always open the file in binary mode
-            scanfile = open(filename, 'rb')
+            scanfile = open(scanjob.filename, 'rb')
             scanfile.seek(max(lastunpackedoffset, 0))
 
             # keep track of where in the file the starting
@@ -665,7 +681,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     else:
                         namecounter = counterspersignature[signature] + 1
                     while True:
-                        dataunpackdirectory = "%s-%s-%d" % (filename, bangsignatures.signatureprettyprint.get(signature, signature), namecounter)
+                        dataunpackdirectory = "%s-%s-%d" % (scanjob.filename, bangsignatures.signatureprettyprint.get(signature, signature), namecounter)
                         try:
                             os.mkdir(dataunpackdirectory)
                             break
@@ -693,7 +709,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     #
                     # * errors that were encountered
                     try:
-                        unpackresult = bangsignatures.signaturetofunction[signature](filename, offset, dataunpackdirectory, temporarydirectory)
+                        unpackresult = bangsignatures.signaturetofunction[signature](scanjob.filename, offset, dataunpackdirectory, temporarydirectory)
                     except AttributeError as e:
                         os.rmdir(dataunpackdirectory)
                         continue
@@ -791,7 +807,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
 
                         # add the data, plus possibly any label
-                        scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, filename, [], {}))
+                        j = ScanJob(pathlib.Path(unpackedfile), unpackedlabel, scanjob.filename, [], {})
+                        scanfilequeue.put(j)
 
                     fileresult['unpackedfiles'].append(report)
 
@@ -832,7 +849,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 if not (unpackedrange[0][0] == 0 and unpackedrange[0][1] == filesize):
                     synthesizedcounter = 1
                     startoffset = 0
-                    scanfile = open(filename, 'rb')
+                    scanfile = open(scanjob.filename, 'rb')
                     scanfile.seek(0)
                     # then try to see if the any useful data can be uncarved.
                     # Add an artifical entry for the end of the file
@@ -843,7 +860,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             #if u[0] - startoffset < synthesizedminimum:
                             #        startoffset = u[1]
                             #        continue
-                            dataunpackdirectory = "%s-%s-%d" % (filename, "synthesized", synthesizedcounter)
+                            dataunpackdirectory = "%s-%s-%d" % (scanjob.filename, "synthesized", synthesizedcounter)
                             try:
                                 os.mkdir(dataunpackdirectory)
                             except:
@@ -886,7 +903,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             startoffset = u[1]+1
 
                             # add the data, plus labels, to the queue
-                            scanfilequeue.put((pathlib.Path(outfilename), unpackedlabel, filename, [], {}))
+                            j = ScanJob(pathlib.Path(outfilename), unpackedlabel, scanjob.filename, [], {})
+                            scanfilequeue.put(j)
                         startoffset = u[1]
                     scanfile.close()
 
@@ -918,7 +936,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         istext = True
 
         # open the file and seek to the start
-        scanfile = open(filename, 'rb')
+        scanfile = open(scanjob.filename, 'rb')
         scanfile.seek(0)
 
         if usetlsh:
@@ -990,7 +1008,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 # finally try all the "text only" functions
                 for f in bangsignatures.textonlyfunctions:
                     namecounter = 1
-                    dataunpackdirectory = "%s-%s-%d" % (filename, f, namecounter)
+                    dataunpackdirectory = "%s-%s-%d" % (scanjob.filename, f, namecounter)
                     while True:
                         try:
                             os.mkdir(dataunpackdirectory)
@@ -1000,7 +1018,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     log(logging.DEBUG,"TRYING %s %s at offset: 0" % (relativefilename, f))
                     try:
-                        unpackresult = bangsignatures.textonlyfunctions[f](filename, 0, dataunpackdirectory, temporarydirectory)
+                        unpackresult = bangsignatures.textonlyfunctions[f](scanjob.filename, 0, dataunpackdirectory, temporarydirectory)
                     except Exception as e:
                         os.rmdir(dataunpackdirectory)
                         continue
@@ -1078,7 +1096,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
 
                         # add the data, plus possibly any label
-                        scanfilequeue.put((pathlib.Path(unpackedfile), unpackedlabel, filename, [], {}))
+                        j = ScanJob(pathlib.Path(unpackedfile), unpackedlabel, scanjob.filename, [], {})
+                        scanfilequeue.put(j)
 
                     fileresult['unpackedfiles'].append(report)
                     break
@@ -1092,7 +1111,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         if hashresults['sha256'] in checksumdict:
             duplicate = True
         else:
-            checksumdict[hashresults['sha256']] = filename
+            checksumdict[hashresults['sha256']] = scanjob.filename
         processlock.release()
 
         if not duplicate:
@@ -1109,7 +1128,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         runscan = False
                         break
                 if runscan:
-                    res = filefunc[1](filename, hashresults, dbconn, dbcursor, scanenvironment)
+                    res = filefunc[1](scanjob.filename, hashresults, dbconn, dbcursor, scanenvironment)
 
             # write a pickle with output data
             # The pickle contains:
@@ -1132,8 +1151,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 resultout[i] = hashresults[i]
 
             resultout['labels'] = labels
-            if extradata != {}:
-                resultout['extra'] = extradata
+            if scanjob.extradata != {}:
+                resultout['extra'] = scanjob.extradata
             picklefilename = resultsdirectory / ("%s.pickle" % hashresults['sha256'])
             if not picklefilename.exists():
                 pickleout = picklefilename.open('wb')
@@ -1322,7 +1341,8 @@ def main(argv):
         # Create a list of labels to pass around. The first element is
         # tagged as 'root', as it is the root of the unpacking tree.
         labels = ['root']
-        scanfilequeue.put((unpackdirectory / os.path.basename(checkfile), labels, None, [], {}))
+        j = ScanJob(unpackdirectory / os.path.basename(checkfile), labels, None, [], {})
+        scanfilequeue.put(j)
 
         # create a lock to control access to any shared data structures
         processlock = multiprocessing.Lock()
