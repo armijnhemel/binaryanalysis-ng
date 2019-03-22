@@ -31,16 +31,13 @@
 #
 # https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
-import sys
 import os
 import binascii
 import string
 import math
 import lzma
 import zlib
-import xml.dom
 import re
-import pathlib
 import datetime
 
 # some external packages that are needed
