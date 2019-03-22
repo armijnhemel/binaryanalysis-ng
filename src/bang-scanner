@@ -80,10 +80,6 @@ import tlsh
 maxsignaturelength = max(map(lambda x: len(x), bangsignatures.signatures.values()))
 maxsignaturesoffset = max(bangsignatures.signaturesoffset.values()) + maxsignaturelength
 
-tlshlabelsignore = set(['compressed', 'graphics', 'audio', 'archive',
-                        'filesystem', 'srec', 'ihex', 'padding',
-                        'database'])
-
 hash_algorithms = ['sha256', 'md5', 'sha1']
 
 def compute_empty_hash_results():
@@ -183,6 +179,135 @@ class FileResult:
         return self.fileresult
     def get_filename(self):
         return self.fileresult['filename']
+    def get_hash(self,algorithm='sha256'):
+        return self.fileresult[algorithm]
+
+class ScanEnvironment:
+    tlshlabelsignore = set([
+        'compressed', 'graphics', 'audio', 'archive',
+        'filesystem', 'srec', 'ihex', 'padding',
+        'database'])
+    def __init__(self, maxbytes, readsize, createbytecounter,
+            tlshmaximum, synthesizedminimum,logging, paddingname):
+            self.maxbytes = maxbytes
+            self.readsize = readsize
+            self.createbytecounter = createbytecounter
+            self.tlshmaximum = tlshmaximum
+            self.synthesizedminimum = synthesizedminimum
+            self.logging = logging
+            self.paddingname = paddingname
+    def get_readsize(self):
+        return self.readsize
+    def get_createbytecounter(self):
+        return self.createbytecounter
+    def get_tlsmaximum(self):
+        return self.tlshmaximum
+    def use_tlsh(self,filesize,labels):
+        return ( 256 <= filesize <= self.tlshmaximum ) and self.tlshlabelsignore.isdisjoint(set(labels))
+    def get_synthesizedminimum(self):
+        return self.synthesizedminimum
+    def get_paddingname(self):
+        return self.paddingname
+    def get_maxbytes(self):
+        return self.maxbytes
+
+
+class FileContentsComputer:
+    def __init__(self,read_size):
+        self.computers = []
+        self.read_size = read_size
+    def subscribe(self, input_computer):
+        self.computers.append(input_computer)
+    def read(self,filename):
+        if all(c.supports_memoryview for c in self.computers):
+            return self._read_with_memory_view(filename)
+        else:
+            return self._read_with_file_read(filename)
+    def _read_with_file_read(self,filename):
+        scanfile = open(filename, 'rb')
+        scanfile.seek(0)
+        for c in self.computers:
+            c.initialize()
+        data = scanfile.read(self.read_size)
+        while data != b'':
+            for c in self.computers:
+                c.compute(data)
+            data = scanfile.read(self.read_size)
+        for c in self.computers:
+            c.finalize()
+        scanfile.close()
+    def _read_with_memory_view(self,filename):
+        scanfile = open(filename, 'rb')
+        scanfile.seek(0)
+        for c in self.computers:
+            c.initialize()
+        scanbytes = bytearray(self.read_size)
+        bytes_read = scanfile.readinto(scanbytes)
+        while bytes_read != 0:
+            data = memoryview(scanbytes[:bytes_read])
+            for c in self.computers:
+                c.compute(data)
+            bytes_read = scanfile.readinto(scanbytes)
+        for c in self.computers:
+            c.finalize()
+        scanfile.close()
+
+class IsTextComputer:
+    supports_memoryview = True
+    def __init__(self):
+        self.is_text = True
+    def initialize(self):
+        pass
+    def compute(self,data):
+        self.is_text = self.is_text and \
+            all(chr(x) in string.printable for x in data)
+    def finalize(self):
+        pass
+    def get(self):
+        return self.is_text
+
+class TLSHComputer:
+    supports_memoryview = False
+    def __init__(self):
+        pass
+    def initialize(self):
+        self.tlsh_hash = tlsh.Tlsh()
+    def compute(self,data):
+        self.tlsh_hash.update(data)
+    def finalize(self):
+        self.tlsh_hash.final()
+    def get(self):
+        return self.tlsh_hash.hexdigest()
+
+class ByteCounter:
+    supports_memoryview = True
+    def __init__(self):
+        pass
+    def initialize(self):
+        self.bytecounter = collections.Counter(
+            dict([(i,0) for i in range(0, 256)]))
+    def compute(self,data):
+        self.bytecounter.update(data)
+    def finalize(self):
+        pass
+    def get(self):
+        return self.bytecounter
+
+class Hasher:
+    supports_memoryview = True
+    def __init__(self, hash_algorithms):
+        self.hash_algorithms = hash_algorithms
+    def initialize(self):
+        self.hashes = dict( [ (a, hashlib.new(a))
+            for a in self.hash_algorithms ] )
+    def compute(self,data):
+        for a in self.hashes:
+            self.hashes[a].update(data)
+    def finalize(self):
+        self.hash_results = dict( [ (algorithm,computed_hash.hexdigest())
+            for algorithm,computed_hash in self.hashes.items() ] )
+    def get(self):
+        return self.hash_results
 
 def log(level,message):
     global uselogging
@@ -224,20 +349,13 @@ def log(level,message):
 def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 unpackdirectory, resultsdirectory, temporarydirectory,
                 dbconn, dbcursor, bangfilefunctions, scanenvironment):
-    global tlshlabelsignore
     global emptyhashresults
+    global hash_algorithms
 
     lenunpackdirectory = len(str(unpackdirectory)) + 1
 
-    readsize = scanenvironment['readsize']
-    createbytecounter = scanenvironment['createbytecounter']
-    tlshmaximum = scanenvironment['tlshmaximum']
-    synthesizedminimum = scanenvironment['synthesizedminimum']
+    createbytecounter = scanenvironment.get_createbytecounter()
     # uselogging = scanenvironment['logging']
-    if 'paddingname' in scanenvironment:
-        paddingname = scanenvironment['paddingname']
-    else:
-        paddingname = None
 
     if dbconn is None:
         usedatabase = False
@@ -466,7 +584,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # keep track of where in the file the starting
             # point for scanning for signatures is
             offsetinfile = scanfile.tell()
-            scanbytesarray = bytearray(scanenvironment['maxbytes'])
+            scanbytesarray = bytearray(scanenvironment.get_maxbytes())
             bytesread = scanfile.readinto(scanbytesarray)
             scanbytes = memoryview(scanbytesarray)
 
@@ -880,7 +998,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         if startoffset == filesize:
                             break
                         if u[0] > startoffset:
-                            #if u[0] - startoffset < synthesizedminimum:
+                            #if u[0] - startoffset < scanenvironment.get_synthesizedminimum():
                             #        startoffset = u[1]
                             #        continue
                             dataunpackdirectory = "%s-%s-%d" % (scanjob.filename, "synthesized", synthesizedcounter)
@@ -907,7 +1025,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 paddingchar = checkbytes
                                 # now read more bytes
                                 while True:
-                                    scanbytes = outfile.read(scanenvironment['maxbytes'])
+                                    scanbytes = outfile.read(scanenvironment.get_maxbytes())
                                     if scanbytes == b'':
                                         break
                                     if scanbytes != len(scanbytes) * paddingchar:
@@ -918,8 +1036,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             outfile.close()
                             if ispadding:
                                 unpackedlabel.append('padding')
-                                if paddingname is not None:
-                                    newoutfilename = os.path.join(dataunpackdirectory, "%s-%s-%s" % (paddingname, hex(startoffset), hex(u[0]-1)))
+                                if scanenvironment.get_paddingname() is not None:
+                                    newoutfilename = os.path.join(dataunpackdirectory, "%s-%s-%s" % (scanenvironment.get_paddingname(), hex(startoffset), hex(u[0]-1)))
                                     shutil.move(outfilename, newoutfilename)
                                     outfilename = newoutfilename
 
@@ -931,94 +1049,34 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         startoffset = u[1]
                     scanfile.close()
 
+        #---------------------------------------
         # compute various checksums of the file
-        hashresults = {}
-        hashes = {}
 
-        usetlsh = False
-        if filesize >= 256 and filesize <= tlshmaximum:
-            usetlsh = True
+        fc = FileContentsComputer(scanenvironment.get_readsize())
+        hasher = Hasher(hash_algorithms)
+        fc.subscribe(hasher)
 
-        # not all files with TLSH should be looked at
-        if not tlshlabelsignore.isdisjoint(set(labels)):
-            usetlsh = False
+        if createbytecounter and 'padding' not in labels:
+            byte_counter = ByteCounter()
+            fc.subscribe(byte_counter)
 
-        for hashtocompute in ['sha256', 'md5', 'sha1']:
-            hashes[hashtocompute] = hashlib.new(hashtocompute)
+        is_text = IsTextComputer()
+        fc.subscribe(is_text)
 
-        if 'padding' in labels:
-            createbytecounter = False
+        if scanenvironment.use_tlsh(filesize,labels):
+            tlshc = TLSHComputer()
+            fc.subscribe(tlshc)
 
-        if createbytecounter:
-            bytecounter = collections.Counter()
-            for i in range(0, 256):
-                bytecounter[i] = 0
+        fc.read(scanjob.filename)
 
-        # keep track of whether or not a file consists of just
-        # ASCII characters. Initially assume it is text only.
-        istext = True
-
-        # open the file and seek to the start
-        scanfile = open(scanjob.filename, 'rb')
-        scanfile.seek(0)
-
-        if usetlsh:
-            # initialize a TLSH hash, even though it might
-            # not be used in the end.
-            tlshhash = tlsh.Tlsh()
-
-            # read all the data. Unfortunately TLSH currently does
-            # not support Python's buffer protocol so this is a bit
-            # inefficient.
-            hashingdata = scanfile.read(readsize)
-
-            while hashingdata != b'':
-                # check if any of the characters read is a
-                # non-ASCII character. If so, it is not a text file.
-                if istext:
-                    if list(filter(lambda x: chr(x) not in string.printable, hashingdata)) != []:
-                        istext = False
-
-                if createbytecounter:
-                    bytecounter.update(hashingdata)
-                for h in hashes:
-                    hashes[h].update(hashingdata)
-                tlshhash.update(hashingdata)
-                hashingdata = scanfile.read(readsize)
-            tlshhash.final()
-            hashes['tlsh'] = tlshhash
-        else:
-            # use Python's buffer protocol
-            scanbytesarray = bytearray(readsize)
-            bytesread = scanfile.readinto(scanbytesarray)
-            hashingdata = memoryview(scanbytesarray[:bytesread])
-            while bytesread != 0:
-                if istext:
-                    if list(filter(lambda x: chr(x) not in string.printable, hashingdata)) != []:
-                        istext = False
-                if createbytecounter:
-                    bytecounter.update(hashingdata)
-                for h in hashes:
-                    hashes[h].update(hashingdata)
-
-                bytesread = scanfile.readinto(scanbytesarray)
-                hashingdata = memoryview(scanbytesarray[:bytesread])
-
-        scanfile.close()
-
-        for f in hashes:
-            try:
-                hashresults[f] = hashes[f].hexdigest()
-            except:
-                # in case there is no valid hex digest for a hash
-                # for example TLSH for files with all NUL bytes
-                pass
-
+        hashresults = dict(hasher.get())
+        if scanenvironment.use_tlsh(filesize,labels):
+            hashresults['tlsh'] = tlshc.get()
         for hash_algorithm,hash_value in hashresults.items():
             fileresult.set_hashresult(hash_algorithm, hash_value)
 
         # store if files are text or binary
-        if istext:
+        if is_text.get():
             labels.append('text')
         else:
             labels.append('binary')
@@ -1131,10 +1189,12 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         duplicate = False
 
         processlock.acquire()
-        if hashresults['sha256'] in checksumdict:
+        # TODO: make checksumdict an object
+        # if hashresults['sha256'] in checksumdict:
+        if fileresult.get_hash() in checksumdict:
             duplicate = True
         else:
-            checksumdict[hashresults['sha256']] = scanjob.filename
+            checksumdict[fileresult.get_hash()] = scanjob.filename
         processlock.release()
 
         if not duplicate:
@@ -1160,10 +1220,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # * byte count
             # * any extra data that might have been passed around
             resultout = {}
-            if createbytecounter:
-                resultout['bytecount'] = sorted(bytecounter.items())
+            if createbytecounter and 'padding' not in labels:
+                resultout['bytecount'] = sorted(byte_counter.get().items())
                 # write a file with the distribution of bytes in the scanned file
-                bytescountfilename = resultsdirectory / ("%s.bytes" % hashresults['sha256'])
+                bytescountfilename = resultsdirectory / ("%s.bytes" % fileresult.get_hash())
                 if not bytescountfilename.exists():
                     bytesout = bytescountfilename.open('w')
                     for by in resultout['bytecount']:
@@ -1176,7 +1236,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             resultout['labels'] = labels
             if scanjob.extradata != {}:
                 resultout['extra'] = scanjob.extradata
-            picklefilename = resultsdirectory / ("%s.pickle" % hashresults['sha256'])
+            picklefilename = resultsdirectory / ("%s.pickle" % fileresult.get_hash('sha256'))
             if not picklefilename.exists():
                 pickleout = picklefilename.open('wb')
                 pickle.dump(resultout, pickleout)
@@ -1373,17 +1433,16 @@ def main(argv):
         checksumdict = processmanager.dict()
 
         # create a scan environment for the new scan
-        scanenvironment = {
+        scanenvironment = ScanEnvironment(
             # set the maximum size for the amount of bytes to be read
-            'maxbytes': maxbytes,
+            maxbytes = maxbytes,
             # set the size of bytes to be read during scanning hashes
-            'readsize': 10240,
-            'createbytecounter': options.createbytecounter,
-            'tlshmaximum': options.tlshmaximum,
-            'synthesizedminimum': 10,
-            'logging': uselogging,
-            'paddingname': 'PADDING',
-        }
+            readsize = 10240,
+            createbytecounter = options.createbytecounter,
+            tlshmaximum = options.tlshmaximum,
+            synthesizedminimum = 10,
+            logging = uselogging,
+            paddingname = 'PADDING')
 
         # create processes for unpacking archives
         for i in range(0, options.bangthreads):
