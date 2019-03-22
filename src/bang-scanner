@@ -154,6 +154,36 @@ class ScanJob:
                 self._is_directory() or \
                 self._is_empty()
 
+class FileResult:
+    def __init__(self,scanjob,lenunpackdirectory):
+        self.fileresult = {
+            'fullfilename': str(scanjob.filename)
+        }
+        if not scanjob.is_unpacking_root():
+            self.fileresult['parent'] = str(scanjob.parent)[lenunpackdirectory:]
+        relativefilename = str(scanjob.filename)[lenunpackdirectory:]
+        self.fileresult['filename'] = relativefilename
+    def set_labels(self,labels):
+        """set file result labels to a list without duplicates."""
+        self.fileresult['labels'] = list(set(labels))
+    def set_filesize(self,size):
+        self.fileresult['filesize'] = size
+    def set_hashresult(self,hashtype,value):
+        self.fileresult[hashtype] = value
+    def init_unpacked_files(self):
+        self.fileresult['unpackedfiles'] = []
+    def add_unpackedfile(self,report):
+        self.fileresult['unpackedfiles'].append(report)
+    def set_mimetype(self,mimeres):
+        if mimeres[0] is not None:
+            self.fileresult['mimetype'] = mimeres[0]
+            if mimeres[1] is not None:
+                self.fileresult['mimetype encoding'] = mimeres[1]
+    def get(self):
+        return self.fileresult
+    def get_filename(self):
+        return self.fileresult['filename']
+
 def log(level,message):
     global uselogging
     if uselogging:
@@ -227,19 +257,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # At minimum store:
         # * file name (relative to the top level unpack directory))
         # * labels
-        fileresult = {'fullfilename': str(scanjob.filename)}
-        if not scanjob.is_unpacking_root():
-            fileresult['parent'] = str(scanjob.parent)[lenunpackdirectory:]
-        relativefilename = str(scanjob.filename)[lenunpackdirectory:]
-        fileresult['filename'] = relativefilename
+        fileresult = FileResult(scanjob,lenunpackdirectory)
 
         if scanjob.not_scannable():
             labels.append(scanjob.get_type())
-            fileresult['labels'] = list(set(labels))
+            fileresult.set_labels(labels)
             if scanjob.get_type() == 'empty':
-                fileresult['filesize'] = 0
-                for i in emptyhashresults:
-                    fileresult[i] = emptyhashresults[i]
+                fileresult.set_filesize(0)
+                for hash_algorithm,hash_value in emptyhashresults.items():
+                    fileresult.set_hashresult(hash_algorithm,hash_value)
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
             continue
@@ -248,7 +274,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         # create an empty list of files that were
         # unpacked/carved from this file
-        fileresult['unpackedfiles'] = []
+        fileresult.init_unpacked_files()
 
         # store the last known position in the file with successfully
         # unpacked data
@@ -268,7 +294,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 'size': filesize,
                 'files': [],
             }
-            fileresult['unpackedfiles'].append(report)
+            fileresult.add_unpackedfile(report)
         else:
             needsunpacking = True
 
@@ -288,15 +314,12 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 'size': filesize,
                 'files': [],
             }
-            fileresult['unpackedfiles'].append(report)
+            fileresult.add_unpackedfile(report)
 
         # Search the extension of the file in a list of known extensions.
         # https://www.iana.org/assignments/media-types/media-types.xhtml
         mimeres = mimetypes.guess_type(scanjob.filename.name)
-        if mimeres[0] is not None:
-            fileresult['mimetype'] = mimeres[0]
-            if mimeres[1] is not None:
-                fileresult['mimetype encoding'] = mimeres[1]
+        fileresult.set_mimetype(mimeres)
 
         # Now try to unpack the file. There are a few categories:
         #
@@ -349,7 +372,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # log the file name, the extension and the
                     # error message for later analysis
                     log(logging.DEBUG,"FAIL %s known extension %s: %s" %
-                            (relativefilename, extension,
+                            (fileresult.get_filename(), extension,
                             unpackresult['error']['reason']))
 
                     # Fatal errors should lead to the program stopping
@@ -381,7 +404,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 # the file could be unpacked successfully,
                 # so log it as such.
                 log(logging.INFO,"SUCCESS %s %s at offset: 0, length: %d" %
-                        (relativefilename, extension, unpackresult['length']))
+                        (fileresult.get_filename(), extension, unpackresult['length']))
 
                 # store the location of where the successfully
                 # unpacked file ends (the offset is always 0  here).
@@ -422,7 +445,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     j = ScanJob(pathlib.Path(unpackedfile), unpackedlabel, scanjob.filename, [], {})
                     scanfilequeue.put(j)
                     report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
-                fileresult['unpackedfiles'].append(report)
+                fileresult.add_unpackedfile(report)
 
         # keep track of the signatures that were found, but
         # only for successful unpacking, or when no data could
@@ -692,7 +715,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # First log which identifier was found and
                     # at which offset for possible later analysis.
                     log(logging.DEBUG,"TRYING %s %s at offset: %d" %
-                            (relativefilename, signature, offset))
+                            (fileresult.get_filename(), signature, offset))
 
                     # The result of the scan is a dictionary containing:
                     #
@@ -718,7 +741,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         # No data could be unpacked for some reason,
                         # so log the status and error message
                         log(logging.DEBUG,"FAIL %s %s at offset: %d: %s" %
-                                (relativefilename, signature, offset,
+                                (fileresult.get_filename(), signature, offset,
                                     unpackresult['error']['reason']))
 
                         # unpacking error contains:
@@ -764,7 +787,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     # the file could be unpacked successfully,
                     # so log it as such.
                     log(logging.INFO,"SUCCESS %s %s at offset: %d, length: %d" %
-                            (relativefilename, signature, offset, unpackresult['length']))
+                            (fileresult.get_filename(), signature, offset, unpackresult['length']))
 
                     # store the name counter
                     counterspersignature[signature] = namecounter
@@ -810,7 +833,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         j = ScanJob(pathlib.Path(unpackedfile), unpackedlabel, scanjob.filename, [], {})
                         scanfilequeue.put(j)
 
-                    fileresult['unpackedfiles'].append(report)
+                    fileresult.add_unpackedfile(report)
 
                     # skip over all of the indexes that are now known
                     # to be false positives
@@ -991,8 +1014,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 # for example TLSH for files with all NUL bytes
                 pass
 
-        for i in hashresults:
-            fileresult[i] = hashresults[i]
+        for hash_algorithm,hash_value in hashresults.items():
+            fileresult.set_hashresult(hash_algorithm, hash_value)
 
         # store if files are text or binary
         if istext:
@@ -1016,7 +1039,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         except:
                             namecounter += 1
 
-                    log(logging.DEBUG,"TRYING %s %s at offset: 0" % (relativefilename, f))
+                    log(logging.DEBUG,"TRYING %s %s at offset: 0" % (fileresult.get_filename(), f))
                     try:
                         unpackresult = bangsignatures.textonlyfunctions[f](scanjob.filename, 0, dataunpackdirectory, temporarydirectory)
                     except Exception as e:
@@ -1027,7 +1050,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         # No data could be unpacked for some reason,
                         # so check the status first
                         log(logging.DEBUG,"FAIL %s %s at offset: %d: %s" %
-                                (relativefilename, f, 0, unpackresult['error']['reason']))
+                                (fileresult.get_filename(), f, 0, unpackresult['error']['reason']))
                         #print(s[1], unpackresult['error'])
                         #sys.stdout.flush()
                         # unpackerror contains:
@@ -1061,7 +1084,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         continue
 
                     log(logging.INFO,"SUCCESS %s %s at offset: %d, length: %d" %
-                            (relativefilename, f, 0, unpackresult['length']))
+                            (fileresult.get_filename(), f, 0, unpackresult['length']))
 
                     # store the labels for files that could be
                     # unpacked/verified completely.
@@ -1099,7 +1122,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         j = ScanJob(pathlib.Path(unpackedfile), unpackedlabel, scanjob.filename, [], {})
                         scanfilequeue.put(j)
 
-                    fileresult['unpackedfiles'].append(report)
+                    fileresult.add_unpackedfile(report)
                     break
 
         # run individual scans for files and store them in a separate
@@ -1162,10 +1185,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         else:
             labels.append('duplicate')
 
-        fileresult['labels'] = list(set(labels))
-        fileresult['filesize'] = filesize
-        # print(json.dumps(fileresult))
-        log(logging.INFO,json.dumps(fileresult))
+        fileresult.set_labels(labels)
+        fileresult.set_filesize(filesize)
+        log(logging.INFO,json.dumps(fileresult.get()))
         sys.stdout.flush()
 
         resultqueue.put(fileresult)
@@ -1402,9 +1424,13 @@ def main(argv):
         while True:
             try:
                 fileresult = resultqueue.get_nowait()
-                if 'filename' in fileresult:
-                    scantree[fileresult['filename']] = fileresult
+                try:
+                    scantree[fileresult.get_filename()] = fileresult.get()
                     resultqueue.task_done()
+                except KeyError:
+                    # TODO: this is never the case, is it?
+                    pass
+
             except queue.Empty as e:
                 # Queue is empty
                 break
