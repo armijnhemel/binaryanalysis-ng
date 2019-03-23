@@ -22,6 +22,8 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import math
+
 import bangunpack
 import bangfilesystems
 import bangmedia
@@ -391,6 +393,235 @@ textonlyfunctions = {
 def unpack_file_with_extension(filename, extension, unpack_directory, temporary_directory):
     return extensiontofunction[extension](filename, 0, unpack_directory, temporary_directory)
 
+# Prescan functions:
+#
+# first perform a few sanity checks to prevent
+# false positives for the built in unpack
+# functions in BANG, as function calls are
+# expensive so prevent them as much as possible.
+# For big files this can easily save hundreds of
+# thousands of function calls.
+#
+# Included here are checks for:
+#
+# * LZMA
+# * bzip2
+# * gzip
+# * BMP
+# * SGI images
+# * ICO
+# * PNG
+# * MNG
+# * TrueType and OpenType fonts
+# * terminfo
+
+def prescan_true(scanbytes, bytesread, filesize, offset, offsetinfile):
+    return True
+
+def prescan_lzma(scanbytes, bytesread, filesize, offset, offsetinfile):
+    # header of LZMA files is 13 bytes
+    if filesize - (offset + offsetinfile) < 13:
+        return False
+    # Only do this if there are enough bytes
+    # left to test on, otherwise let the sliding
+    # window do its work
+    if bytesread - offset >= 13:
+        # bytes 5 - 13 are the size field. It
+        # could be that it is undefined, but if
+        # it is defined then check if it is too
+        # large or too small.
+        if scanbytes[offset+5:offset+13] != b'\xff\xff\xff\xff\xff\xff\xff\xff':
+            lzmaunpackedsize = int.from_bytes(scanbytes[offset+5:offset+13], byteorder='little')
+            if lzmaunpackedsize == 0:
+                return False
+            # XZ Utils cannot unpack or create
+            # files with size of 256 GiB or more
+            if lzmaunpackedsize > 274877906944:
+                return False
+    return True
+
+def prescan_bzip2(scanbytes, bytesread, filesize, offset, offsetinfile):
+    # first some sanity checks consisting of
+    # header checks:
+    #
+    # * block size
+    # * magic
+    #
+    # Only do this if there are enough bytes
+    # left to test on, otherwise
+    # let the sliding window do its work
+    if bytesread - offset >= 10:
+        # the byte indicating the block size
+        # has to be in the range 1 - 9
+        try:
+            blocksize = int(scanbytes[offset+3])
+        except:
+            return False
+        # block size byte cannot be 0
+        if blocksize == 0:
+            return False
+        # then check if the file is a stream or
+        # not. If so, some more checks can be
+        # made (bzip2 source code decompress.c,
+        # line 224).
+        if scanbytes[offset+4] != b'\x17':
+            if scanbytes[offset+4:offset+10] != b'\x31\x41\x59\x26\x53\x59':
+                return False
+    return True
+
+def prescan_gzip(scanbytes, bytesread, filesize, offset, offsetinfile):
+    # first some sanity checks consisting of
+    # header checks.
+    #
+    # RFC 1952 http://www.zlib.org/rfc-gzip.html
+    # describes the flags, but omits the
+    # "encrytion" flag (bit 5)
+    #
+    # Python 3's zlib module does not support:
+    # * continuation of multi-part gzip (bit 2)
+    # * encrypt (bit 5)
+    #
+    # RFC 1952 says that bit 6 and 7 should not
+    # be set.
+    if bytesread - offset >= 4:
+        gzipbyte = scanbytes[offset+3]
+        if (gzipbyte >> 2 & 1) == 1:
+            # continuation of multi-part gzip
+            return False
+        if (gzipbyte >> 5 & 1) == 1:
+            # encrypted
+            return False
+        if (gzipbyte >> 6 & 1) == 1:
+            # reserved
+            return False
+        if (gzipbyte >> 7 & 1) == 1:
+            # reserved
+            return False
+    return True
+
+def prescan_bmp(scanbytes, bytesread, filesize, offset, offsetinfile):
+    # header of BMP files is 26 bytes
+    if filesize - (offset + offsetinfile) < 26:
+        return False
+    if bytesread - offset >= 6:
+        bmpsize = int.from_bytes(scanbytes[offset+2:offset+6], byteorder='little')
+        if offsetinfile + offset + bmpsize > filesize:
+            return False
+    return True
+
+def prescan_sgi(scanbytes, bytesread, filesize, offset, offsetinfile):
+    # header of SGI files is 512 bytes
+    if filesize - (offset + offsetinfile) < 512:
+        return False
+    if bytesread - offset > 512:
+        # storage format
+        if not (scanbytes[offset+2] == 0 or scanbytes[offset+2] == 1):
+            return False
+        # BPC
+        if not (scanbytes[offset+3] == 1 or scanbytes[offset+3] == 2):
+            return False
+        # dummy values, last 404 bytes of
+        # the header are 0x00
+        if not scanbytes[offset+108:offset+512] == b'\x00' * 404:
+            return False
+    return True
+
+def prescan_ico(scanbytes, bytesread, filesize, offset, offsetinfile):
+    # check the number of images
+    if filesize - (offset + offsetinfile) < 22:
+        return False
+    numberofimages = int.from_bytes(scanbytes[offset+4:offset+6], byteorder='little')
+    if numberofimages == 0:
+        return False
+
+    # images cannot be outside of the file
+    if offsetinfile + offset + 6 + numberofimages * 16 > filesize:
+        return False
+
+    # Then check the first image, as this
+    # is where most false positives happen.
+    imagesize = int.from_bytes(scanbytes[offset+14:offset+18], byteorder='little')
+    if imagesize == 0:
+        return False
+
+    # ICO cannot be outside of the file
+    imageoffset = int.from_bytes(scanbytes[offset+18:offset+22], byteorder='little')
+
+    if offsetinfile + offset + imageoffset + imagesize > filesize:
+        return False
+
+    return True
+
+def prescan_png(scanbytes, bytesread, filesize, offset, offsetinfile):
+    # minimum size of PNG files is 57 bytes
+    if filesize - (offsetinfile + offset) < 57:
+        return False
+    if bytesread - offset >= 13:
+        # bytes 8 - 11 are always the same in
+        # every PNG
+        if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x0d':
+            return False
+    return True
+
+def prescan_mng(scanbytes, bytesread, filesize, offset, offsetinfile):
+    # minimum size of MNG files is 52 bytes
+    if filesize - (offsetinfile + offset) < 52:
+        return False
+    if bytesread - offset >= 13:
+        # bytes 8 - 11 are always the same in
+        # every MNG
+        if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x1c':
+            return False
+    return True
+
+def prescan_truetype(scanbytes, bytesread, filesize, offset, offsetinfile):
+    if filesize - (offsetinfile + offset) < 12:
+        return False
+    # two simple sanity checks: number of
+    # tables and search range
+    numtables = int.from_bytes(scanbytes[offset+4:offset+6], byteorder='big')
+
+    if numtables == 0:
+        return False
+
+    # then the search range
+    searchrange = int.from_bytes(scanbytes[offset+6:offset+8], byteorder='big')
+    if pow(2, int(math.log2(numtables)))*16 != searchrange:
+        return False
+    return True
+
+def prescan_terminfo(scanbytes, bytesread, filesize, offset, offsetinfile):
+    if filesize - (offsetinfile + offset) < 12:
+        return False
+
+    # simple sanity check: names section
+    # size cannot be < 2 or > 128
+    namessectionsize = int.from_bytes(scanbytes[offset+2:offset+4], byteorder='little')
+
+    if namessectionsize < 2 or namessectionsize > 128:
+        return False
+
+    return True
+
+prescan_functions = {
+    'lzma_var1': prescan_lzma,
+    'lzma_var2': prescan_lzma,
+    'lzma_var3': prescan_lzma,
+    'bzip2': prescan_bzip2,
+    'gzip': prescan_gzip,
+    'bmp' : prescan_bmp,
+    'sgi' : prescan_sgi,
+    'ico' : prescan_ico,
+    'png' : prescan_png,
+    'mng' : prescan_mng,
+    'truetype' : prescan_truetype,
+    'opentype' : prescan_truetype,
+    'terminfo' : prescan_terminfo,
+}
+
+def prescan(s,scanbytes, bytesread, filesize, offset, offsetinfile):
+    f = prescan_functions.get(s, prescan_true)
+    return f(scanbytes, bytesread, filesize, offset, offsetinfile)
 
 # license references extracted from a Fedora 28 system:
 # $ cd /usr/share/doc

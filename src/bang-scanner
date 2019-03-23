@@ -36,7 +36,6 @@ import tempfile
 import re
 import hashlib
 import string
-import math
 import pickle
 import json
 import inspect
@@ -637,189 +636,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                     continue
                             offset = r.start()
 
-                            # first perform a few sanity checks to prevent
-                            # false positives for the built in unpack
-                            # functions in BANG, as function calls are
-                            # expensive so prevent them as much as possible.
-                            # For big files this can easily save hundreds of
-                            # thousands of function calls.
-                            #
-                            # Included here are checks for:
-                            #
-                            # * LZMA
-                            # * bzip2
-                            # * gzip
-                            # * BMP
-                            # * SGI images
-                            # * ICO
-                            # * PNG
-                            # * MNG
-                            # * TrueType and OpenType fonts
-                            # * terminfo
-                            if s in ['lzma_var1', 'lzma_var2', 'lzma_var3']:
-                                # header of LZMA files is 13 bytes
-                                if filesize - (offset + offsetinfile) < 13:
-                                    continue
-                                # Only do this if there are enough bytes
-                                # left to test on, otherwise let the sliding
-                                # window do its work
-                                if bytesread - offset >= 13:
-                                    # bytes 5 - 13 are the size field. It
-                                    # could be that it is undefined, but if
-                                    # it is defined then check if it is too
-                                    # large or too small.
-                                    if scanbytes[offset+5:offset+13] != b'\xff\xff\xff\xff\xff\xff\xff\xff':
-                                        lzmaunpackedsize = int.from_bytes(scanbytes[offset+5:offset+13], byteorder='little')
-                                        if lzmaunpackedsize == 0:
-                                            continue
-
-                                        # XZ Utils cannot unpack or create
-                                        # files with size of 256 GiB or more
-                                        if lzmaunpackedsize > 274877906944:
-                                            continue
-                            elif s == 'bzip2':
-                                # first some sanity checks consisting of
-                                # header checks:
-                                #
-                                # * block size
-                                # * magic
-                                #
-                                # Only do this if there are enough bytes
-                                # left to test on, otherwise
-                                # let the sliding window do its work
-                                if bytesread - offset >= 10:
-                                    # the byte indicating the block size
-                                    # has to be in the range 1 - 9
-                                    try:
-                                        blocksize = int(scanbytes[offset+3])
-                                    except:
-                                        continue
-                                    # block size byte cannot be 0
-                                    if blocksize == 0:
-                                        continue
-                                    # then check if the file is a stream or
-                                    # not. If so, some more checks can be
-                                    # made (bzip2 source code decompress.c,
-                                    # line 224).
-                                    if scanbytes[offset+4] != b'\x17':
-                                        if scanbytes[offset+4:offset+10] != b'\x31\x41\x59\x26\x53\x59':
-                                            continue
-                            elif s == 'gzip':
-                                # first some sanity checks consisting of
-                                # header checks.
-                                #
-                                # RFC 1952 http://www.zlib.org/rfc-gzip.html
-                                # describes the flags, but omits the
-                                # "encrytion" flag (bit 5)
-                                #
-                                # Python 3's zlib module does not support:
-                                # * continuation of multi-part gzip (bit 2)
-                                # * encrypt (bit 5)
-                                #
-                                # RFC 1952 says that bit 6 and 7 should not
-                                # be set.
-                                if bytesread - offset >= 4:
-                                    gzipbyte = scanbytes[offset+3]
-                                    if (gzipbyte >> 2 & 1) == 1:
-                                        # continuation of multi-part gzip
-                                        continue
-                                    if (gzipbyte >> 5 & 1) == 1:
-                                        # encrypted
-                                        continue
-                                    if (gzipbyte >> 6 & 1) == 1:
-                                        # reserved
-                                        continue
-                                    if (gzipbyte >> 7 & 1) == 1:
-                                        # reserved
-                                        continue
-                            elif s == 'bmp':
-                                # header of BMP files is 26 bytes
-                                if filesize - (offset + offsetinfile) < 26:
-                                    continue
-                                if bytesread - offset >= 6:
-                                    bmpsize = int.from_bytes(scanbytes[offset+2:offset+6], byteorder='little')
-                                    if offsetinfile + offset + bmpsize > filesize:
-                                        continue
-                            elif s == 'sgi':
-                                # header of SGI files is 512 bytes
-                                if filesize - (offset + offsetinfile) < 512:
-                                    continue
-                                if bytesread - offset > 512:
-                                    # storage format
-                                    if not (scanbytes[offset+2] == 0 or scanbytes[offset+2] == 1):
-                                        continue
-                                    # BPC
-                                    if not (scanbytes[offset+3] == 1 or scanbytes[offset+3] == 2):
-                                        continue
-                                    # dummy values, last 404 bytes of
-                                    # the header are 0x00
-                                    if not scanbytes[offset+108:offset+512] == b'\x00' * 404:
-                                        continue
-                            elif s == 'ico':
-                                # check the number of images
-                                if filesize - (offset + offsetinfile) < 22:
-                                    continue
-                                numberofimages = int.from_bytes(scanbytes[offset+4:offset+6], byteorder='little')
-                                if numberofimages == 0:
-                                    continue
-
-                                # images cannot be outside of the file
-                                if offsetinfile + offset + 6 + numberofimages * 16 > filesize:
-                                    continue
-
-                                # Then check the first image, as this
-                                # is where most false positives happen.
-                                imagesize = int.from_bytes(scanbytes[offset+14:offset+18], byteorder='little')
-                                if imagesize == 0:
-                                    continue
-
-                                # ICO cannot be outside of the file
-                                imageoffset = int.from_bytes(scanbytes[offset+18:offset+22], byteorder='little')
-
-                                if offsetinfile + offset + imageoffset + imagesize > filesize:
-                                    continue
-                            elif s == 'png':
-                                # minimum size of PNG files is 57 bytes
-                                if filesize - (offsetinfile + offset) < 57:
-                                    continue
-                                if bytesread - offset >= 13:
-                                    # bytes 8 - 11 are always the same in
-                                    # every PNG
-                                    if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x0d':
-                                        continue
-                            elif s == 'mng':
-                                # minimum size of MNG files is 52 bytes
-                                if filesize - (offsetinfile + offset) < 52:
-                                    continue
-                                if bytesread - offset >= 13:
-                                    # bytes 8 - 11 are always the same in
-                                    # every MNG
-                                    if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x1c':
-                                        continue
-                            elif s == 'truetype' or s == 'opentype':
-                                if filesize - (offsetinfile + offset) < 12:
-                                    continue
-                                # two simple sanity checks: number of
-                                # tables and search range
-                                numtables = int.from_bytes(scanbytes[offset+4:offset+6], byteorder='big')
-
-                                if numtables == 0:
-                                    continue
-
-                                # then the search range
-                                searchrange = int.from_bytes(scanbytes[offset+6:offset+8], byteorder='big')
-                                if pow(2, int(math.log2(numtables)))*16 != searchrange:
-                                    continue
-                            elif s == 'terminfo':
-                                if filesize - (offsetinfile + offset) < 12:
-                                    continue
-
-                                # simple sanity check: names section
-                                # size cannot be < 2 or > 128
-                                namessectionsize = int.from_bytes(scanbytes[offset+2:offset+4], byteorder='little')
-
-                                if namessectionsize < 2 or namessectionsize > 128:
-                                    continue
+                            if not bangsignatures.prescan(s, scanbytes, bytesread, filesize, offset, offsetinfile):
+                                continue
 
                             # default: store a tuple (offset, signature name)
                             if s in bangsignatures.signaturesoffset:
@@ -830,11 +648,11 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 # For each of the found candidates see if any
                 # data can be unpacked. Process these in the order
                 # in which the signatures were found in the file.
-                for s in sorted(candidateoffsetsfound):
+                for offset_with_signature in sorted(candidateoffsetsfound):
                     # skip offsets which are not useful to look at
                     # for example because the data has already been
                     # unpacked.
-                    (offset, signature) = s
+                    (offset, signature) = offset_with_signature
                     if offset < unpacker.last_unpacked_offset():
                         continue
 
@@ -843,7 +661,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     if signature not in bangsignatures.signaturetofunction:
                         continue
 
-                    signaturesfound.append(s)
+                    signaturesfound.append(offset_with_signature)
 
                     # always change to the declared unpacking directory
                     os.chdir(unpackdirectory)
