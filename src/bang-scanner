@@ -323,7 +323,9 @@ class Hasher:
 
 class Unpacker:
     def __init__(self):
+        # Invariant: lastunpackedoffset ==
         # last known position in file with successfully unpacked data
+        # everything before this offset is unpacked and identified.
         self.lastunpackedoffset = -1
         self.unpackedrange = []
         self.needsunpacking = True
@@ -391,12 +393,24 @@ class Unpacker:
         self.scanbytesarray = bytearray(maxbytes)
         self.scanbytes = memoryview(self.scanbytesarray)
 
+    def get_current_offset_in_file(self):
+        return self.scanfile.tell()
+
     def read_chunk_from_scanfile(self):
-        self.offsetinfile = self.scanfile.tell()
+        self.offsetinfile = self.get_current_offset_in_file()
         self.bytesread = self.scanfile.readinto(self.scanbytesarray)
 
     def close_scanfile(self):
         self.scanfile.close()
+
+    def seek_to_find_next_signature(self):
+        if self.scanfile.tell() < self.lastunpackedoffset:
+            # skip data that has already been unpacked
+            self.scanfile.seek(self.lastunpackedoffset)
+        else:
+            # use an overlap, i.e. go back
+            self.scanfile.seek(-maxsignaturesoffset, 1)
+
 
     def find_offsets_for_signature(self,s,filesize):
         offsets = set()
@@ -655,18 +669,11 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # directory names
             counterspersignature = {}
 
-            # always open the file in binary mode
             unpacker.open_scanfile(scanjob.filename, scanenvironment.get_maxbytes())
-            # scanfile = open(scanjob.filename, 'rb')
-            # scanfile.seek(max(unpacker.last_unpacked_offset(), 0))
-
-            # keep track of where in the file the starting
-            # point for scanning for signatures is
-            # offsetinfile = unpacker.scanfile.tell()
             unpacker.read_chunk_from_scanfile()
 
             # search the data for known signatures in the data that was read
-            # TODO: check why this is a loop
+            # TODO: check why this is a while true loop
             while True:
                 candidateoffsetsfound = set()
                 for s in bangsignatures.signatures:
@@ -720,14 +727,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                                 (fileresult.get_filename(), signature, offset,
                                     unpackresult['error']['reason']))
 
-                        # unpacking error contains:
-                        #
-                        # * offset in the file where the error occured
-                        #   (integer)
-                        # * error message (human readable)
-                        # * flag to indicate if it is a fatal error
-                        #   (boolean)
-                        #
                         # Fatal errors should lead to the program
                         # stopping execution. Ignored for now.
                         if unpackresult['error']['fatal']:
@@ -737,8 +736,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         continue
 
                     # first rewrite the offset, if needed
-                    if 'offset' in unpackresult:
-                        offset = unpackresult['offset']
+                    offset = unpackresult.get('offset',offset)
 
                     # the file could be unpacked successfully,
                     # so log it as such.
@@ -757,7 +755,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         # files were unpacked, likely because the whole
                         # file was the result and didn't contain any
                         # files (i.e. it was not a container file or
-                        # compresed file).
+                        # compressed file).
                         if unpackresult['filesandlabels'] == []:
                             unpacker.remove_data_unpack_directory()
 
@@ -779,12 +777,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     if unpackresult['filesandlabels'] != []:
                         report['unpackdirectory'] = unpacker.get_data_unpack_directory()[lenunpackdirectory:]
 
-                    for un in unpackresult['filesandlabels']:
-                        (unpackedfile, unpackedlabel) = un
-
+                    for unpackedfile,unpackedlabel in unpackresult['filesandlabels']:
                         # TODO: make relative wrt unpackdir
                         report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
-
                         # add the data, plus possibly any label
                         j = ScanJob(pathlib.Path(unpackedfile), unpackedlabel, scanjob.filename, [], {})
                         scanfilequeue.put(j)
@@ -799,20 +794,11 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     unpacker.set_needs_unpacking(False)
 
                 # check if the end of file has been reached, if so exit
-                if unpacker.scanfile.tell() == filesize:
+                if unpacker.get_current_offset_in_file() == filesize:
                     break
 
-                # see where to start reading next.
-                if unpacker.scanfile.tell() < unpacker.last_unpacked_offset():
-                    # If data has already been unpacked it can be skipped.
-                    unpacker.scanfile.seek(unpacker.last_unpacked_offset())
-                else:
-                    # use an overlap
-                    unpacker.scanfile.seek(-maxsignaturesoffset, 1)
-
-                # offsetinfile = unpacker.scanfile.tell()
+                unpacker.seek_to_find_next_signature()
                 unpacker.read_chunk_from_scanfile()
-                # bytesread = unpacker.scanfile.readinto(scanbytesarray)
 
             unpacker.close_scanfile()
 

@@ -166,6 +166,15 @@ signaturesoffset = {
 # Unsucccesful scans contain:
 #
 # * errors that were encountered
+#
+# unpacking error contains:
+#
+# * offset in the file where the error occured
+#   (integer)
+# * error message (human readable)
+# * flag to indicate if it is a fatal error
+#   (boolean)
+#
 
 
 # keep a list of signatures to the (built in) functions
