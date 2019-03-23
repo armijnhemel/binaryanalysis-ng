@@ -102,7 +102,8 @@ class ScanJob:
         self.propagatedlabels = propagatedlabels
         self.extradata = extradata
         self.type = None
-        self.stat = None
+        self._stat_file()
+        self.filesize = self.stat.st_size
     def is_unpacking_root(self):
         # assumption: there is no situation where parent = None and 'root' not in labels?
         return self.parent is None
@@ -140,7 +141,6 @@ class ScanJob:
         if r: self.type = 'empty'
         return r
     def not_scannable(self):
-        self._stat_file()
         return self._is_symlink() or \
                 self._is_socket() or \
                 self._is_fifo() or \
@@ -148,6 +148,21 @@ class ScanJob:
                 self._is_character_device() or \
                 self._is_directory() or \
                 self._is_empty()
+
+    def try_unpack_padding_file(self,unpacker,fileresult):
+        # padding files don't need to be scanned
+        if 'padding' in self.labels:
+            unpacker.set_needs_unpacking(False)
+            report = {
+                'offset': 0,
+                'size': self.filesize,
+                'files': [],
+            }
+            fileresult.add_unpackedfile(report)
+        else:
+            unpacker.set_needs_unpacking(True)
+
+
 
 class FileResult:
     def __init__(self,scanjob,lenunpackdirectory):
@@ -442,7 +457,7 @@ class Unpacker:
     def try_unpack_file_for_signatures(self,filename):
         pass
 
-    def file_unpacked(self, unpackresult):
+    def file_unpacked(self, unpackresult,filesize):
         # store the location of where the successfully
         # unpacked file ends (the offset is always 0  here).
         self.lastunpackedoffset = unpackresult['length']
@@ -523,7 +538,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         scanjob = scanfilequeue.get(timeout=86400)
         if not scanjob: continue
         # (filename, labels, parent, propagatedlabels, extradata) = scanfilequeue.get(timeout=86400)
-        labels = scanjob.labels
 
         # store the results of the file
         # At minimum store:
@@ -532,8 +546,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         fileresult = FileResult(scanjob,lenunpackdirectory)
 
         if scanjob.not_scannable():
-            labels.append(scanjob.get_type())
-            fileresult.set_labels(labels)
+            scanjob.labels.append(scanjob.get_type())
+            fileresult.set_labels(scanjob.labels)
             if scanjob.get_type() == 'empty':
                 fileresult.set_filesize(0)
                 for hash_algorithm,hash_value in emptyhashresults.items():
@@ -542,7 +556,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             scanfilequeue.task_done()
             continue
 
-        filesize = os.stat(scanjob.filename).st_size
+        # filesize = os.stat(scanjob.filename).st_size
 
         # create an empty list of files that were
         # unpacked/carved from this file
@@ -551,34 +565,24 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         unpacker = Unpacker()
 
         # remove any duplicate labels
-        labels = list(set(labels))
+        scanjob.labels = list(set(scanjob.labels))
 
-        # padding files don't need to be scanned
-        if 'padding' in labels:
-            unpacker.set_needs_unpacking(False)
-            report = {
-                'offset': 0,
-                'size': filesize,
-                'files': [],
-            }
-            fileresult.add_unpackedfile(report)
-        else:
-            unpacker.set_needs_unpacking(True)
+        scanjob.try_unpack_padding_file(unpacker,fileresult)
 
         # check for a dummy value to see if the file has already been
         # unpacked and if so, simply report and skip the unpacking, and
         # move on to just running the per file scans.
-        if 'unpacked' in labels:
-            labels.remove('unpacked')
+        if 'unpacked' in scanjob.labels:
+            scanjob.labels.remove('unpacked')
             unpacker.set_needs_unpacking(False)
-            unpacker.set_last_unpacked_offset(filesize)
-            unpacker.append_unpacked_range(0, filesize)
+            unpacker.set_last_unpacked_offset(scanjob.filesize)
+            unpacker.append_unpacked_range(0, scanjob.filesize)
 
             # store lot of information about the unpacked files
             # TODO: add more information, such as signature
             report = {
                 'offset': 0,
-                'size': filesize,
+                'size': scanjob.filesize,
                 'files': [],
             }
             fileresult.add_unpackedfile(report)
@@ -632,12 +636,12 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                             (fileresult.get_filename(), extension,
                             unpackresult['length']))
 
-                    unpacker.file_unpacked(unpackresult)
+                    unpacker.file_unpacked(unpackresult,scanjob.filesize)
 
                     # store any labels that were passed as a result and
                     # add them to the current list of labels
-                    labels += unpackresult['labels']
-                    labels = list(set(labels))
+                    scanjob.labels += unpackresult['labels']
+                    scanjob.labels = list(set(scanjob.labels))
 
                     # store lot of information about the unpacked files
                     report = {
@@ -677,7 +681,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             while True:
                 candidateoffsetsfound = set()
                 for s in bangsignatures.signatures:
-                    offsets = unpacker.find_offsets_for_signature(s,filesize)
+                    offsets = unpacker.find_offsets_for_signature(s,scanjob.filesize)
                     candidateoffsetsfound = candidateoffsetsfound.union(offsets)
 
                 # For each of the found candidates see if any
@@ -748,9 +752,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     # store the labels for files that could be
                     # unpacked/verified completely.
-                    if offset == 0 and unpackresult['length'] == filesize:
-                        labels += unpackresult['labels']
-                        labels = list(set(labels))
+                    if offset == 0 and unpackresult['length'] == scanjob.filesize:
+                        scanjob.labels += unpackresult['labels']
+                        scanjob.labels = list(set(scanjob.labels))
                         # if unpackedfilesandlabels is empty, then no
                         # files were unpacked, likely because the whole
                         # file was the result and didn't contain any
@@ -794,7 +798,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     unpacker.set_needs_unpacking(False)
 
                 # check if the end of file has been reached, if so exit
-                if unpacker.get_current_offset_in_file() == filesize:
+                if unpacker.get_current_offset_in_file() == scanjob.filesize:
                     break
 
                 unpacker.seek_to_find_next_signature()
@@ -812,15 +816,15 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             if unpacker.unpacked_range() != []:
                 # first check if the first entry covers the entire file
                 # because if so there is nothing to do
-                if unpacker.unpacked_range()[0] != (0,filesize):
+                if unpacker.unpacked_range()[0] != (0,scanjob.filesize):
                     synthesizedcounter = 1
                     startoffset = 0
                     scanfile = open(scanjob.filename, 'rb')
                     scanfile.seek(0)
                     # then try to see if the any useful data can be uncarved.
                     # Add an artifical entry for the end of the file
-                    for u in unpacker.unpacked_range() + [(filesize+1, filesize+1)]:
-                        if startoffset == filesize:
+                    for u in unpacker.unpacked_range() + [(scanjob.filesize+1, scanjob.filesize+1)]:
+                        if startoffset == scanjob.filesize:
                             break
                         if u[0] > startoffset:
                             #if u[0] - startoffset < scanenvironment.get_synthesizedminimum():
@@ -882,36 +886,36 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         hasher = Hasher(hash_algorithms)
         fc.subscribe(hasher)
 
-        if createbytecounter and 'padding' not in labels:
+        if createbytecounter and 'padding' not in scanjob.labels:
             byte_counter = ByteCounter()
             fc.subscribe(byte_counter)
 
         is_text = IsTextComputer()
         fc.subscribe(is_text)
 
-        if scanenvironment.use_tlsh(filesize,labels):
+        if scanenvironment.use_tlsh(scanjob.filesize,scanjob.labels):
             tlshc = TLSHComputerMemoryView()
             fc.subscribe(tlshc)
 
         fc.read(scanjob.filename)
 
         hashresults = dict(hasher.get())
-        if scanenvironment.use_tlsh(filesize,labels):
+        if scanenvironment.use_tlsh(scanjob.filesize,scanjob.labels):
             hashresults['tlsh'] = tlshc.get()
         for hash_algorithm,hash_value in hashresults.items():
             fileresult.set_hashresult(hash_algorithm, hash_value)
 
         # store if files are text or binary
         if is_text.get():
-            labels.append('text')
+            scanjob.labels.append('text')
         else:
-            labels.append('binary')
+            scanjob.labels.append('binary')
 
         # no files were unpacked, so try to scan the entire file.
         # This happens for example with text only files like base64
         # or Intel hex (all ASCII only).
         if unpacker.needs_unpacking():
-            if 'text' in labels and unpacker.unpacked_range() == []:
+            if 'text' in scanjob.labels and unpacker.unpacked_range() == []:
                 # finally try all the "text only" functions
                 for f in bangsignatures.textonlyfunctions:
                     namecounter = 1
@@ -972,9 +976,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
                     # store the labels for files that could be
                     # unpacked/verified completely.
-                    if unpackresult['length'] == filesize:
-                        labels += unpackresult['labels']
-                        labels = list(set(labels))
+                    if unpackresult['length'] == scanjob.filesize:
+                        scanjob.labels += unpackresult['labels']
+                        scanjob.labels = list(set(scanjob.labels))
                         # if unpackedfilesandlabels is empty, then no
                         # files were unpacked, likely because the whole
                         # file was the result and didn't contain any
@@ -1032,7 +1036,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 runscan = True
                 ignorelist = set(b[1])
                 filefunc = b[0]
-                for label in labels:
+                for label in scanjob.labels:
                     if label in ignorelist:
                         runscan = False
                         break
@@ -1046,7 +1050,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # * byte count
             # * any extra data that might have been passed around
             resultout = {}
-            if createbytecounter and 'padding' not in labels:
+            if createbytecounter and 'padding' not in scanjob.labels:
                 resultout['bytecount'] = sorted(byte_counter.get().items())
                 # write a file with the distribution of bytes in the scanned file
                 bytescountfilename = resultsdirectory / ("%s.bytes" % fileresult.get_hash())
@@ -1059,7 +1063,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             for i in hashresults:
                 resultout[i] = hashresults[i]
 
-            resultout['labels'] = labels
+            resultout['labels'] = scanjob.labels
             if scanjob.extradata != {}:
                 resultout['extra'] = scanjob.extradata
             picklefilename = resultsdirectory / ("%s.pickle" % fileresult.get_hash('sha256'))
@@ -1069,10 +1073,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 pickleout.close()
 
         else:
-            labels.append('duplicate')
+            scanjob.labels.append('duplicate')
 
-        fileresult.set_labels(labels)
-        fileresult.set_filesize(filesize)
+        fileresult.set_labels(scanjob.labels)
+        fileresult.set_filesize(scanjob.filesize)
         log(logging.INFO,json.dumps(fileresult.get()))
         sys.stdout.flush()
 
