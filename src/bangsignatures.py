@@ -359,6 +359,9 @@ extensionprettyprint = {
     'trans.tbl': 'trans.tbl',
 }
 
+def matches_file_pattern(filename,extension):
+    return filename.name.lower().endswith(extension)
+
 # certain unpacking functions if the whole file is text
 textonlyfunctions = {
     'ihex': bangunpack.unpackIHex,
@@ -368,6 +371,25 @@ textonlyfunctions = {
     'base64': bangunpack.unpackBase64,
     'script': bangunpack.unpackScript,
 }
+
+# The result of the scan is a dictionary with the
+# following data, depending on the status of the scan
+# * the status of the scan (successful or not)
+# * the length of the data
+# * list of files that were unpacked, if any, plus
+#   labels for the unpacked files
+# * labels that were added, if any
+# * errors that were encountered, if any
+#
+# The unpack errror returned has more information:
+#
+# * offset in the file where the error occured
+#   (integer)
+# * error message (human readable)
+# * flag to indicate if it is a fatal error
+#   (boolean)
+def unpack_file_with_extension(filename, extension, unpack_directory, temporary_directory):
+    return extensiontofunction[extension](filename, 0, unpack_directory, temporary_directory)
 
 
 # license references extracted from a Fedora 28 system:
