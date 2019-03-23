@@ -151,6 +151,23 @@ signaturesoffset = {
     'minix_1l': 0x410
 }
 
+
+# The result of the scan is a dictionary containing:
+#
+# * the status of the scan (successful or not)
+#
+# Successful scans also contain:
+#
+# * the length of the data
+# * list of files that were unpacked, if any, plus
+#   labels for the unpacked files
+# * labels that were added, if any
+#
+# Unsucccesful scans contain:
+#
+# * errors that were encountered
+
+
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
     'webp': bangmedia.unpackWebP,

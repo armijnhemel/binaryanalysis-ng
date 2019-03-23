@@ -707,20 +707,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                     log(logging.DEBUG,"TRYING %s %s at offset: %d" %
                             (fileresult.get_filename(), signature, offset))
 
-                    # The result of the scan is a dictionary containing:
-                    #
-                    # * the status of the scan (successful or not)
-                    #
-                    # Successful scans also contain:
-                    #
-                    # * the length of the data
-                    # * list of files that were unpacked, if any, plus
-                    #   labels for the unpacked files
-                    # * labels that were added, if any
-                    #
-                    # Unsucccesful scans contain:
-                    #
-                    # * errors that were encountered
                     try:
                         unpackresult = bangsignatures.signaturetofunction[signature](scanjob.filename, offset, unpacker.get_data_unpack_directory(), temporarydirectory)
                     except AttributeError as e:
