@@ -279,6 +279,19 @@ class TLSHComputer:
     def get(self):
         return self.tlsh_hash.hexdigest()
 
+class TLSHComputerMemoryView:
+    supports_memoryview = True
+    def __init__(self):
+        pass
+    def initialize(self):
+        self.tlsh_hash = tlsh.Tlsh()
+    def compute(self,data):
+        self.tlsh_hash.update(data.tobytes())
+    def finalize(self):
+        self.tlsh_hash.final()
+    def get(self):
+        return self.tlsh_hash.hexdigest()
+
 class ByteCounter:
     supports_memoryview = True
     def __init__(self):
@@ -1064,7 +1077,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         fc.subscribe(is_text)
 
         if scanenvironment.use_tlsh(filesize,labels):
-            tlshc = TLSHComputer()
+            tlshc = TLSHComputerMemoryView()
             fc.subscribe(tlshc)
 
         fc.read(scanjob.filename)
