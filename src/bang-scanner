@@ -157,6 +157,7 @@ class ScanJob:
                 fileresult.set_filesize(0)
                 for hash_algorithm,hash_value in emptyhashresults.items():
                     fileresult.set_hashresult(hash_algorithm,hash_value)
+            self.labels = list(set(self.labels))
             return True
         return False
 
@@ -193,6 +194,8 @@ class ScanJob:
             fileresult.add_unpackedfile(report)
 
     def check_for_valid_extension(self,unpacker,fileresult, scanfilequeue, temporarydirectory):
+        # TODO: this method will try to unpack multiple extensions
+        # if they match. Is this the intention?
         for extension in bangsignatures.extensiontofunction:
             if bangsignatures.matches_file_pattern(self.filename,extension):
                 log(logging.INFO,"TRY extension match %s %s" % (self.filename, extension))
@@ -511,6 +514,93 @@ class ScanJob:
             self.labels.append('text')
         else:
             self.labels.append('binary')
+
+    def check_entire_file(self,unpacker,fileresult, scanfilequeue, temporarydirectory):
+        if 'text' in self.labels and unpacker.unpacked_range() == []:
+            for f in bangsignatures.textonlyfunctions:
+                namecounter = unpacker.make_data_unpack_directory(self.filename, f, 1)
+
+                log(logging.DEBUG,"TRYING %s %s at offset: 0" % (fileresult.get_filename(), f))
+                try:
+                    unpackresult = bangsignatures.textonlyfunctions[f](self.filename, 0, unpacker.get_data_unpack_directory(), temporarydirectory)
+                except Exception as e:
+                    unpacker.remove_data_unpack_directory()
+                    continue
+
+                if not unpackresult['status']:
+                    # No data could be unpacked for some reason,
+                    # so check the status first
+                    log(logging.DEBUG,"FAIL %s %s at offset: %d: %s" %
+                            (fileresult.get_filename(), f, 0, unpackresult['error']['reason']))
+                    #print(s[1], unpackresult['error'])
+                    #sys.stdout.flush()
+                    # unpackerror contains:
+                    # * offset in the file where the error occured
+                    #   (integer)
+                    # * reason of the error (human readable)
+                    # * flag to indicate if it is a fatal error
+                    #   (boolean)
+                    #
+                    # Fatal errors should stop execution of the
+                    # program and remove the unpacking directory,
+                    # so first change the permissions of
+                    # all the files so they can be safely removed.
+                    if unpackresult['error']['fatal']:
+                        pass
+
+                    unpacker.remove_data_unpack_directory_tree()
+                    continue
+
+                log(logging.INFO,"SUCCESS %s %s at offset: %d, length: %d" %
+                        (fileresult.get_filename(), f, 0, unpackresult['length']))
+
+                # store the labels for files that could be
+                # unpacked/verified completely.
+                if unpackresult['length'] == self.filesize:
+                    self.labels += unpackresult['labels']
+                    self.labels = list(set(self.labels))
+                    # if unpackedfilesandlabels is empty, then no
+                    # files were unpacked, likely because the whole
+                    # file was the result and didn't contain any
+                    # files (i.e. it was not a container file or
+                    # compresed file).
+                    #if len(unpackresult['filesandlabels']) == 0:
+                    if unpackresult['filesandlabels'] == []:
+                        unpacker.remove_data_unpack_directory()
+
+                # store lot of information about the unpacked files
+                report = {
+                    'offset': 0,
+                    'signature': f,
+                    'type': f,
+                    'size': unpackresult['length'],
+                    'files': [],
+                }
+
+                unpacker.set_last_unpacked_offset(unpackresult['length'])
+                unpacker.append_unpacked_range(0, unpackresult['length'])
+
+                for unpackedfile,unpackedlabel in unpackresult['filesandlabels']:
+                    # TODO: make relative wrt unpackdir
+                    report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
+
+                    # add the data, plus possibly any label
+                    j = ScanJob(pathlib.Path(unpackedfile), unpackedlabel, self.filename, [], {})
+                    scanfilequeue.put(j)
+
+                fileresult.add_unpackedfile(report)
+                break
+    def run_scans_on_file(self, fileresult, bangfilefunctions, scanenvironment, dbconn, dbcursor):
+        for b in bangfilefunctions:
+            runscan = True
+            ignorelist = set(b[1])
+            filefunc = b[0]
+            for label in self.labels:
+                if label in ignorelist:
+                    runscan = False
+                    break
+            if runscan:
+                res = filefunc[1](self.filename, fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
 
 
 
@@ -888,10 +978,10 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
     createbytecounter = scanenvironment.get_createbytecounter()
     # uselogging = scanenvironment['logging']
 
-    if dbconn is None:
-        usedatabase = False
-    else:
-        usedatabase = True
+    # if dbconn is None:
+    #    usedatabase = False
+    # else:
+    #    usedatabase = True
 
     carveunpacked = True
 
@@ -920,9 +1010,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         fileresult.init_unpacked_files()
 
         unpacker = Unpacker()
-
-        # remove any duplicate labels
-        scanjob.labels = list(set(scanjob.labels))
 
         scanjob.check_for_padding_file(unpacker,fileresult)
 
@@ -955,12 +1042,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         if unpacker.needs_unpacking():
             scanjob.check_for_valid_extension(unpacker,fileresult,scanfilequeue,temporarydirectory)
 
-
-        # continue scanning if needed by searching for known signatures
         if unpacker.needs_unpacking():
             scanjob.check_for_signatures(unpacker,fileresult, scanfilequeue, scanenvironment, unpackdirectory, temporarydirectory)
 
-        # TODO: do we need to check needs_unpacking() ?
         if carveunpacked:
             scanjob.carve_file_data(unpacker,fileresult, scanenvironment, scanfilequeue)
 
@@ -970,111 +1054,12 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # This happens for example with text only files like base64
         # or Intel hex (all ASCII only).
         if unpacker.needs_unpacking():
-            if 'text' in scanjob.labels and unpacker.unpacked_range() == []:
-                # finally try all the "text only" functions
-                for f in bangsignatures.textonlyfunctions:
-                    namecounter = 1
-                    dataunpackdirectory = "%s-%s-%d" % (scanjob.filename, f, namecounter)
-                    while True:
-                        try:
-                            os.mkdir(dataunpackdirectory)
-                            break
-                        except:
-                            namecounter += 1
+            scanjob.check_entire_file(unpacker, fileresult, scanfilequeue, temporarydirectory)
 
-                    log(logging.DEBUG,"TRYING %s %s at offset: 0" % (fileresult.get_filename(), f))
-                    try:
-                        unpackresult = bangsignatures.textonlyfunctions[f](scanjob.filename, 0, dataunpackdirectory, temporarydirectory)
-                    except Exception as e:
-                        os.rmdir(dataunpackdirectory)
-                        continue
-
-                    if not unpackresult['status']:
-                        # No data could be unpacked for some reason,
-                        # so check the status first
-                        log(logging.DEBUG,"FAIL %s %s at offset: %d: %s" %
-                                (fileresult.get_filename(), f, 0, unpackresult['error']['reason']))
-                        #print(s[1], unpackresult['error'])
-                        #sys.stdout.flush()
-                        # unpackerror contains:
-                        # * offset in the file where the error occured
-                        #   (integer)
-                        # * reason of the error (human readable)
-                        # * flag to indicate if it is a fatal error
-                        #   (boolean)
-                        #
-                        # Fatal errors should stop execution of the
-                        # program and remove the unpacking directory,
-                        # so first change the permissions of
-                        # all the files so they can be safely removed.
-                        if unpackresult['error']['fatal']:
-                            pass
-                        # clean up any data that might have been left behind
-                        dirwalk = os.walk(dataunpackdirectory)
-
-                        for direntries in dirwalk:
-                            # make sure all subdirectories and files
-                            # can be accessed
-                            for subdir in direntries[1]:
-                                subdirname = os.path.join(direntries[0], subdir)
-                                if not os.path.islink(subdirname):
-                                    os.chmod(subdirname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-                            for filenameentry in direntries[2]:
-                                fullfilename = os.path.join(direntries[0], filenameentry)
-                                if not os.path.islink(fullfilename):
-                                    os.chmod(fullfilename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-                        shutil.rmtree(dataunpackdirectory)
-                        continue
-
-                    log(logging.INFO,"SUCCESS %s %s at offset: %d, length: %d" %
-                            (fileresult.get_filename(), f, 0, unpackresult['length']))
-
-                    # store the labels for files that could be
-                    # unpacked/verified completely.
-                    if unpackresult['length'] == scanjob.filesize:
-                        scanjob.labels += unpackresult['labels']
-                        scanjob.labels = list(set(scanjob.labels))
-                        # if unpackedfilesandlabels is empty, then no
-                        # files were unpacked, likely because the whole
-                        # file was the result and didn't contain any
-                        # files (i.e. it was not a container file or
-                        # compresed file).
-                        #if len(unpackresult['filesandlabels']) == 0:
-                        if unpackresult['filesandlabels'] == []:
-                            os.rmdir(dataunpackdirectory)
-
-                    # store lot of information about the unpacked files
-                    report = {
-                        'offset': 0,
-                        'signature': f,
-                        'type': f,
-                        'size': unpackresult['length'],
-                        'files': [],
-                    }
-
-                    unpacker.set_last_unpacked_offset(unpackresult['length'])
-                    unpacker.append_unpacked_range(0, unpackresult['length'])
-
-                    for un in unpackresult['filesandlabels']:
-                        (unpackedfile, unpackedlabel) = un
-
-                        # TODO: make relative wrt unpackdir
-                        report['files'].append(unpackedfile[len(dataunpackdirectory)+1:])
-
-                        # add the data, plus possibly any label
-                        j = ScanJob(pathlib.Path(unpackedfile), unpackedlabel, scanjob.filename, [], {})
-                        scanfilequeue.put(j)
-
-                    fileresult.add_unpackedfile(report)
-                    break
-
-        # run individual scans for files and store them in a separate
-        # result file, but only do this once for every file, so check
-        # the shared dictionary with checksum results first.
         duplicate = False
-
         processlock.acquire()
         # TODO: make checksumdict an object
+        # TODO: does this need to be a dictionary, or can it be a set?
         # if hashresults['sha256'] in checksumdict:
         if fileresult.get_hash() in checksumdict:
             duplicate = True
@@ -1086,17 +1071,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # Run scans for each individual file. Parameters include:
             # * filename (pathlib.Path object)
             # * hashes (dict 'hashresults')
-
-            for b in bangfilefunctions:
-                runscan = True
-                ignorelist = set(b[1])
-                filefunc = b[0]
-                for label in scanjob.labels:
-                    if label in ignorelist:
-                        runscan = False
-                        break
-                if runscan:
-                    res = filefunc[1](scanjob.filename, fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
+            scanjob.run_scans_on_file(fileresult, bangfilefunctions, scanenvironment, dbconn, dbcursor)
 
             # write a pickle with output data
             # The pickle contains:
@@ -1122,6 +1097,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             if scanjob.extradata != {}:
                 resultout['extra'] = scanjob.extradata
             picklefilename = resultsdirectory / ("%s.pickle" % fileresult.get_hash('sha256'))
+            # TODO: this is vulnerable to a race condition, replace with EAFP pattern
             if not picklefilename.exists():
                 pickleout = picklefilename.open('wb')
                 pickle.dump(resultout, pickleout)
