@@ -585,17 +585,22 @@ class ScanJob:
 
                 fileresult.add_unpackedfile(report)
                 break
+
     def run_scans_on_file(self, fileresult, bangfilefunctions, scanenvironment, dbconn, dbcursor):
-        for b in bangfilefunctions:
+        for filefunc,ignorelist in bangfilefunctions:
             runscan = True
-            ignorelist = set(b[1])
-            filefunc = b[0]
-            for label in self.labels:
-                if label in ignorelist:
-                    runscan = False
-                    break
-            if runscan:
+            # ignorelist = set(b[1])
+            # filefunc = b[0]
+            # TODO: make ignorelist a function attribute, so we can use filefunc.ignorelist
+            if set(self.labels).isdisjoint(set(ignorelist)):
                 res = filefunc[1](self.filename, fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
+
+            # for label in self.labels:
+            #    if label in ignorelist:
+            #        runscan = False
+            #        break
+            #if runscan:
+            #    res = filefunc[1](self.filename, fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
 
 
 
