@@ -587,13 +587,13 @@ class ScanJob:
                 break
 
     def run_scans_on_file(self, fileresult, bangfilefunctions, scanenvironment, dbconn, dbcursor):
-        for filefunc,ignorelist in bangfilefunctions:
+        for filefunc in bangfilefunctions:
             # runscan = True
             # ignorelist = set(b[1])
             # filefunc = b[0]
             # TODO: make ignorelist a function attribute, so we can use filefunc.ignore
-            if set(self.labels).isdisjoint(set(ignorelist)):
-                res = filefunc[1](self.filename, fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
+            if set(self.labels).isdisjoint(set(filefunc.ignore)):
+                res = filefunc(self.filename, fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
 
             # for label in self.labels:
             #    if label in ignorelist:
@@ -1152,20 +1152,11 @@ def main(argv):
     # 'maxsignaturesoffset'
     maxbytes = max(200000, maxsignaturesoffset+1)
 
-    # grab all the functions from the "bangfilescans" file
     bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
-
-    # split them functions in file functions and others
-    bangfilefunctions = []
-    bangwholecontextfunctions = []
-
-    for f in bangfunctions:
-        context = f[1].context
-        ignorelist = f[1].ignore
-        if context == 'file':
-            bangfilefunctions.append((f, ignorelist))
-        elif context == 'whole':
-            bangwholecontextfunctions.append((f, ignorelist))
+    bangfilefunctions = [ func for name,func in bangfunctions
+            if func.context == 'file' ]
+    bangwholecontextfunctions = [ func for name,func in bangfunctions
+            if func.context == 'whole' ]
 
     checkfiles = []
     if os.path.isdir(options.checkpath):
