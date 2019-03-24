@@ -244,22 +244,17 @@ class ScanJob:
                 fileresult.add_unpackedfile(report)
 
     def check_for_signatures(self, unpacker, fileresult, scanfilequeue, scanenvironment, unpackdirectory, temporarydirectory):
-            # keep track of the signatures that were found, but
-            # only for successful unpacking, or when no data could
-            # be unpacked. Since the rest of the data could be unpacked
-            # it is not interesting.
             signaturesfound = []
-
-            # keep a counter per signature for the unpacking
-            # directory names
             counterspersignature = {}
 
             unpacker.open_scanfile_with_memoryview(self.filename, scanenvironment.get_maxbytes())
-            # unpacker.seek_to_last_unpacked_offset()
+            unpacker.seek_to_last_unpacked_offset()
             unpacker.read_chunk_from_scanfile()
 
             # search the data for known signatures in the data that was read
             # TODO: check why this is a while true loop
+            # instead of:
+            # while unpacker.get_current_offset_in_file() != self.filesize:
             while True:
                 candidateoffsetsfound = set()
                 for s in bangsignatures.signatures:
@@ -850,7 +845,6 @@ class Unpacker:
 
     def open_scanfile_with_memoryview(self,filename,maxbytes):
         self.scanfile = open(filename, 'rb')
-        self.scanfile.seek(max(self.last_unpacked_offset(), 0))
         self.scanbytesarray = bytearray(maxbytes)
         self.scanbytes = memoryview(self.scanbytesarray)
 
