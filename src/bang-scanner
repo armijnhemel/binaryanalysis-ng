@@ -149,6 +149,17 @@ class ScanJob:
                 self._is_directory() or \
                 self._is_empty()
 
+    def check_unscannable_file(self,fileresult):
+        if self.not_scannable():
+            self.labels.append(self.get_type())
+            fileresult.set_labels(self.labels)
+            if self.get_type() == 'empty':
+                fileresult.set_filesize(0)
+                for hash_algorithm,hash_value in emptyhashresults.items():
+                    fileresult.set_hashresult(hash_algorithm,hash_value)
+            return True
+        return False
+
     def check_for_padding_file(self,unpacker,fileresult):
         # padding files don't need to be scanned
         if 'padding' in self.labels:
@@ -428,6 +439,8 @@ class ScanJob:
 
                 # then try to see if the any useful data can be uncarved.
                 # Add an artifical entry for the end of the file
+                # TODO: this algorithm assumes that ranges in unpacked_range
+                # are disjoint. Is this always the case?
                 # TODO: why self.filesize + 1 ?
                 # unpack ranges are [u_low:u_high)
                 for u_low,u_high in unpacked_range + [(self.filesize+1, self.filesize+1)]:
@@ -460,9 +473,6 @@ class ScanJob:
                                 newoutfilename = os.path.join(dataunpackdirectory, "%s-%s-%s" % (scanenvironment.get_paddingname(), hex(carve_index), hex(u_low-1)))
                                 shutil.move(outfilename, newoutfilename)
                                 outfilename = newoutfilename
-
-                        # TODO: this code is redundant
-                        # carve_index = u_high+1
 
                         # add the data, plus labels, to the queue
                         j = ScanJob(pathlib.Path(outfilename), unpackedlabel, self.filename, [], {})
@@ -896,13 +906,8 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # * labels
         fileresult = FileResult(scanjob,lenunpackdirectory)
 
-        if scanjob.not_scannable():
-            scanjob.labels.append(scanjob.get_type())
-            fileresult.set_labels(scanjob.labels)
-            if scanjob.get_type() == 'empty':
-                fileresult.set_filesize(0)
-                for hash_algorithm,hash_value in emptyhashresults.items():
-                    fileresult.set_hashresult(hash_algorithm,hash_value)
+        unscannable = scanjob.check_unscannable_file(fileresult)
+        if unscannable:
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
             continue
@@ -954,13 +959,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         if unpacker.needs_unpacking():
             scanjob.check_for_signatures(unpacker,fileresult, scanfilequeue, scanenvironment, unpackdirectory, temporarydirectory)
 
-        log(logging.DEBUG,"try uncarving: %s" % fileresult.fileresult)
-
         # TODO: do we need to check needs_unpacking() ?
         if carveunpacked:
             scanjob.carve_file_data(unpacker,fileresult, scanenvironment, scanfilequeue)
-
-        log(logging.DEBUG,"done uncarving: %s" % fileresult.fileresult)
 
         scanjob.do_content_computations(fileresult, scanenvironment, createbytecounter)
 
