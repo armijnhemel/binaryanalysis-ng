@@ -89,6 +89,8 @@ def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
 
     return results
 
+knownfileNSRL.context = ['file']
+knownfileNSRL.ignore = []
 
 # search files for license and forge references.
 # https://en.wikipedia.org/wiki/Forge_(software)
@@ -139,3 +141,7 @@ def extractIdentifier(filename, hashresults, dbconn, dbcursor, scanenvironment):
     returnres['value'] = {'license': licenseresults, 'forge': forgeresults}
 
     return returnres
+
+extractIdentifier.context = ['file']
+extractIdentifier.ignore = ['archive', 'audio', 'audio', 'database', 'encrypted', 'filesystem', 'graphics', 'video']
+
