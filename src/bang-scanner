@@ -195,6 +195,7 @@ class ScanJob:
     def check_for_valid_extension(self,unpacker,fileresult, scanfilequeue, temporarydirectory):
         for extension in bangsignatures.extensiontofunction:
             if bangsignatures.matches_file_pattern(self.filename,extension):
+                log(logging.INFO,"TRY extension match %s %s" % (self.filename, extension))
                 unpackresult = unpacker.try_unpack_file_for_extension(
                         self.filename,extension,temporarydirectory)
                 if unpackresult is None:
