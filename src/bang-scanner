@@ -1341,6 +1341,8 @@ def main(argv):
         # Create a list of labels to pass around. The first element is
         # tagged as 'root', as it is the root of the unpacking tree.
         labels = ['root']
+
+        # Create a scanjob for the first file to be scanned
         j = ScanJob(unpackdirectory / os.path.basename(checkfile), labels, None, [], {})
         scanfilequeue.put(j)
 
