@@ -1271,12 +1271,14 @@ def main(argv):
     # 'maxsignaturesoffset'
     maxbytes = max(200000, maxsignaturesoffset+1)
 
+    # use introspection for getting the file scans that run after unpacking
     bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
     bangfilefunctions = [func for name, func in bangfunctions
             if func.context == 'file']
     bangwholecontextfunctions = [func for name, func in bangfunctions
             if func.context == 'whole']
 
+    # create a list of all the files that should be scanned
     checkfiles = []
     if os.path.isdir(options.checkpath):
         dirwalk = os.walk(options.checkpath)
@@ -1313,8 +1315,10 @@ def main(argv):
         for i in banglogger.handlers:
             banglogger.removeHandler(i)
 
+    # scan each individual file that needs to be scanned in
+    # alphabetical sort order (Python default)
     for checkfile in sorted(checkfiles):
-        # Now the real scanning starts.
+        # store a UTC time stamp
         scandate = datetime.datetime.utcnow()
 
         # create a directory for the scan
@@ -1343,10 +1347,13 @@ def main(argv):
 
             # create a log file inside the log directory and
             # add it to the BANG logger
+            # This is done for each file.
+            # TODO: use a system wide logger if configured
             bangloghandler = logging.FileHandler(filename=logdirectory / 'unpack.log')
             banglogger.addHandler(bangloghandler)
         log(logging.INFO, "Started scanning %s" % checkfile)
 
+        # create a process manager for managing the threads
         processmanager = multiprocessing.Manager()
 
         # first create two queues: one for scanning files, the other one
