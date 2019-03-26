@@ -513,7 +513,11 @@ class ScanJob:
 
         hashresults = dict(hasher.get())
         if scanenvironment.use_tlsh(self.filesize, self.labels):
-            hashresults['tlsh'] = tlshc.get()
+            try:
+                hashresults['tlsh'] = tlshc.get()
+            except ValueError:
+                # for example, not enough entropy for TLSH hash
+                pass
         for hash_algorithm, hash_value in hashresults.items():
             fileresult.set_hashresult(hash_algorithm, hash_value)
 
