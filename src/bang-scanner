@@ -105,7 +105,8 @@ class ScanJob:
         self.extradata = extradata
         self.type = None
         self._stat_file()
-        self.filesize = self.stat.st_size
+        if self.stat != None:
+            self.filesize = self.stat.st_size
 
     def is_unpacking_root(self):
         # assumption: there is no situation where parent = None and 'root' not in labels?
@@ -116,7 +117,10 @@ class ScanJob:
         return self.type
 
     def _stat_file(self):
-        self.stat = os.stat(self.filename)
+        try:
+            self.stat = os.stat(self.filename)
+        except:
+            self.stat = None
 
     def _is_symlink(self):
         r = self.filename.is_symlink()
