@@ -99,8 +99,8 @@ Amount: %d
             bytesscanned = 0
             if 'unpackedfiles' in self.scantree[fn]:
                 s += self._fileunpackedfiles(fn)
-            s += self._filetotallabels(fn,labelcounter)
-            s += "\n"
+        s += self._filetotallabels(fn,labelcounter)
+        s += "\n"
         self.reportfile.write(s)
 
 
