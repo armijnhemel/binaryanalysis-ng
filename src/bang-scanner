@@ -28,6 +28,7 @@
 
 import sys
 import os
+import traceback
 import pathlib
 import stat
 import shutil
@@ -1008,7 +1009,6 @@ def log(level, message):
     if uselogging:
         logging.log(level, message)
 
-import traceback
 class ScanJobError(Exception):
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls)
@@ -1022,8 +1022,10 @@ class ScanJobError(Exception):
             return """Exception for scanjob:
 file:
     %s
+
 labels:
     %s
+
 """ % ( str(self.scanjob.filename),
         ",".join(self.scanjob.labels) ) + "".join(exc)
         else:
