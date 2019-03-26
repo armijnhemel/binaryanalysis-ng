@@ -43,7 +43,7 @@ Duration (seconds): %s
     def _filechecksum(self,fn):
         return """MD5: %s
 SHA256: %s
-""" % ( self.scantree[fn]['md5'], self.scantree[fn]['sha256'] )
+""" % ( self.scantree[fn]['hash']['md5'], self.scantree[fn]['hash']['sha256'] )
 
     def _filesize(self,fn):
         return "Size: %d\n" % self.scantree[fn]['filesize']
@@ -85,8 +85,9 @@ Amount: %d
         filenames = sorted(self.scantree.keys())
         for fn in filenames:
             s += self._fileheader(fn)
-            if 'md5' in self.scantree[fn]:
-                s += self._filechecksum(fn)
+            if 'hash' in self.scantree[fn]:
+                if 'md5' in self.scantree[fn]['hash']:
+                    s += self._filechecksum(fn)
             if 'filesize' in self.scantree[fn]:
                 s += self._filesize(fn)
             if 'mimetype' in self.scantree[fn]:
