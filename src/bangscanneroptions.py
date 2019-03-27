@@ -206,6 +206,7 @@ class BangScannerOptions:
         if self.options.dbconnectionerrorfatal and \
                 self.options.usedatabase is False:
             self._error('Missing or invalid database information')
+
         # baseunpackdirectory must be declared
         if not self.options.baseunpackdirectory:
             self._error('Missing base unpack directory')
@@ -221,6 +222,7 @@ class BangScannerOptions:
         if not self.check_if_directory_is_writable(self.options.baseunpackdirectory):
             self._error("Base unpack directory %s cannot be written to, exiting"
                     % self.options.baseunpackdirectory)
+        self.options.baseunpackdirectory = os.path.realpath(self.options.baseunpackdirectory)
         # if temporarydirectory is defined
         if self.options.temporarydirectory is not None:
             # it must exist,
@@ -236,6 +238,7 @@ class BangScannerOptions:
                     self.options.baseunpackdirectory):
                 self._error("Temporary directory %s cannot be written to, exiting"
                         % self.options.temporarydirectory)
+        self.options.temporarydirectory = os.path.realpath(self.options.temporarydirectory)
 
         # either a check directory or a check file must be specified
         if self.options.checkpath is None:
