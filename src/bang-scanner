@@ -96,9 +96,11 @@ def compute_empty_hash_results():
 emptyhashresults = compute_empty_hash_results()
 
 
+# TODO: consolidate all these parameters into a FileResult object
 class ScanJob:
     def __init__(self, filename, labels, parent, propagatedlabels, extradata):
         self.filename = filename
+        # TODO move labels to fileresult
         self.labels = labels
         self.parent = parent
         self.propagatedlabels = propagatedlabels
@@ -168,19 +170,20 @@ class ScanJob:
 
     def check_unscannable_file(self, fileresult):
         if self.not_scannable():
-            self.labels.append(self.get_type())
-            fileresult.set_labels(self.labels)
+            fileresult.labels.add(self.get_type())
+            # self.labels.append(self.get_type())
+            # fileresult.set_labels(self.labels)
             if self.get_type() == 'empty':
                 fileresult.set_filesize(0)
                 for hash_algorithm, hash_value in emptyhashresults.items():
                     fileresult.set_hashresult(hash_algorithm, hash_value)
-            self.labels = list(set(self.labels))
+            # self.labels = list(set(self.labels))
             return True
         return False
 
     def check_for_padding_file(self, unpacker, fileresult):
         # padding files don't need to be scanned
-        if 'padding' in self.labels:
+        if 'padding' in fileresult.labels:
             unpacker.set_needs_unpacking(False)
             report = {
                 'offset': 0,
@@ -195,8 +198,8 @@ class ScanJob:
         # check for a dummy value to see if the file has already been
         # unpacked and if so, simply report and skip the unpacking, and
         # move on to just running the per file scans.
-        if 'unpacked' in self.labels:
-            self.labels.remove('unpacked')
+        if 'unpacked' in fileresult.labels:
+            fileresult.labels.remove('unpacked')
             unpacker.set_needs_unpacking(False)
             unpacker.set_last_unpacked_offset(self.filesize)
             unpacker.append_unpacked_range(0, self.filesize)
@@ -242,8 +245,8 @@ class ScanJob:
 
                 # store any labels that were passed as a result and
                 # add them to the current list of labels
-                self.labels += unpackresult['labels']
-                self.labels = list(set(self.labels))
+                fileresult.labels += unpackresult['labels']
+                # self.labels = list(set(self.labels))
 
                 # store lot of information about the unpacked files
                 report = {
@@ -347,8 +350,8 @@ class ScanJob:
                     # store the labels for files that could be
                     # unpacked/verified completely.
                     if offset == 0 and unpackresult['length'] == self.filesize:
-                        self.labels += unpackresult['labels']
-                        self.labels = list(set(self.labels))
+                        fileresult.labels.update(unpackresult['labels'])
+                        # self.labels = list(set(self.labels))
                         # if unpackedfilesandlabels is empty, then no
                         # files were unpacked, likely because the whole
                         # file was the result and didn't contain any
@@ -501,21 +504,21 @@ class ScanJob:
         hasher = Hasher(hash_algorithms)
         fc.subscribe(hasher)
 
-        if createbytecounter and 'padding' not in self.labels:
+        if createbytecounter and 'padding' not in fileresult.labels:
             byte_counter = ByteCounter()
             fc.subscribe(byte_counter)
 
         is_text = IsTextComputer()
         fc.subscribe(is_text)
 
-        if scanenvironment.use_tlsh(self.filesize, self.labels):
+        if scanenvironment.use_tlsh(self.filesize, fileresult.labels):
             tlshc = TLSHComputerMemoryView()
             fc.subscribe(tlshc)
 
         fc.read(self.filename)
 
         hashresults = dict(hasher.get())
-        if scanenvironment.use_tlsh(self.filesize, self.labels):
+        if scanenvironment.use_tlsh(self.filesize, fileresult.labels):
             # there might not be a valid hex digest for files
             # with little or no entropy, for example files with
             # all NUL bytes
@@ -528,12 +531,12 @@ class ScanJob:
 
         # store if files are text or binary
         if is_text.get():
-            self.labels.append('text')
+            fileresult.labels.add('text')
         else:
-            self.labels.append('binary')
+            fileresult.labels.add('binary')
 
     def check_entire_file(self, unpacker, fileresult, scanfilequeue, temporarydirectory):
-        if 'text' in self.labels and unpacker.unpacked_range() == []:
+        if 'text' in fileresult.labels and unpacker.unpacked_range() == []:
             for f in bangsignatures.textonlyfunctions:
                 namecounter = unpacker.make_data_unpack_directory(self.filename, f, 1)
 
@@ -574,8 +577,8 @@ class ScanJob:
                 # store the labels for files that could be
                 # unpacked/verified completely.
                 if unpackresult['length'] == self.filesize:
-                    self.labels += unpackresult['labels']
-                    self.labels = list(set(self.labels))
+                    fileresult.labels.update(unpackresult['labels'])
+                    # self.labels = list(set(self.labels))
                     # if unpackedfilesandlabels is empty, then no
                     # files were unpacked, likely because the whole
                     # file was the result and didn't contain any
@@ -614,15 +617,8 @@ class ScanJob:
             # ignorelist = set(b[1])
             # filefunc = b[0]
             # TODO: make ignorelist a function attribute, so we can use filefunc.ignore
-            if set(self.labels).isdisjoint(set(filefunc.ignore)):
+            if fileresult.labels.isdisjoint(set(filefunc.ignore)):
                 res = filefunc(self.filename, fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
-
-            # for label in self.labels:
-            #    if label in ignorelist:
-            #        runscan = False
-            #        break
-            #if runscan:
-            #    res = filefunc[1](self.filename, fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
 
 
 class FileResult:
@@ -730,7 +726,8 @@ class ScanEnvironment:
         return self.tlshmaximum
 
     def use_tlsh(self, filesize, labels):
-        return (256 <= filesize <= self.tlshmaximum) and self.tlshlabelsignore.isdisjoint(set(labels))
+        """check whether tlsh is useful here, based on file size and labels."""
+        return (256 <= filesize <= self.tlshmaximum) and self.tlshlabelsignore.isdisjoint(labels)
 
     def get_synthesizedminimum(self):
         return self.synthesizedminimum
@@ -1197,7 +1194,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             # * byte count
             # * any extra data that might have been passed around
             resultout = {}
-            if createbytecounter and 'padding' not in scanjob.labels:
+            if createbytecounter and 'padding' not in fileresult.labels:
                 resultout['bytecount'] = sorted(byte_counter.get().items())
                 # write a file with the distribution of bytes in the scanned file
                 bytescountfilename = resultsdirectory / ("%s.bytes" % fileresult.get_hash())
@@ -1210,7 +1207,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             for a, h in fileresult.get_hashresult().items():
                 resultout[a] = h
 
-            resultout['labels'] = scanjob.labels
+            resultout['labels'] = list(fileresult.labels)
             if scanjob.extradata != {}:
                 resultout['extra'] = scanjob.extradata
             picklefilename = resultsdirectory / ("%s.pickle" % fileresult.get_hash('sha256'))
@@ -1221,9 +1218,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 pickleout.close()
 
         else:
-            scanjob.labels.append('duplicate')
+            fileresult.labels.add('duplicate')
 
-        fileresult.set_labels(scanjob.labels)
+        # fileresult.set_labels(scanjob.labels)
         fileresult.set_filesize(scanjob.filesize)
         # log(logging.INFO, json.dumps(fileresult.get()))
         sys.stdout.flush()
