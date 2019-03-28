@@ -8,6 +8,7 @@ import pickle
 import sys
 
 import bangsignatures
+from bangfilescans import bangfilefunctions, bangwholecontextfunctions
 from banglogging import log
 from FileResult import FileResult
 from FileContentsComputer import *
@@ -580,9 +581,13 @@ class ScanJob:
 # 'graphics') will be stored. These labels can be used to feed extra
 # information to the unpacking process, such as preventing scans from
 # running.
-def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
-                resultsdirectory,
-                dbconn, dbcursor, bangfilefunctions, scanenvironment):
+def processfile(resultsdirectory,
+                dbconn, dbcursor, scanenvironment):
+
+    scanfilequeue = scanenvironment.scanfilequeue
+    resultqueue = scanenvironment.resultqueue
+    processlock = scanenvironment.processlock
+    checksumdict = scanenvironment.checksumdict
 
     createbytecounter = scanenvironment.get_createbytecounter()
 

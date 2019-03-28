@@ -63,7 +63,6 @@ import bangandroid
 import bangfilesystems
 import bangmedia
 import bangfilescans
-from bangfilescans import bangfilefunctions, bangwholecontextfunctions
 import bangsignatures
 from bangscanneroptions import BangScannerOptions
 from banglogging import log, uselogging
@@ -285,14 +284,9 @@ def main(argv):
                 dbconn1 = bangdbconns[i][1]
             p = multiprocessing.Process(target=processfile,
                                         args=(
-                                              scanfilequeue,
-                                              resultqueue,
-                                              processlock,
-                                              checksumdict,
                                               resultsdirectory,
                                               dbconn0,
                                               dbconn1,
-                                              bangfilefunctions,
                                               scanenvironment))
             processes.append(p)
 
