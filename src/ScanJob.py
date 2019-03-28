@@ -173,7 +173,7 @@ class ScanJob:
                             self.scancontext.get_relative_path(unpackedfile),
                             self.fileresult.filepath,
                             self.fileresult.filename,
-                            unpackedlabel)
+                            set(unpackedlabel))
                     j = ScanJob(self.scancontext, fr)
                     scanfilequeue.put(j)
                     report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
@@ -304,7 +304,7 @@ class ScanJob:
                                 self.scancontext.get_relative_path(unpackedfile),
                                 self.fileresult.filepath,
                                 self.fileresult.filename,
-                                unpackedlabel)
+                                set(unpackedlabel))
                         j = ScanJob(self.scancontext,fr)
                         scanfilequeue.put(j)
 
@@ -421,7 +421,7 @@ class ScanJob:
                                 self.scancontext.get_relative_path(outfilename),
                                 self.fileresult.filepath,
                                 self.fileresult.filename,
-                                unpackedlabel)
+                                set(unpackedlabel))
                         j = ScanJob(self.scancontext,fr)
                         scanfilequeue.put(j)
                     carve_index = u_high
@@ -538,7 +538,7 @@ class ScanJob:
                             self.scancontext.get_relative_path(unpackedfile),
                             self.fileresult.filepath,
                             self.fileresult.filename,
-                            unpackedlabel)
+                            set(unpackedlabel))
                     j = ScanJob(self.scancontext,fr)
                     scanfilequeue.put(j)
 
