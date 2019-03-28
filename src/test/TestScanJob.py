@@ -14,8 +14,6 @@ from ScanEnvironment import *
 
 import bangfilescans
 
-from bangfilescans import bangfilefunctions, bangwholecontextfunctions
-
 class QueueEmptyError(Exception):
     pass
 
@@ -113,11 +111,9 @@ class TestScanJob(unittest.TestCase):
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
-            processfile(self.scanfile_queue, self.result_queue,
-                    self.process_lock, self.checksum_dict,
-                    pathlib.Path(self.resultsdir),
+            processfile(pathlib.Path(self.resultsdir),
                     self.dbconn, self.dbcursor,
-                    bangfilefunctions, self.scan_environment
+                    self.scan_environment
                     )
         except QueueEmptyError:
             pass
