@@ -254,7 +254,7 @@ def main(argv):
                 os.path.basename(checkfile),
                 None,
                 None,
-                labels)
+                set(labels))
         j = ScanJob(scancontext,fileresult)
         scanfilequeue.put(j)
 
