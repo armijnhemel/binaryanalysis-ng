@@ -5,6 +5,8 @@ class ScanContext:
         - unpackdirectory: absolute path the unpacking directory
         - temporarydirectory: absolute path of the temporary directory
         """
+        # scanfilequeue cannot be an object member
+        # perhaps as a class method?
         self.unpackdirectory = unpackdirectory
         self.temporarydirectory = temporarydirectory
         self.lenunpackdirectory = len(str(self.unpackdirectory))+1
