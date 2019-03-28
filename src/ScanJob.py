@@ -22,6 +22,9 @@ class ScanJob:
         self.type = None
         self._stat_file()
 
+    def set_scanenvironment(self, scanenvironment):
+        self.scanenvironment = scanenvironment
+
     def _stat_file(self):
         try:
             self.stat = os.stat(self.fileresult.filepath)
@@ -179,11 +182,11 @@ class ScanJob:
                     report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
                 self.fileresult.add_unpackedfile(report)
 
-    def check_for_signatures(self, unpacker, scanfilequeue, scanenvironment):
+    def check_for_signatures(self, unpacker, scanfilequeue):
             signaturesfound = []
             counterspersignature = {}
 
-            unpacker.open_scanfile_with_memoryview(self.fileresult.filepath, scanenvironment.get_maxbytes())
+            unpacker.open_scanfile_with_memoryview(self.fileresult.filepath, self.scanenvironment.get_maxbytes())
             unpacker.seek_to_last_unpacked_offset()
             unpacker.read_chunk_from_scanfile()
 
@@ -348,7 +351,7 @@ class ScanJob:
             paddingchar = checkbytes
             # now read more bytes
             while True:
-                scanbytes = outfile.read(scanenvironment.get_maxbytes())
+                scanbytes = outfile.read(self.scanenvironment.get_maxbytes())
                 if scanbytes == b'':
                     break
                 if scanbytes != len(scanbytes) * paddingchar:
@@ -358,7 +361,7 @@ class ScanJob:
             ispadding = False
         outfile.close()
 
-    def carve_file_data(self, unpacker, scanenvironment, scanfilequeue):
+    def carve_file_data(self, unpacker, scanfilequeue):
         # Now carve any data that was not unpacked from the file and
         # put it back into the scanning queue to see if something
         # could be unpacked after all, or to more quickly recognize
@@ -410,8 +413,8 @@ class ScanJob:
                         if self.is_padding(outfilename):
                             unpackedlabel.append('padding')
                             # TODO: what if paddingname is None?
-                            if scanenvironment.get_paddingname() is not None:
-                                newoutfilename = os.path.join(dataunpackdirectory, "%s-%s-%s" % (scanenvironment.get_paddingname(), hex(carve_index), hex(u_low-1)))
+                            if self.scanenvironment.get_paddingname() is not None:
+                                newoutfilename = os.path.join(dataunpackdirectory, "%s-%s-%s" % (self.scanenvironment.get_paddingname(), hex(carve_index), hex(u_low-1)))
                                 shutil.move(outfilename, newoutfilename)
                                 outfilename = newoutfilename
 
@@ -428,8 +431,8 @@ class ScanJob:
 
                 scanfile.close()
 
-    def do_content_computations(self, scanenvironment, createbytecounter):
-        fc = FileContentsComputer(scanenvironment.get_readsize())
+    def do_content_computations(self, createbytecounter):
+        fc = FileContentsComputer(self.scanenvironment.get_readsize())
         hasher = Hasher(hash_algorithms)
         fc.subscribe(hasher)
 
@@ -440,14 +443,14 @@ class ScanJob:
         is_text = IsTextComputer()
         fc.subscribe(is_text)
 
-        if scanenvironment.use_tlsh(self.fileresult.filesize, self.fileresult.labels):
+        if self.scanenvironment.use_tlsh(self.fileresult.filesize, self.fileresult.labels):
             tlshc = TLSHComputerMemoryView()
             fc.subscribe(tlshc)
 
         fc.read(self.fileresult.filepath)
 
         hashresults = dict(hasher.get())
-        if scanenvironment.use_tlsh(self.fileresult.filesize, self.fileresult.labels):
+        if self.scanenvironment.use_tlsh(self.fileresult.filesize, self.fileresult.labels):
             # there might not be a valid hex digest for files
             # with little or no entropy, for example files with
             # all NUL bytes
@@ -545,10 +548,10 @@ class ScanJob:
                 self.fileresult.add_unpackedfile(report)
                 break
 
-    def run_scans_on_file(self, bangfilefunctions, scanenvironment, dbconn, dbcursor):
+    def run_scans_on_file(self, bangfilefunctions, dbconn, dbcursor):
         for filefunc in bangfilefunctions:
             if self.fileresult.labels.isdisjoint(set(filefunc.ignore)):
-                res = filefunc(self.fileresult.filepath, self.fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
+                res = filefunc(self.fileresult.filepath, self.fileresult.get_hashresult(), dbconn, dbcursor, self.scanenvironment)
 
 # Process a single file.
 # This method has the following parameters:
@@ -590,6 +593,7 @@ def processfile(scancontext, scanfilequeue, resultqueue, processlock, checksumdi
     while True:
         scanjob = scanfilequeue.get(timeout=86400)
         if not scanjob: continue
+        scanjob.set_scanenvironment(scanenvironment)
         fileresult = scanjob.fileresult
 
         unscannable = scanjob.check_unscannable_file()
@@ -608,12 +612,12 @@ def processfile(scancontext, scanfilequeue, resultqueue, processlock, checksumdi
             scanjob.check_for_valid_extension(unpacker, scanfilequeue)
 
         if unpacker.needs_unpacking():
-            scanjob.check_for_signatures(unpacker, scanfilequeue, scanenvironment)
+            scanjob.check_for_signatures(unpacker, scanfilequeue)
 
         if carveunpacked:
-            scanjob.carve_file_data(unpacker, scanenvironment, scanfilequeue)
+            scanjob.carve_file_data(unpacker, scanfilequeue)
 
-        scanjob.do_content_computations(scanenvironment, createbytecounter)
+        scanjob.do_content_computations(createbytecounter)
 
         if unpacker.needs_unpacking():
             scanjob.check_entire_file(unpacker, scanfilequeue)
@@ -630,7 +634,7 @@ def processfile(scancontext, scanfilequeue, resultqueue, processlock, checksumdi
         processlock.release()
 
         if not duplicate:
-            scanjob.run_scans_on_file(bangfilefunctions, scanenvironment, dbconn, dbcursor)
+            scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
 
             # write a pickle with output data
             # The pickle contains:
