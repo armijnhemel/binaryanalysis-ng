@@ -95,11 +95,12 @@ class TestScanJob(unittest.TestCase):
         fileresult = self._create_fileresult_for_file(
                 self.padding_file, self.parent_dir, [])
         scanjob = ScanJob(self.scancontext, fileresult)
+        scanjob.set_scanenvironment(self.scan_environment)
         unpacker = Unpacker()
         scanjob.prepare_for_unpacking()
         scanjob.check_unscannable_file()
         unpacker.append_unpacked_range(0,5) # bytes [0:5) are unpacked
-        scanjob.carve_file_data(unpacker, self.scan_environment, self.scanfile_queue)
+        scanjob.carve_file_data(unpacker, self.scanfile_queue)
         j = self.scanfile_queue.get()
         self.assertSetEqual(j.fileresult.labels,set(['padding','synthesized']))
 
