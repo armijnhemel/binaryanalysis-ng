@@ -8,7 +8,6 @@ import unittest
 _scriptdir = os.path.dirname(__file__)
 sys.path.insert(0,os.path.join(_scriptdir,'..'))
 
-from ScanContext import *
 from FileResult import *
 from ScanJob import *
 from ScanEnvironment import *
@@ -55,7 +54,6 @@ class TestScanJob(unittest.TestCase):
         self._create_clean_directory(self.unpackdir)
         self._create_clean_directory(self.tmpdir)
         self._create_clean_directory(self.resultsdir)
-        self.scancontext = ScanContext(self.unpackdir, self.tmpdir)
         self.scanfile_queue = MockQueue()
         self.result_queue = MockQueue()
         self.process_lock = MockLock()
@@ -69,7 +67,10 @@ class TestScanJob(unittest.TestCase):
             tlshmaximum = sys.maxsize,
             synthesizedminimum = 10,
             logging = False,
-            paddingname = 'PADDING')
+            paddingname = 'PADDING',
+            unpackdirectory = self.unpackdir,
+            temporarydirectory = self.tmpdir,
+            )
 
     def _create_clean_directory(self,dirname):
         try:
@@ -94,7 +95,7 @@ class TestScanJob(unittest.TestCase):
         self._create_padding_file_in_directory()
         fileresult = self._create_fileresult_for_file(
                 self.padding_file, self.parent_dir, [])
-        scanjob = ScanJob(self.scancontext, fileresult)
+        scanjob = ScanJob(fileresult)
         scanjob.set_scanenvironment(self.scan_environment)
         unpacker = Unpacker()
         scanjob.prepare_for_unpacking()
@@ -108,10 +109,10 @@ class TestScanJob(unittest.TestCase):
         self._create_padding_file_in_directory()
         fileresult = self._create_fileresult_for_file(
                 self.padding_file, self.parent_dir, set(['padding']))
-        scanjob = ScanJob(self.scancontext, fileresult)
+        scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
-            processfile(self.scancontext, self.scanfile_queue, self.result_queue,
+            processfile(self.scanfile_queue, self.result_queue,
                     self.process_lock, self.checksum_dict,
                     pathlib.Path(self.resultsdir),
                     self.dbconn, self.dbcursor,
