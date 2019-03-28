@@ -285,13 +285,11 @@ def main(argv):
                 dbconn0 = bangdbconns[i][0]
                 dbconn1 = bangdbconns[i][1]
             p = multiprocessing.Process(target=processfile,
-                                        args=(scanfilequeue,
+                                        args=(scancontext, scanfilequeue,
                                               resultqueue,
                                               processlock,
                                               checksumdict,
-                                              unpackdirectory,
                                               resultsdirectory,
-                                              options.temporarydirectory,
                                               dbconn0,
                                               dbconn1,
                                               bangfilefunctions,

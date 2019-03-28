@@ -547,10 +547,6 @@ class ScanJob:
 
     def run_scans_on_file(self, bangfilefunctions, scanenvironment, dbconn, dbcursor):
         for filefunc in bangfilefunctions:
-            # runscan = True
-            # ignorelist = set(b[1])
-            # filefunc = b[0]
-            # TODO: make ignorelist a function attribute, so we can use filefunc.ignore
             if self.fileresult.labels.isdisjoint(set(filefunc.ignore)):
                 res = filefunc(self.fileresult.filepath, self.fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
 
@@ -586,13 +582,11 @@ class ScanJob:
 # 'graphics') will be stored. These labels can be used to feed extra
 # information to the unpacking process, such as preventing scans from
 # running.
-def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
-                unpackdirectory, resultsdirectory, temporarydirectory,
+def processfile(scancontext, scanfilequeue, resultqueue, processlock, checksumdict,
+                resultsdirectory,
                 dbconn, dbcursor, bangfilefunctions, scanenvironment):
     # global emptyhashresults
     # global hash_algorithms
-
-    lenunpackdirectory = len(str(unpackdirectory)) + 1
 
     createbytecounter = scanenvironment.get_createbytecounter()
     # uselogging = scanenvironment['logging']
