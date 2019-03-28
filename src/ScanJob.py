@@ -126,7 +126,7 @@ class ScanJob:
         mimeres = mimetypes.guess_type(self.fileresult.filepath.name)
         self.fileresult.set_mimetype(mimeres)
 
-    def check_for_valid_extension(self, unpacker, scanfilequeue):
+    def check_for_valid_extension(self, unpacker):
         # TODO: this method will try to unpack multiple extensions
         # if they match. Is this the intention?
         for extension in bangsignatures.extensiontofunction:
@@ -177,11 +177,11 @@ class ScanJob:
                             self.fileresult.filename,
                             set(unpackedlabel))
                     j = ScanJob(fr)
-                    scanfilequeue.put(j)
+                    self.scanenvironment.scanfilequeue.put(j)
                     report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
                 self.fileresult.add_unpackedfile(report)
 
-    def check_for_signatures(self, unpacker, scanfilequeue):
+    def check_for_signatures(self, unpacker):
             signaturesfound = []
             counterspersignature = {}
 
@@ -308,7 +308,7 @@ class ScanJob:
                                 self.fileresult.filename,
                                 set(unpackedlabel))
                         j = ScanJob(fr)
-                        scanfilequeue.put(j)
+                        self.scanenvironment.scanfilequeue.put(j)
 
                     self.fileresult.add_unpackedfile(report)
 
@@ -360,7 +360,7 @@ class ScanJob:
             ispadding = False
         outfile.close()
 
-    def carve_file_data(self, unpacker, scanfilequeue):
+    def carve_file_data(self, unpacker):
         # Now carve any data that was not unpacked from the file and
         # put it back into the scanning queue to see if something
         # could be unpacked after all, or to more quickly recognize
@@ -425,7 +425,7 @@ class ScanJob:
                                 self.fileresult.filename,
                                 set(unpackedlabel))
                         j = ScanJob(fr)
-                        scanfilequeue.put(j)
+                        self.scanenvironment.scanfilequeue.put(j)
                     carve_index = u_high
 
                 scanfile.close()
@@ -466,7 +466,7 @@ class ScanJob:
         else:
             self.fileresult.labels.add('binary')
 
-    def check_entire_file(self, unpacker, scanfilequeue):
+    def check_entire_file(self, unpacker):
         if 'text' in self.fileresult.labels and unpacker.unpacked_range() == []:
             for f in bangsignatures.textonlyfunctions:
                 namecounter = unpacker.make_data_unpack_directory(self.fileresult.filepath, f, 1)
@@ -542,7 +542,7 @@ class ScanJob:
                             self.fileresult.filename,
                             set(unpackedlabel))
                     j = ScanJob(fr)
-                    scanfilequeue.put(j)
+                    self.scanenvironment.scanfilequeue.put(j)
 
                 self.fileresult.add_unpackedfile(report)
                 break
@@ -607,18 +607,18 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         scanjob.check_mime_types()
 
         if unpacker.needs_unpacking():
-            scanjob.check_for_valid_extension(unpacker, scanfilequeue)
+            scanjob.check_for_valid_extension(unpacker)
 
         if unpacker.needs_unpacking():
-            scanjob.check_for_signatures(unpacker, scanfilequeue)
+            scanjob.check_for_signatures(unpacker)
 
         if carveunpacked:
-            scanjob.carve_file_data(unpacker, scanfilequeue)
+            scanjob.carve_file_data(unpacker)
 
         scanjob.do_content_computations()
 
         if unpacker.needs_unpacking():
-            scanjob.check_entire_file(unpacker, scanfilequeue)
+            scanjob.check_entire_file(unpacker)
 
         duplicate = False
         processlock.acquire()

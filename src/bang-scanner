@@ -275,6 +275,11 @@ def main(argv):
             paddingname = 'PADDING',
             unpackdirectory = unpackdirectory,
             temporarydirectory = options.temporarydirectory,
+            resultsdirectory = resultsdirectory,
+            scanfilequeue = scanfilequeue,
+            resultqueue = resultqueue,
+            processlock = processlock,
+            checksumdict = checksumdict,
             )
 
         # create processes for unpacking archives
