@@ -66,7 +66,7 @@ class TestScanJob(unittest.TestCase):
             paddingname = 'PADDING',
             unpackdirectory = self.unpackdir,
             temporarydirectory = self.tmpdir,
-            resultsdirectory = self.resultsdir,
+            resultsdirectory = pathlib.Path(self.resultsdir),
             scanfilequeue = self.scanfile_queue,
             resultqueue = self.result_queue,
             processlock = self.process_lock,
@@ -131,10 +131,7 @@ class TestScanJob(unittest.TestCase):
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
-            processfile(pathlib.Path(self.resultsdir),
-                    self.dbconn, self.dbcursor,
-                    self.scan_environment
-                    )
+            processfile(self.dbconn, self.dbcursor, self.scan_environment)
         except QueueEmptyError:
             pass
         result = self.result_queue.get()
@@ -148,10 +145,7 @@ class TestScanJob(unittest.TestCase):
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
-            processfile(pathlib.Path(self.resultsdir),
-                    self.dbconn, self.dbcursor,
-                    self.scan_environment
-                    )
+            processfile(self.dbconn, self.dbcursor, self.scan_environment)
         except QueueEmptyError:
             pass
         result = self.result_queue.get()
