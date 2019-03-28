@@ -9,7 +9,7 @@ class FileResult:
         self.filename = rel_filename
         self.parentpath = abs_parentpath
         self.parent = rel_parentfilename
-        self.labels = set()
+        self.labels = labels
         self.unpackedfiles = None
         self.filesize = None
         self.mimetype = None
