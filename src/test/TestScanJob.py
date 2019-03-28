@@ -14,11 +14,7 @@ from ScanEnvironment import *
 
 import bangfilescans
 
-bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
-bangfilefunctions = [func for name, func in bangfunctions
-        if func.context == 'file']
-bangwholecontextfunctions = [func for name, func in bangfunctions
-        if func.context == 'whole']
+from bangfilescans import bangfilefunctions, bangwholecontextfunctions
 
 class QueueEmptyError(Exception):
     pass

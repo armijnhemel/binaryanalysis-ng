@@ -62,6 +62,7 @@ import bangandroid
 import bangfilesystems
 import bangmedia
 import bangfilescans
+from bangfilescans import bangfilefunctions, bangwholecontextfunctions
 import bangsignatures
 from bangscanneroptions import BangScannerOptions
 from banglogging import log, uselogging
@@ -124,14 +125,6 @@ def main(argv):
     # silly window). Ideally this is a few times the value of
     # 'maxsignaturesoffset'
     maxbytes = max(200000, maxsignaturesoffset+1)
-
-    # use introspection for getting the file scans that run after unpacking
-    # TODO: move this to bangfilescans itself
-    bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
-    bangfilefunctions = [func for name, func in bangfunctions
-            if func.context == 'file']
-    bangwholecontextfunctions = [func for name, func in bangfunctions
-            if func.context == 'whole']
 
     # create a list of all the files that should be scanned
     checkfiles = []

@@ -145,3 +145,14 @@ def extractIdentifier(filename, hashresults, dbconn, dbcursor, scanenvironment):
 extractIdentifier.context = ['file']
 extractIdentifier.ignore = ['archive', 'audio', 'audio', 'database', 'encrypted', 'filesystem', 'graphics', 'video']
 
+import inspect
+import sys
+
+bangfunctions = inspect.getmembers(sys.modules[__name__], inspect.isfunction)
+bangfilefunctions = [func for name, func in bangfunctions
+        if func.context == 'file']
+bangwholecontextfunctions = [func for name, func in bangfunctions
+        if func.context == 'whole']
+
+
+
