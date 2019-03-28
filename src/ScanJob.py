@@ -431,12 +431,12 @@ class ScanJob:
 
                 scanfile.close()
 
-    def do_content_computations(self, createbytecounter):
+    def do_content_computations(self):
         fc = FileContentsComputer(self.scanenvironment.get_readsize())
         hasher = Hasher(hash_algorithms)
         fc.subscribe(hasher)
 
-        if createbytecounter and 'padding' not in self.fileresult.labels:
+        if self.scanenvironment.get_createbytecounter() and 'padding' not in self.fileresult.labels:
             byte_counter = ByteCounter()
             fc.subscribe(byte_counter)
 
@@ -617,7 +617,7 @@ def processfile(scancontext, scanfilequeue, resultqueue, processlock, checksumdi
         if carveunpacked:
             scanjob.carve_file_data(unpacker, scanfilequeue)
 
-        scanjob.do_content_computations(createbytecounter)
+        scanjob.do_content_computations()
 
         if unpacker.needs_unpacking():
             scanjob.check_entire_file(unpacker, scanfilequeue)
