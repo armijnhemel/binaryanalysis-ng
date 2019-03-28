@@ -72,6 +72,11 @@ class TestScanJob(unittest.TestCase):
             paddingname = 'PADDING',
             unpackdirectory = self.unpackdir,
             temporarydirectory = self.tmpdir,
+            resultsdirectory = self.resultsdir,
+            scanfilequeue = self.scanfile_queue,
+            resultqueue = self.result_queue,
+            processlock = self.process_lock,
+            checksumdict = self.checksum_dict,
             )
 
     def _create_clean_directory(self,dirname):
@@ -121,7 +126,7 @@ class TestScanJob(unittest.TestCase):
         scanjob.prepare_for_unpacking()
         scanjob.check_unscannable_file()
         unpacker.append_unpacked_range(0,5) # bytes [0:5) are unpacked
-        scanjob.carve_file_data(unpacker, self.scanfile_queue)
+        scanjob.carve_file_data(unpacker)
         j = self.scanfile_queue.get()
         self.assertSetEqual(j.fileresult.labels,set(['padding','synthesized']))
 

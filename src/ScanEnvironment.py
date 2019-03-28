@@ -6,7 +6,9 @@ class ScanEnvironment:
 
     def __init__(self, maxbytes, readsize, createbytecounter,
             tlshmaximum, synthesizedminimum, logging, paddingname,
-            unpackdirectory, temporarydirectory,
+            unpackdirectory, temporarydirectory, resultsdirectory,
+            scanfilequeue, resultqueue,
+            processlock, checksumdict,
             ):
         # TODO: init from options object
         self.maxbytes = maxbytes
@@ -19,6 +21,10 @@ class ScanEnvironment:
         self.unpackdirectory = unpackdirectory
         self.temporarydirectory = temporarydirectory
         self.lenunpackdirectory = len(str(unpackdirectory))+1
+        self.scanfilequeue = scanfilequeue
+        self.resultqueue = resultqueue
+        self.processlock = processlock
+        self.checksumdict = checksumdict
 
     def get_readsize(self):
         return self.readsize
