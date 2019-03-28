@@ -581,8 +581,7 @@ class ScanJob:
 # 'graphics') will be stored. These labels can be used to feed extra
 # information to the unpacking process, such as preventing scans from
 # running.
-def processfile(resultsdirectory,
-                dbconn, dbcursor, scanenvironment):
+def processfile(dbconn, dbcursor, scanenvironment):
 
     scanfilequeue = scanenvironment.scanfilequeue
     resultqueue = scanenvironment.resultqueue
@@ -649,7 +648,7 @@ def processfile(resultsdirectory,
             if createbytecounter and 'padding' not in scanjob.fileresult.labels:
                 resultout['bytecount'] = sorted(byte_counter.get().items())
                 # write a file with the distribution of bytes in the scanned file
-                bytescountfilename = resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
+                bytescountfilename = scanenvironment.resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
                 if not bytescountfilename.exists():
                     bytesout = bytescountfilename.open('w')
                     for by in resultout['bytecount']:
@@ -660,7 +659,7 @@ def processfile(resultsdirectory,
                 resultout[a] = h
 
             resultout['labels'] = list(scanjob.fileresult.labels)
-            picklefilename = resultsdirectory / ("%s.pickle" % scanjob.fileresult.get_hash('sha256'))
+            picklefilename = scanenvironment.resultsdirectory / ("%s.pickle" % scanjob.fileresult.get_hash('sha256'))
             # TODO: this is vulnerable to a race condition, replace with EAFP pattern
             if not picklefilename.exists():
                 pickleout = picklefilename.open('wb')

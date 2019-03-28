@@ -20,6 +20,7 @@ class ScanEnvironment:
         self.paddingname = paddingname
         self.unpackdirectory = unpackdirectory
         self.temporarydirectory = temporarydirectory
+        self.resultsdirectory = resultsdirectory
         self.lenunpackdirectory = len(str(unpackdirectory))+1
         self.scanfilequeue = scanfilequeue
         self.resultqueue = resultqueue
