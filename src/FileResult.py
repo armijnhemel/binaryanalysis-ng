@@ -17,26 +17,21 @@ class FileResult:
 
     def set_filesize(self, size):
         self.filesize = size
-        # self.fileresult['filesize'] = size
 
     def is_unpacking_root(self):
         return self.parentpath is None
 
     def get_hashresult(self):
         return self.hash
-        # return self.fileresult['hash']
 
     def set_hashresult(self, hashtype, value):
         self.hash[hashtype] = value
-        # self.fileresult['hash'][hashtype] = value
 
     def init_unpacked_files(self):
         self.unpackedfiles = []
-        # self.fileresult['unpackedfiles'] = []
 
     def add_unpackedfile(self, report):
         self.unpackedfiles.append(report)
-        # self.fileresult['unpackedfiles'].append(report)
 
     def set_mimetype(self, mimeres):
         self.mimetype = mimeres[0]

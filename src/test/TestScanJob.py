@@ -110,11 +110,10 @@ class TestScanJob(unittest.TestCase):
         scanjob = ScanJob(self.scancontext, fileresult)
         self.scanfile_queue.put(scanjob)
         try:
-            processfile(self.scanfile_queue, self.result_queue,
+            processfile(self.scancontext, self.scanfile_queue, self.result_queue,
                     self.process_lock, self.checksum_dict,
-                    self.unpackdir,
                     pathlib.Path(self.resultsdir),
-                    self.tmpdir, self.dbconn, self.dbcursor,
+                    self.dbconn, self.dbcursor,
                     bangfilefunctions, self.scan_environment
                     )
         except QueueEmptyError:
