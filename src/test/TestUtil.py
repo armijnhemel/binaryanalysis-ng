@@ -81,6 +81,12 @@ class TestBase(unittest.TestCase):
             pass
         os.mkdir(dirname)
 
+    def _create_fileresult_for_path(self, path, labels=set([]),
+            calculate_size=True):
+        fr = FileResult(path, path.name, path.parent, path.parent.name, labels)
+        if calculate_size:
+            fr.set_filesize(path.stat().st_size)
+        return fr
 
     # remove the temporary directory
     def tearDown(self):

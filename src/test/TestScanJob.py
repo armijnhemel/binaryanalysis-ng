@@ -11,7 +11,7 @@ from FileResult import *
 from ScanJob import *
 # from ScanEnvironment import *
 
-import bangfilescans
+# import bangfilescans
 
 class TestScanJob(TestBase):
 
