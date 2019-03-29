@@ -26,6 +26,11 @@ import unittest
 import tempfile
 import shutil
 import pathlib
+import os
+import sys
+
+_scriptdir = os.path.dirname(__file__)
+sys.path.insert(0,os.path.join(_scriptdir,'..'))
 
 # load own modules
 import bangunpack
@@ -35,19 +40,10 @@ import bangmedia
 basetestdir = pathlib.Path('/home/armijn/git/binaryanalysis-ng/test')
 tmpdirectory = '/home/armijn/tmp'
 
+from TestUtil import *
 
 # a test class for testing GIFs
-class TestGIF(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
-
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # Now all the test cases.
+class TestGIF(TestBase):
 
     # a test for the file being a single GIF
     def testFullfileIsGIF(self):
@@ -111,17 +107,7 @@ class TestGIF(unittest.TestCase):
 
 
 # a test class for testing PNG files
-class TestPNG(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
-
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
+class TestPNG(TestBase):
     # a test for the file being a single PNG
     def testFullfileIsPNG(self):
         '''Test a single PNG'''
@@ -250,17 +236,7 @@ class TestPNG(unittest.TestCase):
 
 
 # a test class for testing JPEG files
-class TestJPEG(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
-
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
+class TestJPEG(TestBase):
     # a test for the file being a single JPEG
     def testFullfileIsJPEG(self):
         '''Test a single JPEG'''
@@ -317,17 +293,7 @@ class TestJPEG(unittest.TestCase):
 
 
 # a test class for testing BMP files
-class TestBMP(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
-
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
+class TestBMP(TestBase):
     # a test for the file being a single BMP
     def testFullfileIsBMP(self):
         filename = basetestdir / 'bmp' / 'test.bmp'
@@ -383,17 +349,7 @@ class TestBMP(unittest.TestCase):
 
 
 # a test class for testing SGI files
-class TestSGI(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
-
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
+class TestSGI(TestBase):
     # a test for the file being a single SGI
     def testFullfileIsSGI(self):
         filename = basetestdir / 'sgi' / 'test.sgi'
@@ -503,17 +459,7 @@ class TestSGI(unittest.TestCase):
 
 
 # a test class for testing Android sparse files
-class TestAndroidSparse(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
-
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
+class TestAndroidSparse(TestBase):
     # a test for the file being a single Android sparse image
     def testFullfileIsAndroidSparse(self):
         filename = basetestdir / 'simg' / 'zero.img'
@@ -525,17 +471,8 @@ class TestAndroidSparse(unittest.TestCase):
 
 
 # a test class for testing SREC files
-class TestSREC(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestSREC(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     def testSRECWrong(self):
         filename = basetestdir / 'srec' / 'srec-wrong.txt'
         offset = 0
@@ -544,17 +481,7 @@ class TestSREC(unittest.TestCase):
 
 
 # a test class for testing GZIP files
-class TestGZIP(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
-
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
+class TestGZIP(TestBase):
     # a test for the file being a single gzip
     def testFullfileIsGzip(self):
         filename = basetestdir / 'gzip' / 'test.jpg.gz'
@@ -610,17 +537,7 @@ class TestGZIP(unittest.TestCase):
 
 
 # a test class for testing ZIP files
-class TestZIP(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
-
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
+class TestZIP(TestBase):
     # a test for the file being a single ZIP
     def testFullfileIsZip(self):
         filename = basetestdir / 'zip' / 'test.zip'
@@ -676,17 +593,8 @@ class TestZIP(unittest.TestCase):
 
 
 # a test class for testing LZ4 files
-class TestLZ4(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestLZ4(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single LZ4
     def testFullfileIsLZ4(self):
         filename = basetestdir / 'lz4' / 'pg6130.txt.lz4'
@@ -742,17 +650,8 @@ class TestLZ4(unittest.TestCase):
 
 
 # a test class for testing CPIO files
-class TestCPIO(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestCPIO(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single CPIO
     def testFullfileIsCPIOBin(self):
         filename = basetestdir / 'cpio' / 'test-old-bin.cpio'
@@ -967,17 +866,8 @@ class TestCPIO(unittest.TestCase):
 
 
 # a test class for testing XZ files
-class TestXZ(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestXZ(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single XZ
     def testFullfileIsXZ(self):
         filename = basetestdir / 'xz' / 'test.xz'
@@ -1033,17 +923,8 @@ class TestXZ(unittest.TestCase):
 
 
 # a test class for testing LZMA files
-class TestLZMA(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestLZMA(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single LZMA
     def testFullfileIsLZMA(self):
         filename = basetestdir / 'lzma' / 'test.lzma'
@@ -1099,17 +980,8 @@ class TestLZMA(unittest.TestCase):
 
 
 # a test class for testing bzip2 files
-class TestBzip2(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestBzip2(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single bzip2
     def testFullfileIsBzip2(self):
         filename = basetestdir / 'bz2' / 'test.bz2'
@@ -1165,17 +1037,8 @@ class TestBzip2(unittest.TestCase):
 
 
 # a test class for testing lzip files
-class TestLzip(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestLzip(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single lzip
     def testFullfileIsLzip(self):
         filename = basetestdir / 'lzip' / 'test.lz'
@@ -1231,17 +1094,8 @@ class TestLzip(unittest.TestCase):
 
 
 # a test class for testing lzop files
-class TestLzop(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestLzop(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single lzop
     def testFullfileIsLzop(self):
         filename = basetestdir / 'lzop' / 'test.lzo'
@@ -1297,17 +1151,8 @@ class TestLzop(unittest.TestCase):
 
 
 # a test class for testing zstd files
-class TestZstd(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestZstd(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single zstd
     def testFullfileIsZstd(self):
         filename = basetestdir / 'zstd' / 'test.zst'
@@ -1363,17 +1208,8 @@ class TestZstd(unittest.TestCase):
 
 
 # a test class for testing 7z files
-class Test7z(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class Test7z(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single 7z
     def testFullfileIs7z(self):
         filename = basetestdir / '7z' / 'test.7z'
@@ -1429,17 +1265,8 @@ class Test7z(unittest.TestCase):
 
 
 # a test class for testing ar files
-class TestAr(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestAr(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single ar
     def testFullfileIsAr(self):
         filename = basetestdir / 'ar' / 'test.ar'
@@ -1501,17 +1328,8 @@ class TestAr(unittest.TestCase):
 
 
 # a test class for testing XAR files
-class TestXAR(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestXAR(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single xar
     def testFullfileIsXAR(self):
         filename = basetestdir / 'xar' / 'test-gzip.xar'
@@ -1675,17 +1493,8 @@ class TestXAR(unittest.TestCase):
 
 
 # a test class for testing squashfs files
-class TestSquashfs(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestSquashfs(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single squashfs
     def testFullfileIsSquashfs(self):
         filename = basetestdir / 'squashfs' / 'test.sqsh'
@@ -1742,17 +1551,8 @@ class TestSquashfs(unittest.TestCase):
 
 
 # a test class for testing snappy files
-class TestSnappy(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestSnappy(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single snappy
     def testFullfileIsSnappy(self):
         filename = basetestdir / 'snappy' / 'test.sz'
@@ -1809,17 +1609,8 @@ class TestSnappy(unittest.TestCase):
 
 
 # a test class for testing ISO files
-class TestISO9660(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestISO9660(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single iso9660
     def testFullfileIsISO9660(self):
         filename = basetestdir / 'iso9660' / 'test.iso'
@@ -1876,17 +1667,8 @@ class TestISO9660(unittest.TestCase):
 
 
 # a test class for testing tar files
-class TestTar(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestTar(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single tar
     def testFullfileIsTar(self):
         filename = basetestdir / 'tar' / 'test.tar'
@@ -1959,17 +1741,8 @@ class TestTar(unittest.TestCase):
 
 
 # a test class for testing jffs2 files
-class TestJFFS2(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
+class TestJFFS2(TestBase):
 
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
     # a test for the file being a single jffs2
     def testFullfileIsJFFS2Little(self):
         filename = basetestdir / 'jffs2' / 'test-little.jffs2'
@@ -2078,17 +1851,7 @@ class TestJFFS2(unittest.TestCase):
 
 
 # a test class for testing rzip files
-class TestRzip(unittest.TestCase):
-    # create a temporary directory and copy
-    # the test file to the temporary directory
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=tmpdirectory)
-
-    # remove the temporary directory
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    # now all the test cases.
+class TestRzip(TestBase):
     # a test for the file being a single rzip
     def testFullfileIsRzip(self):
         filename = basetestdir / 'rzip' / 'test.rz'

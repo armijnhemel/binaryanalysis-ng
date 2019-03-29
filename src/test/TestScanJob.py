@@ -5,80 +5,15 @@ import pathlib
 import inspect
 import unittest
 
-_scriptdir = os.path.dirname(__file__)
-sys.path.insert(0,os.path.join(_scriptdir,'..'))
+from TestUtil import *
 
 from FileResult import *
 from ScanJob import *
-from ScanEnvironment import *
+# from ScanEnvironment import *
 
 import bangfilescans
 
-class QueueEmptyError(Exception):
-    pass
-
-class MockQueue:
-    def __init__(self):
-        self.queue = []
-    def get(self, timeout=0):
-        try:
-            return self.queue.pop(0)
-        except IndexError:
-            raise QueueEmptyError()
-    def put(self, job):
-        self.queue.append(job)
-    def task_done(self):
-        pass
-
-class MockLock:
-    def acquire(self): pass
-    def release(self): pass
-
-class MockDBConn:
-    pass
-
-class MockDBCursor:
-    pass
-
-class TestScanJob(unittest.TestCase):
-
-    def setUp(self):
-        self.testdata_dir = os.path.join(_scriptdir,'testdata')
-        self.unpackdir = os.path.join(_scriptdir,'unpack')
-        self.tmpdir = os.path.join(_scriptdir,'tmp')
-        self.resultsdir = os.path.join(_scriptdir,'results')
-        self._create_clean_directory(self.unpackdir)
-        self._create_clean_directory(self.tmpdir)
-        self._create_clean_directory(self.resultsdir)
-        self.scanfile_queue = MockQueue()
-        self.result_queue = MockQueue()
-        self.process_lock = MockLock()
-        self.checksum_dict = {}
-        self.dbconn = MockDBConn()
-        self.dbcursor = MockDBCursor()
-        self.scan_environment = ScanEnvironment(
-            maxbytes = max(200000, maxsignaturesoffset+1),
-            readsize = 10240,
-            createbytecounter = False,
-            tlshmaximum = sys.maxsize,
-            synthesizedminimum = 10,
-            logging = False,
-            paddingname = 'PADDING',
-            unpackdirectory = self.unpackdir,
-            temporarydirectory = self.tmpdir,
-            resultsdirectory = pathlib.Path(self.resultsdir),
-            scanfilequeue = self.scanfile_queue,
-            resultqueue = self.result_queue,
-            processlock = self.process_lock,
-            checksumdict = self.checksum_dict,
-            )
-
-    def _create_clean_directory(self,dirname):
-        try:
-            shutil.rmtree(dirname)
-        except FileNotFoundError:
-            pass
-        os.mkdir(dirname)
+class TestScanJob(TestBase):
 
     def _make_directory_in_unpackdir(self, dirname):
         try:
