@@ -108,7 +108,7 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # lineage-14.1-20180410-nightly-FP2-signed.zip
 #
 # Note: this is different to the Android sparse image format.
-def unpackAndroidSparseData(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackAndroidSparseData(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack an Android sparse data file.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -288,7 +288,7 @@ def unpackAndroidSparseData(fileresult, scanenvironment, filename, offset, unpac
 #
 # header + zlib compressed data
 # zlib compressed data contains a POSIX tar file
-def unpackAndroidBackup(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackAndroidBackup(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack an Android backup file.'''
     filesize = fileresult.filesize
     labels = []
@@ -346,7 +346,7 @@ def unpackAndroidBackup(fileresult, scanenvironment, filename, offset, unpackdir
 
     # create a temporary file to write the results to
     # then create a zlib decompression object
-    tempbackupfile = tempfile.mkstemp(dir=temporarydirectory)
+    tempbackupfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
     decompressobj = zlib.decompressobj()
 
     # read 1 MB chunks
@@ -373,7 +373,7 @@ def unpackAndroidBackup(fileresult, scanenvironment, filename, offset, unpackdir
     tarfilesize = os.stat(tempbackupfile[1]).st_size
 
     # now unpack the tar ball
-    tarresult = bangunpack.unpackTar(pathlib.Path(tempbackupfile[1]), 0, unpackdir, temporarydirectory)
+    tarresult = bangunpack.unpackTar(pathlib.Path(tempbackupfile[1]), 0, unpackdir)
 
     # cleanup
     os.unlink(tempbackupfile[1])
@@ -401,7 +401,7 @@ def unpackAndroidBackup(fileresult, scanenvironment, filename, offset, unpackdir
 #
 # version 5:
 # https://chromium.googlesource.com/chromium/src/tools/grit/+/master/grit/format/data_pack.py
-def unpackChromePak(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackChromePak(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Verify and extract data from Chrome PAK files.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -647,7 +647,7 @@ def unpackChromePak(fileresult, scanenvironment, filename, offset, unpackdir, te
 # * https://android.googlesource.com/platform/system/core/+/master/libsparse - img2simg.c
 #
 # Note: this is different to the Android sparse data image format.
-def unpackAndroidSparse(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackAndroidSparse(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Convert an Android sparse file.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -812,7 +812,7 @@ def unpackAndroidSparse(fileresult, scanenvironment, filename, offset, unpackdir
 # (sections "File layout" and "Items and related structures")
 def unpackDex(
         fileresult, scanenvironment, filename, offset, unpackdir,
-        temporarydirectory, dryrun=False,
+        dryrun=False,
         verifychecksum=True):
     '''Verify and/or carve an Android Dex file.'''
     filesize = fileresult.filesize
@@ -1529,7 +1529,7 @@ def unpackDex(
 # http://web.archive.org/web/20180816094438/https://android.googlesource.com/platform/dalvik.git/+/master/libdex/DexFile.h
 #
 # (struct DexOptHeader and DexFile)
-def unpackOdex(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackOdex(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Verify and/or carve an Android Odex file.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -1635,7 +1635,7 @@ def unpackOdex(fileresult, scanenvironment, filename, offset, unpackdir, tempora
     # unlikely at this point that it is an invalid file.
     dryrun = True
     verifychecksum = False
-    dexres = unpackDex(fileresult, scanenvironment, filename, offset + dexoffset, unpackdir, temporarydirectory, dryrun, verifychecksum)
+    dexres = unpackDex(fileresult, scanenvironment, filename, offset + dexoffset, unpackdir, dryrun, verifychecksum)
     if not dexres['status']:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -1670,7 +1670,7 @@ def unpackOdex(fileresult, scanenvironment, filename, offset, unpackdir, tempora
 # might chance over time.
 #
 # Around line 182 the format description starts.
-def unpackAndroidResource(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackAndroidResource(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Verify and/or carve an Android resources file.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -2054,7 +2054,7 @@ def unpackAndroidResource(fileresult, scanenvironment, filename, offset, unpackd
 # some extra metadata.
 # The structure is defined in Android's source code, for example:
 # https://android.googlesource.com/platform/bionic/+/lollipop-mr1-dev/libc/tools/zoneinfo/ZoneCompactor.java
-def unpackAndroidTzdata(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackAndroidTzdata(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Verify Android's tzdata file and unpack data from it'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -2269,7 +2269,7 @@ def unpackAndroidTzdata(fileresult, scanenvironment, filename, offset, unpackdir
 
 # Android verfied boot images
 # https://android.googlesource.com/platform/external/avb/+/master/avbtool
-def unpackAVB(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackAVB(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Label/verify/carve Android verified boot images'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -2479,7 +2479,7 @@ def unpackAVB(fileresult, scanenvironment, filename, offset, unpackdir, temporar
 # https://android.googlesource.com/device/lge/mako/+/master/releasetools.py
 #
 # Example device: Pixel 2
-def unpackAndroidBootMSM(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackAndroidBootMSM(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack Android bootloader images (Qualcomm Snapdragon)'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -2586,7 +2586,7 @@ def unpackAndroidBootMSM(fileresult, scanenvironment, filename, offset, unpackdi
 # Android bootloader
 #
 # https://android.googlesource.com/platform/system/core.git/+/master/mkbootimg/include/bootimg/bootimg.h
-def unpackAndroidBootImg(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackAndroidBootImg(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack Android bootloader images'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -2779,7 +2779,7 @@ def unpackAndroidBootImg(fileresult, scanenvironment, filename, offset, unpackdi
 # https://android.googlesource.com/device/huawei/angler/+/master/releasetools.py
 #
 # Example device: Nexus 6P
-def unpackAndroidBootHuawei(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackAndroidBootHuawei(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack Android bootloader images (Huawei)'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []

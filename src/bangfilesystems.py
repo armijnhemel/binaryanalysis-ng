@@ -105,7 +105,7 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # differ per Linux distribution.
 # This is for the "vanilla" squashfs, not for any vendor specific
 # versions.
-def unpackSquashfs(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackSquashfs(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack squashfs file system data.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -201,7 +201,7 @@ def unpackSquashfs(fileresult, scanenvironment, filename, offset, unpackdir, tem
     # then create a temporary file and copy the data into the
     # temporary file but only if offset != 0
     if offset != 0:
-        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
         # depending on the variant of squashfs a file size can be
         # determined meaning less data needs to be copied.
         os.sendfile(temporaryfile[0], checkfile.fileno(), offset, filesize - offset)
@@ -211,7 +211,7 @@ def unpackSquashfs(fileresult, scanenvironment, filename, offset, unpackdir, tem
     # unpack in a temporary directory, as unsquashfs expects
     # to create the directory itself, but the unpacking directory
     # already exists.
-    squashfsunpackdirectory = tempfile.mkdtemp(dir=temporarydirectory)
+    squashfsunpackdirectory = tempfile.mkdtemp(dir=scanenvironment.temporarydirectory)
 
     if offset != 0:
         p = subprocess.Popen(['unsquashfs', temporaryfile[1]],
@@ -321,7 +321,7 @@ def local_copy2(src, dest):
 #
 # The zisofs specific bits can be found at:
 # http://libburnia-project.org/wiki/zisofs
-def unpackISO9660(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackISO9660(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack an ISO9660 file system.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -1233,7 +1233,7 @@ def unpackISO9660(fileresult, scanenvironment, filename, offset, unpackdir, temp
 # JFFS2 is a file system that was used on earlier embedded Linux
 # system, although it is no longer the first choice for modern systems,
 # where for example UBI/UBIFS are chosen.
-def unpackJFFS2(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackJFFS2(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack a JFFS2 file system.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -1768,7 +1768,7 @@ def unpackJFFS2(fileresult, scanenvironment, filename, offset, unpackdir, tempor
 # to this document. The heavy lifting is done using e2tools
 # because it already takes care of deleted files, etc. through
 # e2fsprogs-libs.
-def unpackExt2(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackExt2(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack an ext2/ext3/ext4 file system.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -2008,7 +2008,7 @@ def unpackExt2(fileresult, scanenvironment, filename, offset, unpackdir, tempora
         # won't write more data than 2147479552 so write bytes
         # out in chunks. Reference:
         # https://bugzilla.redhat.com/show_bug.cgi?id=612839
-        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
         if unpackedsize > 2147479552:
             bytesleft = unpackedsize
             bytestowrite = min(bytesleft, 2147479552)
@@ -2181,7 +2181,7 @@ def unpackExt2(fileresult, scanenvironment, filename, offset, unpackdir, tempora
 # in section 4
 #
 # For now just focus on files where the entire file is VMDK
-def unpackVMDK(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackVMDK(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Convert a VMware VMDK file.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -2247,7 +2247,7 @@ def unpackVMDK(fileresult, scanenvironment, filename, offset, unpackdir, tempora
 # Specification can be found in docs/interop in the QEMU repository
 #
 # https://git.qemu.org/?p=qemu.git;a=blob;f=docs/interop/qcow2.txt;hb=HEAD
-def unpackQcow2(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackQcow2(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Convert a QEMU qcow2 file.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -2313,7 +2313,7 @@ def unpackQcow2(fileresult, scanenvironment, filename, offset, unpackdir, tempor
 # VirtualBox VDI
 #
 # https://forums.virtualbox.org/viewtopic.php?t=8046
-def unpackVDI(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackVDI(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Convert a VirtualBox VDI file.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -2530,7 +2530,7 @@ def unpackVDI(fileresult, scanenvironment, filename, offset, unpackdir, temporar
 #
 # which was released under the MIT license. The license can be found in the file
 # README.md in the root of this project.
-def unpackDlinkRomfs(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackDlinkRomfs(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack a D-Link ROMFS'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -2733,7 +2733,7 @@ def unpackDlinkRomfs(fileresult, scanenvironment, filename, offset, unpackdir, t
 # FAT file system
 # https://en.wikipedia.org/wiki/File_Allocation_Table
 # https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system
-def unpackFAT(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackFAT(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack FAT file systems'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -3273,7 +3273,7 @@ def unpackFAT(fileresult, scanenvironment, filename, offset, unpackdir, temporar
 # https://www.coreboot.org/CBFS
 #
 # A CBFS file consists of various concatenated components.
-def unpackCBFS(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackCBFS(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Verify/label coreboot file system images'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -3468,7 +3468,7 @@ def unpackCBFS(fileresult, scanenvironment, filename, offset, unpackdir, tempora
 # https://en.wikipedia.org/wiki/MINIX_file_system
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/fs/mfs
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/usr.sbin/mkfs.mfs/v1l
-def unpackMinix1L(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
+def unpackMinix1L(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Unpack Minix V1 file systems (extended Linux variant)'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []

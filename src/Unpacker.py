@@ -79,7 +79,7 @@ class Unpacker:
     def try_unpack_file_for_extension(self, fileresult, scanenvironment, filename, extension, temporarydirectory):
         try:
             self.make_data_unpack_directory(filename, bangsignatures.extensionprettyprint[extension])
-            return bangsignatures.unpack_file_with_extension(fileresult, scanenvironment, filename, extension, self.dataunpackdirectory, temporarydirectory)
+            return bangsignatures.unpack_file_with_extension(fileresult, scanenvironment, filename, extension, self.dataunpackdirectory)
         except AttributeError as ex:
             print(ex)
             self.remove_data_unpack_directory()
