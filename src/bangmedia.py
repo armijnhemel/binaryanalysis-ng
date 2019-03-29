@@ -114,7 +114,7 @@ def unpackWebP(fileresult, scanenvironment, offset, unpackdir):
     # also contains the deprecated FRGM
     validchunkfourcc = set([b'ALPH', b'ANIM', b'ANMF', b'EXIF', b'FRGM',
                             b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
-    unpackres = unpackRIFF(fileresult, scanenvironment, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP', filesize)
+    unpackres = unpackRIFF(fileresult, scanenvironment, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP')
     if unpackres['status']:
         labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
@@ -144,7 +144,7 @@ def unpackWAV(fileresult, scanenvironment, offset, unpackdir):
     validchunkfourcc = set([b'LGWV', b'bext', b'cue ', b'data', b'fact',
                             b'fmt ', b'inst', b'labl', b'list', b'ltxt',
                             b'note', b'plst', b'smpl', b'CDif', b'SAUR'])
-    unpackres = unpackRIFF(fileresult, scanenvironment, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
+    unpackres = unpackRIFF(fileresult, scanenvironment, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE')
     if unpackres['status']:
         # see if any data chunks were found at all
         if b'data' not in unpackres['offsets']:
@@ -274,8 +274,7 @@ def unpackWAV(fileresult, scanenvironment, offset, unpackdir):
 # https://en.wikipedia.org/wiki/Resource_Interchange_File_Format
 def unpackRIFF(
         fileresult, scanenvironment, offset, unpackdir, validchunkfourcc,
-        applicationname, applicationheader, filesize,
-        brokenlength=False):
+        applicationname, applicationheader, brokenlength=False):
     '''Helper method to unpack RIFF based files'''
     filesize = fileresult.filesize
     filename = fileresult.filepath
@@ -471,7 +470,7 @@ def unpackANI(fileresult, scanenvironment, offset, unpackdir):
         brokenlength = True
     checkfile.close()
 
-    unpackres = unpackRIFF(fileresult, scanenvironment, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', filesize, brokenlength)
+    unpackres = unpackRIFF(fileresult, scanenvironment, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', brokenlength)
     if unpackres['status']:
         labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
