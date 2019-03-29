@@ -76,7 +76,7 @@ class Unpacker:
     def get_data_unpack_directory(self):
         return self.dataunpackdirectory
 
-    def try_unpack_file_for_extension(self, fileresult, scanenvironment, filename, extension, temporarydirectory):
+    def try_unpack_file_for_extension(self, fileresult, scanenvironment, filename, extension):
         try:
             self.make_data_unpack_directory(filename, bangsignatures.extensionprettyprint[extension])
             return bangsignatures.unpack_file_with_extension(fileresult, scanenvironment, extension, self.dataunpackdirectory)
@@ -144,8 +144,23 @@ class Unpacker:
     def offset_overlaps_with_unpacked_data(self, offset):
         return offset < self.lastunpackedoffset
 
-    def try_unpack_file_for_signatures(self, filename):
-        pass
+    def try_unpack_file_for_signatures(self, fileresult, scanenvironment, signature, offset):
+        try:
+            return bangsignatures.signaturetofunction[signature](fileresult, scanenvironment, offset, self.dataunpackdirectory)
+        except AttributeError as ex:
+            print(ex)
+            self.remove_data_unpack_directory()
+            return None
+
+    def try_textonlyfunctions(self, fileresult, scanenvironment, filetype, offset):
+        try:
+            return bangsignatures.textonlyfunctions[filetype](fileresult, scanenvironment, 0, self.dataunpackdirectory)
+        except Exception as e:
+            # TODO: make exception more specific, it is too general
+            print(e)
+            self.remove_data_unpack_directory()
+            return None
+
 
     def file_unpacked(self, unpackresult, filesize):
         # store the location of where the successfully
