@@ -28,6 +28,8 @@ class ScanJob:
     def _stat_file(self):
         try:
             self.stat = os.stat(self.fileresult.filepath)
+        except FileNotFounderror as e:
+            raise
         except:
             self.stat = None
 
@@ -134,7 +136,7 @@ class ScanJob:
             if bangsignatures.matches_file_pattern(self.fileresult.filepath, extension):
                 log(logging.INFO, "TRY extension match %s %s" % (self.fileresult.filepath, extension))
                 unpackresult = unpacker.try_unpack_file_for_extension(
-                        self.fileresult.filepath, extension, self.scanenvironment.temporarydirectory)
+                        self.fileresult, self.scanenvironment, self.fileresult.filepath, extension, self.scanenvironment.temporarydirectory)
                 if unpackresult is None:
                     continue
                 if not unpackresult['status']:
@@ -198,6 +200,7 @@ class ScanJob:
                 candidateoffsetsfound = set()
                 for s in bangsignatures.signatures:
                     offsets = unpacker.find_offsets_for_signature(s, self.fileresult.filesize)
+                    
                     candidateoffsetsfound.update(offsets)
 
                 # For each of the found candidates see if any
@@ -235,8 +238,9 @@ class ScanJob:
                             (self.fileresult.get_filename(), signature, offset))
 
                     try:
-                        unpackresult = bangsignatures.signaturetofunction[signature](self.fileresult.filepath, offset, unpacker.get_data_unpack_directory(), self.scanenvironment.temporarydirectory)
+                        unpackresult = bangsignatures.signaturetofunction[signature](self.fileresult, self.scanenvironment, self.fileresult.filepath, offset, unpacker.get_data_unpack_directory(), self.scanenvironment.temporarydirectory)
                     except AttributeError as e:
+                        print(e)
                         unpacker.remove_data_unpack_directory()
                         continue
 
@@ -474,7 +478,7 @@ class ScanJob:
 
                 log(logging.DEBUG, "TRYING %s %s at offset: 0" % (self.fileresult.get_filename(), f))
                 try:
-                    unpackresult = bangsignatures.textonlyfunctions[f](self.fileresult.filepath, 0, unpacker.get_data_unpack_directory(), self.scanenvironment.temporarydirectory)
+                    unpackresult = bangsignatures.textonlyfunctions[f](self.fileresult, self.scanenvironment, self.fileresult.filepath, 0, unpacker.get_data_unpack_directory(), self.scanenvironment.temporarydirectory)
                 except Exception as e:
                     unpacker.remove_data_unpack_directory()
                     continue

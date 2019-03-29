@@ -104,16 +104,16 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # found here:
 #
 # http://binary-analysis.blogspot.com/2018/06/walkthrough-webp-file-format.html
-def unpackWebP(filename, offset, unpackdir, temporarydirectory):
+def unpackWebP(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a WebP file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
 
     # a list of valid WebP chunk FourCC
     # also contains the deprecated FRGM
     validchunkfourcc = set([b'ALPH', b'ANIM', b'ANMF', b'EXIF', b'FRGM',
                             b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
-    unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP', filesize)
+    unpackres = unpackRIFF(fileresult, scanenvironment, filename, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP', filesize)
     if unpackres['status']:
         labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
@@ -130,9 +130,9 @@ def unpackWebP(filename, offset, unpackdir, temporarydirectory):
 #
 # https://sites.google.com/site/musicgapi/technical-documents/wav-file-format
 # http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
-def unpackWAV(filename, offset, unpackdir, temporarydirectory):
+def unpackWAV(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a WAV file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
 
     # a list of valid WAV chunk FourCC, plus a few non-standard ones
@@ -142,7 +142,7 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
     validchunkfourcc = set([b'LGWV', b'bext', b'cue ', b'data', b'fact',
                             b'fmt ', b'inst', b'labl', b'list', b'ltxt',
                             b'note', b'plst', b'smpl', b'CDif', b'SAUR'])
-    unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
+    unpackres = unpackRIFF(fileresult, scanenvironment, filename, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE', filesize)
     if unpackres['status']:
         # see if any data chunks were found at all
         if b'data' not in unpackres['offsets']:
@@ -271,7 +271,7 @@ def unpackWAV(filename, offset, unpackdir, temporarydirectory):
 # * ANI
 # https://en.wikipedia.org/wiki/Resource_Interchange_File_Format
 def unpackRIFF(
-        filename, offset, unpackdir, validchunkfourcc,
+        fileresult, scanenvironment, filename, offset, unpackdir, validchunkfourcc,
         applicationname, applicationheader, filesize,
         brokenlength=False):
     '''Helper method to unpack RIFF based files'''
@@ -444,9 +444,9 @@ def unpackRIFF(
 
 # test files for ANI: http://www.anicursor.com/diercur.html
 # http://fileformats.archiveteam.org/wiki/Windows_Animated_Cursor#Sample_files
-def unpackANI(filename, offset, unpackdir, temporarydirectory):
+def unpackANI(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve an ANI file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
 
     # a list of valid ANI chunk FourCC
@@ -466,7 +466,7 @@ def unpackANI(filename, offset, unpackdir, temporarydirectory):
         brokenlength = True
     checkfile.close()
 
-    unpackres = unpackRIFF(filename, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', filesize, brokenlength)
+    unpackres = unpackRIFF(fileresult, scanenvironment, filename, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', filesize, brokenlength)
     if unpackres['status']:
         labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
@@ -487,9 +487,9 @@ def unpackANI(filename, offset, unpackdir, temporarydirectory):
 # APNG files are described on the Mozilla wiki:
 #
 # https://wiki.mozilla.org/APNG_Specification
-def unpackPNG(filename, offset, unpackdir, temporarydirectory):
+def unpackPNG(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a PNG/APNG file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -1034,9 +1034,9 @@ def unpackPNG(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://en.wikipedia.org/wiki/BMP_file_format
-def unpackBMP(filename, offset, unpackdir, temporarydirectory):
+def unpackBMP(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a BMP file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1162,9 +1162,9 @@ def unpackBMP(filename, offset, unpackdir, temporarydirectory):
 # The references in the comments correspond to sections in this
 # document.
 # A grammar for the GIF format is described in Appendix B.
-def unpackGIF(filename, offset, unpackdir, temporarydirectory):
+def unpackGIF(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a GIF file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1650,9 +1650,9 @@ def unpackGIF(filename, offset, unpackdir, temporarydirectory):
 #
 # https://en.wikipedia.org/wiki/JPEG#Syntax_and_structure
 # also has an extensive list of the markers
-def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
+def unpackJPEG(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a JPEG file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2221,9 +2221,9 @@ def unpackJPEG(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://en.wikipedia.org/wiki/ICO_%28file_format%29
-def unpackICO(filename, offset, unpackdir, temporarydirectory):
+def unpackICO(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve an ICO file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2389,9 +2389,9 @@ def unpackICO(filename, offset, unpackdir, temporarydirectory):
 
 # SGI file format
 # https://media.xiph.org/svt/SGIIMAGESPEC
-def unpackSGI(filename, offset, unpackdir, temporarydirectory):
+def unpackSGI(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a SGI image file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2623,9 +2623,9 @@ def unpackSGI(filename, offset, unpackdir, temporarydirectory):
 # https://web.archive.org/web/20071219035740/http://www.cnpbagwell.com/aiff-c.txt
 #
 # Test files in any recent Python 3 distribution in Lib/test/audiodata/
-def unpackAIFF(filename, offset, unpackdir, temporarydirectory):
+def unpackAIFF(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve an AIFF file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2734,9 +2734,9 @@ def unpackAIFF(filename, offset, unpackdir, temporarydirectory):
 # https://en.wikipedia.org/wiki/Au_file_format
 #
 # Test files in any recent Python 3 distribution in Lib/test/audiodata/
-def unpackAU(filename, offset, unpackdir, temporarydirectory):
+def unpackAU(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve an AU file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2839,9 +2839,9 @@ def unpackAU(filename, offset, unpackdir, temporarydirectory):
 # https://www.fileformat.info/format/sunraster/egff.htm
 # This is not a perfect catch and Only some raster files
 # might be labeled as such.
-def unpackSunRaster(filename, offset, unpackdir, temporarydirectory):
+def unpackSunRaster(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a Sun raster image file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2943,9 +2943,9 @@ def unpackSunRaster(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
-def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
+def unpackAppleIcon(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve an Apple icon image file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3062,9 +3062,9 @@ def unpackAppleIcon(filename, offset, unpackdir, temporarydirectory):
 #
 # This format is almost never used and support for it in
 # programs is spotty.
-def unpackMNG(filename, offset, unpackdir, temporarydirectory):
+def unpackMNG(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a MNG file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -3191,9 +3191,9 @@ def unpackMNG(filename, offset, unpackdir, temporarydirectory):
 # https://wwwimages2.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf
 #
 # The format is described in chapter 2 and Appendix A.
-def unpackSWF(filename, offset, unpackdir, temporarydirectory):
+def unpackSWF(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a SWF file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     labels = []
     unpackedfilesandlabels = []
     unpackingerror = {}
@@ -3537,9 +3537,9 @@ def unpackSWF(filename, offset, unpackdir, temporarydirectory):
 # Specifications (10.1.2.01) can be found on the Adobe site:
 # https://wwwimages2.adobe.com/content/dam/acom/en/devnet/flv/video_file_format_spec_v10_1.pdf
 # in Appendix E
-def unpackFLV(filename, offset, unpackdir, temporarydirectory):
+def unpackFLV(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a FLV file.'''
-    filesize = os.stat(filename).st_size
+    filesize = fileresult.filesize
     labels = []
     unpackingerror = {}
     unpackedfilesandlabels = []
@@ -3773,9 +3773,9 @@ def unpackFLV(filename, offset, unpackdir, temporarydirectory):
 # Test files for PDF 2.0 can be found at:
 #
 # https://github.com/pdf-association/pdf20examples
-def unpackPDF(filename, offset, unpackdir, temporarydirectory):
+def unpackPDF(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify/carve a PDF file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4283,9 +4283,9 @@ def unpackPDF(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://github.com/GNOME/gimp/blob/master/devel-docs/gbr.txt
-def unpackGimpBrush(filename, offset, unpackdir, temporarydirectory):
+def unpackGimpBrush(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack/verify a GIMP brush file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4420,9 +4420,9 @@ def unpackGimpBrush(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://www.csie.ntu.edu.tw/~r92092/ref/midi/
-def unpackMidi(filename, offset, unpackdir, temporarydirectory):
+def unpackMidi(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack/verify a MIDI file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4519,9 +4519,9 @@ def unpackMidi(filename, offset, unpackdir, temporarydirectory):
 # much to extract, but at least the size of the file can be verified.
 # This analysis was based on just a few samples found inside the
 # firmware of an Android phone made by LG Electronics.
-def unpackXG3D(filename, offset, unpackdir, temporarydirectory):
+def unpackXG3D(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify XG files (3D Studio Max format)'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4593,9 +4593,9 @@ def unpackXG3D(filename, offset, unpackdir, temporarydirectory):
 
 # Microsoft DirectDraw Surface files
 # https://docs.microsoft.com/en-us/windows/desktop/direct3ddds/dx-graphics-dds-pguide
-def unpackDDS(filename, offset, unpackdir, temporarydirectory):
+def unpackDDS(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify/carve Microsoft DirectDraw Surface files'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4799,9 +4799,9 @@ def unpackDDS(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/
-def unpackKTX11(filename, offset, unpackdir, temporarydirectory):
+def unpackKTX11(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify/carve Khronos KTX texture files'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -5031,9 +5031,9 @@ def unpackKTX11(filename, offset, unpackdir, temporarydirectory):
 # Specifications:
 #
 # https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
-def unpackPSD(filename, offset, unpackdir, temporarydirectory):
+def unpackPSD(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Photoshop PSD file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -5267,9 +5267,9 @@ def unpackPSD(filename, offset, unpackdir, temporarydirectory):
 # Read PPM files and PGM files
 # man 5 ppm
 # man 5 pgm
-def unpackPNM(filename, offset, unpackdir, temporarydirectory):
+def unpackPNM(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a 'raw' PNM file (PPM, PGM, PBM)'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}

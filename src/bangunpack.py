@@ -127,9 +127,9 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # Python's gzip module cannot be used, as it cannot correctly process
 # gzip data if there is other non-gzip data following the gzip compressed
 # data, so it has to be processed another way.
-def unpackGzip(filename, offset, unpackdir, temporarydirectory):
+def unpackGzip(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack gzip compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -397,9 +397,9 @@ def unpackGzip(filename, offset, unpackdir, temporarydirectory):
 
 # wrapper for LZMA, with a few extra sanity checks based on
 # LZMA format specifications.
-def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
+def unpackLZMA(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack LZMA compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     if filesize - offset < 13:
@@ -435,16 +435,16 @@ def unpackLZMA(filename, offset, unpackdir, temporarydirectory):
     else:
         lzmaunpackedsize = -1
 
-    return unpackLZMAWrapper(filename, offset, unpackdir, '.lzma', 'lzma', 'LZMA', lzmaunpackedsize)
+    return unpackLZMAWrapper(fileresult, scanenvironment, filename, offset, unpackdir, '.lzma', 'lzma', 'LZMA', lzmaunpackedsize)
 
 
 # wrapper for both LZMA and XZ
 # Uses standard Python code.
 def unpackLZMAWrapper(
-        filename, offset, unpackdir, extension,
+        fileresult, scanenvironment, filename, offset, unpackdir, extension,
         filetype, ppfiletype, lzmaunpackedsize):
     '''Wrapper method to unpack LZMA and XZ based files'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -565,9 +565,9 @@ def unpackLZMAWrapper(
 #
 # XZ has some extra data (footer) that can be used for
 # verifying the integrity of the file.
-def unpackXZ(filename, offset, unpackdir, temporarydirectory):
+def unpackXZ(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack XZ compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     allowbroken = True
@@ -579,7 +579,7 @@ def unpackXZ(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'not enough bytes'}
             return {'status': False, 'error': unpackingerror}
 
-    xzres = unpackLZMAWrapper(filename, offset, unpackdir, '.xz', 'xz', 'XZ', -1)
+    xzres = unpackLZMAWrapper(fileresult, scanenvironment, filename, offset, unpackdir, '.xz', 'xz', 'XZ', -1)
     if not allowbroken:
         # now check the header and footer, as the
         # stream flags have to be identical.
@@ -620,9 +620,9 @@ def unpackXZ(filename, offset, unpackdir, temporarydirectory):
 #
 # in case the distribution man page does not cover version
 # 3 of the timezone file format.
-def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
+def unpackTimeZone(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a timezone file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1082,9 +1082,9 @@ def unpackTimeZone(filename, offset, unpackdir, temporarydirectory):
 
 # unpacker for tar files. Uses the standard Python library.
 # https://docs.python.org/3/library/tarfile.html
-def unpackTar(filename, offset, unpackdir, temporarydirectory):
+def unpackTar(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack tar concatenated data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1253,9 +1253,9 @@ def unpackTar(filename, offset, unpackdir, temporarydirectory):
 # Unix portable archiver
 # https://en.wikipedia.org/wiki/Ar_%28Unix%29
 # https://sourceware.org/binutils/docs/binutils/ar.html
-def unpackAr(filename, offset, unpackdir, temporarydirectory):
+def unpackAr(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack ar concatenated data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1319,9 +1319,9 @@ def unpackAr(filename, offset, unpackdir, temporarydirectory):
 # test files: any ZIP file unpacked on MacOS X which
 # has a directory called "__MACOSX"
 # Files starting with ._ are likely AppleDouble encoded
-def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
+def unpackAppleDouble(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve an AppleDouble encoded file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1471,9 +1471,9 @@ def unpackAppleDouble(filename, offset, unpackdir, temporarydirectory):
 # Older specifications: http://www.color.org/icc_specs2.xalter
 #
 # Test files in package "colord" on for example Fedora
-def unpackICC(filename, offset, unpackdir, temporarydirectory):
+def unpackICC(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve an ICC color profile file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1655,9 +1655,9 @@ def unpackICC(filename, offset, unpackdir, temporarydirectory):
 
 # Dahua is a Chinese vendor that is using the ZIP format for its firmware
 # updates, but has changed the first two characters of the file from PK to DH
-def unpackDahua(filename, offset, unpackdir, temporarydirectory):
+def unpackDahua(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack modified ZIP compressed data from Dahua.'''
-    return unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=True)
+    return unpackZip(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory, dahuaformat=True)
 
 
 # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
@@ -1674,9 +1674,9 @@ def unpackDahua(filename, offset, unpackdir, temporarydirectory):
 # when writing this code can be found here:
 #
 # http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html
-def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False):
+def unpackZip(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory, dahuaformat=False):
     '''Unpack ZIP compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2632,9 +2632,9 @@ def unpackZip(filename, offset, unpackdir, temporarydirectory, dahuaformat=False
 
 # Derived from public bzip2 specifications
 # and Python module documentation
-def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
+def unpackBzip2(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory, dryrun=False):
     '''Unpack bzip2 compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2741,9 +2741,9 @@ def unpackBzip2(filename, offset, unpackdir, temporarydirectory, dryrun=False):
 # Other versions (from Git) can also use:
 # * xz
 # * lzma
-def unpackXAR(filename, offset, unpackdir, temporarydirectory):
+def unpackXAR(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack a XAR archive.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3160,9 +3160,9 @@ def unpackXAR(filename, offset, unpackdir, temporarydirectory):
 
 
 # http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
-def unpackLzip(filename, offset, unpackdir, temporarydirectory):
+def unpackLzip(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack lzip compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3309,9 +3309,9 @@ def unpackLzip(filename, offset, unpackdir, temporarydirectory):
 # Derived from specifications at:
 # https://www.w3.org/TR/WOFF/
 # section 3 and 4 describe the format
-def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
+def unpackWOFF(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a WOFF font file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3631,10 +3631,10 @@ def unpackWOFF(filename, offset, unpackdir, temporarydirectory):
 #
 # These fonts have a similar structure, but differ in the magic
 # header and the required tables.
-def unpackFont(filename, offset, unpackdir, temporarydirectory,
+def unpackFont(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory,
                fontextension, collectionoffset=None):
     '''Helper method to unpack various fonts'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3987,9 +3987,9 @@ def unpackFont(filename, offset, unpackdir, temporarydirectory,
 
 
 # https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html
-def unpackTrueTypeFont(filename, offset, unpackdir, temporarydirectory):
+def unpackTrueTypeFont(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a TrueType font file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4007,7 +4007,7 @@ def unpackTrueTypeFont(filename, offset, unpackdir, temporarydirectory):
     requiredtables = set([b'cmap', b'glyf', b'head', b'hhea', b'hmtx',
                           b'loca', b'maxp', b'name', b'post'])
 
-    fontres = unpackFont(filename, offset, unpackdir, temporarydirectory, 'ttf')
+    fontres = unpackFont(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory, 'ttf')
     if not fontres['status']:
         return fontres
 
@@ -4034,9 +4034,9 @@ def unpackTrueTypeFont(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
-def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
+def unpackOpenTypeFont(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve an OpenType font file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4054,7 +4054,7 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
     requiredtables = set([b'cmap', b'head', b'hhea', b'hmtx',
                           b'maxp', b'name', b'OS/2', b'post'])
 
-    fontres = unpackFont(filename, offset, unpackdir, temporarydirectory, 'otf')
+    fontres = unpackFont(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory, 'otf')
     if not fontres['status']:
         return fontres
 
@@ -4082,10 +4082,10 @@ def unpackOpenTypeFont(filename, offset, unpackdir, temporarydirectory):
 #
 # Good test files in google-noto-sans-cjk-ttc-fonts (name of Fedora package)
 def unpackOpenTypeFontCollection(
-        filename, offset,
+        fileresult, scanenvironment, filename, offset,
         unpackdir, temporarydirectory):
     '''Verify an OpenType font collection file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4153,7 +4153,7 @@ def unpackOpenTypeFontCollection(
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'font offset table outside of file'}
             return {'status': False, 'error': unpackingerror}
-        fontres = unpackFont(filename, offset + fontoffset, unpackdir, temporarydirectory, 'otf', collectionoffset=offset)
+        fontres = unpackFont(fileresult, scanenvironment, filename, offset + fontoffset, unpackdir, temporarydirectory, 'otf', collectionoffset=offset)
         if not fontres['status']:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
@@ -4181,9 +4181,9 @@ def unpackOpenTypeFontCollection(
 # format.
 # Various other structs (data block, pointer block) are also described
 # in this file.
-def unpackVimSwapfile(filename, offset, unpackdir, temporarydirectory):
+def unpackVimSwapfile(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Vim swap file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4244,9 +4244,9 @@ def unpackVimSwapfile(filename, offset, unpackdir, temporarydirectory):
 # https://www.gnu.org/software/gettext/manual/gettext.html#index-file-format_002c-_002emo
 #
 # The extension for these files is often '.mo'
-def unpackGNUMessageCatalog(filename, offset, unpackdir, temporarydirectory):
+def unpackGNUMessageCatalog(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a GNU message catalog file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4410,9 +4410,9 @@ def unpackGNUMessageCatalog(filename, offset, unpackdir, temporarydirectory):
 # https://msdn.microsoft.com/en-us/library/bb267310.aspx#struct_spec
 #
 # but is currently not under the open specification promise
-def unpackCab(filename, offset, unpackdir, temporarydirectory):
+def unpackCab(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack a Microsoft Cabinet file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4494,9 +4494,9 @@ def unpackCab(filename, offset, unpackdir, temporarydirectory):
 
 # terminfo files, format described in the Linux man page for terminfo files
 # man 5 term
-def unpackTerminfo(filename, offset, unpackdir, temporarydirectory):
+def unpackTerminfo(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a terminfo file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4773,9 +4773,9 @@ def unpackTerminfo(filename, offset, unpackdir, temporarydirectory):
 
 # https://rzip.samba.org/
 # https://en.wikipedia.org/wiki/Rzip
-def unpackRzip(filename, offset, unpackdir, temporarydirectory):
+def unpackRzip(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack rzip compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4840,7 +4840,7 @@ def unpackRzip(filename, offset, unpackdir, temporarydirectory):
             return {'status': False, 'error': unpackingerror}
 
         # uncompress the bzip2 data
-        bzip2res = unpackBzip2(filename, bzip2pos, unpackdir, temporarydirectory, dryrun=True)
+        bzip2res = unpackBzip2(fileresult, scanenvironment, filename, bzip2pos, unpackdir, temporarydirectory, dryrun=True)
         if not bzip2res['status']:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
@@ -4924,9 +4924,9 @@ def unpackRzip(filename, offset, unpackdir, temporarydirectory):
 # unpack on Linux.
 # See https://bugs.python.org/issue11016 for background information
 # about event ports, doors and whiteout files.
-def unpackCpio(filename, offset, unpackdir, temporarydirectory):
+def unpackCpio(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack a CPIO archive.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -5953,9 +5953,9 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
 # Variants exist: Texas Instruments' AR7 uses a modified
 # version with that identifies itself as version 48.50
 # which cannot be unpacked with an unmodified 7z
-def unpack7z(filename, offset, unpackdir, temporarydirectory):
+def unpack7z(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack 7z compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -6084,9 +6084,9 @@ def unpack7z(filename, offset, unpackdir, temporarydirectory):
 # Windows Compiled HTML help
 # https://en.wikipedia.org/wiki/Microsoft_Compiled_HTML_Help
 # http://web.archive.org/web/20021209123621/www.speakeasy.org/~russotto/chm/chmformat.html
-def unpackCHM(filename, offset, unpackdir, temporarydirectory):
+def unpackCHM(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack a Windows Compiled HTML file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -6247,9 +6247,9 @@ def unpackCHM(filename, offset, unpackdir, temporarydirectory):
 #
 # Windows data types can be found here:
 # https://msdn.microsoft.com/en-us/library/windows/desktop/aa383751(v=vs.85).aspx
-def unpackWIM(filename, offset, unpackdir, temporarydirectory):
+def unpackWIM(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack a Windows Imaging Format file file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -6509,9 +6509,9 @@ def unpackWIM(filename, offset, unpackdir, temporarydirectory):
 # https://en.wikipedia.org/wiki/Intel_HEX
 # For now it is assumed that only files that are completely text
 # files can be IHex files.
-def unpackIHex(filename, offset, unpackdir, temporarydirectory):
+def unpackIHex(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Convert an Intel Hex file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -6663,9 +6663,9 @@ def unpackIHex(filename, offset, unpackdir, temporarydirectory):
 # https://en.wikipedia.org/wiki/SREC_(file_format)
 # For now it is assumed that only files that are completely text
 # files can be SREC files.
-def unpackSREC(filename, offset, unpackdir, temporarydirectory):
+def unpackSREC(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Convert a SREC file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -6869,9 +6869,9 @@ def unpackSREC(filename, offset, unpackdir, temporarydirectory):
 # This code can detect, but not unpack, delta RPMs:
 #
 # https://github.com/rpm-software-management/deltarpm/blob/master/README
-def unpackRPM(filename, offset, unpackdir, temporarydirectory):
+def unpackRPM(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack a RPM file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -7292,7 +7292,7 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
     # 1125 is the tag for the compressor.
     if 1125 not in tagstoresults:
         # gzip by default
-        unpackresult = unpackGzip(filename, checkfile.tell(), unpackdir, temporarydirectory)
+        unpackresult = unpackGzip(fileresult, scanenvironment, filename, checkfile.tell(), unpackdir, temporarydirectory)
     else:
         if len(tagstoresults[1125]) != 1:
             checkfile.close()
@@ -7301,18 +7301,18 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
             return {'status': False, 'error': unpackingerror}
         compressor = tagstoresults[1125][0]
         if compressor == b'gzip':
-            unpackresult = unpackGzip(filename, checkfile.tell(), unpackdir, temporarydirectory)
+            unpackresult = unpackGzip(fileresult, scanenvironment, filename, checkfile.tell(), unpackdir, temporarydirectory)
         elif compressor == b'bzip2':
-            unpackresult = unpackBzip2(filename, checkfile.tell(), unpackdir, temporarydirectory)
+            unpackresult = unpackBzip2(fileresult, scanenvironment, filename, checkfile.tell(), unpackdir, temporarydirectory)
         elif compressor == b'xz':
-            unpackresult = unpackXZ(filename, checkfile.tell(), unpackdir, temporarydirectory)
+            unpackresult = unpackXZ(fileresult, scanenvironment, filename, checkfile.tell(), unpackdir, temporarydirectory)
         elif compressor == b'lzma':
-            unpackresult = unpackLZMA(filename, checkfile.tell(), unpackdir, temporarydirectory)
+            unpackresult = unpackLZMA(fileresult, scanenvironment, filename, checkfile.tell(), unpackdir, temporarydirectory)
         elif compressor == b'zstd':
-            unpackresult = unpackZstd(filename, checkfile.tell(), unpackdir, temporarydirectory)
+            unpackresult = unpackZstd(fileresult, scanenvironment, filename, checkfile.tell(), unpackdir, temporarydirectory)
         else:
             # gzip is default
-            unpackresult = unpackGzip(filename, checkfile.tell(), unpackdir, temporarydirectory)
+            unpackresult = unpackGzip(fileresult, scanenvironment, filename, checkfile.tell(), unpackdir, temporarydirectory)
 
     if not unpackresult['status']:
         checkfile.close()
@@ -7374,9 +7374,9 @@ def unpackRPM(filename, offset, unpackdir, temporarydirectory):
 
 # zstd
 # https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md
-def unpackZstd(filename, offset, unpackdir, temporarydirectory):
+def unpackZstd(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack zstd compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -7556,9 +7556,9 @@ def unpackZstd(filename, offset, unpackdir, temporarydirectory):
 
 # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
 # uses https://pypi.org/project/lz4/
-def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
+def unpackLZ4(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack LZ4 compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -7628,9 +7628,9 @@ def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
 # Android has a "binary XML", where the XML data has been translated
 # into a binary file. This one will eventually be covered by
 # unpackAndroidResource()
-def unpackXML(filename, offset, unpackdir, temporarydirectory):
+def unpackXML(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a XML file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -7722,7 +7722,7 @@ def unpackXML(filename, offset, unpackdir, temporarydirectory):
 #
 # https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html
 # TODO: many more checks for valid pointers into the constant pool
-def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
+def unpackJavaClass(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a Java class file.'''
     # a couple of constants. Same names as in the Java class
     # documentation from Oracle.
@@ -7741,7 +7741,7 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
     CONSTANT_MethodType = 16
     CONSTANT_InvokeDynamic = 18
 
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -8380,9 +8380,9 @@ def unpackJavaClass(filename, offset, unpackdir, temporarydirectory):
 # https://github.com/google/snappy/blob/master/framing_format.txt
 # Test files can be created with snzip: https://github.com/kubo/snzip
 # This only unpacks snzip's "framing2" format
-def unpackSnappy(filename, offset, unpackdir, temporarydirectory):
+def unpackSnappy(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack snappy compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -8507,9 +8507,9 @@ def unpackSnappy(filename, offset, unpackdir, temporarydirectory):
 # http://refspecs.linuxfoundation.org/elf/elf.pdf
 # https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-43405/index.html
 # https://android.googlesource.com/platform/art/+/master/runtime/elf.h
-def unpackELF(filename, offset, unpackdir, temporarydirectory):
+def unpackELF(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve an ELF file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     elflabels = []
@@ -9469,9 +9469,9 @@ def unpackELF(filename, offset, unpackdir, temporarydirectory):
 
 # For now it is assumed that only files that are completely text
 # files can be CSS files
-def unpackCSS(filename, offset, unpackdir, temporarydirectory):
+def unpackCSS(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a CSS file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -9535,9 +9535,9 @@ def unpackCSS(filename, offset, unpackdir, temporarydirectory):
 
 # parse Java/Android manifest files, assume text only for now
 # https://docs.oracle.com/javase/7/docs/technotes/guides/jar/jar.html#Manifest_Specification
-def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
+def unpackJavaManifest(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Java manifest file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -9656,9 +9656,9 @@ def unpackJavaManifest(filename, offset, unpackdir, temporarydirectory):
 
 # Kernel configuration files that are embedded in Linux kernel
 # images: text only
-def unpackKernelConfig(filename, offset, unpackdir, temporarydirectory):
+def unpackKernelConfig(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Linux kernel configuration file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -9764,9 +9764,9 @@ def unpackKernelConfig(filename, offset, unpackdir, temporarydirectory):
 
 
 # Docker file parsing, only works on whole Dockerfiles
-def unpackDockerfile(filename, offset, unpackdir, temporarydirectory):
+def unpackDockerfile(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Dockerfile.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -9810,9 +9810,9 @@ def unpackDockerfile(filename, offset, unpackdir, temporarydirectory):
 # https://www.denx.de/wiki/DULG/UBootImages
 # 'U-Boot operates on "image" files which can be basically anything,
 # preceeded by a special header'
-def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
+def unpackUBootLegacy(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a U-Boot file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10020,9 +10020,9 @@ def unpackUBootLegacy(filename, offset, unpackdir, temporarydirectory):
 # Python PKG-INFO file parsing
 # Described in PEP-566:
 # https://www.python.org/dev/peps/pep-0566/
-def unpackPythonPkgInfo(filename, offset, unpackdir, temporarydirectory):
+def unpackPythonPkgInfo(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Python PKG-INFO file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10221,9 +10221,9 @@ def unpackPythonPkgInfo(filename, offset, unpackdir, temporarydirectory):
 
 
 # Base64/32/16
-def unpackBase64(filename, offset, unpackdir, temporarydirectory):
+def unpackBase64(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Convert a base64/base32/base16 file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10389,9 +10389,9 @@ def unpackBase64(filename, offset, unpackdir, temporarydirectory):
 
 # SSH known hosts file
 # man 8 sshd
-def unpackSSHKnownHosts(filename, offset, unpackdir, temporarydirectory):
+def unpackSSHKnownHosts(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a SSH known hosts file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10477,9 +10477,9 @@ def unpackSSHKnownHosts(filename, offset, unpackdir, temporarydirectory):
 # The SSL certificate formats themselves are defined in for example:
 # * X.690 - https://en.wikipedia.org/wiki/X.690
 # * X.509 - https://en.wikipedia.org/wiki/X.509
-def unpackCertificate(filename, offset, unpackdir, temporarydirectory):
+def unpackCertificate(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a certificate file.'''
-    filesize = os.stat(filename).st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10587,7 +10587,7 @@ def unpackCertificate(filename, offset, unpackdir, temporarydirectory):
 
 def extractCertificate(filename, offset, unpackdir, temporarydirectory):
     '''Helper method to extract certificate files.'''
-    filesize = os.stat(filename).st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10649,9 +10649,9 @@ def extractCertificate(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://github.com/git/git/blob/master/Documentation/technical/index-format.txt
-def unpackGitIndex(filename, offset, unpackdir, temporarydirectory):
+def unpackGitIndex(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and/or carve a Git index file.'''
-    filesize = os.stat(filename).st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10823,9 +10823,9 @@ def unpackGitIndex(filename, offset, unpackdir, temporarydirectory):
 # Linux Software Map file
 # https://www.ibiblio.org/pub/Linux/docs/linux-software-map/lsm-template (version 3)
 # http://www.ibiblio.org/pub/linux/LSM-TEMPLATE.html (version 4)
-def unpackLSM(filename, offset, unpackdir, temporarydirectory):
+def unpackLSM(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Linux Software Map file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10915,9 +10915,9 @@ def unpackLSM(filename, offset, unpackdir, temporarydirectory):
             'filesandlabels': unpackedfilesandlabels}
 
 
-def unpackLZOP(filename, offset, unpackdir, temporarydirectory):
+def unpackLZOP(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack a lzop compressed file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11142,9 +11142,9 @@ def unpackLZOP(filename, offset, unpackdir, temporarydirectory):
             'filesandlabels': unpackedfilesandlabels}
 
 
-def unpackJSON(filename, offset, unpackdir, temporarydirectory):
+def unpackJSON(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a JSON file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11180,9 +11180,9 @@ def unpackJSON(filename, offset, unpackdir, temporarydirectory):
 # verify various types of Unix passwd files
 # man 5 passwd
 # https://www.freebsd.org/cgi/man.cgi?query=passwd&sektion=5
-def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
+def unpackPasswd(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Unix password file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11259,9 +11259,9 @@ def unpackPasswd(filename, offset, unpackdir, temporarydirectory):
 
 # verify Unix group files
 # man 5 group
-def unpackGroup(filename, offset, unpackdir, temporarydirectory):
+def unpackGroup(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Unix group file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11319,9 +11319,9 @@ def unpackGroup(filename, offset, unpackdir, temporarydirectory):
 
 # verify Unix shadow files
 # man 5 shadow
-def unpackShadow(filename, offset, unpackdir, temporarydirectory):
+def unpackShadow(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Unix shadow file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11409,9 +11409,9 @@ def unpackShadow(filename, offset, unpackdir, temporarydirectory):
 # simple, no frills, non-authorative way to see if text files are
 # scripts using a few simple checks, such as the shebang line and
 # a few more simple checks.
-def unpackScript(filename, offset, unpackdir, temporarydirectory):
+def unpackScript(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Simple sanity checks to see a file is possibly a script'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11481,9 +11481,9 @@ def unpackScript(filename, offset, unpackdir, temporarydirectory):
 # https://docs.oracle.com/javase/7/docs/technotes/guides/pack200/pack-spec.html
 #
 # The header format is described in section 5.2
-def unpackPack200(filename, offset, unpackdir, temporarydirectory):
+def unpackPack200(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Convert a pack200 file back into a JAR'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11548,9 +11548,9 @@ def unpackPack200(filename, offset, unpackdir, temporarydirectory):
 # https://wiki.openzim.org/wiki/ZIM_file_format
 # https://wiki.openzim.org/wiki/ZIM_File_Example
 # Test files: https://wiki.kiwix.org/wiki/Content_in_all_languages
-def unpackZim(filename, offset, unpackdir, temporarydirectory):
+def unpackZim(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack/verify a ZIM file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -12083,9 +12083,9 @@ def unpackZim(filename, offset, unpackdir, temporarydirectory):
 # and extra clarifications from pyjks (MIT licensed):
 #
 # https://github.com/kurtbrose/pyjks
-def unpackJavaKeyStore(filename, offset, unpackdir, temporarydirectory):
+def unpackJavaKeyStore(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify Java KeyStore files (Sun/Oracle format)'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -12240,9 +12240,9 @@ def unpackJavaKeyStore(filename, offset, unpackdir, temporarydirectory):
 # Label audio calibration database files from Qualcomm.
 # This analysis was based on a few samples found inside the
 # firmware of several Android devices using a Qualcomm chipset.
-def unpackACDB(filename, offset, unpackdir, temporarydirectory):
+def unpackACDB(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify Qualcomm's ACDB files'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -12336,9 +12336,9 @@ def unpackACDB(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://sqlite.org/fileformat.html
-def unpackSQLite(filename, offset, unpackdir, temporarydirectory):
+def unpackSQLite(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Label/verify/carve SQLite databases'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -12618,9 +12618,9 @@ def unpackSQLite(filename, offset, unpackdir, temporarydirectory):
 
 # verify Linux fstab files
 # man 5 fstab
-def unpackFstab(filename, offset, unpackdir, temporarydirectory):
+def unpackFstab(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Linux fstab file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -12680,9 +12680,9 @@ def unpackFstab(filename, offset, unpackdir, temporarydirectory):
 
 
 # https://github.com/devicetree-org/devicetree-specification/releases/download/v0.2/devicetree-specification-v0.2.pdf
-def unpackDeviceTree(filename, offset, unpackdir, temporarydirectory):
+def unpackDeviceTree(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Linux device tree'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -12855,9 +12855,9 @@ def unpackDeviceTree(filename, offset, unpackdir, temporarydirectory):
 #
 # https://openwrt.org/docs/techref/header
 # http://web.archive.org/web/20190127154419/https://openwrt.org/docs/techref/header
-def unpackTRX(filename, offset, unpackdir, temporarydirectory):
+def unpackTRX(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a Broadcom TRX file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13021,9 +13021,9 @@ def unpackTRX(filename, offset, unpackdir, temporarydirectory):
 
 # verify pkg-config files
 # man 5 pc
-def unpackPkgConfig(filename, offset, unpackdir, temporarydirectory):
+def unpackPkgConfig(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a pkg-config file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13123,9 +13123,9 @@ def unpackPkgConfig(filename, offset, unpackdir, temporarydirectory):
 
 # minidump files, used in for example Firefox crash reports
 # https://chromium.googlesource.com/breakpad/breakpad/+/master/src/google_breakpad/common/minidump_format.h
-def unpackMinidump(filename, offset, unpackdir, temporarydirectory):
+def unpackMinidump(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     ''''''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13271,9 +13271,9 @@ def unpackMinidump(filename, offset, unpackdir, temporarydirectory):
 
 # iCalendar files
 # https://www.ietf.org/rfc/rfc5545.txt
-def unpackICS(filename, offset, unpackdir, temporarydirectory):
+def unpackICS(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify and label iCalendar files'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13326,9 +13326,9 @@ def unpackICS(filename, offset, unpackdir, temporarydirectory):
 # https://en.wikipedia.org/wiki/Compress
 # https://github.com/vapier/ncompress/releases
 # https://wiki.wxwidgets.org/Development:_Z_File_Format
-def unpackCompress(filename, offset, unpackdir, temporarydirectory):
+def unpackCompress(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack UNIX compress'd data'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13422,9 +13422,9 @@ def unpackCompress(filename, offset, unpackdir, temporarydirectory):
 
 # verify TRANS.TBL files
 # https://en.wikipedia.org/wiki/TRANS.TBL
-def unpackTransTbl(filename, offset, unpackdir, temporarydirectory):
+def unpackTransTbl(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify a TRANS.TBL file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}

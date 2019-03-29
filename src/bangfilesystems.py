@@ -105,9 +105,9 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # differ per Linux distribution.
 # This is for the "vanilla" squashfs, not for any vendor specific
 # versions.
-def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
+def unpackSquashfs(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack squashfs file system data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -321,9 +321,9 @@ def local_copy2(src, dest):
 #
 # The zisofs specific bits can be found at:
 # http://libburnia-project.org/wiki/zisofs
-def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
+def unpackISO9660(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack an ISO9660 file system.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1233,9 +1233,9 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
 # JFFS2 is a file system that was used on earlier embedded Linux
 # system, although it is no longer the first choice for modern systems,
 # where for example UBI/UBIFS are chosen.
-def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
+def unpackJFFS2(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack a JFFS2 file system.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1768,9 +1768,9 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
 # to this document. The heavy lifting is done using e2tools
 # because it already takes care of deleted files, etc. through
 # e2fsprogs-libs.
-def unpackExt2(filename, offset, unpackdir, temporarydirectory):
+def unpackExt2(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack an ext2/ext3/ext4 file system.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2181,9 +2181,9 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
 # in section 4
 #
 # For now just focus on files where the entire file is VMDK
-def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
+def unpackVMDK(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Convert a VMware VMDK file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -2247,9 +2247,9 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
 # Specification can be found in docs/interop in the QEMU repository
 #
 # https://git.qemu.org/?p=qemu.git;a=blob;f=docs/interop/qcow2.txt;hb=HEAD
-def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
+def unpackQcow2(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Convert a QEMU qcow2 file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -2313,9 +2313,9 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
 # VirtualBox VDI
 #
 # https://forums.virtualbox.org/viewtopic.php?t=8046
-def unpackVDI(filename, offset, unpackdir, temporarydirectory):
+def unpackVDI(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Convert a VirtualBox VDI file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -2530,9 +2530,9 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
 #
 # which was released under the MIT license. The license can be found in the file
 # README.md in the root of this project.
-def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
+def unpackDlinkRomfs(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack a D-Link ROMFS'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2733,9 +2733,9 @@ def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
 # FAT file system
 # https://en.wikipedia.org/wiki/File_Allocation_Table
 # https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system
-def unpackFAT(filename, offset, unpackdir, temporarydirectory):
+def unpackFAT(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack FAT file systems'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3273,9 +3273,9 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
 # https://www.coreboot.org/CBFS
 #
 # A CBFS file consists of various concatenated components.
-def unpackCBFS(filename, offset, unpackdir, temporarydirectory):
+def unpackCBFS(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Verify/label coreboot file system images'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3468,9 +3468,9 @@ def unpackCBFS(filename, offset, unpackdir, temporarydirectory):
 # https://en.wikipedia.org/wiki/MINIX_file_system
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/fs/mfs
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/usr.sbin/mkfs.mfs/v1l
-def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
+def unpackMinix1L(fileresult, scanenvironment, filename, offset, unpackdir, temporarydirectory):
     '''Unpack Minix V1 file systems (extended Linux variant)'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}

@@ -22,7 +22,7 @@ class MockQueue:
         self.queue = []
     def get(self, timeout=0):
         try:
-            return self.queue.pop()
+            return self.queue.pop(0)
         except IndexError:
             raise QueueEmptyError()
     def put(self, job):
@@ -94,6 +94,15 @@ class TestScanJob(unittest.TestCase):
         f.write(b'\0' * 20)
         f.close()
 
+    def _copy_file_from_testdata(self, path):
+        unpacked_path = os.path.join(self.unpackdir, path)
+        unpacked_dir = os.path.dirname(unpacked_path)
+        try:
+            os.makedirs(unpacked_dir)
+        except FileExistsError:
+            pass
+        shutil.copy(os.path.join(self.testdata_dir, path), unpacked_path)
+
     def _create_css_file_in_directory(self):
         self.parent_dir = 'a'
         self._make_directory_in_unpackdir(self.parent_dir)
@@ -150,6 +159,38 @@ class TestScanJob(unittest.TestCase):
             pass
         result = self.result_queue.get()
         self.assertSetEqual(result.labels,set(['text','css']))
+
+    def test_openwrt_version_has_correct_labels(self):
+        # openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/openwrt_version
+        fn = "a/openwrt_version"
+        self._copy_file_from_testdata(fn)
+        fileresult = self._create_fileresult_for_file(fn,
+                os.path.dirname(fn), set())
+
+        scanjob = ScanJob(fileresult)
+        self.scanfile_queue.put(scanjob)
+        try:
+            processfile(self.dbconn, self.dbcursor, self.scan_environment)
+        except QueueEmptyError:
+            pass
+        result = self.result_queue.get()
+        self.assertSetEqual(result.labels,set(['text','base64','urlsafe']))
+
+    def test_dhcpv6sh_has_correct_labels(self):
+        # /home/tim/bang-test-scrap/bang-scan-wd8il1i5/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/lib/netifd/proto/dhcpv6.sh
+        fn = "a/dhcpv6.sh"
+        self._copy_file_from_testdata(fn)
+        fileresult = self._create_fileresult_for_file(fn,
+                os.path.dirname(fn), set())
+
+        scanjob = ScanJob(fileresult)
+        self.scanfile_queue.put(scanjob)
+        try:
+            processfile(self.dbconn, self.dbcursor, self.scan_environment)
+        except QueueEmptyError:
+            pass
+        result = self.result_queue.get()
+        self.assertSetEqual(result.labels,set(['text','script','shell']))
 
 
 
