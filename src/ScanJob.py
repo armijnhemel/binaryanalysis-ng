@@ -238,7 +238,7 @@ class ScanJob:
                             (self.fileresult.get_filename(), signature, offset))
 
                     try:
-                        unpackresult = bangsignatures.signaturetofunction[signature](self.fileresult, self.scanenvironment, self.fileresult.filepath, offset, unpacker.get_data_unpack_directory())
+                        unpackresult = bangsignatures.signaturetofunction[signature](self.fileresult, self.scanenvironment, offset, unpacker.get_data_unpack_directory())
                     except AttributeError as e:
                         print(e)
                         unpacker.remove_data_unpack_directory()
@@ -478,7 +478,7 @@ class ScanJob:
 
                 log(logging.DEBUG, "TRYING %s %s at offset: 0" % (self.fileresult.get_filename(), f))
                 try:
-                    unpackresult = bangsignatures.textonlyfunctions[f](self.fileresult, self.scanenvironment, self.fileresult.filepath, 0, unpacker.get_data_unpack_directory())
+                    unpackresult = bangsignatures.textonlyfunctions[f](self.fileresult, self.scanenvironment, 0, unpacker.get_data_unpack_directory())
                 except Exception as e:
                     unpacker.remove_data_unpack_directory()
                     continue
