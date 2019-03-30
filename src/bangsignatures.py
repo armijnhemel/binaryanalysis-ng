@@ -883,3 +883,10 @@ forgereferences['tigris.org'] = ["tigris.org"]
 forgereferences['svn.apache.org'] = ["svn.apache.org"]
 forgereferences['launchpad.net'] = ["git.launchpad.net", "launchpad.net"]
 forgereferences['sourceware.org'] = ["sourceware.org/git/"]
+
+# store the maximum look ahead window. This is unlikely to matter, but
+# just in case.
+maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
+maxsignaturesoffset = max(signaturesoffset.values()) + maxsignaturelength
+
+
