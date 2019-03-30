@@ -130,7 +130,6 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack gzip compressed data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -139,7 +138,9 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
     # treat CRC errors as fatal
     wrongcrcfatal = True
 
-    checkfile = open(fileresult.filepath, 'rb')
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+3)
     unpackedsize += 3
     # RFC 1952 http://www.zlib.org/rfc-gzip.html describes the flags,
@@ -302,7 +303,7 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
         outfile_rel = os.path.join(unpackdir, "unpacked-from-gz")
         anonymous = True
 
-    outfile_full = os.path.join(scanenvironment.unpackdirectory, outfile_rel)
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
 
     # open a file to write any unpacked data to
     outfile = open(outfile_full, 'wb')
@@ -379,7 +380,7 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
             # different data structure
             try:
                 outfile_rel = os.path.join(unpackdir,origname)
-                new_outfile_full = os.path.join(scanenvironment.unpackdirectory, outfile_rel)
+                new_outfile_full = scanenvironment.unpack_path(outfile_rel)
                 shutil.move(outfile_full, new_outfile_full)
                 outfile_full = new_outfile_full
                 anonymous = False

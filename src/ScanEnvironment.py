@@ -53,3 +53,9 @@ class ScanEnvironment:
         """gets the path relative to the unpackdirectory."""
         return fn[self.lenunpackdirectory:]
 
+    def unpack_path(self,fn):
+        return os.path.join(self.unpackdirectory,fn)
+
+    def tmp_path(self,fn):
+        return os.path.join(self.temporarydirectory,fn)
+
