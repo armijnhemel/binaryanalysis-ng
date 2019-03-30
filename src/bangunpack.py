@@ -580,7 +580,7 @@ def unpackLZMAWrapper(
 def unpackXZ(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack XZ compressed data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     allowbroken = True
@@ -598,7 +598,7 @@ def unpackXZ(fileresult, scanenvironment, offset, unpackdir):
         # stream flags have to be identical.
         if xzres['status']:
             # open the file again
-            checkfile = open(filename, 'rb')
+            checkfile = open(filename_full, 'rb')
 
             # seek to where the streamflags start and read them
             checkfile.seek(offset+6)
