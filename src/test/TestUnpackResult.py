@@ -12,10 +12,10 @@ import bangunpack
 def get_unpackers():
     functions = []
     for m in bangandroid, bangfilesystems, bangmedia, bangunpack:
-        functions += [ func for name, func in
+        functions += [ (name,func) for name, func in
                 inspect.getmembers(m, inspect.isfunction)
                 if name.startswith('unpack') ]
-    return functions
+    return dict(functions)
 
 def get_unpackers_for_file(unpackername, f):
     ext = os.path.splitext(f)[1]
@@ -50,13 +50,13 @@ class TestUnpackResult(TestBase):
         unpackers = get_unpackers()
         for f,u in self.walk_available_files_with_unpackers():
             try:
-                unpackers.remove(u)
-            except ValueError as e:
+                del unpackers[u.__name__]
+            except KeyError as e:
                 pass
         print("no tests for:")
-        print("\n".join([u.__name__ for u in unpackers]))
+        print("\n".join([u for u in unpackers]))
         # for all testdatafiles
-        self.assertEqual(unpackers,[])
+        self.assertEqual(unpackers,{})
     def walk_available_files_with_unpackers(self):
         testfilesdir = os.path.join(self.testdata_dir,'unpackers')
         for dirpath, dirnames, filenames in os.walk(testfilesdir):
@@ -66,7 +66,7 @@ class TestUnpackResult(TestBase):
                 for unpacker in get_unpackers_for_file(unpackername, f):
                     yield relativename, unpacker
     def test_unpackresult_has_correct_filenames(self):
-        for fn,unpacker in set(self.walk_available_files_with_unpackers()):
+        for fn,unpacker in sorted(set(self.walk_available_files_with_unpackers())):
             print(fn,unpacker)
             print(os.getcwd())
             self._copy_file_from_testdata(fn)
@@ -95,7 +95,8 @@ class TestUnpackResult(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, pathlib.Path(name))
         self.assertEqual(fileresult.filename,name)
         # unpackresult = unpacker(fileresult, self.scan_environment, 0, self.unpackdir)
-        for unpacker in unpackers:
+        for unpackername in sorted(unpackers.keys()):
+            unpacker = unpackers[unpackername]
             unpackresult = unpacker(fileresult, self.scan_environment, 0, self.unpackdir)
 
 if __name__=="__main__":
