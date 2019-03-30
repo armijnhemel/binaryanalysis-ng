@@ -491,7 +491,7 @@ def unpackLZMAWrapper(
         if fileresult.relpath.suffix.lower() == '.xz':
             outfile_rel = fileresult.relpath.parent / fileresult.relpath.stem
             # outfilename = os.path.join(unpackdir, fileresult.relpath.stem)
-        elif filename.suffix.lower() == '.txz':
+        elif fileresult.relpath.suffix.lower() == '.txz':
             outfile_rel = fileresult.relpath.parent / (fileresult.relpath.stem + ".tar")
             # outfilename = os.path.join(unpackdir, fileresult.relpath.stem) + ".tar"
     elif filetype == 'lzma':
@@ -565,7 +565,7 @@ def unpackLZMAWrapper(
         # in case the file name ends in extension rename the file
         # to mimic the behaviour of "unxz" and similar
         if fileresult.relpath.suffix.lower() == extension:
-            outfile_rel = fileresult.relpath.parent / filename.stem
+            outfile_rel = fileresult.relpath.parent / fileresult.relpath.stem
             # newoutfilename = os.path.join(unpackdir, filename.stem)
             newoutfile_full = fileresult.unpackdir / outfile_rel
             shutil.move(outfile_full, newoutfile_full)
