@@ -28,6 +28,7 @@
 
 import sys
 import os
+import traceback
 import pathlib
 import stat
 import shutil
@@ -105,7 +106,10 @@ class ScanJob:
         self.extradata = extradata
         self.type = None
         self._stat_file()
-        self.filesize = self.stat.st_size
+        if self.stat:
+            self.filesize = self.stat.st_size
+        else:
+            self.filesize = 0
 
     def is_unpacking_root(self):
         # assumption: there is no situation where parent = None and 'root' not in labels?
@@ -116,7 +120,10 @@ class ScanJob:
         return self.type
 
     def _stat_file(self):
-        self.stat = os.stat(self.filename)
+        try:
+            self.stat = os.stat(self.filename)
+        except FileNotFoundError:
+            self.stat = None
 
     def _is_symlink(self):
         r = self.filename.is_symlink()
@@ -512,7 +519,11 @@ class ScanJob:
 
         hashresults = dict(hasher.get())
         if scanenvironment.use_tlsh(self.filesize, self.labels):
-            hashresults['tlsh'] = tlshc.get()
+            try:
+                hashresults['tlsh'] = tlshc.get()
+            except ValueError:
+                # for example, not enough entropy for TLSH hash
+                pass
         for hash_algorithm, hash_value in hashresults.items():
             fileresult.set_hashresult(hash_algorithm, hash_value)
 
@@ -1008,6 +1019,27 @@ def log(level, message):
     if uselogging:
         logging.log(level, message)
 
+class ScanJobError(Exception):
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls)
+    def __init__(self,scanjob,e):
+        super().__init__(self, scanjob, e)
+        self.scanjob = scanjob
+        self.e = e
+    def __str__(self):
+        exc = traceback.format_exception(type(self.e), self.e, self.e.__traceback__,chain=False)
+        if self.scanjob is not None:
+            return """Exception for scanjob:
+file:
+    %s
+
+labels:
+    %s
+
+""" % ( str(self.scanjob.filename),
+        ",".join(self.scanjob.labels) ) + "".join(exc)
+        else:
+            return "Exception (no scanjob):\n\n" + "".join(exc)
 
 # Process a single file.
 # This method has the following parameters:
@@ -1059,134 +1091,144 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
     carveunpacked = True
 
+    # wrap this in a try catch block?
     while True:
-        # grab a new file from the scanning queue
-        scanjob = scanfilequeue.get(timeout=86400)
-        if not scanjob: continue
-        # (filename, labels, parent, propagatedlabels, extradata) = scanfilequeue.get(timeout=86400)
+        try:
+            # grab a new file from the scanning queue
+            scanjob = scanfilequeue.get(timeout=86400)
+            if not scanjob: continue
+            # (filename, labels, parent, propagatedlabels, extradata) = scanfilequeue.get(timeout=86400)
 
-        # store the results of the file
-        # At minimum store:
-        # * file name (relative to the top level unpack directory))
-        # * labels
-        fileresult = FileResult(scanjob, lenunpackdirectory)
+            # store the results of the file
+            # At minimum store:
+            # * file name (relative to the top level unpack directory))
+            # * labels
+            fileresult = FileResult(scanjob, lenunpackdirectory)
 
-        unscannable = scanjob.check_unscannable_file(fileresult)
-        if unscannable:
+            unscannable = scanjob.check_unscannable_file(fileresult)
+            if unscannable:
+                resultqueue.put(fileresult)
+                scanfilequeue.task_done()
+                continue
+
+            # filesize = os.stat(scanjob.filename).st_size
+
+            # create an empty list of files that were
+            # unpacked/carved from this file
+            fileresult.init_unpacked_files()
+
+            unpacker = Unpacker()
+
+            scanjob.check_for_padding_file(unpacker, fileresult)
+
+            scanjob.check_for_unpacked_file(unpacker, fileresult)
+
+            # Search the extension of the file in a list of known extensions.
+            # https://www.iana.org/assignments/media-types/media-types.xhtml
+            mimeres = mimetypes.guess_type(scanjob.filename.name)
+            fileresult.set_mimetype(mimeres)
+
+            # Now try to unpack the file. There are a few categories:
+            #
+            # 1. a known extension, without a known magic header. This is
+            #    for for example Android sparse data image formats, or
+            #    several other Android or Google formats (Chrome PAK, etc.)
+            #
+            # 2. blobs, searching for known magic headers and carving them
+            #    from blobs, or regular files. The majority of files will
+            #    likely be processed here.
+            #
+            # 3. text only files, where it is not immediately clear what
+            #    is inside and where the file possibly first has to be
+            #    converted to a binary (examples: Intel Hex).
+
+            # first process files with a known extension, but where
+            # there is no clear magic header. A prime example is the
+            # Android sparse data image format (system.new.dat and friends)
+
+            # TODO: check if this previously missing check is ok here
+            if unpacker.needs_unpacking():
+                scanjob.check_for_valid_extension(unpacker, fileresult, scanfilequeue, temporarydirectory)
+
+            if unpacker.needs_unpacking():
+                scanjob.check_for_signatures(unpacker, fileresult, scanfilequeue, scanenvironment, unpackdirectory, temporarydirectory)
+
+            if carveunpacked:
+                scanjob.carve_file_data(unpacker, fileresult, scanenvironment, scanfilequeue)
+
+            scanjob.do_content_computations(fileresult, scanenvironment, createbytecounter)
+
+            # no files were unpacked, so try to scan the entire file.
+            # This happens for example with text only files like base64
+            # or Intel hex (all ASCII only).
+            if unpacker.needs_unpacking():
+                scanjob.check_entire_file(unpacker, fileresult, scanfilequeue, temporarydirectory)
+
+            duplicate = False
+            processlock.acquire()
+            # TODO: make checksumdict an object
+            # TODO: does this need to be a dictionary, or can it be a set?
+            # if hashresults['sha256'] in checksumdict:
+            if fileresult.get_hash() in checksumdict:
+                duplicate = True
+            else:
+                checksumdict[fileresult.get_hash()] = scanjob.filename
+            processlock.release()
+
+            if not duplicate:
+                # Run scans for each individual file. Parameters include:
+                # * filename (pathlib.Path object)
+                # * hashes (dict 'hashresults')
+                scanjob.run_scans_on_file(fileresult, bangfilefunctions, scanenvironment, dbconn, dbcursor)
+
+                # write a pickle with output data
+                # The pickle contains:
+                # * all available hashes
+                # * labels
+                # * byte count
+                # * any extra data that might have been passed around
+                resultout = {}
+                if createbytecounter and 'padding' not in scanjob.labels:
+                    resultout['bytecount'] = sorted(byte_counter.get().items())
+                    # write a file with the distribution of bytes in the scanned file
+                    bytescountfilename = resultsdirectory / ("%s.bytes" % fileresult.get_hash())
+                    if not bytescountfilename.exists():
+                        bytesout = bytescountfilename.open('w')
+                        for by in resultout['bytecount']:
+                            bytesout.write("%d\t%d\n" % by)
+                        bytesout.close()
+
+                for a, h in fileresult.get_hashresult().items():
+                    resultout[a] = h
+
+                resultout['labels'] = scanjob.labels
+                if scanjob.extradata != {}:
+                    resultout['extra'] = scanjob.extradata
+                picklefilename = resultsdirectory / ("%s.pickle" % fileresult.get_hash('sha256'))
+                # TODO: this is vulnerable to a race condition, replace with EAFP pattern
+                if not picklefilename.exists():
+                    pickleout = picklefilename.open('wb')
+                    pickle.dump(resultout, pickleout)
+                    pickleout.close()
+
+            else:
+                scanjob.labels.append('duplicate')
+
+            fileresult.set_labels(scanjob.labels)
+            fileresult.set_filesize(scanjob.filesize)
+            log(logging.INFO, json.dumps(fileresult.get()))
+            sys.stdout.flush()
+
             resultqueue.put(fileresult)
             scanfilequeue.task_done()
-            continue
+        except Exception as e:
+            tb = sys.exc_info()[2]
+            if scanjob:
 
-        # filesize = os.stat(scanjob.filename).st_size
-
-        # create an empty list of files that were
-        # unpacked/carved from this file
-        fileresult.init_unpacked_files()
-
-        unpacker = Unpacker()
-
-        scanjob.check_for_padding_file(unpacker, fileresult)
-
-        scanjob.check_for_unpacked_file(unpacker, fileresult)
-
-        # Search the extension of the file in a list of known extensions.
-        # https://www.iana.org/assignments/media-types/media-types.xhtml
-        mimeres = mimetypes.guess_type(scanjob.filename.name)
-        fileresult.set_mimetype(mimeres)
-
-        # Now try to unpack the file. There are a few categories:
-        #
-        # 1. a known extension, without a known magic header. This is
-        #    for for example Android sparse data image formats, or
-        #    several other Android or Google formats (Chrome PAK, etc.)
-        #
-        # 2. blobs, searching for known magic headers and carving them
-        #    from blobs, or regular files. The majority of files will
-        #    likely be processed here.
-        #
-        # 3. text only files, where it is not immediately clear what
-        #    is inside and where the file possibly first has to be
-        #    converted to a binary (examples: Intel Hex).
-
-        # first process files with a known extension, but where
-        # there is no clear magic header. A prime example is the
-        # Android sparse data image format (system.new.dat and friends)
-
-        # TODO: check if this previously missing check is ok here
-        if unpacker.needs_unpacking():
-            scanjob.check_for_valid_extension(unpacker, fileresult, scanfilequeue, temporarydirectory)
-
-        if unpacker.needs_unpacking():
-            scanjob.check_for_signatures(unpacker, fileresult, scanfilequeue, scanenvironment, unpackdirectory, temporarydirectory)
-
-        if carveunpacked:
-            scanjob.carve_file_data(unpacker, fileresult, scanenvironment, scanfilequeue)
-
-        scanjob.do_content_computations(fileresult, scanenvironment, createbytecounter)
-
-        # no files were unpacked, so try to scan the entire file.
-        # This happens for example with text only files like base64
-        # or Intel hex (all ASCII only).
-        if unpacker.needs_unpacking():
-            scanjob.check_entire_file(unpacker, fileresult, scanfilequeue, temporarydirectory)
-
-        duplicate = False
-        processlock.acquire()
-        # TODO: make checksumdict an object
-        # TODO: does this need to be a dictionary, or can it be a set?
-        # if hashresults['sha256'] in checksumdict:
-        if fileresult.get_hash() in checksumdict:
-            duplicate = True
-        else:
-            checksumdict[fileresult.get_hash()] = scanjob.filename
-        processlock.release()
-
-        if not duplicate:
-            # Run scans for each individual file. Parameters include:
-            # * filename (pathlib.Path object)
-            # * hashes (dict 'hashresults')
-            scanjob.run_scans_on_file(fileresult, bangfilefunctions, scanenvironment, dbconn, dbcursor)
-
-            # write a pickle with output data
-            # The pickle contains:
-            # * all available hashes
-            # * labels
-            # * byte count
-            # * any extra data that might have been passed around
-            resultout = {}
-            if createbytecounter and 'padding' not in scanjob.labels:
-                resultout['bytecount'] = sorted(byte_counter.get().items())
-                # write a file with the distribution of bytes in the scanned file
-                bytescountfilename = resultsdirectory / ("%s.bytes" % fileresult.get_hash())
-                if not bytescountfilename.exists():
-                    bytesout = bytescountfilename.open('w')
-                    for by in resultout['bytecount']:
-                        bytesout.write("%d\t%d\n" % by)
-                    bytesout.close()
-
-            for a, h in fileresult.get_hashresult().items():
-                resultout[a] = h
-
-            resultout['labels'] = scanjob.labels
-            if scanjob.extradata != {}:
-                resultout['extra'] = scanjob.extradata
-            picklefilename = resultsdirectory / ("%s.pickle" % fileresult.get_hash('sha256'))
-            # TODO: this is vulnerable to a race condition, replace with EAFP pattern
-            if not picklefilename.exists():
-                pickleout = picklefilename.open('wb')
-                pickle.dump(resultout, pickleout)
-                pickleout.close()
-
-        else:
-            scanjob.labels.append('duplicate')
-
-        fileresult.set_labels(scanjob.labels)
-        fileresult.set_filesize(scanjob.filesize)
-        log(logging.INFO, json.dumps(fileresult.get()))
-        sys.stdout.flush()
-
-        resultqueue.put(fileresult)
-        scanfilequeue.task_done()
+                raise ScanJobError(scanjob,e)
+                # raise ScanJobError(scanjob,e).with_traceback(tb)
+            else:
+                raise ScanJobError(None,e).with_traceback(tb)
 
 
 def connect_to_bang_database(options):
