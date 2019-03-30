@@ -389,8 +389,6 @@ class ScanJob:
 
                 # then try to see if the any useful data can be uncarved.
                 # Add an artifical entry for the end of the file
-                # TODO: this algorithm assumes that ranges in unpacked_range
-                # are disjoint. Is this always the case?
                 # TODO: why self.fileresult.filesize + 1 ?
                 # unpack ranges are [u_low:u_high)
                 for u_low, u_high in unpacked_range + [(self.fileresult.filesize+1, self.fileresult.filesize+1)]:
@@ -401,15 +399,9 @@ class ScanJob:
                         #if u_low - carve_index < scanenvironment.get_synthesizedminimum():
                         #        carve_index = u_high
                         #        continue
-                        dataunpackdirectory = "%s-%s-%d" % (self.fileresult.filepath, "synthesized", synthesizedcounter)
-                        try:
-                            os.mkdir(dataunpackdirectory)
-                        except:
-                            # could not make unpack dir, forget about this carve part
-                            break
-                        synthesizedcounter += 1
+                        synthesizedcounter = unpacker.make_data_unpack_directory(self.fileresult.filepath, "synthesized", synthesizedcounter)
 
-                        outfilename = os.path.join(dataunpackdirectory, "unpacked-%s-%s" % (hex(carve_index), hex(u_low-1)))
+                        outfilename = os.path.join(unpacker.get_data_unpack_directory(), "unpacked-%s-%s" % (hex(carve_index), hex(u_low-1)))
                         outfile = open(outfilename, 'wb')
                         os.sendfile(outfile.fileno(), scanfile.fileno(), carve_index, u_low - carve_index)
                         outfile.close()
@@ -418,9 +410,8 @@ class ScanJob:
 
                         if self.is_padding(outfilename):
                             unpackedlabel.append('padding')
-                            # TODO: what if paddingname is None?
                             if self.scanenvironment.get_paddingname() is not None:
-                                newoutfilename = os.path.join(dataunpackdirectory, "%s-%s-%s" % (self.scanenvironment.get_paddingname(), hex(carve_index), hex(u_low-1)))
+                                newoutfilename = os.path.join(unpacker.get_data_unpack_directory(), "%s-%s-%s" % (self.scanenvironment.get_paddingname(), hex(carve_index), hex(u_low-1)))
                                 shutil.move(outfilename, newoutfilename)
                                 outfilename = newoutfilename
 
