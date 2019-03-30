@@ -1278,10 +1278,11 @@ def unpackTar(fileresult, scanenvironment, offset, unpackdir):
 def unpackAr(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack ar concatenated data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     unpackedsize = 0
 
@@ -1296,7 +1297,7 @@ def unpackAr(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # first test the file to see if it is a valid file
-    p = subprocess.Popen(['ar', 't', filename], stdin=subprocess.PIPE,
+    p = subprocess.Popen(['ar', 't', filename_full], stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (standard_out, standard_error) = p.communicate()
     if p.returncode != 0:
@@ -1305,31 +1306,32 @@ def unpackAr(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # then extract the file
-    p = subprocess.Popen(['ar', 'x', filename], stdout=subprocess.PIPE,
+    p = subprocess.Popen(['ar', 'x', filename_full], stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, cwd=unpackdir)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
-        foundfiles = os.listdir(unpackdir)
+        foundfiles = os.listdir(unpackdir_full)
         # try to remove any files that were left behind
         for f in foundfiles:
-            if os.path.isdir(os.path.join(unpackdir, f)):
-                shutil.rmtree(os.path.join(unpackdir, f))
+            if os.path.isdir(os.path.join(unpackdir_full, f)):
+                shutil.rmtree(os.path.join(unpackdir_full, f))
             else:
-                os.unlink(os.path.join(unpackdir, f))
+                os.unlink(os.path.join(unpackdir_full, f))
 
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'Not a valid ar file'}
         return {'status': False, 'error': unpackingerror}
 
-    foundfiles = os.listdir(unpackdir)
+    foundfiles = os.listdir(unpackdir_full)
     labels += ['archive', 'ar']
 
-    foundfiles = os.listdir(unpackdir)
+    foundfiles = os.listdir(unpackdir_full)
     for f in foundfiles:
-        outputfilename = os.path.join(unpackdir, f)
-        unpackedfilesandlabels.append((outputfilename, []))
+        outputfile_rel = os.path.join(unpackdir, f)
+        outputfile_full = scanenvironment.unpackpath(outfile_rel)
+        unpackedfilesandlabels.append((outputfile_rel, []))
         if f == 'debian-binary':
-            if filename.suffix.lower() == '.deb' or filename.suffix.lower() == '.udeb':
+            if filename_full.suffix.lower() == '.deb' or filename_full.suffix.lower() == '.udeb':
                 labels.append('debian')
                 labels.append('deb')
 
