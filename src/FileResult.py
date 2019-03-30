@@ -1,3 +1,4 @@
+import pathlib
 
 class FileResult:
     """stores all the information about the file that has been discovered
@@ -6,6 +7,7 @@ class FileResult:
         # TODO: decide what types the paths should have: PosixPath or string
         self.unpackdir = unpackdir
         self.filepath = abs_filepath
+        self.relpath = pathlib.Path(rel_filename)
         self.hash = {}
         self.filename = rel_filename
         self.parentpath = abs_parentpath

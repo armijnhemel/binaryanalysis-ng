@@ -8,6 +8,7 @@ class TestFileResult(TestBase):
         d = fr.get()
         self.assertEqual(fr.parent, str(relative_path.parent))
         self.assertEqual(fr.parentpath, full_path.parent)
+        self.assertEqual(fr.relpath, relative_path)
         self.assertEqual(d['fullfilename'], str(full_path))
         self.assertEqual(d['filename'], str(relative_path))
 
