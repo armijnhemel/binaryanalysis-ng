@@ -453,7 +453,7 @@ def unpackLZMAWrapper(
         filetype, ppfiletype, lzmaunpackedsize):
     '''Wrapper method to unpack LZMA and XZ based files'''
     filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    filename_full = pathlib.Path(scanenvironment.unpack_path(fileresult.filename))
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2669,7 +2669,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
 def unpackBzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
     '''Unpack bzip2 compressed data.'''
     filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    filename_full = pathlib.Path(scanenvironment.unpack_path(fileresult.filename))
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2703,7 +2703,7 @@ def unpackBzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
     # Special case: tbz2 (tar)
     if filename_full.suffix.lower() == '.bz2':
         outfile_rel = os.path.join(unpackdir, filename_full.stem)
-    elif filename.suffix.lower() in ['.tbz', '.tbz2', '.tb2']:
+    elif filename_full.suffix.lower() in ['.tbz', '.tbz2', '.tb2']:
         outfile_rel = os.path.join(unpackdir, filename_full.stem) + ".tar"
     else:
         outfile_rel = os.path.join(unpackdir, "unpacked-from-bz2")
