@@ -531,8 +531,9 @@ def unpackLZMAWrapper(
     outfile.close()
     checkfile.close()
 
+    outfile_size = os.stat(outfile_full).st_size
     # ignore empty files, as it is bogus data
-    if os.stat(outfile_full).st_size == 0:
+    if outfile_size == 0:
         os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'File not a valid %s file' % ppfiletype}
@@ -541,7 +542,7 @@ def unpackLZMAWrapper(
     # check if the length of the unpacked LZMA data is correct, but
     # only if any unpacked length has been defined.
     if filetype == 'lzma' and lzmaunpackedsize != -1:
-        if lzmaunpackedsize != os.stat(outfile_full).st_size:
+        if lzmaunpackedsize != outfile_size:
             os.unlink(outfile_full)
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'length of unpacked %s data does not correspond with header' % ppfiletype}
@@ -550,7 +551,7 @@ def unpackLZMAWrapper(
     min_lzma = 256
 
     # LZMA sometimes has bogus files filled with 0x00
-    if os.stat(outfile_full).st_size < min_lzma:
+    if outfile_size < min_lzma:
         pass
 
     if offset == 0 and unpackedsize == filesize:
