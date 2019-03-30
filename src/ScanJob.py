@@ -137,7 +137,7 @@ class ScanJob:
                 log(logging.INFO, "TRY extension match %s %s" % (self.fileresult.filepath, extension))
                 unpackresult = unpacker.try_unpack_file_for_extension(
                         self.fileresult, self.scanenvironment,
-                        self.fileresult.filepath, extension)
+                        self.fileresult.relpath, extension)
                 if unpackresult is None:
                     continue
                 if not unpackresult['status']:
@@ -229,7 +229,7 @@ class ScanJob:
                     # for the signature including the signature name
                     # and a counter for the signature.
                     namecounter = counterspersignature.get(signature, 0) + 1
-                    namecounter = unpacker.make_data_unpack_directory(self.fileresult.filepath,
+                    namecounter = unpacker.make_data_unpack_directory(self.fileresult.relpath,
                             bangsignatures.signatureprettyprint.get(signature, signature),
                             namecounter)
 
@@ -309,8 +309,8 @@ class ScanJob:
                         # add the data, plus possibly any label
                         fr = FileResult(
                                 self.scanenvironment.unpackdirectory,
-                                pathlib.Path(unpackedfile),
-                                self.scanenvironment.get_relative_path(unpackedfile),
+                                self.scanenvironment.unpackdirectory / pathlib.Path(unpackedfile),
+                                unpackedfile,
                                 self.fileresult.filepath,
                                 self.fileresult.filename,
                                 set(unpackedlabel))
@@ -477,7 +477,7 @@ class ScanJob:
     def check_entire_file(self, unpacker):
         if 'text' in self.fileresult.labels and unpacker.unpacked_range() == []:
             for f in bangsignatures.textonlyfunctions:
-                namecounter = unpacker.make_data_unpack_directory(self.fileresult.filepath, f, 1)
+                namecounter = unpacker.make_data_unpack_directory(self.fileresult.relpath, f, 1)
 
                 log(logging.DEBUG, "TRYING %s %s at offset: 0" % (self.fileresult.get_filename(), f))
                 unpackresult = unpacker.try_textonlyfunctions(
@@ -612,7 +612,7 @@ def processfile(dbconn, dbcursor, scanenvironment):
             scanfilequeue.task_done()
             continue
 
-        unpacker = Unpacker()
+        unpacker = Unpacker(scanenvironment.unpackdirectory)
         scanjob.prepare_for_unpacking()
         scanjob.check_for_padding_file(unpacker)
         scanjob.check_for_unpacked_file(unpacker)

@@ -52,7 +52,7 @@ class TestScanJob(TestBase):
                 self.padding_file, self.parent_dir, [])
         scanjob = ScanJob(fileresult)
         scanjob.set_scanenvironment(self.scan_environment)
-        unpacker = Unpacker()
+        unpacker = Unpacker(self.unpackdir)
         scanjob.prepare_for_unpacking()
         scanjob.check_unscannable_file()
         unpacker.append_unpacked_range(0,5) # bytes [0:5) are unpacked
@@ -133,6 +133,8 @@ class TestScanJob(TestBase):
             pass
         result1 = self.result_queue.get()
         result2 = self.result_queue.get()
+        print(result1.get())
+        print(result2.get())
         self.assertEqual(result2.filename,'a/hello.gz-gzip-1/hello')
 
 

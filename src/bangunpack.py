@@ -73,14 +73,14 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 
 # Each unpacker has a specific interface:
 #
-# def unpacker(filename, offset, unpackdir, temporarydirectory)
+# def unpacker(fileresult, scanenvironment, offset, unpackdir):
 #
-# * filename: full file name (pathlib.PosixPath object)
+# * fileresult: the fileresult so far
+# * scanenvironment: the scanenvironment
 # * offset: offset inside the file where the file system, compressed
 #   file media file possibly starts
-# * unpackdir: the target directory where data should be written to
-# * temporarydirectory: a directory where temporary files are stored
-#   and temporary directories are created
+# * unpackdir: the target directory where data should be written to as
+#   a relative path
 #
 # The unpackers are supposed to return a dictionary with the following
 # field:
@@ -139,7 +139,7 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
     # treat CRC errors as fatal
     wrongcrcfatal = True
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(fileresult.filepath, 'rb')
     checkfile.seek(offset+3)
     unpackedsize += 3
     # RFC 1952 http://www.zlib.org/rfc-gzip.html describes the flags,
@@ -294,16 +294,18 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
     # otherwise just imitate whatever gunzip does. If the file has a
     # name recorded in the file it will be renamed later.
     anonymous = False
-    if filename.suffix.lower() == '.gz':
-        outfilename = os.path.join(unpackdir, filename.stem)
-    elif filename.suffix.lower() == '.tgz':
-        outfilename = os.path.join(unpackdir, filename.stem) + ".tar"
+    if fileresult.relpath.suffix.lower() == '.gz':
+        outfile_rel = os.path.join(unpackdir, fileresult.relpath.stem)
+    elif fileresult.relpath.suffix.lower() == '.tgz':
+        outfile_rel = os.path.join(unpackdir, fileresult.relpath.stem + ".tar")
     else:
-        outfilename = os.path.join(unpackdir, "unpacked-from-gz")
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-gz")
         anonymous = True
 
+    outfile_full = os.path.join(scanenvironment.unpackdirectory, outfile_rel)
+
     # open a file to write any unpacked data to
-    outfile = open(outfilename, 'wb')
+    outfile = open(outfile_full, 'wb')
 
     # store the CRC of the uncompressed data
     gzipcrc32 = zlib.crc32(b'')
@@ -323,7 +325,7 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
         except Exception as e:
             # clean up
             outfile.close()
-            os.unlink(os.path.join(unpackdir, outfilename))
+            os.unlink(outfile_full)
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'File not a valid gzip file'}
@@ -363,7 +365,7 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize += 4
 
     # this check is modulo 2^32
-    isize = os.stat(outfilename).st_size % pow(2, 32)
+    isize = os.stat(outfile_full).st_size % pow(2, 32)
     if int.from_bytes(checkbytes, byteorder='little') != isize:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong value for ISIZE'}
@@ -376,17 +378,19 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
             # in this case report the original name as well in a
             # different data structure
             try:
-                shutil.move(outfilename, os.path.join(unpackdir, origname))
-                outfilename = os.path.join(unpackdir, origname)
+                outfile_rel = os.path.join(unpackdir,origname)
+                new_outfile_full = os.path.join(scanenvironment.unpackdirectory, outfile_rel)
+                shutil.move(outfile_full, new_outfile_full)
+                outfile_full = new_outfile_full
                 anonymous = False
             except:
                 pass
 
     # add the unpacked file to the result list
     if anonymous:
-        unpackedfilesandlabels.append((outfilename, ['anonymous']))
+        unpackedfilesandlabels.append((outfile_rel, ['anonymous']))
     else:
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
 
     # if the whole file is the gzip file add some more labels
     if offset == 0 and offset + unpackedsize == filesize:
