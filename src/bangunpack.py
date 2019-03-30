@@ -1706,11 +1706,12 @@ def unpackDahua(fileresult, scanenvironment, offset, unpackdir):
 def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False):
     '''Unpack ZIP compressed data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # the ZIP file format is described in section 4.3.6
     # the header is at least 30 bytes
@@ -1724,7 +1725,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
 
     # skip over the (local) magic
     # and process like section 4.3.7
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
     minzipversion = 0
     maxzipversion = 90
@@ -2481,6 +2482,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
 
     # compute the difference between the local files and
     # the ones in the central directory
+    # TODO: does this mean: localfiles not a subset of centraldirectoryfiles?
     if len(set(localfiles).intersection(set(centraldirectoryfiles))) != len(set(localfiles)):
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -2494,7 +2496,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
             checkfile.close()
 
             # reopen for writing
-            checkfile = open(filename, 'r+b')
+            checkfile = open(filename_full, 'r+b')
 
             # seek to the offset and change the identifier
             # from DH to PK
@@ -2503,7 +2505,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
             checkfile.close()
 
             # reopen in read mode
-            checkfile = open(filename, 'rb')
+            checkfile = open(filename_full, 'rb')
 
         # if the ZIP file is at the end of the file then the ZIP module
         # from Python will do a lot of the heavy lifting.
@@ -2530,7 +2532,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
             zipfiles = unpackzipfile.namelist()
             zipinfolist = unpackzipfile.infolist()
             oldcwd = os.getcwd()
-            os.chdir(unpackdir)
+            os.chdir(unpackdir_full)
             knowncompression = True
 
             if dahuaformat:
@@ -2538,7 +2540,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
                 checkfile.close()
 
                 # reopen for writing
-                checkfile = open(filename, 'r+b')
+                checkfile = open(filename_full, 'r+b')
 
                 # seek to the offset and change the identifier
                 # back from PK to DH
@@ -2547,7 +2549,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
                 checkfile.close()
 
                 # reopen in read mode
-                checkfile = open(filename, 'rb')
+                checkfile = open(filename_full, 'rb')
             # check if there have been directories stored
             # as regular files.
             faultyzipfiles = []
@@ -2596,14 +2598,15 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
                     for z in zipinfolist:
                         if z in faultyzipfiles:
                             # create the directory
-                            os.makedirs(os.path.join(unpackdir, z.filename), exist_ok=True)
+                            zdirname_full = scanenvironment.unpack_path(os.path.join(unpackdir, z.filename))
+                            os.makedirs(zdirname_full), exist_ok=True)
                         else:
                             unpackzipfile.extract(z)
             os.chdir(oldcwd)
             unpackzipfile.close()
 
             if knowncompression:
-                dirwalk = os.walk(unpackdir)
+                dirwalk = os.walk(unpackdir_full)
                 for entry in dirwalk:
                     for direntry in entry[1]:
                         unpackedfilesandlabels.append((os.path.join(entry[0], direntry), []))
@@ -2627,7 +2630,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
             checkfile.close()
             if dahuaformat:
                 # reopen for writing
-                checkfile = open(filename, 'r+b')
+                checkfile = open(filename_full, 'r+b')
 
                 # seek to the offset and change the identifier
                 # back from PK to DH
@@ -2650,12 +2653,13 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file
-    targetfilename = os.path.join(unpackdir, 'encrypted.zip')
+    targetfile_rel = os.path.join(unpackdir, 'encrypted.zip')
+    targetfile_full = scanenvironment.unpack_path(targetfile_rel)
     targetfile = open(targetfilename, 'wb')
     os.sendfile(targetfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     targetfile.close()
     checkfile.close()
-    unpackedfilesandlabels.append((targetfilename, ['encrypted', 'zip', 'unpacked']))
+    unpackedfilesandlabels.append((targetfile_rel, ['encrypted', 'zip', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
