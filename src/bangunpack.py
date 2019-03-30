@@ -2599,7 +2599,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
                         if z in faultyzipfiles:
                             # create the directory
                             zdirname_full = scanenvironment.unpack_path(os.path.join(unpackdir, z.filename))
-                            os.makedirs(zdirname_full), exist_ok=True)
+                            os.makedirs(zdirname_full, exist_ok=True)
                         else:
                             unpackzipfile.extract(z)
             os.chdir(oldcwd)
