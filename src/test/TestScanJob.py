@@ -133,9 +133,7 @@ class TestScanJob(TestBase):
             pass
         result1 = self.result_queue.get()
         result2 = self.result_queue.get()
-        print(result1.get())
-        print(result2.get())
-        self.assertEqual(result2.filename,'a/hello.gz-gzip-1/hello')
+        self.assertEqual(result2.filename, fn+'-gzip-1/hello')
 
 
 
