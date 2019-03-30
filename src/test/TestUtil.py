@@ -3,6 +3,7 @@ import sys
 import shutil
 import pathlib
 import unittest
+import collections
 
 _scriptdir = os.path.dirname(__file__)
 sys.path.insert(0,os.path.join(_scriptdir,'..'))
@@ -13,15 +14,22 @@ import bangfilescans
 from FileResult import *
 from ScanEnvironment import *
 
+def create_fileresult_for_path(path, labels=set([]),
+        calculate_size=True):
+    fr = FileResult(path, path.name, path.parent, path.parent.name, labels)
+    if calculate_size:
+        fr.set_filesize(path.stat().st_size)
+    return fr
+
 class QueueEmptyError(Exception):
     pass
 
 class MockQueue:
     def __init__(self):
-        self.queue = []
+        self.queue = collections.deque() #[]
     def get(self, timeout=0):
         try:
-            return self.queue.pop(0)
+            return self.queue.popleft()
         except IndexError:
             raise QueueEmptyError()
     def put(self, job):
@@ -80,13 +88,6 @@ class TestBase(unittest.TestCase):
         except FileNotFoundError:
             pass
         os.mkdir(dirname)
-
-    def _create_fileresult_for_path(self, path, labels=set([]),
-            calculate_size=True):
-        fr = FileResult(path, path.name, path.parent, path.parent.name, labels)
-        if calculate_size:
-            fr.set_filesize(path.stat().st_size)
-        return fr
 
     # remove the temporary directory
     def tearDown(self):
