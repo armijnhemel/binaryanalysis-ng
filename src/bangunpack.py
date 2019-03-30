@@ -10540,7 +10540,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     if offset == 0:
-        certres = extractCertificate(filename, offset, unpackdir)
+        certres = extractCertificate(fileresult, scanenvironment, filename, offset, unpackdir)
         if certres['status']:
             return certres
 
@@ -10614,7 +10614,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     checkfile.close()
 
     # as an extra sanity check run it through the unpacker
-    certres = extractCertificate(outfilename, 0, unpackdir)
+    certres = extractCertificate(fileresult, scanenvironment, outfilename, 0, unpackdir)
     if certres['status']:
         tmplabels += certres['labels']
         tmplabels = list(set(tmplabels))
@@ -10630,7 +10630,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     return {'status': False, 'error': unpackingerror}
 
 
-def extractCertificate(filename, offset, unpackdir):
+def extractCertificate(fileresult, scanenvironment, filename, offset, unpackdir):
     '''Helper method to extract certificate files.'''
     filesize = fileresult.filesize
     filename = fileresult.filepath
