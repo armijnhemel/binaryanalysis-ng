@@ -68,14 +68,14 @@ class TestUnpackResult(TestBase):
     def test_unpackresult_has_correct_filenames(self):
         for fn,unpacker in sorted(set(self.walk_available_files_with_unpackers())):
             print(fn,unpacker)
-            print(os.getcwd())
             self._copy_file_from_testdata(fn)
             fileresult = create_fileresult_for_path(self.unpackdir, pathlib.Path(fn))
-            unpackresult = unpacker(fileresult, self.scan_environment, 0, self.unpackdir)
+            unpackresult = unpacker(fileresult, self.scan_environment, 0, '.')
             try:
                 # all paths in unpackresults are relative to unpackdir
                 for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                     try:
+                        print(self.unpackdir, "prefix of", unpackedfile)
                         self.assertNotEqual(unpackedfile[:len(self.unpackdir)], self.unpackdir)
                     except AssertionError as e:
                         print("Error for %s on %s" % (unpacker.__name__, fn))
