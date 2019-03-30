@@ -519,6 +519,9 @@ class ScanJob:
 
         hashresults = dict(hasher.get())
         if scanenvironment.use_tlsh(self.filesize, self.labels):
+            # there might not be a valid hex digest for files
+            # with little or no entropy, for example files with
+            # all NUL bytes
             try:
                 hashresults['tlsh'] = tlshc.get()
             except ValueError:
