@@ -81,6 +81,7 @@ maxsignaturesoffset = max(bangsignatures.signaturesoffset.values()) + maxsignatu
 
 hash_algorithms = ['sha256', 'md5', 'sha1']
 
+
 def compute_empty_hash_results():
     global hash_algorithms
     emptyhashes = {}
@@ -94,8 +95,9 @@ def compute_empty_hash_results():
 
 emptyhashresults = compute_empty_hash_results()
 
+
 class ScanJob:
-    def __init__(self,filename, labels, parent, propagatedlabels, extradata):
+    def __init__(self, filename, labels, parent, propagatedlabels, extradata):
         self.filename = filename
         self.labels = labels
         self.parent = parent
@@ -104,42 +106,53 @@ class ScanJob:
         self.type = None
         self._stat_file()
         self.filesize = self.stat.st_size
+
     def is_unpacking_root(self):
         # assumption: there is no situation where parent = None and 'root' not in labels?
         return self.parent is None
         # return 'root' in self.labels
+
     def get_type(self):
         return self.type
+
     def _stat_file(self):
         self.stat = os.stat(self.filename)
+
     def _is_symlink(self):
         r = self.filename.is_symlink()
         if r: self.type = 'symbolic link'
         return r
+
     def _is_socket(self):
         r = stat.S_ISSOCK(self.stat.st_mode)
         if r: self.type = 'socket'
         return r
+
     def _is_fifo(self):
         r = stat.S_ISFIFO(self.stat.st_mode)
         if r: self.type = 'fifo'
         return r
+
     def _is_block_device(self):
         r = stat.S_ISBLK(self.stat.st_mode)
         if r: self.type = 'block device'
         return r
+
     def _is_character_device(self):
         r = stat.S_ISCHR(self.stat.st_mode)
         if r: self.type = 'character device'
         return r
+
     def _is_directory(self):
         r = self.filename.is_dir()
         if r: self.type = 'directory'
         return r
+
     def _is_empty(self):
         r = self.stat.st_size == 0
         if r: self.type = 'empty'
         return r
+
     def not_scannable(self):
         return self._is_symlink() or \
                 self._is_socket() or \
@@ -149,19 +162,19 @@ class ScanJob:
                 self._is_directory() or \
                 self._is_empty()
 
-    def check_unscannable_file(self,fileresult):
+    def check_unscannable_file(self, fileresult):
         if self.not_scannable():
             self.labels.append(self.get_type())
             fileresult.set_labels(self.labels)
             if self.get_type() == 'empty':
                 fileresult.set_filesize(0)
-                for hash_algorithm,hash_value in emptyhashresults.items():
-                    fileresult.set_hashresult(hash_algorithm,hash_value)
+                for hash_algorithm, hash_value in emptyhashresults.items():
+                    fileresult.set_hashresult(hash_algorithm, hash_value)
             self.labels = list(set(self.labels))
             return True
         return False
 
-    def check_for_padding_file(self,unpacker,fileresult):
+    def check_for_padding_file(self, unpacker, fileresult):
         # padding files don't need to be scanned
         if 'padding' in self.labels:
             unpacker.set_needs_unpacking(False)
@@ -193,19 +206,19 @@ class ScanJob:
             }
             fileresult.add_unpackedfile(report)
 
-    def check_for_valid_extension(self,unpacker,fileresult, scanfilequeue, temporarydirectory):
+    def check_for_valid_extension(self, unpacker, fileresult, scanfilequeue, temporarydirectory):
         # TODO: this method will try to unpack multiple extensions
         # if they match. Is this the intention?
         for extension in bangsignatures.extensiontofunction:
-            if bangsignatures.matches_file_pattern(self.filename,extension):
-                log(logging.INFO,"TRY extension match %s %s" % (self.filename, extension))
+            if bangsignatures.matches_file_pattern(self.filename, extension):
+                log(logging.INFO, "TRY extension match %s %s" % (self.filename, extension))
                 unpackresult = unpacker.try_unpack_file_for_extension(
-                        self.filename,extension,temporarydirectory)
+                        self.filename, extension, temporarydirectory)
                 if unpackresult is None:
                     continue
                 if not unpackresult['status']:
                     # No data could be unpacked for some reason
-                    log(logging.DEBUG,"FAIL %s known extension %s: %s" %
+                    log(logging.DEBUG, "FAIL %s known extension %s: %s" %
                             (fileresult.get_filename(), extension,
                             unpackresult['error']['reason']))
                     # Fatal errors should lead to the program stopping
@@ -217,11 +230,11 @@ class ScanJob:
 
                 # the file could be unpacked successfully,
                 # so log it as such.
-                log(logging.INFO,"SUCCESS %s %s at offset: 0, length: %d" %
+                log(logging.INFO, "SUCCESS %s %s at offset: 0, length: %d" %
                         (fileresult.get_filename(), extension,
                         unpackresult['length']))
 
-                unpacker.file_unpacked(unpackresult,self.filesize)
+                unpacker.file_unpacked(unpackresult, self.filesize)
 
                 # store any labels that were passed as a result and
                 # add them to the current list of labels
@@ -258,7 +271,7 @@ class ScanJob:
             while True:
                 candidateoffsetsfound = set()
                 for s in bangsignatures.signatures:
-                    offsets = unpacker.find_offsets_for_signature(s,self.filesize)
+                    offsets = unpacker.find_offsets_for_signature(s, self.filesize)
                     candidateoffsetsfound = candidateoffsetsfound.union(offsets)
 
                 # For each of the found candidates see if any
@@ -284,7 +297,7 @@ class ScanJob:
                     # then create an unpacking directory specifically
                     # for the signature including the signature name
                     # and a counter for the signature.
-                    namecounter = counterspersignature.get(signature,0) + 1
+                    namecounter = counterspersignature.get(signature, 0) + 1
                     namecounter = unpacker.make_data_unpack_directory(self.filename,
                             bangsignatures.signatureprettyprint.get(signature, signature),
                             namecounter)
@@ -292,7 +305,7 @@ class ScanJob:
                     # run the scan for the offset that was found
                     # First log which identifier was found and
                     # at which offset for possible later analysis.
-                    log(logging.DEBUG,"TRYING %s %s at offset: %d" %
+                    log(logging.DEBUG, "TRYING %s %s at offset: %d" %
                             (fileresult.get_filename(), signature, offset))
 
                     try:
@@ -304,7 +317,7 @@ class ScanJob:
                     if not unpackresult['status']:
                         # No data could be unpacked for some reason,
                         # so log the status and error message
-                        log(logging.DEBUG,"FAIL %s %s at offset: %d: %s" %
+                        log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
                                 (fileresult.get_filename(), signature, offset,
                                     unpackresult['error']['reason']))
 
@@ -317,11 +330,11 @@ class ScanJob:
                         continue
 
                     # first rewrite the offset, if needed
-                    offset = unpackresult.get('offset',offset)
+                    offset = unpackresult.get('offset', offset)
 
                     # the file could be unpacked successfully,
                     # so log it as such.
-                    log(logging.INFO,"SUCCESS %s %s at offset: %d, length: %d" %
+                    log(logging.INFO, "SUCCESS %s %s at offset: %d, length: %d" %
                             (fileresult.get_filename(), signature, offset, unpackresult['length']))
 
                     # store the name counter
@@ -358,7 +371,7 @@ class ScanJob:
                     if unpackresult['filesandlabels'] != []:
                         report['unpackdirectory'] = unpacker.get_data_unpack_directory()[len(str(unpackdirectory))+1:]
 
-                    for unpackedfile,unpackedlabel in unpackresult['filesandlabels']:
+                    for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                         # TODO: make relative wrt unpackdir
                         report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
                         # add the data, plus possibly any label
@@ -383,7 +396,7 @@ class ScanJob:
 
             unpacker.close_scanfile()
 
-    def is_padding(self,filename):
+    def is_padding(self, filename):
         # try to see if the file contains NUL byte padding
         # or 0xFF padding and if so tag it as such
         validpadding = [b'\x00', b'\xff']
@@ -399,7 +412,7 @@ class ScanJob:
             ispadding = False
         outfile.close()
         return ispadding
-        
+
         checkbytes = outfile.read(1)
         if checkbytes in validpadding:
             paddingchar = checkbytes
@@ -415,7 +428,6 @@ class ScanJob:
             ispadding = False
         outfile.close()
 
-
     def carve_file_data(self, unpacker, fileresult, scanenvironment, scanfilequeue):
         # Now carve any data that was not unpacked from the file and
         # put it back into the scanning queue to see if something
@@ -427,7 +439,7 @@ class ScanJob:
         if unpacked_range != []:
             # first check if the first entry covers the entire file
             # because if so there is nothing to do
-            if unpacked_range[0] != (0,self.filesize):
+            if unpacked_range[0] != (0, self.filesize):
                 synthesizedcounter = 1
 
                 # Invariant: everything up to carve_index has been inspected
@@ -442,7 +454,7 @@ class ScanJob:
                 # are disjoint. Is this always the case?
                 # TODO: why self.filesize + 1 ?
                 # unpack ranges are [u_low:u_high)
-                for u_low,u_high in unpacked_range + [(self.filesize+1, self.filesize+1)]:
+                for u_low, u_high in unpacked_range + [(self.filesize+1, self.filesize+1)]:
                     if carve_index == self.filesize:
                         break
                     # get the bytes from range [carve_index:u_low)
@@ -492,16 +504,16 @@ class ScanJob:
         is_text = IsTextComputer()
         fc.subscribe(is_text)
 
-        if scanenvironment.use_tlsh(self.filesize,self.labels):
+        if scanenvironment.use_tlsh(self.filesize, self.labels):
             tlshc = TLSHComputerMemoryView()
             fc.subscribe(tlshc)
 
         fc.read(self.filename)
 
         hashresults = dict(hasher.get())
-        if scanenvironment.use_tlsh(self.filesize,self.labels):
+        if scanenvironment.use_tlsh(self.filesize, self.labels):
             hashresults['tlsh'] = tlshc.get()
-        for hash_algorithm,hash_value in hashresults.items():
+        for hash_algorithm, hash_value in hashresults.items():
             fileresult.set_hashresult(hash_algorithm, hash_value)
 
         # store if files are text or binary
@@ -510,12 +522,12 @@ class ScanJob:
         else:
             self.labels.append('binary')
 
-    def check_entire_file(self,unpacker,fileresult, scanfilequeue, temporarydirectory):
+    def check_entire_file(self, unpacker, fileresult, scanfilequeue, temporarydirectory):
         if 'text' in self.labels and unpacker.unpacked_range() == []:
             for f in bangsignatures.textonlyfunctions:
                 namecounter = unpacker.make_data_unpack_directory(self.filename, f, 1)
 
-                log(logging.DEBUG,"TRYING %s %s at offset: 0" % (fileresult.get_filename(), f))
+                log(logging.DEBUG, "TRYING %s %s at offset: 0" % (fileresult.get_filename(), f))
                 try:
                     unpackresult = bangsignatures.textonlyfunctions[f](self.filename, 0, unpacker.get_data_unpack_directory(), temporarydirectory)
                 except Exception as e:
@@ -525,7 +537,7 @@ class ScanJob:
                 if not unpackresult['status']:
                     # No data could be unpacked for some reason,
                     # so check the status first
-                    log(logging.DEBUG,"FAIL %s %s at offset: %d: %s" %
+                    log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
                             (fileresult.get_filename(), f, 0, unpackresult['error']['reason']))
                     #print(s[1], unpackresult['error'])
                     #sys.stdout.flush()
@@ -546,7 +558,7 @@ class ScanJob:
                     unpacker.remove_data_unpack_directory_tree()
                     continue
 
-                log(logging.INFO,"SUCCESS %s %s at offset: %d, length: %d" %
+                log(logging.INFO, "SUCCESS %s %s at offset: %d, length: %d" %
                         (fileresult.get_filename(), f, 0, unpackresult['length']))
 
                 # store the labels for files that could be
@@ -575,7 +587,7 @@ class ScanJob:
                 unpacker.set_last_unpacked_offset(unpackresult['length'])
                 unpacker.append_unpacked_range(0, unpackresult['length'])
 
-                for unpackedfile,unpackedlabel in unpackresult['filesandlabels']:
+                for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                     # TODO: make relative wrt unpackdir
                     report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
 
@@ -603,9 +615,8 @@ class ScanJob:
             #    res = filefunc[1](self.filename, fileresult.get_hashresult(), dbconn, dbcursor, scanenvironment)
 
 
-
 class FileResult:
-    def __init__(self,scanjob,lenunpackdirectory):
+    def __init__(self, scanjob, lenunpackdirectory):
         self.fileresult = {
             'fullfilename': str(scanjob.filename),
             'hash': {},
@@ -614,38 +625,50 @@ class FileResult:
             self.fileresult['parent'] = str(scanjob.parent)[lenunpackdirectory:]
         relativefilename = str(scanjob.filename)[lenunpackdirectory:]
         self.fileresult['filename'] = relativefilename
-    def set_labels(self,labels):
+
+    def set_labels(self, labels):
         """set file result labels to a list without duplicates."""
         self.fileresult['labels'] = list(set(labels))
-    def set_filesize(self,size):
+
+    def set_filesize(self, size):
         self.fileresult['filesize'] = size
+
     def get_hashresult(self):
         return self.fileresult['hash']
-    def set_hashresult(self,hashtype,value):
+
+    def set_hashresult(self, hashtype, value):
         self.fileresult['hash'][hashtype] = value
+
     def init_unpacked_files(self):
         self.fileresult['unpackedfiles'] = []
-    def add_unpackedfile(self,report):
+
+    def add_unpackedfile(self, report):
         self.fileresult['unpackedfiles'].append(report)
-    def set_mimetype(self,mimeres):
+
+    def set_mimetype(self, mimeres):
         if mimeres[0] is not None:
             self.fileresult['mimetype'] = mimeres[0]
             if mimeres[1] is not None:
                 self.fileresult['mimetype encoding'] = mimeres[1]
+
     def get(self):
         return self.fileresult
+
     def get_filename(self):
         return self.fileresult['filename']
-    def get_hash(self,algorithm='sha256'):
+
+    def get_hash(self, algorithm='sha256'):
         return self.fileresult['hash'][algorithm]
+
 
 class ScanEnvironment:
     tlshlabelsignore = set([
         'compressed', 'graphics', 'audio', 'archive',
         'filesystem', 'srec', 'ihex', 'padding',
         'database'])
+
     def __init__(self, maxbytes, readsize, createbytecounter,
-            tlshmaximum, synthesizedminimum,logging, paddingname):
+            tlshmaximum, synthesizedminimum, logging, paddingname):
             self.maxbytes = maxbytes
             self.readsize = readsize
             self.createbytecounter = createbytecounter
@@ -653,34 +676,44 @@ class ScanEnvironment:
             self.synthesizedminimum = synthesizedminimum
             self.logging = logging
             self.paddingname = paddingname
+
     def get_readsize(self):
         return self.readsize
+
     def get_createbytecounter(self):
         return self.createbytecounter
+
     def get_tlsmaximum(self):
         return self.tlshmaximum
-    def use_tlsh(self,filesize,labels):
-        return ( 256 <= filesize <= self.tlshmaximum ) and self.tlshlabelsignore.isdisjoint(set(labels))
+
+    def use_tlsh(self, filesize, labels):
+        return (256 <= filesize <= self.tlshmaximum) and self.tlshlabelsignore.isdisjoint(set(labels))
+
     def get_synthesizedminimum(self):
         return self.synthesizedminimum
+
     def get_paddingname(self):
         return self.paddingname
+
     def get_maxbytes(self):
         return self.maxbytes
 
 
 class FileContentsComputer:
-    def __init__(self,read_size):
+    def __init__(self, read_size):
         self.computers = []
         self.read_size = read_size
+
     def subscribe(self, input_computer):
         self.computers.append(input_computer)
-    def read(self,filename):
+
+    def read(self, filename):
         if all(c.supports_memoryview for c in self.computers):
             return self._read_with_memory_view(filename)
         else:
             return self._read_with_file_read(filename)
-    def _read_with_file_read(self,filename):
+
+    def _read_with_file_read(self, filename):
         scanfile = open(filename, 'rb')
         scanfile.seek(0)
         for c in self.computers:
@@ -693,7 +726,8 @@ class FileContentsComputer:
         for c in self.computers:
             c.finalize()
         scanfile.close()
-    def _read_with_memory_view(self,filename):
+
+    def _read_with_memory_view(self, filename):
         scanfile = open(filename, 'rb')
         scanfile.seek(0)
         for c in self.computers:
@@ -709,75 +743,106 @@ class FileContentsComputer:
             c.finalize()
         scanfile.close()
 
+
 class IsTextComputer:
     supports_memoryview = True
+
     def __init__(self):
         self.is_text = True
+
     def initialize(self):
         pass
-    def compute(self,data):
+
+    def compute(self, data):
         self.is_text = self.is_text and \
             all(chr(x) in string.printable for x in data)
+
     def finalize(self):
         pass
+
     def get(self):
         return self.is_text
 
+
 class TLSHComputer:
     supports_memoryview = False
+
     def __init__(self):
         pass
+
     def initialize(self):
         self.tlsh_hash = tlsh.Tlsh()
-    def compute(self,data):
+
+    def compute(self, data):
         self.tlsh_hash.update(data)
+
     def finalize(self):
         self.tlsh_hash.final()
+
     def get(self):
         return self.tlsh_hash.hexdigest()
+
 
 class TLSHComputerMemoryView:
     supports_memoryview = True
+
     def __init__(self):
         pass
+
     def initialize(self):
         self.tlsh_hash = tlsh.Tlsh()
-    def compute(self,data):
+
+    def compute(self, data):
         self.tlsh_hash.update(data.tobytes())
+
     def finalize(self):
         self.tlsh_hash.final()
+
     def get(self):
         return self.tlsh_hash.hexdigest()
 
+
 class ByteCounter:
     supports_memoryview = True
+
     def __init__(self):
         pass
+
     def initialize(self):
         self.bytecounter = collections.Counter(
-            dict([(i,0) for i in range(0, 256)]))
-    def compute(self,data):
+            dict([(i, 0) for i in range(0, 256)]))
+
+    def compute(self, data):
         self.bytecounter.update(data)
+
     def finalize(self):
         pass
+
     def get(self):
         return self.bytecounter
 
+
 class Hasher:
     supports_memoryview = True
+
     def __init__(self, hash_algorithms):
         self.hash_algorithms = hash_algorithms
+
     def initialize(self):
-        self.hashes = dict( [ (a, hashlib.new(a))
-            for a in self.hash_algorithms ] )
-    def compute(self,data):
+        self.hashes = dict([(a, hashlib.new(a))
+            for a in self.hash_algorithms])
+
+    def compute(self, data):
         for a in self.hashes:
             self.hashes[a].update(data)
+
     def finalize(self):
-        self.hash_results = dict( [ (algorithm,computed_hash.hexdigest())
-            for algorithm,computed_hash in self.hashes.items() ] )
+        self.hash_results = dict([(algorithm, computed_hash.hexdigest())
+            for algorithm, computed_hash in self.hashes.items()])
+
     def get(self):
         return self.hash_results
+
 
 class Unpacker:
     def __init__(self):
@@ -790,19 +855,26 @@ class Unpacker:
         # signature based unpacking?
         self.signaturesfound = []
         self.counterspersignature = {}
+
     def needs_unpacking(self):
         return self.needsunpacking
+
     def last_unpacked_offset(self):
         return self.lastunpackedoffset
+
     def unpacked_range(self):
         return self.unpackedrange
-    def set_last_unpacked_offset(self,offset):
+
+    def set_last_unpacked_offset(self, offset):
         self.lastunpackedoffset = offset
-    def set_needs_unpacking(self,needsunpacking):
+
+    def set_needs_unpacking(self, needsunpacking):
         self.needsunpacking = needsunpacking
-    def append_unpacked_range(self,low,high):
+
+    def append_unpacked_range(self, low, high):
         self.unpackedrange.append((low, high))
-    def make_data_unpack_directory(self,filename,filetype,nr=1):
+
+    def make_data_unpack_directory(self, filename, filetype, nr=1):
         while True:
             d = "%s-%s-%d" % (filename, filetype, nr)
             try:
@@ -813,8 +885,10 @@ class Unpacker:
             except:
                 nr += 1
         return nr
+
     def remove_data_unpack_directory(self):
         os.rmdir(self.dataunpackdirectory)
+
     def remove_data_unpack_directory_tree(self):
         # Remove the unpacking directory, including any data that
         # might accidentily be there, so first change the
@@ -837,18 +911,19 @@ class Unpacker:
 
     def get_data_unpack_directory(self):
         return self.dataunpackdirectory
+
     def try_unpack_file_for_extension(self, filename, extension, temporarydirectory):
         try:
             self.make_data_unpack_directory(filename, bangsignatures.extensionprettyprint[extension])
-            return bangunpack.unpack_file_with_extension(filename,extension, self.dataunpackdirectory, temporarydirectory)
+            return bangunpack.unpack_file_with_extension(filename, extension, self.dataunpackdirectory, temporarydirectory)
         except AttributeError as ex:
             self.remove_data_unpack_directory()
             return None
 
-    def open_scanfile(self,filename):
+    def open_scanfile(self, filename):
         self.scanfile = open(filename, 'rb')
 
-    def open_scanfile_with_memoryview(self,filename,maxbytes):
+    def open_scanfile_with_memoryview(self, filename, maxbytes):
         self.scanfile = open(filename, 'rb')
         self.scanbytesarray = bytearray(maxbytes)
         self.scanbytes = memoryview(self.scanbytesarray)
@@ -877,8 +952,7 @@ class Unpacker:
             # use an overlap, i.e. go back
             self.scanfile.seek(-maxsignaturesoffset, 1)
 
-
-    def find_offsets_for_signature(self,s,filesize):
+    def find_offsets_for_signature(self, s, filesize):
         offsets = set()
         # TODO: precompile regexp patterns in bangsignatures
         res = re.finditer(re.escape(bangsignatures.signatures[s]), self.scanbytes[:self.bytesread])
@@ -902,13 +976,13 @@ class Unpacker:
                     offsets.add((offset + self.offsetinfile, s))
         return offsets
 
-    def offset_overlaps_with_unpacked_data(self,offset):
+    def offset_overlaps_with_unpacked_data(self, offset):
         return offset < self.lastunpackedoffset
 
-    def try_unpack_file_for_signatures(self,filename):
+    def try_unpack_file_for_signatures(self, filename):
         pass
 
-    def file_unpacked(self, unpackresult,filesize):
+    def file_unpacked(self, unpackresult, filesize):
         # store the location of where the successfully
         # unpacked file ends (the offset is always 0  here).
         self.lastunpackedoffset = unpackresult['length']
@@ -929,10 +1003,11 @@ class Unpacker:
             self.needsunpacking = False
 
 
-def log(level,message):
+def log(level, message):
     global uselogging
     if uselogging:
-        logging.log(level,message)
+        logging.log(level, message)
+
 
 # Process a single file.
 # This method has the following parameters:
@@ -994,7 +1069,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
         # At minimum store:
         # * file name (relative to the top level unpack directory))
         # * labels
-        fileresult = FileResult(scanjob,lenunpackdirectory)
+        fileresult = FileResult(scanjob, lenunpackdirectory)
 
         unscannable = scanjob.check_unscannable_file(fileresult)
         if unscannable:
@@ -1010,9 +1085,9 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         unpacker = Unpacker()
 
-        scanjob.check_for_padding_file(unpacker,fileresult)
+        scanjob.check_for_padding_file(unpacker, fileresult)
 
-        scanjob.check_for_unpacked_file(unpacker,fileresult)
+        scanjob.check_for_unpacked_file(unpacker, fileresult)
 
         # Search the extension of the file in a list of known extensions.
         # https://www.iana.org/assignments/media-types/media-types.xhtml
@@ -1039,13 +1114,13 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         # TODO: check if this previously missing check is ok here
         if unpacker.needs_unpacking():
-            scanjob.check_for_valid_extension(unpacker,fileresult,scanfilequeue,temporarydirectory)
+            scanjob.check_for_valid_extension(unpacker, fileresult, scanfilequeue, temporarydirectory)
 
         if unpacker.needs_unpacking():
-            scanjob.check_for_signatures(unpacker,fileresult, scanfilequeue, scanenvironment, unpackdirectory, temporarydirectory)
+            scanjob.check_for_signatures(unpacker, fileresult, scanfilequeue, scanenvironment, unpackdirectory, temporarydirectory)
 
         if carveunpacked:
-            scanjob.carve_file_data(unpacker,fileresult, scanenvironment, scanfilequeue)
+            scanjob.carve_file_data(unpacker, fileresult, scanenvironment, scanfilequeue)
 
         scanjob.do_content_computations(fileresult, scanenvironment, createbytecounter)
 
@@ -1089,7 +1164,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                         bytesout.write("%d\t%d\n" % by)
                     bytesout.close()
 
-            for a,h in fileresult.get_hashresult().items():
+            for a, h in fileresult.get_hashresult().items():
                 resultout[a] = h
 
             resultout['labels'] = scanjob.labels
@@ -1107,16 +1182,18 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         fileresult.set_labels(scanjob.labels)
         fileresult.set_filesize(scanjob.filesize)
-        log(logging.INFO,json.dumps(fileresult.get()))
+        log(logging.INFO, json.dumps(fileresult.get()))
         sys.stdout.flush()
 
         resultqueue.put(fileresult)
         scanfilequeue.task_done()
 
+
 def connect_to_bang_database(options):
     return psycopg2.connect(database=options.postgresql_db, user=options.postgresql_user,
         password=options.postgresql_password,
         port=options.postgresql_port, host=options.postgresql_host)
+
 
 def main(argv):
     global uselogging
@@ -1153,10 +1230,10 @@ def main(argv):
     maxbytes = max(200000, maxsignaturesoffset+1)
 
     bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
-    bangfilefunctions = [ func for name,func in bangfunctions
-            if func.context == 'file' ]
-    bangwholecontextfunctions = [ func for name,func in bangfunctions
-            if func.context == 'whole' ]
+    bangfilefunctions = [func for name, func in bangfunctions
+            if func.context == 'file']
+    bangwholecontextfunctions = [func for name, func in bangfunctions
+            if func.context == 'whole']
 
     checkfiles = []
     if os.path.isdir(options.checkpath):
@@ -1226,7 +1303,7 @@ def main(argv):
             # add it to the BANG logger
             bangloghandler = logging.FileHandler(filename=logdirectory / 'unpack.log')
             banglogger.addHandler(bangloghandler)
-        log(logging.INFO,"Started scanning %s" % checkfile)
+        log(logging.INFO, "Started scanning %s" % checkfile)
 
         processmanager = multiprocessing.Manager()
 
@@ -1360,7 +1437,7 @@ def main(argv):
                     'user': getpass.getuser(),
                     'checkfile': checkfile,
             },
-            'platform' : {
+            'platform': {
                     'machine': platform.machine(),
                     'architecture': platform.architecture()[0],
                     'processor': platform.processor(),
@@ -1377,13 +1454,12 @@ def main(argv):
             },
         }
 
-
         # write all results to a Python pickle
         picklefile = open(scandirectory / 'bang.pickle', 'wb')
         PickleReporter(picklefile).report(scanresult)
         picklefile.close()
 
-        jsonfile = open(scandirectory / 'bang.json','w')
+        jsonfile = open(scandirectory / 'bang.json', 'w')
         JsonReporter(jsonfile).report(scanresult)
         jsonfile.close()
 
