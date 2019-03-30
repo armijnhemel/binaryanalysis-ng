@@ -607,7 +607,7 @@ def unpackXZ(fileresult, scanenvironment, offset, unpackdir):
         # stream flags have to be identical.
         if xzres['status']:
             # open the file again
-            checkfile = open(filename, 'rb')
+            checkfile = open(fileresult.filepath, 'rb')
 
             # seek to where the streamflags start and read them
             checkfile.seek(offset+6)
