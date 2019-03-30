@@ -628,48 +628,81 @@ class ScanJob:
 
 class FileResult:
     def __init__(self, scanjob, lenunpackdirectory):
-        self.fileresult = {
-            'fullfilename': str(scanjob.filename),
-            'hash': {},
-        }
-        if not scanjob.is_unpacking_root():
-            self.fileresult['parent'] = str(scanjob.parent)[lenunpackdirectory:]
-        relativefilename = str(scanjob.filename)[lenunpackdirectory:]
-        self.fileresult['filename'] = relativefilename
+        self.scanjob = scanjob
+        self.fullfilename = str(scanjob.filename)
+        self.hash = {}
+        self.filename = str(scanjob.filename)[lenunpackdirectory:]
+        self.parent = str(scanjob.parent)[lenunpackdirectory:]
+        self.labels = set()
+        self.unpackedfiles = None
+        self.filesize = None
+        self.mimetype = None
+        self.mimetype_encoding = None
+
+        #self.fileresult = {
+        #    'fullfilename': str(scanjob.filename),
+        #    'hash': {},
+        #}
+        # relativefilename = str(scanjob.filename)[lenunpackdirectory:]
+        # self.fileresult['filename'] = relativefilename
 
     def set_labels(self, labels):
         """set file result labels to a list without duplicates."""
-        self.fileresult['labels'] = list(set(labels))
+        self.labels = set(labels)
+        # self.fileresult['labels'] = list(set(labels))
 
     def set_filesize(self, size):
-        self.fileresult['filesize'] = size
+        self.filesize = size
+        # self.fileresult['filesize'] = size
 
     def get_hashresult(self):
-        return self.fileresult['hash']
+        return self.hash
+        # return self.fileresult['hash']
 
     def set_hashresult(self, hashtype, value):
-        self.fileresult['hash'][hashtype] = value
+        self.hash[hashtype] = value
+        # self.fileresult['hash'][hashtype] = value
 
     def init_unpacked_files(self):
-        self.fileresult['unpackedfiles'] = []
+        self.unpackedfiles = []
+        # self.fileresult['unpackedfiles'] = []
 
     def add_unpackedfile(self, report):
-        self.fileresult['unpackedfiles'].append(report)
+        self.unpackedfiles.append(report)
+        # self.fileresult['unpackedfiles'].append(report)
 
     def set_mimetype(self, mimeres):
-        if mimeres[0] is not None:
-            self.fileresult['mimetype'] = mimeres[0]
-            if mimeres[1] is not None:
-                self.fileresult['mimetype encoding'] = mimeres[1]
+        self.mimetype = mimeres[0]
+        self.mimetype_encoding = mimeres[1]
 
     def get(self):
-        return self.fileresult
+        """gets the fileresult as a dictionary."""
+        d = {
+            'fullfilename': str(self.scanjob.filename),
+            'hash': self.hash,
+            'labels': list(self.labels),
+            'filename': self.filename,
+        }
+        if self.filesize is not None:
+            d['filesize'] = self.filesize
+        if self.unpackedfiles is not None:
+            d['unpackedfiles'] = self.unpackedfiles
+        if not self.scanjob.is_unpacking_root():
+            d['parent'] = self.parent
+        if self.mimetype is not None:
+            d['mimetype'] = self.mimetype
+            if self.mimetype_encoding is not None:
+                d['mimetype encoding'] = self.mimetype_encoding
+        return d
+        # return self.fileresult
 
     def get_filename(self):
-        return self.fileresult['filename']
+        return self.filename
+        # return self.fileresult['filename']
 
     def get_hash(self, algorithm='sha256'):
-        return self.fileresult['hash'][algorithm]
+        return self.hash[algorithm]
+        # return self.fileresult['hash'][algorithm]
 
 
 class ScanEnvironment:
