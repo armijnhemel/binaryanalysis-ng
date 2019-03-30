@@ -2669,7 +2669,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
 def unpackBzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
     '''Unpack bzip2 compressed data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2679,7 +2679,7 @@ def unpackBzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = 0
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # Extract one 900k block of data as an extra sanity check.
@@ -2701,17 +2701,18 @@ def unpackBzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
     # set the name of the file in case it is "anonymous data"
     # otherwise just imitate whatever bunzip2 does.
     # Special case: tbz2 (tar)
-    if filename.suffix.lower() == '.bz2':
-        outfilename = os.path.join(unpackdir, filename.stem)
+    if filename_full.suffix.lower() == '.bz2':
+        outfile_rel = os.path.join(unpackdir, filename_full.stem)
     elif filename.suffix.lower() in ['.tbz', '.tbz2', '.tb2']:
-        outfilename = os.path.join(unpackdir, filename.stem) + ".tar"
+        outfile_rel = os.path.join(unpackdir, filename_full.stem) + ".tar"
     else:
-        outfilename = os.path.join(unpackdir, "unpacked-from-bz2")
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-bz2")
 
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
     # data has been unpacked, so open a file and write the data to it.
     # unpacked, or if all data has been unpacked
     if not dryrun:
-        outfile = open(outfilename, 'wb')
+        outfile = open(outfile_full, 'wb')
         outfile.write(unpackeddata)
 
     unpackedsize += len(bz2data) - len(bz2decompressor.unused_data)
@@ -2731,7 +2732,7 @@ def unpackBzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
             # clean up
             if not dryrun:
                 outfile.close()
-                os.unlink(os.path.join(unpackdir, outfilename))
+                os.unlink(outfile_full)
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize,
                               'fatal': False,
@@ -2754,7 +2755,7 @@ def unpackBzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
 
         if offset == 0 and unpackedsize == filesize:
             labels += ['bzip2', 'compressed']
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
