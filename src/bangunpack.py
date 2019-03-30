@@ -1101,7 +1101,7 @@ def unpackTimeZone(fileresult, scanenvironment, offset, unpackdir):
 def unpackTar(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack tar concatenated data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1111,7 +1111,7 @@ def unpackTar(fileresult, scanenvironment, offset, unpackdir):
     # been cut halfway but it might still be possible to extract some
     # data. Use a file object so it is possible to start tar unpacking
     # at arbitrary positions in the file.
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # seek to the offset where the tar is supposed to start. According
     # to the documentation it should be opened at offset 0, but this
@@ -1162,30 +1162,34 @@ def unpackTar(fileresult, scanenvironment, offset, unpackdir):
                     unpackedname = os.path.normpath(os.path.join(unpackdir, tarname))
                 else:
                     unpackedname = os.path.normpath(os.path.join(unpackdir, unpacktarinfo.name))
+                unpacked_full = scanenvironment.unpack_path(unpackedname)
                 if os.path.isabs(unpacktarinfo.name):
-                    os.makedirs(os.path.dirname(unpackedname), exist_ok=True)
+                    os.makedirs(os.path.dirname(unpacked_full), exist_ok=True)
                     if unpacktarinfo.issym():
                         olddir = os.getcwd()
-                        os.chdir(os.path.dirname(unpackedname))
-                        os.symlink(unpacktarinfo.linkname, os.path.basename(unpackedname))
+                        os.chdir(os.path.dirname(unpacked_full))
+                        os.symlink(unpacktarinfo.linkname, os.path.basename(unpacked_full))
                         os.chdir(olddir)
                     elif unpacktarinfo.islnk():
                         olddir = os.getcwd()
-                        os.chdir(os.path.dirname(unpackedname))
+                        os.chdir(os.path.dirname(unpacked_full))
                         if os.path.isabs(unpacktarinfo.linkname):
                             linkname = os.path.normpath(os.path.join(unpackdir, os.path.relpath(unpacktarinfo.linkname, '/')))
-                            if os.path.exists(linkname):
-                                os.link(linkname, os.path.basename(unpackedname))
+                            link_full = scanenvironment.unpack_path(linkname)
+                            # TODO: better to link with relative path ../../..
+                            if os.path.exists(link_full):
+                                os.link(link_full, os.path.basename(unpacked_full))
                         os.chdir(olddir)
                     elif unpacktarinfo.isfile():
-                        outfile = open(unpackedname, 'wb')
+                        outfile = open(unpacked_full, 'wb')
                         tarreader = unpacktar.extractfile(unpacktarinfo)
                         outfile.write(tarreader.read())
                         outfile.close()
                     elif unpacktarinfo.isdir():
-                        os.makedirs(unpackedname, exist_ok=True)
+                        os.makedirs(unpacked_full, exist_ok=True)
                 else:
-                    unpacktar.extract(unpacktarinfo, path=unpackdir, set_attrs=False)
+                    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+                    unpacktar.extract(unpacktarinfo, path=unpackdir_full, set_attrs=False)
                 unpackedsize = checkfile.tell() - offset
 
                 # TODO: rename files properly with minimum chance of clashes
@@ -1197,14 +1201,14 @@ def unpackTar(fileresult, scanenvironment, offset, unpackdir):
                     # tar changes permissions after unpacking, so change
                     # them back to something a bit more sensible
                     if unpacktarinfo.isreg():
-                        os.chmod(unpackedname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+                        os.chmod(unpacked_full, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
                         unpackedfilesandlabels.append((unpackedname, []))
                     elif unpacktarinfo.issym():
                         unpackedfilesandlabels.append((unpackedname, ['symbolic link']))
                     elif unpacktarinfo.islnk():
                         unpackedfilesandlabels.append((unpackedname, ['hardlink']))
                     elif unpacktarinfo.isdir():
-                        os.chmod(unpackedname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+                        os.chmod(unpacked_full, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
                         unpackedfilesandlabels.append((unpackedname, ['directory']))
                     tounpack = ''
         except Exception as e:
@@ -1214,12 +1218,13 @@ def unpackTar(fileresult, scanenvironment, offset, unpackdir):
                               'reason': str(e)}
             if tounpack != '':
                 unpackedname = os.path.join(unpackdir, unpackedname)
-                if not os.path.islink(unpackedname):
-                    os.chmod(unpackedname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-                if os.path.isdir(unpackedname) and not os.path.islink(unpackedname):
-                    shutil.rmtree(unpackedname)
+                unpacked_full = scanenvironment.unpack_path(unpackedname)
+                if not os.path.islink(unpacked_full):
+                    os.chmod(unpacked_full, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+                if os.path.isdir(unpacked_full) and not os.path.islink(unpacked_full):
+                    shutil.rmtree(unpacked_full)
                 else:
-                    os.unlink(unpackedname)
+                    os.unlink(unpacked_full)
             break
 
     # first close the TarInfo object, then the underlying fileobj
