@@ -421,7 +421,7 @@ def unpackLZMA(fileresult, scanenvironment, offset, unpackdir):
     # The file lzma-file-format.txt in XZ file distributions describe
     # the LZMA format. The first 13 bytes describe the header. The last
     # 8 bytes of the header describe the file size.
-    checkfile = open(filename, 'rb')
+    checkfile = open(fileresult.filepath, 'rb')
     checkfile.seek(offset+5)
     checkbytes = checkfile.read(8)
     checkfile.close()
@@ -461,7 +461,7 @@ def unpackLZMAWrapper(
     unpackingerror = {}
 
     unpackedsize = 0
-    checkfile = open(filename, 'rb')
+    checkfile = open(fileresult.filepath, 'rb')
     checkfile.seek(offset)
 
     # Extract one 900k block of data as an extra sanity check.
@@ -485,21 +485,28 @@ def unpackLZMAWrapper(
     # set the name of the file in case it is "anonymous data"
     # otherwise just imitate whatever unxz and lzma do. If the file
     # has a name recorded in the file it will be renamed later.
-    outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
+    outfile_rel = fileresult.relpath / ("unpacked-from-%s" % filetype)
+    # outfilename = os.path.join(unpackdir, "unpacked-from-%s" % filetype)
     if filetype == 'xz':
-        if filename.suffix.lower() == '.xz':
-            outfilename = os.path.join(unpackdir, filename.stem)
+        if fileresult.relpath.suffix.lower() == '.xz':
+            outfile_rel = fileresult.relpath.parent / fileresult.relpath.stem
+            # outfilename = os.path.join(unpackdir, fileresult.relpath.stem)
         elif filename.suffix.lower() == '.txz':
-            outfilename = os.path.join(unpackdir, filename.stem) + ".tar"
+            outfile_rel = fileresult.relpath.parent / (fileresult.relpath.stem + ".tar")
+            # outfilename = os.path.join(unpackdir, fileresult.relpath.stem) + ".tar"
     elif filetype == 'lzma':
-        if filename.suffix.lower() == '.lzma':
-            outfilename = os.path.join(unpackdir, filename.stem)
-        elif filename.suffix.lower() == '.tlz':
-            outfilename = os.path.join(unpackdir, filename.stem) + ".tar"
+        if fileresult.relpath.suffix.lower() == '.lzma':
+            outfile_rel = fileresult.relpath.parent / fileresult.relpath.stem
+            # outfilename = os.path.join(unpackdir, fileresult.relpath.stem)
+        elif fileresult.relpath.suffix.lower() == '.tlz':
+            outfile_rel = fileresult.relpath.parent / (fileresult.relpath.stem + ".tar")
+            # outfilename = os.path.join(unpackdir, fileresult.relpath.stem) + ".tar"
+
+    outfile_full = fileresult.unpackdir / outfile_rel
 
     # data has been unpacked, so open a file and write the data to it.
     # unpacked, or if all data has been unpacked
-    outfile = open(outfilename, 'wb')
+    outfile = open(outfile_full, 'wb')
     outfile.write(unpackeddata)
     unpackedsize += bytesread - len(decompressor.unused_data)
 
@@ -517,7 +524,7 @@ def unpackLZMAWrapper(
         except Exception as e:
             # clean up
             outfile.close()
-            os.unlink(outfilename)
+            os.unlink(outfile_full)
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'File not a valid %s file' % ppfiletype}
@@ -533,8 +540,8 @@ def unpackLZMAWrapper(
     checkfile.close()
 
     # ignore empty files, as it is bogus data
-    if os.stat(outfilename).st_size == 0:
-        os.unlink(outfilename)
+    if os.stat(outfile_full).st_size == 0:
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'File not a valid %s file' % ppfiletype}
         return {'status': False, 'error': unpackingerror}
@@ -542,8 +549,8 @@ def unpackLZMAWrapper(
     # check if the length of the unpacked LZMA data is correct, but
     # only if any unpacked length has been defined.
     if filetype == 'lzma' and lzmaunpackedsize != -1:
-        if lzmaunpackedsize != os.stat(outfilename).st_size:
-            os.unlink(outfilename)
+        if lzmaunpackedsize != os.stat(outfile_full).st_size:
+            os.unlink(outfile_full)
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'length of unpacked %s data does not correspond with header' % ppfiletype}
             return {'status': False, 'error': unpackingerror}
@@ -551,18 +558,21 @@ def unpackLZMAWrapper(
     min_lzma = 256
 
     # LZMA sometimes has bogus files filled with 0x00
-    if os.stat(outfilename).st_size < min_lzma:
+    if os.stat(outfile_full).st_size < min_lzma:
         pass
 
     if offset == 0 and unpackedsize == filesize:
         # in case the file name ends in extension rename the file
         # to mimic the behaviour of "unxz" and similar
-        if filename.suffix.lower() == extension:
-            newoutfilename = os.path.join(unpackdir, filename.stem)
-            shutil.move(outfilename, newoutfilename)
-            outfilename = newoutfilename
+        if fileresult.relpath.suffix.lower() == extension:
+            outfile_rel = fileresult.relpath.parent / filename.stem
+            # newoutfilename = os.path.join(unpackdir, filename.stem)
+            newoutfile_full = fileresult.unpackdir / outfile_rel
+            shutil.move(outfile_full, newoutfile_full)
+            outfile_full = newoutfile_full
+            # outfilename = newoutfilename
         labels += [filetype, 'compressed']
-    unpackedfilesandlabels.append((outfilename, []))
+    unpackedfilesandlabels.append((outfile_rel, []))
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
