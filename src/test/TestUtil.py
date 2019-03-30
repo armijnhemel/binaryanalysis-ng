@@ -19,7 +19,7 @@ def create_fileresult_for_path(unpackdir, path, labels=set([]),
     fp = pathlib.Path(unpackdir) / path
     fr = FileResult(unpackdir, fp, str(path), fp.parent, str(path.parent), labels)
     if calculate_size:
-        fr.set_filesize(path.stat().st_size)
+        fr.set_filesize(fp.stat().st_size)
     return fr
 
 class QueueEmptyError(Exception):
@@ -95,5 +95,16 @@ class TestBase(unittest.TestCase):
         shutil.rmtree(self.unpackdir)
         shutil.rmtree(self.tmpdir)
         shutil.rmtree(self.resultsdir)
+
+    def _copy_file_from_testdata(self, path, name=None):
+        if name is None:
+            name = path
+        unpacked_path = os.path.join(self.unpackdir, name)
+        unpacked_dir = os.path.dirname(unpacked_path)
+        try:
+            os.makedirs(unpacked_dir)
+        except FileExistsError:
+            pass
+        shutil.copy(os.path.join(self.testdata_dir, path), unpacked_path)
 
 

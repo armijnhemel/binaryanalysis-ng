@@ -29,15 +29,6 @@ class TestScanJob(TestBase):
         f.write(b'\0' * 20)
         f.close()
 
-    def _copy_file_from_testdata(self, path):
-        unpacked_path = os.path.join(self.unpackdir, path)
-        unpacked_dir = os.path.dirname(unpacked_path)
-        try:
-            os.makedirs(unpacked_dir)
-        except FileExistsError:
-            pass
-        shutil.copy(os.path.join(self.testdata_dir, path), unpacked_path)
-
     def _create_css_file_in_directory(self):
         self.parent_dir = 'a'
         self._make_directory_in_unpackdir(self.parent_dir)
