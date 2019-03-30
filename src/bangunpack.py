@@ -1501,7 +1501,7 @@ def unpackAppleDouble(fileresult, scanenvironment, offset, unpackdir):
 def unpackICC(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an ICC color profile file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1513,7 +1513,7 @@ def unpackICC(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'Not a valid ICC file'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # Then analyze the rest of the file
@@ -1671,12 +1671,13 @@ def unpackICC(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.icc")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.icc")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxtagoffset - offset)
     outfile.close()
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['icc', 'resource', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['icc', 'resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
