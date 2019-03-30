@@ -51,6 +51,7 @@ class TestScanJob(TestBase):
 
     def _create_fileresult_for_file(self,child,parent,labels):
         return FileResult(
+                self.unpackdir,
                 self._create_absolute_path_object(child), child,
                 self._create_absolute_path_object(parent), parent, labels )
 

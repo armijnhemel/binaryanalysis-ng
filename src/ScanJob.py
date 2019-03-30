@@ -175,6 +175,7 @@ class ScanJob:
 
                 for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                     fr = FileResult(
+                            self.scanenvironment.unpackdirectory,
                             pathlib.Path(unpackedfile),
                             self.scanenvironment.get_relative_path(unpackedfile),
                             self.fileresult.filepath,
@@ -307,6 +308,7 @@ class ScanJob:
                         report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
                         # add the data, plus possibly any label
                         fr = FileResult(
+                                self.scanenvironment.unpackdirectory,
                                 pathlib.Path(unpackedfile),
                                 self.scanenvironment.get_relative_path(unpackedfile),
                                 self.fileresult.filepath,
@@ -424,6 +426,7 @@ class ScanJob:
 
                         # add the data, plus labels, to the queue
                         fr = FileResult(
+                                self.scanenvironment.unpackdirectory,
                                 pathlib.Path(outfilename),
                                 self.scanenvironment.get_relative_path(outfilename),
                                 self.fileresult.filepath,
@@ -541,6 +544,7 @@ class ScanJob:
 
                     # add the data, plus possibly any label
                     fr = FileResult(
+                            self.scanenvironment.unpackdirectory,
                             pathlib.Path(unpackedfile),
                             self.scanenvironment.get_relative_path(unpackedfile),
                             self.fileresult.filepath,

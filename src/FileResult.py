@@ -2,8 +2,9 @@
 class FileResult:
     """stores all the information about the file that has been discovered
     so far."""
-    def __init__(self, abs_filepath, rel_filename, abs_parentpath, rel_parentfilename, labels):
+    def __init__(self, unpackdir, abs_filepath, rel_filename, abs_parentpath, rel_parentfilename, labels):
         # TODO: decide what types the paths should have: PosixPath or string
+        self.unpackdir = unpackdir
         self.filepath = abs_filepath
         self.hash = {}
         self.filename = rel_filename

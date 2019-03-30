@@ -240,6 +240,7 @@ def main(argv):
 
         # Create a scanjob for the first file to be scanned
         fileresult = FileResult(
+                unpackdirectory,
                 unpackdirectory / os.path.basename(checkfile),
                 os.path.basename(checkfile),
                 None,
