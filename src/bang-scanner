@@ -102,7 +102,6 @@ class ScanJob:
     def __init__(self, filename, labels, parent, propagatedlabels, extradata):
         self.filename = filename
         # TODO move labels to fileresult
-        self.labels = labels
         self.parent = parent
         self.propagatedlabels = propagatedlabels
         self.extradata = extradata
@@ -114,9 +113,7 @@ class ScanJob:
             self.filesize = 0
 
     def is_unpacking_root(self):
-        # assumption: there is no situation where parent = None and 'root' not in labels?
         return self.parent is None
-        # return 'root' in self.labels
 
     def get_type(self):
         return self.type
@@ -174,13 +171,10 @@ class ScanJob:
     def check_unscannable_file(self, fileresult):
         if self.not_scannable():
             fileresult.labels.add(self.get_type())
-            # self.labels.append(self.get_type())
-            # fileresult.set_labels(self.labels)
             if self.get_type() == 'empty':
                 fileresult.set_filesize(0)
                 for hash_algorithm, hash_value in emptyhashresults.items():
                     fileresult.set_hashresult(hash_algorithm, hash_value)
-            # self.labels = list(set(self.labels))
             return True
         return False
 
@@ -248,8 +242,7 @@ class ScanJob:
 
                 # store any labels that were passed as a result and
                 # add them to the current list of labels
-                fileresult.labels += unpackresult['labels']
-                # self.labels = list(set(self.labels))
+                fileresult.labels.update(unpackresult['labels'])
 
                 # store lot of information about the unpacked files
                 report = {
@@ -282,7 +275,7 @@ class ScanJob:
                 candidateoffsetsfound = set()
                 for s in bangsignatures.signatures:
                     offsets = unpacker.find_offsets_for_signature(s, self.filesize)
-                    candidateoffsetsfound = candidateoffsetsfound.union(offsets)
+                    candidateoffsetsfound.update(offsets)
 
                 # For each of the found candidates see if any
                 # data can be unpacked. Process these in the order
@@ -582,7 +575,6 @@ class ScanJob:
                 # unpacked/verified completely.
                 if unpackresult['length'] == self.filesize:
                     fileresult.labels.update(unpackresult['labels'])
-                    # self.labels = list(set(self.labels))
                     # if unpackedfilesandlabels is empty, then no
                     # files were unpacked, likely because the whole
                     # file was the result and didn't contain any
@@ -644,11 +636,6 @@ class FileResult:
         #}
         # relativefilename = str(scanjob.filename)[lenunpackdirectory:]
         # self.fileresult['filename'] = relativefilename
-
-    def set_labels(self, labels):
-        """set file result labels to a list without duplicates."""
-        self.labels = set(labels)
-        # self.fileresult['labels'] = list(set(labels))
 
     def set_filesize(self, size):
         self.filesize = size
@@ -1247,7 +1234,6 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
             else:
                 fileresult.labels.add('duplicate')
 
-            # fileresult.set_labels(scanjob.labels)
             fileresult.set_filesize(scanjob.filesize)
             log(logging.INFO, json.dumps(fileresult.get()))
             sys.stdout.flush()
