@@ -1208,7 +1208,7 @@ def main(argv):
             c.close()
         except Exception as e:
             if options.dbconnectionerrorfatal:
-                print("Database error: missing/wrong configuration or database not running", file=sys.stderr)
+                print("Configuration file malformed: missing or wrong database information", file=sys.stderr)
                 sys.exit(1)
             options.usedatabase = False
 
