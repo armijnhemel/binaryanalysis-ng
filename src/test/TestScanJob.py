@@ -119,6 +119,23 @@ class TestScanJob(TestBase):
         result = self.result_queue.get()
         self.assertSetEqual(result.labels,set(['text','script','shell']))
 
+    def test_gzip_unpacks_to_right_directory(self):
+        # /home/tim/bang-test-scrap/bang-scan-wd8il1i5/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/lib/netifd/proto/dhcpv6.sh
+        fn = "a/hello.gz"
+        self._copy_file_from_testdata(fn)
+        fileresult = self._create_fileresult_for_file(fn,
+                os.path.dirname(fn), set())
+
+        scanjob = ScanJob(fileresult)
+        self.scanfile_queue.put(scanjob)
+        try:
+            processfile(self.dbconn, self.dbcursor, self.scan_environment)
+        except QueueEmptyError:
+            pass
+        result1 = self.result_queue.get()
+        result2 = self.result_queue.get()
+        self.assertEqual(result2.filename,'a/hello.gz-gzip-1/hello')
+
 
 
 if __name__=="__main__":
