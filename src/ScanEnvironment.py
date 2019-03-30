@@ -1,3 +1,5 @@
+import os
+
 class ScanEnvironment:
     tlshlabelsignore = set([
         'compressed', 'graphics', 'audio', 'archive',

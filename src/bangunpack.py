@@ -1328,7 +1328,7 @@ def unpackAr(fileresult, scanenvironment, offset, unpackdir):
     foundfiles = os.listdir(unpackdir_full)
     for f in foundfiles:
         outputfile_rel = os.path.join(unpackdir, f)
-        outputfile_full = scanenvironment.unpackpath(outfile_rel)
+        outputfile_full = scanenvironment.unpack_path(outputfile_rel)
         unpackedfilesandlabels.append((outputfile_rel, []))
         if f == 'debian-binary':
             if filename_full.suffix.lower() == '.deb' or filename_full.suffix.lower() == '.udeb':
