@@ -7,6 +7,7 @@ import shutil
 import pickle
 import sys
 import traceback
+import json
 
 import bangsignatures
 from bangfilescans import bangfilefunctions, bangwholecontextfunctions
