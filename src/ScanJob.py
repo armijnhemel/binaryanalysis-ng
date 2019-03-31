@@ -616,85 +616,94 @@ def processfile(dbconn, dbcursor, scanenvironment):
     carveunpacked = True
 
     while True:
-        scanjob = scanfilequeue.get(timeout=86400)
-        if not scanjob: continue
-        scanjob.set_scanenvironment(scanenvironment)
-        fileresult = scanjob.fileresult
+        try:
+            scanjob = scanfilequeue.get(timeout=86400)
+            if not scanjob: continue
+            scanjob.set_scanenvironment(scanenvironment)
+            fileresult = scanjob.fileresult
 
-        unscannable = scanjob.check_unscannable_file()
-        if unscannable:
+            unscannable = scanjob.check_unscannable_file()
+            if unscannable:
+                resultqueue.put(scanjob.fileresult)
+                scanfilequeue.task_done()
+                continue
+
+            unpacker = Unpacker()
+            scanjob.prepare_for_unpacking()
+            scanjob.check_for_padding_file(unpacker)
+            scanjob.check_for_unpacked_file(unpacker)
+            scanjob.check_mime_types()
+
+            if unpacker.needs_unpacking():
+                scanjob.check_for_valid_extension(unpacker)
+
+            if unpacker.needs_unpacking():
+                scanjob.check_for_signatures(unpacker)
+
+            if carveunpacked:
+                scanjob.carve_file_data(unpacker)
+
+            scanjob.do_content_computations()
+
+            if unpacker.needs_unpacking():
+                scanjob.check_entire_file(unpacker)
+
+            duplicate = False
+            processlock.acquire()
+            # TODO: make checksumdict an object
+            # TODO: does this need to be a dictionary, or can it be a set?
+            # if hashresults['sha256'] in checksumdict:
+            if scanjob.fileresult.get_hash() in checksumdict:
+                duplicate = True
+            else:
+                checksumdict[scanjob.fileresult.get_hash()] = scanjob.fileresult.filepath
+            processlock.release()
+
+            if not duplicate:
+                scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
+
+                # write a pickle with output data
+                # The pickle contains:
+                # * all available hashes
+                # * labels
+                # * byte count
+                # * any extra data that might have been passed around
+                resultout = {}
+                if createbytecounter and 'padding' not in scanjob.fileresult.labels:
+                    resultout['bytecount'] = sorted(byte_counter.get().items())
+                    # write a file with the distribution of bytes in the scanned file
+                    bytescountfilename = scanenvironment.resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
+                    if not bytescountfilename.exists():
+                        bytesout = bytescountfilename.open('w')
+                        for by in resultout['bytecount']:
+                            bytesout.write("%d\t%d\n" % by)
+                        bytesout.close()
+
+                for a, h in scanjob.fileresult.get_hashresult().items():
+                    resultout[a] = h
+
+                resultout['labels'] = list(scanjob.fileresult.labels)
+                picklefilename = scanenvironment.resultsdirectory / ("%s.pickle" % scanjob.fileresult.get_hash('sha256'))
+                # TODO: this is vulnerable to a race condition, replace with EAFP pattern
+                if not picklefilename.exists():
+                    pickleout = picklefilename.open('wb')
+                    pickle.dump(resultout, pickleout)
+                    pickleout.close()
+
+            else:
+                scanjob.fileresult.labels.add('duplicate')
+
+            # scanjob.fileresult.set_filesize(scanjob.filesize)
+            # log(logging.INFO, json.dumps(fileresult.get()))
+            sys.stdout.flush()
+
             resultqueue.put(scanjob.fileresult)
             scanfilequeue.task_done()
-            continue
+        except Exception as e:
+            tb = sys.exc_info()[2]
+            if scanjob:
 
-        unpacker = Unpacker()
-        scanjob.prepare_for_unpacking()
-        scanjob.check_for_padding_file(unpacker)
-        scanjob.check_for_unpacked_file(unpacker)
-        scanjob.check_mime_types()
-
-        if unpacker.needs_unpacking():
-            scanjob.check_for_valid_extension(unpacker)
-
-        if unpacker.needs_unpacking():
-            scanjob.check_for_signatures(unpacker)
-
-        if carveunpacked:
-            scanjob.carve_file_data(unpacker)
-
-        scanjob.do_content_computations()
-
-        if unpacker.needs_unpacking():
-            scanjob.check_entire_file(unpacker)
-
-        duplicate = False
-        processlock.acquire()
-        # TODO: make checksumdict an object
-        # TODO: does this need to be a dictionary, or can it be a set?
-        # if hashresults['sha256'] in checksumdict:
-        if scanjob.fileresult.get_hash() in checksumdict:
-            duplicate = True
-        else:
-            checksumdict[scanjob.fileresult.get_hash()] = scanjob.fileresult.filepath
-        processlock.release()
-
-        if not duplicate:
-            scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
-
-            # write a pickle with output data
-            # The pickle contains:
-            # * all available hashes
-            # * labels
-            # * byte count
-            # * any extra data that might have been passed around
-            resultout = {}
-            if createbytecounter and 'padding' not in scanjob.fileresult.labels:
-                resultout['bytecount'] = sorted(byte_counter.get().items())
-                # write a file with the distribution of bytes in the scanned file
-                bytescountfilename = scanenvironment.resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
-                if not bytescountfilename.exists():
-                    bytesout = bytescountfilename.open('w')
-                    for by in resultout['bytecount']:
-                        bytesout.write("%d\t%d\n" % by)
-                    bytesout.close()
-
-            for a, h in scanjob.fileresult.get_hashresult().items():
-                resultout[a] = h
-
-            resultout['labels'] = list(scanjob.fileresult.labels)
-            picklefilename = scanenvironment.resultsdirectory / ("%s.pickle" % scanjob.fileresult.get_hash('sha256'))
-            # TODO: this is vulnerable to a race condition, replace with EAFP pattern
-            if not picklefilename.exists():
-                pickleout = picklefilename.open('wb')
-                pickle.dump(resultout, pickleout)
-                pickleout.close()
-
-        else:
-            scanjob.fileresult.labels.add('duplicate')
-
-        # scanjob.fileresult.set_filesize(scanjob.filesize)
-        # log(logging.INFO, json.dumps(fileresult.get()))
-        sys.stdout.flush()
-
-        resultqueue.put(scanjob.fileresult)
-        scanfilequeue.task_done()
+                raise ScanJobError(scanjob,e)
+                # raise ScanJobError(scanjob,e).with_traceback(tb)
+            else:
+                raise ScanJobError(None,e).with_traceback(tb)
