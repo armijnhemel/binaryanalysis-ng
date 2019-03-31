@@ -1307,7 +1307,7 @@ def unpackAr(fileresult, scanenvironment, offset, unpackdir):
 
     # then extract the file
     p = subprocess.Popen(['ar', 'x', filename_full], stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE, cwd=unpackdir)
+                         stderr=subprocess.PIPE, cwd=unpackdir_full)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
         foundfiles = os.listdir(unpackdir_full)
