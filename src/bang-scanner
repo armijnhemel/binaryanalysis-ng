@@ -65,6 +65,8 @@ import bangmedia
 import bangfilescans
 import bangsignatures
 from bangscanneroptions import BangScannerOptions
+from banglogging import log, uselogging
+
 
 from reporter.picklereport import *
 from reporter.jsonreport import *
@@ -1241,7 +1243,7 @@ def connect_to_bang_database(options):
 
 
 def main(argv):
-    global uselogging
+    # global uselogging
     options = BangScannerOptions().get()
 
     # test the database. If the connection fails it depends on whether
@@ -1275,6 +1277,7 @@ def main(argv):
     maxbytes = max(200000, maxsignaturesoffset+1)
 
     # use introspection for getting the file scans that run after unpacking
+    # TODO: move this to bangfilescans itself
     bangfunctions = inspect.getmembers(bangfilescans, inspect.isfunction)
     bangfilefunctions = [func for name, func in bangfunctions
             if func.context == 'file']
