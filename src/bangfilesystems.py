@@ -45,10 +45,6 @@ import json
 import re
 import pathlib
 
-# some external packages that are needed
-import lz4
-import lz4.frame
-
 encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                         'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
                         'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
