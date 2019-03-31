@@ -89,7 +89,7 @@ signatures = {
     'apple_icon': b'icns',  # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
     'androidsparse': b'\x3a\xff\x26\xed',
     'lz4': b'\x04\x22\x4d\x18',  # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
-    'lz4_old': b'\x02\x21\x4c\x18',  # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
+    'lz4_legacy': b'\x02\x21\x4c\x18',  # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
     'vmdk': b'KDMV',
     'qcow2': b'QFI\xfb',
     'vdi': b'<<< Oracle VM VirtualBox Disk Image >>>\n',
@@ -238,6 +238,7 @@ signaturetofunction = {
     'apple_icon': bangmedia.unpackAppleIcon,
     'androidsparse': bangandroid.unpackAndroidSparse,
     'lz4': bangunpack.unpackLZ4,
+    'lz4_legacy': bangunpack.unpackLZ4Legacy,
     'vmdk': bangfilesystems.unpackVMDK,
     'qcow2': bangfilesystems.unpackQcow2,
     'vdi': bangfilesystems.unpackVDI,

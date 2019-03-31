@@ -104,7 +104,7 @@ larger file, unless stated otherwise.
 63. zstd (needs zstd package)
 64. SGI image files (needs PIL)
 65. Apple Icon Image (needs PIL)
-66. LZ4 (requires LZ4 Python bindings)
+66. LZ4 (requires LZ4 Python bindings), LZ4 legacy (requires 'lz4c')
 67. VMware VMDK (needs qemu-img, whole file only)
 68. QEMU qcow2 (needs qemu-img, whole file only)
 69. VirtualBox VDI (needs qemu-img, whole file only,

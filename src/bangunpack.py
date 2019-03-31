@@ -7621,6 +7621,104 @@ def unpackLZ4(filename, offset, unpackdir, temporarydirectory):
             'filesandlabels': unpackedfilesandlabels}
 
 
+# LZ4 legacy format, uses external tools as it is not
+# supported in python-lz4:
+# https://github.com/python-lz4/python-lz4/issues/169
+# https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
+def unpackLZ4Legacy(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack LZ4 legacy compressed data.'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file, seek to the offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize = 4
+
+    # now process to see how much data should be
+    # processed using the LZ4 utilities
+    blockunpacked = False
+    while True:
+        # block compressed size
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for block compressed size'}
+            return {'status': False, 'error': unpackingerror}
+        # "if the frame is followed by a valid Frame Magic Number, it is considered completed."
+        if checkbytes == b'\x02\x21\x4c\x18':
+            break
+        blockcompressedsize = int.from_bytes(checkbytes, byteorder='little')
+        if offset + blockcompressedsize + 8 > filesize:
+            if not blockunpacked:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'compressed data cannot be outside file'}
+                return {'status': False, 'error': unpackingerror}
+            break
+        unpackedsize += 4
+
+        # skip over the compressed data
+        checkfile.seek(blockcompressedsize, os.SEEK_CUR)
+        unpackedsize += blockcompressedsize
+
+        # check if the end of file was reached
+        if unpackedsize == filesize:
+            break
+        blockunpacked = True
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        if filename.suffix.lower() == '.lz4':
+            outfilename = os.path.join(unpackdir, filename.stem)
+        else:
+            outfilename = os.path.join(unpackdir, "unpacked-from-lz4-legacy")
+        p = subprocess.Popen(['lz4c', '-d', filename, outfilename],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outputmsg, errormsg) = p.communicate()
+        if p.returncode != 0:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not a LZ4 legacy file'}
+            return {'status': False, 'error': unpackingerror}
+        labels.append('compressed')
+        labels.append('lz4')
+        unpackedfilesandlabels.append((outfilename, []))
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+    else:
+        # first write the data to a temporary file
+        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+        os.fdopen(temporaryfile[0]).close()
+        checkfile.close()
+
+        if filename.suffix.lower() == '.lz4':
+            outfilename = os.path.join(unpackdir, filename.stem)
+        else:
+            outfilename = os.path.join(unpackdir, "unpacked-from-lz4-legacy")
+        p = subprocess.Popen(['lz4c', '-d', temporaryfile[1], outfilename],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outputmsg, errormsg) = p.communicate()
+        os.unlink(temporaryfile[1])
+
+        if p.returncode != 0:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not a LZ4 legacy file'}
+            return {'status': False, 'error': unpackingerror}
+
+        unpackedfilesandlabels.append((outfilename, []))
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                      'reason': 'invalid LZ4 legacy data'}
+    return {'status': False, 'error': unpackingerror}
+
+
 # There are a few variants of XML. The first one is the "regular"
 # one, which is documented at:
 # https://www.w3.org/TR/2008/REC-xml-20081126/

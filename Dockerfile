@@ -9,6 +9,7 @@ RUN dnf update -y && \
                    e2tools \
                    java-1.8.0-openjdk-headless \
                    libxml2 \
+                   lz4 \
                    lzop \
                    mailcap \
                    openssl \
