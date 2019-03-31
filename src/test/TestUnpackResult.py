@@ -70,9 +70,10 @@ class TestUnpackResult(TestBase):
     def test_unpackresult_has_correct_filenames(self):
         unpacker = Unpacker(self.unpackdir)
         for fn,unpackfunc in sorted(set(self.walk_available_files_with_unpackers())):
+            # if unpackfunc.__name__ != 'unpackAr': continue
             print(fn,unpackfunc)
-            unpacker.make_data_unpack_directory(fn,unpackfunc.__name__)
             self._copy_file_from_testdata(fn)
+            unpacker.make_data_unpack_directory(fn,unpackfunc.__name__)
             fileresult = create_fileresult_for_path(self.unpackdir, pathlib.Path(fn))
             unpackresult = unpackfunc(fileresult, self.scan_environment, 0, unpacker.get_data_unpack_directory())
             unpacker.remove_data_unpack_directory_tree()
@@ -84,7 +85,7 @@ class TestUnpackResult(TestBase):
                         print(self.unpackdir, "prefix of", unpackedfile)
                         self.assertNotEqual(unpackedfile[:len(self.unpackdir)], self.unpackdir)
 
-                        self.assertEqual(unpackedfile, os.path.join(unpacksubdir,fn))
+                        self.assertEqual(unpackedfile, os.path.join(unpacker.get_data_unpack_directory(),os.path.basename(unpackedfile)))
                     except AssertionError as e:
                         print("Error for %s on %s" % (unpackfunc.__name__, fn))
                         print(e)
