@@ -6,6 +6,7 @@ import pathlib
 import shutil
 import pickle
 import sys
+import traceback
 
 import bangsignatures
 from bangfilescans import bangfilefunctions, bangwholecontextfunctions
@@ -13,6 +14,28 @@ from banglogging import log
 from FileResult import FileResult
 from FileContentsComputer import *
 from Unpacker import *
+
+
+class ScanJobError(Exception):
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls)
+    def __init__(self,scanjob,e):
+        super().__init__(self, scanjob, e)
+        self.scanjob = scanjob
+        self.e = e
+    def __str__(self):
+        exc = traceback.format_exception(type(self.e), self.e, self.e.__traceback__,chain=False)
+        if self.scanjob is not None:
+            return """Exception for scanjob:
+file:
+    %s
+labels:
+    %s
+""" % ( str(self.scanjob.filename),
+        ",".join(self.scanjob.labels) ) + "".join(exc)
+        else:
+            return "Exception (no scanjob):\n\n" + "".join(exc)
+
 
 class ScanJob:
     """Performs scanning and unpacking related checks and stores the
