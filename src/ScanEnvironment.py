@@ -51,3 +51,4 @@ class ScanEnvironment:
  
     def get_relative_path(self,fn):
         """gets the path relative to the unpackdirectory."""
+        return fn[self.lenunpackdirectory:]
