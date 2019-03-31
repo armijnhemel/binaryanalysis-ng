@@ -9485,7 +9485,7 @@ def unpackCSS(filename, offset, unpackdir, temporarydirectory):
         isopened = True
     except:
         unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not a text file'}
+                          'reason': 'not a valid CSS file'}
         return {'status': False, 'error': unpackingerror}
 
     checkfile.seek(0)
@@ -9526,7 +9526,6 @@ def unpackCSS(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'no CSS unpacked'}
         return {'status': False, 'error': unpackingerror}
 
-    labels.append('text')
     labels.append('css')
 
     return {'status': True, 'length': filesize, 'labels': labels,
