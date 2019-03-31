@@ -553,17 +553,14 @@ class ScanJob:
 # Process a single file.
 # This method has the following parameters:
 #
+# * scancontext :: the scan context
 # * scanfilequeue :: a queue where files to scan will be fetched from
 # * resultqueue :: a queue where results will be written to
 # * processlock :: a lock object that guards access to shared objects
 # * checksumdict :: a shared dictionary to store hashes of files so
 #   unnecessary scans of duplicate files can be prevented.
-# * unpackdirectory :: the absolute path of the top level directory in
-#   which files will be unpacked
 # * resultsdirectory :: the absolute path of the directory where results
 #   will be written to
-# * temporary directory :: the absolute path of a directory in which
-#   temporary files will be written
 # * dbconn :: a PostgreSQL database connection
 # * dbcursor :: a PostgreSQL database cursor
 # * bangfilefunctions :: a list of functions for individual files
@@ -585,16 +582,8 @@ class ScanJob:
 def processfile(scancontext, scanfilequeue, resultqueue, processlock, checksumdict,
                 resultsdirectory,
                 dbconn, dbcursor, bangfilefunctions, scanenvironment):
-    # global emptyhashresults
-    # global hash_algorithms
 
     createbytecounter = scanenvironment.get_createbytecounter()
-    # uselogging = scanenvironment['logging']
-
-    # if dbconn is None:
-    #    usedatabase = False
-    # else:
-    #    usedatabase = True
 
     carveunpacked = True
 
