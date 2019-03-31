@@ -694,15 +694,13 @@ def processfile(dbconn, dbcursor, scanenvironment):
                 scanjob.fileresult.labels.add('duplicate')
 
             # scanjob.fileresult.set_filesize(scanjob.filesize)
-            # log(logging.INFO, json.dumps(fileresult.get()))
-            sys.stdout.flush()
+            log(logging.INFO, json.dumps(fileresult.get()))
 
             resultqueue.put(scanjob.fileresult)
             scanfilequeue.task_done()
         except Exception as e:
             tb = sys.exc_info()[2]
             if scanjob:
-
                 raise ScanJobError(scanjob,e)
                 # raise ScanJobError(scanjob,e).with_traceback(tb)
             else:
