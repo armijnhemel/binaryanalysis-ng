@@ -29,9 +29,7 @@
 import os
 import sys
 import stat
-import pathlib
 import collections
-import re
 import argparse
 
 # import own modules
@@ -98,15 +96,15 @@ def main(argv):
     # print the error messages in descending order
     for e in bangerrors.most_common():
         print("Signature %s: %d (%f%%)" % (e[0], e[1], e[1]/totalerrors*100))
-        for s in bangerrormessages[e[0]].most_common():
-            print("%s: %d" % s)
+        for msg in bangerrormessages[e[0]].most_common():
+            print("%s: %d" % msg)
         print()
 
     # print the files with the most errors
     print("Failures per file")
     print("-----------------\n")
-    for e in errorfiles.most_common():
-        print("%s: %d failures\n" % e)
+    for err in errorfiles.most_common():
+        print("%s: %d failures\n" % err)
 
 if __name__ == "__main__":
     main(sys.argv)
