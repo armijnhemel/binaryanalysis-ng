@@ -20,6 +20,7 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+
 class ScanEnvironment:
     tlshlabelsignore = set([
         'compressed', 'graphics', 'audio', 'archive',
@@ -70,7 +71,7 @@ class ScanEnvironment:
 
     def get_maxbytes(self):
         return self.maxbytes
- 
-    def get_relative_path(self,fn):
+
+    def get_relative_path(self, fn):
         """gets the path relative to the unpackdirectory."""
         return fn[self.lenunpackdirectory:]
