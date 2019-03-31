@@ -152,6 +152,7 @@ larger file, unless stated otherwise.
      of the file is compress'd data
 108. Unix group files (whole file)
 109. TRANS.TBL files
+110. romfs
 
 
 ## Invocation

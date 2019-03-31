@@ -280,7 +280,7 @@ signaturetofunction = {
     'cbfs': bangfilesystems.unpackCBFS,
     'minix_1l': bangfilesystems.unpackMinix1L,
     'compress': bangunpack.unpackCompress,
-    #'romfs': bangfilesystems.unpackRomfs,
+    'romfs': bangfilesystems.unpackRomfs,
 }
 
 # a lookup table to map signatures to a name for
