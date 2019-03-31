@@ -4155,8 +4155,8 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # romfs file systems are aligned on a 1024 byte boundary
-    if romsize%1024 != 0:
-        paddingbytes = 1024 - romsize%1024
+    if romsize % 1024 != 0:
+        paddingbytes = 1024 - romsize % 1024
         maxoffset = romsize + paddingbytes
 
     if offset == 0 and maxoffset == filesize:
