@@ -5,14 +5,20 @@ class ScanEnvironment:
         'database'])
 
     def __init__(self, maxbytes, readsize, createbytecounter,
-            tlshmaximum, synthesizedminimum, logging, paddingname):
-            self.maxbytes = maxbytes
-            self.readsize = readsize
-            self.createbytecounter = createbytecounter
-            self.tlshmaximum = tlshmaximum
-            self.synthesizedminimum = synthesizedminimum
-            self.logging = logging
-            self.paddingname = paddingname
+            tlshmaximum, synthesizedminimum, logging, paddingname,
+            unpackdirectory, temporarydirectory,
+            ):
+        # TODO: init from options object
+        self.maxbytes = maxbytes
+        self.readsize = readsize
+        self.createbytecounter = createbytecounter
+        self.tlshmaximum = tlshmaximum
+        self.synthesizedminimum = synthesizedminimum
+        self.logging = logging
+        self.paddingname = paddingname
+        self.unpackdirectory = unpackdirectory
+        self.temporarydirectory = temporarydirectory
+        self.lenunpackdirectory = len(str(unpackdirectory))+1
 
     def get_readsize(self):
         return self.readsize
@@ -20,7 +26,7 @@ class ScanEnvironment:
     def get_createbytecounter(self):
         return self.createbytecounter
 
-    def get_tlsmaximum(self):
+    def get_tlshmaximum(self):
         return self.tlshmaximum
 
     def use_tlsh(self, filesize, labels):
@@ -35,3 +41,6 @@ class ScanEnvironment:
 
     def get_maxbytes(self):
         return self.maxbytes
+ 
+    def get_relative_path(self,fn):
+        """gets the path relative to the unpackdirectory."""

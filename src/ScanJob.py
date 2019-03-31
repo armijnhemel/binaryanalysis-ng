@@ -16,9 +16,8 @@ from Unpacker import *
 class ScanJob:
     """Performs scanning and unpacking related checks and stores the
     results in the given FileResult object."""
-    def __init__(self, scancontext, fileresult):
+    def __init__(self, fileresult):
         self.fileresult = fileresult
-        self.scancontext = scancontext
         self.type = None
         self._stat_file()
 
@@ -134,7 +133,7 @@ class ScanJob:
             if bangsignatures.matches_file_pattern(self.fileresult.filepath, extension):
                 log(logging.INFO, "TRY extension match %s %s" % (self.fileresult.filepath, extension))
                 unpackresult = unpacker.try_unpack_file_for_extension(
-                        self.fileresult.filepath, extension, self.scancontext.temporarydirectory)
+                        self.fileresult.filepath, extension, self.scanenvironment.temporarydirectory)
                 if unpackresult is None:
                     continue
                 if not unpackresult['status']:
@@ -173,11 +172,11 @@ class ScanJob:
                 for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                     fr = FileResult(
                             pathlib.Path(unpackedfile),
-                            self.scancontext.get_relative_path(unpackedfile),
+                            self.scanenvironment.get_relative_path(unpackedfile),
                             self.fileresult.filepath,
                             self.fileresult.filename,
                             set(unpackedlabel))
-                    j = ScanJob(self.scancontext, fr)
+                    j = ScanJob(fr)
                     scanfilequeue.put(j)
                     report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
                 self.fileresult.add_unpackedfile(report)
@@ -219,7 +218,7 @@ class ScanJob:
                     signaturesfound.append(offset_with_signature)
 
                     # always change to the declared unpacking directory
-                    os.chdir(self.scancontext.unpackdirectory)
+                    os.chdir(self.scanenvironment.unpackdirectory)
                     # then create an unpacking directory specifically
                     # for the signature including the signature name
                     # and a counter for the signature.
@@ -235,7 +234,7 @@ class ScanJob:
                             (self.fileresult.get_filename(), signature, offset))
 
                     try:
-                        unpackresult = bangsignatures.signaturetofunction[signature](self.fileresult.filepath, offset, unpacker.get_data_unpack_directory(), self.scancontext.temporarydirectory)
+                        unpackresult = bangsignatures.signaturetofunction[signature](self.fileresult.filepath, offset, unpacker.get_data_unpack_directory(), self.scanenvironment.temporarydirectory)
                     except AttributeError as e:
                         unpacker.remove_data_unpack_directory()
                         continue
@@ -295,8 +294,8 @@ class ScanJob:
                     # file is a file that was verified (example: GIF or PNG)
                     # then there will not be an unpacking directory.
                     if unpackresult['filesandlabels'] != []:
-                        # report['unpackdirectory'] = unpacker.get_data_unpack_directory()[len(str(self.scancontext.unpackdirectory))+1:]
-                        report['unpackdirectory'] = self.scancontext.get_relative_path(unpacker.get_data_unpack_directory())
+                        # report['unpackdirectory'] = unpacker.get_data_unpack_directory()[len(str(self.scanenvironment.unpackdirectory))+1:]
+                        report['unpackdirectory'] = self.scanenvironment.get_relative_path(unpacker.get_data_unpack_directory())
 
                     for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                         # TODO: make relative wrt unpackdir
@@ -304,11 +303,11 @@ class ScanJob:
                         # add the data, plus possibly any label
                         fr = FileResult(
                                 pathlib.Path(unpackedfile),
-                                self.scancontext.get_relative_path(unpackedfile),
+                                self.scanenvironment.get_relative_path(unpackedfile),
                                 self.fileresult.filepath,
                                 self.fileresult.filename,
                                 set(unpackedlabel))
-                        j = ScanJob(self.scancontext,fr)
+                        j = ScanJob(fr)
                         scanfilequeue.put(j)
 
                     self.fileresult.add_unpackedfile(report)
@@ -421,11 +420,11 @@ class ScanJob:
                         # add the data, plus labels, to the queue
                         fr = FileResult(
                                 pathlib.Path(outfilename),
-                                self.scancontext.get_relative_path(outfilename),
+                                self.scanenvironment.get_relative_path(outfilename),
                                 self.fileresult.filepath,
                                 self.fileresult.filename,
                                 set(unpackedlabel))
-                        j = ScanJob(self.scancontext,fr)
+                        j = ScanJob(fr)
                         scanfilequeue.put(j)
                     carve_index = u_high
 
@@ -474,7 +473,7 @@ class ScanJob:
 
                 log(logging.DEBUG, "TRYING %s %s at offset: 0" % (self.fileresult.get_filename(), f))
                 try:
-                    unpackresult = bangsignatures.textonlyfunctions[f](self.fileresult.filepath, 0, unpacker.get_data_unpack_directory(), self.scancontext.temporarydirectory)
+                    unpackresult = bangsignatures.textonlyfunctions[f](self.fileresult.filepath, 0, unpacker.get_data_unpack_directory(), self.scanenvironment.temporarydirectory)
                 except Exception as e:
                     unpacker.remove_data_unpack_directory()
                     continue
@@ -538,11 +537,11 @@ class ScanJob:
                     # add the data, plus possibly any label
                     fr = FileResult(
                             pathlib.Path(unpackedfile),
-                            self.scancontext.get_relative_path(unpackedfile),
+                            self.scanenvironment.get_relative_path(unpackedfile),
                             self.fileresult.filepath,
                             self.fileresult.filename,
                             set(unpackedlabel))
-                    j = ScanJob(self.scancontext,fr)
+                    j = ScanJob(fr)
                     scanfilequeue.put(j)
 
                 self.fileresult.add_unpackedfile(report)
@@ -556,7 +555,6 @@ class ScanJob:
 # Process a single file.
 # This method has the following parameters:
 #
-# * scancontext :: the scan context
 # * scanfilequeue :: a queue where files to scan will be fetched from
 # * resultqueue :: a queue where results will be written to
 # * processlock :: a lock object that guards access to shared objects
@@ -582,7 +580,7 @@ class ScanJob:
 # 'graphics') will be stored. These labels can be used to feed extra
 # information to the unpacking process, such as preventing scans from
 # running.
-def processfile(scancontext, scanfilequeue, resultqueue, processlock, checksumdict,
+def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
                 resultsdirectory,
                 dbconn, dbcursor, bangfilefunctions, scanenvironment):
 

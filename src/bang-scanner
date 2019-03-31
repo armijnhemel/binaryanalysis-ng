@@ -81,7 +81,6 @@ from bangsignatures import maxsignaturesoffset
 
 from FileContentsComputer import *
 from FileResult import FileResult
-from ScanContext import *
 from ScanEnvironment import *
 from Unpacker import *
 from ScanJob import *
@@ -248,14 +247,13 @@ def main(argv):
         labels = ['root']
 
         # Create a scanjob for the first file to be scanned
-        scancontext = ScanContext(unpackdirectory, options.temporarydirectory)
         fileresult = FileResult(
                 unpackdirectory / os.path.basename(checkfile),
                 os.path.basename(checkfile),
                 None,
                 None,
                 set(labels))
-        j = ScanJob(scancontext,fileresult)
+        j = ScanJob(fileresult)
         scanfilequeue.put(j)
 
         # create a lock to control access to any shared data structures
@@ -274,7 +272,10 @@ def main(argv):
             tlshmaximum = options.tlshmaximum,
             synthesizedminimum = 10,
             logging = uselogging,
-            paddingname = 'PADDING')
+            paddingname = 'PADDING',
+            unpackdirectory = unpackdirectory,
+            temporarydirectory = options.temporarydirectory,
+            )
 
         # create processes for unpacking archives
         for i in range(0, options.bangthreads):
@@ -285,7 +286,7 @@ def main(argv):
                 dbconn0 = bangdbconns[i][0]
                 dbconn1 = bangdbconns[i][1]
             p = multiprocessing.Process(target=processfile,
-                                        args=(scancontext,
+                                        args=(
                                               scanfilequeue,
                                               resultqueue,
                                               processlock,
