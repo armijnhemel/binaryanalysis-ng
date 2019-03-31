@@ -1244,13 +1244,16 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
     checkfile = open(filename, 'rb')
     checkfile.seek(offset)
 
-    bigendian = False
-
     # read the magic of the first inode to see if it is a little endian
     # or big endian file system
     checkbytes = checkfile.read(2)
     if checkbytes == b'\x19\x85':
         bigendian = True
+        byteorder = 'big'
+    else:
+        bigendian = False
+        byteorder = 'little'
+
 
     dataunpacked = False
 
@@ -1359,10 +1362,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(2)
         if len(checkbytes) != 2:
             break
-        if bigendian:
-            inodetype = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            inodetype = int.from_bytes(checkbytes, byteorder='little')
+        inodetype = int.from_bytes(checkbytes, byteorder=byteorder)
 
         # check if the inode type is actually valid
         if inodetype not in validinodes:
@@ -1372,10 +1372,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             break
-        if bigendian:
-            inodesize = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            inodesize = int.from_bytes(checkbytes, byteorder='little')
+        inodesize = int.from_bytes(checkbytes, byteorder=byteorder)
 
         # check if the inode extends past the file
         if checkfile.tell() - 12 + inodesize > filesize:
@@ -1399,10 +1396,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             break
-        if bigendian:
-            headercrc = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            headercrc = int.from_bytes(checkbytes, byteorder='little')
+        headercrc = int.from_bytes(checkbytes, byteorder=byteorder)
 
         # The checksum varies slightly from the one in the zlib/binascii modules
         # as explained here:
@@ -1430,10 +1424,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                parentinode = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                parentinode = int.from_bytes(checkbytes, byteorder='little')
+            parentinode = int.from_bytes(checkbytes, byteorder=byteorder)
 
             parentinodesseen.add(parentinode)
 
@@ -1441,19 +1432,13 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                inodeversion = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                inodeversion = int.from_bytes(checkbytes, byteorder='little')
+            inodeversion = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # inode number is next
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                inodenumber = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                inodenumber = int.from_bytes(checkbytes, byteorder='little')
+            inodenumber = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # skip unlinked inodes
             if inodenumber == 0:
@@ -1506,10 +1491,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                namecrc = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                namecrc = int.from_bytes(checkbytes, byteorder='little')
+            namecrc = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # finally the name of the node
             checkbytes = checkfile.read(inodenamelength)
@@ -1545,10 +1527,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                inodenumber = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                inodenumber = int.from_bytes(checkbytes, byteorder='little')
+            inodenumber = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # first check if a file name for this inode is known
             if inodenumber not in inodetofilename:
@@ -1570,19 +1549,13 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                inodeversion = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                inodeversion = int.from_bytes(checkbytes, byteorder='little')
+            inodeversion = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # file mode
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                filemode = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                filemode = int.from_bytes(checkbytes, byteorder='little')
+            filemode = int.from_bytes(checkbytes, byteorder=byteorder)
 
             if stat.S_ISSOCK(filemode):
                 # keep track of whatever is in the file and report
@@ -1599,10 +1572,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
                     break
-                if bigendian:
-                    linknamelength = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                    linknamelength = int.from_bytes(checkbytes, byteorder='little')
+                linknamelength = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 # skip ahead 16 bytes to the data containing the link name
                 checkfile.seek(16, os.SEEK_CUR)
@@ -1625,10 +1595,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
                     break
-                if bigendian:
-                    writeoffset = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                    writeoffset = int.from_bytes(checkbytes, byteorder='little')
+                writeoffset = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 if writeoffset == 0:
                     if inodenumber in inodetowriteoffset:
@@ -1649,19 +1616,13 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
                     break
-                if bigendian:
-                    compressedsize = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                    compressedsize = int.from_bytes(checkbytes, byteorder='little')
+                compressedsize = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 # read the decompressed size
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
                     break
-                if bigendian:
-                    decompressedsize = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                    decompressedsize = int.from_bytes(checkbytes, byteorder='little')
+                decompressedsize = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 # find out which compression algorithm has been used
                 checkbytes = checkfile.read(1)
