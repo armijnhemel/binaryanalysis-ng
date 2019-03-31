@@ -134,6 +134,8 @@ signatures = {
     'minix_1l': b'\x8f\x13', # minix v1, linux variant
     'compress': b'\x1f\x9d', # /usr/share/magic
     'romfs': b'-rom1fs-',
+    'cramfs_le': b'\x45\x3d\xcd\x28',
+    'cramfs_be': b'\x28\xcd\x3d\x45',
 }
 
 # some signatures do not start at the beginning of the file
@@ -308,6 +310,8 @@ signatureprettyprint = {
     'swf_lzma': 'swf',
     'ktx11': 'ktx',
     'minix_1l': 'minix',
+    'cramfs_le': 'cramfs',
+    'cramfs_be': 'cramfs',
 }
 
 # extensions to unpacking functions. This should only be
