@@ -52,8 +52,7 @@ class Unpacker:
                 os.mkdir(os.path.join(self.unpackroot, d))
                 self.dataunpackdirectory = d
                 break
-            # TODO: be more specific in exceptions to prevent infinite loops
-            except:
+            except FileExistsError:
                 nr += 1
         return nr
 
