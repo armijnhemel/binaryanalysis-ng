@@ -2780,7 +2780,7 @@ def unpackBzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
 def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a XAR archive.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2791,7 +2791,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = 0
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # skip over the file magic
     checkfile.seek(offset+4)
@@ -3010,8 +3010,9 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
             os.makedirs(os.path.join(unpackdir, nodecwd, nodename))
         elif nodetype == 'file':
             # first create the file
-            targetfilename = os.path.join(unpackdir, nodecwd, nodename)
-            targetfile = open(targetfilename, 'wb')
+            targetfile_rel = os.path.join(unpackdir, nodecwd, nodename)
+            targetfile_full = scanenvironment.unpack_path(targetfile_rel)
+            targetfile = open(targetfile_full, 'wb')
             if nodedata is not None:
                 # extract the data for the file:
                 # * compression method (called "encoding")
@@ -3075,7 +3076,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
                     datalength = int(datalength)
                 except:
                     targetfile.close()
-                    os.unlink(targetfilename)
+                    os.unlink(targetfile_full)
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize,
                                       'fatal': False,
@@ -3086,7 +3087,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
                 # the file cannot be outside of the file
                 if offset + unpackedsize + dataoffset + datalength > filesize:
                     targetfile.close()
-                    os.unlink(targetfilename)
+                    os.unlink(targetfile_full)
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize,
                                       'fatal': False,
@@ -3125,7 +3126,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
                             decompressor = lzma.LZMADecompressor()
                         else:
                             targetfile.close()
-                            os.unlink(targetfilename)
+                            os.unlink(targetfile_full)
                             checkfile.close()
                             unpackingerror = {'offset': offset+unpackedsize,
                                               'fatal': False,
@@ -3149,7 +3150,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
                         # there shouldn't be any unused data
                         if decompressor.unused_data != b'':
                             targetfile.close()
-                            os.unlink(targetfilename)
+                            os.unlink(targetfile_full)
                             checkfile.close()
                             unpackingerror = {'offset': offset+unpackedsize,
                                               'fatal': False,
@@ -3158,7 +3159,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
 
                     except Exception as e:
                         targetfile.close()
-                        os.unlink(targetfilename)
+                        os.unlink(targetfile_full)
                         checkfile.close()
                         unpackingerror = {'offset': offset+unpackedsize,
                                           'fatal': False,
@@ -3170,17 +3171,17 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
                 if checkhash is not None:
                     if extractedchecksum != checkhash.hexdigest():
                         targetfile.close()
-                        os.unlink(targetfilename)
+                        os.unlink(targetfile_full)
                         checkfile.close()
                         unpackingerror = {'offset': offset+unpackedsize,
                                           'fatal': False,
                                           'reason': 'checksum mismatch'}
                         return {'status': False, 'error': unpackingerror}
 
-                unpackedfilesandlabels.append((targetfilename, []))
+                unpackedfilesandlabels.append((targetfile_rel, []))
             else:
                 # empty files have no data section associated with it
-                unpackedfilesandlabels.append((targetfilename, ['empty']))
+                unpackedfilesandlabels.append((targetfile_rel, ['empty']))
             targetfile.close()
             maxoffset = max(maxoffset, offset + unpackedsize + dataoffset + datalength)
         # then finally add all of the childnodes
