@@ -65,7 +65,7 @@ import bangmedia
 import bangfilescans
 import bangsignatures
 from bangscanneroptions import BangScannerOptions
-from banglogging import log 
+from banglogging import log
 import banglogging
 
 
