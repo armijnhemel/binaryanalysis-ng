@@ -4129,6 +4129,7 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
 
 
 # Linux kernel: fs/cramfs/README
+# needs recent version of util-linux that supports --extract
 def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
     '''Unpack a cramfs file system'''
     filesize = filename.stat().st_size
