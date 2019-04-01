@@ -285,6 +285,8 @@ signaturetofunction = {
     'minix_1l': bangfilesystems.unpackMinix1L,
     'compress': bangunpack.unpackCompress,
     'romfs': bangfilesystems.unpackRomfs,
+    'cramfs_le': bangfilesystems.unpack_cramfs,
+    'cramfs_be': bangfilesystems.unpack_cramfs,
 }
 
 # a lookup table to map signatures to a name for

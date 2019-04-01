@@ -153,6 +153,7 @@ larger file, unless stated otherwise.
 108. Unix group files (whole file)
 109. TRANS.TBL files
 110. romfs
+111. cramfs (version 2 only)
 
 
 ## Invocation

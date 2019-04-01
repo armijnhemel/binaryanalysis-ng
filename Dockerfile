@@ -27,6 +27,7 @@ RUN dnf update -y && \
                    qemu-img \
                    rzip \
                    squashfs-tools \
+                   util-linux \
                    zstd \
                    ncompress
 
