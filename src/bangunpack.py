@@ -3352,12 +3352,12 @@ def unpackLzip(fileresult, scanenvironment, offset, unpackdir):
 def unpackWOFF(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a WOFF font file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # skip over the header
     checkfile.seek(offset+4)
@@ -3655,12 +3655,13 @@ def unpackWOFF(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked-woff")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked-woff")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['woff', 'font', 'resource', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['woff', 'font', 'resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
