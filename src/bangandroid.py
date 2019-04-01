@@ -2933,7 +2933,7 @@ def unpack_nb0(filename, offset, unpackdir, temporarydirectory):
         unpackoffset = offset + unpackedsize + headers[header]['offset']
         outfilename = os.path.join(unpackdir, headers[header]['name'])
         outfile = open(outfilename, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), unpackoffset, headers[header]['offset'])
+        os.sendfile(outfile.fileno(), checkfile.fileno(), unpackoffset, headers[header]['size'])
         outfile.close()
         unpackedfilesandlabels.append((outfilename, []))
 
