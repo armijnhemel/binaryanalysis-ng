@@ -2846,3 +2846,101 @@ def unpackAndroidBootHuawei(filename, offset, unpackdir, temporarydirectory):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# unpack update files in nb0 format
+#
+# There is very little documentation about this format. The
+# format was found out by studying this open source licensed
+# code:
+#
+# https://github.com/yohanes/Acer-BeTouch-E130-RUT/blob/master/nb0.c
+#
+# Test file: "ViewPad 7 Firmware v3_42_uk.zip"
+#
+# This extension is also often used for Windows CE files
+def unpack_nb0(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack Android nb0 update files'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file
+    checkfile = open(filename, 'rb')
+
+    # first four bytes are the number of headers
+    checkbytes = checkfile.read(4)
+    if len(checkbytes) != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for headers'}
+        return {'status': False, 'error': unpackingerror}
+    amount_of_headers = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # for each of the headers there should be 64 bytes of data
+    if offset + 4 + amount_of_headers * 64 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for headers'}
+        return {'status': False, 'error': unpackingerror}
+
+    headers = {}
+    maxheader = 0
+    for header in range(0, amount_of_headers):
+        # each header is 64 bytes, consisting of
+        # 1. offset (4 bytes)
+        # 2. size (4 bytes)
+        # 3. unknown (4 bytes)
+        # 4. unknown (4 bytes)
+        # 5. name (48 bytes, NUL terminated)
+        checkbytes = checkfile.read(4)
+        headeroffset = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        checkbytes = checkfile.read(4)
+        headersize = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        maxheader = max(maxheader, headeroffset + headersize)
+
+        checkfile.seek(8, os.SEEK_CUR)
+        unpackedsize += 8
+
+        checkbytes = checkfile.read(48)
+        try:
+            headername = checkbytes.split(b'\x00', 1)[0].decode()
+        except UnicodeDecodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid name in header'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 48
+
+        headers[header] = {'offset': headeroffset, 'size': headersize,
+                           'name': headername}
+
+    if offset + unpackedsize + maxheader > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'data outside of file'}
+        return {'status': False, 'error': unpackingerror}
+
+    # short sanity check to see if there is enough data
+    for header in headers:
+        unpackoffset = offset + unpackedsize + headers[header]['offset']
+        outfilename = os.path.join(unpackdir, headers[header]['name'])
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), unpackoffset, headers[header]['offset'])
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, []))
+
+    unpackedsize += maxheader
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append("nb0")
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}

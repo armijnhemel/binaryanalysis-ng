@@ -154,6 +154,7 @@ larger file, unless stated otherwise.
 109. TRANS.TBL files
 110. romfs
 111. cramfs (version 2 only)
+112. nb0 Android updates
 
 
 ## Invocation

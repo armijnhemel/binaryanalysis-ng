@@ -355,6 +355,7 @@ extensiontofunction = {
     '.pc': bangunpack.unpackPkgConfig,
     '.ics': bangunpack.unpackICS,
     'trans.tbl': bangunpack.unpackTransTbl,
+    '.nb0': bangandroid.unpack_nb0,
 }
 
 # a lookup table to map extensions to a name
@@ -393,6 +394,7 @@ extensionprettyprint = {
     '.pc': 'pc',
     '.ics': 'ics',
     'trans.tbl': 'trans.tbl',
+    '.nb0': 'nb0',
 }
 
 def matches_file_pattern(filename,extension):
