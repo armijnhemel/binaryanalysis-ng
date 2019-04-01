@@ -50,50 +50,6 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                         'iso2022_jp_ext', 'iso2022_kr', 'shift_jis',
                         'shift_jis_2004', 'shift_jisx0213']
 
-# Each unpacker has a specific interface:
-#
-# def unpacker(filename, offset, unpackdir, temporarydirectory)
-#
-# * filename: full file name (pathlib.PosixPath object)
-# * offset: offset inside the file where the file system, compressed
-#   file media file possibly starts
-# * unpackdir: the target directory where data should be written to
-# * temporarydirectory: a directory where temporary files are stored
-#   and temporary directories are created
-#
-# The unpackers are supposed to return a dictionary with the following
-# field:
-#
-# * unpack status (boolean) to indicate whether or not any data was
-#   unpacked
-#
-# Depending on the value of the status several other fields are
-# expected. For successful scans (unpack status == True) the following
-# should be present:
-#
-# * unpack size to indicate what part of the data was unpacked
-# * a list of tuples (file, labels) that were unpacked from the file.
-#   The labels could be used to indicate that a file has a certain
-#   status and that it should not be unpacked as it is already known
-#   what the file is (example: PNG)
-# * a list of labels for the file
-# * a dict with extra information (structure depending on type
-#   of scan)
-# * (optional) offset indicating the start of the data
-#
-# If the scan was unsuccessful (unpack status == False), the following
-# should be present:
-#
-# * a dict with a possible error.
-#
-# The error dict has the following items:
-#
-# * fatal: boolean to indicate whether or not the error is a fatal
-#   error (such as disk full, etc.) so BANG should be stopped.
-#   Non-fatal errors are format violations (files, etc.)
-# * offset: offset where the error occured
-# * reason: human readable description of the error
-
 
 # A verifier for the WebP file format.
 # Uses the description of the WebP file format as described here:
