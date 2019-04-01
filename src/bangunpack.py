@@ -4984,7 +4984,7 @@ def unpackRzip(fileresult, scanenvironment, offset, unpackdir):
 def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a CPIO archive.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename = scanenvironment.unpack_dir(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4998,7 +4998,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'not enough bytes for header'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     dataunpacked = False
@@ -5285,8 +5285,10 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
 
             # if it is a directory, then just create the directory
             if isdir:
-                os.makedirs(os.path.join(unpackdir, unpackname), exist_ok=True)
-                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                outfile_rel = os.path.join(unpackdir, unpackname)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full, exist_ok=True)
+                unpackedfilesandlabels.append((outfile_rel, []))
                 continue
             # first symbolic links
             if islink:
@@ -5294,7 +5296,9 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                     break
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
-                    os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
+                    unpackdir_full = scanenvironment.unpack_path(
+                            os.path.join(unpackdir, unpackdirname))
+                    os.makedirs(unpackdir_full, exist_ok=True)
                 checkbytes = checkfile.read(cpiodatasize)
 
                 # first a hack for embedded 0x00 in data
@@ -5304,8 +5308,10 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 except UnicodeDecodeError:
                     break
 
-                os.symlink(targetname, os.path.join(unpackdir, unpackname))
-                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), ['symbolic link']))
+                unpackfile_rel = os.path.join(unpackdir, unpackname)
+                unpackfile_full = scanenvironment.unpack_path(unpackfile_rel)
+                os.symlink(targetname, unpackfile_full)
+                unpackedfilesandlabels.append((unpackfile_rel, ['symbolic link']))
             # then regular files
             elif isfile:
                 if offset + unpackedsize + cpiodatasize > filesize:
@@ -5313,14 +5319,18 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 # first create the directory structure if necessary
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
-                    os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
-                outfile = open(os.path.join(unpackdir, unpackname), 'wb')
+                    unpackdir_full = scanenvironment.unpack_path(
+                            os.path.join(unpackdir, unpackdirname))
+                    os.makedirs(unpackdir_full, exist_ok=True)
+                outfile_rel = os.path.join(unpackdir, unpackname)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                outfile = open(outfile_full, 'wb')
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset+unpackedsize, cpiodatasize)
                 outfile.close()
                 if (inode, dev) not in devinodes:
                     devinodes[(inode, dev)] = []
                 devinodes[(inode, dev)].append(unpackname)
-                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                unpackedfilesandlabels.append(outfile_rel, []))
             unpackedsize += cpiodatasize
 
             # pad to even bytes
@@ -5542,6 +5552,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                     unpackname = unpackname.decode(c)
                     namedecoded = True
                     break
+                # TODO: make exception more specific, e.g. UnicodeDecodeError
                 except:
                     pass
             if not namedecoded:
@@ -5555,8 +5566,10 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
 
             # if it is a directory, then just create the directory
             if isdir:
-                os.makedirs(os.path.join(unpackdir, unpackname), exist_ok=True)
-                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                outfile_rel = os.path.join(unpackdir, unpackname) 
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full, exist_ok=True)
+                unpackedfilesandlabels.append((outfile_rel, []))
                 continue
             # first symbolic links
             if islink:
@@ -5564,7 +5577,9 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                     break
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
-                    os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
+                    outdir_full = scanenvironment.unpack_path(
+                            os.path.join(unpackdir, unpackdirname))
+                    os.makedirs(outdir_full, exist_ok=True)
                 checkbytes = checkfile.read(cpiodatasize)
 
                 # first a hack for embedded 0x00 in data
@@ -5574,8 +5589,10 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 except UnicodeDecodeError:
                     break
 
-                os.symlink(targetname, os.path.join(unpackdir, unpackname))
-                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), ['symbolic link']))
+                outfile_rel = os.path.join(unpackdir, unpackname)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.symlink(targetname, outfile_full)
+                unpackedfilesandlabels.append((outfile_full, ['symbolic link']))
             # then regular files
             elif isfile:
                 if offset + unpackedsize + cpiodatasize > filesize:
@@ -5583,14 +5600,18 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 # first create the directory structure if necessary
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
-                    os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
-                outfile = open(os.path.join(unpackdir, unpackname), 'wb')
+                    outdir_full = scanenvironment.unpack_path(
+                            os.path.join(unpackdir, unpackdirname))
+                    os.makedirs(outdir_full, exist_ok=True)
+                outfile_rel = os.path.join(unpackdir, unpackname)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                outfile = open(outfile_full, 'wb')
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset+unpackedsize, cpiodatasize)
                 outfile.close()
                 if (inode, dev) not in devinodes:
                     devinodes[(inode, dev)] = []
                 devinodes[(inode, dev)].append(unpackname)
-                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                unpackedfilesandlabels.append((outfile_rel, []))
             unpackedsize += cpiodatasize
             checkfile.seek(offset+unpackedsize)
 
@@ -5871,8 +5892,10 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
             # if it is a directory, then just create the directory
             if isdir:
                 dataunpacked = True
-                os.makedirs(os.path.join(unpackdir, unpackname), exist_ok=True)
-                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                outfile_rel = os.path.join(unpackdir, unpackname) 
+                outfile_abs = scanenvironment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full, exist_ok=True)
+                unpackedfilesandlabels.append((outfile_rel, []))
                 continue
 
             # first symbolic links
@@ -5881,7 +5904,9 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                     break
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
-                    os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
+                    outdir_full = scanenvironment.unpack_path(
+                            os.path.join(unpackdir, unpackdirname))
+                    os.makedirs(outdir_full, exist_ok=True)
                 checkbytes = checkfile.read(cpiodatasize)
 
                 # first a hack for embedded 0x00 in data
@@ -5893,8 +5918,10 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
 
                 dataunpacked = True
 
-                os.symlink(targetname, os.path.join(unpackdir, unpackname))
-                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), ['symbolic link']))
+                outfile_rel = os.path.join(unpackdir, unpackname)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.symlink(targetname, outfile_full)
+                unpackedfilesandlabels.append((outfile_rel, ['symbolic link']))
             # then regular files
             elif isfile:
                 if offset + unpackedsize + cpiodatasize > filesize:
@@ -5902,18 +5929,24 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 # first create the directory structure if necessary
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
-                    os.makedirs(os.path.join(unpackdir, unpackdirname), exist_ok=True)
-                outfile = open(os.path.join(unpackdir, unpackname), 'wb')
+                    outdir_full = scanenvironment.unpack_path(
+                            os.path.join(unpackdir, unpackdirname))
+                    os.makedirs(outdir_full, exist_ok=True)
+                outfile_rel = os.path.join(unpackdir, unpackname) 
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                outfile = open(outfile_full, 'wb')
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset+unpackedsize, cpiodatasize)
                 outfile.close()
                 if (inode, devmajor, devminor) not in devinodes:
                     devinodes[(inode, devmajor, devminor)] = []
                 devinodes[(inode, devmajor, devminor)].append(unpackname)
-                unpackedfilesandlabels.append((os.path.join(unpackdir, unpackname), []))
+                unpackedfilesandlabels.append((outfile_rel, []))
                 # verify checksum
                 if cpiotype == b'070702':
                     tmpchecksum = 0
-                    outfile = open(os.path.join(unpackdir, unpackname), 'rb')
+                    outfile_rel = os.path.join(unpackdir, unpackname)
+                    outfile_full = scanenvironment.unpack_path(outfile_rel)
+                    outfile = open(outfile_full, 'rb')
                     checkbytes = outfile.read(chunksize)
                     while checkbytes != b'':
                         for i in checkbytes:
@@ -5948,18 +5981,23 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
             continue
         target = None
         for i in range(len(devinodes[n]), 0, -1):
-            if os.stat(os.path.join(unpackdir, devinodes[n][i-1])).st_size != 0:
+            targetfile_full = scanenvironment.unpack_path(
+                    os.path.join(unpackdir, devinodes[n][i-1]))
+            if os.stat(targetfile_full).st_size != 0:
                 target = devinodes[n][i-1]
         if target is None:
             continue
         for i in range(len(devinodes[n]), 0, -1):
             if devinodes[n][i-1] == target:
                 continue
-            linkname = os.path.join(unpackdir, devinodes[n][i-1])
+            linkname = scanenvironment.unpack_path(
+                    os.path.join(unpackdir, devinodes[n][i-1]))
             # remove the empty file...
             os.unlink(linkname)
             # ...and create hard link
-            os.link(os.path.join(unpackdir, target), linkname)
+            outfile_full = scanenvironment.unpack_path(
+                    os.path.join(unpackdir, target))
+            os.link(outfile_full, linkname)
 
     # no trailer was found
     if not trailerfound:
