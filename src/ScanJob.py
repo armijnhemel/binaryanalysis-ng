@@ -34,6 +34,7 @@ import json
 import bangsignatures
 from bangfilescans import bangfilefunctions, bangwholecontextfunctions
 from banglogging import log
+import banglogging
 from FileResult import FileResult
 from FileContentsComputer import *
 from Unpacker import *
