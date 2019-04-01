@@ -4831,7 +4831,7 @@ def unpackTerminfo(fileresult, scanenvironment, offset, unpackdir):
 def unpackRzip(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack rzip compressed data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4848,7 +4848,7 @@ def unpackRzip(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = 0
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # skip over the header
     checkfile.seek(offset+4)
@@ -4919,25 +4919,26 @@ def unpackRzip(fileresult, scanenvironment, offset, unpackdir):
 
         checkfile.seek(-3, os.SEEK_CUR)
 
-    if not filename.suffix.lower() == '.rz':
-        outfilename = os.path.join(unpackdir, "unpacked-from-rzip")
+    if not filename_full.suffix.lower() == '.rz':
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-rzip")
     else:
-        outfilename = os.path.join(unpackdir, filename.stem)
+        outfile_rel = os.path.join(unpackdir, filename_full.stem)
+    outfile_full = scanenvironment.unpack_dir(outfile_rel)
 
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
-        p = subprocess.Popen(['rzip', '-k', '-d', filename, '-o', outfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+        p = subprocess.Popen(['rzip', '-k', '-d', filename_full, '-o', outfile_full], stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
         (outputmsg, errormsg) = p.communicate()
         if p.returncode != 0:
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid RZIP file'}
             return {'status': False, 'error': unpackingerror}
-        if os.stat(outfilename).st_size != uncompressedsize:
-            os.unlink(outfilename)
+        if os.stat(outfile_full).st_size != uncompressedsize:
+            os.unlink(outfile_full)
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'unpacked RZIP data does not match declared uncompressed size'}
             return {'status': False, 'error': unpackingerror}
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
         labels.append('compressed')
         labels.append('rzip')
 
@@ -4948,19 +4949,19 @@ def unpackRzip(fileresult, scanenvironment, offset, unpackdir):
     os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
     os.fdopen(temporaryfile[0]).close()
     checkfile.close()
-    p = subprocess.Popen(['rzip', '-d', temporaryfile[1], '-o', outfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+    p = subprocess.Popen(['rzip', '-d', temporaryfile[1], '-o', outfile_full], stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
         os.unlink(temporaryfile[1])
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid RZIP file'}
         return {'status': False, 'error': unpackingerror}
-    if os.stat(outfilename).st_size != uncompressedsize:
-        os.unlink(outfilename)
+    if os.stat(outfile_full).st_size != uncompressedsize:
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'unpacked RZIP data does not match declared uncompressed size'}
         return {'status': False, 'error': unpackingerror}
-    unpackedfilesandlabels.append((outfilename, []))
+    unpackedfilesandlabels.append((outfile_rel, []))
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
