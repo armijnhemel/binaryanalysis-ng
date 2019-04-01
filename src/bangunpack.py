@@ -4293,7 +4293,7 @@ def unpackVimSwapfile(fileresult, scanenvironment, offset, unpackdir):
 def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a GNU message catalog file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4307,7 +4307,7 @@ def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
 
     bigendian = False
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
     # first check the header to see if the file is big endian
     # or little endian.
@@ -4440,11 +4440,12 @@ def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file
-    outfilename = os.path.join(unpackdir, "unpacked-from-message-catalog")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked-from-message-catalog")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
-    unpackedfilesandlabels.append((outfilename, ['resource', 'GNU message catalog', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['resource', 'GNU message catalog', 'unpacked']))
     checkfile.close()
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
