@@ -56,7 +56,7 @@ file:
     %s
 labels:
     %s
-""" % (str(self.scanjob.filename), ",".join(self.scanjob.labels)) + "".join(exc)
+""" % (str(self.scanjob.fileresult.filename), ",".join(self.scanjob.labels)) + "".join(exc)
         else:
             return "Exception (no scanjob):\n\n" + "".join(exc)
 
