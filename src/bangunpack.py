@@ -4461,7 +4461,7 @@ def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
 def unpackCab(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a Microsoft Cabinet file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4474,7 +4474,7 @@ def unpackCab(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the magic and reserved field
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+8)
     unpackedsize += 8
 
@@ -4501,10 +4501,11 @@ def unpackCab(fileresult, scanenvironment, offset, unpackdir):
         havetmpfile = True
 
     checkfile.close()
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     if havetmpfile:
-        p = subprocess.Popen(['cabextract', '-d', unpackdir, temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['cabextract', '-d', unpackdir_full, temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
-        p = subprocess.Popen(['cabextract', '-d', unpackdir, filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['cabextract', '-d', unpackdir_full, filename_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
@@ -4517,7 +4518,7 @@ def unpackCab(fileresult, scanenvironment, offset, unpackdir):
 
     unpackedsize = cabinetsize
 
-    dirwalk = os.walk(unpackdir)
+    dirwalk = os.walk(unpackdir_full)
     for direntries in dirwalk:
         # make sure all subdirectories and files can be accessed
         for subdir in direntries[1]:
@@ -4526,7 +4527,9 @@ def unpackCab(fileresult, scanenvironment, offset, unpackdir):
                 os.chmod(subdirname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         for fn in direntries[2]:
             fullfilename = os.path.join(direntries[0], fn)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            # TODO make relative
+            unpackedfilesandlabels.append((relfilename, []))
 
     # whole file is cabinet
     if not havetmpfile:

@@ -58,6 +58,10 @@ class ScanEnvironment:
     def unpack_path(self,fn):
         return os.path.join(self.unpackdirectory,fn)
 
+    def rel_unpack_path(self,fn)
+        # TODO: check if fn starts with unpackdirectory to catch path traversal
+        return os.path.relpath(fn,self.unpackdirectory)
+
     def tmp_path(self,fn):
         return os.path.join(self.temporarydirectory,fn)
 
