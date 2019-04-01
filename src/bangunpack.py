@@ -4550,7 +4550,7 @@ def unpackCab(fileresult, scanenvironment, offset, unpackdir):
 def unpackTerminfo(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a terminfo file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4562,7 +4562,7 @@ def unpackTerminfo(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'not enough data for header'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     # first skip over the magic
     checkfile.seek(offset+2)
     unpackedsize += 2
@@ -4815,12 +4815,13 @@ def unpackTerminfo(fileresult, scanenvironment, offset, unpackdir):
 
     # else carve.
     checkfile.seek(offset)
-    outfilename = os.path.join(unpackdir, "unpacked-from-term")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked-from-term")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['terminfo', 'resource', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['terminfo', 'resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
