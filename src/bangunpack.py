@@ -3201,7 +3201,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
 def unpackLzip(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack lzip compressed data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3213,7 +3213,7 @@ def unpackLzip(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
 
@@ -3244,11 +3244,12 @@ def unpackLzip(fileresult, scanenvironment, offset, unpackdir):
                      'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb}]
 
     decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=lzip_filters)
-    if not filename.suffix.lower() == '.lz':
-        outfilename = os.path.join(unpackdir, "unpacked-from-lzip")
+    if not filename_full.suffix.lower() == '.lz':
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-lzip")
     else:
-        outfilename = os.path.join(unpackdir, filename.stem)
-    outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, filename_full.stem)
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
 
     # while decompressing also compute the CRC of the uncompressed
     # data, as it is stored after the compressed LZMA data in the file
@@ -3267,7 +3268,7 @@ def unpackLzip(fileresult, scanenvironment, offset, unpackdir):
         except Exception as e:
             # clean up
             outfile.close()
-            os.unlink(outfilename)
+            os.unlink(outfile_full)
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'not valid LZMA data'}
@@ -3311,7 +3312,7 @@ def unpackLzip(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'not enough data for original data size'}
         return {'status': False, 'error': unpackingerror}
     originalsize = int.from_bytes(checkbytes, byteorder='little')
-    if originalsize != os.stat(outfilename).st_size:
+    if originalsize != os.stat(outfile_full).st_size:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong original data size'}
@@ -3336,7 +3337,7 @@ def unpackLzip(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, []))
+    unpackedfilesandlabels.append((outfile_rel, []))
     if offset == 0 and unpackedsize == filesize:
         labels.append('compressed')
         labels.append('lzip')
