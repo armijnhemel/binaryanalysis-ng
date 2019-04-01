@@ -4380,7 +4380,11 @@ def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
         os.unlink(temporaryfile[1])
 
     if p.returncode != 0:
-        shutil.rmtree(cramfsunpackdirectory)
+        # clean up the temporary directory. It could be that
+        # fsck.cramfs actually didn't create the directory due to
+        # other errors, such as a CRC error.
+        if os.path.exists(cramfsunpackdirectory):
+            shutil.rmtree(cramfsunpackdirectory)
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'cannot unpack cramfs'}
         return {'status': False, 'error': unpackingerror}
