@@ -3677,13 +3677,13 @@ def unpackFont(fileresult, scanenvironment, offset, unpackdir,
                fontextension, collectionoffset=None):
     '''Helper method to unpack various fonts'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # skip the magic
     checkfile.seek(offset+4)
@@ -4014,16 +4014,17 @@ def unpackFont(fileresult, scanenvironment, offset, unpackdir,
     if fontname != '':
         try:
             fontname = fontname.decode()
-            outfilename = os.path.join(unpackdir, fontname + "." + fontextension)
+            outfile_rel = os.path.join(unpackdir, fontname + "." + fontextension)
         except UnicodeDecodeError:
-            outfilename = os.path.join(unpackdir, "unpacked." + fontextension)
+            outfile_rel = os.path.join(unpackdir, "unpacked." + fontextension)
     else:
-        outfilename = os.path.join(unpackdir, "unpacked." + fontextension)
+        outfile_rel = os.path.join(unpackdir, "unpacked." + fontextension)
 
-    outfile = open(outfilename, 'wb')
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
-    unpackedfilesandlabels.append((outfilename, ['font', 'resource', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['font', 'resource', 'unpacked']))
     checkfile.close()
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels, 'tablesseen': tablesseen}
@@ -4033,7 +4034,6 @@ def unpackFont(fileresult, scanenvironment, offset, unpackdir,
 def unpackTrueTypeFont(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a TrueType font file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4081,7 +4081,6 @@ def unpackTrueTypeFont(fileresult, scanenvironment, offset, unpackdir):
 def unpackOpenTypeFont(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an OpenType font file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4131,7 +4130,7 @@ def unpackOpenTypeFontCollection(
         unpackdir):
     '''Verify an OpenType font collection file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4149,7 +4148,7 @@ def unpackOpenTypeFontCollection(
                           'reason': 'not a valid font file'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize = 4
 
