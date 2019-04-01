@@ -4229,13 +4229,13 @@ def unpackOpenTypeFontCollection(
 def unpackVimSwapfile(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Vim swap file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
     checkbytes = checkfile.read(6)
     if len(checkbytes) != 6:
