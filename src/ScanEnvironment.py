@@ -60,6 +60,10 @@ class ScanEnvironment:
 
     def rel_unpack_path(self,fn)
         # TODO: check if fn starts with unpackdirectory to catch path traversal
+        # in that case, return absolute path? but what about:
+        # >>> os.path.relpath('xa/b/c/d/e',root)
+        # '../../../home/tim/binaryanalysis-ng/src/xa/b/c/d/e'
+        
         return os.path.relpath(fn,self.unpackdirectory)
 
     def tmp_path(self,fn):

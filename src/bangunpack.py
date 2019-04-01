@@ -2784,6 +2784,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if filesize - offset < 28:
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -3007,7 +3008,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
             nodename = nodename[1:]
 
         if nodetype == 'directory':
-            os.makedirs(os.path.join(unpackdir, nodecwd, nodename))
+            os.makedirs(os.path.join(unpackdir_full, nodecwd, nodename))
         elif nodetype == 'file':
             # first create the file
             targetfile_rel = os.path.join(unpackdir, nodecwd, nodename)
