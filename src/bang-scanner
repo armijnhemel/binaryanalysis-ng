@@ -65,7 +65,8 @@ import bangmedia
 import bangfilescans
 import bangsignatures
 from bangscanneroptions import BangScannerOptions
-from banglogging import log, uselogging
+from banglogging import log 
+import banglogging
 
 
 from reporter.picklereport import *
@@ -92,7 +93,6 @@ def connect_to_bang_database(options):
 
 
 def main(argv):
-    # global uselogging
     options = BangScannerOptions().get()
 
     # test the database. If the connection fails it depends on whether
@@ -152,7 +152,7 @@ def main(argv):
         sys.exit(1)
 
     if options.uselogging:
-        uselogging = True
+        banglogging.uselogging = True
         # set up logging
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
         banglogger = logging.getLogger()
@@ -188,7 +188,7 @@ def main(argv):
         resultsdirectory = scandirectory / "results"
         resultsdirectory.mkdir()
 
-        if uselogging:
+        if banglogging.uselogging:
             logdirectory = scandirectory / "logs"
             logdirectory.mkdir()
 
@@ -263,7 +263,7 @@ def main(argv):
             createbytecounter = options.createbytecounter,
             tlshmaximum = options.tlshmaximum,
             synthesizedminimum = 10,
-            logging = uselogging,
+            logging = banglogging.uselogging,
             paddingname = 'PADDING',
             unpackdirectory = unpackdirectory,
             temporarydirectory = options.temporarydirectory,
