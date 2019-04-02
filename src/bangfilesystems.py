@@ -240,6 +240,7 @@ def unpackSquashfs(fileresult, scanenvironment, offset, unpackdir):
     # move contents of the unpacked file system
     foundfiles = os.listdir(squashfsunpackdirectory)
     if len(foundfiles) == 1:
+        old_dir = os.getcwd()
         if foundfiles[0] == 'squashfs-root':
             os.chdir(os.path.join(squashfsunpackdirectory, 'squashfs-root'))
         else:
@@ -247,12 +248,14 @@ def unpackSquashfs(fileresult, scanenvironment, offset, unpackdir):
         listoffiles = os.listdir()
         for l in listoffiles:
             try:
-                shutil.move(l, unpackdir, copy_function=local_copy2)
+                shutil.move(l, unpackdir_full, copy_function=local_copy2)
             except:
+                # TODO: make exception more specific
                 # TODO: report
                 # not all files can be copied.
                 # example: named pipe /dev/initctl in FW_WL_600g_1036A.zip
                 pass
+        os.chdir(old_dir)
 
     # clean up the temporary directory
     shutil.rmtree(squashfsunpackdirectory)
