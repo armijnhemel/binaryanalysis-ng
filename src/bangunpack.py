@@ -12424,7 +12424,7 @@ def unpackJavaKeyStore(fileresult, scanenvironment, offset, unpackdir):
 def unpackACDB(fileresult, scanenvironment, offset, unpackdir):
     '''Verify Qualcomm's ACDB files'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -12445,7 +12445,7 @@ def unpackACDB(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the offset.
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+8)
     unpackedsize += 8
 
