@@ -3311,14 +3311,14 @@ def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
 def unpackCBFS(fileresult, scanenvironment, offset, unpackdir):
     '''Verify/label coreboot file system images'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file, skip the component magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # what follows is a list of components
@@ -3489,13 +3489,14 @@ def unpackCBFS(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels, 'offset': cbfsstart}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.coreboot")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.coreboot")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), cbfsstart, romsize)
     outfile.close()
     checkfile.close()
 
-    unpackedfilesandlabels.append((outfilename, ['coreboot', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['coreboot', 'unpacked']))
     return {'status': True, 'length': romsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels, 'offset': cbfsstart}
 
