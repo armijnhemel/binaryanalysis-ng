@@ -12805,7 +12805,7 @@ def unpackSQLite(fileresult, scanenvironment, offset, unpackdir):
 def unpackFstab(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Linux fstab file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -12818,7 +12818,7 @@ def unpackFstab(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file in text mode
     try:
-        checkfile = open(filename, 'r')
+        checkfile = open(filename_full, 'r')
         isopened = True
         for l in checkfile:
             # skip blank lines
