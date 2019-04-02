@@ -12265,14 +12265,14 @@ def unpackZim(fileresult, scanenvironment, offset, unpackdir):
 def unpackJavaKeyStore(fileresult, scanenvironment, offset, unpackdir):
     '''Verify Java KeyStore files (Sun/Oracle format)'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file and skip the offset
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
 
@@ -12406,13 +12406,14 @@ def unpackJavaKeyStore(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.jks")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.jks")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
 
-    unpackedfilesandlabels.append((outfilename, ['resource', 'java key store', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['resource', 'java key store', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
