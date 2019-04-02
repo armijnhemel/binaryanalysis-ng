@@ -2561,14 +2561,14 @@ def unpackVDI(fileresult, scanenvironment, offset, unpackdir):
 def unpackDlinkRomfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a D-Link ROMFS'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # check the endianness, don't support anything but little endian
@@ -2681,9 +2681,10 @@ def unpackDlinkRomfs(fileresult, scanenvironment, offset, unpackdir):
         # read directory entries
         if isdir:
             if entryuid in entryuidtopath:
-                outfilename = os.path.join(unpackdir, entryuidtopath[entryuid])
-                os.mkdir(outfilename)
-                unpackedfilesandlabels.append((outfilename, []))
+                outfile_rel = os.path.join(unpackdir, entryuidtopath[entryuid])
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.mkdir(outfile_full)
+                unpackedfilesandlabels.append((outfile_rel, []))
             entrybytesread = 0
             while entrybytesread < entrysize:
                 # directory uid
@@ -2729,8 +2730,9 @@ def unpackDlinkRomfs(fileresult, scanenvironment, offset, unpackdir):
             maxunpacked = max(maxunpacked, offset + entryoffset + entrysize)
         elif isdata:
             if entryuid in entryuidtopath:
-                outfilename = os.path.join(unpackdir, entryuidtopath[entryuid])
-                outfile = open(outfilename, 'wb')
+                outfile_rel = os.path.join(unpackdir, entryuidtopath[entryuid])
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                outfile = open(outfile_full, 'wb')
                 if iscompressed:
                     # try to decompress using LZMA. If this is not successful
                     # simply copy the data. It happens that some data has the
@@ -2743,7 +2745,7 @@ def unpackDlinkRomfs(fileresult, scanenvironment, offset, unpackdir):
                 else:
                     os.sendfile(outfile.fileno(), checkfile.fileno(), offset + entryoffset, entrysize)
                 outfile.close()
-                unpackedfilesandlabels.append((outfilename, []))
+                unpackedfilesandlabels.append((outfile_rel, []))
                 maxunpacked = max(maxunpacked, offset + entryoffset + entrysize)
 
         # return to the old offset
