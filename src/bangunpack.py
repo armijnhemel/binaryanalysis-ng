@@ -9955,7 +9955,7 @@ def unpackDockerfile(fileresult, scanenvironment, offset, unpackdir):
 def unpackUBootLegacy(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a U-Boot file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10004,7 +10004,7 @@ def unpackUBootLegacy(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and jump to the right offset
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset + 4)
     unpackedsize += 4
 
@@ -10145,17 +10145,18 @@ def unpackUBootLegacy(fileresult, scanenvironment, offset, unpackdir):
     # carve the image, without the U-Boot header
     if 'name' in ubootdata and ubootdata['name'] != '':
         if os.path.isabs(imagename):
-            outfilename = os.path.join(unpackdir, os.path.relpath(imagename, '/'))
+            outfile_rel = os.path.join(unpackdir, os.path.relpath(imagename, '/'))
         else:
-            outfilename = os.path.join(unpackdir, imagename)
+            outfile_rel = os.path.join(unpackdir, imagename)
     else:
-        outfilename = os.path.join(unpackdir, "unpacked.uboot")
-    outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, "unpacked.uboot")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset+64, unpackedsize)
     outfile.close()
     checkfile.close()
 
-    unpackedfilesandlabels.append((outfilename, []))
+    unpackedfilesandlabels.append((outfile_rel, []))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
