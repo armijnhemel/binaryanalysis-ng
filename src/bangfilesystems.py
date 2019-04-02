@@ -2206,7 +2206,7 @@ def unpackExt2(fileresult, scanenvironment, offset, unpackdir):
 def unpackVMDK(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a VMware VMDK file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -2223,7 +2223,7 @@ def unpackVMDK(fileresult, scanenvironment, offset, unpackdir):
 
     # first run qemu-img in case the whole file is the VMDK file
     if offset == 0:
-        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename],
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename_full],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         (standardout, standarderror) = p.communicate()
@@ -2235,20 +2235,21 @@ def unpackVMDK(fileresult, scanenvironment, offset, unpackdir):
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.suffix.lower() == '.vmdk':
-                outputfilename = os.path.join(unpackdir, filename.stem)
+            if filename_full.suffix.lower() == '.vmdk':
+                outputfile_rel = os.path.join(unpackdir, filename_full.stem)
             else:
-                outputfilename = os.path.join(unpackdir, 'unpacked-from-vmdk')
+                outputfile_rel = os.path.join(unpackdir, 'unpacked-from-vmdk')
 
+            outputfile_full = scanenvironment.unpack_path(outputfile_rel)
             # now convert it to a raw file
-            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename],
+            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename_full, outputfile_full],
                                  stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             (standardout, standarderror) = p.communicate()
             if p.returncode != 0:
-                if os.path.exists(outputfilename):
-                    os.unlink(outputfilename)
+                if os.path.exists(outputfile_full):
+                    os.unlink(outputfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert file'}
@@ -2256,7 +2257,7 @@ def unpackVMDK(fileresult, scanenvironment, offset, unpackdir):
 
             labels.append('vmdk')
             labels.append('filesystem')
-            unpackedfilesandlabels.append((outputfilename, []))
+            unpackedfilesandlabels.append((outputfile_rel, []))
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
