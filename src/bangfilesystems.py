@@ -1787,7 +1787,8 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
 def unpackExt2(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack an ext2/ext3/ext4 file system.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1810,7 +1811,7 @@ def unpackExt2(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip directly to the superblock
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+1024)
     unpackedsize += 1024
 
@@ -2068,7 +2069,7 @@ def unpackExt2(fileresult, scanenvironment, offset, unpackdir):
         if havetmpfile:
             p = subprocess.Popen(['e2ls', '-lai', temporaryfile[1] + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            p = subprocess.Popen(['e2ls', '-lai', str(filename) + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['e2ls', '-lai', str(filename_full) + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate()
         if p.returncode != 0:
             if havetmpfile:
@@ -2116,8 +2117,10 @@ def unpackExt2(fileresult, scanenvironment, offset, unpackdir):
                     continue
                 newext2dir = os.path.join(ext2dir, ext2name)
                 ext2dirstoscan.append(newext2dir)
-                os.mkdir(os.path.join(unpackdir, newext2dir))
-                unpackedfilesandlabels.append((os.path.join(unpackdir, newext2dir), []))
+                ext2dir_rel = os.path.join(unpackdir, newext2dir)
+                ext2dir_full = scanenvironment.unpack_path(ext2dir_rel)
+                os.mkdir(ext2dir_full)
+                unpackedfilesandlabels.append((ext2dir_rel, []))
             elif stat.S_ISBLK(filemode):
                 # ignore block devices
                 continue
@@ -2143,10 +2146,12 @@ def unpackExt2(fileresult, scanenvironment, offset, unpackdir):
                 if inode not in inodetofile:
                     inodetofile[inode] = fullext2name
                     # use e2cp to copy the file
+                    ext2dir_rel = os.path.join(unpackdir, ext2dir)
+                    ext2dir_full = scanenvironment.unpack_path(ext2dir_rel)
                     if havetmpfile:
-                        p = subprocess.Popen(['e2cp', temporaryfile[1] + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        p = subprocess.Popen(['e2cp', temporaryfile[1] + ":" + fullext2name, "-d", ext2dir_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     else:
-                        p = subprocess.Popen(['e2cp', str(filename) + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        p = subprocess.Popen(['e2cp', str(filename_full) + ":" + fullext2name, "-d", ext2dir_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     (outputmsg, errormsg) = p.communicate()
                     if p.returncode != 0:
                         if havetmpfile:
@@ -2159,7 +2164,7 @@ def unpackExt2(fileresult, scanenvironment, offset, unpackdir):
                     # hardlink the file to an existing
                     # file and record it as such.
                     if inodetofile[inode] != fullext2name:
-                        os.link(os.path.join(unpackdir, inodetofile[inode]), os.path.join(unpackdir, fullext2name))
+                        os.link(os.path.join(unpackdir_full, inodetofile[inode]), os.path.join(unpackdir_full, fullext2name))
                         fileunpacked = True
                 if fileunpacked:
                     unpackedfilesandlabels.append((os.path.join(unpackdir, fullext2name), []))
