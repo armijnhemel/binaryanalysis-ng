@@ -105,10 +105,10 @@ class BangShell(cmd.Cmd):
 
         for i in self.bangresults['scantree']:
             self.labels += self.bangresults['scantree'][i]['labels']
-            for l in self.bangresults['scantree'][i]['labels']:
-                if l not in self.labelstofile:
-                    self.labelstofile[l] = []
-                self.labelstofile[l].append(self.bangresults['scantree'][i]['filename'])
+            for label in self.bangresults['scantree'][i]['labels']:
+                if label not in self.labelstofile:
+                    self.labelstofile[label] = []
+                self.labelstofile[label].append(self.bangresults['scantree'][i]['filename'])
             self.statscounter.update(self.bangresults['scantree'][i]['labels'])
             self.filenames.append(i)
 
@@ -144,7 +144,7 @@ class BangShell(cmd.Cmd):
             print("** invalid number of arguments: no label given\n")
             return
         if args[0] in self.excludelabels:
-                self.excludelabels.remove(args[0])
+            self.excludelabels.remove(args[0])
 
     def do_labels(self, arg):
         'Show labels'
