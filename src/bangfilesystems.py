@@ -2767,14 +2767,14 @@ def unpackDlinkRomfs(fileresult, scanenvironment, offset, unpackdir):
 def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack FAT file systems'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # jump instruction
@@ -2806,6 +2806,7 @@ def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid bytes per sector'}
         return {'status': False, 'error': unpackingerror}
+    # TODO: use << and >> for this
     if pow(2, int(math.log(bytespersector, 2))) != bytespersector:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -3174,8 +3175,9 @@ def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
 
             if chaintype == 'file':
                 # open the file for writing
-                outfilename = os.path.join(unpackdir, chaindir, chainname)
-                outfile = open(outfilename, 'wb')
+                outfile_rel = os.path.join(unpackdir, chaindir, chainname)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                outfile = open(outfile_full, 'wb')
 
                 # now walk the chain and write the contents of each cluster
                 byteswritten = 0
@@ -3206,7 +3208,7 @@ def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
                     outfile.seek(chainsize)
                     outfile.truncate()
                 outfile.close()
-                unpackedfilesandlabels.append((outfilename, []))
+                unpackedfilesandlabels.append((outfile_rel, []))
 
             elif chaintype == 'directory':
                 direntries = []
@@ -3282,9 +3284,10 @@ def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
                             # directory
                             if entryname != '..' and entryname != '.':
                                 chainstoprocess.append((cluster, 'directory', os.path.join(chaindir, fullname), 0, fullname))
-                            outfilename = os.path.join(unpackdir, chaindir, fullname)
-                            os.makedirs(os.path.dirname(outfilename), exist_ok=True)
-                            unpackedfilesandlabels.append((outfilename, ['directory']))
+                            outfile_rel = os.path.join(unpackdir, chaindir, fullname)
+                            outfile_full = scanenvironment.unpack_path(outfile_rel)
+                            os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
+                            unpackedfilesandlabels.append((outfile_rel, ['directory']))
                         elif fileattributes & 0x20 == 0x20:
                             chainstoprocess.append((cluster, 'file', chaindir, entrysize, fullname))
                         else:
