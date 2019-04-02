@@ -10369,7 +10369,7 @@ def unpackPythonPkgInfo(fileresult, scanenvironment, offset, unpackdir):
 def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a base64/base32/base16 file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10388,7 +10388,7 @@ def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file in text mode
-    checkfile = open(filename, 'r')
+    checkfile = open(filename_full, 'r')
     linelengths = set()
     linectr = 0
     prevlinelength = sys.maxsize
@@ -10415,7 +10415,7 @@ def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
     checkfile.close()
 
     # now read the whole file and run it through various decoders
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     base64contents = bytearray(filesize)
     checkfile.readinto(base64contents)
     checkfile.close()
@@ -10487,10 +10487,13 @@ def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
                 # sanity check: in an ideal situation the base64 data is
                 # 1/3 larger than the decoded data.
                 # Anything 1.5 times larger (or more) is bogus.
+                # TODO: is this necessary? the decoder will not result in
+                # output larger than possible
                 if len(base64contents)/len(decodedcontents) < 1.5:
                     decoded = True
                     encoding = 'base64'
             except:
+                # TODO: more specific exception
                 pass
 
     # URL safe base64 (RFC 4648, section 5)
@@ -10508,11 +10511,14 @@ def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
                 # sanity check: in an ideal situation the base64 data is
                 # 1/3 larger than the decoded data.
                 # Anything 1.5 times larger (or more) is bogus.
+                # TODO: is this necessary? the decoder will not result in
+                # output larger than possible
                 if len(base64contents)/len(decodedcontents) < 1.5:
                     decoded = True
                     encoding = 'base64'
                     labels.append('urlsafe')
             except:
+                # TODO: more specific exception
                 pass
 
     if not decoded:
@@ -10523,12 +10529,13 @@ def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
     labels.append(encoding)
 
     # write the output to a file
-    outfilename = os.path.join(unpackdir, "unpacked.%s" % encoding)
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.%s" % encoding)
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     outfile.write(decodedcontents)
     outfile.close()
 
-    unpackedfilesandlabels.append((outfilename, []))
+    unpackedfilesandlabels.append((outfile_rel, []))
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
