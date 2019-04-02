@@ -133,7 +133,7 @@ class TestPNG(unittest.TestCase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single animated PNG
-    def test_fullfile_APNG(self):
+    def test_fullfile_apng(self):
         '''Test a single animated PNG'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball.png'
         filesize = filename.stat().st_size
@@ -153,7 +153,7 @@ class TestPNG(unittest.TestCase):
         self.assertEqual(testres['length'], 6001452)
 
     # a test for the file being a single animated PNG with data appended to it
-    def test_appended_APNG(self):
+    def test_appended_apng(self):
         '''Test a single animated PNG with data appended'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-add-random-data.png'
         offset = 0
@@ -172,7 +172,7 @@ class TestPNG(unittest.TestCase):
         self.assertEqual(testres['length'], 6001452)
 
     # a test for the file being a single animated PNG with data in front
-    def test_prepended_APNG(self):
+    def test_prepended_apng(self):
         '''Test a single PNG with data appended'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-prepend-random-data.png'
         offset = 128
@@ -190,7 +190,7 @@ class TestPNG(unittest.TestCase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data cut from the end
-    def test_cut_from_end_APNG(self):
+    def test_cut_from_end_apng(self):
         '''Test a single animated PNG with data cut from the end'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-cut-data-from-end.png'
         offset = 0
@@ -207,7 +207,7 @@ class TestPNG(unittest.TestCase):
 
     # a test for the file being a single animated PNG
     # with data cut from the middle
-    def test_cut_from_middle_APNG(self):
+    def test_cut_from_middle_apng(self):
         '''Test a single animated PNG with data cut from the middle'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-cut-data-from-middle.png'
         offset = 0
@@ -224,7 +224,7 @@ class TestPNG(unittest.TestCase):
 
     # a test for the file being a single animated PNG
     # with data added in the middle
-    def test_added_in_middle_APNG(self):
+    def test_added_in_middle_apng(self):
         '''Test a single animated PNG with data added in the middle'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-data-added-to-middle.png'
         offset = 0
@@ -241,7 +241,7 @@ class TestPNG(unittest.TestCase):
 
     # a test for the file being a single animated PNG
     # with data replaced in the middle
-    def test_replaced_in_middle_APNG(self):
+    def test_replaced_in_middle_apng(self):
         '''Test a single animated PNG with data replaced in the middle'''
         filename = basetestdir / 'png' / 'Animated_PNG_example_bouncing_beach_ball-data-replaced-in-middle.png'
         offset = 0
@@ -361,7 +361,7 @@ class TestBMP(unittest.TestCase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single BMP with data cut from the middle
-    def test_Cut_from_middle(self):
+    def test_cut_from_middle(self):
         filename = basetestdir / 'bmp' / 'test-cut-data-from-middle.bmp'
         offset = 0
         testres = bangmedia.unpackBMP(filename, offset, self.tempdir, None)
