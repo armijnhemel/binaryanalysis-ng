@@ -11349,7 +11349,7 @@ def unpackJSON(fileresult, scanenvironment, offset, unpackdir):
 def unpackPasswd(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Unix password file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11362,7 +11362,7 @@ def unpackPasswd(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file
     try:
-        checkfile = open(filename, 'r')
+        checkfile = open(filename_full, 'r')
         for l in checkfile:
             linesplits = l.strip().split(':')
             if foundlen == 0:
@@ -11429,7 +11429,7 @@ def unpackPasswd(fileresult, scanenvironment, offset, unpackdir):
 def unpackGroup(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Unix group file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11439,7 +11439,7 @@ def unpackGroup(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file
     try:
-        checkfile = open(filename, 'r')
+        checkfile = open(filename_full, 'r')
         for l in checkfile:
             linesplits = l.strip().split(':')
             if len(linesplits) != 4:
@@ -11490,7 +11490,7 @@ def unpackGroup(fileresult, scanenvironment, offset, unpackdir):
 def unpackShadow(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Unix shadow file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11500,7 +11500,7 @@ def unpackShadow(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file
     try:
-        checkfile = open(filename, 'r')
+        checkfile = open(filename_full, 'r')
         for l in checkfile:
             linesplits = l.strip().split(':')
             if len(linesplits) != 9:
