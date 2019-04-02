@@ -5060,10 +5060,7 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(2)
             if len(checkbytes) != 2:
                 break
-            try:
-                nr_of_links = int.from_bytes(checkbytes, byteorder='little')
-            except:
-                break
+            nr_of_links = int.from_bytes(checkbytes, byteorder='little')
             unpackedsize += 2
 
             # there should always be at least 1 link
@@ -5074,10 +5071,8 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(2)
             if len(checkbytes) != 2:
                 break
-            try:
-                rdev = int.from_bytes(checkbytes, byteorder='little')
-            except:
-                break
+            rdev = int.from_bytes(checkbytes, byteorder='little')
+
             # "For all other entry types, it should be set to zero by
             # writers and ignored by readers."
             #if rdev != 0:
@@ -5094,10 +5089,8 @@ def unpackCpio(filename, offset, unpackdir, temporarydirectory):
             checkbytes = checkfile.read(2)
             if len(checkbytes) != 2:
                 break
-            try:
-                namesize = int.from_bytes(checkbytes, byteorder='little')
-            except:
-                break
+            namesize = int.from_bytes(checkbytes, byteorder='little')
+
             # not possible to have an empty name
             if namesize == 0:
                 break
