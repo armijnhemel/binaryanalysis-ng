@@ -10809,7 +10809,7 @@ def extractCertificate(filename, offset):
 def unpackGitIndex(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a Git index file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10822,7 +10822,7 @@ def unpackGitIndex(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip over the header
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
 
@@ -10968,12 +10968,13 @@ def unpackGitIndex(fileresult, scanenvironment, offset, unpackdir):
     # Carve the image.
     # first reset the file pointer
     checkfile.seek(offset)
-    outfilename = os.path.join(unpackdir, "index")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "index")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['git index', 'resource', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['git index', 'resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
