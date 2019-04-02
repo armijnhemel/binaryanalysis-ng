@@ -13216,7 +13216,7 @@ def unpackTRX(fileresult, scanenvironment, offset, unpackdir):
 def unpackPkgConfig(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a pkg-config file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13238,7 +13238,7 @@ def unpackPkgConfig(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file in text mode
     try:
-        checkfile = open(filename, 'r')
+        checkfile = open(filename_full, 'r')
         isopened = True
         validpc = True
         continued = False
