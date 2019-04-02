@@ -156,6 +156,7 @@ larger file, unless stated otherwise.
 111. cramfs (version 2 only)
 112. nb0 Android updates
 113. Quake PAK files
+114. Doom WAD files (IWAD only)
 
 
 ## Invocation

@@ -13622,3 +13622,96 @@ def unpack_pak(filename, offset, unpackdir, temporarydirectory):
 
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# Doom WAD files
+#
+# http://web.archive.org/web/20090530112359/http://www.gamers.org/dhs/helpdocs/dmsp1666.html
+# Chapter 2
+def unpack_wad(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a Doom WAD file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if offset + 12 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # number of lumps in the file
+    checkbytes = checkfile.read(4)
+    nr_lumps = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    if nr_lumps == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no lumps defined'}
+        return {'status': False, 'error': unpackingerror}
+
+    # offset to beginning of the lumps directory
+    checkbytes = checkfile.read(4)
+    lumps_dir_offset = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    if offset + lumps_dir_offset + nr_lumps * 16 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for lumps directory'}
+        return {'status': False, 'error': unpackingerror}
+
+    maxoffset = lumps_dir_offset + nr_lumps * 16
+
+    # now check the lumps directory
+    checkfile.seek(offset + lumps_dir_offset)
+    for lump in range(0, nr_lumps):
+        # lump offset
+        checkbytes = checkfile.read(4)
+        lump_offset = int.from_bytes(checkbytes, byteorder='little')
+
+        # lump size
+        checkbytes = checkfile.read(4)
+        lump_size = int.from_bytes(checkbytes, byteorder='little')
+
+        # sanity check
+        if offset + lump_offset + lump_size > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'data cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+
+        maxoffset = max(maxoffset, lump_offset + lump_size)
+
+        # lump name
+        checkbytes = checkfile.read(8)
+        try:
+            lump_name = checkbytes.split(b'\x00', 1)[0].decode()
+        except UnicodeDecodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid lump name'}
+            return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('doom')
+        labels.append('wad')
+        labels.append('resource')
+    else:
+        # else carve the file
+        outfilename = os.path.join(unpackdir, "unpacked.wad")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, ['doom', 'wad', 'resource', 'unpacked']))
+
+    checkfile.close()
+    return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
