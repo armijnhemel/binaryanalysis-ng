@@ -7760,14 +7760,14 @@ def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
 def unpackXML(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a XML file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # first check if it is and Android XML
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkbytes = checkfile.read(4)
     if len(checkbytes) != 4:
         checkfile.close()
@@ -7834,7 +7834,7 @@ def unpackXML(fileresult, scanenvironment, offset, unpackdir):
     # now run xmllint as a sanity check. By default xmllint tries to
     # resolve external entities, so this should be prevented by
     # supplying "--nonet"
-    p = subprocess.Popen(['xmllint', '--noout', "--nonet", filename],
+    p = subprocess.Popen(['xmllint', '--noout', "--nonet", filename_full],
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
