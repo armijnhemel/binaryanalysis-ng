@@ -4925,7 +4925,7 @@ def unpackRzip(fileresult, scanenvironment, offset, unpackdir):
         outfile_rel = os.path.join(unpackdir, "unpacked-from-rzip")
     else:
         outfile_rel = os.path.join(unpackdir, filename_full.stem)
-    outfile_full = scanenvironment.unpack_dir(outfile_rel)
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
 
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
@@ -4986,7 +4986,7 @@ def unpackRzip(fileresult, scanenvironment, offset, unpackdir):
 def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a CPIO archive.'''
     filesize = fileresult.filesize
-    filename = scanenvironment.unpack_dir(fileresult.filename)
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
