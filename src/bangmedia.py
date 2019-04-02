@@ -2646,7 +2646,7 @@ def unpackSGI(fileresult, scanenvironment, offset, unpackdir):
 def unpackAIFF(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an AIFF file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2657,7 +2657,7 @@ def unpackAIFF(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = 0
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     # skip over the header
     checkfile.seek(offset+4)
     checkbytes = checkfile.read(4)
@@ -2741,12 +2741,13 @@ def unpackAIFF(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked-aiff")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked-aiff")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['audio', 'aiff', 'unpacked', aifftype]))
+    unpackedfilesandlabels.append((outfile_rel, ['audio', 'aiff', 'unpacked', aifftype]))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -2758,7 +2759,7 @@ def unpackAIFF(fileresult, scanenvironment, offset, unpackdir):
 def unpackAU(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an AU file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2769,7 +2770,7 @@ def unpackAU(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = 0
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # skip over the header
     checkfile.seek(offset+4)
@@ -2842,12 +2843,13 @@ def unpackAU(fileresult, scanenvironment, offset, unpackdir):
                     'filesandlabels': unpackedfilesandlabels}
 
         # else carve the file. It is anonymous, so give it a name
-        outfilename = os.path.join(unpackdir, "unpacked-au")
-        outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, "unpacked-au")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
         checkfile.close()
-        unpackedfilesandlabels.append((outfilename, ['audio', 'au', 'unpacked']))
+        unpackedfilesandlabels.append((outfile_rel, ['audio', 'au', 'unpacked']))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
@@ -2864,7 +2866,7 @@ def unpackAU(fileresult, scanenvironment, offset, unpackdir):
 def unpackSunRaster(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a Sun raster image file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -2877,7 +2879,7 @@ def unpackSunRaster(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip over the header
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
 
@@ -2955,12 +2957,13 @@ def unpackSunRaster(fileresult, scanenvironment, offset, unpackdir):
     # Carve the image.
     # first reset the file pointer
     checkfile.seek(offset)
-    outfilename = os.path.join(unpackdir, "unpacked.rast")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.rast")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['sun raster', 'raster', 'graphics', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['sun raster', 'raster', 'graphics', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -2969,13 +2972,13 @@ def unpackSunRaster(fileresult, scanenvironment, offset, unpackdir):
 def unpackAppleIcon(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an Apple icon image file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     # skip over the magic
     checkfile.seek(offset+4)
     unpackedsize += 4
@@ -3052,14 +3055,15 @@ def unpackAppleIcon(fileresult, scanenvironment, offset, unpackdir):
     # Carve the image.
     # first reset the file pointer
     checkfile.seek(offset)
-    outfilename = os.path.join(unpackdir, "unpacked.icns")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.icns")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
 
     # reopen as read only
-    outfile = open(outfilename, 'rb')
+    outfile = open(outfile_full, 'rb')
 
     # now load the file into PIL as an extra sanity check
     try:
@@ -3069,12 +3073,12 @@ def unpackAppleIcon(fileresult, scanenvironment, offset, unpackdir):
         outfile.close()
     except:
         outfile.close()
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid Apple icon according to PIL'}
         return {'status': False, 'error': unpackingerror}
 
-    unpackedfilesandlabels.append((outfilename, ['apple icon', 'graphics', 'resource', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['apple icon', 'graphics', 'resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -3089,7 +3093,7 @@ def unpackAppleIcon(fileresult, scanenvironment, offset, unpackdir):
 def unpackMNG(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a MNG file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -3100,7 +3104,7 @@ def unpackMNG(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file skip over the magic header bytes
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+8)
     unpackedsize = 8
 
@@ -3192,13 +3196,14 @@ def unpackMNG(fileresult, scanenvironment, offset, unpackdir):
                     'filesandlabels': unpackedfilesandlabels}
 
         # else carve the file. It is anonymous, so just give it a name
-        outfilename = os.path.join(unpackdir, "unpacked.mng")
-        outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, "unpacked.mng")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
         checkfile.close()
 
-        unpackedfilesandlabels.append((outfilename, ['mng', 'graphics', 'unpacked']))
+        unpackedfilesandlabels.append((outfile_rel, ['mng', 'graphics', 'unpacked']))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
@@ -3219,7 +3224,7 @@ def unpackMNG(fileresult, scanenvironment, offset, unpackdir):
 def unpackSWF(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a SWF file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     labels = []
     unpackedfilesandlabels = []
     unpackingerror = {}
@@ -3239,7 +3244,7 @@ def unpackSWF(fileresult, scanenvironment, offset, unpackdir):
     # * uncompressed
     # * compressed with zlib
     # * compressed with LZMA
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
     checkbytes = checkfile.read(3)
     if checkbytes == b'FWS':
@@ -3393,13 +3398,14 @@ def unpackSWF(fileresult, scanenvironment, offset, unpackdir):
                     'filesandlabels': unpackedfilesandlabels}
 
         # Carve the file. It is anonymous, so just give it a name
-        outfilename = os.path.join(unpackdir, "unpacked.swf")
-        outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, "unpacked.swf")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
         checkfile.close()
         outlabels = ['swf', 'video', 'unpacked']
-        unpackedfilesandlabels.append((outfilename, outlabels))
+        unpackedfilesandlabels.append((outfile_rel, outlabels))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
@@ -3449,13 +3455,14 @@ def unpackSWF(fileresult, scanenvironment, offset, unpackdir):
                     'filesandlabels': unpackedfilesandlabels}
 
         # Carve the file. It is anonymous, so just give it a name
-        outfilename = os.path.join(unpackdir, "unpacked.swf")
-        outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, "unpacked.swf")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
         checkfile.close()
         outlabels = ['swf', 'zlib compressed swf', 'video', 'unpacked']
-        unpackedfilesandlabels.append((outfilename, outlabels))
+        unpackedfilesandlabels.append((outfile_rel, outlabels))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
@@ -3529,6 +3536,7 @@ def unpackSWF(fileresult, scanenvironment, offset, unpackdir):
             if len(decompressor.unused_data) != 0:
                 break
         except Exception as e:
+            # TODO: more specific exceptions
             checkfile.close()
             unpackingerror = {'offset': offset,
                               'reason': 'LZMA decompression failure',
@@ -3549,13 +3557,14 @@ def unpackSWF(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # Carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.swf")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.swf")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
     outlabels = ['swf', 'lzma compressed swf', 'video', 'unpacked']
-    unpackedfilesandlabels.append((outfilename, outlabels))
+    unpackedfilesandlabels.append((outfile_rel, outlabels))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -3566,7 +3575,7 @@ def unpackSWF(fileresult, scanenvironment, offset, unpackdir):
 def unpackFLV(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a FLV file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     labels = []
     unpackingerror = {}
     unpackedfilesandlabels = []
@@ -3582,7 +3591,7 @@ def unpackFLV(fileresult, scanenvironment, offset, unpackdir):
                           'fatal': False}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     # skip over the magic
     checkfile.seek(offset+3)
     unpackedsize += 3
@@ -3775,13 +3784,14 @@ def unpackFLV(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # Carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.flv")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.flv")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
     outlabels = ['flv', 'video', 'unpacked']
-    unpackedfilesandlabels.append((outfilename, outlabels))
+    unpackedfilesandlabels.append((outfile_rel, outlabels))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -3803,7 +3813,7 @@ def unpackFLV(fileresult, scanenvironment, offset, unpackdir):
 def unpackPDF(fileresult, scanenvironment, offset, unpackdir):
     '''Verify/carve a PDF file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3812,7 +3822,7 @@ def unpackPDF(fileresult, scanenvironment, offset, unpackdir):
     pdfinfo = {}
 
     # open the file and skip the offset
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+5)
     unpackedsize += 5
 
@@ -4294,13 +4304,14 @@ def unpackPDF(fileresult, scanenvironment, offset, unpackdir):
                     'filesandlabels': unpackedfilesandlabels}
 
         # else carve the file
-        outfilename = os.path.join(unpackdir, "unpacked.pdf")
-        outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, "unpacked.pdf")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, validpdfsize)
         outfile.close()
         checkfile.close()
 
-        unpackedfilesandlabels.append((outfilename, ['pdf', 'unpacked']))
+        unpackedfilesandlabels.append((outfile_rel, ['pdf', 'unpacked']))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
@@ -4314,14 +4325,14 @@ def unpackPDF(fileresult, scanenvironment, offset, unpackdir):
 def unpackGimpBrush(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack/verify a GIMP brush file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # first the header size
@@ -4421,14 +4432,15 @@ def unpackGimpBrush(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, but the brush name can be used
-    outfilename = os.path.join(unpackdir, "%s.gbr" % brushname)
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "%s.gbr" % brushname)
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
 
     # reopen as read only
-    outfile = open(outfilename, 'rb')
+    outfile = open(outfile_full, 'rb')
 
     # now load the file into PIL as an extra sanity check
     try:
@@ -4438,12 +4450,12 @@ def unpackGimpBrush(fileresult, scanenvironment, offset, unpackdir):
         outfile.close()
     except:
         outfile.close()
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid GIMP brush according to PIL'}
         return {'status': False, 'error': unpackingerror}
 
-    unpackedfilesandlabels.append((outfilename, ['gimp brush', 'graphics', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['gimp brush', 'graphics', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -4452,14 +4464,14 @@ def unpackGimpBrush(fileresult, scanenvironment, offset, unpackdir):
 def unpackMidi(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack/verify a MIDI file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file and skip the offset
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
 
@@ -4534,13 +4546,14 @@ def unpackMidi(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.midi")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.midi")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
 
-    unpackedfilesandlabels.append((outfilename, ['midi', 'audio', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['midi', 'audio', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -4552,7 +4565,7 @@ def unpackMidi(fileresult, scanenvironment, offset, unpackdir):
 def unpackXG3D(fileresult, scanenvironment, offset, unpackdir):
     '''Verify XG files (3D Studio Max format)'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4574,7 +4587,7 @@ def unpackXG3D(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file and skip to offset 29, as that
     # is where the file size can be found.
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+29)
     unpackedsize += 29
 
@@ -4627,7 +4640,7 @@ def unpackXG3D(fileresult, scanenvironment, offset, unpackdir):
 def unpackDDS(fileresult, scanenvironment, offset, unpackdir):
     '''Verify/carve Microsoft DirectDraw Surface files'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4640,7 +4653,7 @@ def unpackDDS(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the offset
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
 
@@ -4819,13 +4832,14 @@ def unpackDDS(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.dds")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.dds")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
 
-    unpackedfilesandlabels.append((outfilename, ['graphics', 'dds', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['graphics', 'dds', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -4834,7 +4848,7 @@ def unpackDDS(fileresult, scanenvironment, offset, unpackdir):
 def unpackKTX11(fileresult, scanenvironment, offset, unpackdir):
     '''Verify/carve Khronos KTX texture files'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4847,7 +4861,7 @@ def unpackKTX11(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the offset
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+12)
     unpackedsize += 12
 
@@ -5049,13 +5063,14 @@ def unpackKTX11(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.ktx")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.ktx")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
 
-    unpackedfilesandlabels.append((outfilename, ['graphics', 'ktx', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['graphics', 'ktx', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -5067,7 +5082,7 @@ def unpackKTX11(fileresult, scanenvironment, offset, unpackdir):
 def unpackPSD(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Photoshop PSD file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -5080,7 +5095,7 @@ def unpackPSD(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset + 4)
     unpackedsize += 4
 
@@ -5271,13 +5286,14 @@ def unpackPSD(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.psd")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.psd")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
 
     # reopen as read only
-    outfile = open(outfilename, 'rb')
+    outfile = open(outfile_full, 'rb')
 
     # now load the file into PIL as an extra sanity check
     try:
@@ -5287,13 +5303,13 @@ def unpackPSD(fileresult, scanenvironment, offset, unpackdir):
         outfile.close()
     except Exception as e:
         outfile.close()
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid PSD data according to PIL'}
         return {'status': False, 'error': unpackingerror}
 
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['graphics', 'psd', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['graphics', 'psd', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
@@ -5304,14 +5320,14 @@ def unpackPSD(fileresult, scanenvironment, offset, unpackdir):
 def unpackPNM(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a 'raw' PNM file (PPM, PGM, PBM)'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file and read the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
     checkbytes = checkfile.read(2)
     if checkbytes == b'P6':
@@ -5531,13 +5547,14 @@ def unpackPNM(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked." + pnmtype)
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked." + pnmtype)
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
 
     # reopen as read only
-    outfile = open(outfilename, 'rb')
+    outfile = open(outfile_full, 'rb')
 
     # now load the file into PIL as an extra sanity check
     try:
@@ -5547,7 +5564,7 @@ def unpackPNM(fileresult, scanenvironment, offset, unpackdir):
         outfile.close()
     except Exception as e:
         outfile.close()
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         if pnmtype == 'pgm':
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid PGM data according to PIL'}
@@ -5560,6 +5577,6 @@ def unpackPNM(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['graphics', pnmtype, 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['graphics', pnmtype, 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
