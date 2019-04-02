@@ -6351,7 +6351,8 @@ def unpackCHM(fileresult, scanenvironment, offset, unpackdir):
 def unpackWIM(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a Windows Imaging Format file file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -6364,7 +6365,7 @@ def unpackWIM(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset + 8)
     unpackedsize += 8
 
@@ -6572,11 +6573,11 @@ def unpackWIM(fileresult, scanenvironment, offset, unpackdir):
         os.fdopen(temporaryfile[0]).close()
         havetmpfile = True
         checkfile.close()
-        p = subprocess.Popen(['7z', '-o%s' % unpackdir, '-y', 'x', temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     if offset == 0 and filesize == unpackedsize:
         checkfile.close()
-        p = subprocess.Popen(['7z', '-o%s' % unpackdir, '-y', 'x', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', filename_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
@@ -6584,7 +6585,7 @@ def unpackWIM(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'invalid WIM file'}
         return {'status': False, 'error': unpackingerror}
 
-    dirwalk = os.walk(unpackdir)
+    dirwalk = os.walk(unpackdir_full)
     for direntries in dirwalk:
         # make sure all subdirectories and files can be accessed
         for subdir in direntries[1]:
@@ -6593,7 +6594,8 @@ def unpackWIM(fileresult, scanenvironment, offset, unpackdir):
                 os.chmod(subdirname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         for fn in direntries[2]:
             fullfilename = os.path.join(direntries[0], fn)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            unpackedfilesandlabels.append((relfilename, []))
 
     if not havetmpfile:
         labels.append('mswim')
