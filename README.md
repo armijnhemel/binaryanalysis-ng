@@ -155,6 +155,7 @@ larger file, unless stated otherwise.
 110. romfs
 111. cramfs (version 2 only)
 112. nb0 Android updates
+113. Quake PAK files
 
 
 ## Invocation

@@ -136,6 +136,7 @@ signatures = {
     'romfs': b'-rom1fs-',
     'cramfs_le': b'\x45\x3d\xcd\x28',
     'cramfs_be': b'\x28\xcd\x3d\x45',
+    'quakepak': b'PACK',
 }
 
 # some signatures do not start at the beginning of the file
@@ -287,6 +288,7 @@ signaturetofunction = {
     'romfs': bangfilesystems.unpackRomfs,
     'cramfs_le': bangfilesystems.unpack_cramfs,
     'cramfs_be': bangfilesystems.unpack_cramfs,
+    'quakepak': bangunpack.unpack_pak,
 }
 
 # a lookup table to map signatures to a name for

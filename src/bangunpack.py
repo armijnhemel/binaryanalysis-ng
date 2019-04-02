@@ -13520,3 +13520,105 @@ def unpackTransTbl(filename, offset, unpackdir, temporarydirectory):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# unpack Quake PAK files
+# https://quakewiki.org/wiki/.pak
+def unpack_pak(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack a Quake PAK file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if offset + 12 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # offset to beginning of the file table
+    checkbytes = checkfile.read(4)
+    file_table_offset = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # size of the file table
+    checkbytes = checkfile.read(4)
+    file_table_size = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # file_table_size has to be a multiple of 64
+    if file_table_size % 64 != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong value for file table size'}
+        return {'status': False, 'error': unpackingerror}
+
+    # file table cannot be outside of file
+    if offset + file_table_offset + file_table_size > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for file table'}
+        return {'status': False, 'error': unpackingerror}
+
+    # each file table entry is 64 bytes
+    number_of_files = file_table_size//64
+
+    maxoffset = file_table_offset + file_table_size
+
+    # seek to the file table offset
+    checkfile.seek(offset + file_table_offset)
+    for fn in range(0, number_of_files):
+        # read the name
+        checkbytes = checkfile.read(56)
+        try:
+            fn_name = checkbytes.split(b'\x00', 1)[0].decode()
+            # force a relative path
+            fn_name = os.path.relpath(fn_name, '/')
+        except UnicodeDecodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid file name'}
+            return {'status': False, 'error': unpackingerror}
+
+        # read the offset
+        checkbytes = checkfile.read(4)
+        fn_offset = int.from_bytes(checkbytes, byteorder='little')
+
+        # read the size
+        checkbytes = checkfile.read(4)
+        fn_size = int.from_bytes(checkbytes, byteorder='little')
+
+        # sanity check
+        if offset + fn_offset + fn_size > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'data cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+
+        maxoffset = max(maxoffset, fn_offset + fn_size)
+
+        outfilename = os.path.join(unpackdir, fn_name)
+
+        # create subdirectories, if any are defined in the file name
+        if '/' in fn_name:
+            os.makedirs(os.path.dirname(outfilename), exist_ok=True)
+
+        # write the file
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset + fn_offset, fn_size)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, []))
+
+    checkfile.close()
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('quake')
+
+    return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
