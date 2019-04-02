@@ -8645,7 +8645,7 @@ def unpackSnappy(fileresult, scanenvironment, offset, unpackdir):
 def unpackELF(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an ELF file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     elflabels = []
@@ -8659,7 +8659,7 @@ def unpackELF(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'not enough data'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
     is64bit = False
@@ -9551,7 +9551,7 @@ def unpackELF(fileresult, scanenvironment, offset, unpackdir):
         # any real world use for a Linux kernel module signature.
         checkbytes = checkfile.read(2048)
         sigpos = checkbytes.find(b'~Module signature appended~\n')
-        outfilename = os.path.join(unpackdir, "unpacked-from-elf")
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-elf")
         if sigpos != -1:
             # the four bytes before the signature are the signature
             # size. This does not include the last 40 bytes. Magic is
@@ -9572,24 +9572,26 @@ def unpackELF(fileresult, scanenvironment, offset, unpackdir):
                             modulename = m.decode().split('name=', 1)[1] + '.ko'
                             break
                     if modulename != '':
-                        outfilename = os.path.join(unpackdir, modulename)
-        outfile = open(outfilename, 'wb')
+                        outfile_rel = os.path.join(unpackdir, modulename)
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
         outfile.close()
         checkfile.close()
         outlabels = elflabels
         outlabels += ['elf', 'unpacked', 'linuxkernelmodule']
-        unpackedfilesandlabels.append((outfilename, outlabels))
+        unpackedfilesandlabels.append((outfile_rel, outlabels))
 
         return {'status': True, 'length': maxoffset, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # Carve the file. It is anonymous, so just give it a name
     if soname is not None:
-        outfilename = os.path.join(unpackdir, soname)
+        outfile_rel = os.path.join(unpackdir, soname)
     else:
-        outfilename = os.path.join(unpackdir, "unpacked-from-elf")
-    outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-elf")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
     outfile.close()
     checkfile.close()
@@ -9597,7 +9599,7 @@ def unpackELF(fileresult, scanenvironment, offset, unpackdir):
     outlabels.append('elf')
     outlabels.append('unpacked')
 
-    unpackedfilesandlabels.append((outfilename, outlabels))
+    unpackedfilesandlabels.append((outfile_rel, outlabels))
 
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
