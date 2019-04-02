@@ -328,7 +328,8 @@ def local_copy2(src, dest):
 def unpackISO9660(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack an ISO9660 file system.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -342,7 +343,7 @@ def unpackISO9660(fileresult, scanenvironment, offset, unpackdir):
     # each sector is 2048 bytes long (ECMA 119, 6.1.2). The first 16
     # sectors are reserved for the "system area" (in total 32768 bytes:
     # ECMA 119, 6.2.1)
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+32768)
     unpackedsize += 32768
 
@@ -539,7 +540,7 @@ def unpackISO9660(fileresult, scanenvironment, offset, unpackdir):
             # In the extent pointed to by a directory entry all the
             # entries are concatenated (ECMA 119, 6.8.1).
             while len(extents) != 0:
-                (this_extent_location, this_extent_length, this_extent_unpackdir, this_extent_name) = extents.popleft()
+                (this_extent_location, this_extent_length, this_extent_unpackdir_rel, this_extent_name) = extents.popleft()
 
                 # first seek to the right location in the file
                 checkfile.seek(offset + this_extent_location * logical_size)
@@ -978,30 +979,33 @@ def unpackISO9660(fileresult, scanenvironment, offset, unpackdir):
                             # for extra sanity checks
                             extenttoparent[extent_location] = this_extent_location
 
-                            extent_unpackdir = os.path.join(this_extent_unpackdir, extent_filename)
+                            extent_unpackdir_rel = os.path.join(this_extent_unpackdir_rel, extent_filename)
                             if haverockridge:
                                 if not renamecurrentdirectory or renameoarentdirectory:
                                     if alternatename != b'':
                                         try:
                                             alternatename = alternatename.decode()
-                                            extent_unpackdir = os.path.join(this_extent_unpackdir, alternatename)
+                                            extent_unpackdir_rel = os.path.join(this_extent_unpackdir_rel, alternatename)
                                         except UnicodeDecodeError:
                                             pass
-                            extenttoname[extent_location] = extent_unpackdir
-                            os.mkdir(extent_unpackdir)
-                            extents.append((extent_location, directory_extent_length, extent_unpackdir, ''))
+                            extenttoname[extent_location] = extent_unpackdir_rel
+                            extent_unpackdir_full = scanenvironment.unpack_path(extent_unpackdir_rel)
+                            os.mkdir(extent_unpackdir_rel)
+                            extents.append((extent_location, directory_extent_length, extent_unpackdir_rel, ''))
                     else:
                         # file entry
                         # store the name of the parent,
                         # for extra sanity checks
                         extenttoparent[extent_location] = this_extent_location
-                        outfilename = os.path.join(this_extent_unpackdir, extent_filename.rsplit(';', 1)[0])
+                        outfile_rel = os.path.join(this_extent_unpackdir_rel, extent_filename.rsplit(';', 1)[0])
+                        outfile_full = scanenvironment.unpack_path(outfile_rel)
                         if haverockridge:
                             if alternatename != b'':
                                 if not renamecurrentdirectory or renameoarentdirectory:
                                     try:
                                         alternatename = alternatename.decode()
-                                        outfilename = os.path.join(this_extent_unpackdir, alternatename)
+                                        outfile_rel = os.path.join(this_extent_unpackdir_rel, alternatename)
+                                        outfile_full = scanenvironment.unpack_path(outfile_rel)
                                     except UnicodeDecodeError:
                                         pass
 
@@ -1014,21 +1018,21 @@ def unpackISO9660(fileresult, scanenvironment, offset, unpackdir):
                                 # absolute symlinks can always be created,
                                 # as can links to . and ..
                                 if os.path.isabs(symlinktarget):
-                                    os.symlink(symlinktarget, outfilename)
+                                    os.symlink(symlinktarget, outfile_full)
                                 elif symlinktarget == '.' or symlinktarget == '..':
-                                    os.symlink(symlinktarget, outfilename)
+                                    os.symlink(symlinktarget, outfile_full)
                                 else:
                                     # first chdir to the directory, then
                                     # create the link and go back
                                     olddir = os.getcwd()
-                                    os.chdir(os.path.dirname(outfilename))
-                                    os.symlink(symlinktarget, outfilename)
+                                    os.chdir(os.path.dirname(outfile_full))
+                                    os.symlink(symlinktarget, outfile_full)
                                     os.chdir(olddir)
-                                unpackedfilesandlabels.append((outfilename, ['symbolic link']))
+                                unpackedfilesandlabels.append((outfile_rel, ['symbolic link']))
                                 createfile = False
 
                         if createfile:
-                            outfile = open(outfilename, 'wb')
+                            outfile = open(outfile_full, 'wb')
                             if not havezisofs:
                                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset + extent_location * logical_size, directory_extent_length)
                             else:
@@ -1140,7 +1144,7 @@ def unpackISO9660(fileresult, scanenvironment, offset, unpackdir):
 
                                 checkfile.seek(zisofs_oldoffset)
                             outfile.close()
-                            unpackedfilesandlabels.append((outfilename, []))
+                            unpackedfilesandlabels.append((outfile_rel, []))
 
                     # then skip to the (possible) start of
                     # the next directory entry.
