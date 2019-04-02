@@ -7499,7 +7499,7 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
 def unpackZstd(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack zstd compressed data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -7510,7 +7510,7 @@ def unpackZstd(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'zstd program not found'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     # skip the magic
     checkfile.seek(offset+4)
     unpackedsize += 4
@@ -7635,18 +7635,19 @@ def unpackZstd(fileresult, scanenvironment, offset, unpackdir):
     # compressed, so guess, or just set a name.
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
-        if filename.suffix.lower() == '.zst':
-            outfilename = os.path.join(unpackdir, filename.stem)
+        if filename_full.suffix.lower() == '.zst':
+            outfile_rel = os.path.join(unpackdir, filename_full.stem)
         else:
-            outfilename = os.path.join(unpackdir, "unpacked-by-zstd")
-        p = subprocess.Popen(['zstd', '-d', '-o', outfilename, filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            outfile_rel = os.path.join(unpackdir, "unpacked-by-zstd")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        p = subprocess.Popen(['zstd', '-d', '-o', outfile_full, filename_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate()
         if p.returncode != 0:
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid zstd'}
             return {'status': False, 'error': unpackingerror}
         if fcs_field_size != 0:
-            if uncompressed_size != os.stat(outfilename).st_size:
+            if uncompressed_size != os.stat(outfile_full).st_size:
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid checksum'}
                 return {'status': False, 'error': unpackingerror}
@@ -7654,25 +7655,27 @@ def unpackZstd(fileresult, scanenvironment, offset, unpackdir):
         labels.append('compressed')
     else:
         tmpfilename = os.path.join(unpackdir, "unpacked-by-zstd.zst")
-        tmpfile = open(tmpfilename, 'wb')
+        tmfile_full = scanenvironment.unpack_path(tmpfilename)
+        tmpfile = open(tmpfile_full, 'wb')
         os.sendfile(tmpfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         tmpfile.close()
         checkfile.close()
-        outfilename = tmpfilename[:-4]
-        p = subprocess.Popen(['zstd', '-d', '--rm', '-o', outfilename, tmpfilename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        outfile_rel = tmpfilename[:-4]
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        p = subprocess.Popen(['zstd', '-d', '--rm', '-o', outfile_full, tmpfile_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate()
         if p.returncode != 0:
-            os.unlink(tmpfilename)
+            os.unlink(tmpfile_full)
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid zstd'}
             return {'status': False, 'error': unpackingerror}
         if fcs_field_size != 0:
-            if uncompressed_size != os.stat(outfilename).st_size:
+            if uncompressed_size != os.stat(outfile_full).st_size:
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid checksum'}
                 return {'status': False, 'error': unpackingerror}
 
-    unpackedfilesandlabels.append((outfilename, []))
+    unpackedfilesandlabels.append((outfile_rel, []))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
