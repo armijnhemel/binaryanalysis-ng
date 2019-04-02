@@ -12521,7 +12521,7 @@ def unpackACDB(fileresult, scanenvironment, offset, unpackdir):
 def unpackSQLite(fileresult, scanenvironment, offset, unpackdir):
     '''Label/verify/carve SQLite databases'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -12534,7 +12534,7 @@ def unpackSQLite(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the offset
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+16)
     unpackedsize += 16
 
@@ -12733,7 +12733,7 @@ def unpackSQLite(fileresult, scanenvironment, offset, unpackdir):
         checkfile.close()
         dbopen = False
         try:
-            testconn = sqlite3.connect('file:%s?mode=ro' % filename, uri=True)
+            testconn = sqlite3.connect('file:%s?mode=ro' % filename_full, uri=True)
             testcursor = testconn.cursor()
             dbopen = True
             testcursor.execute('select name, tbl_name, sql from sqlite_master;')
@@ -12761,8 +12761,9 @@ def unpackSQLite(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.sqlite3")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.sqlite3")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
@@ -12771,7 +12772,7 @@ def unpackSQLite(fileresult, scanenvironment, offset, unpackdir):
     # opened with Python's built-in sqlite3 module.
     dbopen = False
     try:
-        testconn = sqlite3.connect('file:%s?mode=ro' % outfilename, uri=True)
+        testconn = sqlite3.connect('file:%s?mode=ro' % outfile_full, uri=True)
         testcursor = testconn.cursor()
         dbopen = True
         testcursor.execute('select name, tbl_name, sql from sqlite_master;')
@@ -12788,13 +12789,13 @@ def unpackSQLite(fileresult, scanenvironment, offset, unpackdir):
         if dbopen:
             testcursor.close()
             testconn.close()
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False,
                           'reason': 'invalid SQLite database'}
         return {'status': False, 'error': unpackingerror}
 
-    unpackedfilesandlabels.append((outfilename, ['database', 'sqlite3', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['database', 'sqlite3', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
