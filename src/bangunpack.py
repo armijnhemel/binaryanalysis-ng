@@ -6772,7 +6772,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
 def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a SREC file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -6781,14 +6781,15 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
     allowbroken = False
 
     # open the file in text mode and process each line
-    checkfile = open(filename, 'r')
+    checkfile = open(filename_full, 'r')
     checkfile.seek(offset)
 
-    outfilename = os.path.join(unpackdir, "unpacked-from-srec")
-    if filename.suffix.lower() == '.srec':
-        outfilename = os.path.join(unpackdir, filename.stem)
+    outfile_rel = os.path.join(unpackdir, "unpacked-from-srec")
+    if filename_full.suffix.lower() == '.srec':
+        outfile_rel = os.path.join(unpackdir, filename_full.stem)
 
-    outfile = open(outfilename, 'wb')
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
 
     # process each line until the end of the SREC data is read
     seenheader = False
@@ -6806,7 +6807,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
                     continue
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'line does not start with S'}
@@ -6820,7 +6821,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
             if len(line.strip()) < 10 or len(line.strip()) % 2 != 0:
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not enough bytes in line'}
@@ -6837,7 +6838,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
             elif line[:2] == 'S4':
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'reserved S-Record value found'}
@@ -6845,7 +6846,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
             else:
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not an S-Record line'}
@@ -6859,7 +6860,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
             except ValueError:
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert to hex'}
@@ -6867,7 +6868,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
             if bytescount < 3:
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'bytecount too small'}
@@ -6875,7 +6876,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
             if 4 + bytescount * 2 != len(line.strip()):
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not enough bytes in line'}
@@ -6898,7 +6899,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
             except ValueError:
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert to hex'}
@@ -6917,7 +6918,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
     except UnicodeDecodeError:
         checkfile.close()
         outfile.close()
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False, 'reason': 'not a text file'}
         return {'status': False, 'error': unpackingerror}
@@ -6927,7 +6928,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
 
     # each valid SREC file has to have a terminator
     if not seenterminator and not allowbroken:
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'no terminator record found'}
         return {'status': False, 'error': unpackingerror}
@@ -6958,7 +6959,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'incompatible terminator records mixed'}
             return {'status': False, 'error': unpackingerror}
 
-    unpackedfilesandlabels.append((outfilename, []))
+    unpackedfilesandlabels.append((outfile_rel, []))
     if offset == 0 and filesize == unpackedsize:
         labels.append('text')
         labels.append('srec')
