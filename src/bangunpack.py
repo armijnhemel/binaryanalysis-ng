@@ -11724,7 +11724,7 @@ def unpackPack200(fileresult, scanenvironment, offset, unpackdir):
 def unpackZim(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack/verify a ZIM file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11737,7 +11737,7 @@ def unpackZim(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the offset
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
 
     unpackedsize += 4
@@ -12188,19 +12188,24 @@ def unpackZim(fileresult, scanenvironment, offset, unpackdir):
                     outfilename = memberurl
 
                 if os.path.isabs(outfilename):
+                    # TODO: this creates the absolute path and may pollute
+                    # the filesystem?
                     os.makedirs(os.path.dirname(outfilename), exist_ok=True)
                     outfilename = os.path.relpath(outfilename.name, '/')
+                    
 
                 blobsize = bloboffsets[blobnumber+1] - bloboffsets[blobnumber]
 
                 checkfile.seek(bloboffsets[blobnumber], os.SEEK_CUR)
 
-                unpackedname = os.path.normpath(os.path.join(unpackdir, outfilename))
-                os.makedirs(os.path.dirname(unpackedname), exist_ok=True)
-                outfile = open(unpackedname, 'wb')
+                unpackedname_rel = os.path.normpath(os.path.join(unpackdir, outfilename))
+                unpackedname_full = scanenvironment.unpack_path(unpackedname_rel)
+                unpackeddir_full = os.path.dirname(unpackedname_full)
+                os.makedirs(unpackeddir_full, exist_ok=True)
+                outfile = open(unpackedname_full, 'wb')
                 os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), blobsize)
                 outfile.close()
-                unpackedfilesandlabels.append((unpackedname, []))
+                unpackedfilesandlabels.append((unpackedname_rel, []))
 
             # and return to the old offset
             checkfile.seek(oldoffset)
