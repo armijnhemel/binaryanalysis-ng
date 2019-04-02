@@ -11310,7 +11310,7 @@ def unpackLZOP(fileresult, scanenvironment, offset, unpackdir):
 def unpackJSON(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a JSON file'''
     filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filepath)
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
