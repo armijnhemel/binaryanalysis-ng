@@ -2342,7 +2342,7 @@ def unpackQcow2(fileresult, scanenvironment, offset, unpackdir):
 def unpackVDI(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a VirtualBox VDI file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -2361,7 +2361,7 @@ def unpackVDI(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file skip over the magic header bytes
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # This assumes the Oracle flavour of VDI. There have been
     # others in the past.
@@ -2502,7 +2502,7 @@ def unpackVDI(fileresult, scanenvironment, offset, unpackdir):
 
     # check to see if the VDI is the entire file. If so unpack it.
     if offset == 0 and (2+blocksallocated) * blocksize == filesize:
-        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename],
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename_full],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
 
@@ -2516,20 +2516,21 @@ def unpackVDI(fileresult, scanenvironment, offset, unpackdir):
                                   'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.suffix.lower() == '.vdi':
-                outputfilename = os.path.join(unpackdir, filename.stem)
+            if filename_full.suffix.lower() == '.vdi':
+                outputfile_rel = os.path.join(unpackdir, filename_full.stem)
             else:
-                outputfilename = os.path.join(unpackdir, 'unpacked-from-vdi')
+                outputfile_rel = os.path.join(unpackdir, 'unpacked-from-vdi')
 
+            outputfile_full = scanenvironment.unpack_path(outputfile_rel)
             # now convert it to a raw file
-            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename],
+            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename_full, outputfile_full],
                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
 
             (standardout, standarderror) = p.communicate()
             if p.returncode != 0:
-                if os.path.exists(outputfilename):
-                    os.unlink(outputfilename)
+                if os.path.exists(outputfile_full):
+                    os.unlink(outputfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert file'}
@@ -2538,7 +2539,7 @@ def unpackVDI(fileresult, scanenvironment, offset, unpackdir):
             labels.append('virtualbox')
             labels.append('vdi')
             labels.append('filesystem')
-            unpackedfilesandlabels.append((outputfilename, []))
+            unpackedfilesandlabels.append((outputfile_rel, []))
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
