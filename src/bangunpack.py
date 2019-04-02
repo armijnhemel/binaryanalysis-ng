@@ -8515,13 +8515,13 @@ def unpackJavaClass(fileresult, scanenvironment, offset, unpackdir):
 def unpackSnappy(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack snappy compressed data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # skip the stream identifier stream (section 4.1)
     checkfile.seek(offset+10)
@@ -8571,8 +8571,9 @@ def unpackSnappy(fileresult, scanenvironment, offset, unpackdir):
         unpackedsize += 3 + chunklength
         checkfile.seek(chunklength, os.SEEK_CUR)
 
-    outfilename = os.path.join(unpackdir, "unpacked-from-snappy")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked-from-snappy")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
 
     # start at the beginning of the frame
     checkfile.seek(offset)
@@ -8583,7 +8584,7 @@ def unpackSnappy(fileresult, scanenvironment, offset, unpackdir):
             snappy.stream_decompress(checkfile, outfile)
         except:
             outfile.close()
-            os.unlink(outfilename)
+            os.unlink(outfile_full)
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid Snappy data'}
@@ -8592,18 +8593,19 @@ def unpackSnappy(fileresult, scanenvironment, offset, unpackdir):
             labels += ['snappy', 'compressed']
         outfile.close()
         checkfile.close()
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
     else:
-        tmpfilename = os.path.join(unpackdir, "unpacked-from-snappy.sn")
-        tmpfile = open(tmpfilename, 'wb')
+        tmpfile_rel = os.path.join(unpackdir, "unpacked-from-snappy.sn")
+        tmpfile_full = scanenvironment.unpack_path(tmpfile_rel)
+        tmpfile = open(tmpfile_full, 'wb')
         os.sendfile(tmpfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         checkfile.close()
         tmpfile.close()
 
         # reopen the temporary file as read only
-        tmpfile = open(tmpfilename, 'rb')
+        tmpfile = open(tmpfile_full, 'rb')
         tmpfile.seek(0)
 
         try:
@@ -8611,22 +8613,22 @@ def unpackSnappy(fileresult, scanenvironment, offset, unpackdir):
         except Exception as e:
             outfile.close()
             tmpfile.close()
-            os.unlink(outfilename)
-            os.unlink(tmpfilename)
+            os.unlink(outfile_full)
+            os.unlink(tmpfile_full)
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid Snappy data'}
             return {'status': False, 'error': unpackingerror}
 
         outfile.close()
         tmpfile.close()
-        os.unlink(tmpfilename)
+        os.unlink(tmpfile_full)
 
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     outfile.close()
-    os.unlink(outfilename)
+    os.unlink(outfile_full)
     checkfile.close()
 
     unpackingerror = {'offset': offset, 'fatal': False,
