@@ -13045,7 +13045,7 @@ def unpackDeviceTree(fileresult, scanenvironment, offset, unpackdir):
 def unpackTRX(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Broadcom TRX file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13057,7 +13057,7 @@ def unpackTRX(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset + 4)
     unpackedsize += 4
 
@@ -13150,11 +13150,12 @@ def unpackTRX(fileresult, scanenvironment, offset, unpackdir):
             else:
                 partitionsize = trxlength - offset1
         if partitionsize > 0:
-            outfilename = os.path.join(unpackdir, "partition1")
-            outfile = open(outfilename, 'wb')
+            outfile_rel = os.path.join(unpackdir, "partition1")
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
+            outfile = open(outfile_full, 'wb')
             os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset1, partitionsize)
             outfile.close()
-            unpackedfilesandlabels.append((outfilename, []))
+            unpackedfilesandlabels.append((outfile_rel, []))
 
     # write partition 2
     if offset2 != 0:
@@ -13166,11 +13167,12 @@ def unpackTRX(fileresult, scanenvironment, offset, unpackdir):
             else:
                 partitionsize = trxlength - offset2
         if partitionsize > 0:
-            outfilename = os.path.join(unpackdir, "partition2")
-            outfile = open(outfilename, 'wb')
+            outfile_rel = os.path.join(unpackdir, "partition2")
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
+            outfile = open(outfile_full, 'wb')
             os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset2, partitionsize)
             outfile.close()
-            unpackedfilesandlabels.append((outfilename, []))
+            unpackedfilesandlabels.append((outfile_rel, []))
 
     # write partition 3
     if offset3 != 0:
@@ -13179,22 +13181,24 @@ def unpackTRX(fileresult, scanenvironment, offset, unpackdir):
         else:
             partitionsize = trxlength - offset3
         if partitionsize > 0:
-            outfilename = os.path.join(unpackdir, "partition3")
-            outfile = open(outfilename, 'wb')
+            outfile_rel = os.path.join(unpackdir, "partition3")
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
+            outfile = open(outfile_full, 'wb')
             os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset3, partitionsize)
             outfile.close()
-            unpackedfilesandlabels.append((outfilename, []))
+            unpackedfilesandlabels.append((outfile_rel, []))
 
     # write partition 4 if needed
     if trxversion == 2:
         if offset4 != 0:
             partitionsize = trxlength - offset4
             if partitionsize > 0:
-                outfilename = os.path.join(unpackdir, "partition4")
-                outfile = open(outfilename, 'wb')
+                outfile_rel = os.path.join(unpackdir, "partition4")
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                outfile = open(outfile_full, 'wb')
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset+offset4, partitionsize)
                 outfile.close()
-                unpackedfilesandlabels.append((outfilename, []))
+                unpackedfilesandlabels.append((outfile_rel, []))
 
     checkfile.close()
     unpackedsize = trxlength
