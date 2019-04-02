@@ -3508,7 +3508,7 @@ def unpackCBFS(fileresult, scanenvironment, offset, unpackdir):
 def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack Minix V1 file systems (extended Linux variant)'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3521,7 +3521,7 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     blocksize = 1024
@@ -3687,9 +3687,10 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'unknown inode'}
             return {'status': False, 'error': unpackingerror}
         if stat.S_ISREG(inodes[i]['mode']):
-            outfilename = os.path.join(unpackdir, inodetoname[i])
+            outfile_rel = os.path.join(unpackdir, inodetoname[i])
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
             # open the file for writing
-            outfile = open(outfilename, 'wb')
+            outfile = open(outfile_full, 'wb')
             seenzones = 1
             zonestowrite = []
             for z in inodes[i]['zones']:
@@ -3726,7 +3727,7 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
                             if inodezone < firstdatazone:
                                 checkfile.close()
                                 outfile.close()
-                                os.unlink(outfilename)
+                                os.unlink(outfile_full)
                                 unpackingerror = {'offset': offset,
                                                   'fatal': False,
                                                   'reason': 'invalid zone number'}
@@ -3736,7 +3737,7 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
                             if offset + inodezone * blocksize + blocksize > filesize:
                                 checkfile.close()
                                 outfile.close()
-                                os.unlink(outfilename)
+                                os.unlink(outfile_full)
                                 unpackingerror = {'offset': offset,
                                                   'fatal': False,
                                                   'reason': 'not enough data for zone'}
@@ -3761,7 +3762,7 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
                             if inodezone < firstdatazone:
                                 checkfile.close()
                                 outfile.close()
-                                os.unlink(outfilename)
+                                os.unlink(outfile_full)
                                 unpackingerror = {'offset': offset,
                                                   'fatal': False,
                                                   'reason': 'invalid zone number'}
@@ -3771,7 +3772,7 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
                             if offset + inodezone * blocksize + blocksize > filesize:
                                 checkfile.close()
                                 outfile.close()
-                                os.unlink(outfilename)
+                                os.unlink(outfile_full)
                                 unpackingerror = {'offset': offset,
                                                   'fatal': False,
                                                   'reason': 'not enough data for zone'}
@@ -3792,7 +3793,7 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
                                 if inodezone < firstdatazone:
                                     checkfile.close()
                                     outfile.close()
-                                    os.unlink(outfilename)
+                                    os.unlink(outfile_full)
                                     unpackingerror = {'offset': offset,
                                                       'fatal': False,
                                                       'reason': 'invalid zone number'}
@@ -3802,7 +3803,7 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
                                 if offset + inodezone * blocksize + blocksize > filesize:
                                     checkfile.close()
                                     outfile.close()
-                                    os.unlink(outfilename)
+                                    os.unlink(outfile_full)
                                     unpackingerror = {'offset': offset,
                                                       'fatal': False,
                                                       'reason': 'not enough data for zone'}
@@ -3820,7 +3821,7 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
                 maxoffset = max(maxoffset, z * blocksize + blocksize)
             outfile.truncate(inodes[i]['size'])
             outfile.close()
-            unpackedfilesandlabels.append((outfilename, ['directory']))
+            unpackedfilesandlabels.append((outfile_rel, ['directory']))
             dataunpacked = True
         elif stat.S_ISCHR(inodes[i]['mode']):
             pass
@@ -3831,7 +3832,8 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
         elif stat.S_ISSOCK(inodes[i]['mode']):
             pass
         elif stat.S_ISLNK(inodes[i]['mode']):
-            outfilename = os.path.join(unpackdir, inodetoname[i])
+            outfile_rel = os.path.join(unpackdir, inodetoname[i])
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
             destinationname = ''
             for z in inodes[i]['zones']:
                 if z == 0:
@@ -3846,15 +3848,16 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
                     break
                 maxoffset = max(maxoffset, z * blocksize + blocksize)
             if destinationname != '':
-                os.symlink(destinationname, outfilename)
-            unpackedfilesandlabels.append((outfilename, ['symbolic link']))
+                os.symlink(destinationname, outfile_full)
+            unpackedfilesandlabels.append((outfile_rel, ['symbolic link']))
             dataunpacked = True
         elif stat.S_ISDIR(inodes[i]['mode']):
             seenzones = 1
             curdirname = inodetoname[i]
             if curdirname != '':
-                outfilename = os.path.join(unpackdir, curdirname)
-                os.makedirs(outfilename)
+                outfile_rel = os.path.join(unpackdir, curdirname)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full)
                 dataunpacked = True
             for z in inodes[i]['zones']:
                 if z == 0:
