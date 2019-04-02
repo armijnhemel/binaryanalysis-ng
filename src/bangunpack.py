@@ -13547,10 +13547,24 @@ def unpack_pak(filename, offset, unpackdir, temporarydirectory):
     file_table_offset = int.from_bytes(checkbytes, byteorder='little')
     unpackedsize += 4
 
+    # file table cannot be in the header
+    if file_table_offset < 12:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong value for file table offset'}
+        return {'status': False, 'error': unpackingerror}
+
     # size of the file table
     checkbytes = checkfile.read(4)
     file_table_size = int.from_bytes(checkbytes, byteorder='little')
     unpackedsize += 4
+
+    # there has to be at least one file
+    if file_table_size == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong value for file table size'}
+        return {'status': False, 'error': unpackingerror}
 
     # file_table_size has to be a multiple of 64
     if file_table_size % 64 != 0:
