@@ -13319,7 +13319,7 @@ def unpackPkgConfig(fileresult, scanenvironment, offset, unpackdir):
 def unpackMinidump(fileresult, scanenvironment, offset, unpackdir):
     ''''''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13332,7 +13332,7 @@ def unpackMinidump(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the signature
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
 
@@ -13452,13 +13452,14 @@ def unpackMinidump(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.dmp")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.dmp")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
 
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['minidump', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['minidump', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
