@@ -328,28 +328,26 @@ def main(argv):
         scanresult = {
             'scantree': scantree,
             # statistics about this particular session
-            'session': {
-                    'start': scandate,
-                    'stop': scandatefinished,
-                    'duration': (scandatefinished - scandate).total_seconds(),
-                    'user': getpass.getuser(),
-                    'checkfile': checkfile,
-            },
-            'platform': {
-                    'machine': platform.machine(),
-                    'architecture': platform.architecture()[0],
-                    'processor': platform.processor(),
-                    'node': platform.node(),
-                    'system': platform.system(),
-                    'release': platform.release(),
-                    'libc': platform.libc_ver()[0],
-                    'libcversion': platform.libc_ver()[1],
-            },
+            'session': {'start': scandate,
+                        'stop': scandatefinished,
+                        'duration': (scandatefinished - scandate).total_seconds(),
+                        'user': getpass.getuser(),
+                        'checkfile': checkfile,
+                       },
+            # information about the platform
+            'platform': {'machine': platform.machine(),
+                         'architecture': platform.architecture()[0],
+                         'processor': platform.processor(),
+                         'node': platform.node(),
+                         'system': platform.system(),
+                         'release': platform.release(),
+                         'libc': platform.libc_ver()[0],
+                         'libcversion': platform.libc_ver()[1],
+                        },
             # some information about the used Python version
-            'python': {
-                    'version': platform.python_version(),
-                    'implementation': platform.python_implementation(),
-            },
+            'python': {'version': platform.python_version(),
+                       'implementation': platform.python_implementation(),
+                      },
         }
 
         # write all results to a Python pickle
