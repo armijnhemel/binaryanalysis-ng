@@ -9908,20 +9908,20 @@ def unpackKernelConfig(fileresult, scanenvironment, offset, unpackdir):
 def unpackDockerfile(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Dockerfile.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     renamed = False
-    if not filename.name.endswith('Dockerfile'):
+    if not filename_full.name.endswith('Dockerfile'):
         dockerdir = pathlib.Path(tempfile.mkdtemp(dir=scanenvironment.temporarydirectory))
-        shutil.copy(filename, dockerdir / 'Dockerfile')
+        shutil.copy(filename_full, dockerdir / 'Dockerfile')
         dockerfileparser = dockerfile_parse.DockerfileParser(str(dockerdir / 'Dockerfile'))
         renamed = True
     else:
-        dockerfileparser = dockerfile_parse.DockerfileParser(str(filename))
+        dockerfileparser = dockerfile_parse.DockerfileParser(str(filename_full))
 
     try:
         dfcontent = dockerfileparser.content
