@@ -58,7 +58,7 @@ class ScanEnvironment:
     def unpack_path(self,fn):
         return os.path.join(self.unpackdirectory,fn)
 
-    def rel_unpack_path(self,fn)
+    def rel_unpack_path(self,fn):
         # TODO: check if fn starts with unpackdirectory to catch path traversal
         # in that case, return absolute path? but what about:
         # >>> os.path.relpath('xa/b/c/d/e',root)
