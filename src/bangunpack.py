@@ -6616,7 +6616,7 @@ def unpackWIM(fileresult, scanenvironment, offset, unpackdir):
 def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
     '''Convert an Intel Hex file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -6625,14 +6625,15 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
     allowbroken = False
 
     # open the file in text mode and process each line
-    checkfile = open(filename, 'r')
+    checkfile = open(filename_full, 'r')
     checkfile.seek(offset)
 
-    outfilename = os.path.join(unpackdir, "unpacked-from-ihex")
-    if filename.suffix.lower() == '.hex' or filename.suffix.lower() == '.ihex':
-        outfilename = os.path.join(unpackdir, filename.stem)
+    outfile_rel = os.path.join(unpackdir, "unpacked-from-ihex")
+    if filename_full.suffix.lower() == '.hex' or filename_full.suffix.lower() == '.ihex':
+        outfile_rel = os.path.join(unpackdir, filename_full.stem)
 
-    outfile = open(outfilename, 'wb')
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     endofihex = False
     seenrecordtypes = set()
 
@@ -6646,7 +6647,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
                     continue
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'line does not start with :'}
@@ -6659,7 +6660,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
             if len(line.strip()) < 11 or len(line.strip()) % 2 != 1:
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not enough bytes in line'}
@@ -6670,7 +6671,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
             except:
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not valid hex data'}
@@ -6679,7 +6680,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
             if 3 + bytescount + 2 > len(line.strip()):
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert to hex'}
@@ -6692,7 +6693,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
             except:
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert to hex'}
@@ -6700,7 +6701,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
             if recordtype > 5:
                 checkfile.close()
                 outfile.close()
-                os.unlink(outfilename)
+                os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'invalid record type'}
@@ -6718,7 +6719,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
                 except ValueError:
                     checkfile.close()
                     outfile.close()
-                    os.unlink(outfilename)
+                    os.unlink(outfile_full)
                     unpackingerror = {'offset': offset+unpackedsize,
                                       'fatal': False,
                                       'reason': 'cannot convert to hex'}
@@ -6733,7 +6734,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
     except UnicodeDecodeError:
         checkfile.close()
         outfile.close()
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False,
                           'reason': 'not a text file'}
@@ -6744,7 +6745,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
 
     if 4 in seenrecordtypes or 5 in seenrecordtypes:
         if 3 in seenrecordtypes:
-            os.unlink(outfilename)
+            os.unlink(outfile_full)
             unpackingerror = {'offset': offset+unpackedsize,
                               'fatal': False,
                               'reason': 'incompatible record types combined'}
@@ -6752,12 +6753,12 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
 
     # each valid IHex file has to have a terminator
     if not endofihex and not allowbroken:
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'no end of data found'}
         return {'status': False, 'error': unpackingerror}
 
-    unpackedfilesandlabels.append((outfilename, []))
+    unpackedfilesandlabels.append((outfile_rel, []))
     if offset == 0 and filesize == unpackedsize:
         labels.append('ihex')
 
