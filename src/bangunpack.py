@@ -6159,7 +6159,7 @@ def unpack7z(fileresult, scanenvironment, offset, unpackdir):
     for direntries in dirwalk:
         # make sure all subdirectories and files can be accessed
         for subdir in direntries[1]:
-            subdirname = os.path.join(unpackdir_full,direntries[0], subdir)
+            subdirname = os.path.join(direntries[0], subdir)
             if not os.path.islink(subdirname):
                 os.chmod(subdirname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         for fn in direntries[2]:
@@ -6185,11 +6185,12 @@ def unpack7z(fileresult, scanenvironment, offset, unpackdir):
 def unpackCHM(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a Windows Compiled HTML file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpack_dir)
 
     # header has at least 56 bytes
     if filesize < 56:
@@ -6198,7 +6199,7 @@ def unpackCHM(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the magic and the version number
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+8)
     unpackedsize += 8
 
@@ -6298,11 +6299,11 @@ def unpackCHM(fileresult, scanenvironment, offset, unpackdir):
         os.fdopen(temporaryfile[0]).close()
         havetmpfile = True
         checkfile.close()
-        p = subprocess.Popen(['7z', '-o%s' % unpackdir, '-y', 'x', temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     if offset == 0 and filesize == unpackedsize:
         checkfile.close()
-        p = subprocess.Popen(['7z', '-o%s' % unpackdir, '-y', 'x', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', filename_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
@@ -6313,7 +6314,7 @@ def unpackCHM(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'invalid CHM file'}
         return {'status': False, 'error': unpackingerror}
 
-    dirwalk = os.walk(unpackdir)
+    dirwalk = os.walk(unpackdir_full)
     for direntries in dirwalk:
         # make sure all subdirectories and files can be accessed
         for subdir in direntries[1]:
@@ -6322,7 +6323,8 @@ def unpackCHM(fileresult, scanenvironment, offset, unpackdir):
                 os.chmod(subdirname, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         for fn in direntries[2]:
             fullfilename = os.path.join(direntries[0], fn)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            unpackedfilesandlabels.append((relfilename, []))
 
     # cleanup
     if havetmpfile:
