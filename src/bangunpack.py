@@ -9610,7 +9610,7 @@ def unpackELF(fileresult, scanenvironment, offset, unpackdir):
 def unpackCSS(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a CSS file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -9620,7 +9620,7 @@ def unpackCSS(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file in text only mode
     try:
-        checkfile = open(filename, 'r')
+        checkfile = open(filename_full, 'r')
         isopened = True
     except:
         unpackingerror = {'offset': offset, 'fatal': False,
