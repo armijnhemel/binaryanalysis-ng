@@ -10167,7 +10167,7 @@ def unpackUBootLegacy(fileresult, scanenvironment, offset, unpackdir):
 def unpackPythonPkgInfo(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Python PKG-INFO file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10262,7 +10262,7 @@ def unpackPythonPkgInfo(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file in text only mode
     try:
-        checkfile = open(filename, 'r')
+        checkfile = open(filename_full, 'r')
     except:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'not a valid Python PKG-INFO'}
