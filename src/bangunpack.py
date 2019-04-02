@@ -7872,7 +7872,7 @@ def unpackJavaClass(fileresult, scanenvironment, offset, unpackdir):
     CONSTANT_InvokeDynamic = 18
 
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -7895,7 +7895,7 @@ def unpackJavaClass(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'not enough bytes'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # skip over the magic header
     checkfile.seek(offset+4)
@@ -8495,12 +8495,13 @@ def unpackJavaClass(fileresult, scanenvironment, offset, unpackdir):
         # It is anonymous, so just give it a name
         classname = "unpacked.class"
 
-    outfilename = os.path.join(unpackdir, classname)
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, classname)
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
     checkfile.close()
-    unpackedfilesandlabels.append((outfilename, ['java class', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['java class', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
