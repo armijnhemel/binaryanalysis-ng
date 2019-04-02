@@ -11078,7 +11078,8 @@ def unpackLSM(fileresult, scanenvironment, offset, unpackdir):
 def unpackLZOP(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a lzop compressed file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11097,7 +11098,7 @@ def unpackLZOP(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file skip over the magic header bytes
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+9)
     unpackedsize = 9
 
@@ -11258,47 +11259,50 @@ def unpackLZOP(fileresult, scanenvironment, offset, unpackdir):
     carved = False
     # carve the file if necessary
     if offset != 0 or filesize != unpackedsize:
-        outfilename = os.path.join(unpackdir, "unpacked.lzo")
-        outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, "unpacked.lzo")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
         carved = True
     else:
-        outfilename = filename
+        outfile_rel = fileresult.filename
+        outfile_full = filename_full
     checkfile.close()
 
-    p = subprocess.Popen(['lzop', '-t', outfilename], stdout=subprocess.PIPE,
+    p = subprocess.Popen(['lzop', '-t', outfile_full], stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
         if carved:
-            os.unlink(outfilename)
+            os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'lzop test failed'}
         return {'status': False, 'error': unpackingerror}
 
-    outlzopname = os.path.join(unpackdir, lzopname)
+    outlzop_rel = os.path.join(unpackdir, lzopname)
+    outlzop_full = scanenvironment.unpack_path(outlzop_rel)
 
-    p = subprocess.Popen(['lzop', '-d', '-o%s' % outlzopname, outfilename], stdout=subprocess.PIPE,
+    p = subprocess.Popen(['lzop', '-d', '-o%s' % outlzop_full, outfile_full], stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode != 0:
         if carved:
-            os.unlink(outfilename)
+            os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'lzop test failed'}
         return {'status': False, 'error': unpackingerror}
 
     if carved:
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
     else:
         labels = ['compressed', 'lzop']
 
-    outfiles = os.listdir(unpackdir)
+    outfiles = os.listdir(unpackdir_full)
     for o in outfiles:
-        outfilename = os.path.join(unpackdir, o)
+        outfile_rel = os.path.join(unpackdir, o)
         outlabels = []
-        unpackedfilesandlabels.append((outfilename, outlabels))
+        unpackedfilesandlabels.append((outfile_rel, outlabels))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
