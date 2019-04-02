@@ -65,6 +65,8 @@ import tinycss2
 import dockerfile_parse
 import icalendar
 
+from FileResult import *
+
 encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                         'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
                         'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
@@ -6980,7 +6982,7 @@ def unpackSREC(fileresult, scanenvironment, offset, unpackdir):
 def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a RPM file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -6994,7 +6996,7 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize = 0
 
     # open the file and skip the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
 
@@ -7440,6 +7442,7 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
 
     payload = None
     payloadfile = rpmunpackfiles[0][0]
+    payloadfile_full = scanenvironment.unpack_path(payloadfile)
 
     # 1124 is the payload. Only 'cpio' can be unpacked at the moment.
     if 1124 in tagstoresults:
@@ -7454,8 +7457,16 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
             # first move the payload file to a different location
             # to avoid any potential name clashes
             payloaddir = pathlib.Path(tempfile.mkdtemp(dir=scanenvironment.temporarydirectory))
-            shutil.move(payloadfile, payloaddir)
-            unpackresult = unpackCpio(payloaddir / os.path.basename(payloadfile), 0, unpackdir)
+            shutil.move(payloadfile_full, payloaddir)
+
+            fr = FileResult(scanenvironment.unpackdir,
+                   payloaddir / os.path.basename(payloadfile),
+                   scanenvironment.rel_unpack_path(
+                       payloaddir / os.path.basename(payloadfile)),
+                   (payloaddir / os.path.basename(payloadfile)).parent,
+                   scanenvironment.rel_unpack_path(
+                       (payloaddir / os.path.basename(payloadfile)).parent),[])
+            unpackresult = unpackCpio(fr, scanenvironment, 0, unpackdir)
             # cleanup
             shutil.rmtree(payloaddir)
             if not unpackresult['status']:
@@ -7464,9 +7475,11 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
                                   'reason': 'could not unpack CPIO payload'}
                 return {'status': False, 'error': unpackingerror}
             for i in unpackresult['filesandlabels']:
+                # TODO: is normpath necessary now that we use relative paths?
                 unpackedfilesandlabels.append((os.path.normpath(i[0]), i[1]))
         elif payload == b'drpm':
-            unpackedfilesandlabels.append((payloadfile, ['delta rpm data']))
+            payloadfile_rel = scanenvironment.rel_unpack_path(payloadfile)
+            unpackedfilesandlabels.append((payloadfile_rel, ['delta rpm data']))
 
     unpackedsize = checkfile.tell() + rpmunpacksize - offset
 
