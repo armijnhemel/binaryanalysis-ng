@@ -11310,14 +11310,14 @@ def unpackLZOP(fileresult, scanenvironment, offset, unpackdir):
 def unpackJSON(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a JSON file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filepath)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # try to read the contents of the file as JSON
     try:
