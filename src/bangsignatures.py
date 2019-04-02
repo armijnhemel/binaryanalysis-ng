@@ -401,7 +401,7 @@ extensionprettyprint = {
     '.nb0': 'nb0',
 }
 
-def matches_file_pattern(filename,extension):
+def matches_file_pattern(filename, extension):
     return filename.name.lower().endswith(extension)
 
 # certain unpacking functions if the whole file is text
@@ -659,7 +659,7 @@ prescan_functions = {
     'terminfo' : prescan_terminfo,
 }
 
-def prescan(s,scanbytes, bytesread, filesize, offset, offsetinfile):
+def prescan(s, scanbytes, bytesread, filesize, offset, offsetinfile):
     f = prescan_functions.get(s, prescan_true)
     return f(scanbytes, bytesread, filesize, offset, offsetinfile)
 
@@ -902,5 +902,3 @@ forgereferences['sourceware.org'] = ["sourceware.org/git/"]
 # just in case.
 maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
 maxsignaturesoffset = max(signaturesoffset.values()) + maxsignaturelength
-
-
