@@ -10985,7 +10985,7 @@ def unpackGitIndex(fileresult, scanenvironment, offset, unpackdir):
 def unpackLSM(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Linux Software Map file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10993,7 +10993,7 @@ def unpackLSM(fileresult, scanenvironment, offset, unpackdir):
 
     # assume it is a text file
     try:
-        checkfile = open(filename, 'r')
+        checkfile = open(filename_full, 'r')
     except:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'not a text file'}
