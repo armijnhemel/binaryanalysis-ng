@@ -47,24 +47,23 @@ import getpass
 # import module for database
 import psycopg2
 
-# import the local file with unpacking methods
+# import the local files with unpacking methods
 import bangunpack
 import bangandroid
 import bangfilesystems
 import bangmedia
+
+# import other local files
 import bangfilescans
 import bangsignatures
+from bangsignatures import maxsignaturesoffset
 from bangscanneroptions import BangScannerOptions
 from banglogging import log
 import banglogging
 
-
 from reporter.picklereport import *
 from reporter.jsonreport import *
 from reporter.humanreadablereport import *
-
-
-from bangsignatures import maxsignaturesoffset
 
 from FileContentsComputer import *
 from FileResult import FileResult
@@ -73,9 +72,11 @@ from Unpacker import *
 from ScanJob import *
 
 def connect_to_bang_database(options):
-    return psycopg2.connect(database=options.postgresql_db, user=options.postgresql_user,
-        password=options.postgresql_password,
-        port=options.postgresql_port, host=options.postgresql_host)
+    return psycopg2.connect(database=options.postgresql_db,
+                            user=options.postgresql_user,
+                            password=options.postgresql_password,
+                            port=options.postgresql_port,
+                            host=options.postgresql_host)
 
 
 def main(argv):
