@@ -31,6 +31,7 @@ import pathlib
 import bangunpack
 import bangfilesystems
 import bangmedia
+import bangandroid
 
 basetestdir = pathlib.Path('/home/armijn/git/binaryanalysis-ng/test')
 tmpdirectory = '/home/armijn/tmp'
