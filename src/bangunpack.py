@@ -5332,7 +5332,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 if (inode, dev) not in devinodes:
                     devinodes[(inode, dev)] = []
                 devinodes[(inode, dev)].append(unpackname)
-                unpackedfilesandlabels.append(outfile_rel, []))
+                unpackedfilesandlabels.append((outfile_rel, []))
             unpackedsize += cpiodatasize
 
             # pad to even bytes
@@ -6054,7 +6054,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
 def unpack7z(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack 7z compressed data.'''
     filesize = fileresult.filesize
-    filename_fulle = scanenvironment.unpack_path(fileresult.filename)
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11654,7 +11654,8 @@ def unpackScript(fileresult, scanenvironment, offset, unpackdir):
 def unpackPack200(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a pack200 file back into a JAR'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -11672,24 +11673,25 @@ def unpackPack200(fileresult, scanenvironment, offset, unpackdir):
     if offset != 0:
         # create a temporary file and copy the data into the
         # temporary file if offset != 0
-        checkfile = open(filename, 'rb')
+        checkfile = open(filename_full, 'rb')
         temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
         os.sendfile(temporaryfile[0], checkfile.fileno(), offset, filesize - offset)
         os.fdopen(temporaryfile[0]).close()
         checkfile.close()
 
     # write unpacked data to a JAR file
-    outfilename = os.path.join(unpackdir, "unpacked.jar")
+    outfile_rel = os.path.join(unpackdir, "unpacked.jar")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
 
     # then extract the file
     if offset != 0:
-        p = subprocess.Popen(['unpack200', temporaryfile[1], outfilename],
+        p = subprocess.Popen(['unpack200', temporaryfile[1], outfile_full],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             cwd=unpackdir)
+                             cwd=unpackdir_full)
     else:
-        p = subprocess.Popen(['unpack200', filename, outfilename],
+        p = subprocess.Popen(['unpack200', filename_full, outfile_full],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             cwd=unpackdir)
+                             cwd=unpackdir_full)
     (outputmsg, errormsg) = p.communicate()
 
     if offset != 0:
@@ -11698,7 +11700,7 @@ def unpackPack200(fileresult, scanenvironment, offset, unpackdir):
     if p.returncode != 0:
         # try to remove any files that were possibly left behind
         try:
-            os.unlink(outfilename)
+            os.unlink(outfile_full)
         except:
             pass
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -11710,7 +11712,7 @@ def unpackPack200(fileresult, scanenvironment, offset, unpackdir):
     if offset == 0 and unpackedsize == filesize:
         labels.append('pack200')
 
-    unpackedfilesandlabels.append((outfilename, []))
+    unpackedfilesandlabels.append((outfile_rel, []))
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
