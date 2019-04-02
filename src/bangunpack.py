@@ -13623,7 +13623,7 @@ def unpackCompress(fileresult, scanenvironment, offset, unpackdir):
 def unpackTransTbl(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a TRANS.TBL file'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13633,7 +13633,7 @@ def unpackTransTbl(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file in text mode
     try:
-        checkfile = open(filename, 'r')
+        checkfile = open(filename_full, 'r')
         for l in checkfile:
             linesplits = l.strip().split()
             if len(linesplits) < 3:
