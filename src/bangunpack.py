@@ -11581,14 +11581,14 @@ def unpackShadow(fileresult, scanenvironment, offset, unpackdir):
 def unpackScript(fileresult, scanenvironment, offset, unpackdir):
     '''Simple sanity checks to see a file is possibly a script'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file in text mode
-    checkfile = open(filename, 'r')
+    checkfile = open(filename_full, 'r')
 
     # some very basic rules:
     # 1. check the first line to see if #! is found
@@ -11597,7 +11597,7 @@ def unpackScript(fileresult, scanenvironment, offset, unpackdir):
     # 3. look at the extension
     checkline = checkfile.readline()
     if '#!' in checkline:
-        if filename.suffix.lower() == '.py':
+        if filename_full.suffix.lower() == '.py':
             if 'python' in checkline.strip():
                 checkfile.close()
                 labels.append('script')
@@ -11606,7 +11606,7 @@ def unpackScript(fileresult, scanenvironment, offset, unpackdir):
                 return {'status': True, 'length': unpackedsize,
                         'labels': labels,
                         'filesandlabels': unpackedfilesandlabels}
-        elif filename.suffix.lower() == '.pl':
+        elif filename_full.suffix.lower() == '.pl':
             if 'perl' in checkline.strip():
                 checkfile.close()
                 labels.append('script')
@@ -11615,7 +11615,7 @@ def unpackScript(fileresult, scanenvironment, offset, unpackdir):
                 return {'status': True, 'length': unpackedsize,
                         'labels': labels,
                         'filesandlabels': unpackedfilesandlabels}
-        elif filename.suffix.lower() == '.sh':
+        elif filename_full.suffix.lower() == '.sh':
             if '/bash' in checkline.strip():
                 checkfile.close()
                 labels.append('script')
