@@ -12,7 +12,11 @@ class ScanEnvironment:
             scanfilequeue, resultqueue,
             processlock, checksumdict,
             ):
+        """unpackdirectory: a Path object
+           temporarydirectory: a Path object
+        """
         # TODO: init from options object
+        print('ScanEnvironment:',type(unpackdirectory),type(temporarydirectory))
         self.maxbytes = maxbytes
         self.readsize = readsize
         self.createbytecounter = createbytecounter
@@ -56,6 +60,7 @@ class ScanEnvironment:
         return fn[self.lenunpackdirectory:]
 
     def unpack_path(self,fn):
+        return self.unpackdirectory / fn
         return os.path.join(self.unpackdirectory,fn)
 
     def rel_unpack_path(self,fn):

@@ -83,7 +83,7 @@ class TestUnpackResult(TestBase):
                 for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                     try:
                         print(self.unpackdir, "prefix of", unpackedfile)
-                        self.assertNotEqual(unpackedfile[:len(self.unpackdir)], self.unpackdir)
+                        self.assertNotEqual(unpackedfile[:len(str(self.unpackdir))], str(self.unpackdir))
 
                         self.assertEqual(unpackedfile, os.path.join(unpacker.get_data_unpack_directory(),os.path.basename(unpackedfile)))
                     except AssertionError as e:
