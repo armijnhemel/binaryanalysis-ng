@@ -10635,7 +10635,7 @@ def unpackSSHKnownHosts(fileresult, scanenvironment, offset, unpackdir):
 def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a certificate file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10651,12 +10651,12 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     if offset == 0:
-        certres = extractCertificate(fileresult, scanenvironment, filename, offset, unpackdir)
+        certres = extractCertificate(filename_full, offset)
         if certres['status']:
             return certres
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
     checkbytes = checkfile.read(11)
     if checkbytes != b'-----BEGIN ':
@@ -10671,14 +10671,15 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     certtype = None
     if b'PRIVATE KEY' in checkbytes:
         certtype = 'key'
-        outfilename = os.path.join(unpackdir, 'unpacked.key')
+        outfile_rel = os.path.join(unpackdir, 'unpacked.key')
     elif b'CERTIFICATE' in checkbytes:
         certtype = 'certificate'
-        outfilename = os.path.join(unpackdir, 'unpacked.crt')
+        outfile_rel = os.path.join(unpackdir, 'unpacked.crt')
     else:
-        outfilename = os.path.join(unpackdir, 'unpacked-certificate')
+        outfile_rel = os.path.join(unpackdir, 'unpacked-certificate')
 
-    outfile = open(outfilename, 'wb')
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
 
     # this is a bit hackish, but hey, it works in most of the cases :-)
     certbuf = checkbytes
@@ -10714,7 +10715,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
         # only printables are allowed, so as soon as a non-printable
         # character is encountered exit. Only check the last bytes
         # that have been read.
-        if len(list(filter(lambda x: chr(x) not in string.printable, checkbytes))) != 0:
+        if list(filter(lambda x: chr(x) not in string.printable, checkbytes)) != []:
             break
         checkbytes = checkfile.read(2048)
         if checkbytes == b'':
@@ -10725,26 +10726,25 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     checkfile.close()
 
     # as an extra sanity check run it through the unpacker
-    certres = extractCertificate(fileresult, scanenvironment, outfilename, 0, unpackdir)
+    certres = extractCertificate(outfile_full, 0)
     if certres['status']:
         tmplabels += certres['labels']
         tmplabels = list(set(tmplabels))
         tmplabels.append('unpacked')
-        unpackedfilesandlabels.append((outfilename, tmplabels))
+        unpackedfilesandlabels.append((outfile_rel, tmplabels))
         return {'status': True, 'length': certres['length'], 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # cleanup
-    os.unlink(outfilename)
+    os.unlink(outfile_full)
     unpackingerror = {'offset': offset, 'fatal': False,
                       'reason': 'not a valid certificate'}
     return {'status': False, 'error': unpackingerror}
 
 
-def extractCertificate(fileresult, scanenvironment, filename, offset, unpackdir):
+def extractCertificate(filename, offset):
     '''Helper method to extract certificate files.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
