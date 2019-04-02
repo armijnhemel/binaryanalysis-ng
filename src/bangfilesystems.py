@@ -1245,7 +1245,8 @@ def unpackISO9660(fileresult, scanenvironment, offset, unpackdir):
 def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a JFFS2 file system.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1255,7 +1256,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = 0
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     bigendian = False
@@ -1544,7 +1545,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
             if inodenumber in inodetofilename:
                 # the inode number is already known, meaning
                 # that this should be a hard link
-                os.link(os.path.join(unpackdir, inodetofilename[inodenumber]), os.path.join(unpackdir, inodename))
+                os.link(os.path.join(unpackdir_full, inodetofilename[inodenumber]), os.path.join(unpackdir_full, inodename))
 
                 # TODO: determine whether or not to add
                 # the hard link to the result set
@@ -1603,7 +1604,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
                 pass
             elif stat.S_ISDIR(filemode):
                 # create directories, but skip them otherwise
-                os.makedirs(os.path.join(unpackdir, inodetofilename[inodenumber]), exist_ok=True)
+                os.makedirs(os.path.join(unpackdir_full, inodetofilename[inodenumber]), exist_ok=True)
                 checkfile.seek(oldoffset + inodesize)
                 continue
             elif stat.S_ISLNK(filemode):
@@ -1624,8 +1625,10 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
                 if len(checkbytes) != linknamelength:
                     break
                 try:
-                    os.symlink(checkbytes.decode(), os.path.join(unpackdir, inodetofilename[inodenumber]))
-                    unpackedfilesandlabels.append((os.path.join(unpackdir, inodetofilename[inodenumber]), ['symbolic link']))
+                    fn_rel = os.path.join(unpackdir, inodetofilename[inodenumber])
+                    fn_full = scanenvironment.unpack_path(fn_rel)
+                    os.symlink(checkbytes.decode(), fn_full)
+                    unpackedfilesandlabels.append((fn_full, ['symbolic link']))
                     dataunpacked = True
                 except UnicodeDecodeError:
                     break
@@ -1650,7 +1653,9 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
                     if inodenumber in inodetoopenfiles:
                         break
                     # open a file and store it as a reference
-                    outfile = open(os.path.join(unpackdir, inodetofilename[inodenumber]), 'wb')
+                    fn_rel = os.path.join(unpackdir, inodetofilename[inodenumber])
+                    fn_full = scanenvironment.unpack_path(fn_rel)
+                    outfile = open(fn_full, 'wb')
                     inodetoopenfiles[inodenumber] = outfile
                 else:
                     if writeoffset != inodetowriteoffset[inodenumber]:
@@ -1751,7 +1756,8 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
     for i in inodetoopenfiles:
         inodetoopenfiles[i].flush()
         inodetoopenfiles[i].close()
-        unpackedfilesandlabels.append((inodetoopenfiles[i].name, []))
+        fn_rel = scanenvironment.rel_unpack_path(inodetoopenfiles[i].name)
+        unpackedfilesandlabels.append((fn_rel, []))
 
     # check if a valid root node was found.
     if 1 not in parentinodesseen:
