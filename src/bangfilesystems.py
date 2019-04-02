@@ -108,7 +108,8 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 def unpackSquashfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack squashfs file system data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -129,7 +130,7 @@ def unpackSquashfs(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'not enough data'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # sanity checks for the squashfs header.
@@ -219,7 +220,7 @@ def unpackSquashfs(fileresult, scanenvironment, offset, unpackdir):
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              cwd=squashfsunpackdirectory)
     else:
-        p = subprocess.Popen(['unsquashfs', filename],
+        p = subprocess.Popen(['unsquashfs', filename_full],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              cwd=squashfsunpackdirectory)
     (outputmsg, errormsg) = p.communicate()
@@ -257,22 +258,24 @@ def unpackSquashfs(fileresult, scanenvironment, offset, unpackdir):
     shutil.rmtree(squashfsunpackdirectory)
 
     # now add everything that was unpacked
-    dirwalk = os.walk(unpackdir)
+    dirwalk = os.walk(unpackdir_full)
     for direntries in dirwalk:
         # make sure all subdirectories and files can be accessed
         for entryname in direntries[1]:
             fullfilename = os.path.join(direntries[0], entryname)
             if not os.path.islink(fullfilename):
                 os.chmod(fullfilename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            unpackedfilesandlabels.append((relfilename, []))
         for entryname in direntries[2]:
             fullfilename = os.path.join(direntries[0], entryname)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            unpackedfilesandlabels.append((relfilename, []))
 
     if offset + unpackedsize != filesize:
         # by default mksquashfs pads to 4K blocks with NUL bytes.
         # The padding is not counted in squashfssize
-        checkfile = open(filename, 'rb')
+        checkfile = open(filename_full, 'rb')
         checkfile.seek(offset + unpackedsize)
         padoffset = checkfile.tell()
         if unpackedsize % 4096 != 0:
