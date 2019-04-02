@@ -9799,7 +9799,7 @@ def unpackJavaManifest(fileresult, scanenvironment, offset, unpackdir):
 def unpackKernelConfig(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Linux kernel configuration file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -9828,7 +9828,7 @@ def unpackKernelConfig(fileresult, scanenvironment, offset, unpackdir):
     configre3 = re.compile('(CONFIG_[\w\d_]+)=([\w\d"\-/\.$]+$)')
 
     # open the file in text only mode
-    checkfile = open(filename, 'r')
+    checkfile = open(filename_full, 'r')
 
     headerfound = False
     kernelconfigfound = False
