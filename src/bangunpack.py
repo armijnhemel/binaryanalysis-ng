@@ -13525,14 +13525,14 @@ def unpackICS(fileresult, scanenvironment, offset, unpackdir):
 def unpackCompress(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack UNIX compress'd data'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file, skip the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+2)
 
     # the next byte contains the "bits per code" field
@@ -13577,24 +13577,25 @@ def unpackCompress(fileresult, scanenvironment, offset, unpackdir):
 
     checkfile.close()
 
-    if filename.suffix.lower() == '.z':
-        outfilename = os.path.join(unpackdir, filename.stem)
-    elif filename.suffix.lower() == '.tz':
-        outfilename = os.path.join(unpackdir, filename.stem) + ".tar"
+    if filename_full.suffix.lower() == '.z':
+        outfile_rel = os.path.join(unpackdir, filename_full.stem)
+    elif filename_full.suffix.lower() == '.tz':
+        outfile_rel = os.path.join(unpackdir, filename_full.stem) + ".tar"
     else:
-        outfilename = os.path.join(unpackdir, "unpacked-from-compress")
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-compress")
 
-    outfile = open(outfilename, 'wb')
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
 
     if havetmpfile:
         p = subprocess.Popen(['uncompress', '-c', temporaryfile[1]], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
     else:
-        p = subprocess.Popen(['uncompress', '-c', filename], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['uncompress', '-c', filename_full], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
 
     (standard_out, standard_error) = p.communicate()
     if p.returncode != 0 and standard_error != b'':
         outfile.close()
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         if havetmpfile:
             os.unlink(temporaryfile[1])
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -13607,7 +13608,7 @@ def unpackCompress(fileresult, scanenvironment, offset, unpackdir):
     if havetmpfile:
         os.unlink(temporaryfile[1])
 
-    unpackedfilesandlabels.append((outfilename, []))
+    unpackedfilesandlabels.append((outfile_rel, []))
     unpackedsize = filesize - offset
 
     if offset == 0:
