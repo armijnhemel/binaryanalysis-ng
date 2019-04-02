@@ -7685,19 +7685,20 @@ def unpackZstd(fileresult, scanenvironment, offset, unpackdir):
 def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack LZ4 compressed data.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
-    outfilename = os.path.join(unpackdir, "unpacked-from-lz4")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked-from-lz4")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
 
     # first create a decompressor object
     decompressor = lz4.frame.create_decompression_context()
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
     readsize = 1000000
     checkbytes = checkfile.read(readsize)
@@ -7711,7 +7712,7 @@ def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
         except:
             checkfile.close()
             outfile.close()
-            os.unlink(outfilename)
+            os.unlink(outfile_full)
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'LZ4 unpacking error'}
             return {'status': False, 'error': unpackingerror}
@@ -7729,7 +7730,7 @@ def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
     checkfile.close()
 
     if not seeneof:
-        os.unlink(outfilename)
+        os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'data incomplete'}
         return {'status': False, 'error': unpackingerror}
@@ -7739,11 +7740,12 @@ def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
     if offset == 0 and unpackedsize == filesize:
         labels.append('compressed')
         labels.append('lz4')
-        if filename.suffix.lower() == '.lz4':
-            newoutfilename = os.path.join(unpackdir, filename.stem)
-            shutil.move(outfilename, newoutfilename)
-            outfilename = newoutfilename
-    unpackedfilesandlabels.append((outfilename, []))
+        if filename_full.suffix.lower() == '.lz4':
+            newoutfile_rel = os.path.join(unpackdir, filename_full.stem)
+            newoutfile_full = scanenvironment.unpack_path(newoutfile_rel)
+            shutil.move(outfile_full, newoutfile_full)
+            outfile_rel = newoutfile_rel
+    unpackedfilesandlabels.append((outfile_rel, []))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
