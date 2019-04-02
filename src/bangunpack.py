@@ -2866,7 +2866,7 @@ def unpackXAR(filename, offset, unpackdir, temporarydirectory):
                 try:
                     checksumoffset = int(checksumoffset)
                     checksumsize = int(checksumsize)
-                except:
+                except ValueError:
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize,
                                       'fatal': False,
@@ -2992,7 +2992,7 @@ def unpackXAR(filename, offset, unpackdir, temporarydirectory):
                 try:
                     dataoffset = int(dataoffset)
                     datalength = int(datalength)
-                except:
+                except ValueError:
                     targetfile.close()
                     os.unlink(targetfilename)
                     checkfile.close()
@@ -13102,33 +13102,33 @@ def unpackPkgConfig(filename, offset, unpackdir, temporarydirectory):
         isopened = True
         validpc = True
         continued = False
-        for l in checkfile:
+        for line in checkfile:
             keywordfound = False
             # skip blank lines
-            if l.strip() == '':
+            if line.strip() == '':
                 continued = False
                 continue
             # skip comments
-            if l.startswith('#'):
+            if line.startswith('#'):
                 continue
             for k in mandatorykeywords:
-                if l.startswith(k+':'):
+                if line.startswith(k+':'):
                     keywordsfound.add(k)
                     keywordfound = True
                     break
             if keywordfound:
-                if l.strip().endswith('\\'):
+                if line.strip().endswith('\\'):
                     continued = True
                 else:
                     continued = False
                 continue
             for k in optionalkeywords:
-                if l.startswith(k+':'):
+                if line.startswith(k+':'):
                     keywordsfound.add(k)
                     keywordfound = True
                     break
             if keywordfound:
-                if l.strip().endswith('\\'):
+                if line.strip().endswith('\\'):
                     continued = True
                 else:
                     continued = False
@@ -13136,14 +13136,14 @@ def unpackPkgConfig(filename, offset, unpackdir, temporarydirectory):
 
             # process variable definitions
             if not continued:
-                if '=' not in l:
+                if '=' not in line:
                     validpc = False
                     break
-                pcres = re.match('[\w\d_]+=', l)
+                pcres = re.match('[\w\d_]+=', line)
                 if pcres is None:
                     validpc = False
                     break
-            if l.strip().endswith('\\'):
+            if line.strip().endswith('\\'):
                 continued = True
             else:
                 continued = False
@@ -13177,7 +13177,7 @@ def unpackPkgConfig(filename, offset, unpackdir, temporarydirectory):
 # minidump files, used in for example Firefox crash reports
 # https://chromium.googlesource.com/breakpad/breakpad/+/master/src/google_breakpad/common/minidump_format.h
 def unpackMinidump(filename, offset, unpackdir, temporarydirectory):
-    ''''''
+    '''Verify and label minidump files'''
     filesize = filename.stat().st_size
     unpackedfilesandlabels = []
     labels = []
@@ -13488,8 +13488,8 @@ def unpackTransTbl(filename, offset, unpackdir, temporarydirectory):
     # open the file in text mode
     try:
         checkfile = open(filename, 'r')
-        for l in checkfile:
-            linesplits = l.strip().split()
+        for line in checkfile:
+            linesplits = line.strip().split()
             if len(linesplits) < 3:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -13506,7 +13506,7 @@ def unpackTransTbl(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'wrong file type indicator'}
                 return {'status': False, 'error': unpackingerror}
-    except:
+    except UnicodeDecodeError:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'not enough data for entry'}
