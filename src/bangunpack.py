@@ -10545,7 +10545,7 @@ def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
 def unpackSSHKnownHosts(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a SSH known hosts file.'''
     filesize = fileresult.filesize
-    filename = fileresult.filepath
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10558,7 +10558,7 @@ def unpackSSHKnownHosts(fileresult, scanenvironment, offset, unpackdir):
 
     # assume it is a text file
     try:
-        checkfile = open(filename, 'r')
+        checkfile = open(filename_full, 'r')
     except:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'not a valid ssh known hosts file'}
@@ -10595,6 +10595,7 @@ def unpackSSHKnownHosts(fileresult, scanenvironment, offset, unpackdir):
             # then the key type
             keytype = linesplit[linesplitcounter+1]
             if keytype not in keytypes:
+                # TODO: why not mark the key as unknown and return a result?
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid key type'}
