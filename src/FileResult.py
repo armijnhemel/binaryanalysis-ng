@@ -3,12 +3,11 @@ import pathlib
 class FileResult:
     """stores all the information about the file that has been discovered
     so far."""
-    def __init__(self, rel_filename, abs_parentpath, rel_parentfilename, labels):
+    def __init__(self, rel_filename, rel_parentfilename, labels):
         self.relpath = pathlib.Path(rel_filename)
         self.hash = {}
         self.filename = rel_filename
         # print("FileResult: self.filename=",self.filename)
-        self.parentpath = abs_parentpath
         self.parent = rel_parentfilename
         self.labels = labels
         self.unpackedfiles = None
@@ -20,7 +19,7 @@ class FileResult:
         self.filesize = size
 
     def is_unpacking_root(self):
-        return self.parentpath is None
+        return self.parent is None
 
     def get_hashresult(self):
         return self.hash

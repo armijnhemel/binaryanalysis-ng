@@ -242,7 +242,6 @@ def main(argv):
         fileresult = FileResult(
                 pathlib.Path(os.path.basename(checkfile)),
                 None,
-                None,
                 set(labels))
         j = ScanJob(fileresult)
         scanfilequeue.put(j)

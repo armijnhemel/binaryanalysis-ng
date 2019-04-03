@@ -7,7 +7,6 @@ class TestFileResult(TestBase):
         fr = create_fileresult_for_path(self.unpackdir, relative_path, calculate_size=False)
         d = fr.get()
         self.assertEqual(fr.parent, str(relative_path.parent))
-        self.assertEqual(fr.parentpath, full_path.parent)
         self.assertEqual(fr.relpath, relative_path)
         self.assertEqual(fr.filename, relative_path)
         # self.assertEqual(d['fullfilename'], str(full_path))
