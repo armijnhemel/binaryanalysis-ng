@@ -22,17 +22,17 @@ class TestScanJob(TestBase):
             pass
 
     def _create_padding_file_in_directory(self):
-        self.parent_dir = 'a'
+        self.parent_dir = pathlib.Path('a')
         self._make_directory_in_unpackdir(self.parent_dir)
-        self.padding_file = os.path.join(self.parent_dir,'PADDING-0x00-0x01')
+        self.padding_file = self.parent_dir / 'PADDING-0x00-0x01'
         f = open(os.path.join(self.unpackdir, self.padding_file), 'wb')
         f.write(b'\0' * 20)
         f.close()
 
     def _create_css_file_in_directory(self):
-        self.parent_dir = 'a'
+        self.parent_dir = pathlib.Path('a')
         self._make_directory_in_unpackdir(self.parent_dir)
-        self.css_file = os.path.join(self.parent_dir,'cascade.css')
+        self.css_file = self.parent_dir / 'cascade.css'
         unpackedpath = os.path.join(self.unpackdir, self.css_file)
         shutil.copy(os.path.join(self.testdata_dir, self.css_file),
                 unpackedpath)
@@ -48,10 +48,10 @@ class TestScanJob(TestBase):
 
     def test_carved_padding_file_has_correct_labels(self):
         self._create_padding_file_in_directory()
-        fileresult = self._create_fileresult_for_file(
-                self.padding_file, self.parent_dir, [])
+        fileresult = create_fileresult_for_path(self.unpackdir, self.padding_file)
         scanjob = ScanJob(fileresult)
         scanjob.set_scanenvironment(self.scan_environment)
+        scanjob.initialize()
         unpacker = Unpacker(self.unpackdir)
         scanjob.prepare_for_unpacking()
         scanjob.check_unscannable_file()
@@ -62,8 +62,7 @@ class TestScanJob(TestBase):
 
     def test_process_paddingfile_has_correct_labels(self):
         self._create_padding_file_in_directory()
-        fileresult = self._create_fileresult_for_file(
-                self.padding_file, self.parent_dir, set(['padding']))
+        fileresult = create_fileresult_for_path(self.unpackdir, self.padding_file, set(['padding']))
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
@@ -89,10 +88,10 @@ class TestScanJob(TestBase):
 
     def test_openwrt_version_has_correct_labels(self):
         # openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/openwrt_version
-        fn = "a/openwrt_version"
+        fn = pathlib.Path("a/openwrt_version")
         self._copy_file_from_testdata(fn)
-        fileresult = self._create_fileresult_for_file(fn,
-                os.path.dirname(fn), set())
+        fileresult = create_fileresult_for_path(self.unpackdir,fn,set())
+        # fileresult = self._create_fileresult_for_file(fn, os.path.dirname(fn), set())
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -105,10 +104,9 @@ class TestScanJob(TestBase):
 
     def test_dhcpv6sh_has_correct_labels(self):
         # /home/tim/bang-test-scrap/bang-scan-wd8il1i5/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/lib/netifd/proto/dhcpv6.sh
-        fn = "a/dhcpv6.sh"
+        fn = pathlib.Path("a/dhcpv6.sh")
         self._copy_file_from_testdata(fn)
-        fileresult = self._create_fileresult_for_file(fn,
-                os.path.dirname(fn), set())
+        fileresult = create_fileresult_for_path(self.unpackdir, fn)
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -120,10 +118,9 @@ class TestScanJob(TestBase):
         self.assertSetEqual(result.labels,set(['text','script','shell']))
 
     def test_gzip_unpacks_to_right_directory(self):
-        fn = "a/hello.gz"
+        fn = pathlib.Path("a/hello.gz")
         self._copy_file_from_testdata(fn)
-        fileresult = self._create_fileresult_for_file(fn,
-                os.path.dirname(fn), set())
+        fileresult = create_fileresult_for_path(self.unpackdir, fn, set())
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -133,7 +130,7 @@ class TestScanJob(TestBase):
             pass
         result1 = self.result_queue.get()
         result2 = self.result_queue.get()
-        self.assertEqual(result2.filename, fn+'-gzip-1/hello')
+        self.assertEqual(str(result2.filename), str(fn)+'-gzip-1/hello')
 
 
 

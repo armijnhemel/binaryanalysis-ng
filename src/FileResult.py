@@ -10,6 +10,7 @@ class FileResult:
         self.relpath = pathlib.Path(rel_filename)
         self.hash = {}
         self.filename = rel_filename
+        # print("FileResult: self.filename=",self.filename)
         self.parentpath = abs_parentpath
         self.parent = rel_parentfilename
         self.labels = labels
@@ -46,14 +47,14 @@ class FileResult:
             'fullfilename': str(self.filepath),
             'hash': self.hash,
             'labels': list(self.labels),
-            'filename': self.filename,
+            'filename': str(self.filename),
         }
         if self.filesize is not None:
             d['filesize'] = self.filesize
         if self.unpackedfiles is not None:
             d['unpackedfiles'] = self.unpackedfiles
         if not self.is_unpacking_root():
-            d['parent'] = self.parent
+            d['parent'] = str(self.parent)
         if self.mimetype is not None:
             d['mimetype'] = self.mimetype
             if self.mimetype_encoding is not None:

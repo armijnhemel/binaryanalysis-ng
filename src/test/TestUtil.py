@@ -17,7 +17,7 @@ from ScanEnvironment import *
 def create_fileresult_for_path(unpackdir, path, labels=set([]),
         calculate_size=True):
     fp = pathlib.Path(unpackdir) / path
-    fr = FileResult(unpackdir, fp, str(path), fp.parent, str(path.parent), labels)
+    fr = FileResult(unpackdir, fp, path, fp.parent, str(path.parent), labels)
     if calculate_size:
         fr.set_filesize(fp.stat().st_size)
     return fr
@@ -53,10 +53,10 @@ class TestBase(unittest.TestCase):
     # create a temporary directory and copy
     # the test file to the temporary directory
     def setUp(self):
-        self.testdata_dir = os.path.join(_scriptdir,'testdata')
+        self.testdata_dir = pathlib.Path(_scriptdir) / 'testdata'
         self.unpackdir = pathlib.Path(_scriptdir) / 'unpack'
         self.tmpdir = pathlib.Path(_scriptdir) / 'tmp'
-        self.resultsdir = os.path.join(_scriptdir,'results')
+        self.resultsdir = pathlib.Path(_scriptdir) / 'results'
         self._create_clean_directory(self.unpackdir)
         self._create_clean_directory(self.tmpdir)
         self._create_clean_directory(self.resultsdir)
@@ -99,12 +99,12 @@ class TestBase(unittest.TestCase):
     def _copy_file_from_testdata(self, path, name=None):
         if name is None:
             name = path
-        unpacked_path = os.path.join(self.unpackdir, name)
-        unpacked_dir = os.path.dirname(unpacked_path)
+        unpacked_path = self.unpackdir / name
+        unpacked_dir = unpacked_path.parent
         try:
             os.makedirs(unpacked_dir)
         except FileExistsError:
             pass
-        shutil.copy(os.path.join(self.testdata_dir, path), unpacked_path)
+        shutil.copy(self.testdata_dir / path, unpacked_path)
 
 

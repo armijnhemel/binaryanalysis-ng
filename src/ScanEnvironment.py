@@ -59,8 +59,11 @@ class ScanEnvironment:
         return fn[self.lenunpackdirectory:]
 
     def unpack_path(self,fn):
+        """Returns a path object containing the absolute path of the file in
+        the unpack directory root.
+        If fn is an absolute path, then fn will be returned.
+        """
         return self.unpackdirectory / fn
-        return os.path.join(self.unpackdirectory,fn)
 
     def rel_unpack_path(self,fn):
         # TODO: check if fn starts with unpackdirectory to catch path traversal
