@@ -157,6 +157,7 @@ larger file, unless stated otherwise.
 112. nb0 Android updates
 113. Quake PAK files
 114. Doom WAD files (IWAD only)
+115. Ambarella firmware files
 
 
 ## Invocation

@@ -13722,3 +13722,130 @@ def unpack_wad(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# Ambarella firmware files
+#
+# http://web.archive.org/web/20190402224117/https://courses.cs.ut.ee/MTAT.07.022/2015_spring/uploads/Main/karl-report-s15.pdf
+# Section 4.2
+def unpack_ambarella(filename, offset, unpackdir, temporarydirectory):
+    '''Verify an Ambarella firmware file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+
+    # store a mapping of start/end of the sections
+    sections = {}
+
+    # the first 128 bytes describe the start offsets of all possible
+    # sections. This means there is a maximum of 32 sections.
+    for section in range(0, 32):
+        checkbytes = checkfile.read(4)
+        startoffset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + startoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'offset cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+        sections[section] = {}
+        sections[section]['start'] = startoffset
+
+    # the next are end offsets of all possible sections
+    for section in range(0, 32):
+        checkbytes = checkfile.read(4)
+        endoffset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + endoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'offset cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+        sections[section]['end'] = endoffset
+
+    maxoffset = 0
+
+    # section to name, from:
+    # http://web.archive.org/web/20140627194326/http://forum.dashcamtalk.com/threads/r-d-a7-r-d-thread.5119/page-2
+    # post #28
+    sectiontoname = {0: 'bootstrap',
+                     2: 'bootloader',
+                     5: 'rtos',
+                     8: 'ramdisk',
+                     9: 'romfs',
+                     10: 'dsp',
+                     11: 'linux'}
+
+    # write the data of each section
+    for section in sections:
+        if sections[section]['start'] == 0:
+            continue
+
+        # section consists of 256 byte header followed by the data
+        sectionsize = sections[section]['end'] - sections[section]['start'] - 256
+
+        if sectionsize <= 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid offsets'}
+            return {'status': False, 'error': unpackingerror}
+
+        maxoffset = max(maxoffset, sections[section]['end'])
+
+        # jump to the right offset
+        checkfile.seek(offset + sections[section]['start'])
+
+        # process the header (32 bytes, padded to 256 bytes)
+
+        # CRC32 of the section
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        # section version
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        # build date, skip for now
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        # section length
+        checkbytes = checkfile.read(4)
+        section_length = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        # memory location, skip for now
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # flags, skip
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # magic, skip
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # more flags, skip
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        datastart = offset + sections[section]['start'] + 256
+
+        outfilename = os.path.join(unpackdir, sectiontoname.get(section, str(section)))
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), datastart, sectionsize)
+        outfile.close()
+
+        unpackedfilesandlabels.append((outfilename, []))
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('ambarella')
+
+    checkfile.close()
+    return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}

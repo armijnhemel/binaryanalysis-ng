@@ -138,6 +138,7 @@ signatures = {
     'cramfs_be': b'\x28\xcd\x3d\x45',
     'quakepak': b'PACK',
     'doomwad': b'IWAD',
+    'ambarella': b'\x90\xeb\x24\xa3',
 }
 
 # some signatures do not start at the beginning of the file
@@ -153,7 +154,8 @@ signaturesoffset = {
     'dlinkromfs': 16,
     'gimpbrush': 20,
     'fat': 0x1fe,
-    'minix_1l': 0x410
+    'minix_1l': 0x410,
+    'ambarella': 0x818
 }
 
 
@@ -291,6 +293,7 @@ signaturetofunction = {
     'cramfs_be': bangfilesystems.unpack_cramfs,
     'quakepak': bangunpack.unpack_pak,
     'doomwad': bangunpack.unpack_wad,
+    'ambarella': bangunpack.unpack_ambarella,
 }
 
 # a lookup table to map signatures to a name for
