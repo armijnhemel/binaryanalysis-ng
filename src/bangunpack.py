@@ -13773,6 +13773,8 @@ def unpack_ambarella(filename, offset, unpackdir, temporarydirectory):
     # section to name, from:
     # http://web.archive.org/web/20140627194326/http://forum.dashcamtalk.com/threads/r-d-a7-r-d-thread.5119/page-2
     # post #28
+    #
+    # These names are NOT recorded in the binary!
     sectiontoname = {0: 'bootstrap',
                      2: 'bootloader',
                      5: 'rtos',
