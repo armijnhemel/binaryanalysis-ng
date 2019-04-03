@@ -13586,7 +13586,7 @@ def unpack_pak(filename, offset, unpackdir, temporarydirectory):
         try:
             fn_name = checkbytes.split(b'\x00', 1)[0].decode()
             # force a relative path
-            if fn_name.startswith('/'):
+            if os.path.isabs(fn_name):
                 fn_name = os.path.relpath(fn_name, '/')
         except UnicodeDecodeError:
             checkfile.close()
@@ -13895,7 +13895,7 @@ def unpack_romfs_ambarella(filename, offset, unpackdir, temporarydirectory):
         try:
             inode_name = checkbytes.split(b'\x00', 1)[0].decode()
             # force a relative path
-            if inode_name.startswith('/'):
+            if os.path.isabs(inode_name):
                 inode_name = os.path.relpath(inode_name, '/')
         except UnicodeDecodeError:
             checkfile.close()
