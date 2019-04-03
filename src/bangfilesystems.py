@@ -3855,6 +3855,9 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
     # keep a mapping from offsets to parent names
     offsettoparent = {}
 
+    # and a mapping from offsets to current names (used for hard links)
+    offsettoname = {}
+
     # keep a deque with which offset/parent directory pairs
     offsets = collections.deque()
 
@@ -3959,26 +3962,22 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'file cannot be outside of file'}
             return {'status': False, 'error': unpackingerror}
 
+        if inodename != '.' and inodename != '..':
+            offsettoname[curoffset] = inodename
+
         # now process the inode
         if modeinfo == 0:
-            # hard link
+            # hard link, target is in spec.info
             if inodename != '.' and inodename != '..':
-                checkbytes = checkfile.read(inodesize)
-                try:
-                    sourcetargetname = checkbytes.split(b'\x00', 1)[0].decode()
-                except:
+                if specinfo not in offsettoname:
                     checkfile.close()
                     unpackingerror = {'offset': offset, 'fatal': False,
                                       'reason': 'invalid link'}
                     return {'status': False, 'error': unpackingerror}
-                if len(sourcetargetname) == 0:
-                    checkfile.close()
-                    unpackingerror = {'offset': offset, 'fatal': False,
-                                      'reason': 'invalid link'}
-                    return {'status': False, 'error': unpackingerror}
+                sourcetargetname = offsettoname[specinfo]
                 if os.path.isabs(sourcetargetname):
                     sourcetargetname = os.path.relpath(sourcetargetname, '/')
-                    sourcetargetname = os.path.normpath(os.path.join(unpackdir, sourcetargetname))
+                sourcetargetname = os.path.normpath(os.path.join(unpackdir, sourcetargetname))
 
                 outfilename = os.path.join(unpackdir, curcwd, inodename)
 
