@@ -13586,7 +13586,8 @@ def unpack_pak(filename, offset, unpackdir, temporarydirectory):
         try:
             fn_name = checkbytes.split(b'\x00', 1)[0].decode()
             # force a relative path
-            fn_name = os.path.relpath(fn_name, '/')
+            if fn_name.startswith('/'):
+                fn_name = os.path.relpath(fn_name, '/')
         except UnicodeDecodeError:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
