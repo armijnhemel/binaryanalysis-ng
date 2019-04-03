@@ -7748,16 +7748,17 @@ def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
 # supported in python-lz4:
 # https://github.com/python-lz4/python-lz4/issues/169
 # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
-def unpackLZ4Legacy(filename, offset, unpackdir, temporarydirectory):
+def unpackLZ4Legacy(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack LZ4 legacy compressed data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.size
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file, seek to the offset
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize = 4
 
@@ -7796,11 +7797,12 @@ def unpackLZ4Legacy(filename, offset, unpackdir, temporarydirectory):
 
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
-        if filename.suffix.lower() == '.lz4':
-            outfilename = os.path.join(unpackdir, filename.stem)
+        if filename_full.suffix.lower() == '.lz4':
+            outfile_rel = os.path.join(unpackdir, filename_full.stem)
         else:
-            outfilename = os.path.join(unpackdir, "unpacked-from-lz4-legacy")
-        p = subprocess.Popen(['lz4c', '-d', filename, outfilename],
+            outfile_rel = os.path.join(unpackdir, "unpacked-from-lz4-legacy")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        p = subprocess.Popen(['lz4c', '-d', filename_full, outfile_full],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate()
         if p.returncode != 0:
@@ -7809,7 +7811,7 @@ def unpackLZ4Legacy(filename, offset, unpackdir, temporarydirectory):
             return {'status': False, 'error': unpackingerror}
         labels.append('compressed')
         labels.append('lz4')
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
     else:
@@ -7819,11 +7821,12 @@ def unpackLZ4Legacy(filename, offset, unpackdir, temporarydirectory):
         os.fdopen(temporaryfile[0]).close()
         checkfile.close()
 
-        if filename.suffix.lower() == '.lz4':
-            outfilename = os.path.join(unpackdir, filename.stem)
+        if filename_full.suffix.lower() == '.lz4':
+            outfile_rel = os.path.join(unpackdir, filename_full.stem)
         else:
-            outfilename = os.path.join(unpackdir, "unpacked-from-lz4-legacy")
-        p = subprocess.Popen(['lz4c', '-d', temporaryfile[1], outfilename],
+            outfile_rel = os.path.join(unpackdir, "unpacked-from-lz4-legacy")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        p = subprocess.Popen(['lz4c', '-d', temporaryfile[1], outfile_full],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate()
         os.unlink(temporaryfile[1])
@@ -7833,7 +7836,7 @@ def unpackLZ4Legacy(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'not a LZ4 legacy file'}
             return {'status': False, 'error': unpackingerror}
 
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
@@ -13761,9 +13764,10 @@ def unpackTransTbl(fileresult, scanenvironment, offset, unpackdir):
 
 # unpack Quake PAK files
 # https://quakewiki.org/wiki/.pak
-def unpack_pak(filename, offset, unpackdir, temporarydirectory):
+def unpack_pak(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a Quake PAK file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13775,7 +13779,7 @@ def unpack_pak(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
 
@@ -13855,17 +13859,18 @@ def unpack_pak(filename, offset, unpackdir, temporarydirectory):
 
         maxoffset = max(maxoffset, fn_offset + fn_size)
 
-        outfilename = os.path.join(unpackdir, fn_name)
+        outfile_rel = os.path.join(unpackdir, fn_name)
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
 
         # create subdirectories, if any are defined in the file name
         if '/' in fn_name:
-            os.makedirs(os.path.dirname(outfilename), exist_ok=True)
+            os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
 
         # write the file
-        outfile = open(outfilename, 'wb')
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset + fn_offset, fn_size)
         outfile.close()
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
 
     checkfile.close()
 
@@ -13880,9 +13885,10 @@ def unpack_pak(filename, offset, unpackdir, temporarydirectory):
 #
 # http://web.archive.org/web/20090530112359/http://www.gamers.org/dhs/helpdocs/dmsp1666.html
 # Chapter 2
-def unpack_wad(filename, offset, unpackdir, temporarydirectory):
+def unpack_wad(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Doom WAD file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -13894,7 +13900,7 @@ def unpack_wad(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize += 4
 
@@ -13958,11 +13964,12 @@ def unpack_wad(filename, offset, unpackdir, temporarydirectory):
         labels.append('resource')
     else:
         # else carve the file
-        outfilename = os.path.join(unpackdir, "unpacked.wad")
-        outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, "unpacked.wad")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
         outfile.close()
-        unpackedfilesandlabels.append((outfilename, ['doom', 'wad', 'resource', 'unpacked']))
+        unpackedfilesandlabels.append((outfile_rel, ['doom', 'wad', 'resource', 'unpacked']))
 
     checkfile.close()
     return {'status': True, 'length': maxoffset, 'labels': labels,
@@ -13973,16 +13980,17 @@ def unpack_wad(filename, offset, unpackdir, temporarydirectory):
 #
 # http://web.archive.org/web/20190402224117/https://courses.cs.ut.ee/MTAT.07.022/2015_spring/uploads/Main/karl-report-s15.pdf
 # Section 4.2
-def unpack_ambarella(filename, offset, unpackdir, temporarydirectory):
+def unpack_ambarella(fileresult, scanenvironment, offset, unpackdir):
     '''Verify an Ambarella firmware file'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # store a mapping of start/end of the sections
@@ -14083,12 +14091,13 @@ def unpack_ambarella(filename, offset, unpackdir, temporarydirectory):
 
         datastart = offset + sections[section]['start'] + 256
 
-        outfilename = os.path.join(unpackdir, sectiontoname.get(section, str(section)))
-        outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, sectiontoname.get(section, str(section)))
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), datastart, sectionsize)
         outfile.close()
 
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
 
     if offset == 0 and maxoffset == filesize:
         labels.append('ambarella')
@@ -14102,16 +14111,17 @@ def unpack_ambarella(filename, offset, unpackdir, temporarydirectory):
 #
 # http://web.archive.org/web/20190402224117/https://courses.cs.ut.ee/MTAT.07.022/2015_spring/uploads/Main/karl-report-s15.pdf
 # Section 4.1
-def unpack_romfs_ambarella(filename, offset, unpackdir, temporarydirectory):
+def unpack_romfs_ambarella(fileresult, scanenvironment, offset, unpackdir, temporarydirectory):
     '''Verify an Ambarella romfs file system'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # amount of files
@@ -14170,16 +14180,16 @@ def unpack_romfs_ambarella(filename, offset, unpackdir, temporarydirectory):
             return {'status': False, 'error': unpackingerror}
 
     for inode in inodes:
-        outfilename = os.path.join(unpackdir, inodes[inode]['name'])
+        outfile_rel = os.path.join(unpackdir, inodes[inode]['name'])
         # create subdirectories, if any are defined in the file name
         if '/' in inodes[inode]['name']:
-            os.makedirs(os.path.dirname(outfilename), exist_ok=True)
+            os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
         datastart = offset + inodes[inode]['offset']
-        outfile = open(outfilename, 'wb')
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), datastart, inodes[inode]['size'])
         outfile.close()
 
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
 
     # byte aligned on 2048 bytes (section size), padding bytes
     if maxoffset % 2048 != 0:

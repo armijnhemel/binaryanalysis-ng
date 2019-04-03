@@ -3847,16 +3847,17 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
 
 
 # Linux kernel: Documentation/filesystems/romfs.txt
-def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
+def unpackRomfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a romfs file system'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file, skip the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+8)
     unpackedsize += 8
 
@@ -4023,10 +4024,11 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
                     sourcetargetname = os.path.relpath(sourcetargetname, '/')
                 sourcetargetname = os.path.normpath(os.path.join(unpackdir, sourcetargetname))
 
-                outfilename = os.path.join(unpackdir, curcwd, inodename)
+                outfile_rel = os.path.join(unpackdir, curcwd, inodename)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
 
-                os.link(sourcetargetname, outfilename)
-                unpackedfilesandlabels.append((outfilename, ['hardlink']))
+                os.link(sourcetargetname, outfile_full)
+                unpackedfilesandlabels.append((outfile_rel, ['hardlink']))
         elif modeinfo == 1:
             # directory: the next header points
             # to the first file header.
@@ -4036,10 +4038,11 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
                                   'reason': 'next offset cannot be outside of file'}
                 return {'status': False, 'error': unpackingerror}
             if inodename != '.' and inodename != '..':
-                outfilename = os.path.join(unpackdir, curcwd, inodename)
-                os.mkdir(outfilename)
+                outfile_rel = os.path.join(unpackdir, curcwd, inodename)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.mkdir(outfile_full)
                 offsets.append((specinfo, os.path.join(curcwd, inodename)))
-                unpackedfilesandlabels.append((outfilename, ['directory']))
+                unpackedfilesandlabels.append((outfile_rel, ['directory']))
         elif modeinfo == 2:
             # regular file
             if specinfo != 0:
@@ -4047,11 +4050,12 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid value for specinfo'}
                 return {'status': False, 'error': unpackingerror}
-            outfilename = os.path.join(unpackdir, curcwd, inodename)
-            outfile = open(outfilename, 'wb')
+            outfile_rel = os.path.join(unpackdir, curcwd, inodename)
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
+            outfile = open(outfile_full, 'wb')
             os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), inodesize)
             outfile.close()
-            unpackedfilesandlabels.append((outfilename, []))
+            unpackedfilesandlabels.append((outfile_rel, []))
         elif modeinfo == 3:
             # symbolic link
             if specinfo != 0:
@@ -4076,10 +4080,11 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
                 sourcetargetname = os.path.relpath(sourcetargetname, '/')
                 sourcetargetname = os.path.normpath(os.path.join(unpackdir, sourcetargetname))
 
-            outfilename = os.path.join(unpackdir, curcwd, inodename)
+            outfile_rel = os.path.join(unpackdir, curcwd, inodename)
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
 
-            os.symlink(sourcetargetname, outfilename)
-            unpackedfilesandlabels.append((outfilename, ['symbolic link']))
+            os.symlink(sourcetargetname, outfile_full)
+            unpackedfilesandlabels.append((outfile_rel, ['symbolic link']))
         elif modeinfo == 4:
             # block device
             pass
@@ -4128,9 +4133,11 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
 
 # Linux kernel: fs/cramfs/README
 # needs recent version of util-linux that supports --extract
-def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
+def unpack_cramfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a cramfs file system'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4143,7 +4150,7 @@ def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # read the magic to see what the endianness is
@@ -4403,7 +4410,7 @@ def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
 
     if offset == 0 and cramfssize == filesize:
         checkfile.close()
-        p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfsunpackdirectory, filename],
+        p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfsunpackdirectory, filename_full],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
         temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
@@ -4438,7 +4445,7 @@ def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
     os.chdir(cramfsunpackdirectory)
     for l in foundfiles:
         try:
-            shutil.move(l, unpackdir, copy_function=local_copy2)
+            shutil.move(l, unpackdir_full, copy_function=local_copy2)
         except Exception as e:
             # TODO: report
             # possibly not all files can be copied.
@@ -4450,17 +4457,19 @@ def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
     shutil.rmtree(cramfsunpackdirectory)
 
     # now add everything that was unpacked
-    dirwalk = os.walk(unpackdir)
+    dirwalk = os.walk(unpackdir_full)
     for direntries in dirwalk:
         # make sure all subdirectories and files can be accessed
         for entryname in direntries[1]:
             fullfilename = os.path.join(direntries[0], entryname)
             if not os.path.islink(fullfilename):
                 os.chmod(fullfilename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            unpackedfilesandlabels.append((relfilename, []))
         for entryname in direntries[2]:
             fullfilename = os.path.join(direntries[0], entryname)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            unpackedfilesandlabels.append((relfilename, []))
 
     if offset == 0 and cramfssize == filesize:
         labels.append('cramfs')

@@ -2889,16 +2889,17 @@ def unpackAndroidBootHuawei(fileresult, scanenvironment, offset, unpackdir):
 # Test file: "ViewPad 7 Firmware v3_42_uk.zip"
 #
 # This extension is also often used for Windows CE files
-def unpack_nb0(filename, offset, unpackdir, temporarydirectory):
+def unpack_nb0(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack Android nb0 update files'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # first four bytes are the number of headers
     checkbytes = checkfile.read(4)
@@ -2961,11 +2962,12 @@ def unpack_nb0(filename, offset, unpackdir, temporarydirectory):
     # short sanity check to see if there is enough data
     for header in headers:
         unpackoffset = offset + unpackedsize + headers[header]['offset']
-        outfilename = os.path.join(unpackdir, headers[header]['name'])
-        outfile = open(outfilename, 'wb')
+        outfile_rel = os.path.join(unpackdir, headers[header]['name'])
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), unpackoffset, headers[header]['size'])
         outfile.close()
-        unpackedfilesandlabels.append((outfilename, []))
+        unpackedfilesandlabels.append((outfile_rel, []))
 
     unpackedsize += maxheader
 
