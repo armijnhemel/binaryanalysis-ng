@@ -47,6 +47,11 @@ def get_unpackers_for_file(unpackername, f):
     except KeyError:
         pass
 
+    try:
+        yield bangsignatures.textonlyfunctions[unpackername]
+    except KeyError:
+        pass
+
 def is_prefix(pref,full):
     cp = os.path.commonprefix((pref,full))
     return cp == pref

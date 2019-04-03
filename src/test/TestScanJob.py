@@ -29,20 +29,8 @@ class TestScanJob(TestBase):
         f.write(b'\0' * 20)
         f.close()
 
-    def _create_css_file_in_directory(self):
-        self.parent_dir = pathlib.Path('a')
-        self._make_directory_in_unpackdir(self.parent_dir)
-        self.css_file = self.parent_dir / 'cascade.css'
-        unpackedpath = os.path.join(self.unpackdir, self.css_file)
-        shutil.copy(os.path.join(self.testdata_dir, self.css_file),
-                unpackedpath)
-
     def _create_absolute_path_object(self,fn):
         return pathlib.Path(os.path.join(self.unpackdir, fn))
-
-    def _create_fileresult_for_file(self,child,parent,labels):
-        return FileResult(child,
-                self._create_absolute_path_object(parent), parent, labels )
 
     def test_carved_padding_file_has_correct_labels(self):
         self._create_padding_file_in_directory()
@@ -67,20 +55,26 @@ class TestScanJob(TestBase):
             processfile(self.dbconn, self.dbcursor, self.scan_environment)
         except QueueEmptyError:
             pass
+        except ScanJobError as e:
+            if e.e.__class__ != QueueEmptyError:
+                raise e
         result = self.result_queue.get()
         self.assertSetEqual(result.labels,set(['binary','padding']))
 
     def test_process_css_file_has_correct_labels(self):
         # /home/tim/bang-test-scrap/bang-scan-jucli3nm/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/www/luci-static/bootstrap/cascade.css
-        self._create_css_file_in_directory()
-        fileresult = self._create_fileresult_for_file(
-                self.css_file, self.parent_dir, set())
+        fn = pathlib.Path("a/cascade.css")
+        self._copy_file_from_testdata(fn)
+        fileresult = create_fileresult_for_path(self.unpackdir,fn,set())
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
             processfile(self.dbconn, self.dbcursor, self.scan_environment)
         except QueueEmptyError:
             pass
+        except ScanJobError as e:
+            if e.e.__class__ != QueueEmptyError:
+                raise e
         result = self.result_queue.get()
         self.assertSetEqual(result.labels,set(['text','css']))
 
@@ -97,6 +91,9 @@ class TestScanJob(TestBase):
             processfile(self.dbconn, self.dbcursor, self.scan_environment)
         except QueueEmptyError:
             pass
+        except ScanJobError as e:
+            if e.e.__class__ != QueueEmptyError:
+                raise e
         result = self.result_queue.get()
         self.assertSetEqual(result.labels,set(['text','base64','urlsafe']))
 
@@ -112,6 +109,9 @@ class TestScanJob(TestBase):
             processfile(self.dbconn, self.dbcursor, self.scan_environment)
         except QueueEmptyError:
             pass
+        except ScanJobError as e:
+            if e.e.__class__ != QueueEmptyError:
+                raise e
         result = self.result_queue.get()
         self.assertSetEqual(result.labels,set(['text','script','shell']))
 
@@ -126,6 +126,9 @@ class TestScanJob(TestBase):
             processfile(self.dbconn, self.dbcursor, self.scan_environment)
         except QueueEmptyError:
             pass
+        except ScanJobError as e:
+            if e.e.__class__ != QueueEmptyError:
+                raise e
         result1 = self.result_queue.get()
         result2 = self.result_queue.get()
         self.assertEqual(str(result2.filename), str(fn)+'-gzip-1/hello')
