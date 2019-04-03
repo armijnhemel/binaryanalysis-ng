@@ -2611,9 +2611,13 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
                 dirwalk = os.walk(unpackdir_full)
                 for entry in dirwalk:
                     for direntry in entry[1]:
-                        unpackedfilesandlabels.append((os.path.join(entry[0], direntry), []))
+                        fn = scanenvironment.rel_unpack_path(
+                                os.path.join(entry[0], direntry))
+                        unpackedfilesandlabels.append((fn, []))
                     for direntry in entry[2]:
-                        unpackedfilesandlabels.append((os.path.join(entry[0], direntry), []))
+                        fn = scanenvironment.rel_unpack_path(
+                                os.path.join(entry[0], direntry))
+                        unpackedfilesandlabels.append((fn, []))
             else:
                 labels.append("unknown compression")
 
@@ -2661,6 +2665,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
     os.sendfile(targetfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     targetfile.close()
     checkfile.close()
+
     unpackedfilesandlabels.append((targetfile_rel, ['encrypted', 'zip', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
