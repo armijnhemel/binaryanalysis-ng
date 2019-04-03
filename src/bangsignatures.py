@@ -89,6 +89,7 @@ signatures = {
     'apple_icon': b'icns',  # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
     'androidsparse': b'\x3a\xff\x26\xed',
     'lz4': b'\x04\x22\x4d\x18',  # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
+    'lz4_legacy': b'\x02\x21\x4c\x18',  # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
     'vmdk': b'KDMV',
     'qcow2': b'QFI\xfb',
     'vdi': b'<<< Oracle VM VirtualBox Disk Image >>>\n',
@@ -133,6 +134,12 @@ signatures = {
     'minix_1l': b'\x8f\x13', # minix v1, linux variant
     'compress': b'\x1f\x9d', # /usr/share/magic
     'romfs': b'-rom1fs-',
+    'cramfs_le': b'\x45\x3d\xcd\x28',
+    'cramfs_be': b'\x28\xcd\x3d\x45',
+    'quakepak': b'PACK',
+    'doomwad': b'IWAD',
+    'ambarella': b'\x90\xeb\x24\xa3',
+    'romfs_ambarella': b'\x8a\x32\xfc\x66',
 }
 
 # some signatures do not start at the beginning of the file
@@ -148,7 +155,9 @@ signaturesoffset = {
     'dlinkromfs': 16,
     'gimpbrush': 20,
     'fat': 0x1fe,
-    'minix_1l': 0x410
+    'minix_1l': 0x410,
+    'ambarella': 0x818,
+    'romfs_ambarella': 4,
 }
 
 
@@ -237,6 +246,7 @@ signaturetofunction = {
     'apple_icon': bangmedia.unpackAppleIcon,
     'androidsparse': bangandroid.unpackAndroidSparse,
     'lz4': bangunpack.unpackLZ4,
+    'lz4_legacy': bangunpack.unpackLZ4Legacy,
     'vmdk': bangfilesystems.unpackVMDK,
     'qcow2': bangfilesystems.unpackQcow2,
     'vdi': bangfilesystems.unpackVDI,
@@ -280,7 +290,13 @@ signaturetofunction = {
     'cbfs': bangfilesystems.unpackCBFS,
     'minix_1l': bangfilesystems.unpackMinix1L,
     'compress': bangunpack.unpackCompress,
-    #'romfs': bangfilesystems.unpackRomfs,
+    'romfs': bangfilesystems.unpackRomfs,
+    'cramfs_le': bangfilesystems.unpack_cramfs,
+    'cramfs_be': bangfilesystems.unpack_cramfs,
+    'quakepak': bangunpack.unpack_pak,
+    'doomwad': bangunpack.unpack_wad,
+    'ambarella': bangunpack.unpack_ambarella,
+    'romfs_ambarella': bangunpack.unpack_romfs_ambarella,
 }
 
 # a lookup table to map signatures to a name for
@@ -306,6 +322,8 @@ signatureprettyprint = {
     'swf_lzma': 'swf',
     'ktx11': 'ktx',
     'minix_1l': 'minix',
+    'cramfs_le': 'cramfs',
+    'cramfs_be': 'cramfs',
 }
 
 # extensions to unpacking functions. This should only be
@@ -347,6 +365,7 @@ extensiontofunction = {
     '.pc': bangunpack.unpackPkgConfig,
     '.ics': bangunpack.unpackICS,
     'trans.tbl': bangunpack.unpackTransTbl,
+    '.nb0': bangandroid.unpack_nb0,
 }
 
 # a lookup table to map extensions to a name
@@ -385,9 +404,10 @@ extensionprettyprint = {
     '.pc': 'pc',
     '.ics': 'ics',
     'trans.tbl': 'trans.tbl',
+    '.nb0': 'nb0',
 }
 
-def matches_file_pattern(filename,extension):
+def matches_file_pattern(filename, extension):
     return filename.name.lower().endswith(extension)
 
 # certain unpacking functions if the whole file is text
@@ -645,7 +665,7 @@ prescan_functions = {
     'terminfo' : prescan_terminfo,
 }
 
-def prescan(s,scanbytes, bytesread, filesize, offset, offsetinfile):
+def prescan(s, scanbytes, bytesread, filesize, offset, offsetinfile):
     f = prescan_functions.get(s, prescan_true)
     return f(scanbytes, bytesread, filesize, offset, offsetinfile)
 
@@ -888,5 +908,3 @@ forgereferences['sourceware.org'] = ["sourceware.org/git/"]
 # just in case.
 maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
 maxsignaturesoffset = max(signaturesoffset.values()) + maxsignaturelength
-
-

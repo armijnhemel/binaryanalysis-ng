@@ -2954,7 +2954,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
                 try:
                     checksumoffset = int(checksumoffset)
                     checksumsize = int(checksumsize)
-                except:
+                except ValueError:
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize,
                                       'fatal': False,
@@ -3081,7 +3081,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
                 try:
                     dataoffset = int(dataoffset)
                     datalength = int(datalength)
-                except:
+                except ValueError:
                     targetfile.close()
                     os.unlink(targetfile_full)
                     checkfile.close()
@@ -5168,10 +5168,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
             checkbytes = checkfile.read(2)
             if len(checkbytes) != 2:
                 break
-            try:
-                nr_of_links = int.from_bytes(checkbytes, byteorder='little')
-            except:
-                break
+            nr_of_links = int.from_bytes(checkbytes, byteorder='little')
             unpackedsize += 2
 
             # there should always be at least 1 link
@@ -5182,10 +5179,8 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
             checkbytes = checkfile.read(2)
             if len(checkbytes) != 2:
                 break
-            try:
-                rdev = int.from_bytes(checkbytes, byteorder='little')
-            except:
-                break
+            rdev = int.from_bytes(checkbytes, byteorder='little')
+
             # "For all other entry types, it should be set to zero by
             # writers and ignored by readers."
             #if rdev != 0:
@@ -5202,10 +5197,8 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
             checkbytes = checkfile.read(2)
             if len(checkbytes) != 2:
                 break
-            try:
-                namesize = int.from_bytes(checkbytes, byteorder='little')
-            except:
-                break
+            namesize = int.from_bytes(checkbytes, byteorder='little')
+
             # not possible to have an empty name
             if namesize == 0:
                 break
@@ -7751,6 +7744,104 @@ def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 
+# LZ4 legacy format, uses external tools as it is not
+# supported in python-lz4:
+# https://github.com/python-lz4/python-lz4/issues/169
+# https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
+def unpackLZ4Legacy(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack LZ4 legacy compressed data.'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file, seek to the offset
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize = 4
+
+    # now process to see how much data should be
+    # processed using the LZ4 utilities
+    blockunpacked = False
+    while True:
+        # block compressed size
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'not enough data for block compressed size'}
+            return {'status': False, 'error': unpackingerror}
+        # "if the frame is followed by a valid Frame Magic Number, it is considered completed."
+        if checkbytes == b'\x02\x21\x4c\x18':
+            break
+        blockcompressedsize = int.from_bytes(checkbytes, byteorder='little')
+        if offset + blockcompressedsize + 8 > filesize:
+            if not blockunpacked:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'compressed data cannot be outside file'}
+                return {'status': False, 'error': unpackingerror}
+            break
+        unpackedsize += 4
+
+        # skip over the compressed data
+        checkfile.seek(blockcompressedsize, os.SEEK_CUR)
+        unpackedsize += blockcompressedsize
+
+        # check if the end of file was reached
+        if unpackedsize == filesize:
+            break
+        blockunpacked = True
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        if filename.suffix.lower() == '.lz4':
+            outfilename = os.path.join(unpackdir, filename.stem)
+        else:
+            outfilename = os.path.join(unpackdir, "unpacked-from-lz4-legacy")
+        p = subprocess.Popen(['lz4c', '-d', filename, outfilename],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outputmsg, errormsg) = p.communicate()
+        if p.returncode != 0:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not a LZ4 legacy file'}
+            return {'status': False, 'error': unpackingerror}
+        labels.append('compressed')
+        labels.append('lz4')
+        unpackedfilesandlabels.append((outfilename, []))
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+    else:
+        # first write the data to a temporary file
+        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+        os.fdopen(temporaryfile[0]).close()
+        checkfile.close()
+
+        if filename.suffix.lower() == '.lz4':
+            outfilename = os.path.join(unpackdir, filename.stem)
+        else:
+            outfilename = os.path.join(unpackdir, "unpacked-from-lz4-legacy")
+        p = subprocess.Popen(['lz4c', '-d', temporaryfile[1], outfilename],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outputmsg, errormsg) = p.communicate()
+        os.unlink(temporaryfile[1])
+
+        if p.returncode != 0:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not a LZ4 legacy file'}
+            return {'status': False, 'error': unpackingerror}
+
+        unpackedfilesandlabels.append((outfilename, []))
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                      'reason': 'invalid LZ4 legacy data'}
+    return {'status': False, 'error': unpackingerror}
+
+
 # There are a few variants of XML. The first one is the "regular"
 # one, which is documented at:
 # https://www.w3.org/TR/2008/REC-xml-20081126/
@@ -9625,7 +9716,7 @@ def unpackCSS(fileresult, scanenvironment, offset, unpackdir):
         isopened = True
     except:
         unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not a text file'}
+                          'reason': 'not a valid CSS file'}
         return {'status': False, 'error': unpackingerror}
 
     checkfile.seek(0)
@@ -9666,7 +9757,6 @@ def unpackCSS(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'no CSS unpacked'}
         return {'status': False, 'error': unpackingerror}
 
-    labels.append('text')
     labels.append('css')
 
     return {'status': True, 'length': filesize, 'labels': labels,
@@ -13243,33 +13333,33 @@ def unpackPkgConfig(fileresult, scanenvironment, offset, unpackdir):
         isopened = True
         validpc = True
         continued = False
-        for l in checkfile:
+        for line in checkfile:
             keywordfound = False
             # skip blank lines
-            if l.strip() == '':
+            if line.strip() == '':
                 continued = False
                 continue
             # skip comments
-            if l.startswith('#'):
+            if line.startswith('#'):
                 continue
             for k in mandatorykeywords:
-                if l.startswith(k+':'):
+                if line.startswith(k+':'):
                     keywordsfound.add(k)
                     keywordfound = True
                     break
             if keywordfound:
-                if l.strip().endswith('\\'):
+                if line.strip().endswith('\\'):
                     continued = True
                 else:
                     continued = False
                 continue
             for k in optionalkeywords:
-                if l.startswith(k+':'):
+                if line.startswith(k+':'):
                     keywordsfound.add(k)
                     keywordfound = True
                     break
             if keywordfound:
-                if l.strip().endswith('\\'):
+                if line.strip().endswith('\\'):
                     continued = True
                 else:
                     continued = False
@@ -13277,14 +13367,14 @@ def unpackPkgConfig(fileresult, scanenvironment, offset, unpackdir):
 
             # process variable definitions
             if not continued:
-                if '=' not in l:
+                if '=' not in line:
                     validpc = False
                     break
-                pcres = re.match('[\w\d_]+=', l)
+                pcres = re.match('[\w\d_]+=', line)
                 if pcres is None:
                     validpc = False
                     break
-            if l.strip().endswith('\\'):
+            if line.strip().endswith('\\'):
                 continued = True
             else:
                 continued = False
@@ -13635,8 +13725,8 @@ def unpackTransTbl(fileresult, scanenvironment, offset, unpackdir):
     # open the file in text mode
     try:
         checkfile = open(filename_full, 'r')
-        for l in checkfile:
-            linesplits = l.strip().split()
+        for line in checkfile:
+            linesplits = line.strip().split()
             if len(linesplits) < 3:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -13653,7 +13743,7 @@ def unpackTransTbl(fileresult, scanenvironment, offset, unpackdir):
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'wrong file type indicator'}
                 return {'status': False, 'error': unpackingerror}
-    except:
+    except UnicodeDecodeError:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'not enough data for entry'}
@@ -13666,4 +13756,447 @@ def unpackTransTbl(fileresult, scanenvironment, offset, unpackdir):
     labels.append('resource')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# unpack Quake PAK files
+# https://quakewiki.org/wiki/.pak
+def unpack_pak(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack a Quake PAK file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if offset + 12 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # offset to beginning of the file table
+    checkbytes = checkfile.read(4)
+    file_table_offset = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # file table cannot be in the header
+    if file_table_offset < 12:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong value for file table offset'}
+        return {'status': False, 'error': unpackingerror}
+
+    # size of the file table
+    checkbytes = checkfile.read(4)
+    file_table_size = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # there has to be at least one file
+    if file_table_size == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong value for file table size'}
+        return {'status': False, 'error': unpackingerror}
+
+    # file_table_size has to be a multiple of 64
+    if file_table_size % 64 != 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong value for file table size'}
+        return {'status': False, 'error': unpackingerror}
+
+    # file table cannot be outside of file
+    if offset + file_table_offset + file_table_size > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for file table'}
+        return {'status': False, 'error': unpackingerror}
+
+    # each file table entry is 64 bytes
+    number_of_files = file_table_size//64
+
+    maxoffset = file_table_offset + file_table_size
+
+    # seek to the file table offset
+    checkfile.seek(offset + file_table_offset)
+    for fn in range(0, number_of_files):
+        # read the name
+        checkbytes = checkfile.read(56)
+        try:
+            fn_name = checkbytes.split(b'\x00', 1)[0].decode()
+            # force a relative path
+            if fn_name.startswith('/'):
+                fn_name = os.path.relpath(fn_name, '/')
+        except UnicodeDecodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid file name'}
+            return {'status': False, 'error': unpackingerror}
+
+        # read the offset
+        checkbytes = checkfile.read(4)
+        fn_offset = int.from_bytes(checkbytes, byteorder='little')
+
+        # read the size
+        checkbytes = checkfile.read(4)
+        fn_size = int.from_bytes(checkbytes, byteorder='little')
+
+        # sanity check
+        if offset + fn_offset + fn_size > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'data cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+
+        maxoffset = max(maxoffset, fn_offset + fn_size)
+
+        outfilename = os.path.join(unpackdir, fn_name)
+
+        # create subdirectories, if any are defined in the file name
+        if '/' in fn_name:
+            os.makedirs(os.path.dirname(outfilename), exist_ok=True)
+
+        # write the file
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset + fn_offset, fn_size)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, []))
+
+    checkfile.close()
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('quake')
+
+    return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Doom WAD files
+#
+# http://web.archive.org/web/20090530112359/http://www.gamers.org/dhs/helpdocs/dmsp1666.html
+# Chapter 2
+def unpack_wad(filename, offset, unpackdir, temporarydirectory):
+    '''Verify a Doom WAD file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    if offset + 12 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # number of lumps in the file
+    checkbytes = checkfile.read(4)
+    nr_lumps = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    if nr_lumps == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no lumps defined'}
+        return {'status': False, 'error': unpackingerror}
+
+    # offset to beginning of the lumps directory
+    checkbytes = checkfile.read(4)
+    lumps_dir_offset = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    if offset + lumps_dir_offset + nr_lumps * 16 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for lumps directory'}
+        return {'status': False, 'error': unpackingerror}
+
+    maxoffset = lumps_dir_offset + nr_lumps * 16
+
+    # now check the lumps directory
+    checkfile.seek(offset + lumps_dir_offset)
+    for lump in range(0, nr_lumps):
+        # lump offset
+        checkbytes = checkfile.read(4)
+        lump_offset = int.from_bytes(checkbytes, byteorder='little')
+
+        # lump size
+        checkbytes = checkfile.read(4)
+        lump_size = int.from_bytes(checkbytes, byteorder='little')
+
+        # sanity check
+        if offset + lump_offset + lump_size > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'data cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+
+        maxoffset = max(maxoffset, lump_offset + lump_size)
+
+        # lump name
+        checkbytes = checkfile.read(8)
+        try:
+            lump_name = checkbytes.split(b'\x00', 1)[0].decode()
+        except UnicodeDecodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid lump name'}
+            return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('doom')
+        labels.append('wad')
+        labels.append('resource')
+    else:
+        # else carve the file
+        outfilename = os.path.join(unpackdir, "unpacked.wad")
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
+        outfile.close()
+        unpackedfilesandlabels.append((outfilename, ['doom', 'wad', 'resource', 'unpacked']))
+
+    checkfile.close()
+    return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Ambarella firmware files
+#
+# http://web.archive.org/web/20190402224117/https://courses.cs.ut.ee/MTAT.07.022/2015_spring/uploads/Main/karl-report-s15.pdf
+# Section 4.2
+def unpack_ambarella(filename, offset, unpackdir, temporarydirectory):
+    '''Verify an Ambarella firmware file'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+
+    # store a mapping of start/end of the sections
+    sections = {}
+
+    # the first 128 bytes describe the start offsets of all possible
+    # sections. This means there is a maximum of 32 sections.
+    for section in range(0, 32):
+        checkbytes = checkfile.read(4)
+        startoffset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + startoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'offset cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+        sections[section] = {}
+        sections[section]['start'] = startoffset
+
+    # the next are end offsets of all possible sections
+    for section in range(0, 32):
+        checkbytes = checkfile.read(4)
+        endoffset = int.from_bytes(checkbytes, byteorder='little')
+        if offset + endoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'offset cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+        sections[section]['end'] = endoffset
+
+    maxoffset = 0
+
+    # section to name, from:
+    # http://web.archive.org/web/20140627194326/http://forum.dashcamtalk.com/threads/r-d-a7-r-d-thread.5119/page-2
+    # post #28
+    #
+    # These names are NOT recorded in the binary!
+    sectiontoname = {0: 'bootstrap',
+                     2: 'bootloader',
+                     5: 'rtos',
+                     8: 'ramdisk',
+                     9: 'romfs',
+                     10: 'dsp',
+                     11: 'linux'}
+
+    # write the data of each section
+    for section in sections:
+        if sections[section]['start'] == 0:
+            continue
+
+        # section consists of 256 byte header followed by the data
+        sectionsize = sections[section]['end'] - sections[section]['start'] - 256
+
+        if sectionsize <= 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid offsets'}
+            return {'status': False, 'error': unpackingerror}
+
+        maxoffset = max(maxoffset, sections[section]['end'])
+
+        # jump to the right offset
+        checkfile.seek(offset + sections[section]['start'])
+
+        # process the header (32 bytes, padded to 256 bytes)
+
+        # CRC32 of the section
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        # section version
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        # build date, skip for now
+        checkbytes = checkfile.read(4)
+        unpackedsize += 4
+
+        # section length
+        checkbytes = checkfile.read(4)
+        section_length = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        # memory location, skip for now
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # flags, skip
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # magic, skip
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # more flags, skip
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        datastart = offset + sections[section]['start'] + 256
+
+        outfilename = os.path.join(unpackdir, sectiontoname.get(section, str(section)))
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), datastart, sectionsize)
+        outfile.close()
+
+        unpackedfilesandlabels.append((outfilename, []))
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('ambarella')
+
+    checkfile.close()
+    return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Ambarella romfs
+#
+# http://web.archive.org/web/20190402224117/https://courses.cs.ut.ee/MTAT.07.022/2015_spring/uploads/Main/karl-report-s15.pdf
+# Section 4.1
+def unpack_romfs_ambarella(filename, offset, unpackdir, temporarydirectory):
+    '''Verify an Ambarella romfs file system'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+
+    # amount of files
+    checkbytes = checkfile.read(4)
+    nr_files = int.from_bytes(checkbytes, byteorder='little')
+
+    # the data starts at 0x800 and then there should be 128 bytes
+    # for each of the files that are included in the file system
+    if offset + 0x800 + nr_files * 128 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
+
+    # seek to the right offset
+    checkfile.seek(offset + 0x800)
+
+    maxoffset = 0
+
+    inodes = {}
+
+    for inode in range(0, nr_files):
+        # first the file name
+        checkbytes = checkfile.read(116)
+        try:
+            inode_name = checkbytes.split(b'\x00', 1)[0].decode()
+            # force a relative path
+            if inode_name.startswith('/'):
+                inode_name = os.path.relpath(inode_name, '/')
+        except UnicodeDecodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid file name'}
+            return {'status': False, 'error': unpackingerror}
+
+        # then the offset
+        checkbytes = checkfile.read(4)
+        inode_offset = int.from_bytes(checkbytes, byteorder='little')
+
+        # size
+        checkbytes = checkfile.read(4)
+        inode_size = int.from_bytes(checkbytes, byteorder='little')
+
+        maxoffset = max(maxoffset, inode_offset + inode_size)
+
+        inodes[inode] = {'name': inode_name,
+                         'offset': inode_offset,
+                         'size': inode_size}
+
+        # magic
+        checkbytes = checkfile.read(4)
+        if checkbytes != b'\x76\xab\x87\x23':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid magic'}
+            return {'status': False, 'error': unpackingerror}
+
+    for inode in inodes:
+        outfilename = os.path.join(unpackdir, inodes[inode]['name'])
+        # create subdirectories, if any are defined in the file name
+        if '/' in inodes[inode]['name']:
+            os.makedirs(os.path.dirname(outfilename), exist_ok=True)
+        datastart = offset + inodes[inode]['offset']
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), datastart, inodes[inode]['size'])
+        outfile.close()
+
+        unpackedfilesandlabels.append((outfilename, []))
+
+    # byte aligned on 2048 bytes (section size), padding bytes
+    if maxoffset % 2048 != 0:
+        checkfile.seek(offset + maxoffset)
+        paddingsize = 2048 - maxoffset % 2048
+        paddingbytes = checkfile.read(paddingsize)
+        if paddingbytes != b'\xff' * paddingsize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid padding'}
+            return {'status': False, 'error': unpackingerror}
+        maxoffset += paddingsize
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('ambarella')
+        labels.append('file system')
+
+    checkfile.close()
+    return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

@@ -1,3 +1,25 @@
+# Binary Analysis Next Generation (BANG!)
+#
+# This file is part of BANG.
+#
+# BANG is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License, version 3,
+# as published by the Free Software Foundation.
+#
+# BANG is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License, version 3, along with BANG.  If not, see
+# <http://www.gnu.org/licenses/>
+#
+# Copyright 2018-2019 - Armijn Hemel
+# Licensed under the terms of the GNU Affero General Public License
+# version 3
+# SPDX-License-Identifier: AGPL-3.0-only
+
 import stat
 import os
 import logging
@@ -6,13 +28,39 @@ import pathlib
 import shutil
 import pickle
 import sys
+import traceback
+import json
 
 import bangsignatures
 from bangfilescans import bangfilefunctions, bangwholecontextfunctions
 from banglogging import log
+import banglogging
 from FileResult import FileResult
 from FileContentsComputer import *
 from Unpacker import *
+
+
+class ScanJobError(Exception):
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls)
+
+    def __init__(self, scanjob, e):
+        super().__init__(self, scanjob, e)
+        self.scanjob = scanjob
+        self.e = e
+
+    def __str__(self):
+        exc = traceback.format_exception(type(self.e), self.e, self.e.__traceback__, chain=False)
+        if self.scanjob is not None:
+            return """Exception for scanjob:
+file:
+    %s
+labels:
+    %s
+""" % (str(self.scanjob.fileresult.filepath), ",".join(self.scanjob.fileresult.labels)) + "".join(exc)
+        else:
+            return "Exception (no scanjob):\n\n" + "".join(exc)
+
 
 class ScanJob:
     """Performs scanning and unpacking related checks and stores the
@@ -203,7 +251,6 @@ class ScanJob:
                 candidateoffsetsfound = set()
                 for s in bangsignatures.signatures:
                     offsets = unpacker.find_offsets_for_signature(s, self.fileresult.filesize)
-                    
                     candidateoffsetsfound.update(offsets)
 
                 # For each of the found candidates see if any
@@ -480,7 +527,7 @@ class ScanJob:
                     # No data could be unpacked for some reason,
                     # so check the status first
                     log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
-                            (self.fileresult.get_filename(), f, 0, unpackresult['error']['reason']))
+                        (self.fileresult.get_filename(), f, 0, unpackresult['error']['reason']))
                     #print(s[1], unpackresult['error'])
                     #sys.stdout.flush()
                     # unpackerror contains:
@@ -501,7 +548,7 @@ class ScanJob:
                     continue
 
                 log(logging.INFO, "SUCCESS %s %s at offset: %d, length: %d" %
-                        (self.fileresult.get_filename(), f, 0, unpackresult['length']))
+                    (self.fileresult.get_filename(), f, 0, unpackresult['length']))
 
                 # store the labels for files that could be
                 # unpacked/verified completely.
@@ -588,88 +635,94 @@ def processfile(dbconn, dbcursor, scanenvironment):
     carveunpacked = True
 
     while True:
-        scanjob = scanfilequeue.get(timeout=86400)
-        if not scanjob: continue
-        scanjob.set_scanenvironment(scanenvironment)
-        scanjob.initialize()
-        fileresult = scanjob.fileresult
+        try:
+            scanjob = scanfilequeue.get(timeout=86400)
+            if not scanjob: continue
+            scanjob.set_scanenvironment(scanenvironment)
+            scanjob.initialize()
+            fileresult = scanjob.fileresult
 
-        unscannable = scanjob.check_unscannable_file()
-        if unscannable:
+            unscannable = scanjob.check_unscannable_file()
+            if unscannable:
+                resultqueue.put(scanjob.fileresult)
+                scanfilequeue.task_done()
+                continue
+
+            unpacker = Unpacker(scanenvironment.unpackdirectory)
+            scanjob.prepare_for_unpacking()
+            scanjob.check_for_padding_file(unpacker)
+            scanjob.check_for_unpacked_file(unpacker)
+            scanjob.check_mime_types()
+
+            if unpacker.needs_unpacking():
+                scanjob.check_for_valid_extension(unpacker)
+
+            if unpacker.needs_unpacking():
+                scanjob.check_for_signatures(unpacker)
+
+            if carveunpacked:
+                scanjob.carve_file_data(unpacker)
+
+            scanjob.do_content_computations()
+
+            if unpacker.needs_unpacking():
+                scanjob.check_entire_file(unpacker)
+
+            duplicate = False
+            processlock.acquire()
+            # TODO: make checksumdict an object
+            # TODO: does this need to be a dictionary, or can it be a set?
+            # if hashresults['sha256'] in checksumdict:
+            if scanjob.fileresult.get_hash() in checksumdict:
+                duplicate = True
+            else:
+                checksumdict[scanjob.fileresult.get_hash()] = scanjob.fileresult.filename
+            processlock.release()
+
+            if not duplicate:
+                scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
+
+                # write a pickle with output data
+                # The pickle contains:
+                # * all available hashes
+                # * labels
+                # * byte count
+                # * any extra data that might have been passed around
+                resultout = {}
+                if createbytecounter and 'padding' not in scanjob.fileresult.labels:
+                    resultout['bytecount'] = sorted(byte_counter.get().items())
+                    # write a file with the distribution of bytes in the scanned file
+                    bytescountfilename = scanenvironment.resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
+                    if not bytescountfilename.exists():
+                        bytesout = bytescountfilename.open('w')
+                        for by in resultout['bytecount']:
+                            bytesout.write("%d\t%d\n" % by)
+                        bytesout.close()
+
+                for a, h in scanjob.fileresult.get_hashresult().items():
+                    resultout[a] = h
+
+                resultout['labels'] = list(scanjob.fileresult.labels)
+                picklefilename = scanenvironment.resultsdirectory / ("%s.pickle" % scanjob.fileresult.get_hash('sha256'))
+                # TODO: this is vulnerable to a race condition, replace with EAFP pattern
+                if not picklefilename.exists():
+                    pickleout = picklefilename.open('wb')
+                    pickle.dump(resultout, pickleout)
+                    pickleout.close()
+
+            else:
+                scanjob.fileresult.labels.add('duplicate')
+
+            # scanjob.fileresult.set_filesize(scanjob.filesize)
+            # log(logging.INFO, json.dumps(fileresult.get()))
+
             resultqueue.put(scanjob.fileresult)
             scanfilequeue.task_done()
-            continue
-
-        unpacker = Unpacker(scanenvironment.unpackdirectory)
-        scanjob.prepare_for_unpacking()
-        scanjob.check_for_padding_file(unpacker)
-        scanjob.check_for_unpacked_file(unpacker)
-        scanjob.check_mime_types()
-
-        if unpacker.needs_unpacking():
-            scanjob.check_for_valid_extension(unpacker)
-
-        if unpacker.needs_unpacking():
-            scanjob.check_for_signatures(unpacker)
-
-        if carveunpacked:
-            scanjob.carve_file_data(unpacker)
-
-        scanjob.do_content_computations()
-
-        if unpacker.needs_unpacking():
-            scanjob.check_entire_file(unpacker)
-
-        duplicate = False
-        processlock.acquire()
-        # TODO: make checksumdict an object
-        # TODO: does this need to be a dictionary, or can it be a set?
-        # if hashresults['sha256'] in checksumdict:
-        if scanjob.fileresult.get_hash() in checksumdict:
-            duplicate = True
-        else:
-            checksumdict[scanjob.fileresult.get_hash()] = scanjob.fileresult.filename
-        processlock.release()
-
-        if not duplicate:
-            scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
-
-            # write a pickle with output data
-            # The pickle contains:
-            # * all available hashes
-            # * labels
-            # * byte count
-            # * any extra data that might have been passed around
-            resultout = {}
-            if createbytecounter and 'padding' not in scanjob.fileresult.labels:
-                resultout['bytecount'] = sorted(byte_counter.get().items())
-                # write a file with the distribution of bytes in the scanned file
-                bytescountfilename = scanenvironment.resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
-                if not bytescountfilename.exists():
-                    bytesout = bytescountfilename.open('w')
-                    for by in resultout['bytecount']:
-                        bytesout.write("%d\t%d\n" % by)
-                    bytesout.close()
-
-            for a, h in scanjob.fileresult.get_hashresult().items():
-                resultout[a] = h
-
-            resultout['labels'] = list(scanjob.fileresult.labels)
-            picklefilename = scanenvironment.resultsdirectory / ("%s.pickle" % scanjob.fileresult.get_hash('sha256'))
-            # TODO: this is vulnerable to a race condition, replace with EAFP pattern
-            if not picklefilename.exists():
-                pickleout = picklefilename.open('wb')
-                pickle.dump(resultout, pickleout)
-                pickleout.close()
-
-        else:
-            scanjob.fileresult.labels.add('duplicate')
-
-        # scanjob.fileresult.set_filesize(scanjob.filesize)
-        # log(logging.INFO, json.dumps(fileresult.get()))
-        sys.stdout.flush()
-
-        resultqueue.put(scanjob.fileresult)
-        scanfilequeue.task_done()
-
+        except Exception as e:
+            tb = sys.exc_info()[2]
+            if scanjob:
+                raise ScanJobError(scanjob, e)
+                # raise ScanJobError(scanjob, e).with_traceback(tb)
+            else:
+                raise ScanJobError(None, e).with_traceback(tb)
 

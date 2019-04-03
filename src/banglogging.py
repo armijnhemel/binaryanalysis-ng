@@ -1,9 +1,8 @@
 import logging
 
-uselogging = None
+uselogging = False
 
 def log(level, message):
-    global uselogging
     if uselogging:
         logging.log(level, message)
 

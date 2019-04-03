@@ -43,61 +43,12 @@ import stat
 import subprocess
 import json
 import re
-import pathlib
-
-# some external packages that are needed
-import lz4
-import lz4.frame
 
 encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                         'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
                         'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
                         'iso2022_jp_ext', 'iso2022_kr', 'shift_jis',
                         'shift_jis_2004', 'shift_jisx0213']
-
-# Each unpacker has a specific interface:
-#
-# def unpacker(filename, offset, unpackdir, temporarydirectory)
-#
-# * filename: full file name (pathlib.PosixPath object)
-# * offset: offset inside the file where the file system, compressed
-#   file media file possibly starts
-# * unpackdir: the target directory where data should be written to
-# * temporarydirectory: a directory where temporary files are stored
-#   and temporary directories are created
-#
-# The unpackers are supposed to return a dictionary with the following
-# field:
-#
-# * unpack status (boolean) to indicate whether or not any data was
-#   unpacked
-#
-# Depending on the value of the status several other fields are
-# expected. For successful scans (unpack status == True) the following
-# should be present:
-#
-# * unpack size to indicate what part of the data was unpacked
-# * a list of tuples (file, labels) that were unpacked from the file.
-#   The labels could be used to indicate that a file has a certain
-#   status and that it should not be unpacked as it is already known
-#   what the file is (example: PNG)
-# * a list of labels for the file
-# * a dict with extra information (structure depending on type
-#   of scan)
-# * (optional) offset indicating the start of the data
-#
-# If the scan was unsuccessful (unpack status == False), the following
-# should be present:
-#
-# * a dict with a possible error.
-#
-# The error dict has the following items:
-#
-# * fatal: boolean to indicate whether or not the error is a fatal
-#   error (such as disk full, etc.) so BANG should be stopped.
-#   Non-fatal errors are format violations (files, etc.)
-# * offset: offset where the error occured
-# * reason: human readable description of the error
 
 
 # Unpacking for squashfs
@@ -1262,13 +1213,16 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
     checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
-    bigendian = False
-
     # read the magic of the first inode to see if it is a little endian
     # or big endian file system
     checkbytes = checkfile.read(2)
     if checkbytes == b'\x19\x85':
         bigendian = True
+        byteorder = 'big'
+    else:
+        bigendian = False
+        byteorder = 'little'
+
 
     dataunpacked = False
 
@@ -1377,10 +1331,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
         checkbytes = checkfile.read(2)
         if len(checkbytes) != 2:
             break
-        if bigendian:
-            inodetype = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            inodetype = int.from_bytes(checkbytes, byteorder='little')
+        inodetype = int.from_bytes(checkbytes, byteorder=byteorder)
 
         # check if the inode type is actually valid
         if inodetype not in validinodes:
@@ -1390,10 +1341,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             break
-        if bigendian:
-            inodesize = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            inodesize = int.from_bytes(checkbytes, byteorder='little')
+        inodesize = int.from_bytes(checkbytes, byteorder=byteorder)
 
         # check if the inode extends past the file
         if checkfile.tell() - 12 + inodesize > filesize:
@@ -1417,10 +1365,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
             break
-        if bigendian:
-            headercrc = int.from_bytes(checkbytes, byteorder='big')
-        else:
-            headercrc = int.from_bytes(checkbytes, byteorder='little')
+        headercrc = int.from_bytes(checkbytes, byteorder=byteorder)
 
         # The checksum varies slightly from the one in the zlib/binascii modules
         # as explained here:
@@ -1448,10 +1393,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                parentinode = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                parentinode = int.from_bytes(checkbytes, byteorder='little')
+            parentinode = int.from_bytes(checkbytes, byteorder=byteorder)
 
             parentinodesseen.add(parentinode)
 
@@ -1459,19 +1401,13 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                inodeversion = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                inodeversion = int.from_bytes(checkbytes, byteorder='little')
+            inodeversion = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # inode number is next
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                inodenumber = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                inodenumber = int.from_bytes(checkbytes, byteorder='little')
+            inodenumber = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # skip unlinked inodes
             if inodenumber == 0:
@@ -1524,10 +1460,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                namecrc = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                namecrc = int.from_bytes(checkbytes, byteorder='little')
+            namecrc = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # finally the name of the node
             checkbytes = checkfile.read(inodenamelength)
@@ -1563,10 +1496,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                inodenumber = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                inodenumber = int.from_bytes(checkbytes, byteorder='little')
+            inodenumber = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # first check if a file name for this inode is known
             if inodenumber not in inodetofilename:
@@ -1588,19 +1518,13 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                inodeversion = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                inodeversion = int.from_bytes(checkbytes, byteorder='little')
+            inodeversion = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # file mode
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
                 break
-            if bigendian:
-                filemode = int.from_bytes(checkbytes, byteorder='big')
-            else:
-                filemode = int.from_bytes(checkbytes, byteorder='little')
+            filemode = int.from_bytes(checkbytes, byteorder=byteorder)
 
             if stat.S_ISSOCK(filemode):
                 # keep track of whatever is in the file and report
@@ -1617,10 +1541,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
                     break
-                if bigendian:
-                    linknamelength = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                    linknamelength = int.from_bytes(checkbytes, byteorder='little')
+                linknamelength = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 # skip ahead 16 bytes to the data containing the link name
                 checkfile.seek(16, os.SEEK_CUR)
@@ -1645,10 +1566,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
                     break
-                if bigendian:
-                    writeoffset = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                    writeoffset = int.from_bytes(checkbytes, byteorder='little')
+                writeoffset = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 if writeoffset == 0:
                     if inodenumber in inodetowriteoffset:
@@ -1671,19 +1589,13 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
                     break
-                if bigendian:
-                    compressedsize = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                    compressedsize = int.from_bytes(checkbytes, byteorder='little')
+                compressedsize = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 # read the decompressed size
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
                     break
-                if bigendian:
-                    decompressedsize = int.from_bytes(checkbytes, byteorder='big')
-                else:
-                    decompressedsize = int.from_bytes(checkbytes, byteorder='little')
+                decompressedsize = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 # find out which compression algorithm has been used
                 checkbytes = checkfile.read(1)
@@ -3931,4 +3843,629 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
         labels.append('filesystem')
 
     return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Linux kernel: Documentation/filesystems/romfs.txt
+def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack a romfs file system'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file, skip the magic
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset+8)
+    unpackedsize += 8
+
+    # then the file size, big endian
+    checkbytes = checkfile.read(4)
+    romsize = int.from_bytes(checkbytes, byteorder='big')
+    if offset + romsize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'romfs cannot extend past end of file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # then the checksum of the first 512 bytes, skip for now
+    checkbytes = checkfile.read(4)
+    unpackedsize += 4
+
+    # the file name, padded on a 16 byte boundary
+    romname = b''
+    while True:
+        checkbytes = checkfile.read(16)
+        if len(checkbytes) != 16:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for name'}
+            return {'status': False, 'error': unpackingerror}
+        romname += checkbytes
+        unpackedsize += 16
+        if b'\x00' in checkbytes:
+            break
+
+    try:
+        romname = romname.split(b'\x00', 1)[0].decode()
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid name for romfs'}
+        return {'status': False, 'error': unpackingerror}
+
+    # keep a mapping from offsets to parent names
+    offsettoparent = {}
+
+    # keep a deque with which offset/parent directory pairs
+    offsets = collections.deque()
+
+    # then the file headers, with data
+    curoffset = checkfile.tell() - offset
+    curcwd = ''
+    offsets.append((curoffset, curcwd))
+
+    # now keep processing offsets, until none
+    # are left to process.
+    maxoffset = checkfile.tell() - offset
+    while True:
+        try:
+            (curoffset, curcwd) = offsets.popleft()
+        except:
+            break
+        checkfile.seek(offset + curoffset)
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for file data'}
+            return {'status': False, 'error': unpackingerror}
+
+        unpackedsize += 4
+
+        # the location of the next header, except for the last 4 bits
+        nextheader = int.from_bytes(checkbytes, byteorder='big') & 4294967280
+
+        # next header cannot be outside of the file
+        if offset + nextheader > filesize:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'next offset cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+
+        # flag to see if the file is executable, can be ignored for now
+        execflag = int.from_bytes(checkbytes, byteorder='big') & 8
+
+        # mode info, ignore for now
+        modeinfo = int.from_bytes(checkbytes, byteorder='big') & 7
+
+        # spec.info
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for file special info'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        specinfo = int.from_bytes(checkbytes, byteorder='big')
+
+        # sanity checks
+        if modeinfo == 1:
+            pass
+
+        # read the file size
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for file size'}
+            return {'status': False, 'error': unpackingerror}
+        inodesize = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        # checksum, not used
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for file checksum'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        # file name, 16 byte boundary, padded
+        inodename = b''
+        while True:
+            checkbytes = checkfile.read(16)
+            if len(checkbytes) != 16:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'not enough data for file name'}
+                return {'status': False, 'error': unpackingerror}
+            inodename += checkbytes
+            unpackedsize += 16
+            if b'\x00' in checkbytes:
+                break
+
+        try:
+            inodename = inodename.split(b'\x00', 1)[0].decode()
+        except:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid file name'}
+            return {'status': False, 'error': unpackingerror}
+
+        # the file data cannot be outside of the file
+        if checkfile.tell() + inodesize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'file cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+
+        # now process the inode
+        if modeinfo == 0:
+            # hard link
+            if inodename != '.' and inodename != '..':
+                checkbytes = checkfile.read(inodesize)
+                try:
+                    sourcetargetname = checkbytes.split(b'\x00', 1)[0].decode()
+                except:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid link'}
+                    return {'status': False, 'error': unpackingerror}
+                if len(sourcetargetname) == 0:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid link'}
+                    return {'status': False, 'error': unpackingerror}
+                if os.path.isabs(sourcetargetname):
+                    sourcetargetname = os.path.relpath(sourcetargetname, '/')
+                    sourcetargetname = os.path.normpath(os.path.join(unpackdir, sourcetargetname))
+
+                outfilename = os.path.join(unpackdir, curcwd, inodename)
+
+                os.link(sourcetargetname, outfilename)
+                unpackedfilesandlabels.append((outfilename, ['hardlink']))
+        elif modeinfo == 1:
+            # directory: the next header points
+            # to the first file header.
+            if offset + specinfo > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'next offset cannot be outside of file'}
+                return {'status': False, 'error': unpackingerror}
+            if inodename != '.' and inodename != '..':
+                outfilename = os.path.join(unpackdir, curcwd, inodename)
+                os.mkdir(outfilename)
+                offsets.append((specinfo, os.path.join(curcwd, inodename)))
+                unpackedfilesandlabels.append((outfilename, ['directory']))
+        elif modeinfo == 2:
+            # regular file
+            if specinfo != 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid value for specinfo'}
+                return {'status': False, 'error': unpackingerror}
+            outfilename = os.path.join(unpackdir, curcwd, inodename)
+            outfile = open(outfilename, 'wb')
+            os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), inodesize)
+            outfile.close()
+            unpackedfilesandlabels.append((outfilename, []))
+        elif modeinfo == 3:
+            # symbolic link
+            if specinfo != 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid value for specinfo'}
+                return {'status': False, 'error': unpackingerror}
+            checkbytes = checkfile.read(inodesize)
+            try:
+                sourcetargetname = checkbytes.split(b'\x00', 1)[0].decode()
+            except:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid symbolic link'}
+                return {'status': False, 'error': unpackingerror}
+            if len(sourcetargetname) == 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid symbolic link'}
+                return {'status': False, 'error': unpackingerror}
+            if os.path.isabs(sourcetargetname):
+                sourcetargetname = os.path.relpath(sourcetargetname, '/')
+                sourcetargetname = os.path.normpath(os.path.join(unpackdir, sourcetargetname))
+
+            outfilename = os.path.join(unpackdir, curcwd, inodename)
+
+            os.symlink(sourcetargetname, outfilename)
+            unpackedfilesandlabels.append((outfilename, ['symbolic link']))
+        elif modeinfo == 4:
+            # block device
+            pass
+        elif modeinfo == 5:
+            # character device
+            pass
+        elif modeinfo == 6:
+            # socket
+            if specinfo != 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid value for specinfo'}
+                return {'status': False, 'error': unpackingerror}
+        elif modeinfo == 7:
+            # fifo
+            if specinfo != 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid value for specinfo'}
+                return {'status': False, 'error': unpackingerror}
+
+        maxoffset = max(maxoffset, curoffset + inodesize)
+        # no more files
+        if nextheader != 0:
+            offsets.append((nextheader, curcwd))
+
+    # the maximum offset cannot be larger than the declared rom size
+    if maxoffset > romsize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'maximum offset larger than declared rom size'}
+        return {'status': False, 'error': unpackingerror}
+
+    # romfs file systems are aligned on a 1024 byte boundary
+    if romsize % 1024 != 0:
+        paddingbytes = 1024 - romsize % 1024
+        maxoffset = romsize + paddingbytes
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('romfs')
+        labels.append('filesystem')
+
+    return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# Linux kernel: fs/cramfs/README
+# needs recent version of util-linux that supports --extract
+def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
+    '''Unpack a cramfs file system'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # minimum of 1 block of 4096 bytes
+    if offset + 4096 > filesize:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+
+    # read the magic to see what the endianness is
+    checkbytes = checkfile.read(4)
+    if checkbytes == b'\x45\x3d\xcd\x28':
+        byteorder = 'little'
+        bigendian = False
+    else:
+        byteorder = 'big'
+        bigendian = True
+    unpackedsize += 4
+
+    # length in bytes
+    checkbytes = checkfile.read(4)
+    cramfssize = int.from_bytes(checkbytes, byteorder=byteorder)
+    if offset + cramfssize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'declared size larger than file'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # feature flags
+    checkbytes = checkfile.read(4)
+    featureflags = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 4
+
+    if featureflags & 1 == 1:
+        cramfsversion = 2
+    else:
+        cramfsversion = 0
+
+    # currently only version 2 is supported
+    if cramfsversion == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'unsupported cramfs version'}
+        return {'status': False, 'error': unpackingerror}
+
+    # reserved for future use, skip
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # signature
+    checkbytes = checkfile.read(16)
+    if checkbytes != b'Compressed ROMFS':
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid signature'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 16
+
+    # cramfs_info struct (32 bytes)
+    # crc32
+    checkbytes = checkfile.read(4)
+    cramfscrc32 = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 4
+
+    # edition
+    checkbytes = checkfile.read(4)
+    cramfsedition = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 4
+
+    # blocks
+    checkbytes = checkfile.read(4)
+    cramfsblocks = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 4
+
+    # files
+    checkbytes = checkfile.read(4)
+    cramfsfiles = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 4
+
+    # user defined name
+    checkbytes = checkfile.read(16)
+    try:
+        volumename = checkbytes.split(b'\x00', 1)[0].decode()
+    except UnicodeDecodeError:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid volume name'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 16
+
+    # then process the inodes.
+
+    # keep a mapping of inode numbers to metadata
+    # and a reverse mapping from offset to inode
+    inodes = {}
+    offsettoinode = {}
+    dataoffsettoinode = {}
+
+    # See defines in Linux kernel include/uapi/linux/cramfs_fs.h
+    # for the width/length of modes, lengths, etc.
+    for inode in range(0, cramfsfiles):
+        # store the current offset, as it is used by directories
+        curoffset = checkfile.tell() - offset
+
+        # 2 bytes mode width, 2 bytes uid width
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for inode'}
+            return {'status': False, 'error': unpackingerror}
+        inodemode = int.from_bytes(checkbytes, byteorder=byteorder)
+        unpackedsize += 2
+
+        # determine the kind of file
+        if stat.S_ISDIR(inodemode):
+            mode = 'directory'
+        elif stat.S_ISCHR(inodemode):
+            mode = 'chardev'
+        elif stat.S_ISBLK(inodemode):
+            mode = 'blockdev'
+        elif stat.S_ISREG(inodemode):
+            mode = 'file'
+        elif stat.S_ISFIFO(inodemode):
+            mode = 'fifo'
+        elif stat.S_ISLNK(inodemode):
+            mode = 'symlink'
+        elif stat.S_ISSOCK(inodemode):
+            mode = 'socket'
+
+        checkbytes = checkfile.read(2)
+        if len(checkbytes) != 2:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for inode'}
+            return {'status': False, 'error': unpackingerror}
+        inodeuid = int.from_bytes(checkbytes, byteorder=byteorder)
+        unpackedsize += 2
+
+        # 3 bytes size width, 1 bytes gid width
+        checkbytes = checkfile.read(3)
+        if len(checkbytes) != 3:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for inode'}
+            return {'status': False, 'error': unpackingerror}
+
+        # size of the decompressed inode
+        inodesize = int.from_bytes(checkbytes, byteorder=byteorder)
+        unpackedsize += 3
+
+        checkbytes = checkfile.read(1)
+        if len(checkbytes) != 1:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for inode'}
+            return {'status': False, 'error': unpackingerror}
+        inodegid = int.from_bytes(checkbytes, byteorder=byteorder)
+        unpackedsize += 1
+
+        # length of the name and offset. The first 6 bits are for
+        # the name length (divided by 4), the last 26 bits for the
+        # offset of the data (divided by 4). This is regardless of
+        # the endianness!
+        # The name is padded to 4 bytes. Because the original name length
+        # is restored by multiplying with 4 there is no need for a
+        # check for padding.
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for inode'}
+            return {'status': False, 'error': unpackingerror}
+        namelenbytes = int.from_bytes(checkbytes, byteorder=byteorder)
+        unpackedsize += 4
+
+        if bigendian:
+            # get the most significant bits and then shift 26 bits
+            namelength = ((namelenbytes & 4227858432) >> 26) * 4
+
+            # 0b11111111111111111111111111 = 67108863
+            dataoffset = (namelenbytes & 67108863) * 4
+        else:
+            # 0b111111 = 63
+            namelength = (namelenbytes & 63) * 4
+
+            # get the bits, then shift 6 bits
+            dataoffset = ((namelenbytes & 67108863) >> 6) * 4
+
+        # the data cannot be outside of the file
+        if offset + dataoffset > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'data cannot be outside of file'}
+            return {'status': False, 'error': unpackingerror}
+
+        # if this is the root node there won't be any data
+        # following, so continue with the next inode.
+        if inode == 0:
+            continue
+
+        if namelength == 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'cannot have zero length filename'}
+            return {'status': False, 'error': unpackingerror}
+
+        checkbytes = checkfile.read(namelength)
+        try:
+            inodename = checkbytes.split(b'\x00', 1)[0].decode()
+        except UnicodeDecodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid filename'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += namelength
+
+        inodes[inode] = {'name': inodename, 'mode': mode, 'offset': curoffset,
+                         'dataoffset': dataoffset, 'uid': inodeuid,
+                         'gid': inodegid, 'size': inodesize}
+
+        offsettoinode[curoffset] = inode
+
+        if dataoffset != 0:
+            dataoffsettoinode[dataoffset] = inode
+
+    inodeoffsettodirectory = {}
+
+    # for now unpack using fsck.cramfs from util-linux. In the future
+    # this should be replaced by an own unpacker.
+
+    # now verify the data
+    for inode in inodes:
+        # don't recreate device files
+        if inodes[inode]['mode'] == 'blockdev':
+            continue
+        if inodes[inode]['mode'] == 'chardev':
+            continue
+        if inodes[inode]['mode'] == 'file':
+            pass
+        elif inodes[inode]['mode'] == 'directory':
+            # the data offset points to the offset of
+            # the first inode in the directory
+            if inodes[inode]['dataoffset'] != 0:
+                # verify if there is a valid inode
+                if inodes[inode]['dataoffset'] not in offsettoinode:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset, 'fatal': False,
+                                      'reason': 'invalid directory entry'}
+                    return {'status': False, 'error': unpackingerror}
+
+    havetmpfile = False
+
+    # unpack in a temporary directory, as fsck.cramfs expects
+    # to create the directory itself, but the unpacking directory
+    # already exists.
+
+    # first get a temporary name
+    cramfsunpackdirectory = tempfile.mkdtemp(dir=temporarydirectory)
+
+    # remove the directory. Possible race condition?
+    shutil.rmtree(cramfsunpackdirectory)
+
+    if offset == 0 and cramfssize == filesize:
+        checkfile.close()
+        p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfsunpackdirectory, filename],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, cramfssize)
+        os.fdopen(temporaryfile[0]).close()
+        checkfile.close()
+        havetmpfile = True
+
+        p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfsunpackdirectory, temporaryfile[1]],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    (outputmsg, errormsg) = p.communicate()
+
+    # clean up
+    if havetmpfile:
+        os.unlink(temporaryfile[1])
+
+    if p.returncode != 0:
+        # clean up the temporary directory. It could be that
+        # fsck.cramfs actually didn't create the directory due to
+        # other errors, such as a CRC error.
+        if os.path.exists(cramfsunpackdirectory):
+            shutil.rmtree(cramfsunpackdirectory)
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'cannot unpack cramfs'}
+        return {'status': False, 'error': unpackingerror}
+
+    # move contents of the unpacked file system
+    foundfiles = os.listdir(cramfsunpackdirectory)
+    curcwd = os.getcwd()
+
+    os.chdir(cramfsunpackdirectory)
+    for l in foundfiles:
+        try:
+            shutil.move(l, unpackdir, copy_function=local_copy2)
+        except Exception as e:
+            # TODO: report
+            # possibly not all files can be copied.
+            pass
+
+    os.chdir(curcwd)
+
+    # clean up of directory
+    shutil.rmtree(cramfsunpackdirectory)
+
+    # now add everything that was unpacked
+    dirwalk = os.walk(unpackdir)
+    for direntries in dirwalk:
+        # make sure all subdirectories and files can be accessed
+        for entryname in direntries[1]:
+            fullfilename = os.path.join(direntries[0], entryname)
+            if not os.path.islink(fullfilename):
+                os.chmod(fullfilename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            unpackedfilesandlabels.append((fullfilename, []))
+        for entryname in direntries[2]:
+            fullfilename = os.path.join(direntries[0], entryname)
+            unpackedfilesandlabels.append((fullfilename, []))
+
+    if offset == 0 and cramfssize == filesize:
+        labels.append('cramfs')
+        labels.append('filesystem')
+
+    return {'status': True, 'length': cramfssize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

@@ -73,8 +73,35 @@ The files are scanned in the above order to prevent false positives as much
 as possible. Sometimes extra information, such as extensions, are used to
 make a better guess.
 
-For each file that is unpacked, a result is returned. If a file is
-successfully unpacked the following information is kept:
+Each unpacker has a specific interface:
+
+def unpacker(filename, offset, unpackdir, temporarydirectory)
+
+1.  filename: full file name (pathlib.PosixPath object)
+2.  offset: offset inside the file where the file system, compressed
+    file media file possibly starts
+3.  unpackdir: the target directory where data should be written to
+4.  temporarydirectory: a directory where temporary files are stored
+    and temporary directories are created
+
+For each file that is unpacked, a result is returned in the form of a
+dictionary field:
+
+* unpack status (boolean) to indicate whether or not any data was
+  unpacked
+
+1.  unpack size to indicate what part of the data was unpacked
+2.  a list of tuples (file, labels) that were unpacked from the file.
+    The labels could be used to indicate that a file has a certain
+    status and that it should not be unpacked as it is already known
+    what the file is (example: PNG)
+3.  a list of labels for the file
+4.  a dict with extra information (structure depending on type
+    of scan)
+5.  (optional) offset indicating the start of the data
+
+If a file is successfully unpacked the above information is used to store
+the following about the unpacked data:
 
 1.  the type of file or data that was unpacked (example: gzip, ext2 file
     system).
@@ -88,7 +115,18 @@ successfully unpacked the following information is kept:
 
 If a file is not successfully unpacked the result will contain an error
 message, as well as the offset at which place in the file the error occured
-which is stored in a log file for later analysis, if needed.
+which is stored in a log file for later analysis, if needed. The result will
+then be:
+
+* a dict with a possible error.
+
+The error dict has the following items:
+
+1.  fatal: boolean to indicate whether or not the error is a fatal
+    error (such as disk full, etc.) so BANG should be stopped.
+    Non-fatal errors are format violations (files, etc.)
+2.  offset: offset where the error occured
+3.  reason: human readable description of the error
 
 #### Unpacking directory
 
