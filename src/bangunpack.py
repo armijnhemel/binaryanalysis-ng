@@ -9906,17 +9906,17 @@ def unpackKernelConfig(fileresult, scanenvironment, offset, unpackdir):
     headerre_alt = re.compile('# Automatically generated file; DO NOT EDIT.$')
 
     headerre2 = re.compile('# Linux kernel version: ([\d\.]+)$')
-    headerre2_alt = re.compile('# Linux/[\w\d\-]+ ([\d\.]+) Kernel Configuration$')
+    headerre2_alt = re.compile('# Linux/[\w\d\-_]+ ([\d\w\.\-_]+) Kernel Configuration$')
     headerre3 = re.compile('# (\w{3} \w{3} [\d ]+ \d{2}:\d{2}:\d{2} \d{4})$')
     headerre4 = re.compile('# Compiler: ([\w\d\.\-() ]+)$')
 
     # regular expression for the configuration header lines
-    configheaderre = re.compile('# [\w\d/\-;:\. ,()]+$')
+    configheaderre = re.compile('# [\w\d/\-;:\. ,()&+]+$')
 
     # regular expressions for the lines with configuration
     configre = re.compile('# CONFIG_[\w\d_]+ is not set$')
     configre2 = re.compile('(CONFIG_[\w\d_]+)=([ynm])$')
-    configre3 = re.compile('(CONFIG_[\w\d_]+)=([\w\d"\-/\.$]+$)')
+    configre3 = re.compile('(CONFIG_[\w\d_]+)=([\w\d"\-/\.$()+]+$)')
 
     # open the file in text only mode
     checkfile = open(filename_full, 'r')
@@ -13830,7 +13830,7 @@ def unpack_pak(filename, offset, unpackdir, temporarydirectory):
         try:
             fn_name = checkbytes.split(b'\x00', 1)[0].decode()
             # force a relative path
-            if fn_name.startswith('/'):
+            if os.path.isabs(fn_name):
                 fn_name = os.path.relpath(fn_name, '/')
         except UnicodeDecodeError:
             checkfile.close()
@@ -14139,7 +14139,7 @@ def unpack_romfs_ambarella(filename, offset, unpackdir, temporarydirectory):
         try:
             inode_name = checkbytes.split(b'\x00', 1)[0].decode()
             # force a relative path
-            if inode_name.startswith('/'):
+            if os.path.isabs(inode_name):
                 inode_name = os.path.relpath(inode_name, '/')
         except UnicodeDecodeError:
             checkfile.close()
