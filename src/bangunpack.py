@@ -297,10 +297,10 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
     # otherwise just imitate whatever gunzip does. If the file has a
     # name recorded in the file it will be renamed later.
     anonymous = False
-    if fileresult.relpath.suffix.lower() == '.gz':
-        outfile_rel = os.path.join(unpackdir, fileresult.relpath.stem)
-    elif fileresult.relpath.suffix.lower() == '.tgz':
-        outfile_rel = os.path.join(unpackdir, fileresult.relpath.stem + ".tar")
+    if filename_full.suffix.lower() == '.gz':
+        outfile_rel = os.path.join(unpackdir, filename_full.stem)
+    elif filename_full.suffix.lower() == '.tgz':
+        outfile_rel = os.path.join(unpackdir, filename_full.stem + ".tar")
     else:
         outfile_rel = os.path.join(unpackdir, "unpacked-from-gz")
         anonymous = True

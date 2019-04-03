@@ -188,13 +188,13 @@ class ScanJob:
                 log(logging.INFO, "TRY extension match %s %s" % (self.fileresult.filename, extension))
                 unpackresult = unpacker.try_unpack_file_for_extension(
                         self.fileresult, self.scanenvironment,
-                        self.fileresult.relpath, extension)
+                        self.fileresult.filename, extension)
                 if unpackresult is None:
                     continue
                 if not unpackresult['status']:
                     # No data could be unpacked for some reason
                     log(logging.DEBUG, "FAIL %s known extension %s: %s" %
-                            (self.fileresult.get_filename(), extension,
+                            (self.fileresult.filename, extension,
                             unpackresult['error']['reason']))
                     # Fatal errors should lead to the program stopping
                     # execution. Ignored for now.
@@ -206,7 +206,7 @@ class ScanJob:
                 # the file could be unpacked successfully,
                 # so log it as such.
                 log(logging.INFO, "SUCCESS %s %s at offset: 0, length: %d" %
-                        (self.fileresult.get_filename(), extension,
+                        (self.fileresult.filename, extension,
                         unpackresult['length']))
 
                 unpacker.file_unpacked(unpackresult, self.fileresult.filesize)
@@ -277,7 +277,7 @@ class ScanJob:
                     # for the signature including the signature name
                     # and a counter for the signature.
                     namecounter = counterspersignature.get(signature, 0) + 1
-                    namecounter = unpacker.make_data_unpack_directory(self.fileresult.relpath,
+                    namecounter = unpacker.make_data_unpack_directory(self.fileresult.filename,
                             bangsignatures.signatureprettyprint.get(signature, signature),
                             namecounter)
 
@@ -285,7 +285,7 @@ class ScanJob:
                     # First log which identifier was found and
                     # at which offset for possible later analysis.
                     log(logging.DEBUG, "TRYING %s %s at offset: %d" %
-                            (self.fileresult.get_filename(), signature, offset))
+                            (self.fileresult.filename, signature, offset))
 
                     unpackresult = unpacker.try_unpack_file_for_signatures(
                             self.fileresult, self.scanenvironment,
@@ -297,7 +297,7 @@ class ScanJob:
                         # No data could be unpacked for some reason,
                         # so log the status and error message
                         log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
-                                (self.fileresult.get_filename(), signature, offset,
+                                (self.fileresult.filename, signature, offset,
                                     unpackresult['error']['reason']))
 
                         # Fatal errors should lead to the program
@@ -314,7 +314,7 @@ class ScanJob:
                     # the file could be unpacked successfully,
                     # so log it as such.
                     log(logging.INFO, "SUCCESS %s %s at offset: %d, length: %d" %
-                            (self.fileresult.get_filename(), signature, offset, unpackresult['length']))
+                            (self.fileresult.filename, signature, offset, unpackresult['length']))
 
                     # store the name counter
                     counterspersignature[signature] = namecounter
@@ -514,9 +514,9 @@ class ScanJob:
     def check_entire_file(self, unpacker):
         if 'text' in self.fileresult.labels and unpacker.unpacked_range() == []:
             for f in bangsignatures.textonlyfunctions:
-                namecounter = unpacker.make_data_unpack_directory(self.fileresult.relpath, f, 1)
+                namecounter = unpacker.make_data_unpack_directory(self.fileresult.filename, f, 1)
 
-                log(logging.DEBUG, "TRYING %s %s at offset: 0" % (self.fileresult.get_filename(), f))
+                log(logging.DEBUG, "TRYING %s %s at offset: 0" % (self.fileresult.filename, f))
                 unpackresult = unpacker.try_textonlyfunctions(
                         self.fileresult, self.scanenvironment,
                         f, 0)
@@ -527,7 +527,7 @@ class ScanJob:
                     # No data could be unpacked for some reason,
                     # so check the status first
                     log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
-                        (self.fileresult.get_filename(), f, 0, unpackresult['error']['reason']))
+                        (self.fileresult.filename, f, 0, unpackresult['error']['reason']))
                     #print(s[1], unpackresult['error'])
                     #sys.stdout.flush()
                     # unpackerror contains:
@@ -548,7 +548,7 @@ class ScanJob:
                     continue
 
                 log(logging.INFO, "SUCCESS %s %s at offset: %d, length: %d" %
-                    (self.fileresult.get_filename(), f, 0, unpackresult['length']))
+                    (self.fileresult.filename, f, 0, unpackresult['length']))
 
                 # store the labels for files that could be
                 # unpacked/verified completely.

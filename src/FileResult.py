@@ -26,7 +26,6 @@ class FileResult:
     """stores all the information about the file that has been discovered
     so far."""
     def __init__(self, rel_filename, rel_parentfilename, labels):
-        self.relpath = pathlib.Path(rel_filename)
         self.hash = {}
         self.filename = rel_filename
         self.parent = rel_parentfilename
@@ -76,9 +75,6 @@ class FileResult:
             if self.mimetype_encoding is not None:
                 d['mimetype encoding'] = self.mimetype_encoding
         return d
-
-    def get_filename(self):
-        return self.filename
 
     def get_hash(self, algorithm='sha256'):
         return self.hash[algorithm]
