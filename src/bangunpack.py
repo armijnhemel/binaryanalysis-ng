@@ -9720,17 +9720,17 @@ def unpackKernelConfig(filename, offset, unpackdir, temporarydirectory):
     headerre_alt = re.compile('# Automatically generated file; DO NOT EDIT.$')
 
     headerre2 = re.compile('# Linux kernel version: ([\d\.]+)$')
-    headerre2_alt = re.compile('# Linux/[\w\d\-]+ ([\d\.]+) Kernel Configuration$')
+    headerre2_alt = re.compile('# Linux/[\w\d\-_]+ ([\d\w\.\-_]+) Kernel Configuration$')
     headerre3 = re.compile('# (\w{3} \w{3} [\d ]+ \d{2}:\d{2}:\d{2} \d{4})$')
     headerre4 = re.compile('# Compiler: ([\w\d\.\-() ]+)$')
 
     # regular expression for the configuration header lines
-    configheaderre = re.compile('# [\w\d/\-;:\. ,()]+$')
+    configheaderre = re.compile('# [\w\d/\-;:\. ,()&+]+$')
 
     # regular expressions for the lines with configuration
     configre = re.compile('# CONFIG_[\w\d_]+ is not set$')
     configre2 = re.compile('(CONFIG_[\w\d_]+)=([ynm])$')
-    configre3 = re.compile('(CONFIG_[\w\d_]+)=([\w\d"\-/\.$]+$)')
+    configre3 = re.compile('(CONFIG_[\w\d_]+)=([\w\d"\-/\.$()+]+$)')
 
     # open the file in text only mode
     checkfile = open(filename, 'r')
