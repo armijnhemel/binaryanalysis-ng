@@ -47,7 +47,7 @@ from TestUtil import *
 class TestGIF(TestBase):
 
     # a test for the file being a single GIF
-    def testFullfileIsGIF(self):
+    def test_fullfile(self):
         '''Test a single GIF'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -58,7 +58,7 @@ class TestGIF(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single GIF with data appended to it
-    def testDataAppendedToGif(self):
+    def test_appended(self):
         '''Test a single GIF with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-add-random-data.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -68,7 +68,7 @@ class TestGIF(TestBase):
         self.assertEqual(testres['length'], 7073713)
 
     # a test for the file being a single GIF with data in front
-    def testDataPrependedToGif(self):
+    def test_prepended(self):
         '''Test a single GIF with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-prepend-random-data.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -78,7 +78,7 @@ class TestGIF(TestBase):
         self.assertEqual(testres['length'], 7073713)
 
     # a test for the file being a single GIF with data cut from the end
-    def testDataCutFromEndGif(self):
+    def test_cut_from_end(self):
         '''Test a single GIF with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-cut-data-from-end.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -87,7 +87,7 @@ class TestGIF(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single GIF with data cut from the middle
-    def testDataCutFromMiddleGif(self):
+    def test_cut_from_middle(self):
         '''Test a single GIF with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-cut-data-from-middle.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -96,7 +96,7 @@ class TestGIF(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single GIF with data added in the middle
-    def testDataAddedInMiddleGif(self):
+    def test_added_in_middle(self):
         '''Test a single GIF with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-data-added-to-middle.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -105,7 +105,7 @@ class TestGIF(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single GIF with data replaced in the middle
-    def testDataReplacedInMiddleGif(self):
+    def test_replaced_in_middle(self):
         '''Test a single GIF with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-data-replaced-in-middle.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -117,7 +117,7 @@ class TestGIF(TestBase):
 # a test class for testing PNG files
 class TestPNG(TestBase):
     # a test for the file being a single PNG
-    def testFullfileIsPNG(self):
+    def test_fullfile(self):
         '''Test a single PNG'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -128,7 +128,7 @@ class TestPNG(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single animated PNG
-    def testFullfileIsAPNG(self):
+    def test_fullfile_apng(self):
         '''Test a single animated PNG'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -140,7 +140,7 @@ class TestPNG(TestBase):
         self.assertIn('animated', testres['labels'])
 
     # a test for the file being a single PNG with data appended to it
-    def testDataAppendedToPNG(self):
+    def test_appended(self):
         '''Test a single PNG with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-add-random-data.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -150,7 +150,7 @@ class TestPNG(TestBase):
         self.assertEqual(testres['length'], 6001452)
 
     # a test for the file being a single animated PNG with data appended to it
-    def testDataAppendedToAPNG(self):
+    def test_appended_apng(self):
         '''Test a single animated PNG with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-add-random-data.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -161,7 +161,7 @@ class TestPNG(TestBase):
         self.assertIn('animated', testres['filesandlabels'][0][1])
 
     # a test for the file being a single PNG with data in front
-    def testDataPrependedToPNG(self):
+    def test_prepended(self):
         '''Test a single PNG with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-prepend-random-data.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -171,7 +171,7 @@ class TestPNG(TestBase):
         self.assertEqual(testres['length'], 6001452)
 
     # a test for the file being a single animated PNG with data in front
-    def testDataPrependedToAPNG(self):
+    def test_prepended_apng(self):
         '''Test a single PNG with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-prepend-random-data.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -182,7 +182,7 @@ class TestPNG(TestBase):
         self.assertIn('animated', testres['filesandlabels'][0][1])
 
     # a test for the file being a single PNG with data cut from the end
-    def testDataCutFromEndPNG(self):
+    def test_cut_from_end(self):
         '''Test a single PNG with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-cut-data-from-end.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -191,7 +191,7 @@ class TestPNG(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data cut from the end
-    def testDataCutFromEndAPNG(self):
+    def test_cut_from_end_apng(self):
         '''Test a single animated PNG with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-cut-data-from-end.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -200,7 +200,7 @@ class TestPNG(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data cut from the middle
-    def testDataCutFromMiddlePNG(self):
+    def test_cut_from_middle(self):
         '''Test a single PNG with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-cut-data-from-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -210,7 +210,7 @@ class TestPNG(TestBase):
 
     # a test for the file being a single animated PNG
     # with data cut from the middle
-    def testDataCutFromMiddleAPNG(self):
+    def test_cut_from_middle_apng(self):
         '''Test a single animated PNG with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-cut-data-from-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -219,7 +219,7 @@ class TestPNG(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data added in the middle
-    def testDataAddedInMiddlePNG(self):
+    def test_added_in_middle(self):
         '''Test a single PNG with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-data-added-to-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -229,7 +229,7 @@ class TestPNG(TestBase):
 
     # a test for the file being a single animated PNG
     # with data added in the middle
-    def testDataAddedInMiddleAPNG(self):
+    def test_added_in_middle_apng(self):
         '''Test a single animated PNG with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-data-added-to-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -238,7 +238,7 @@ class TestPNG(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data replaced in the middle
-    def testDataReplacedInMiddlePNG(self):
+    def test_replaced_in_middle(self):
         '''Test a single PNG with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-data-replaced-in-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -248,7 +248,7 @@ class TestPNG(TestBase):
 
     # a test for the file being a single animated PNG
     # with data replaced in the middle
-    def testDataReplacedInMiddleAPNG(self):
+    def test_replaced_in_middle_apng(self):
         '''Test a single animated PNG with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-data-replaced-in-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -260,7 +260,7 @@ class TestPNG(TestBase):
 # a test class for testing JPEG files
 class TestJPEG(TestBase):
     # a test for the file being a single JPEG
-    def testFullfileIsJPEG(self):
+    def test_fullfile(self):
         '''Test a single JPEG'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
@@ -271,7 +271,7 @@ class TestJPEG(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single JPEG with data appended to it
-    def testDataAppendedToJPEG(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-add-random-data.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -280,7 +280,7 @@ class TestJPEG(TestBase):
         self.assertEqual(testres['length'], 4676767)
 
     # a test for the file being a single JPEG with data in front
-    def testDataPrependedToJPEG(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-prepend-random-data.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -289,7 +289,7 @@ class TestJPEG(TestBase):
         self.assertEqual(testres['length'], 4676767)
 
     # a test for the file being a single JPEG with data cut from the end
-    def testDataCutFromEndJPEG(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-cut-data-from-end.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -297,7 +297,7 @@ class TestJPEG(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single JPEG with data cut from the middle
-    def testDataCutFromMiddleJPEG(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-cut-data-from-middle.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -305,7 +305,7 @@ class TestJPEG(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single JPEG with data added in the middle
-    def testDataAddedInMiddleJPEG(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-data-added-to-middle.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -313,7 +313,7 @@ class TestJPEG(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single JPEG with data replaced in the middle
-    def testDataReplacedInMiddleJPEG(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-data-replaced-in-middle.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -324,7 +324,7 @@ class TestJPEG(TestBase):
 # a test class for testing BMP files
 class TestBMP(TestBase):
     # a test for the file being a single BMP
-    def testFullfileIsBMP(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -334,7 +334,7 @@ class TestBMP(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single BMP with data appended to it
-    def testDataAppendedToBMP(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-add-random-data.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -343,7 +343,7 @@ class TestBMP(TestBase):
         self.assertEqual(testres['length'], 572666)
 
     # a test for the file being a single BMP with data in front
-    def testDataPrependedToBMP(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-prepend-random-data.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -352,7 +352,7 @@ class TestBMP(TestBase):
         self.assertEqual(testres['length'], 572666)
 
     # a test for the file being a single BMP with data cut from the end
-    def testDataCutFromEndBMP(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-cut-data-from-end.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -360,7 +360,7 @@ class TestBMP(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single BMP with data cut from the middle
-    def testDataCutFromMiddleBMP(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-cut-data-from-middle.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -368,7 +368,7 @@ class TestBMP(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single BMP with data added in the middle
-    def testDataAddedInMiddleBMP(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-data-added-to-middle.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -376,7 +376,7 @@ class TestBMP(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single BMP with data replaced in the middle
-    def testDataReplacedInMiddleBMP(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-data-replaced-in-middle.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -387,7 +387,7 @@ class TestBMP(TestBase):
 # a test class for testing SGI files
 class TestSGI(TestBase):
     # a test for the file being a single SGI
-    def testFullfileIsSGI(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -398,7 +398,7 @@ class TestSGI(TestBase):
 
     # now all the test cases.
     # a test for the file being a single SGI
-    def testFullfileIsSGIVerbatim(self):
+    def test_fullfile_verbatim(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -408,7 +408,7 @@ class TestSGI(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single SGI with data appended to it
-    def testDataAppendedToSGI(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-add-random-data.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -417,7 +417,7 @@ class TestSGI(TestBase):
         self.assertEqual(testres['length'], 592418)
 
     # a test for the file being a single SGI with data appended to it
-    def testDataAppendedToSGIVerbatim(self):
+    def test_appended_verbatim(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-add-random-data.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -426,7 +426,7 @@ class TestSGI(TestBase):
         self.assertEqual(testres['length'], 572048)
 
     # a test for the file being a single SGI with data in front
-    def testDataPrependedToSGI(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-prepend-random-data.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -435,7 +435,7 @@ class TestSGI(TestBase):
         self.assertEqual(testres['length'], 592418)
 
     # a test for the file being a single SGI with data in front
-    def testDataPrependedToSGIVerbatim(self):
+    def test_prepended_verbatim(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-prepend-random-data.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -444,7 +444,7 @@ class TestSGI(TestBase):
         self.assertEqual(testres['length'], 572048)
 
     # a test for the file being a single SGI with data cut from the end
-    def testDataCutFromEndSGI(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-cut-data-from-end.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -452,7 +452,7 @@ class TestSGI(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single SGI with data cut from the end
-    def testDataCutFromEndSGIVerbatim(self):
+    def test_cut_from_end_verbatim(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-cut-data-from-end.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -460,7 +460,7 @@ class TestSGI(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single SGI with data cut from the middle
-    def testDataCutFromMiddleSGI(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-cut-data-from-middle.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -468,7 +468,7 @@ class TestSGI(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single SGI with data cut from the middle
-    def testDataCutFromMiddleSGIVerbatim(self):
+    def test_cut_from_middle_verbatim(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-cut-data-from-middle.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -476,28 +476,28 @@ class TestSGI(TestBase):
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data added in the middle
-    #def testDataAddedInMiddleSGI(self):
+    #def test_added_in_middle(self):
     #    filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-data-added-to-middle.sgi'
     #    offset = 0
     #    testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
     #    self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data added in the middle
-    #def testDataAddedInMiddleSGIVerbatim(self):
+    #def test_added_in_middle_verbatim(self):
     #    filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-data-added-to-middle.sgi'
     #    offset = 0
     #    testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
     #    self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data replaced in the middle
-    #def testDataReplacedInMiddleSGI(self):
+    #def test_replaced_in_middle(self):
     #    filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-data-replaced-in-middle.sgi'
     #    offset = 0
     #    testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
     #    self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data replaced in the middle
-    #def testDataReplacedInMiddleSGIVerbatim(self):
+    #def test_replaced_in_middle_verbatim(self):
     #    filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-data-replaced-in-middle.sgi'
     #    offset = 0
     #    testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
@@ -507,7 +507,7 @@ class TestSGI(TestBase):
 # a test class for testing Android sparse files
 class TestAndroidSparse(TestBase):
     # a test for the file being a single Android sparse image
-    def testFullfileIsAndroidSparse(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'simg' / 'zero.img'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -520,7 +520,7 @@ class TestAndroidSparse(TestBase):
 # a test class for testing SREC files
 class TestSREC(TestBase):
 
-    def testSRECWrong(self):
+    def test_srec_wrong(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'srec' / 'srec-wrong.txt'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -531,7 +531,7 @@ class TestSREC(TestBase):
 # a test class for testing GZIP files
 class TestGZIP(TestBase):
     # a test for the file being a single gzip
-    def testFullfileIsGzip(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -541,7 +541,7 @@ class TestGZIP(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single gzip with data appended to it
-    def testDataAppendedToGzip(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-add-random-data.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -550,7 +550,7 @@ class TestGZIP(TestBase):
         self.assertEqual(testres['length'], 4665601)
 
     # a test for the file being a single gzip with data in front
-    def testDataPrependedToGzip(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-prepend-random-data.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -559,7 +559,7 @@ class TestGZIP(TestBase):
         self.assertEqual(testres['length'], 4665601)
 
     # a test for the file being a single gzip with data cut from the end
-    def testDataCutFromEndGzip(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-cut-data-from-end.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -567,7 +567,7 @@ class TestGZIP(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single gzip with data cut from the middle
-    def testDataCutFromMiddleGzip(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-cut-data-from-middle.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -575,7 +575,7 @@ class TestGZIP(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single gzip with data added in the middle
-    def testDataAddedInMiddleGzip(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-data-added-to-middle.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -583,7 +583,7 @@ class TestGZIP(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single gzip with data replaced in the middle
-    def testDataReplacedInMiddleGzip(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-data-replaced-in-middle.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -594,7 +594,7 @@ class TestGZIP(TestBase):
 # a test class for testing ZIP files
 class TestZIP(TestBase):
     # a test for the file being a single ZIP
-    def testFullfileIsZip(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -604,7 +604,7 @@ class TestZIP(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single ZIP with data appended to it
-    def testDataAppendedToZip(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-add-random-data.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -613,7 +613,7 @@ class TestZIP(TestBase):
         self.assertEqual(testres['length'], 4665740)
 
     # a test for the file being a single ZIP with data in front
-    def testDataPrependedToZip(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-prepend-random-data.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -622,7 +622,7 @@ class TestZIP(TestBase):
         self.assertEqual(testres['length'], 4665740)
 
     # a test for the file being a single ZIP with data cut from the end
-    def testDataCutFromEndZip(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-cut-data-from-end.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -630,7 +630,7 @@ class TestZIP(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ZIP with data cut from the middle
-    def testDataCutFromMiddleZip(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-cut-data-from-middle.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -638,7 +638,7 @@ class TestZIP(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ZIP with data added in the middle
-    def testDataAddedInMiddleZip(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-data-added-to-middle.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -646,7 +646,7 @@ class TestZIP(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ZIP with data replaced in the middle
-    def testDataReplacedInMiddleZip(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-data-replaced-in-middle.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -658,7 +658,7 @@ class TestZIP(TestBase):
 class TestLZ4(TestBase):
 
     # a test for the file being a single LZ4
-    def testFullfileIsLZ4(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -668,7 +668,7 @@ class TestLZ4(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single LZ4 with data appended to it
-    def testDataAppendedToLZ4(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-add-random-data.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -677,7 +677,7 @@ class TestLZ4(TestBase):
         self.assertEqual(testres['length'], 755644)
 
     # a test for the file being a single LZ4 with data in front
-    def testDataPrependedToLZ4(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-prepend-random-data.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -686,7 +686,7 @@ class TestLZ4(TestBase):
         self.assertEqual(testres['length'], 755644)
 
     # a test for the file being a single LZ4 with data cut from the end
-    def testDataCutFromEndLZ4(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-cut-data-from-end.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -694,7 +694,7 @@ class TestLZ4(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZ4 with data cut from the middle
-    def testDataCutFromMiddleLZ4(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-cut-data-from-middle.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -702,7 +702,7 @@ class TestLZ4(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZ4 with data added in the middle
-    def testDataAddedInMiddleLZ4(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-data-added-to-middle.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -710,7 +710,7 @@ class TestLZ4(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZ4 with data replaced in the middle
-    def testDataReplacedInMiddleLZ4(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-data-replaced-in-middle.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -722,7 +722,7 @@ class TestLZ4(TestBase):
 class TestCPIO(TestBase):
 
     # a test for the file being a single CPIO
-    def testFullfileIsCPIOBin(self):
+    def test_fullfile_bin(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-bin.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -732,7 +732,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single CPIO
-    def testFullfileIsCPIOOld(self):
+    def test_fullfile_old(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -742,7 +742,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single CPIO
-    def testFullfileIsCPIONew(self):
+    def test_fullfile_new(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-new.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -752,7 +752,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single CPIO
-    def testFullfileIsCPIOCRC(self):
+    def test_fullfile_crc(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-crc.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -762,7 +762,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single CPIO with data appended to it
-    def testDataAppendedToCPIOBin(self):
+    def test_appended_bin(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-bin-add-random-data.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -771,7 +771,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], 592896)
 
     # a test for the file being a single CPIO with data appended to it
-    def testDataAppendedToCPIOOld(self):
+    def test_appended_old(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-add-random-data.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -780,7 +780,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], 592896)
 
     # a test for the file being a single CPIO with data appended to it
-    def testDataAppendedToCPIONew(self):
+    def test_appended_new(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-new-add-random-data.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -789,7 +789,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], 592896)
 
     # a test for the file being a single CPIO with data appended to it
-    def testDataAppendedToCPIOCRC(self):
+    def test_appended_crc(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-crc-add-random-data.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -798,7 +798,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], 592896)
 
     # a test for the file being a single CPIO with data in front
-    def testDataPrependedToCPIOBin(self):
+    def test_prepended_bin(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-bin-prepend-random-data.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -807,7 +807,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], 592896)
 
     # a test for the file being a single CPIO with data in front
-    def testDataPrependedToCPIOOld(self):
+    def test_prepended_old(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-prepend-random-data.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -816,7 +816,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], 592896)
 
     # a test for the file being a single CPIO with data in front
-    def testDataPrependedToCPIONew(self):
+    def test_prepended_new(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-new-prepend-random-data.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -825,7 +825,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], 592896)
 
     # a test for the file being a single CPIO with data in front
-    def testDataPrependedToCPIOCRC(self):
+    def test_prepended_crc(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-crc-prepend-random-data.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -834,7 +834,7 @@ class TestCPIO(TestBase):
         self.assertEqual(testres['length'], 592896)
 
     # a test for the file being a single CPIO with data cut from the end
-    def testDataCutFromEndCPIOBin(self):
+    def test_cut_from_end_bin(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-bin-cut-data-from-end.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -842,7 +842,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data cut from the end
-    def testDataCutFromEndCPIOOld(self):
+    def test_cut_from_end_old(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-cut-data-from-end.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -850,7 +850,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data cut from the end
-    def testDataCutFromEndCPIONew(self):
+    def test_cut_from_end_new(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-new-cut-data-from-end.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -858,7 +858,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data cut from the end
-    def testDataCutFromEndCPIOCRC(self):
+    def test_cut_from_end_crc(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-crc-cut-data-from-end.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -866,7 +866,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data cut from the middle
-    def testDataCutFromMiddleCPIOBin(self):
+    def test_cut_from_middle_bin(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-bin-cut-data-from-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -874,7 +874,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data cut from the middle
-    def testDataCutFromMiddleCPIOOld(self):
+    def test_cut_from_middle_old(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-cut-data-from-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -882,7 +882,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data cut from the middle
-    def testDataCutFromMiddleCPIONew(self):
+    def test_cut_from_middle_new(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-new-cut-data-from-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -890,7 +890,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data cut from the middle
-    def testDataCutFromMiddleCPIOCRC(self):
+    def test_cut_from_middle_crc(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-crc-cut-data-from-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -898,7 +898,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data added in the middle
-    def testDataAddedInMiddleCPIOBin(self):
+    def test_added_in_middle_bin(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-bin-data-added-to-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -906,7 +906,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data added in the middle
-    def testDataAddedInMiddleCPIOOld(self):
+    def test_added_in_middle_old(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-data-added-to-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -914,7 +914,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data added in the middle
-    def testDataAddedInMiddleCPIONew(self):
+    def test_added_in_middle_new(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-new-data-added-to-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -922,7 +922,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data added in the middle
-    def testDataAddedInMiddleCPIOCRC(self):
+    def test_added_in_middle_crc(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-crc-data-added-to-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -930,7 +930,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data replaced in the middle
-    def testDataReplacedInMiddleCPIOBin(self):
+    def test_replaced_in_middle_bin(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-bin-data-replaced-in-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -938,7 +938,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data replaced in the middle
-    def testDataReplacedInMiddleCPIOOld(self):
+    def test_replaced_in_middle_old(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-old-data-replaced-in-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -946,7 +946,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data replaced in the middle
-    def testDataReplacedInMiddleCPIONew(self):
+    def test_replaced_in_middle_new(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-new-data-replaced-in-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -954,7 +954,7 @@ class TestCPIO(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single CPIO with data replaced in the middle
-    def testDataReplacedInMiddleCPIOCRC(self):
+    def test_replaced_in_middle_crc(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'cpio' / 'test-crc-data-replaced-in-middle.cpio'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -966,7 +966,7 @@ class TestCPIO(TestBase):
 class TestXZ(TestBase):
 
     # a test for the file being a single XZ
-    def testFullfileIsXZ(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -976,7 +976,7 @@ class TestXZ(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single XZ with data appended to it
-    def testDataAppendedToXZ(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-add-random-data.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -985,7 +985,7 @@ class TestXZ(TestBase):
         self.assertEqual(testres['length'], 510744)
 
     # a test for the file being a single XZ with data in front
-    def testDataPrependedToXZ(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-prepend-random-data.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -994,7 +994,7 @@ class TestXZ(TestBase):
         self.assertEqual(testres['length'], 510744)
 
     # a test for the file being a single XZ with data cut from the end
-    def testDataCutFromEndXZ(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-cut-data-from-end.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1002,7 +1002,7 @@ class TestXZ(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single XZ with data cut from the middle
-    def testDataCutFromMiddleXZ(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-cut-data-from-middle.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1010,7 +1010,7 @@ class TestXZ(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single XZ with data added in the middle
-    def testDataAddedInMiddleXZ(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-data-added-to-middle.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1018,7 +1018,7 @@ class TestXZ(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single XZ with data replaced in the middle
-    def testDataReplacedInMiddleXZ(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-data-replaced-in-middle.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1030,7 +1030,7 @@ class TestXZ(TestBase):
 class TestLZMA(TestBase):
 
     # a test for the file being a single LZMA
-    def testFullfileIsLZMA(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1040,7 +1040,7 @@ class TestLZMA(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single LZMA with data appended to it
-    def testDataAppendedToLZMA(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-add-random-data.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1049,7 +1049,7 @@ class TestLZMA(TestBase):
         self.assertEqual(testres['length'], 510623)
 
     # a test for the file being a single LZMA with data in front
-    def testDataPrependedToLZMA(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-prepend-random-data.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1058,7 +1058,7 @@ class TestLZMA(TestBase):
         self.assertEqual(testres['length'], 510623)
 
     # a test for the file being a single LZMA with data cut from the end
-    def testDataCutFromEndLZMA(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-cut-data-from-end.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1066,7 +1066,7 @@ class TestLZMA(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZMA with data cut from the middle
-    def testDataCutFromMiddleLZMA(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-cut-data-from-middle.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1074,7 +1074,7 @@ class TestLZMA(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZMA with data added in the middle
-    def testDataAddedInMiddleLZMA(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-data-added-to-middle.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1082,7 +1082,7 @@ class TestLZMA(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZMA with data replaced in the middle
-    def testDataReplacedInMiddleLZMA(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-data-replaced-in-middle.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1094,7 +1094,7 @@ class TestLZMA(TestBase):
 class TestBzip2(TestBase):
 
     # a test for the file being a single bzip2
-    def testFullfileIsBzip2(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1104,7 +1104,7 @@ class TestBzip2(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single bzip2 with data appended to it
-    def testDataAppendedToBzip2(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-add-random-data.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1113,7 +1113,7 @@ class TestBzip2(TestBase):
         self.assertEqual(testres['length'], 530237)
 
     # a test for the file being a single bzip2 with data in front
-    def testDataPrependedToBzip2(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-prepend-random-data.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1122,7 +1122,7 @@ class TestBzip2(TestBase):
         self.assertEqual(testres['length'], 530237)
 
     # a test for the file being a single bzip2 with data cut from the end
-    def testDataCutFromEndBzip2(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-cut-data-from-end.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1130,7 +1130,7 @@ class TestBzip2(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single bzip2 with data cut from the middle
-    def testDataCutFromMiddleBzip2(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-cut-data-from-middle.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1138,7 +1138,7 @@ class TestBzip2(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single bzip2 with data added in the middle
-    def testDataAddedInMiddleBzip2(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-data-added-to-middle.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1146,7 +1146,7 @@ class TestBzip2(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single bzip2 with data replaced in the middle
-    def testDataReplacedInMiddleBzip2(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-data-replaced-in-middle.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1158,7 +1158,7 @@ class TestBzip2(TestBase):
 class TestLzip(TestBase):
 
     # a test for the file being a single lzip
-    def testFullfileIsLzip(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1168,7 +1168,7 @@ class TestLzip(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single lzip with data appended to it
-    def testDataAppendedToLzip(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-add-random-data.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1177,7 +1177,7 @@ class TestLzip(TestBase):
         self.assertEqual(testres['length'], 511095)
 
     # a test for the file being a single lzip with data in front
-    def testDataPrependedToLzip(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-prepend-random-data.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1186,7 +1186,7 @@ class TestLzip(TestBase):
         self.assertEqual(testres['length'], 511095)
 
     # a test for the file being a single lzip with data cut from the end
-    def testDataCutFromEndLzip(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-cut-data-from-end.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1194,7 +1194,7 @@ class TestLzip(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single lzip with data cut from the middle
-    def testDataCutFromMiddleLzip(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-cut-data-from-middle.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1202,7 +1202,7 @@ class TestLzip(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single lzip with data added in the middle
-    def testDataAddedInMiddleLzip(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-data-added-to-middle.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1210,7 +1210,7 @@ class TestLzip(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single lzip with data replaced in the middle
-    def testDataReplacedInMiddleLzip(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-data-replaced-in-middle.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1222,7 +1222,7 @@ class TestLzip(TestBase):
 class TestLzop(TestBase):
 
     # a test for the file being a single lzop
-    def testFullfileIsLzop(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1232,7 +1232,7 @@ class TestLzop(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single lzop with data appended to it
-    def testDataAppendedToLzop(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-add-random-data.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1241,7 +1241,7 @@ class TestLzop(TestBase):
         self.assertEqual(testres['length'], 588927)
 
     # a test for the file being a single lzop with data in front
-    def testDataPrependedToLzop(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-prepend-random-data.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1250,7 +1250,7 @@ class TestLzop(TestBase):
         self.assertEqual(testres['length'], 588927)
 
     # a test for the file being a single lzop with data cut from the end
-    def testDataCutFromEndLzop(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-cut-data-from-end.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1258,7 +1258,7 @@ class TestLzop(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single lzop with data cut from the middle
-    def testDataCutFromMiddleLzop(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-cut-data-from-middle.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1266,7 +1266,7 @@ class TestLzop(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single lzop with data added in the middle
-    def testDataAddedInMiddleLzop(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-data-added-to-middle.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1274,7 +1274,7 @@ class TestLzop(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single lzop with data replaced in the middle
-    def testDataReplacedInMiddleLzop(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-data-replaced-in-middle.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1286,7 +1286,7 @@ class TestLzop(TestBase):
 class TestZstd(TestBase):
 
     # a test for the file being a single zstd
-    def testFullfileIsZstd(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1296,7 +1296,7 @@ class TestZstd(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single zstd with data appended to it
-    def testDataAppendedToZstd(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-add-random-data.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1305,7 +1305,7 @@ class TestZstd(TestBase):
         self.assertEqual(testres['length'], 583703)
 
     # a test for the file being a single zstd with data in front
-    def testDataPrependedToZstd(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-prepend-random-data.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1314,7 +1314,7 @@ class TestZstd(TestBase):
         self.assertEqual(testres['length'], 583703)
 
     # a test for the file being a single zstd with data cut from the end
-    def testDataCutFromEndZstd(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-cut-data-from-end.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1322,7 +1322,7 @@ class TestZstd(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single zstd with data cut from the middle
-    def testDataCutFromMiddleZstd(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-cut-data-from-middle.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1330,7 +1330,7 @@ class TestZstd(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single zstd with data added in the middle
-    def testDataAddedInMiddleZstd(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-data-added-to-middle.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1338,7 +1338,7 @@ class TestZstd(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single zstd with data replaced in the middle
-    def testDataReplacedInMiddleZstd(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-data-replaced-in-middle.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1350,7 +1350,7 @@ class TestZstd(TestBase):
 class Test7z(TestBase):
 
     # a test for the file being a single 7z
-    def testFullfileIs7z(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1360,7 +1360,7 @@ class Test7z(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single 7z with data appended to it
-    def testDataAppendedTo7z(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-add-random-data.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1369,7 +1369,7 @@ class Test7z(TestBase):
         self.assertEqual(testres['length'], 511498)
 
     # a test for the file being a single 7z with data in front
-    def testDataPrependedTo7z(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-prepend-random-data.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1378,7 +1378,7 @@ class Test7z(TestBase):
         self.assertEqual(testres['length'], 511498)
 
     # a test for the file being a single 7z with data cut from the end
-    def testDataCutFromEnd7z(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-cut-data-from-end.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1386,7 +1386,7 @@ class Test7z(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single 7z with data cut from the middle
-    def testDataCutFromMiddle7z(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-cut-data-from-middle.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1394,7 +1394,7 @@ class Test7z(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single 7z with data added in the middle
-    def testDataAddedInMiddle7z(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-data-added-to-middle.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1402,7 +1402,7 @@ class Test7z(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single 7z with data replaced in the middle
-    def testDataReplacedInMiddle7z(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-data-replaced-in-middle.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1414,7 +1414,7 @@ class Test7z(TestBase):
 class TestAr(TestBase):
 
     # a test for the file being a single ar
-    def testFullfileIsAr(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1424,7 +1424,7 @@ class TestAr(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single ar with data appended to it
-    def testDataAppendedToAr(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-add-random-data.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1436,7 +1436,7 @@ class TestAr(TestBase):
         #self.assertEqual(testres['length'], 511498)
 
     # a test for the file being a single ar with data in front
-    def testDataPrependedToAr(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-prepend-random-data.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1448,7 +1448,7 @@ class TestAr(TestBase):
         #self.assertEqual(testres['length'], 511498)
 
     # a test for the file being a single ar with data cut from the end
-    def testDataCutFromEndAr(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-cut-data-from-end.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1456,7 +1456,7 @@ class TestAr(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ar with data cut from the middle
-    def testDataCutFromMiddleAr(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-cut-data-from-middle.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1464,7 +1464,7 @@ class TestAr(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ar with data added in the middle
-    def testDataAddedInMiddleAr(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-data-added-to-middle.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1472,7 +1472,7 @@ class TestAr(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ar with data replaced in the middle
-    def testDataReplacedInMiddleAr(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-data-replaced-in-middle.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1484,7 +1484,7 @@ class TestAr(TestBase):
 class TestXAR(TestBase):
 
     # a test for the file being a single xar
-    def testFullfileIsXAR(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-gzip.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1495,7 +1495,7 @@ class TestXAR(TestBase):
 
     # now all the test cases.
     # a test for the file being a single xar
-    def testFullfileIsXARBzip2(self):
+    def test_fullfile_bzip2(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-bzip2.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1506,7 +1506,7 @@ class TestXAR(TestBase):
 
     # now all the test cases.
     # a test for the file being a single xar
-    def testFullfileIsXARNone(self):
+    def test_fullfile_no_compression(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-none.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1516,7 +1516,7 @@ class TestXAR(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single xar with data appended to it
-    def testDataAppendedToXAR(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-gzip-add-random-data.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1525,7 +1525,7 @@ class TestXAR(TestBase):
         self.assertEqual(testres['length'], 582324)
 
     # a test for the file being a single xar with data appended to it
-    def testDataAppendedToXARBzip2(self):
+    def test_appended_bzip2(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-bzip2-add-random-data.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1534,7 +1534,7 @@ class TestXAR(TestBase):
         self.assertEqual(testres['length'], 530707)
 
     # a test for the file being a single xar with data appended to it
-    def testDataAppendedToXARNone(self):
+    def test_appended_no_compression(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-none-add-random-data.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1543,7 +1543,7 @@ class TestXAR(TestBase):
         self.assertEqual(testres['length'], 592861)
 
     # a test for the file being a single xar with data in front
-    def testDataPrependedToXAR(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-gzip-prepend-random-data.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1552,7 +1552,7 @@ class TestXAR(TestBase):
         self.assertEqual(testres['length'], 582324)
 
     # a test for the file being a single xar with data in front
-    def testDataPrependedToXARBzip2(self):
+    def test_prepended_bzip2(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-bzip2-prepend-random-data.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1561,7 +1561,7 @@ class TestXAR(TestBase):
         self.assertEqual(testres['length'], 530707)
 
     # a test for the file being a single xar with data in front
-    def testDataPrependedToXARBzip2(self):
+    def test_prepended_no_compression(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-none-prepend-random-data.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1570,7 +1570,7 @@ class TestXAR(TestBase):
         self.assertEqual(testres['length'], 592861)
 
     # a test for the file being a single xar with data cut from the end
-    def testDataCutFromEndXAR(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-gzip-cut-data-from-end.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1578,7 +1578,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data cut from the end
-    def testDataCutFromEndXARBzip2(self):
+    def test_cut_from_end_bzip2(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-bzip2-cut-data-from-end.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1586,7 +1586,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data cut from the end
-    def testDataCutFromEndXARNone(self):
+    def test_cut_from_end_no_compression(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-none-cut-data-from-end.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1594,7 +1594,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data cut from the middle
-    def testDataCutFromMiddleXAR(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-gzip-cut-data-from-middle.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1602,7 +1602,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data cut from the middle
-    def testDataCutFromMiddleXARBzip2(self):
+    def test_cut_from_middle_bzip2(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-bzip2-cut-data-from-middle.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1610,7 +1610,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data cut from the middle
-    def testDataCutFromMiddleXARNone(self):
+    def test_cut_from_middle_no_compression(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-none-cut-data-from-middle.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1618,7 +1618,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data added in the middle
-    def testDataAddedInMiddleXAR(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-gzip-data-added-to-middle.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1626,7 +1626,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data added in the middle
-    def testDataAddedInMiddleXARBzip2(self):
+    def test_added_in_middle_bzip2(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-bzip2-data-added-to-middle.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1634,7 +1634,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data added in the middle
-    def testDataAddedInMiddleXARNone(self):
+    def test_added_in_middle_no_compression(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-none-data-added-to-middle.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1642,7 +1642,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data replaced in the middle
-    def testDataReplacedInMiddleXAR(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-gzip-data-replaced-in-middle.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1650,7 +1650,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data replaced in the middle
-    def testDataReplacedInMiddleXARBzip2(self):
+    def test_replaced_in_middle_bzip2(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-bzip2-data-replaced-in-middle.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1658,7 +1658,7 @@ class TestXAR(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single xar with data replaced in the middle
-    def testDataReplacedInMiddleXARNone(self):
+    def test_replaced_in_middle_no_compression(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xar' / 'test-none-data-replaced-in-middle.xar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1670,7 +1670,7 @@ class TestXAR(TestBase):
 class TestSquashfs(TestBase):
 
     # a test for the file being a single squashfs
-    def testFullfileIsSquashfs(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1680,7 +1680,7 @@ class TestSquashfs(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single squashfs with data appended to it
-    def testDataAppendedToSquashfs(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-add-random-data.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1689,7 +1689,7 @@ class TestSquashfs(TestBase):
         self.assertEqual(testres['length'], 577536)
 
     # a test for the file being a single squashfs with data in front
-    def testDataPrependedToSquashfs(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-prepend-random-data.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1698,7 +1698,7 @@ class TestSquashfs(TestBase):
         self.assertEqual(testres['length'], 577536)
 
     # a test for the file being a single squashfs with data cut from the end
-    def testDataCutFromEndSquashfs(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-cut-data-from-end.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1706,7 +1706,7 @@ class TestSquashfs(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single squashfs with data cut from the middle
-    def testDataCutFromMiddleSquashfs(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-cut-data-from-middle.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1714,7 +1714,7 @@ class TestSquashfs(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single squashfs with data added in the middle
-    def testDataAddedInMiddleSquashfs(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-data-added-to-middle.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1723,7 +1723,7 @@ class TestSquashfs(TestBase):
 
     # a test for the file being a single squashfs
     # with data replaced in the middle
-    def testDataReplacedInMiddleSquashfs(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-data-replaced-in-middle.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1735,7 +1735,7 @@ class TestSquashfs(TestBase):
 class TestSnappy(TestBase):
 
     # a test for the file being a single snappy
-    def testFullfileIsSnappy(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1745,7 +1745,7 @@ class TestSnappy(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single snappy with data appended to it
-    def testDataAppendedToSnappy(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-add-random-data.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1754,7 +1754,7 @@ class TestSnappy(TestBase):
         self.assertEqual(testres['length'], 592508)
 
     # a test for the file being a single snappy with data in front
-    def testDataPrependedToSnappy(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-prepend-random-data.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1763,7 +1763,7 @@ class TestSnappy(TestBase):
         self.assertEqual(testres['length'], 592508)
 
     # a test for the file being a single snappy with data cut from the end
-    def testDataCutFromEndSnappy(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-cut-data-from-end.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1771,7 +1771,7 @@ class TestSnappy(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single snappy with data cut from the middle
-    def testDataCutFromMiddleSnappy(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-cut-data-from-middle.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1779,7 +1779,7 @@ class TestSnappy(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single snappy with data added in the middle
-    def testDataAddedInMiddleSnappy(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-data-added-to-middle.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1788,7 +1788,7 @@ class TestSnappy(TestBase):
 
     # a test for the file being a single snappy
     # with data replaced in the middle
-    def testDataReplacedInMiddleSnappy(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-data-replaced-in-middle.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1800,7 +1800,7 @@ class TestSnappy(TestBase):
 class TestISO9660(TestBase):
 
     # a test for the file being a single iso9660
-    def testFullfileIsISO9660(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1810,7 +1810,7 @@ class TestISO9660(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single iso9660 with data appended to it
-    def testDataAppendedToISO9660(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-add-random-data.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1819,7 +1819,7 @@ class TestISO9660(TestBase):
         self.assertEqual(testres['length'], 952320)
 
     # a test for the file being a single iso9660 with data in front
-    def testDataPrependedToISO9660(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-prepend-random-data.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1828,7 +1828,7 @@ class TestISO9660(TestBase):
         self.assertEqual(testres['length'], 952320)
 
     # a test for the file being a single iso9660 with data cut from the end
-    def testDataCutFromEndISO9660(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-cut-data-from-end.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1836,7 +1836,7 @@ class TestISO9660(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single iso9660 with data cut from the middle
-    def testDataCutFromMiddleISO9660(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-cut-data-from-middle.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1844,7 +1844,7 @@ class TestISO9660(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single iso9660 with data added in the middle
-    def testDataAddedInMiddleISO9660(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-data-added-to-middle.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1853,7 +1853,7 @@ class TestISO9660(TestBase):
 
     # a test for the file being a single iso9660
     # with data replaced in the middle
-    def testDataReplacedInMiddleISO9660(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-data-replaced-in-middle.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1865,7 +1865,7 @@ class TestISO9660(TestBase):
 class TestTar(TestBase):
 
     # a test for the file being a single tar
-    def testFullfileIsTar(self):
+    def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1875,7 +1875,7 @@ class TestTar(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single tar with absolute paths
-    def testFullfileIsTarAbsolute(self):
+    def test_fullfile_absolute(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'tar-abs.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1885,7 +1885,7 @@ class TestTar(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single tar with data appended to it
-    def testDataAppendedToTar(self):
+    def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-add-random-data.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1894,7 +1894,7 @@ class TestTar(TestBase):
         self.assertEqual(testres['length'], 604160)
 
     # a test for the file being a single tar with data in front
-    def testDataPrependedToTar(self):
+    def test_prepended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-prepend-random-data.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1903,7 +1903,7 @@ class TestTar(TestBase):
         self.assertEqual(testres['length'], 604160)
 
     # a test for the file being a single tar with data cut from the end
-    def testDataCutFromEndTar(self):
+    def test_cut_from_end(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-cut-data-from-end.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1911,7 +1911,7 @@ class TestTar(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single tar with data cut from the middle
-    def testDataCutFromMiddleTar(self):
+    def test_cut_from_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-cut-data-from-middle.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1919,7 +1919,7 @@ class TestTar(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single tar with data added in the middle
-    def testDataAddedInMiddleTar(self):
+    def test_added_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-data-added-to-middle.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1927,7 +1927,7 @@ class TestTar(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single tar with data replaced in the middle
-    def testDataReplacedInMiddleTar(self):
+    def test_replaced_in_middle(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-data-replaced-in-middle.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1935,7 +1935,7 @@ class TestTar(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single tar with just directories
-    def testFullfileIsTarDir(self):
+    def test_fullfile_directories(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-dir.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1948,7 +1948,8 @@ class TestTar(TestBase):
 class TestJFFS2(TestBase):
 
     # a test for the file being a single jffs2
-    def testFullfileIsJFFS2Little(self):
+    def test_fullfile_little(self):
+        '''Test a JFFS2 file (little endian)'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1958,7 +1959,8 @@ class TestJFFS2(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single jffs2
-    def testFullfileIsJFFS2Big(self):
+    def test_fullfile_big(self):
+        '''Test a JFFS2 file (big endian)'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1968,7 +1970,8 @@ class TestJFFS2(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single jffs2 with data appended to it
-    def testDataAppendedToJFFS2Little(self):
+    def test_appended_little(self):
+        '''Test a JFFS2 file (little endian) with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-add-random-data.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1977,7 +1980,8 @@ class TestJFFS2(TestBase):
         self.assertEqual(testres['length'], 594192)
 
     # a test for the file being a single jffs2 with data appended to it
-    def testDataAppendedToJFFS2Big(self):
+    def test_appended_big(self):
+        '''Test a JFFS2 file (big endian) with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-add-random-data.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1986,7 +1990,8 @@ class TestJFFS2(TestBase):
         self.assertEqual(testres['length'], 594192)
 
     # a test for the file being a single jffs2 with data in front
-    def testDataPrependedToJFFS2Little(self):
+    def test_prepended_to_little(self):
+        '''Test a JFFS2 file (little endian) with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-prepend-random-data.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1995,7 +2000,8 @@ class TestJFFS2(TestBase):
         self.assertEqual(testres['length'], 594192)
 
     # a test for the file being a single jffs2 with data in front
-    def testDataPrependedToJFFS2Big(self):
+    def test_prepended_to_big(self):
+        '''Test a JFFS2 file (big endian) with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-prepend-random-data.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -2004,7 +2010,8 @@ class TestJFFS2(TestBase):
         self.assertEqual(testres['length'], 594192)
 
     # a test for the file being a single jffs2 with data cut from the end
-    def testDataCutFromEndJFFS2Little(self):
+    def test_cut_from_end_little(self):
+        '''Test a JFFS2 file (little endian) with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-cut-data-from-end.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2012,7 +2019,8 @@ class TestJFFS2(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data cut from the end
-    def testDataCutFromEndJFFS2Big(self):
+    def test_cut_from_end_big(self):
+        '''Test a JFFS2 file (big endian) with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-cut-data-from-end.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2020,7 +2028,8 @@ class TestJFFS2(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data cut from the middle
-    def testDataCutFromMiddleJFFS2Little(self):
+    def test_cut_from_middle_little(self):
+        '''Test a JFFS2 file (little endian) with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-cut-data-from-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2028,7 +2037,8 @@ class TestJFFS2(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data cut from the middle
-    def testDataCutFromMiddleJFFS2Big(self):
+    def test_cut_from_middle_big(self):
+        '''Test a JFFS2 file (big endian) with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-cut-data-from-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2036,7 +2046,8 @@ class TestJFFS2(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data added in the middle
-    def testDataAddedInMiddleJFFS2Little(self):
+    def test_added_in_middle_little(self):
+        '''Test a JFFS2 file (little endian) with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-data-added-to-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2044,7 +2055,8 @@ class TestJFFS2(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data added in the middle
-    def testDataAddedInMiddleJFFS2Big(self):
+    def test_added_in_middle_big(self):
+        '''Test a JFFS2 file (big endian) with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-data-added-to-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2052,7 +2064,8 @@ class TestJFFS2(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data replaced in the middle
-    def testDataReplacedInMiddleJFFS2Little(self):
+    def test_replaced_in_middle_little(self):
+        '''Test a JFFS2 file (little endian) with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-data-replaced-in-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2060,7 +2073,8 @@ class TestJFFS2(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data replaced in the middle
-    def testDataReplacedInMiddleJFFS2Big(self):
+    def test_replaced_in_middle_big(self):
+        '''Test a JFFS2 file (big endian) with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-data-replaced-in-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2071,7 +2085,8 @@ class TestJFFS2(TestBase):
 # a test class for testing rzip files
 class TestRzip(TestBase):
     # a test for the file being a single rzip
-    def testFullfileIsRzip(self):
+    def test_fullfile(self):
+        '''Test a single RZIP file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'rzip' / 'test.rz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -2081,7 +2096,8 @@ class TestRzip(TestBase):
         self.assertEqual(testres['length'], filesize)
 
     # a test for the file being a single rzip with data appended to it
-    def testDataAppendedToRzip(self):
+    def test_append(self):
+        '''Test a single RZIP file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'rzip' / 'test-add-random-data.rz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2090,7 +2106,8 @@ class TestRzip(TestBase):
         self.assertEqual(testres['length'], 530499)
 
     # a test for the file being a single rzip with data in front
-    def testDataPrependedToRzip(self):
+    def test_prepend(self):
+        '''Test a single RZIP file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'rzip' / 'test-prepend-random-data.rz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -2099,7 +2116,8 @@ class TestRzip(TestBase):
         self.assertEqual(testres['length'], 530499)
 
     # a test for the file being a single rzip with data cut from the end
-    def testDataCutFromEndRzip(self):
+    def test_cut_from_end(self):
+        '''Test a single RZIP file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'rzip' / 'test-cut-data-from-end.rz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2107,7 +2125,8 @@ class TestRzip(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single rzip with data cut from the middle
-    def testDataCutFromMiddleRzip(self):
+    def test_cut_from_middle(self):
+        '''Test a single RZIP file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'rzip' / 'test-cut-data-from-middle.rz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2115,7 +2134,8 @@ class TestRzip(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single rzip with data added in the middle
-    def testDataAddedInMiddleRzip(self):
+    def test_added_in_middle(self):
+        '''Test a single RZIP file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'rzip' / 'test-data-added-to-middle.rz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -2123,7 +2143,8 @@ class TestRzip(TestBase):
         self.assertFalse(testres['status'])
 
     # a test for the file being a single rzip with data replaced in the middle
-    def testDataReplacedInMiddleRzip(self):
+    def test_replaced_in_middle(self):
+        '''Test a single RZIP file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'rzip' / 'test-data-replaced-in-middle.rz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
