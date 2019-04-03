@@ -139,6 +139,7 @@ signatures = {
     'quakepak': b'PACK',
     'doomwad': b'IWAD',
     'ambarella': b'\x90\xeb\x24\xa3',
+    'romfs_ambarella': b'\x8a\x32\xfc\x66',
 }
 
 # some signatures do not start at the beginning of the file
@@ -155,7 +156,8 @@ signaturesoffset = {
     'gimpbrush': 20,
     'fat': 0x1fe,
     'minix_1l': 0x410,
-    'ambarella': 0x818
+    'ambarella': 0x818,
+    'romfs_ambarella': 4,
 }
 
 
@@ -294,6 +296,7 @@ signaturetofunction = {
     'quakepak': bangunpack.unpack_pak,
     'doomwad': bangunpack.unpack_wad,
     'ambarella': bangunpack.unpack_ambarella,
+    'romfs_ambarella': bangunpack.unpack_romfs_ambarella,
 }
 
 # a lookup table to map signatures to a name for

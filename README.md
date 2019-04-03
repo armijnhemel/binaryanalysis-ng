@@ -158,6 +158,7 @@ larger file, unless stated otherwise.
 113. Quake PAK files
 114. Doom WAD files (IWAD only)
 115. Ambarella firmware files
+116. Ambarella romfs (used in Ambarella firmware files)
 
 
 ## Invocation

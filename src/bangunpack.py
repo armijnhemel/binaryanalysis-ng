@@ -13849,3 +13849,107 @@ def unpack_ambarella(filename, offset, unpackdir, temporarydirectory):
     checkfile.close()
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# Ambarella romfs
+#
+# http://web.archive.org/web/20190402224117/https://courses.cs.ut.ee/MTAT.07.022/2015_spring/uploads/Main/karl-report-s15.pdf
+# Section 4.1
+def unpack_romfs_ambarella(filename, offset, unpackdir, temporarydirectory):
+    '''Verify an Ambarella romfs file system'''
+    filesize = filename.stat().st_size
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file
+    checkfile = open(filename, 'rb')
+    checkfile.seek(offset)
+
+    # amount of files
+    checkbytes = checkfile.read(4)
+    nr_files = int.from_bytes(checkbytes, byteorder='little')
+
+    # the data starts at 0x800 and then there should be 128 bytes
+    # for each of the files that are included in the file system
+    if offset + 0x800 + nr_files * 128 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
+
+    # seek to the right offset
+    checkfile.seek(offset + 0x800)
+
+    maxoffset = 0
+
+    inodes = {}
+
+    for inode in range(0, nr_files):
+        # first the file name
+        checkbytes = checkfile.read(116)
+        try:
+            inode_name = checkbytes.split(b'\x00', 1)[0].decode()
+            # force a relative path
+            if inode_name.startswith('/'):
+                inode_name = os.path.relpath(inode_name, '/')
+        except UnicodeDecodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid file name'}
+            return {'status': False, 'error': unpackingerror}
+
+        # then the offset
+        checkbytes = checkfile.read(4)
+        inode_offset = int.from_bytes(checkbytes, byteorder='little')
+
+        # size
+        checkbytes = checkfile.read(4)
+        inode_size = int.from_bytes(checkbytes, byteorder='little')
+
+        maxoffset = max(maxoffset, inode_offset + inode_size)
+
+        inodes[inode] = {'name': inode_name,
+                         'offset': inode_offset,
+                         'size': inode_size}
+
+        # magic
+        checkbytes = checkfile.read(4)
+        if checkbytes != b'\x76\xab\x87\x23':
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid magic'}
+            return {'status': False, 'error': unpackingerror}
+
+    for inode in inodes:
+        outfilename = os.path.join(unpackdir, inodes[inode]['name'])
+        # create subdirectories, if any are defined in the file name
+        if '/' in inodes[inode]['name']:
+            os.makedirs(os.path.dirname(outfilename), exist_ok=True)
+        datastart = offset + inodes[inode]['offset']
+        outfile = open(outfilename, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), datastart, inodes[inode]['size'])
+        outfile.close()
+
+        unpackedfilesandlabels.append((outfilename, []))
+
+    # byte aligned on 2048 bytes (section size), padding bytes
+    if maxoffset % 2048 != 0:
+        checkfile.seek(offset + maxoffset)
+        paddingsize = 2048 - maxoffset % 2048
+        paddingbytes = checkfile.read(paddingsize)
+        if paddingbytes != b'\xff' * paddingsize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid padding'}
+            return {'status': False, 'error': unpackingerror}
+        maxoffset += paddingsize
+
+    if offset == 0 and maxoffset == filesize:
+        labels.append('ambarella')
+        labels.append('file system')
+
+    checkfile.close()
+    return {'status': True, 'length': maxoffset, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
