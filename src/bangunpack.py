@@ -2581,7 +2581,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
                     break
             if knowncompression:
                 for z in zipinfolist:
-                    if filename.suffix == '.nupkg' and is_opc:
+                    if filename_full.suffix == '.nupkg' and is_opc:
                         if z.filename.endswith('.nuspec'):
                             labels.append('NuGet')
                             break
@@ -7655,7 +7655,7 @@ def unpackZstd(fileresult, scanenvironment, offset, unpackdir):
         labels.append('compressed')
     else:
         tmpfilename = os.path.join(unpackdir, "unpacked-by-zstd.zst")
-        tmfile_full = scanenvironment.unpack_path(tmpfilename)
+        tmpfile_full = scanenvironment.unpack_path(tmpfilename)
         tmpfile = open(tmpfile_full, 'wb')
         os.sendfile(tmpfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         tmpfile.close()
