@@ -70,9 +70,10 @@ class ScanEnvironment:
         # in that case, return absolute path? but what about:
         # >>> os.path.relpath('xa/b/c/d/e',root)
         # '../../../home/tim/binaryanalysis-ng/src/xa/b/c/d/e'
-        
         return os.path.relpath(fn,self.unpackdirectory)
 
     def tmp_path(self,fn):
         return os.path.join(self.temporarydirectory,fn)
 
+    def rel_tmp_path(self,fn):
+        return os.path.relpath(fn,self.temporarydirectory)

@@ -10,7 +10,7 @@ class TestFileResult(TestBase):
         self.assertEqual(fr.parentpath, full_path.parent)
         self.assertEqual(fr.relpath, relative_path)
         self.assertEqual(fr.filename, relative_path)
-        self.assertEqual(d['fullfilename'], str(full_path))
+        # self.assertEqual(d['fullfilename'], str(full_path))
         self.assertEqual(d['filename'], str(relative_path))
         self.assertEqual(d['parent'], str(relative_path.parent))
 

@@ -178,8 +178,6 @@ class ScanJob:
 
                 for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                     fr = FileResult(
-                            self.scanenvironment.unpackdirectory,
-                            self.scanenvironment.unpackdirectory / pathlib.Path(unpackedfile),
                             pathlib.Path(unpackedfile),
                             self.fileresult.filepath,
                             self.fileresult.filename,
@@ -312,10 +310,8 @@ class ScanJob:
                         report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
                         # add the data, plus possibly any label
                         fr = FileResult(
-                                self.scanenvironment.unpackdirectory,
-                                self.scanenvironment.unpackdirectory / pathlib.Path(unpackedfile),
                                 pathlib.Path(unpackedfile),
-                                self.fileresult.filepath,
+                                self.scanenvironment.unpack_path(self.fileresult.filename),
                                 self.fileresult.filename,
                                 set(unpackedlabel))
                         j = ScanJob(fr)
@@ -424,8 +420,6 @@ class ScanJob:
 
                         # add the data, plus labels, to the queue
                         fr = FileResult(
-                                self.scanenvironment.unpackdirectory,
-                                self.scanenvironment.unpackdirectory / pathlib.Path(outfile_rel),
                                 pathlib.Path(outfile_rel),
                                 self.scanenvironment.unpackdirectory / self.fileresult.filename,
                                 self.fileresult.filename,
@@ -543,10 +537,8 @@ class ScanJob:
 
                     # add the data, plus possibly any label
                     fr = FileResult(
-                            self.scanenvironment.unpackdirectory,
-                            self.scanenvironment.unpackdirectory / pathlib.Path(unpackedfile),
                             pathlib.Path(unpackedfile),
-                            self.fileresult.filepath,
+                            self.scanenvironment.unpack_path(self.fileresult.filename),
                             self.fileresult.filename,
                             set(unpackedlabel))
                     j = ScanJob(fr)

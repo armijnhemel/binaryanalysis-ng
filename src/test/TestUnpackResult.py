@@ -65,13 +65,14 @@ class TestUnpackResult(TestBase):
         self.assertEqual(unpackers,{})
 
     def walk_available_files_with_unpackers(self):
-        testfilesdir = os.path.join(self.testdata_dir,'unpackers')
+        testfilesdir = self.testdata_dir / 'unpackers'
         for dirpath, dirnames, filenames in os.walk(testfilesdir):
             unpackername = os.path.basename(dirpath)
             for f in filenames:
-                relativename = os.path.join(dirpath,f)[len(self.testdata_dir)+1:]
+                # relativename = os.path.join(dirpath,f)[len(self.testdata_dir)+1:]
+                relativename = pathlib.Path(dirpath).relative_to(self.testdata_dir) / f
                 for unpacker in get_unpackers_for_file(unpackername, f):
-                    yield relativename, unpacker
+                    yield str(relativename), unpacker
 
     def test_unpackresult_has_correct_filenames(self):
         unpacker = Unpacker(self.unpackdir)
@@ -132,7 +133,7 @@ class TestUnpackResult(TestBase):
         name = "null"
         self._copy_file_from_testdata(fn,name)
         fileresult = create_fileresult_for_path(self.unpackdir, pathlib.Path(name))
-        self.assertEqual(fileresult.filename,name)
+        self.assertEqual(str(fileresult.filename),name)
         # unpackresult = unpacker(fileresult, self.scan_environment, 0, self.unpackdir)
         for unpackername in sorted(unpackers.keys()):
             unpacker = unpackers[unpackername]

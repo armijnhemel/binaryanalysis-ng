@@ -3,10 +3,7 @@ import pathlib
 class FileResult:
     """stores all the information about the file that has been discovered
     so far."""
-    def __init__(self, unpackdir, abs_filepath, rel_filename, abs_parentpath, rel_parentfilename, labels):
-        # TODO: decide what types the paths should have: PosixPath or string
-        self.unpackdir = unpackdir
-        self.filepath = abs_filepath
+    def __init__(self, rel_filename, abs_parentpath, rel_parentfilename, labels):
         self.relpath = pathlib.Path(rel_filename)
         self.hash = {}
         self.filename = rel_filename
@@ -44,7 +41,7 @@ class FileResult:
     def get(self):
         """gets the fileresult as a dictionary."""
         d = {
-            'fullfilename': str(self.filepath),
+            # 'fullfilename': str(self.filepath),
             'hash': self.hash,
             'labels': list(self.labels),
             'filename': str(self.filename),

@@ -6196,7 +6196,7 @@ def unpackCHM(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
-    unpackdir_full = scanenvironment.unpack_path(unpack_dir)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # header has at least 56 bytes
     if filesize < 56:
@@ -7463,13 +7463,11 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
             payloaddir = pathlib.Path(tempfile.mkdtemp(dir=scanenvironment.temporarydirectory))
             shutil.move(payloadfile_full, payloaddir)
 
-            fr = FileResult(scanenvironment.unpackdir,
-                   payloaddir / os.path.basename(payloadfile),
-                   scanenvironment.rel_unpack_path(
-                       payloaddir / os.path.basename(payloadfile)),
+            fr = FileResult(
+                   scanenvironment.rel_tmp_path(payloaddir) / os.path.basename(payloadfile),
                    (payloaddir / os.path.basename(payloadfile)).parent,
-                   scanenvironment.rel_unpack_path(
-                       (payloaddir / os.path.basename(payloadfile)).parent),[])
+                   (scanenvironment.rel_tmp_path(payloaddir) / os.path.basename(payloadfile)).parent,
+                   [])
             unpackresult = unpackCpio(fr, scanenvironment, 0, unpackdir)
             # cleanup
             shutil.rmtree(payloaddir)

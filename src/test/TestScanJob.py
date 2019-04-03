@@ -41,9 +41,7 @@ class TestScanJob(TestBase):
         return pathlib.Path(os.path.join(self.unpackdir, fn))
 
     def _create_fileresult_for_file(self,child,parent,labels):
-        return FileResult(
-                self.unpackdir,
-                self._create_absolute_path_object(child), child,
+        return FileResult(child,
                 self._create_absolute_path_object(parent), parent, labels )
 
     def test_carved_padding_file_has_correct_labels(self):
