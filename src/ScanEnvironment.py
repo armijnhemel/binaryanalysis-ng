@@ -16,7 +16,6 @@ class ScanEnvironment:
            temporarydirectory: a Path object
         """
         # TODO: init from options object
-        print('ScanEnvironment:',type(unpackdirectory),type(temporarydirectory))
         self.maxbytes = maxbytes
         self.readsize = readsize
         self.createbytecounter = createbytecounter
