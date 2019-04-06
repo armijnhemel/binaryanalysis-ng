@@ -70,6 +70,7 @@ class TestBase(unittest.TestCase):
             maxbytes = max(200000, maxsignaturesoffset+1),
             readsize = 10240,
             createbytecounter = False,
+            createjson = True,
             tlshmaximum = sys.maxsize,
             synthesizedminimum = 10,
             logging = False,
