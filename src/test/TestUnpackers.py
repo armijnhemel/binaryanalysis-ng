@@ -273,6 +273,7 @@ class TestJPEG(TestBase):
     # a test for the file being a single JPEG with data appended to it
     def test_appended(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-add-random-data.jpg'
+        '''Test a single JPEG with data appended'''
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
         testres = bangmedia.unpack_jpeg(fileresult, self.scan_environment, offset, self.unpackdir)
@@ -281,6 +282,7 @@ class TestJPEG(TestBase):
 
     # a test for the file being a single JPEG with data in front
     def test_prepended(self):
+        '''Test a single JPEG with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-prepend-random-data.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -290,6 +292,7 @@ class TestJPEG(TestBase):
 
     # a test for the file being a single JPEG with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single JPEG with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-cut-data-from-end.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -298,6 +301,7 @@ class TestJPEG(TestBase):
 
     # a test for the file being a single JPEG with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single JPEG with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-cut-data-from-middle.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -306,6 +310,7 @@ class TestJPEG(TestBase):
 
     # a test for the file being a single JPEG with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single JPEG with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-data-added-to-middle.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -314,6 +319,7 @@ class TestJPEG(TestBase):
 
     # a test for the file being a single JPEG with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single JPEG with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-data-replaced-in-middle.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -325,6 +331,7 @@ class TestJPEG(TestBase):
 class TestBMP(TestBase):
     # a test for the file being a single BMP
     def test_fullfile(self):
+        '''Test a single BMP'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -335,6 +342,7 @@ class TestBMP(TestBase):
 
     # a test for the file being a single BMP with data appended to it
     def test_appended(self):
+        '''Test a single BMP with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-add-random-data.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -344,6 +352,7 @@ class TestBMP(TestBase):
 
     # a test for the file being a single BMP with data in front
     def test_prepended(self):
+        '''Test a single BMP with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-prepend-random-data.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -353,6 +362,7 @@ class TestBMP(TestBase):
 
     # a test for the file being a single BMP with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single BMP with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-cut-data-from-end.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -361,6 +371,7 @@ class TestBMP(TestBase):
 
     # a test for the file being a single BMP with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single BMP with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-cut-data-from-middle.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -369,6 +380,7 @@ class TestBMP(TestBase):
 
     # a test for the file being a single BMP with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single BMP with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-data-added-to-middle.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -377,6 +389,7 @@ class TestBMP(TestBase):
 
     # a test for the file being a single BMP with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single BMP with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-data-replaced-in-middle.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -508,6 +521,7 @@ class TestSGI(TestBase):
 class TestAndroidSparse(TestBase):
     # a test for the file being a single Android sparse image
     def test_fullfile(self):
+        '''Test an Android sparse image'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'simg' / 'zero.img'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -532,6 +546,7 @@ class TestSREC(TestBase):
 class TestGZIP(TestBase):
     # a test for the file being a single gzip
     def test_fullfile(self):
+        '''Test a single gzip compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -542,6 +557,7 @@ class TestGZIP(TestBase):
 
     # a test for the file being a single gzip with data appended to it
     def test_appended(self):
+        '''Test a single gzip compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-add-random-data.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -551,6 +567,7 @@ class TestGZIP(TestBase):
 
     # a test for the file being a single gzip with data in front
     def test_prepended(self):
+        '''Test a single gzip compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-prepend-random-data.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -560,6 +577,7 @@ class TestGZIP(TestBase):
 
     # a test for the file being a single gzip with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single gzip compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-cut-data-from-end.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -568,6 +586,7 @@ class TestGZIP(TestBase):
 
     # a test for the file being a single gzip with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single gzip compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-cut-data-from-middle.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -576,6 +595,7 @@ class TestGZIP(TestBase):
 
     # a test for the file being a single gzip with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single gzip compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-data-added-to-middle.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -584,6 +604,7 @@ class TestGZIP(TestBase):
 
     # a test for the file being a single gzip with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single gzip compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-data-replaced-in-middle.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -595,6 +616,7 @@ class TestGZIP(TestBase):
 class TestZIP(TestBase):
     # a test for the file being a single ZIP
     def test_fullfile(self):
+        '''Test a single ZIP compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -605,6 +627,7 @@ class TestZIP(TestBase):
 
     # a test for the file being a single ZIP with data appended to it
     def test_appended(self):
+        '''Test a single ZIP compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-add-random-data.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -614,6 +637,7 @@ class TestZIP(TestBase):
 
     # a test for the file being a single ZIP with data in front
     def test_prepended(self):
+        '''Test a single ZIP compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-prepend-random-data.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -623,6 +647,7 @@ class TestZIP(TestBase):
 
     # a test for the file being a single ZIP with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single ZIP compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-cut-data-from-end.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -631,6 +656,7 @@ class TestZIP(TestBase):
 
     # a test for the file being a single ZIP with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single ZIP compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-cut-data-from-middle.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -639,6 +665,7 @@ class TestZIP(TestBase):
 
     # a test for the file being a single ZIP with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single ZIP compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-data-added-to-middle.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -647,6 +674,7 @@ class TestZIP(TestBase):
 
     # a test for the file being a single ZIP with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single ZIP compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-data-replaced-in-middle.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -659,6 +687,7 @@ class TestLZ4(TestBase):
 
     # a test for the file being a single LZ4
     def test_fullfile(self):
+        '''Test a single LZ4 compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -669,6 +698,7 @@ class TestLZ4(TestBase):
 
     # a test for the file being a single LZ4 with data appended to it
     def test_appended(self):
+        '''Test a single LZ4 compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-add-random-data.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -678,6 +708,7 @@ class TestLZ4(TestBase):
 
     # a test for the file being a single LZ4 with data in front
     def test_prepended(self):
+        '''Test a single LZ4 compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-prepend-random-data.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -687,6 +718,7 @@ class TestLZ4(TestBase):
 
     # a test for the file being a single LZ4 with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single LZ4 compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-cut-data-from-end.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -695,6 +727,7 @@ class TestLZ4(TestBase):
 
     # a test for the file being a single LZ4 with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single LZ4 compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-cut-data-from-middle.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -703,6 +736,7 @@ class TestLZ4(TestBase):
 
     # a test for the file being a single LZ4 with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single LZ4 compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-data-added-to-middle.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -711,6 +745,7 @@ class TestLZ4(TestBase):
 
     # a test for the file being a single LZ4 with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single LZ4 compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-data-replaced-in-middle.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -967,6 +1002,7 @@ class TestXZ(TestBase):
 
     # a test for the file being a single XZ
     def test_fullfile(self):
+        '''Test a single XZ compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -977,6 +1013,7 @@ class TestXZ(TestBase):
 
     # a test for the file being a single XZ with data appended to it
     def test_appended(self):
+        '''Test a single XZ compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-add-random-data.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -986,6 +1023,7 @@ class TestXZ(TestBase):
 
     # a test for the file being a single XZ with data in front
     def test_prepended(self):
+        '''Test a single XZ compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-prepend-random-data.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -995,6 +1033,7 @@ class TestXZ(TestBase):
 
     # a test for the file being a single XZ with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single XZ compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-cut-data-from-end.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1003,6 +1042,7 @@ class TestXZ(TestBase):
 
     # a test for the file being a single XZ with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single XZ compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-cut-data-from-middle.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1011,6 +1051,7 @@ class TestXZ(TestBase):
 
     # a test for the file being a single XZ with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single XZ compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-data-added-to-middle.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1019,6 +1060,7 @@ class TestXZ(TestBase):
 
     # a test for the file being a single XZ with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single XZ compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-data-replaced-in-middle.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1031,6 +1073,7 @@ class TestLZMA(TestBase):
 
     # a test for the file being a single LZMA
     def test_fullfile(self):
+        '''Test a single LZMA compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1041,6 +1084,7 @@ class TestLZMA(TestBase):
 
     # a test for the file being a single LZMA with data appended to it
     def test_appended(self):
+        '''Test a single LZMA compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-add-random-data.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1050,6 +1094,7 @@ class TestLZMA(TestBase):
 
     # a test for the file being a single LZMA with data in front
     def test_prepended(self):
+        '''Test a single LZMA compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-prepend-random-data.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1059,6 +1104,7 @@ class TestLZMA(TestBase):
 
     # a test for the file being a single LZMA with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single LZMA compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-cut-data-from-end.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1067,6 +1113,7 @@ class TestLZMA(TestBase):
 
     # a test for the file being a single LZMA with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single LZMA compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-cut-data-from-middle.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1075,6 +1122,7 @@ class TestLZMA(TestBase):
 
     # a test for the file being a single LZMA with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single LZMA compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-data-added-to-middle.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1083,6 +1131,7 @@ class TestLZMA(TestBase):
 
     # a test for the file being a single LZMA with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single LZMA compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-data-replaced-in-middle.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1095,6 +1144,7 @@ class TestBzip2(TestBase):
 
     # a test for the file being a single bzip2
     def test_fullfile(self):
+        '''Test a single bzip2 compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1105,6 +1155,7 @@ class TestBzip2(TestBase):
 
     # a test for the file being a single bzip2 with data appended to it
     def test_appended(self):
+        '''Test a single bzip2 compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-add-random-data.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1114,6 +1165,7 @@ class TestBzip2(TestBase):
 
     # a test for the file being a single bzip2 with data in front
     def test_prepended(self):
+        '''Test a single bzip2 compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-prepend-random-data.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1123,6 +1175,7 @@ class TestBzip2(TestBase):
 
     # a test for the file being a single bzip2 with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single bzip2 compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-cut-data-from-end.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1131,6 +1184,7 @@ class TestBzip2(TestBase):
 
     # a test for the file being a single bzip2 with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single bzip2 compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-cut-data-from-middle.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1139,6 +1193,7 @@ class TestBzip2(TestBase):
 
     # a test for the file being a single bzip2 with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single bzip2 compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-data-added-to-middle.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1147,6 +1202,7 @@ class TestBzip2(TestBase):
 
     # a test for the file being a single bzip2 with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single bzip2 compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bzip2' / 'test-data-replaced-in-middle.bz2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1159,6 +1215,7 @@ class TestLzip(TestBase):
 
     # a test for the file being a single lzip
     def test_fullfile(self):
+        '''Test a single lzip compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1169,6 +1226,7 @@ class TestLzip(TestBase):
 
     # a test for the file being a single lzip with data appended to it
     def test_appended(self):
+        '''Test a single lzip compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-add-random-data.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1178,6 +1236,7 @@ class TestLzip(TestBase):
 
     # a test for the file being a single lzip with data in front
     def test_prepended(self):
+        '''Test a single lzip compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-prepend-random-data.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1187,6 +1246,7 @@ class TestLzip(TestBase):
 
     # a test for the file being a single lzip with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single lzip compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-cut-data-from-end.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1195,6 +1255,7 @@ class TestLzip(TestBase):
 
     # a test for the file being a single lzip with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single lzip compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-cut-data-from-middle.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1203,6 +1264,7 @@ class TestLzip(TestBase):
 
     # a test for the file being a single lzip with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single lzip compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-data-added-to-middle.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1211,6 +1273,7 @@ class TestLzip(TestBase):
 
     # a test for the file being a single lzip with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single lzip compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzip' / 'test-data-replaced-in-middle.lz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1223,6 +1286,7 @@ class TestLzop(TestBase):
 
     # a test for the file being a single lzop
     def test_fullfile(self):
+        '''Test a single lzop compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1233,6 +1297,7 @@ class TestLzop(TestBase):
 
     # a test for the file being a single lzop with data appended to it
     def test_appended(self):
+        '''Test a single lzop compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-add-random-data.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1242,6 +1307,7 @@ class TestLzop(TestBase):
 
     # a test for the file being a single lzop with data in front
     def test_prepended(self):
+        '''Test a single lzop compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-prepend-random-data.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1251,6 +1317,7 @@ class TestLzop(TestBase):
 
     # a test for the file being a single lzop with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single lzop compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-cut-data-from-end.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1259,6 +1326,7 @@ class TestLzop(TestBase):
 
     # a test for the file being a single lzop with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single lzop compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-cut-data-from-middle.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1267,6 +1335,7 @@ class TestLzop(TestBase):
 
     # a test for the file being a single lzop with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single lzop compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-data-added-to-middle.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1275,6 +1344,7 @@ class TestLzop(TestBase):
 
     # a test for the file being a single lzop with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single lzop compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-data-replaced-in-middle.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1287,6 +1357,7 @@ class TestZstd(TestBase):
 
     # a test for the file being a single zstd
     def test_fullfile(self):
+        '''Test a single zstd compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1297,6 +1368,7 @@ class TestZstd(TestBase):
 
     # a test for the file being a single zstd with data appended to it
     def test_appended(self):
+        '''Test a single zstd compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-add-random-data.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1306,6 +1378,7 @@ class TestZstd(TestBase):
 
     # a test for the file being a single zstd with data in front
     def test_prepended(self):
+        '''Test a single zstd compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-prepend-random-data.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1315,6 +1388,7 @@ class TestZstd(TestBase):
 
     # a test for the file being a single zstd with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single zstd compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-cut-data-from-end.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1323,6 +1397,7 @@ class TestZstd(TestBase):
 
     # a test for the file being a single zstd with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single zstd compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-cut-data-from-middle.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1331,6 +1406,7 @@ class TestZstd(TestBase):
 
     # a test for the file being a single zstd with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single zstd compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-data-added-to-middle.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1339,6 +1415,7 @@ class TestZstd(TestBase):
 
     # a test for the file being a single zstd with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single zstd compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zstd' / 'test-data-replaced-in-middle.zst'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1351,6 +1428,7 @@ class Test7z(TestBase):
 
     # a test for the file being a single 7z
     def test_fullfile(self):
+        '''Test a single 7z compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1361,6 +1439,7 @@ class Test7z(TestBase):
 
     # a test for the file being a single 7z with data appended to it
     def test_appended(self):
+        '''Test a single 7z compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-add-random-data.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1370,6 +1449,7 @@ class Test7z(TestBase):
 
     # a test for the file being a single 7z with data in front
     def test_prepended(self):
+        '''Test a single 7z compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-prepend-random-data.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1379,6 +1459,7 @@ class Test7z(TestBase):
 
     # a test for the file being a single 7z with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single 7z compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-cut-data-from-end.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1387,6 +1468,7 @@ class Test7z(TestBase):
 
     # a test for the file being a single 7z with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single 7z compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-cut-data-from-middle.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1395,6 +1477,7 @@ class Test7z(TestBase):
 
     # a test for the file being a single 7z with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single 7z compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-data-added-to-middle.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1403,6 +1486,7 @@ class Test7z(TestBase):
 
     # a test for the file being a single 7z with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single 7z compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-data-replaced-in-middle.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1671,6 +1755,7 @@ class TestSquashfs(TestBase):
 
     # a test for the file being a single squashfs
     def test_fullfile(self):
+        '''Test a single squashfs file system'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1681,6 +1766,7 @@ class TestSquashfs(TestBase):
 
     # a test for the file being a single squashfs with data appended to it
     def test_appended(self):
+        '''Test a single squashfs file system with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-add-random-data.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1690,6 +1776,7 @@ class TestSquashfs(TestBase):
 
     # a test for the file being a single squashfs with data in front
     def test_prepended(self):
+        '''Test a single squashfs file system with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-prepend-random-data.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1699,6 +1786,7 @@ class TestSquashfs(TestBase):
 
     # a test for the file being a single squashfs with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single squashfs file system with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-cut-data-from-end.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1707,6 +1795,7 @@ class TestSquashfs(TestBase):
 
     # a test for the file being a single squashfs with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single squashfs file system with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-cut-data-from-middle.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1715,6 +1804,7 @@ class TestSquashfs(TestBase):
 
     # a test for the file being a single squashfs with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single squashfs file system with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-data-added-to-middle.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1724,6 +1814,7 @@ class TestSquashfs(TestBase):
     # a test for the file being a single squashfs
     # with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single squashfs file system with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-data-replaced-in-middle.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1736,6 +1827,7 @@ class TestSnappy(TestBase):
 
     # a test for the file being a single snappy
     def test_fullfile(self):
+        '''Test a single snappy compressed file'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
@@ -1746,6 +1838,7 @@ class TestSnappy(TestBase):
 
     # a test for the file being a single snappy with data appended to it
     def test_appended(self):
+        '''Test a single snappy compressed file with data appended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-add-random-data.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1755,6 +1848,7 @@ class TestSnappy(TestBase):
 
     # a test for the file being a single snappy with data in front
     def test_prepended(self):
+        '''Test a single snappy compressed file with data prepended'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-prepend-random-data.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
@@ -1764,6 +1858,7 @@ class TestSnappy(TestBase):
 
     # a test for the file being a single snappy with data cut from the end
     def test_cut_from_end(self):
+        '''Test a single snappy compressed file with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-cut-data-from-end.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1772,6 +1867,7 @@ class TestSnappy(TestBase):
 
     # a test for the file being a single snappy with data cut from the middle
     def test_cut_from_middle(self):
+        '''Test a single snappy compressed file with data cut from the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-cut-data-from-middle.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1780,6 +1876,7 @@ class TestSnappy(TestBase):
 
     # a test for the file being a single snappy with data added in the middle
     def test_added_in_middle(self):
+        '''Test a single snappy compressed file with data added in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-data-added-to-middle.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
@@ -1789,6 +1886,7 @@ class TestSnappy(TestBase):
     # a test for the file being a single snappy
     # with data replaced in the middle
     def test_replaced_in_middle(self):
+        '''Test a single snappy compressed file with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-data-replaced-in-middle.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
