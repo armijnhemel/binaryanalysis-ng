@@ -4022,7 +4022,8 @@ def unpackRomfs(fileresult, scanenvironment, offset, unpackdir):
                 sourcetargetname = offsettoname[specinfo]
                 if os.path.isabs(sourcetargetname):
                     sourcetargetname = os.path.relpath(sourcetargetname, '/')
-                sourcetargetname = os.path.normpath(os.path.join(unpackdir, sourcetargetname))
+                sourcetargetname = os.path.normpath(os.path.join(unpackdir, curcwd, sourcetargetname))
+                sourcetargetname = scanenvironment.unpack_path(sourcetargetname)
 
                 outfile_rel = os.path.join(unpackdir, curcwd, inodename)
                 outfile_full = scanenvironment.unpack_path(outfile_rel)
