@@ -354,7 +354,6 @@ def main(argv):
             HumanReadableReporter(reportfile).report(scanresult)
             reportfile.close()
 
-        # The end.
         log(logging.INFO, "Finished scanning %s" % checkfile)
         if options.uselogging:
             # flush any remaining data
