@@ -14111,7 +14111,7 @@ def unpack_ambarella(fileresult, scanenvironment, offset, unpackdir):
 #
 # http://web.archive.org/web/20190402224117/https://courses.cs.ut.ee/MTAT.07.022/2015_spring/uploads/Main/karl-report-s15.pdf
 # Section 4.1
-def unpack_romfs_ambarella(fileresult, scanenvironment, offset, unpackdir, temporarydirectory):
+def unpack_romfs_ambarella(fileresult, scanenvironment, offset, unpackdir):
     '''Verify an Ambarella romfs file system'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
