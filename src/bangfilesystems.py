@@ -1223,7 +1223,6 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
         bigendian = False
         byteorder = 'little'
 
-
     dataunpacked = False
 
     # keep track of which nodes have already been seen. This is to
