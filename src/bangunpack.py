@@ -10830,8 +10830,9 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
         tmplabels += certres['labels']
         tmplabels = list(set(tmplabels))
         tmplabels.append('unpacked')
+        outsize = outfile_full.stat().st_size
         unpackedfilesandlabels.append((outfile_rel, tmplabels))
-        return {'status': True, 'length': filesize, 'labels': labels,
+        return {'status': True, 'length': outsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # cleanup
