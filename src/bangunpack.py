@@ -7750,7 +7750,7 @@ def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
 # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
 def unpackLZ4Legacy(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack LZ4 legacy compressed data.'''
-    filesize = fileresult.size
+    filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
