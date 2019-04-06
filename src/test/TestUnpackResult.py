@@ -30,7 +30,7 @@ def get_unpackers_for_file(unpackername, f):
         yield bangsignatures.signaturetofunction[unpackername]
     except KeyError:
         pass
-    
+
     for signature,prettyname in bangsignatures.signatureprettyprint.items():
         if prettyname == unpackername:
             try:
@@ -55,7 +55,7 @@ def get_unpackers_for_file(unpackername, f):
 def is_prefix(pref,full):
     cp = os.path.commonprefix((pref,full))
     return cp == pref
- 
+
 class TestUnpackResult(TestBase):
     def test_unpackdata_for_all_unpackers(self):
         unpackers = get_unpackers()
