@@ -30,7 +30,7 @@ import os
 import sys
 
 _scriptdir = os.path.dirname(__file__)
-sys.path.insert(0,os.path.join(_scriptdir,'..'))
+sys.path.insert(0, os.path.join(_scriptdir, '..'))
 
 # load own modules
 import bangunpack
