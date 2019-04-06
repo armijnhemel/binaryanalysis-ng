@@ -28,7 +28,7 @@ class ScanEnvironment:
         'filesystem', 'srec', 'ihex', 'padding',
         'database'])
 
-    def __init__(self, maxbytes, readsize, createbytecounter,
+    def __init__(self, maxbytes, readsize, createbytecounter, createjson,
             tlshmaximum, synthesizedminimum, logging, paddingname,
             unpackdirectory, temporarydirectory, resultsdirectory,
             scanfilequeue, resultqueue,
@@ -41,6 +41,7 @@ class ScanEnvironment:
         self.maxbytes = maxbytes
         self.readsize = readsize
         self.createbytecounter = createbytecounter
+        self.createjson = createjson
         self.tlshmaximum = tlshmaximum
         self.synthesizedminimum = synthesizedminimum
         self.logging = logging
@@ -59,6 +60,9 @@ class ScanEnvironment:
 
     def get_createbytecounter(self):
         return self.createbytecounter
+
+    def get_createjson(self):
+        return self.createjson
 
     def get_tlshmaximum(self):
         return self.tlshmaximum

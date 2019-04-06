@@ -246,6 +246,7 @@ def main(argv):
             # set the size of bytes to be read during scanning hashes
             readsize = 10240,
             createbytecounter = options.createbytecounter,
+            createjson = options.createjson,
             tlshmaximum = options.tlshmaximum,
             synthesizedminimum = 10,
             logging = banglogging.uselogging,

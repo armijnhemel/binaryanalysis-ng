@@ -53,6 +53,7 @@ class BangScannerOptions:
             'temporarydirectory': None,
             'removescandirectory': False,
             'createbytecounter': False,
+            'createjson': True,
             'tlshmaximum': sys.maxsize,
             'postgresql_host': None,
             'postgresql_port': None,
@@ -171,6 +172,8 @@ class BangScannerOptions:
         self._set_boolean_option_from_config('removescandirectory',
                 section='configuration')
         self._set_boolean_option_from_config('createbytecounter',
+                section='configuration', option='bytecounter')
+        self._set_boolean_option_from_config('json',
                 section='configuration', option='bytecounter')
         self._set_integer_option_from_config('tlshmaximum',
                 section='configuration')
