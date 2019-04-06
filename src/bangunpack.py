@@ -14038,6 +14038,8 @@ def unpack_ambarella(fileresult, scanenvironment, offset, unpackdir):
                      10: 'dsp',
                      11: 'linux'}
 
+    dataunpacked = False
+
     # write the data of each section
     for section in sections:
         if sections[section]['start'] == 0:
@@ -14101,6 +14103,13 @@ def unpack_ambarella(fileresult, scanenvironment, offset, unpackdir):
         outfile.close()
 
         unpackedfilesandlabels.append((outfile_rel, []))
+        dataunpacked = True
+
+    if not dataunpacked:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid offsets'}
+        return {'status': False, 'error': unpackingerror}
 
     if offset == 0 and maxoffset == filesize:
         labels.append('ambarella')
