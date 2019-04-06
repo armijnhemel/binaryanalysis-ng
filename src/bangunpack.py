@@ -7816,7 +7816,7 @@ def unpackLZ4Legacy(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
     else:
         # first write the data to a temporary file
-        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
         os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
         os.fdopen(temporaryfile[0]).close()
         checkfile.close()
