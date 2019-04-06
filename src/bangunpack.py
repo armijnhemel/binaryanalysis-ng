@@ -14181,6 +14181,7 @@ def unpack_romfs_ambarella(fileresult, scanenvironment, offset, unpackdir):
 
     for inode in inodes:
         outfile_rel = os.path.join(unpackdir, inodes[inode]['name'])
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
         # create subdirectories, if any are defined in the file name
         if '/' in inodes[inode]['name']:
             os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
