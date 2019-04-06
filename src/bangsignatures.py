@@ -436,8 +436,8 @@ textonlyfunctions = {
 # * error message (human readable)
 # * flag to indicate if it is a fatal error
 #   (boolean)
-def unpack_file_with_extension(filename, extension, unpack_directory, temporary_directory):
-    return extensiontofunction[extension](filename, 0, unpack_directory, temporary_directory)
+def unpack_file_with_extension(fileresult, scanenvironment, extension, unpack_directory):
+    return extensiontofunction[extension](fileresult, scanenvironment, 0, unpack_directory)
 
 # Prescan functions:
 #

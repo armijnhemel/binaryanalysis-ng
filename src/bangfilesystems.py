@@ -56,9 +56,11 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # differ per Linux distribution.
 # This is for the "vanilla" squashfs, not for any vendor specific
 # versions.
-def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
+def unpackSquashfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack squashfs file system data.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -79,7 +81,7 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
                           'reason': 'not enough data'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # sanity checks for the squashfs header.
@@ -152,7 +154,7 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     # then create a temporary file and copy the data into the
     # temporary file but only if offset != 0
     if offset != 0:
-        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
         # depending on the variant of squashfs a file size can be
         # determined meaning less data needs to be copied.
         os.sendfile(temporaryfile[0], checkfile.fileno(), offset, filesize - offset)
@@ -162,14 +164,14 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     # unpack in a temporary directory, as unsquashfs expects
     # to create the directory itself, but the unpacking directory
     # already exists.
-    squashfsunpackdirectory = tempfile.mkdtemp(dir=temporarydirectory)
+    squashfsunpackdirectory = tempfile.mkdtemp(dir=scanenvironment.temporarydirectory)
 
     if offset != 0:
         p = subprocess.Popen(['unsquashfs', temporaryfile[1]],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              cwd=squashfsunpackdirectory)
     else:
-        p = subprocess.Popen(['unsquashfs', filename],
+        p = subprocess.Popen(['unsquashfs', filename_full],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              cwd=squashfsunpackdirectory)
     (outputmsg, errormsg) = p.communicate()
@@ -189,6 +191,7 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
     # move contents of the unpacked file system
     foundfiles = os.listdir(squashfsunpackdirectory)
     if len(foundfiles) == 1:
+        old_dir = os.getcwd()
         if foundfiles[0] == 'squashfs-root':
             os.chdir(os.path.join(squashfsunpackdirectory, 'squashfs-root'))
         else:
@@ -196,33 +199,37 @@ def unpackSquashfs(filename, offset, unpackdir, temporarydirectory):
         listoffiles = os.listdir()
         for l in listoffiles:
             try:
-                shutil.move(l, unpackdir, copy_function=local_copy2)
+                shutil.move(l, unpackdir_full, copy_function=local_copy2)
             except:
+                # TODO: make exception more specific
                 # TODO: report
                 # not all files can be copied.
                 # example: named pipe /dev/initctl in FW_WL_600g_1036A.zip
                 pass
+        os.chdir(old_dir)
 
     # clean up the temporary directory
     shutil.rmtree(squashfsunpackdirectory)
 
     # now add everything that was unpacked
-    dirwalk = os.walk(unpackdir)
+    dirwalk = os.walk(unpackdir_full)
     for direntries in dirwalk:
         # make sure all subdirectories and files can be accessed
         for entryname in direntries[1]:
             fullfilename = os.path.join(direntries[0], entryname)
             if not os.path.islink(fullfilename):
                 os.chmod(fullfilename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            unpackedfilesandlabels.append((relfilename, []))
         for entryname in direntries[2]:
             fullfilename = os.path.join(direntries[0], entryname)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            unpackedfilesandlabels.append((relfilename, []))
 
     if offset + unpackedsize != filesize:
         # by default mksquashfs pads to 4K blocks with NUL bytes.
         # The padding is not counted in squashfssize
-        checkfile = open(filename, 'rb')
+        checkfile = open(filename_full, 'rb')
         checkfile.seek(offset + unpackedsize)
         padoffset = checkfile.tell()
         if unpackedsize % 4096 != 0:
@@ -272,9 +279,11 @@ def local_copy2(src, dest):
 #
 # The zisofs specific bits can be found at:
 # http://libburnia-project.org/wiki/zisofs
-def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
+def unpackISO9660(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack an ISO9660 file system.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -288,7 +297,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
     # each sector is 2048 bytes long (ECMA 119, 6.1.2). The first 16
     # sectors are reserved for the "system area" (in total 32768 bytes:
     # ECMA 119, 6.2.1)
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+32768)
     unpackedsize += 32768
 
@@ -485,7 +494,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
             # In the extent pointed to by a directory entry all the
             # entries are concatenated (ECMA 119, 6.8.1).
             while len(extents) != 0:
-                (this_extent_location, this_extent_length, this_extent_unpackdir, this_extent_name) = extents.popleft()
+                (this_extent_location, this_extent_length, this_extent_unpackdir_rel, this_extent_name) = extents.popleft()
 
                 # first seek to the right location in the file
                 checkfile.seek(offset + this_extent_location * logical_size)
@@ -924,30 +933,33 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                             # for extra sanity checks
                             extenttoparent[extent_location] = this_extent_location
 
-                            extent_unpackdir = os.path.join(this_extent_unpackdir, extent_filename)
+                            extent_unpackdir_rel = os.path.join(this_extent_unpackdir_rel, extent_filename)
                             if haverockridge:
                                 if not renamecurrentdirectory or renameoarentdirectory:
                                     if alternatename != b'':
                                         try:
                                             alternatename = alternatename.decode()
-                                            extent_unpackdir = os.path.join(this_extent_unpackdir, alternatename)
+                                            extent_unpackdir_rel = os.path.join(this_extent_unpackdir_rel, alternatename)
                                         except UnicodeDecodeError:
                                             pass
-                            extenttoname[extent_location] = extent_unpackdir
-                            os.mkdir(extent_unpackdir)
-                            extents.append((extent_location, directory_extent_length, extent_unpackdir, ''))
+                            extenttoname[extent_location] = extent_unpackdir_rel
+                            extent_unpackdir_full = scanenvironment.unpack_path(extent_unpackdir_rel)
+                            os.mkdir(extent_unpackdir_rel)
+                            extents.append((extent_location, directory_extent_length, extent_unpackdir_rel, ''))
                     else:
                         # file entry
                         # store the name of the parent,
                         # for extra sanity checks
                         extenttoparent[extent_location] = this_extent_location
-                        outfilename = os.path.join(this_extent_unpackdir, extent_filename.rsplit(';', 1)[0])
+                        outfile_rel = os.path.join(this_extent_unpackdir_rel, extent_filename.rsplit(';', 1)[0])
+                        outfile_full = scanenvironment.unpack_path(outfile_rel)
                         if haverockridge:
                             if alternatename != b'':
                                 if not renamecurrentdirectory or renameoarentdirectory:
                                     try:
                                         alternatename = alternatename.decode()
-                                        outfilename = os.path.join(this_extent_unpackdir, alternatename)
+                                        outfile_rel = os.path.join(this_extent_unpackdir_rel, alternatename)
+                                        outfile_full = scanenvironment.unpack_path(outfile_rel)
                                     except UnicodeDecodeError:
                                         pass
 
@@ -960,21 +972,21 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
                                 # absolute symlinks can always be created,
                                 # as can links to . and ..
                                 if os.path.isabs(symlinktarget):
-                                    os.symlink(symlinktarget, outfilename)
+                                    os.symlink(symlinktarget, outfile_full)
                                 elif symlinktarget == '.' or symlinktarget == '..':
-                                    os.symlink(symlinktarget, outfilename)
+                                    os.symlink(symlinktarget, outfile_full)
                                 else:
                                     # first chdir to the directory, then
                                     # create the link and go back
                                     olddir = os.getcwd()
-                                    os.chdir(os.path.dirname(outfilename))
-                                    os.symlink(symlinktarget, outfilename)
+                                    os.chdir(os.path.dirname(outfile_full))
+                                    os.symlink(symlinktarget, outfile_full)
                                     os.chdir(olddir)
-                                unpackedfilesandlabels.append((outfilename, ['symbolic link']))
+                                unpackedfilesandlabels.append((outfile_rel, ['symbolic link']))
                                 createfile = False
 
                         if createfile:
-                            outfile = open(outfilename, 'wb')
+                            outfile = open(outfile_full, 'wb')
                             if not havezisofs:
                                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset + extent_location * logical_size, directory_extent_length)
                             else:
@@ -1086,7 +1098,7 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
 
                                 checkfile.seek(zisofs_oldoffset)
                             outfile.close()
-                            unpackedfilesandlabels.append((outfilename, []))
+                            unpackedfilesandlabels.append((outfile_rel, []))
 
                     # then skip to the (possible) start of
                     # the next directory entry.
@@ -1184,9 +1196,11 @@ def unpackISO9660(filename, offset, unpackdir, temporarydirectory):
 # JFFS2 is a file system that was used on earlier embedded Linux
 # system, although it is no longer the first choice for modern systems,
 # where for example UBI/UBIFS are chosen.
-def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
+def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a JFFS2 file system.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1196,7 +1210,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     unpackedsize = 0
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # read the magic of the first inode to see if it is a little endian
@@ -1467,7 +1481,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
             if inodenumber in inodetofilename:
                 # the inode number is already known, meaning
                 # that this should be a hard link
-                os.link(os.path.join(unpackdir, inodetofilename[inodenumber]), os.path.join(unpackdir, inodename))
+                os.link(os.path.join(unpackdir_full, inodetofilename[inodenumber]), os.path.join(unpackdir_full, inodename))
 
                 # TODO: determine whether or not to add
                 # the hard link to the result set
@@ -1517,7 +1531,7 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
                 pass
             elif stat.S_ISDIR(filemode):
                 # create directories, but skip them otherwise
-                os.makedirs(os.path.join(unpackdir, inodetofilename[inodenumber]), exist_ok=True)
+                os.makedirs(os.path.join(unpackdir_full, inodetofilename[inodenumber]), exist_ok=True)
                 checkfile.seek(oldoffset + inodesize)
                 continue
             elif stat.S_ISLNK(filemode):
@@ -1535,8 +1549,10 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
                 if len(checkbytes) != linknamelength:
                     break
                 try:
-                    os.symlink(checkbytes.decode(), os.path.join(unpackdir, inodetofilename[inodenumber]))
-                    unpackedfilesandlabels.append((os.path.join(unpackdir, inodetofilename[inodenumber]), ['symbolic link']))
+                    fn_rel = os.path.join(unpackdir, inodetofilename[inodenumber])
+                    fn_full = scanenvironment.unpack_path(fn_rel)
+                    os.symlink(checkbytes.decode(), fn_full)
+                    unpackedfilesandlabels.append((fn_full, ['symbolic link']))
                     dataunpacked = True
                 except UnicodeDecodeError:
                     break
@@ -1558,7 +1574,9 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
                     if inodenumber in inodetoopenfiles:
                         break
                     # open a file and store it as a reference
-                    outfile = open(os.path.join(unpackdir, inodetofilename[inodenumber]), 'wb')
+                    fn_rel = os.path.join(unpackdir, inodetofilename[inodenumber])
+                    fn_full = scanenvironment.unpack_path(fn_rel)
+                    outfile = open(fn_full, 'wb')
                     inodetoopenfiles[inodenumber] = outfile
                 else:
                     if writeoffset != inodetowriteoffset[inodenumber]:
@@ -1653,7 +1671,8 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
     for i in inodetoopenfiles:
         inodetoopenfiles[i].flush()
         inodetoopenfiles[i].close()
-        unpackedfilesandlabels.append((inodetoopenfiles[i].name, []))
+        fn_rel = scanenvironment.rel_unpack_path(inodetoopenfiles[i].name)
+        unpackedfilesandlabels.append((fn_rel, []))
 
     # check if a valid root node was found.
     if 1 not in parentinodesseen:
@@ -1680,9 +1699,11 @@ def unpackJFFS2(filename, offset, unpackdir, temporarydirectory):
 # to this document. The heavy lifting is done using e2tools
 # because it already takes care of deleted files, etc. through
 # e2fsprogs-libs.
-def unpackExt2(filename, offset, unpackdir, temporarydirectory):
+def unpackExt2(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack an ext2/ext3/ext4 file system.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -1705,7 +1726,7 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # open the file and skip directly to the superblock
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+1024)
     unpackedsize += 1024
 
@@ -1920,7 +1941,7 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
         # won't write more data than 2147479552 so write bytes
         # out in chunks. Reference:
         # https://bugzilla.redhat.com/show_bug.cgi?id=612839
-        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
         if unpackedsize > 2147479552:
             bytesleft = unpackedsize
             bytestowrite = min(bytesleft, 2147479552)
@@ -1963,7 +1984,7 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
         if havetmpfile:
             p = subprocess.Popen(['e2ls', '-lai', temporaryfile[1] + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            p = subprocess.Popen(['e2ls', '-lai', str(filename) + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['e2ls', '-lai', str(filename_full) + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate()
         if p.returncode != 0:
             if havetmpfile:
@@ -2011,8 +2032,10 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                     continue
                 newext2dir = os.path.join(ext2dir, ext2name)
                 ext2dirstoscan.append(newext2dir)
-                os.mkdir(os.path.join(unpackdir, newext2dir))
-                unpackedfilesandlabels.append((os.path.join(unpackdir, newext2dir), []))
+                ext2dir_rel = os.path.join(unpackdir, newext2dir)
+                ext2dir_full = scanenvironment.unpack_path(ext2dir_rel)
+                os.mkdir(ext2dir_full)
+                unpackedfilesandlabels.append((ext2dir_rel, []))
             elif stat.S_ISBLK(filemode):
                 # ignore block devices
                 continue
@@ -2038,10 +2061,12 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                 if inode not in inodetofile:
                     inodetofile[inode] = fullext2name
                     # use e2cp to copy the file
+                    ext2dir_rel = os.path.join(unpackdir, ext2dir)
+                    ext2dir_full = scanenvironment.unpack_path(ext2dir_rel)
                     if havetmpfile:
-                        p = subprocess.Popen(['e2cp', temporaryfile[1] + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        p = subprocess.Popen(['e2cp', temporaryfile[1] + ":" + fullext2name, "-d", ext2dir_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     else:
-                        p = subprocess.Popen(['e2cp', str(filename) + ":" + fullext2name, "-d", os.path.join(unpackdir, ext2dir)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        p = subprocess.Popen(['e2cp', str(filename_full) + ":" + fullext2name, "-d", ext2dir_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     (outputmsg, errormsg) = p.communicate()
                     if p.returncode != 0:
                         if havetmpfile:
@@ -2054,7 +2079,7 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
                     # hardlink the file to an existing
                     # file and record it as such.
                     if inodetofile[inode] != fullext2name:
-                        os.link(os.path.join(unpackdir, inodetofile[inode]), os.path.join(unpackdir, fullext2name))
+                        os.link(os.path.join(unpackdir_full, inodetofile[inode]), os.path.join(unpackdir_full, fullext2name))
                         fileunpacked = True
                 if fileunpacked:
                     unpackedfilesandlabels.append((os.path.join(unpackdir, fullext2name), []))
@@ -2093,9 +2118,10 @@ def unpackExt2(filename, offset, unpackdir, temporarydirectory):
 # in section 4
 #
 # For now just focus on files where the entire file is VMDK
-def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
+def unpackVMDK(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a VMware VMDK file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -2112,7 +2138,7 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
 
     # first run qemu-img in case the whole file is the VMDK file
     if offset == 0:
-        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename],
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename_full],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         (standardout, standarderror) = p.communicate()
@@ -2124,20 +2150,21 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.suffix.lower() == '.vmdk':
-                outputfilename = os.path.join(unpackdir, filename.stem)
+            if filename_full.suffix.lower() == '.vmdk':
+                outputfile_rel = os.path.join(unpackdir, filename_full.stem)
             else:
-                outputfilename = os.path.join(unpackdir, 'unpacked-from-vmdk')
+                outputfile_rel = os.path.join(unpackdir, 'unpacked-from-vmdk')
 
+            outputfile_full = scanenvironment.unpack_path(outputfile_rel)
             # now convert it to a raw file
-            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename],
+            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename_full, outputfile_full],
                                  stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             (standardout, standarderror) = p.communicate()
             if p.returncode != 0:
-                if os.path.exists(outputfilename):
-                    os.unlink(outputfilename)
+                if os.path.exists(outputfile_full):
+                    os.unlink(outputfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert file'}
@@ -2145,7 +2172,7 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
 
             labels.append('vmdk')
             labels.append('filesystem')
-            unpackedfilesandlabels.append((outputfilename, []))
+            unpackedfilesandlabels.append((outputfile_rel, []))
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
@@ -2159,9 +2186,10 @@ def unpackVMDK(filename, offset, unpackdir, temporarydirectory):
 # Specification can be found in docs/interop in the QEMU repository
 #
 # https://git.qemu.org/?p=qemu.git;a=blob;f=docs/interop/qcow2.txt;hb=HEAD
-def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
+def unpackQcow2(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a QEMU qcow2 file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -2179,7 +2207,7 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
 
     # first run qemu-img in case the whole file is the qcow2 file
     if offset == 0:
-        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename],
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename_full],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         (standardout, standarderror) = p.communicate()
@@ -2191,20 +2219,21 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.suffix.lower() == '.qcow2':
-                outputfilename = os.path.join(unpackdir, filename.stem)
+            if filename_full.suffix.lower() == '.qcow2':
+                outputfile_rel = os.path.join(unpackdir, filename_full.stem)
             else:
-                outputfilename = os.path.join(unpackdir, 'unpacked-from-qcow2')
+                outputfile_rel = os.path.join(unpackdir, 'unpacked-from-qcow2')
 
+            outputfile_full = scanenvironment.unpack_path(outputfile_rel)
             # now convert it to a raw file
-            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename],
+            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename_full, outputfile_full],
                                  stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             (standardout, standarderror) = p.communicate()
             if p.returncode != 0:
-                if os.path.exists(outputfilename):
-                    os.unlink(outputfilename)
+                if os.path.exists(outputfile_full):
+                    os.unlink(outputfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert file'}
@@ -2213,7 +2242,7 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
             labels.append('qemu')
             labels.append('qcow2')
             labels.append('filesystem')
-            unpackedfilesandlabels.append((outputfilename, []))
+            unpackedfilesandlabels.append((outputfile_rel, []))
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
@@ -2225,9 +2254,10 @@ def unpackQcow2(filename, offset, unpackdir, temporarydirectory):
 # VirtualBox VDI
 #
 # https://forums.virtualbox.org/viewtopic.php?t=8046
-def unpackVDI(filename, offset, unpackdir, temporarydirectory):
+def unpackVDI(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a VirtualBox VDI file.'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackedsize = 0
@@ -2246,7 +2276,7 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # open the file skip over the magic header bytes
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
 
     # This assumes the Oracle flavour of VDI. There have been
     # others in the past.
@@ -2387,7 +2417,7 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
 
     # check to see if the VDI is the entire file. If so unpack it.
     if offset == 0 and (2+blocksallocated) * blocksize == filesize:
-        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename],
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename_full],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
 
@@ -2401,20 +2431,21 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
                                   'fatal': False,
                                   'reason': 'no valid JSON output from qemu-img'}
                 return {'status': False, 'error': unpackingerror}
-            if filename.suffix.lower() == '.vdi':
-                outputfilename = os.path.join(unpackdir, filename.stem)
+            if filename_full.suffix.lower() == '.vdi':
+                outputfile_rel = os.path.join(unpackdir, filename_full.stem)
             else:
-                outputfilename = os.path.join(unpackdir, 'unpacked-from-vdi')
+                outputfile_rel = os.path.join(unpackdir, 'unpacked-from-vdi')
 
+            outputfile_full = scanenvironment.unpack_path(outputfile_rel)
             # now convert it to a raw file
-            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename, outputfilename],
+            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename_full, outputfile_full],
                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
 
             (standardout, standarderror) = p.communicate()
             if p.returncode != 0:
-                if os.path.exists(outputfilename):
-                    os.unlink(outputfilename)
+                if os.path.exists(outputfile_full):
+                    os.unlink(outputfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert file'}
@@ -2423,7 +2454,7 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
             labels.append('virtualbox')
             labels.append('vdi')
             labels.append('filesystem')
-            unpackedfilesandlabels.append((outputfilename, []))
+            unpackedfilesandlabels.append((outputfile_rel, []))
             return {'status': True, 'length': unpackedsize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
@@ -2442,16 +2473,17 @@ def unpackVDI(filename, offset, unpackdir, temporarydirectory):
 #
 # which was released under the MIT license. The license can be found in the file
 # README.md in the root of this project.
-def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
+def unpackDlinkRomfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a D-Link ROMFS'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # check the endianness, don't support anything but little endian
@@ -2564,9 +2596,10 @@ def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
         # read directory entries
         if isdir:
             if entryuid in entryuidtopath:
-                outfilename = os.path.join(unpackdir, entryuidtopath[entryuid])
-                os.mkdir(outfilename)
-                unpackedfilesandlabels.append((outfilename, []))
+                outfile_rel = os.path.join(unpackdir, entryuidtopath[entryuid])
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.mkdir(outfile_full)
+                unpackedfilesandlabels.append((outfile_rel, []))
             entrybytesread = 0
             while entrybytesread < entrysize:
                 # directory uid
@@ -2612,8 +2645,9 @@ def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
             maxunpacked = max(maxunpacked, offset + entryoffset + entrysize)
         elif isdata:
             if entryuid in entryuidtopath:
-                outfilename = os.path.join(unpackdir, entryuidtopath[entryuid])
-                outfile = open(outfilename, 'wb')
+                outfile_rel = os.path.join(unpackdir, entryuidtopath[entryuid])
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                outfile = open(outfile_full, 'wb')
                 if iscompressed:
                     # try to decompress using LZMA. If this is not successful
                     # simply copy the data. It happens that some data has the
@@ -2626,7 +2660,7 @@ def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
                 else:
                     os.sendfile(outfile.fileno(), checkfile.fileno(), offset + entryoffset, entrysize)
                 outfile.close()
-                unpackedfilesandlabels.append((outfilename, []))
+                unpackedfilesandlabels.append((outfile_rel, []))
                 maxunpacked = max(maxunpacked, offset + entryoffset + entrysize)
 
         # return to the old offset
@@ -2645,16 +2679,17 @@ def unpackDlinkRomfs(filename, offset, unpackdir, temporarydirectory):
 # FAT file system
 # https://en.wikipedia.org/wiki/File_Allocation_Table
 # https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system
-def unpackFAT(filename, offset, unpackdir, temporarydirectory):
+def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack FAT file systems'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # jump instruction
@@ -2686,6 +2721,7 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid bytes per sector'}
         return {'status': False, 'error': unpackingerror}
+    # TODO: use << and >> for this
     if pow(2, int(math.log(bytespersector, 2))) != bytespersector:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -3054,8 +3090,9 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
 
             if chaintype == 'file':
                 # open the file for writing
-                outfilename = os.path.join(unpackdir, chaindir, chainname)
-                outfile = open(outfilename, 'wb')
+                outfile_rel = os.path.join(unpackdir, chaindir, chainname)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                outfile = open(outfile_full, 'wb')
 
                 # now walk the chain and write the contents of each cluster
                 byteswritten = 0
@@ -3086,7 +3123,7 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
                     outfile.seek(chainsize)
                     outfile.truncate()
                 outfile.close()
-                unpackedfilesandlabels.append((outfilename, []))
+                unpackedfilesandlabels.append((outfile_rel, []))
 
             elif chaintype == 'directory':
                 direntries = []
@@ -3162,9 +3199,10 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
                             # directory
                             if entryname != '..' and entryname != '.':
                                 chainstoprocess.append((cluster, 'directory', os.path.join(chaindir, fullname), 0, fullname))
-                            outfilename = os.path.join(unpackdir, chaindir, fullname)
-                            os.makedirs(os.path.dirname(outfilename), exist_ok=True)
-                            unpackedfilesandlabels.append((outfilename, ['directory']))
+                            outfile_rel = os.path.join(unpackdir, chaindir, fullname)
+                            outfile_full = scanenvironment.unpack_path(outfile_rel)
+                            os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
+                            unpackedfilesandlabels.append((outfile_rel, ['directory']))
                         elif fileattributes & 0x20 == 0x20:
                             chainstoprocess.append((cluster, 'file', chaindir, entrysize, fullname))
                         else:
@@ -3185,16 +3223,17 @@ def unpackFAT(filename, offset, unpackdir, temporarydirectory):
 # https://www.coreboot.org/CBFS
 #
 # A CBFS file consists of various concatenated components.
-def unpackCBFS(filename, offset, unpackdir, temporarydirectory):
+def unpackCBFS(fileresult, scanenvironment, offset, unpackdir):
     '''Verify/label coreboot file system images'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file, skip the component magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # what follows is a list of components
@@ -3365,13 +3404,14 @@ def unpackCBFS(filename, offset, unpackdir, temporarydirectory):
                 'filesandlabels': unpackedfilesandlabels, 'offset': cbfsstart}
 
     # else carve the file. It is anonymous, so just give it a name
-    outfilename = os.path.join(unpackdir, "unpacked.coreboot")
-    outfile = open(outfilename, 'wb')
+    outfile_rel = os.path.join(unpackdir, "unpacked.coreboot")
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+    outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), cbfsstart, romsize)
     outfile.close()
     checkfile.close()
 
-    unpackedfilesandlabels.append((outfilename, ['coreboot', 'unpacked']))
+    unpackedfilesandlabels.append((outfile_rel, ['coreboot', 'unpacked']))
     return {'status': True, 'length': romsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels, 'offset': cbfsstart}
 
@@ -3380,9 +3420,10 @@ def unpackCBFS(filename, offset, unpackdir, temporarydirectory):
 # https://en.wikipedia.org/wiki/MINIX_file_system
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/fs/mfs
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/usr.sbin/mkfs.mfs/v1l
-def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
+def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack Minix V1 file systems (extended Linux variant)'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -3395,7 +3436,7 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     blocksize = 1024
@@ -3561,9 +3602,10 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
                               'reason': 'unknown inode'}
             return {'status': False, 'error': unpackingerror}
         if stat.S_ISREG(inodes[i]['mode']):
-            outfilename = os.path.join(unpackdir, inodetoname[i])
+            outfile_rel = os.path.join(unpackdir, inodetoname[i])
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
             # open the file for writing
-            outfile = open(outfilename, 'wb')
+            outfile = open(outfile_full, 'wb')
             seenzones = 1
             zonestowrite = []
             for z in inodes[i]['zones']:
@@ -3600,7 +3642,7 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
                             if inodezone < firstdatazone:
                                 checkfile.close()
                                 outfile.close()
-                                os.unlink(outfilename)
+                                os.unlink(outfile_full)
                                 unpackingerror = {'offset': offset,
                                                   'fatal': False,
                                                   'reason': 'invalid zone number'}
@@ -3610,7 +3652,7 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
                             if offset + inodezone * blocksize + blocksize > filesize:
                                 checkfile.close()
                                 outfile.close()
-                                os.unlink(outfilename)
+                                os.unlink(outfile_full)
                                 unpackingerror = {'offset': offset,
                                                   'fatal': False,
                                                   'reason': 'not enough data for zone'}
@@ -3635,7 +3677,7 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
                             if inodezone < firstdatazone:
                                 checkfile.close()
                                 outfile.close()
-                                os.unlink(outfilename)
+                                os.unlink(outfile_full)
                                 unpackingerror = {'offset': offset,
                                                   'fatal': False,
                                                   'reason': 'invalid zone number'}
@@ -3645,7 +3687,7 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
                             if offset + inodezone * blocksize + blocksize > filesize:
                                 checkfile.close()
                                 outfile.close()
-                                os.unlink(outfilename)
+                                os.unlink(outfile_full)
                                 unpackingerror = {'offset': offset,
                                                   'fatal': False,
                                                   'reason': 'not enough data for zone'}
@@ -3666,7 +3708,7 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
                                 if inodezone < firstdatazone:
                                     checkfile.close()
                                     outfile.close()
-                                    os.unlink(outfilename)
+                                    os.unlink(outfile_full)
                                     unpackingerror = {'offset': offset,
                                                       'fatal': False,
                                                       'reason': 'invalid zone number'}
@@ -3676,7 +3718,7 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
                                 if offset + inodezone * blocksize + blocksize > filesize:
                                     checkfile.close()
                                     outfile.close()
-                                    os.unlink(outfilename)
+                                    os.unlink(outfile_full)
                                     unpackingerror = {'offset': offset,
                                                       'fatal': False,
                                                       'reason': 'not enough data for zone'}
@@ -3694,7 +3736,7 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
                 maxoffset = max(maxoffset, z * blocksize + blocksize)
             outfile.truncate(inodes[i]['size'])
             outfile.close()
-            unpackedfilesandlabels.append((outfilename, ['directory']))
+            unpackedfilesandlabels.append((outfile_rel, ['directory']))
             dataunpacked = True
         elif stat.S_ISCHR(inodes[i]['mode']):
             pass
@@ -3705,7 +3747,8 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
         elif stat.S_ISSOCK(inodes[i]['mode']):
             pass
         elif stat.S_ISLNK(inodes[i]['mode']):
-            outfilename = os.path.join(unpackdir, inodetoname[i])
+            outfile_rel = os.path.join(unpackdir, inodetoname[i])
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
             destinationname = ''
             for z in inodes[i]['zones']:
                 if z == 0:
@@ -3720,15 +3763,16 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
                     break
                 maxoffset = max(maxoffset, z * blocksize + blocksize)
             if destinationname != '':
-                os.symlink(destinationname, outfilename)
-            unpackedfilesandlabels.append((outfilename, ['symbolic link']))
+                os.symlink(destinationname, outfile_full)
+            unpackedfilesandlabels.append((outfile_rel, ['symbolic link']))
             dataunpacked = True
         elif stat.S_ISDIR(inodes[i]['mode']):
             seenzones = 1
             curdirname = inodetoname[i]
             if curdirname != '':
-                outfilename = os.path.join(unpackdir, curdirname)
-                os.makedirs(outfilename)
+                outfile_rel = os.path.join(unpackdir, curdirname)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full)
                 dataunpacked = True
             for z in inodes[i]['zones']:
                 if z == 0:
@@ -3803,16 +3847,17 @@ def unpackMinix1L(filename, offset, unpackdir, temporarydirectory):
 
 
 # Linux kernel: Documentation/filesystems/romfs.txt
-def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
+def unpackRomfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a romfs file system'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
 
     # open the file, skip the magic
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+8)
     unpackedsize += 8
 
@@ -3979,10 +4024,11 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
                     sourcetargetname = os.path.relpath(sourcetargetname, '/')
                 sourcetargetname = os.path.normpath(os.path.join(unpackdir, sourcetargetname))
 
-                outfilename = os.path.join(unpackdir, curcwd, inodename)
+                outfile_rel = os.path.join(unpackdir, curcwd, inodename)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
 
-                os.link(sourcetargetname, outfilename)
-                unpackedfilesandlabels.append((outfilename, ['hardlink']))
+                os.link(sourcetargetname, outfile_full)
+                unpackedfilesandlabels.append((outfile_rel, ['hardlink']))
         elif modeinfo == 1:
             # directory: the next header points
             # to the first file header.
@@ -3992,10 +4038,11 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
                                   'reason': 'next offset cannot be outside of file'}
                 return {'status': False, 'error': unpackingerror}
             if inodename != '.' and inodename != '..':
-                outfilename = os.path.join(unpackdir, curcwd, inodename)
-                os.mkdir(outfilename)
+                outfile_rel = os.path.join(unpackdir, curcwd, inodename)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.mkdir(outfile_full)
                 offsets.append((specinfo, os.path.join(curcwd, inodename)))
-                unpackedfilesandlabels.append((outfilename, ['directory']))
+                unpackedfilesandlabels.append((outfile_rel, ['directory']))
         elif modeinfo == 2:
             # regular file
             if specinfo != 0:
@@ -4003,11 +4050,12 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid value for specinfo'}
                 return {'status': False, 'error': unpackingerror}
-            outfilename = os.path.join(unpackdir, curcwd, inodename)
-            outfile = open(outfilename, 'wb')
+            outfile_rel = os.path.join(unpackdir, curcwd, inodename)
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
+            outfile = open(outfile_full, 'wb')
             os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), inodesize)
             outfile.close()
-            unpackedfilesandlabels.append((outfilename, []))
+            unpackedfilesandlabels.append((outfile_rel, []))
         elif modeinfo == 3:
             # symbolic link
             if specinfo != 0:
@@ -4032,10 +4080,11 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
                 sourcetargetname = os.path.relpath(sourcetargetname, '/')
                 sourcetargetname = os.path.normpath(os.path.join(unpackdir, sourcetargetname))
 
-            outfilename = os.path.join(unpackdir, curcwd, inodename)
+            outfile_rel = os.path.join(unpackdir, curcwd, inodename)
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
 
-            os.symlink(sourcetargetname, outfilename)
-            unpackedfilesandlabels.append((outfilename, ['symbolic link']))
+            os.symlink(sourcetargetname, outfile_full)
+            unpackedfilesandlabels.append((outfile_rel, ['symbolic link']))
         elif modeinfo == 4:
             # block device
             pass
@@ -4084,9 +4133,11 @@ def unpackRomfs(filename, offset, unpackdir, temporarydirectory):
 
 # Linux kernel: fs/cramfs/README
 # needs recent version of util-linux that supports --extract
-def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
+def unpack_cramfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a cramfs file system'''
-    filesize = filename.stat().st_size
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -4099,7 +4150,7 @@ def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
         return {'status': False, 'error': unpackingerror}
 
     # open the file
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
     # read the magic to see what the endianness is
@@ -4359,7 +4410,7 @@ def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
 
     if offset == 0 and cramfssize == filesize:
         checkfile.close()
-        p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfsunpackdirectory, filename],
+        p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfsunpackdirectory, filename_full],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
         temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
@@ -4394,7 +4445,7 @@ def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
     os.chdir(cramfsunpackdirectory)
     for l in foundfiles:
         try:
-            shutil.move(l, unpackdir, copy_function=local_copy2)
+            shutil.move(l, unpackdir_full, copy_function=local_copy2)
         except Exception as e:
             # TODO: report
             # possibly not all files can be copied.
@@ -4406,17 +4457,19 @@ def unpack_cramfs(filename, offset, unpackdir, temporarydirectory):
     shutil.rmtree(cramfsunpackdirectory)
 
     # now add everything that was unpacked
-    dirwalk = os.walk(unpackdir)
+    dirwalk = os.walk(unpackdir_full)
     for direntries in dirwalk:
         # make sure all subdirectories and files can be accessed
         for entryname in direntries[1]:
             fullfilename = os.path.join(direntries[0], entryname)
             if not os.path.islink(fullfilename):
                 os.chmod(fullfilename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            unpackedfilesandlabels.append((relfilename, []))
         for entryname in direntries[2]:
             fullfilename = os.path.join(direntries[0], entryname)
-            unpackedfilesandlabels.append((fullfilename, []))
+            relfilename = scanenvironment.rel_unpack_path(fullfilename)
+            unpackedfilesandlabels.append((relfilename, []))
 
     if offset == 0 and cramfssize == filesize:
         labels.append('cramfs')

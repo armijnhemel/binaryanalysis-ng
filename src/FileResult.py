@@ -20,15 +20,14 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import pathlib
+
 class FileResult:
     """stores all the information about the file that has been discovered
     so far."""
-    def __init__(self, abs_filepath, rel_filename, abs_parentpath, rel_parentfilename, labels):
-        # TODO: decide what types the paths should have: PosixPath or string
-        self.filepath = abs_filepath
+    def __init__(self, rel_filename, rel_parentfilename, labels):
         self.hash = {}
         self.filename = rel_filename
-        self.parentpath = abs_parentpath
         self.parent = rel_parentfilename
         self.labels = labels
         self.unpackedfiles = None
@@ -40,7 +39,7 @@ class FileResult:
         self.filesize = size
 
     def is_unpacking_root(self):
-        return self.parentpath is None
+        return self.parent is None
 
     def get_hashresult(self):
         return self.hash
@@ -61,25 +60,21 @@ class FileResult:
     def get(self):
         """gets the fileresult as a dictionary."""
         d = {
-            'fullfilename': str(self.filepath),
             'hash': self.hash,
             'labels': list(self.labels),
-            'filename': self.filename,
+            'filename': str(self.filename),
         }
         if self.filesize is not None:
             d['filesize'] = self.filesize
         if self.unpackedfiles is not None:
             d['unpackedfiles'] = self.unpackedfiles
         if not self.is_unpacking_root():
-            d['parent'] = self.parent
+            d['parent'] = str(self.parent)
         if self.mimetype is not None:
             d['mimetype'] = self.mimetype
             if self.mimetype_encoding is not None:
                 d['mimetype encoding'] = self.mimetype_encoding
         return d
-
-    def get_filename(self):
-        return self.filename
 
     def get_hash(self, algorithm='sha256'):
         return self.hash[algorithm]

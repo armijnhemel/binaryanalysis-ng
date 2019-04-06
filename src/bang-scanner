@@ -227,9 +227,7 @@ def main(argv):
 
         # Create a scanjob for the first file to be scanned
         fileresult = FileResult(
-                unpackdirectory / os.path.basename(checkfile),
-                os.path.basename(checkfile),
-                None,
+                pathlib.Path(os.path.basename(checkfile)),
                 None,
                 set(labels))
         j = ScanJob(fileresult)
@@ -291,7 +289,7 @@ def main(argv):
             try:
                 fileresult = resultqueue.get_nowait()
                 try:
-                    scantree[fileresult.get_filename()] = fileresult.get()
+                    scantree[str(fileresult.filename)] = fileresult.get()
                     resultqueue.task_done()
                 except KeyError:
                     # TODO: this is never the case, is it?

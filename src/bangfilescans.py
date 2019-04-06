@@ -38,7 +38,7 @@ import os
 import bangsignatures
 
 
-def knownfileNSRL(filename, hashresults, dbconn, dbcursor, scanenvironment):
+def knownfileNSRL(fileresult, hashresults, dbconn, dbcursor, scanenvironment):
     '''Search a hash of a file in the NSRL database
        Context: file
     '''
@@ -94,7 +94,7 @@ knownfileNSRL.ignore = []
 
 # search files for license and forge references.
 # https://en.wikipedia.org/wiki/Forge_(software)
-def extractIdentifier(filename, hashresults, dbconn, dbcursor, scanenvironment):
+def extractIdentifier(fileresult, hashresults, dbconn, dbcursor, scanenvironment):
     '''Search the presence of license identifiers in a file
        (URLs and other references)
        Search the presence of references to forges and other
@@ -110,10 +110,12 @@ def extractIdentifier(filename, hashresults, dbconn, dbcursor, scanenvironment):
     forgeresults = {}
 
     seekbuf = bytearray(1000000)
-    filesize = filename.stat().st_size
+    # filesize = filename.stat().st_size
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    filesize = fileresult.filesize
 
     # open the file in binary mode
-    checkfile = open(filename, 'rb')
+    checkfile = open(filename_full, 'rb')
     checkfile.seek(0)
     while True:
         bytesread = checkfile.readinto(seekbuf)
