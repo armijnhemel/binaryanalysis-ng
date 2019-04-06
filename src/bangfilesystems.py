@@ -3196,13 +3196,17 @@ def unpack_fat(fileresult, scanenvironment, offset, unpackdir):
                         else:
                             fullname = entryname
                         if fileattributes & 0x10 == 0x10:
-                            # directory
+                            # directory, don't add . and .. to the chain to process
                             if entryname != '..' and entryname != '.':
                                 chainstoprocess.append((cluster, 'directory', os.path.join(chaindir, fullname), 0, fullname))
-                            outfile_rel = os.path.join(unpackdir, chaindir, fullname)
-                            outfile_full = scanenvironment.unpack_path(outfile_rel)
-                            os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
-                            unpackedfilesandlabels.append((outfile_rel, ['directory']))
+                            # no need to process '.', but for some reason some
+                            # data from '..' has to be processed
+                            if entryname != '.':
+                                outfile_rel = os.path.join(unpackdir, chaindir, fullname)
+                                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                                os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
+                                if entryname != '..':
+                                    unpackedfilesandlabels.append((outfile_rel, ['directory']))
                         elif fileattributes & 0x20 == 0x20:
                             chainstoprocess.append((cluster, 'file', chaindir, entrysize, fullname))
                         else:
