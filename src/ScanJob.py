@@ -79,7 +79,7 @@ class ScanJob:
     def _stat_file(self):
         try:
             self.stat = os.stat(self.abs_filename)
-        except FileNotFounderror as e:
+        except FileNotFoundError as e:
             raise
         except:
             self.stat = None
