@@ -2660,7 +2660,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
     # else carve the file
     targetfile_rel = os.path.join(unpackdir, 'encrypted.zip')
     targetfile_full = scanenvironment.unpack_path(targetfile_rel)
-    targetfile = open(targetfilename, 'wb')
+    targetfile = open(targetfile_full, 'wb')
     os.sendfile(targetfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     targetfile.close()
     checkfile.close()
