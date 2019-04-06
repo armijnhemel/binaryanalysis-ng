@@ -7454,7 +7454,7 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
             # first move the payload file to a different location
             # to avoid any potential name clashes
             payloaddir = pathlib.Path(tempfile.mkdtemp(dir=scanenvironment.temporarydirectory))
-            shutil.move(payloadfile_full, payloaddir)
+            shutil.move(str(payloadfile_full), payloaddir)
 
             fr = FileResult(
                    scanenvironment.rel_tmp_path(payloaddir) / os.path.basename(payloadfile),
