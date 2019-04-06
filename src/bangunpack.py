@@ -10745,9 +10745,14 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     if offset == 0:
-        certres = extractCertificate(filename_full, offset)
+        certres = extractCertificate(filename_full, scanenvironment, offset)
         if certres['status']:
-            return certres
+            tmplabels += certres['labels']
+            tmplabels = list(set(tmplabels))
+            tmplabels.append('unpacked')
+            unpackedfilesandlabels.append((outfile_rel, tmplabels))
+            return {'status': True, 'length': filesize, 'labels': labels,
+                    'filesandlabels': unpackedfilesandlabels}
 
     # open the file
     checkfile = open(filename_full, 'rb')
@@ -10820,13 +10825,13 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     checkfile.close()
 
     # as an extra sanity check run it through the unpacker
-    certres = extractCertificate(outfile_full, 0)
+    certres = extractCertificate(outfile_full, scanenvironment, 0)
     if certres['status']:
         tmplabels += certres['labels']
         tmplabels = list(set(tmplabels))
         tmplabels.append('unpacked')
         unpackedfilesandlabels.append((outfile_rel, tmplabels))
-        return {'status': True, 'length': certres['length'], 'labels': labels,
+        return {'status': True, 'length': filesize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # cleanup
@@ -10836,9 +10841,8 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     return {'status': False, 'error': unpackingerror}
 
 
-def extractCertificate(fileresult, offset):
+def extractCertificate(filename_full, scanenvironment, offset):
     '''Helper method to extract certificate files.'''
-    filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10850,16 +10854,16 @@ def extractCertificate(fileresult, offset):
         return {'status': False, 'error': unpackingerror}
 
     # First see if a file is in DER format
-    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER", "-in", fileresult], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER", "-in", filename_full], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode == 0:
         labels.append("certificate")
         labels.append('resource')
-        return {'status': True, 'length': filesize, 'labels': labels,
+        return {'status': True, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # then check if it is a PEM
-    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "PEM", "-in", fileresult], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "PEM", "-in", filename_full], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode == 0:
         # there could be several certificates or keys
@@ -10869,7 +10873,7 @@ def extractCertificate(fileresult, offset):
         # so add some extra checks.
         isopened = False
         try:
-            checkfile = open(filename, 'r')
+            checkfile = open(filename_full, 'r')
             isopened = True
             for checkline in checkfile:
                 # then check if this is perhaps a private key
@@ -10890,7 +10894,7 @@ def extractCertificate(fileresult, offset):
             return {'status': False, 'error': unpackingerror}
         labels.append("text")
         labels.append('resource')
-        return {'status': True, 'length': filesize, 'labels': labels,
+        return {'status': True, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # else fail
