@@ -173,8 +173,8 @@ class BangScannerOptions:
                 section='configuration')
         self._set_boolean_option_from_config('createbytecounter',
                 section='configuration', option='bytecounter')
-        self._set_boolean_option_from_config('json',
-                section='configuration', option='bytecounter')
+        self._set_boolean_option_from_config('createjson',
+                section='configuration', option='json')
         self._set_integer_option_from_config('tlshmaximum',
                 section='configuration')
         self._set_boolean_option_from_config('writereport',
