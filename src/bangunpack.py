@@ -2563,7 +2563,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
                 if z.filename == 'EGG-INFO/PKG-INFO':
                     labels.append('python egg')
                 if z.filename == 'AndroidManifest.xml' or z.filename == 'classes.dex':
-                    if filename.suffix == '.apk':
+                    if filename_full.suffix == '.apk':
                         labels.append('android')
                         labels.append('apk')
 
