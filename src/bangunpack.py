@@ -10836,7 +10836,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     return {'status': False, 'error': unpackingerror}
 
 
-def extractCertificate(filename, offset):
+def extractCertificate(fileresult, offset):
     '''Helper method to extract certificate files.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -10850,7 +10850,7 @@ def extractCertificate(filename, offset):
         return {'status': False, 'error': unpackingerror}
 
     # First see if a file is in DER format
-    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER", "-in", filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER", "-in", fileresult], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode == 0:
         labels.append("certificate")
@@ -10859,7 +10859,7 @@ def extractCertificate(filename, offset):
                 'filesandlabels': unpackedfilesandlabels}
 
     # then check if it is a PEM
-    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "PEM", "-in", filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "PEM", "-in", fileresult], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode == 0:
         # there could be several certificates or keys
