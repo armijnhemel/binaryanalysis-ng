@@ -345,9 +345,10 @@ def main(argv):
         PickleReporter(picklefile).report(scanresult)
         picklefile.close()
 
-        jsonfile = open(scandirectory / 'bang.json', 'w')
-        JsonReporter(jsonfile).report(scanresult)
-        jsonfile.close()
+        if options.createjson:
+            jsonfile = open(scandirectory / 'bang.json', 'w')
+            JsonReporter(jsonfile).report(scanresult)
+            jsonfile.close()
 
         if options.writereport:
             reportfile = open(scandirectory / 'report.txt', 'w')
