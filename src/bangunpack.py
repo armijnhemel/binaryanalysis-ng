@@ -5892,7 +5892,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
             if isdir:
                 dataunpacked = True
                 outfile_rel = os.path.join(unpackdir, unpackname) 
-                outfile_abs = scanenvironment.unpack_path(outfile_rel)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
                 os.makedirs(outfile_full, exist_ok=True)
                 unpackedfilesandlabels.append((outfile_rel, []))
                 continue
