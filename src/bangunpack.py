@@ -4020,7 +4020,7 @@ def unpackFont(fileresult, scanenvironment, offset, unpackdir,
     # be used for the extracted file.
     if fontname != '':
         try:
-            fontname = fontname.decode()
+            fontname = bytes(fontname).decode()
             outfile_rel = os.path.join(unpackdir, fontname + "." + fontextension)
         except UnicodeDecodeError:
             outfile_rel = os.path.join(unpackdir, "unpacked." + fontextension)
