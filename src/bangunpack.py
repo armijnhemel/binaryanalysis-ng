@@ -840,7 +840,7 @@ def unpackTimeZone(fileresult, scanenvironment, offset, unpackdir):
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
-        unpackedfilesandlabels.append((outfile_full, ['timezone', 'resource', 'unpacked']))
+        unpackedfilesandlabels.append((outfile_rel, ['timezone', 'resource', 'unpacked']))
         checkfile.close()
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
