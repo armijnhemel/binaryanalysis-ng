@@ -1551,7 +1551,7 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                     fn_rel = os.path.join(unpackdir, inodetofilename[inodenumber])
                     fn_full = scanenvironment.unpack_path(fn_rel)
                     os.symlink(checkbytes.decode(), fn_full)
-                    unpackedfilesandlabels.append((fn_full, ['symbolic link']))
+                    unpackedfilesandlabels.append((fn_rel, ['symbolic link']))
                     dataunpacked = True
                 except UnicodeDecodeError:
                     break
