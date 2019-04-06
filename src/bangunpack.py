@@ -7453,13 +7453,16 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
         if payload == b'cpio':
             # first move the payload file to a different location
             # to avoid any potential name clashes
+            payloadsize = payloadfile_full.stat().st_size
             payloaddir = pathlib.Path(tempfile.mkdtemp(dir=scanenvironment.temporarydirectory))
             shutil.move(str(payloadfile_full), payloaddir)
 
+            # create a file result object and pass it to the CPIO unpacker
             fr = FileResult(
-                   scanenvironment.rel_tmp_path(payloaddir) / os.path.basename(payloadfile),
-                   (scanenvironment.rel_tmp_path(payloaddir) / os.path.basename(payloadfile)).parent,
+                   payloaddir / os.path.basename(payloadfile),
+                   (payloaddir / os.path.basename(payloadfile)).parent,
                    [])
+            fr.set_filesize(payloadsize)
             unpackresult = unpackCpio(fr, scanenvironment, 0, unpackdir)
             # cleanup
             shutil.rmtree(payloaddir)
