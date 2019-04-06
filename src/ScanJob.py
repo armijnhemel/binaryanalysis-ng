@@ -80,7 +80,8 @@ class ScanJob:
         try:
             self.stat = os.stat(self.abs_filename)
         except FileNotFoundError as e:
-            raise
+            #raise
+            self.stat = None
         except:
             self.stat = None
 
