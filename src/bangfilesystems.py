@@ -4403,7 +4403,7 @@ def unpack_cramfs(fileresult, scanenvironment, offset, unpackdir):
     # already exists.
 
     # first get a temporary name
-    cramfsunpackdirectory = tempfile.mkdtemp(dir=temporarydirectory)
+    cramfsunpackdirectory = tempfile.mkdtemp(dir=scanenvironment.temporarydirectory)
 
     # remove the directory. Possible race condition?
     shutil.rmtree(cramfsunpackdirectory)
@@ -4413,7 +4413,7 @@ def unpack_cramfs(fileresult, scanenvironment, offset, unpackdir):
         p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfsunpackdirectory, filename_full],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
-        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
         os.sendfile(temporaryfile[0], checkfile.fileno(), offset, cramfssize)
         os.fdopen(temporaryfile[0]).close()
         checkfile.close()
