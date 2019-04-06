@@ -53,7 +53,7 @@ class TestGIF(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangmedia.unpackGIF(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_gif(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -63,7 +63,7 @@ class TestGIF(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-add-random-data.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackGIF(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_gif(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 7073713)
 
@@ -73,7 +73,7 @@ class TestGIF(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-prepend-random-data.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangmedia.unpackGIF(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_gif(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 7073713)
 
@@ -83,7 +83,7 @@ class TestGIF(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-cut-data-from-end.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackGIF(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_gif(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single GIF with data cut from the middle
@@ -92,7 +92,7 @@ class TestGIF(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-cut-data-from-middle.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackGIF(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_gif(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single GIF with data added in the middle
@@ -101,7 +101,7 @@ class TestGIF(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-data-added-to-middle.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackGIF(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_gif(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single GIF with data replaced in the middle
@@ -110,7 +110,7 @@ class TestGIF(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gif' / 'test-data-replaced-in-middle.gif'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackGIF(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_gif(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -123,7 +123,7 @@ class TestPNG(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -134,7 +134,7 @@ class TestPNG(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
         self.assertIn('animated', testres['labels'])
@@ -145,7 +145,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-add-random-data.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 6001452)
 
@@ -155,7 +155,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-add-random-data.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 63435)
         self.assertIn('animated', testres['filesandlabels'][0][1])
@@ -166,7 +166,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-prepend-random-data.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 6001452)
 
@@ -176,7 +176,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-prepend-random-data.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 63435)
         self.assertIn('animated', testres['filesandlabels'][0][1])
@@ -187,7 +187,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-cut-data-from-end.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data cut from the end
@@ -196,7 +196,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-cut-data-from-end.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data cut from the middle
@@ -205,7 +205,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-cut-data-from-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single animated PNG
@@ -215,7 +215,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-cut-data-from-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data added in the middle
@@ -224,7 +224,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-data-added-to-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single animated PNG
@@ -234,7 +234,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-data-added-to-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single PNG with data replaced in the middle
@@ -243,7 +243,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'test-data-replaced-in-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single animated PNG
@@ -253,7 +253,7 @@ class TestPNG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'png' / 'Animated_PNG_example_bouncing_beach_ball-data-replaced-in-middle.png'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackPNG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_png(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -266,7 +266,7 @@ class TestJPEG(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangmedia.unpackJPEG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_jpeg(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -275,7 +275,7 @@ class TestJPEG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-add-random-data.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackJPEG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_jpeg(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 4676767)
 
@@ -284,7 +284,7 @@ class TestJPEG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-prepend-random-data.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangmedia.unpackJPEG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_jpeg(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 4676767)
 
@@ -293,7 +293,7 @@ class TestJPEG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-cut-data-from-end.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackJPEG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_jpeg(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single JPEG with data cut from the middle
@@ -301,7 +301,7 @@ class TestJPEG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-cut-data-from-middle.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackJPEG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_jpeg(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single JPEG with data added in the middle
@@ -309,7 +309,7 @@ class TestJPEG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-data-added-to-middle.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackJPEG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_jpeg(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single JPEG with data replaced in the middle
@@ -317,7 +317,7 @@ class TestJPEG(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-data-replaced-in-middle.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackJPEG(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_jpeg(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -329,7 +329,7 @@ class TestBMP(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangmedia.unpackBMP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_bmp(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -338,7 +338,7 @@ class TestBMP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-add-random-data.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackBMP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_bmp(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 572666)
 
@@ -347,7 +347,7 @@ class TestBMP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-prepend-random-data.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangmedia.unpackBMP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_bmp(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 572666)
 
@@ -356,7 +356,7 @@ class TestBMP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-cut-data-from-end.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackBMP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_bmp(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single BMP with data cut from the middle
@@ -364,7 +364,7 @@ class TestBMP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-cut-data-from-middle.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackBMP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_bmp(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single BMP with data added in the middle
@@ -372,7 +372,7 @@ class TestBMP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-data-added-to-middle.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackBMP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_bmp(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single BMP with data replaced in the middle
@@ -380,7 +380,7 @@ class TestBMP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'bmp' / 'test-data-replaced-in-middle.bmp'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackBMP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_bmp(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -392,7 +392,7 @@ class TestSGI(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -403,7 +403,7 @@ class TestSGI(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -412,7 +412,7 @@ class TestSGI(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-add-random-data.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 592418)
 
@@ -421,7 +421,7 @@ class TestSGI(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-add-random-data.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 572048)
 
@@ -430,7 +430,7 @@ class TestSGI(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-prepend-random-data.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 592418)
 
@@ -439,7 +439,7 @@ class TestSGI(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-prepend-random-data.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 572048)
 
@@ -448,7 +448,7 @@ class TestSGI(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-cut-data-from-end.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single SGI with data cut from the end
@@ -456,7 +456,7 @@ class TestSGI(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-cut-data-from-end.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single SGI with data cut from the middle
@@ -464,7 +464,7 @@ class TestSGI(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-cut-data-from-middle.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single SGI with data cut from the middle
@@ -472,35 +472,35 @@ class TestSGI(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-cut-data-from-middle.sgi'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data added in the middle
     #def test_added_in_middle(self):
     #    filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-data-added-to-middle.sgi'
     #    offset = 0
-    #    testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+    #    testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
     #    self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data added in the middle
     #def test_added_in_middle_verbatim(self):
     #    filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-data-added-to-middle.sgi'
     #    offset = 0
-    #    testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+    #    testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
     #    self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data replaced in the middle
     #def test_replaced_in_middle(self):
     #    filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-data-replaced-in-middle.sgi'
     #    offset = 0
-    #    testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+    #    testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
     #    self.assertFalse(testres['status'])
 
     ## a test for the file being a single SGI with data replaced in the middle
     #def test_replaced_in_middle_verbatim(self):
     #    filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test-verbatim-data-replaced-in-middle.sgi'
     #    offset = 0
-    #    testres = bangmedia.unpackSGI(fileresult, self.scan_environment, offset, self.unpackdir)
+    #    testres = bangmedia.unpack_sgi(fileresult, self.scan_environment, offset, self.unpackdir)
     #    self.assertFalse(testres['status'])
 
 
@@ -512,7 +512,7 @@ class TestAndroidSparse(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangandroid.unpackAndroidSparse(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangandroid.unpack_android_sparse(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1675,7 +1675,7 @@ class TestSquashfs(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangfilesystems.unpackSquashfs(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_squashfs(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1684,7 +1684,7 @@ class TestSquashfs(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-add-random-data.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackSquashfs(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_squashfs(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 577536)
 
@@ -1693,7 +1693,7 @@ class TestSquashfs(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-prepend-random-data.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangfilesystems.unpackSquashfs(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_squashfs(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 577536)
 
@@ -1702,7 +1702,7 @@ class TestSquashfs(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-cut-data-from-end.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackSquashfs(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_squashfs(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single squashfs with data cut from the middle
@@ -1710,7 +1710,7 @@ class TestSquashfs(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-cut-data-from-middle.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackSquashfs(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_squashfs(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single squashfs with data added in the middle
@@ -1718,7 +1718,7 @@ class TestSquashfs(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-data-added-to-middle.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackSquashfs(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_squashfs(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single squashfs
@@ -1727,7 +1727,7 @@ class TestSquashfs(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'squashfs' / 'test-data-replaced-in-middle.sqsh'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackSquashfs(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_squashfs(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -1805,7 +1805,7 @@ class TestISO9660(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangfilesystems.unpackISO9660(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_iso9660(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1814,7 +1814,7 @@ class TestISO9660(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-add-random-data.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackISO9660(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_iso9660(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 952320)
 
@@ -1823,7 +1823,7 @@ class TestISO9660(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-prepend-random-data.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangfilesystems.unpackISO9660(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_iso9660(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 952320)
 
@@ -1832,7 +1832,7 @@ class TestISO9660(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-cut-data-from-end.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackISO9660(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_iso9660(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single iso9660 with data cut from the middle
@@ -1840,7 +1840,7 @@ class TestISO9660(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-cut-data-from-middle.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackISO9660(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_iso9660(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single iso9660 with data added in the middle
@@ -1848,7 +1848,7 @@ class TestISO9660(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-data-added-to-middle.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackISO9660(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_iso9660(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single iso9660
@@ -1857,7 +1857,7 @@ class TestISO9660(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test-data-replaced-in-middle.iso'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackISO9660(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_iso9660(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -1954,7 +1954,7 @@ class TestJFFS2(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1965,7 +1965,7 @@ class TestJFFS2(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1975,7 +1975,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-add-random-data.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 594192)
 
@@ -1985,7 +1985,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-add-random-data.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 594192)
 
@@ -1995,7 +1995,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-prepend-random-data.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 594192)
 
@@ -2005,7 +2005,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-prepend-random-data.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 594192)
 
@@ -2015,7 +2015,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-cut-data-from-end.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data cut from the end
@@ -2024,7 +2024,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-cut-data-from-end.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data cut from the middle
@@ -2033,7 +2033,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-cut-data-from-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data cut from the middle
@@ -2042,7 +2042,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-cut-data-from-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data added in the middle
@@ -2051,7 +2051,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-data-added-to-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data added in the middle
@@ -2060,7 +2060,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-data-added-to-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data replaced in the middle
@@ -2069,7 +2069,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-little-data-replaced-in-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single jffs2 with data replaced in the middle
@@ -2078,7 +2078,7 @@ class TestJFFS2(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jffs2' / 'test-big-data-replaced-in-middle.jffs2'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangfilesystems.unpackJFFS2(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangfilesystems.unpack_jffs2(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
