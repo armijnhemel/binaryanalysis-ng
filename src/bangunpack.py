@@ -10747,10 +10747,8 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     if offset == 0:
         certres = extractCertificate(filename_full, scanenvironment, offset)
         if certres['status']:
-            tmplabels += certres['labels']
-            tmplabels = list(set(tmplabels))
-            tmplabels.append('unpacked')
-            unpackedfilesandlabels.append((outfile_rel, tmplabels))
+            labels += certres['labels']
+            labels = list(set(labels))
             return {'status': True, 'length': filesize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
