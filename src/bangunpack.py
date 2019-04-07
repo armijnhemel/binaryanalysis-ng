@@ -14405,10 +14405,12 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
         # cleanup
         tmp_full.unlink()
     else:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'only gzip compressed files supported'}
-        return {'status': False, 'error': unpackingerror}
+        if offset + offset_reloc_start + reloc_count*4 > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'relocation data outside of file'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize = offset_reloc_start + reloc_count*4
 
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
