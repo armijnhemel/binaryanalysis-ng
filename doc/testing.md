@@ -2,7 +2,7 @@
 
 Testing BANG is important to find regressions. Currently there are three kinds of tests:
 
-1. unit tests for individual files. These tests can be found inside the BANG repository. The test files are found in the directory 'test'. The script to test these is src/bangtest.py
+1. unit tests for individual files. These tests can be found inside the BANG repository. The test files are found in the directory 'src/test/testdata'. The script to test these is 'src/test/TestUnpackers.py'.
 2. regression tests with a large collection of firmware files. This is run regularly (every few weeks) to find any crashes or other odd behaviour. The firmware collection cannot be redistributed freely, so has not been made available.
 3. profiling to see which functions are called the most
 
