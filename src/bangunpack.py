@@ -14404,6 +14404,24 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
         tmp_full = scanenvironment.unpack_path(tmp_rel)
         gzip_size = tmp_full.stat().st_size
 
+        # now perform all the checks that couldn't be done
+        # because the data is gzip compressed
+        if offset_data_start >  gzip_size + 64:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid data start offset'}
+            return {'status': False, 'error': unpackingerror}
+        if offset_data_end > gzip_size + 64:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid data end offset'}
+            return {'status': False, 'error': unpackingerror}
+        if offset_reloc_start > gzip_size + 64:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid reloc start offset'}
+            return {'status': False, 'error': unpackingerror}
+
         # cleanup
         tmp_full.unlink()
     else:
