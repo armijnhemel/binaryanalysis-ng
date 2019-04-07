@@ -2096,6 +2096,8 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
                         ffpos = checkbytes.find(b'\xff', startffpos)
                         if ffpos == -1:
                             break
+                        if checkfile.tell() == filesize:
+                            break
                         startffpos = ffpos + 1
                         if ffpos < readsize - 1:
                             if checkbytes[ffpos+1] != 0:
