@@ -159,7 +159,7 @@ larger file, unless stated otherwise.
 114. Doom WAD files (IWAD only)
 115. Ambarella firmware files
 116. Ambarella romfs (used in Ambarella firmware files)
-117. bFLT (gzip compressed only)
+117. bFLT
 
 
 ## Invocation
