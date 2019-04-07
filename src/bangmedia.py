@@ -2131,9 +2131,6 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
                                     fffound = True
                                     break
 
-                        if checkfile.tell() == filesize:
-                            break
-
                     # set unpacked size to whatever data was read
                     unpackedsize = checkfile.tell() - offset
 
