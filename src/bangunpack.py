@@ -14231,6 +14231,10 @@ def unpack_romfs_ambarella(fileresult, scanenvironment, offset, unpackdir):
 # bFLT binaries
 #
 # https://web.archive.org/web/20120123212024/http://retired.beyondlogic.org/uClinux/bflt.htm
+#
+# and some additional details:
+#
+# http://web.archive.org/web/20180317070540/https://blog.tangrs.id.au/2012/04/07/bflt-format-implementation-notes/
 def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
     '''Verify/carve a bFLT file'''
     filesize = fileresult.filesize
@@ -14366,14 +14370,19 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(4, os.SEEK_CUR)
     unpackedsize += 4
 
-    # then 24 bytes of filler
-    checkbytes = checkfile.read(24)
-    if checkbytes != 24 * b'\x00':
+    # then the build date (possibly 0 in older files)
+    checkbytes = checkfile.read(4)
+    builddate = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # then 20 bytes of filler
+    checkbytes = checkfile.read(20)
+    if checkbytes != 20 * b'\x00':
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid padding bytes'}
         return {'status': False, 'error': unpackingerror}
-    unpackedsize += 24
+    unpackedsize += 20
 
     if gzip_compressed:
         # try to unpack the gzip compressed data
