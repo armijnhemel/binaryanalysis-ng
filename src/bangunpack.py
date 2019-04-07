@@ -14385,7 +14385,8 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize += 20
 
     if gzip_compressed:
-        # try to unpack the gzip compressed data
+        # try to unpack the gzip compressed data. Some files seem to have
+        # been compressed with the multi-part gzip flag, sigh.
         unpackresult = unpackGzip(fileresult, scanenvironment, offset + offset_entry, unpackdir)
         if not unpackresult['status']:
             checkfile.close()
