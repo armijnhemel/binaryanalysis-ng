@@ -31,6 +31,6 @@ class JsonReporter:
         sr = copy.deepcopy(scanresult)
         sr['session']['start'] = sr['session']['start'].isoformat()
         sr['session']['stop'] = sr['session']['stop'].isoformat()
-        json.dump(sr, self.reportfile)
+        json.dump(sr, self.reportfile, indent=4)
 
 
