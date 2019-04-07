@@ -14226,3 +14226,193 @@ def unpack_romfs_ambarella(fileresult, scanenvironment, offset, unpackdir):
     checkfile.close()
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# bFLT binaries
+#
+# https://web.archive.org/web/20120123212024/http://retired.beyondlogic.org/uClinux/bflt.htm
+def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify/carve a bFLT file'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # header is 64 bytes
+    if offset + 64 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file, skip the offset
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize = 4
+
+    # version, only support version 4 now (due to lack of test files)
+    checkbytes = checkfile.read(4)
+    version = int.from_bytes(checkbytes, byteorder='big')
+    if version != 4:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'only version 4 is supported'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # first jump to the flags
+    checkfile.seek(28, os.SEEK_CUR)
+    checkbytes = checkfile.read(4)
+    flags = int.from_bytes(checkbytes, byteorder='big')
+
+    gzip_compressed = False
+
+    # check if the data is gzip compressed
+    if flags & 0x4 == 0x4:
+        gzip_compressed = True
+
+    # then seek back
+    checkfile.seek(-32, os.SEEK_CUR)
+
+    # offset to the first executable entry
+    checkbytes = checkfile.read(4)
+    offset_entry = int.from_bytes(checkbytes, byteorder='big')
+    if offset + offset_entry > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'offset outside of file'}
+        return {'status': False, 'error': unpackingerror}
+    if offset_entry < 64:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid offset'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # now the data segments. If the data was gzip compressed, then these
+    # values will be incorrect, as they are the values for the uncompressed
+    # data, and the header is left untouched.
+    # For GOT some other tricks need to be used (TODO)
+
+    # offset to the data segment
+    checkbytes = checkfile.read(4)
+    offset_data_start = int.from_bytes(checkbytes, byteorder='big')
+    if offset_data_start < 64:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid data start offset'}
+        return {'status': False, 'error': unpackingerror}
+    if not gzip_compressed:
+        if offset + offset_data_start > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid data start offset'}
+            return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # offset to end of the data segment
+    checkbytes = checkfile.read(4)
+    offset_data_end = int.from_bytes(checkbytes, byteorder='big')
+    if offset_data_end < 64 or offset_data_end < offset_data_start:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid data end offset'}
+        return {'status': False, 'error': unpackingerror}
+    if not gzip_compressed:
+        if offset + offset_data_end > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid data end offset'}
+            return {'status': False, 'error': unpackingerror}
+
+    unpackedsize += 4
+
+    # uClinux.org website says:
+    # "While the comments for the flat file header would suggest there is a
+    # bss segment somewhere in the flat file, this is not true."
+
+    # offset to end of the bss segment
+    checkbytes = checkfile.read(4)
+    offset_bss_end = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # stack size, not important
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # reloc_start
+    checkbytes = checkfile.read(4)
+    offset_reloc_start = int.from_bytes(checkbytes, byteorder='big')
+    if offset_reloc_start < 64:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid reloc start offset'}
+        return {'status': False, 'error': unpackingerror}
+    if not gzip_compressed:
+        if offset + offset_reloc_start > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid reloc start offset'}
+            return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # reloc_count, skip for now
+    checkbytes = checkfile.read(4)
+    reloc_count = int.from_bytes(checkbytes, byteorder='big')
+    unpackedsize += 4
+
+    # skip flags, already processed
+    checkfile.seek(4, os.SEEK_CUR)
+    unpackedsize += 4
+
+    # then 24 bytes of filler
+    checkbytes = checkfile.read(24)
+    if checkbytes != 24 * b'\x00':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid padding bytes'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 24
+
+    if gzip_compressed:
+        # try to unpack the gzip compressed data
+        unpackresult = unpackGzip(fileresult, scanenvironment, offset + offset_entry, unpackdir)
+        if not unpackresult['status']:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid gzip compressed bFLT'}
+            return {'status': False, 'error': unpackingerror}
+
+        # set the unpacked size to include the gzip compressed data
+        unpackedsize += unpackresult['length']
+
+        # determine the length of the uncompressed data,
+        # needs to be cleaned up
+        tmp_rel = unpackresult['filesandlabels'][0][0]
+        tmp_full = scanenvironment.unpack_path(tmp_rel)
+        gzip_size = tmp_full.stat().st_size
+
+        # cleanup
+        tmp_full.unlink()
+    else:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'only gzip compressed files supported'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels = ['bflt', 'executable']
+    else:
+        # else carve the file
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-blft")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfile_rel, ['blft', 'executable', 'unpacked']))
+        checkfile.close()
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
