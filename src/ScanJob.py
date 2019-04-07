@@ -632,6 +632,7 @@ def processfile(dbconn, dbcursor, scanenvironment):
     checksumdict = scanenvironment.checksumdict
 
     createbytecounter = scanenvironment.get_createbytecounter()
+    createjson = scanenvironment.get_createjson()
 
     carveunpacked = True
 
@@ -711,11 +712,17 @@ def processfile(dbconn, dbcursor, scanenvironment):
                     pickle.dump(resultout, pickleout)
                     pickleout.close()
 
+                if createjson:
+                    jsonfilename = scanenvironment.resultsdirectory / ("%s.json" % scanjob.fileresult.get_hash('sha256'))
+                    # TODO: this is vulnerable to a race condition, replace with EAFP pattern
+                    if not jsonfilename.exists():
+                        jsonout = jsonfilename.open('w')
+                        json.dump(resultout, jsonout, indent=4)
+                        jsonout.close()
             else:
                 scanjob.fileresult.labels.add('duplicate')
 
             # scanjob.fileresult.set_filesize(scanjob.filesize)
-            # log(logging.INFO, json.dumps(fileresult.get()))
 
             resultqueue.put(scanjob.fileresult)
             scanfilequeue.task_done()
