@@ -1221,12 +1221,13 @@ def unpackTar(fileresult, scanenvironment, offset, unpackdir):
             if tounpack != '':
                 unpackedname = os.path.join(unpackdir, unpackedname)
                 unpacked_full = scanenvironment.unpack_path(unpackedname)
-                if not os.path.islink(unpacked_full):
-                    os.chmod(unpacked_full, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-                if os.path.isdir(unpacked_full) and not os.path.islink(unpacked_full):
-                    shutil.rmtree(unpacked_full)
-                else:
-                    os.unlink(unpacked_full)
+                if unpacked_full.exists():
+                    if not os.path.islink(unpacked_full):
+                        os.chmod(unpacked_full, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+                    if os.path.isdir(unpacked_full) and not os.path.islink(unpacked_full):
+                        shutil.rmtree(unpacked_full)
+                    else:
+                        os.unlink(unpacked_full)
             break
 
     # first close the TarInfo object, then the underlying fileobj
