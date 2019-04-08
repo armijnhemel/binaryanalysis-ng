@@ -11491,8 +11491,8 @@ def unpackPasswd(fileresult, scanenvironment, offset, unpackdir):
             passwdentry = {}
             passwdentry['name'] = linesplits[0]
             passwdentry['passwd'] = linesplits[1]
-            passwdentry['uid'] = linesplits[2]
-            passwdentry['gid'] = linesplits[3]
+            passwdentry['uid'] = uid
+            passwdentry['gid'] = gid
 
             if foundlen == 7:
                 passwdentry['gecos'] = linesplits[4]
