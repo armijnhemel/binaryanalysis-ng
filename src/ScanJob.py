@@ -599,26 +599,12 @@ class ScanJob:
 # Process a single file.
 # This method has the following parameters:
 #
-# * scanfilequeue :: a queue where files to scan will be fetched from
-# * resultqueue :: a queue where results will be written to
-# * processlock :: a lock object that guards access to shared objects
-# * checksumdict :: a shared dictionary to store hashes of files so
-#   unnecessary scans of duplicate files can be prevented.
-# * resultsdirectory :: the absolute path of the directory where results
-#   will be written to
 # * dbconn :: a PostgreSQL database connection
 # * dbcursor :: a PostgreSQL database cursor
-# * bangfilefunctions :: a list of functions for individual files
-# * scanenvironment :: a dict that describes the environment in
-#   which the scans run
+# * scanenvironment :: a ScanEnvironment object, describing
+#   the environment for the scan
 #
-# Each file will be in the scan queue and have the following data
-# associated with it:
-#
-# * file name :: absolute path to the file to be scanned
-# * set of labels :: either empty or containing hints from unpacking
-# * parent :: name of parent file)
-# * extradata :: empty, reserved for future use
+# The scan queue contains ScanJob objects
 #
 # For every file a set of labels describing the file (such as 'binary' or
 # 'graphics') will be stored. These labels can be used to feed extra
