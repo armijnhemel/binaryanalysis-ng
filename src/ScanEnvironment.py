@@ -36,6 +36,11 @@ class ScanEnvironment:
             ):
         """unpackdirectory: a Path object
            temporarydirectory: a Path object
+           scanfilequeue: a Queue where files to scan will be fetched from
+           resultqueue: a Queue where results will be written to
+           processlock: a Lock object that guards access to shared objects
+           checksumdict: a shared dictionary to store hashes of files to
+                         prevent scans of duplicate files.
         """
         # TODO: init from options object
         self.maxbytes = maxbytes
