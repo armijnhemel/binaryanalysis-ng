@@ -31,14 +31,15 @@
 # * database cursor object (PostgreSQL)
 # * scan environment (a dict)
 
-import pathlib
 import os
+import inspect
+import sys
 
 # import own code
 import bangsignatures
 
 
-def knownfileNSRL(fileresult, hashresults, dbconn, dbcursor, scanenvironment):
+def knownfile_nsrl(fileresult, hashresults, dbconn, dbcursor, scanenvironment):
     '''Search a hash of a file in the NSRL database
        Context: file
     '''
@@ -89,12 +90,12 @@ def knownfileNSRL(fileresult, hashresults, dbconn, dbcursor, scanenvironment):
 
     return results
 
-knownfileNSRL.context = ['file']
-knownfileNSRL.ignore = []
+knownfile_nsrl.context = ['file']
+knownfile_nsrl.ignore = []
 
 # search files for license and forge references.
 # https://en.wikipedia.org/wiki/Forge_(software)
-def extractIdentifier(fileresult, hashresults, dbconn, dbcursor, scanenvironment):
+def extract_identifier(fileresult, hashresults, dbconn, dbcursor, scanenvironment):
     '''Search the presence of license identifiers in a file
        (URLs and other references)
        Search the presence of references to forges and other
@@ -144,17 +145,11 @@ def extractIdentifier(fileresult, hashresults, dbconn, dbcursor, scanenvironment
 
     return returnres
 
-extractIdentifier.context = ['file']
-extractIdentifier.ignore = ['archive', 'audio', 'audio', 'database', 'encrypted', 'filesystem', 'graphics', 'video']
-
-import inspect
-import sys
+extract_identifier.context = ['file']
+extract_identifier.ignore = ['archive', 'audio', 'audio', 'database', 'encrypted', 'filesystem', 'graphics', 'video']
 
 bangfunctions = inspect.getmembers(sys.modules[__name__], inspect.isfunction)
 bangfilefunctions = [func for name, func in bangfunctions
-        if func.context == 'file']
+                     if func.context == 'file']
 bangwholecontextfunctions = [func for name, func in bangfunctions
-        if func.context == 'whole']
-
-
-
+                             if func.context == 'whole']
