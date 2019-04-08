@@ -160,6 +160,7 @@ larger file, unless stated otherwise.
 115. Ambarella firmware files
 116. Ambarella romfs (used in Ambarella firmware files)
 117. bFLT
+118. Samba password files
 
 
 ## Invocation
