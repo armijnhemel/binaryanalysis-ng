@@ -2715,7 +2715,7 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), kernelsize)
     outfile.close()
     checkfile.seek(kernelsize, os.SEEK_CUR)
-    unpackedfilesandlabels.append((outfile_rel, ["linux kernel"]))
+    unpackedfilesandlabels.append((outfile_rel, []))
     unpackedsize += kernelsize
 
     # padding
@@ -2731,7 +2731,7 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), ramdisksize)
     outfile.close()
     checkfile.seek(ramdisksize, os.SEEK_CUR)
-    unpackedfilesandlabels.append((outfile_rel, ["ramdisk"]))
+    unpackedfilesandlabels.append((outfile_rel, []))
     unpackedsize += ramdisksize
 
     if ramdisksize % pagesize != 0:
