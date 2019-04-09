@@ -7462,6 +7462,7 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
             fr = FileResult(
                    payloaddir / os.path.basename(payloadfile),
                    (payloaddir / os.path.basename(payloadfile)).parent,
+                   set(),
                    [])
             fr.set_filesize(payloadsize)
             unpackresult = unpackCpio(fr, scanenvironment, 0, unpackdir)

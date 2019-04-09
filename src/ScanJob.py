@@ -229,6 +229,7 @@ class ScanJob:
                     fr = FileResult(
                             pathlib.Path(unpackedfile),
                             self.fileresult.filename,
+                            self.fileresult.labels,
                             set(unpackedlabel))
                     j = ScanJob(fr)
                     self.scanenvironment.scanfilequeue.put(j)
@@ -359,6 +360,7 @@ class ScanJob:
                         fr = FileResult(
                                 pathlib.Path(unpackedfile),
                                 self.fileresult.filename,
+                                self.fileresult.labels,
                                 set(unpackedlabel))
                         j = ScanJob(fr)
                         self.scanenvironment.scanfilequeue.put(j)
@@ -468,6 +470,7 @@ class ScanJob:
                         fr = FileResult(
                                 pathlib.Path(outfile_rel),
                                 self.fileresult.filename,
+                                self.fileresult.labels,
                                 set(unpackedlabel))
                         j = ScanJob(fr)
                         self.scanenvironment.scanfilequeue.put(j)
@@ -584,6 +587,7 @@ class ScanJob:
                     fr = FileResult(
                             pathlib.Path(unpackedfile),
                             self.fileresult.filename,
+                            self.fileresult.labels,
                             set(unpackedlabel))
                     j = ScanJob(fr)
                     self.scanenvironment.scanfilequeue.put(j)

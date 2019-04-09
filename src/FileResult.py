@@ -25,11 +25,12 @@ import pathlib
 class FileResult:
     """stores all the information about the file that has been discovered
     so far."""
-    def __init__(self, rel_filename, rel_parentfilename, labels):
+    def __init__(self, rel_filename, rel_parentfilename, parentlabels, labels):
         self.hash = {}
         self.filename = rel_filename
         self.parent = rel_parentfilename
         self.labels = labels
+        self.parentlabels = parentlabels
         self.unpackedfiles = None
         self.filesize = None
         self.mimetype = None
