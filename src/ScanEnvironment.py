@@ -29,11 +29,11 @@ class ScanEnvironment:
         'database'])
 
     def __init__(self, maxbytes, readsize, createbytecounter, createjson,
-            tlshmaximum, synthesizedminimum, logging, paddingname,
-            unpackdirectory, temporarydirectory, resultsdirectory,
-            scanfilequeue, resultqueue,
-            processlock, checksumdict,
-            ):
+                 tlshmaximum, synthesizedminimum, logging, paddingname,
+                 unpackdirectory, temporarydirectory, resultsdirectory,
+                 scanfilequeue, resultqueue,
+                 processlock, checksumdict,
+                ):
         """unpackdirectory: a Path object
            temporarydirectory: a Path object
            scanfilequeue: a Queue where files to scan will be fetched from
@@ -85,26 +85,26 @@ class ScanEnvironment:
     def get_maxbytes(self):
         return self.maxbytes
 
-    def get_relative_path(self,fn):
-        """gets the path relative to the unpackdirectory."""
+    def get_relative_path(self, fn):
+        """Gets the path relative to the unpackdirectory."""
         return fn[self.lenunpackdirectory:]
 
-    def unpack_path(self,fn):
+    def unpack_path(self, fn):
         """Returns a path object containing the absolute path of the file in
         the unpack directory root.
         If fn is an absolute path, then fn will be returned.
         """
         return self.unpackdirectory / fn
 
-    def rel_unpack_path(self,fn):
+    def rel_unpack_path(self, fn):
         # TODO: check if fn starts with unpackdirectory to catch path traversal
         # in that case, return absolute path? but what about:
         # >>> os.path.relpath('xa/b/c/d/e',root)
         # '../../../home/tim/binaryanalysis-ng/src/xa/b/c/d/e'
-        return os.path.relpath(fn,self.unpackdirectory)
+        return os.path.relpath(fn, self.unpackdirectory)
 
-    def tmp_path(self,fn):
-        return os.path.join(self.temporarydirectory,fn)
+    def tmp_path(self, fn):
+        return os.path.join(self.temporarydirectory, fn)
 
-    def rel_tmp_path(self,fn):
-        return os.path.relpath(fn,self.temporarydirectory)
+    def rel_tmp_path(self, fn):
+        return os.path.relpath(fn, self.temporarydirectory)
