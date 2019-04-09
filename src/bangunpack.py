@@ -10186,8 +10186,10 @@ def unpackUBootLegacy(fileresult, scanenvironment, offset, unpackdir):
     imagename = checkbytes.split(b'\x00')[0]
     unpackedsize += 32
 
+    # set the name of the image. If the name of the image is either empty
+    # empty or cannot be deocded to a UTF-8 string hardcode a name based
+    # on the image type of the U-Boot file.
     if imagename == b'':
-        # some default values
         if ubootimagetype == 2:
             imagename = 'kernel'
         elif ubootimagetype == 3:
@@ -10198,7 +10200,11 @@ def unpackUBootLegacy(fileresult, scanenvironment, offset, unpackdir):
             imagename = imagename.decode()
             ubootdata['name'] = imagename
         except UnicodeDecodeError:
-            pass
+            if ubootimagetype == 2:
+                imagename = 'kernel'
+            elif ubootimagetype == 3:
+                imagename = 'ramdisk'
+            ubootdata['name'] = imagename
 
     # now calculate the CRC of the header and compare it
     # to the stored one
