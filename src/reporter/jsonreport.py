@@ -31,6 +31,9 @@ class JsonReporter:
         sr = copy.deepcopy(scanresult)
         sr['session']['start'] = sr['session']['start'].isoformat()
         sr['session']['stop'] = sr['session']['stop'].isoformat()
+
+        # store the scan uuid in URN (RFC 4122) form
+        sr['session']['uuid'] = sr['session']['uuid'].urn
         json.dump(sr, self.reportfile, indent=4)
 
 

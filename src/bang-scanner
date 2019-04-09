@@ -33,6 +33,7 @@ import stat
 import shutil
 import datetime
 import tempfile
+import uuid
 
 # import modules needed for multiprocessing
 import multiprocessing
@@ -155,6 +156,9 @@ def main(argv):
         # store a UTC time stamp
         scandate = datetime.datetime.utcnow()
 
+        # create a unique identifier for the scan
+        scanuuid = uuid.uuid4()
+
         # create a directory for the scan
         scandirectory = pathlib.Path(tempfile.mkdtemp(prefix='bang-scan-',
                                                       dir=options.baseunpackdirectory))
@@ -185,6 +189,7 @@ def main(argv):
             # TODO: use a system wide logger if configured
             bangloghandler = logging.FileHandler(filename=logdirectory / 'unpack.log')
             banglogger.addHandler(bangloghandler)
+        log(logging.INFO, "Scan %s" % scanuuid)
         log(logging.INFO, "Started scanning %s" % checkfile)
 
         # create a process manager for managing the threads
@@ -323,6 +328,7 @@ def main(argv):
                         'duration': (scandatefinished - scandate).total_seconds(),
                         'user': getpass.getuser(),
                         'checkfile': checkfile,
+                        'uuid': scanuuid,
                        },
             # information about the platform
             'platform': {'machine': platform.machine(),
