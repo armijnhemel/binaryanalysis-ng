@@ -2575,6 +2575,12 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {}
     unpackedsize = 0
 
+    # the android boot loader images don't have names recorded
+    # for the different parts, so just hardcode these.
+    kernelname = 'kernel'
+    ramdiskname = 'ramdisk'
+    secondstagename = 'secondstageloader'
+
     # version 0 header is 48 bytes, other headers more
     if offset + 48 > filesize:
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -2703,13 +2709,13 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize = pagesize
 
     # write the kernel data
-    outfile_rel = os.path.join(unpackdir, 'kernel')
+    outfile_rel = os.path.join(unpackdir, kernelname)
     outfile_full = scanenvironment.unpack_path(outfile_rel)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), kernelsize)
     outfile.close()
     checkfile.seek(kernelsize, os.SEEK_CUR)
-    unpackedfilesandlabels.append((outfile_rel, []))
+    unpackedfilesandlabels.append((outfile_rel, ["linux kernel"]))
     unpackedsize += kernelsize
 
     # padding
@@ -2719,13 +2725,13 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
         unpackedsize += paddingneeded
 
     # write the ramdisk
-    outfile_rel = os.path.join(unpackdir, 'ramdisk')
+    outfile_rel = os.path.join(unpackdir, ramdiskname)
     outfile_full = scanenvironment.unpack_path(outfile_rel)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), ramdisksize)
     outfile.close()
     checkfile.seek(ramdisksize, os.SEEK_CUR)
-    unpackedfilesandlabels.append((outfile_rel, []))
+    unpackedfilesandlabels.append((outfile_rel, ["ramdisk"]))
     unpackedsize += ramdisksize
 
     if ramdisksize % pagesize != 0:
@@ -2735,13 +2741,13 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
 
     if secondsize != 0:
         # write the second stage bootloader
-        outfile_rel = os.path.join(unpackdir, 'second')
+        outfile_rel = os.path.join(unpackdir, secondstagename)
         outfile_full = scanenvironment.unpack_path(outfile_rel)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), ramdisksize)
         outfile.close()
         checkfile.seek(ramdisksize, os.SEEK_CUR)
-        unpackedfilesandlabels.append((outfile_rel, []))
+        unpackedfilesandlabels.append((outfile_rel, ["bootloader"]))
         unpackedsize += ramdisksize
 
         if ramdisksize % pagesize != 0:
@@ -2751,7 +2757,7 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
 
     if offset == 0 and unpackedsize == filesize:
         labels.append("android")
-        labels.append("bootloader")
+        labels.append("android boot image")
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
