@@ -141,6 +141,7 @@ signatures = {
     'ambarella': b'\x90\xeb\x24\xa3',
     'romfs_ambarella': b'\x8a\x32\xfc\x66',
     'bflt': b'bFLT', # https://web.archive.org/web/20120123212024/http://retired.beyondlogic.org/uClinux/bflt.htm
+    'ubi': b'UBI#', # http://www.dubeiko.com/development/FileSystems/UBI/ubidesign.pdf
 }
 
 # some signatures do not start at the beginning of the file
@@ -299,6 +300,7 @@ signaturetofunction = {
     'ambarella': bangunpack.unpack_ambarella,
     'romfs_ambarella': bangunpack.unpack_romfs_ambarella,
     'bflt': bangunpack.unpack_bflt,
+    'ubi': bangfilesystems.unpack_ubi,
 }
 
 # a lookup table to map signatures to a name for

@@ -161,6 +161,7 @@ larger file, unless stated otherwise.
 116. Ambarella romfs (used in Ambarella firmware files)
 117. bFLT
 118. Samba password files
+119. UBI (not UBIFS!), fastmap not supported
 
 
 ## Invocation

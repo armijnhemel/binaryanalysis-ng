@@ -4481,3 +4481,509 @@ def unpack_cramfs(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': cramfssize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# UBI (Unsorted Block Image) is not a file system, but it
+# is used in combination with UBIFS
+#
+# http://www.dubeiko.com/development/FileSystems/UBI/ubidesign.pdf
+#
+# Linux kernel source code: drivers/mtd/ubi/ubi-media.h
+#
+# Extra inspiration from:
+#
+# https://github.com/nlitsme/ubidump
+def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
+    '''Unpack a UBI image'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+
+    # UBI header is 64 bits at least
+    if offset + 64 > filesize:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset)
+
+    curoffset = offset
+    layout_volumes = 0
+
+    # the block size is not known in advance, so just read some
+    # data (1 MiB) to see where the next UBI block can be found.
+    blocksize = 0
+    readsize = 1048576
+    ubifound = False
+
+    isfirstblock = True
+
+    # store the volume tables from the layout volume per image
+    volume_tables = {}
+
+    # store some info about each block
+    blocks = {}
+
+    # store which blocks belong to an image
+    image_to_erase_blocks = {}
+
+    # now keep processing UBI blocks. This is a bit hackish and it
+    # assumes the following:
+    #
+    # 1. the UBI layout volume is the first volume that is found
+    # 2. there is only one UBI layout volume
+    ubiseen = 0
+    blockid = 0
+    while True:
+        if not isfirstblock:
+            if curoffset + blocksize > filesize:
+                break
+        checkfile.seek(curoffset)
+        # magic
+        checkbytes = checkfile.read(4)
+        if checkbytes != b'UBI#':
+            break
+        unpackedsize = 4
+
+        # UBI version
+        checkbytes = checkfile.read(1)
+        ubiversion = ord(checkbytes)
+        unpackedsize += 1
+
+        # three padding bytes
+        checkbytes = checkfile.read(3)
+        if checkbytes != b'\x00\x00\x00':
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid padding (1)'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 3
+
+        # number of erasures for the block
+        checkbytes = checkfile.read(8)
+        erasecount = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 8
+
+        # offset of the volume identifier header, relative
+        # to the start of the erase block
+        checkbytes = checkfile.read(4)
+        vid_hdr_offset = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        # volume identifier cannot start inside the
+        # current erase block header
+        if vid_hdr_offset < 64:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid volume identifier header offset'}
+            return {'status': False, 'error': unpackingerror}
+
+        # offset to data in the erase block, relative
+        # to the start of the erase block
+        checkbytes = checkfile.read(4)
+        data_offset = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        # data offset cannot start inside the current erase block header
+        if data_offset < 64:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid data offset'}
+            return {'status': False, 'error': unpackingerror}
+
+        # check if the data offset doesn't start in the volume header
+        # TODO: extra checks
+        if data_offset > vid_hdr_offset:
+            if data_offset - vid_hdr_offset < 64:
+                checkfile.close()
+                unpackingerror = {'offset': curoffset + unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'data cannot start in volume header'}
+                return {'status': False, 'error': unpackingerror}
+
+        # image sequence
+        checkbytes = checkfile.read(4)
+        image_sequence = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        if image_sequence not in volume_tables:
+            volume_tables[image_sequence] = {}
+
+        # 32 padding bytes
+        checkbytes = checkfile.read(32)
+        if checkbytes != b'\x00' * 32:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid padding (2)'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 32
+        if offset != 0:
+           return False
+
+        # and finally a header CRC
+        checkbytes = checkfile.read(4)
+        header_crc = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        # Determine the block size if this is the first block.
+        # This is done here to prevent the whole file from
+        # being read in its entirety, so do this after quite a few
+        # sanity checks.
+        if isfirstblock:
+            checkfile.seek(curoffset)
+            while True:
+                checkbytes = checkfile.read(readsize)
+                if checkbytes == b'':
+                    # end of the file reached, this cannot be an UBI image
+                    break
+                nextubi = checkbytes.find(b'UBI#', 1)
+                if nextubi != -1:
+                    blocksize += nextubi
+                    ubifound = True
+                    break
+                blocksize += readsize
+
+            if not ubifound:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'could not determine UBI size'}
+                return {'status': False, 'error': unpackingerror}
+
+            # sanity check: block size has to be a power of 2
+            if blocksize != pow(2, int(math.log(blocksize, 2))):
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'invalid UBI size'}
+                return {'status': False, 'error': unpackingerror}
+            isfirstblock = False
+
+        # extra sanity checks for volume identifier header
+        # and data offset. volume identifier header is
+        # 64 bytes.
+        if curoffset + blocksize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'not enough data'}
+            return {'status': False, 'error': unpackingerror}
+
+        if vid_hdr_offset > blocksize or data_offset > blocksize:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'data cannot be outside of erase block'}
+            return {'status': False, 'error': unpackingerror}
+
+        # jump to the volume identifier and process the data
+        checkfile.seek(curoffset + vid_hdr_offset)
+        unpackedsize = vid_hdr_offset
+
+        # first the magic
+        checkbytes = checkfile.read(4)
+        if checkbytes != b'UBI!':
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'wrong volume identifier magic'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        # then the ubi version, should be the same as the previouis one
+        checkbytes = checkfile.read(1)
+        if ord(checkbytes) != ubiversion:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'ubi verson mismatch'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 1
+
+        # volume type, can be 1 (dynamic) or 2 (static)
+        checkbytes = checkfile.read(1)
+        volumetype = ord(checkbytes)
+        if volumetype != 1 and volumetype != 2:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid volume type'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 1
+
+        # copy flag, skip for now
+        checkbytes = checkfile.read(1)
+        copyflag = ord(checkbytes)
+        unpackedsize += 1
+
+        # compatibility flags
+        checkbytes = checkfile.read(1)
+        compat = ord(checkbytes)
+        unpackedsize += 1
+
+        # volume id
+        checkbytes = checkfile.read(4)
+        volume_id = int.from_bytes(checkbytes, byteorder='big')
+        ubiseen += 1
+
+        if volume_id > 0x7fffefff:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'UBI fastmap not supported'}
+            return {'status': False, 'error': unpackingerror}
+
+        # need layout volume first
+        if volume_id != 0x7fffefff and layout_volumes == 0:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'need layout volume first'}
+            return {'status': False, 'error': unpackingerror}
+
+        # cannot have more than two layout volumes
+        if volume_id == 0x7fffefff and layout_volumes > 2:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'too many layout volumes'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        if volume_id == 0x7fffefff:
+            # has to be dynamic
+            if volumetype != 1:
+                checkfile.close()
+                unpackingerror = {'offset': curoffset + unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'wrong volume type for layout volume'}
+                return {'status': False, 'error': unpackingerror}
+            layout_volumes += 1
+
+        # logical erase block number. This is basically the number
+        # this block has in a volume.
+        checkbytes = checkfile.read(4)
+        logical_erase_block = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        # 4 bytes of padding
+        checkbytes = checkfile.read(4)
+        if checkbytes != b'\x00\x00\x00\x00':
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid padding (3)'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        # data size
+        checkbytes = checkfile.read(4)
+        data_size = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 4
+
+        # used erase blocks, only used for static volumes, should
+        # be 0 for dynamic volumes
+        checkbytes = checkfile.read(4)
+        used_ebs = int.from_bytes(checkbytes, byteorder='big')
+        if volumetype == 1:
+            if used_ebs != 0:
+                unpackingerror = {'offset': curoffset + unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'erase blocks not used for dynamic volumes'}
+                return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        # data pad, skip for now
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # data crc, skip for now
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # 4 bytes of padding
+        checkbytes = checkfile.read(4)
+        if checkbytes != b'\x00\x00\x00\x00':
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid padding (4)'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        # sequence number
+        checkbytes = checkfile.read(8)
+        sequence_number = int.from_bytes(checkbytes, byteorder='big')
+        unpackedsize += 8
+
+        # 12 bytes of padding
+        checkbytes = checkfile.read(12)
+        if checkbytes != b'\x00' * 12:
+            checkfile.close()
+            unpackingerror = {'offset': curoffset + unpackedsize,
+                              'fatal': False,
+                              'reason': 'invalid padding (5)'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 12
+
+        # header crc, skip for now
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # jump to the data offset and process the data. Maximum
+        # is 128, but it depends on how much data is actually available.
+        checkfile.seek(curoffset + data_offset)
+        unpackedsize = data_offset
+
+        # read the volume tables from the first layout volume
+        if volume_id == 0x7fffefff:
+            if layout_volumes == 2:
+                # skip the layout volume copy
+                curoffset += blocksize
+                blockid += 1
+                continue
+            # each volume table entry is 172 bytes, and
+            # the amount read depends on the size of the
+            # erase block.
+            max_volume_tables = (blocksize - curoffset + unpackedsize)//172
+            volume_table_count = min(128, max_volume_tables)
+            for volume_table in range(0, volume_table_count):
+                # reserved physical erase blocks
+                checkbytes = checkfile.read(4)
+                phys_erase_blocks = int.from_bytes(checkbytes, byteorder='big')
+                unpackedsize += 4
+
+                # alignment
+                checkbytes = checkfile.read(4)
+                alignment = int.from_bytes(checkbytes, byteorder='big')
+                unpackedsize += 4
+
+                # data padding
+                checkbytes = checkfile.read(4)
+                data_padding = int.from_bytes(checkbytes, byteorder='big')
+                unpackedsize += 4
+
+                # volume type
+                checkbytes = checkfile.read(1)
+                volume_type = ord(checkbytes)
+                unpackedsize += 1
+
+                # update marker
+                checkbytes = checkfile.read(1)
+                update_marker = ord(checkbytes)
+                unpackedsize += 1
+
+                # name length
+                checkbytes = checkfile.read(2)
+                name_length = int.from_bytes(checkbytes, byteorder='big')
+                unpackedsize += 2
+
+                # name
+                checkbytes = checkfile.read(128)
+                try:
+                    volume_name = checkbytes.split(b'\x00', 1)[0].decode()
+                    if os.path.isabs(volume_name):
+                        volume_name = os.path.relpath(volume_name, '/')
+                except UnicodeDecodeError:
+                    checkfile.close()
+                    unpackingerror = {'offset': curoffset + unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid name'}
+                    return {'status': False, 'error': unpackingerror}
+                if name_length != len(volume_name):
+                    checkfile.close()
+                    unpackingerror = {'offset': curoffset + unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid name'}
+                    return {'status': False, 'error': unpackingerror}
+                unpackedsize += 128
+
+                # flags
+                checkbytes = checkfile.read(1)
+                volume_flags = ord(checkbytes)
+                unpackedsize += 1
+
+                # padding
+                checkbytes = checkfile.read(23)
+                if checkbytes != b'\x00' * 23:
+                    checkfile.close()
+                    unpackingerror = {'offset': curoffset + unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid padding (6)'}
+                    return {'status': False, 'error': unpackingerror}
+                unpackedsize += 23
+
+                # crc, skip
+                checkfile.seek(4, os.SEEK_CUR)
+                unpackedsize += 4
+
+                if phys_erase_blocks != 0:
+                    volume_tables[image_sequence][volume_table] = {'name': volume_name,
+                                                   'blocks': phys_erase_blocks,
+                                                   'flags': volume_flags,
+                                                   'alignment': alignment,
+                                                   'padding': data_padding,
+                                                   'marker': update_marker,
+                                                  }
+            curoffset += blocksize
+        else:
+            # store the blocks per image, the first two are always
+            # layout volume blocks
+            if image_sequence not in image_to_erase_blocks:
+                image_to_erase_blocks[image_sequence] = [0,1]
+            image_to_erase_blocks[image_sequence].append(blockid)
+            curoffset += blocksize
+        if curoffset > filesize:
+            break
+        blocks[blockid] = {'offset': data_offset, 'logical': logical_erase_block}
+        blockid += 1
+
+    data_unpacked = False
+
+    # write the data for each image
+    for image_sequence in volume_tables:
+        image_block_counter = 2
+        for vt in sorted(volume_tables[image_sequence].keys()):
+            volume_table = volume_tables[image_sequence][vt]
+
+            # open the output file
+            # TODO: check if there are any duplicate names inside an image
+            outfile_rel = os.path.join(unpackdir, "image-%d" % image_sequence, volume_table['name'])
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
+            os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
+            outfile = open(outfile_full, 'wb')
+
+            seen_logical = 0
+            for block in range(image_block_counter, len(image_to_erase_blocks[image_sequence])):
+                if blocks[block]['logical'] < seen_logical:
+                    image_block_counter = block
+                    break
+                seen_logical = blocks[block]['logical']
+                readoffset = offset + block * blocksize + blocks[block]['offset']
+                blockreadsize = blocksize - blocks[block]['offset']
+                unpackedsize = readoffset + blockreadsize
+                os.sendfile(outfile.fileno(), checkfile.fileno(), readoffset, blockreadsize)
+            outfile.close()
+            data_unpacked = True
+            unpackedfilesandlabels.append((outfile_rel, []))
+
+    checkfile.close()
+
+    if data_unpacked:
+        if offset == 0 and unpackedsize == filesize:
+            labels.append('ubi')
+
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    unpackingerror = {'offset': offset,
+                      'fatal': False,
+                      'reason': 'no valid UBI found'}
+    return {'status': False, 'error': unpackingerror}
