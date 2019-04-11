@@ -4626,8 +4626,6 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'invalid padding (2)'}
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 32
-        if offset != 0:
-           return False
 
         # and finally a header CRC
         checkbytes = checkfile.read(4)
