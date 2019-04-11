@@ -47,7 +47,7 @@ larger file, unless stated otherwise.
 9. Apple Double encoded files
 10. ICC (colour profile)
 11. ZIP (store, deflate, bzip2, but lzma needs some more testing)
-12. APK (same as ZIP, but with extra Android signing bytes)
+12. APK (same as ZIP, but possibly with extra Android signing bytes)
 13. XAR (no compression, gzip, bzip2, XZ, LZMA)
 14. ISO9660 (including RockRidge and zisofs)
 15. lzip
@@ -116,7 +116,7 @@ larger file, unless stated otherwise.
 74. CSS
 75. PNG/APNG (needs PIL)
 76. ar/deb (needs binutils)
-77. squashfs (needs squashfs-tools)
+77. squashfs (needs squashfs-tools), only regular squashfs, not vendor specific exotic variants
 78. BMP (needs PIL)
 79. PDF (simple verification, no object streams, incremental updates
     at end of the file)
