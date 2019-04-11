@@ -4513,7 +4513,6 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(offset)
 
     curoffset = offset
-    layout_volumes = 0
 
     # the block size is not known in advance, so just read some
     # data (1 MiB) to see where the next UBI block can be found.
@@ -4525,6 +4524,9 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
 
     # store the volume tables from the layout volume per image
     volume_tables = {}
+
+    # store the number of layout volumes per image
+    layout_volumes_per_image = {}
 
     # store some info about each block
     blocks = {}
@@ -4616,6 +4618,7 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
 
         if image_sequence not in volume_tables:
             volume_tables[image_sequence] = {}
+            layout_volumes_per_image[image_sequence] = 0
 
         # 32 padding bytes
         checkbytes = checkfile.read(32)
@@ -4739,7 +4742,7 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
             return {'status': False, 'error': unpackingerror}
 
         # need layout volume first
-        if volume_id != 0x7fffefff and layout_volumes == 0:
+        if volume_id != 0x7fffefff and layout_volumes_per_image[image_sequence] == 0:
             checkfile.close()
             unpackingerror = {'offset': curoffset + unpackedsize,
                               'fatal': False,
@@ -4747,7 +4750,7 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
             return {'status': False, 'error': unpackingerror}
 
         # cannot have more than two layout volumes
-        if volume_id == 0x7fffefff and layout_volumes > 2:
+        if volume_id == 0x7fffefff and layout_volumes_per_image[image_sequence] > 2:
             checkfile.close()
             unpackingerror = {'offset': curoffset + unpackedsize,
                               'fatal': False,
@@ -4763,7 +4766,7 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
                                   'fatal': False,
                                   'reason': 'wrong volume type for layout volume'}
                 return {'status': False, 'error': unpackingerror}
-            layout_volumes += 1
+            layout_volumes_per_image[image_sequence] += 1
 
         # logical erase block number. This is basically the number
         # this block has in a volume.
@@ -4842,7 +4845,7 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
 
         # read the volume tables from the first layout volume
         if volume_id == 0x7fffefff:
-            if layout_volumes == 2:
+            if layout_volumes_per_image[image_sequence] == 2:
                 # skip the layout volume copy
                 curoffset += blocksize
                 blockid += 1
@@ -4850,7 +4853,7 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
             # each volume table entry is 172 bytes, and
             # the amount read depends on the size of the
             # erase block.
-            max_volume_tables = (blocksize - curoffset + unpackedsize)//172
+            max_volume_tables = (blocksize - unpackedsize)//172
             volume_table_count = min(128, max_volume_tables)
             for volume_table in range(0, volume_table_count):
                 # reserved physical erase blocks
