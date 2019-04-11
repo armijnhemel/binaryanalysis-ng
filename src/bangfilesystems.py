@@ -4963,20 +4963,21 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
 
             seen_logical = 0
             for block in range(image_block_counter, len(image_to_erase_blocks[image_sequence])):
-                if block not in blocks:
+                erase_block = image_to_erase_blocks[image_sequence][block]
+                if erase_block not in blocks:
                     checkfile.close()
                     unpackingerror = {'offset': curoffset + unpackedsize,
                                       'fatal': False,
                                       'reason': 'block data missing'}
                     return {'status': False, 'error': unpackingerror}
-                if blocks[block]['logical'] < seen_logical:
-                    image_block_counter = block
+                if blocks[erase_block]['logical'] < seen_logical:
+                    image_block_counter = erase_block
                     break
-                seen_logical = blocks[block]['logical']
-                readoffset = offset + block * blocksize + blocks[block]['offset']
-                blockreadsize = blocksize - blocks[block]['offset']
-                unpackedsize = readoffset + blockreadsize
-                os.sendfile(outfile.fileno(), checkfile.fileno(), readoffset, blockreadsize)
+                seen_logical = blocks[erase_block]['logical']
+                readoffset = erase_block * blocksize + blocks[block]['offset']
+                blockreadsize = blocksize - blocks[erase_block]['offset']
+                unpackedsize = max(unpackedsize, readoffset + blockreadsize)
+                os.sendfile(outfile.fileno(), checkfile.fileno(), offset + readoffset, blockreadsize)
             outfile.close()
             data_unpacked = True
             unpackedfilesandlabels.append((outfile_rel, []))
