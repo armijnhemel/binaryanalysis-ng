@@ -4960,6 +4960,12 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
 
             seen_logical = 0
             for block in range(image_block_counter, len(image_to_erase_blocks[image_sequence])):
+                if block not in blocks:
+                    checkfile.close()
+                    unpackingerror = {'offset': curoffset + unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'block data missing'}
+                    return {'status': False, 'error': unpackingerror}
                 if blocks[block]['logical'] < seen_logical:
                     image_block_counter = block
                     break
