@@ -665,9 +665,7 @@ def processfile(dbconn, dbcursor, scanenvironment):
 
             duplicate = False
             processlock.acquire()
-            # TODO: make checksumdict an object
-            # TODO: does this need to be a dictionary, or can it be a set?
-            # if hashresults['sha256'] in checksumdict:
+
             if scanjob.fileresult.get_hash() in checksumdict:
                 duplicate = True
             else:
