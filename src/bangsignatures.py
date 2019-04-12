@@ -142,6 +142,8 @@ signatures = {
     'romfs_ambarella': b'\x8a\x32\xfc\x66',
     'bflt': b'bFLT', # https://web.archive.org/web/20120123212024/http://retired.beyondlogic.org/uClinux/bflt.htm
     'ubi': b'UBI#', # http://www.dubeiko.com/development/FileSystems/UBI/ubidesign.pdf
+    'ubifs': b'\x31\x18\x10\x06',
+    'nar': b'\x0d\x00\x00\x00\x00\x00\x00\x00nix-archive-1\x00\x00\x00'
 }
 
 # some signatures do not start at the beginning of the file
