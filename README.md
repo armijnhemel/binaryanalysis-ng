@@ -31,6 +31,9 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * icalendar (possibly named python3-icalendar)
 * ncompress
 
+or if you are fortunate enough to be using [nix](https://nixos.org/nix), run
+`nix-shell` to load all the dependencies during development.
+
 ## Supported file types
 
 The following files can be unpacked, or verified, including carving from a
