@@ -14264,7 +14264,7 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'not enough data for header'}
         return {'status': False, 'error': unpackingerror}
 
-    # open the file, skip the offset
+    # open the file, skip the magic
     checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+4)
     unpackedsize = 4
