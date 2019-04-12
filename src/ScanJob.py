@@ -509,6 +509,9 @@ class ScanJob:
         for hash_algorithm, hash_value in hashresults.items():
             self.fileresult.set_hashresult(hash_algorithm, hash_value)
 
+        if self.scanenvironment.get_createbytecounter() and 'padding' not in self.fileresult.labels:
+            self.fileresult.byte_counter = byte_counter
+
         # store if files are text or binary
         if is_text.get():
             self.fileresult.labels.add('text')
@@ -682,7 +685,7 @@ def processfile(dbconn, dbcursor, scanenvironment):
                 # * any extra data that might have been passed around
                 resultout = {}
                 if createbytecounter and 'padding' not in scanjob.fileresult.labels:
-                    resultout['bytecount'] = sorted(byte_counter.get().items())
+                    resultout['bytecount'] = sorted(scanjob.fileresult.byte_counter.get().items())
                     # write a file with the distribution of bytes in the scanned file
                     bytescountfilename = scanenvironment.resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
                     if not bytescountfilename.exists():
