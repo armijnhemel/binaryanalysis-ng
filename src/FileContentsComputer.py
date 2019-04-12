@@ -21,8 +21,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import hashlib
-import tlsh
 import string
+import collections
+import tlsh
 
 class FileContentsComputer:
     def __init__(self, read_size):
