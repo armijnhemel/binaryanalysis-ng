@@ -684,9 +684,10 @@ def processfile(dbconn, dbcursor, scanenvironment):
                 # * byte count
                 # * any extra data that might have been passed around
                 resultout = {}
+
                 if createbytecounter and 'padding' not in scanjob.fileresult.labels:
                     resultout['bytecount'] = sorted(scanjob.fileresult.byte_counter.get().items())
-                    # write a file with the distribution of bytes in the scanned file
+                    # also write a file with the distribution of bytes in the scanned file
                     bytescountfilename = scanenvironment.resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
                     if not bytescountfilename.exists():
                         bytesout = bytescountfilename.open('w')
