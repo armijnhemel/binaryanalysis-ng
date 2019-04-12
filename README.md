@@ -46,7 +46,7 @@ larger file, unless stated otherwise.
 8. tar
 9. Apple Double encoded files
 10. ICC (colour profile)
-11. ZIP (store, deflate, bzip2, but lzma needs some more testing)
+11. ZIP (store, deflate, bzip2, but lzma needs some more testing), also JAR and other ZIP-based formats
 12. APK (same as ZIP, but possibly with extra Android signing bytes)
 13. XAR (no compression, gzip, bzip2, XZ, LZMA)
 14. ISO9660 (including RockRidge and zisofs)
