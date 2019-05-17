@@ -13124,6 +13124,100 @@ def unpackDeviceTree(fileresult, scanenvironment, offset, unpackdir):
         if memaddress == 0 and memsize == 0:
             break
 
+    # jump to the structure block and check the tree structure
+    # This is also to find kernels embedded in DTB structures as
+    # described here:
+    # https://elinux.org/images/f/f4/Elc2013_Fernandes.pdf
+    checkfile.seek(offset + off_dt_struct)
+    property_level = 0
+    while True:
+        # read 4 bytes
+        checkbytes = checkfile.read(4)
+
+        nodetype = int.from_bytes(checkbytes, byteorder='big')
+
+        if nodetype == 1:
+            property_level += 1
+
+            # node name
+            dt_node_name = b''
+            bytesread = 0
+            while True:
+                checkbytes = checkfile.read(1)
+                bytesread += 1
+                if checkbytes == b'\x00':
+                    break
+                dt_node_name += checkbytes
+            if bytesread % 4 != 0:
+                paddingneeded = 4 - bytesread % 4
+                checkbytes = checkfile.read(paddingneeded)
+                if checkbytes != paddingneeded * b'\x00':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid padding bytes'}
+                    return {'status': False, 'error': unpackingerror}
+        elif nodetype == 2:
+            if property_level == 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'cannot end node that hasn\'t begun'}
+                return {'status': False, 'error': unpackingerror}
+            property_level -= 1
+        elif nodetype == 3:
+            # property token
+            checkbytes = checkfile.read(4)
+            node_length = int.from_bytes(checkbytes, byteorder='big')
+
+            checkbytes = checkfile.read(4)
+            name_offset = int.from_bytes(checkbytes, byteorder='big')
+            if offset + off_dt_strings + name_offset > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'invalid offset for name'}
+                return {'status': False, 'error': unpackingerror}
+
+            oldoffset = checkfile.tell()
+            checkfile.seek(offset + off_dt_strings + name_offset)
+            dt_property_name = b''
+            while True:
+                checkbytes = checkfile.read(1)
+                bytesread += 1
+                if checkbytes == b'\x00':
+                    break
+                dt_property_name += checkbytes
+                if checkfile.tell() == filesize:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid data for property name'}
+                    return {'status': False, 'error': unpackingerror}
+            checkfile.seek(oldoffset)
+
+            checkbytes = checkfile.seek(node_length, os.SEEK_CUR)
+            if node_length % 4 != 0:
+                paddingneeded = 4 - node_length % 4
+                checkbytes = checkfile.read(paddingneeded)
+                if checkbytes != paddingneeded * b'\x00':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'invalid padding bytes'}
+                    return {'status': False, 'error': unpackingerror}
+        elif nodetype == 4:
+            # ignore NOP
+            continue
+        elif nodetype == 9:
+            # end of structure
+            break
+        else:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid node type'}
+            return {'status': False, 'error': unpackingerror}
+
     unpackedsize = totalsize
 
     if offset == 0 and unpackedsize == filesize:
