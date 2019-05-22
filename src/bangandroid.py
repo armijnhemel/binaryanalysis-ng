@@ -22,16 +22,9 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-# Built in carvers/verifiers/unpackers for various Android formats (except
-# certain formats such as APK, which are with other unpackers).
-#
-# For these unpackers it has been attempted to reduce disk I/O as much
-# as possible using the os.sendfile() method, as well as techniques
-# described in this blog post:
-#
-# https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
+'''Built in carvers/verifiers/unpackers for various Android formats (except
+certain formats such as APK, which are with other unpackers).'''
 
-import sys
 import os
 import tempfile
 import struct
@@ -95,7 +88,7 @@ def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
     # https://android.googlesource.com/platform/bootable/recovery/+/master/updater/blockimg.cpp#1628
     try:
         versionnumber = int(transferlistlines[0])
-    except:
+    except ValueError:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid transfer list version number'}
         return {'status': False, 'error': unpackingerror}
@@ -116,7 +109,7 @@ def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
     # the blocks such as erase or zero, so it can be safely ignored.
     try:
         outputblocks = int(transferlistlines[1])
-    except:
+    except ValueError:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid number for blocks to be written'}
         return {'status': False, 'error': unpackingerror}
@@ -126,14 +119,14 @@ def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
     # so can safely be ignored here.
     try:
         stashneeded = int(transferlistlines[2])
-    except:
+    except ValueError:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid number for simultaneous stash entries needed'}
         return {'status': False, 'error': unpackingerror}
 
     try:
         maxstash = int(transferlistlines[2])
-    except:
+    except ValueError:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid number for maximum stash entries'}
         return {'status': False, 'error': unpackingerror}
@@ -166,7 +159,7 @@ def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
         # first entry is the number of blocks on the rest of line
         try:
             transferblockcount = int(transferblockssplit[0])
-        except:
+        except ValueError:
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid transfer block list in transfer list'}
             return {'status': False, 'error': unpackingerror}
@@ -181,7 +174,7 @@ def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
                 blocknr = int(b)
                 blocks.append(blocknr)
                 maxblock = max(maxblock, blocknr)
-        except:
+        except ValueError:
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid transfer block list in transfer list'}
             return {'status': False, 'error': unpackingerror}
