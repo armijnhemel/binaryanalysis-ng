@@ -21,10 +21,10 @@
 # Licensed under the terms of the GNU Affero General Public License
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
-#
-# Processes a BANG log file to see which errors were triggered the
-# most, as this is useful to find which checks to tighten and see
-# which checks possibly need to be inlined into the main program.
+
+'''Processes a BANG log file to see which errors were triggered the
+most, as this is useful to find which checks to tighten and see
+which checks possibly need to be inlined into the main program.'''
 
 import os
 import sys
@@ -36,7 +36,7 @@ import argparse
 import bangsignatures
 
 
-def main(argv):
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", action="store", dest="checkfile",
                         help="path to file to check", metavar="FILE")
@@ -78,13 +78,13 @@ def main(argv):
             continue
         bangfails = i[5:].strip().rsplit(':', 1)
         bangfail = bangfails[1].strip()
-        for s in bangsignatures.signatures:
-            if " %s at offset" % s in i.strip():
-                bangerrors.update([s])
-                if s not in bangerrormessages:
-                    bangerrormessages[s] = collections.Counter()
-                bangerrormessages[s].update([bangfail])
-                filename = bangfails[0].rsplit(s, 1)[0]
+        for sig in bangsignatures.signatures:
+            if " %s at offset" % sig in i.strip():
+                bangerrors.update([sig])
+                if sig not in bangerrormessages:
+                    bangerrormessages[sig] = collections.Counter()
+                bangerrormessages[sig].update([bangfail])
+                filename = bangfails[0].rsplit(sig, 1)[0]
                 errorfiles.update([filename])
                 totalerrors += 1
                 break
@@ -94,9 +94,9 @@ def main(argv):
     print("----------------------\n")
 
     # print the error messages in descending order
-    for e in bangerrors.most_common():
-        print("Signature %s: %d (%f%%)" % (e[0], e[1], e[1]/totalerrors*100))
-        for msg in bangerrormessages[e[0]].most_common():
+    for err in bangerrors.most_common():
+        print("Signature %s: %d (%f%%)" % (err[0], err[1], err[1]/totalerrors*100))
+        for msg in bangerrormessages[err[0]].most_common():
             print("%s: %d" % msg)
         print()
 
@@ -107,4 +107,4 @@ def main(argv):
         print("%s: %d failures\n" % err)
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
