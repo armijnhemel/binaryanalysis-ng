@@ -48,15 +48,7 @@ import getpass
 # import module for database
 import psycopg2
 
-# import the local files with unpacking methods
-import bangunpack
-import bangandroid
-import bangfilesystems
-import bangmedia
-
 # import other local files
-import bangfilescans
-import bangsignatures
 from bangsignatures import maxsignaturesoffset
 from bangscanneroptions import BangScannerOptions
 from banglogging import log
@@ -88,9 +80,9 @@ def main(argv):
     # continue without using any of the database functionality.
     if options.usedatabase:
         try:
-            c = connect_to_bang_database(options)
-            c.close()
-        except Exception as e:
+            conn = connect_to_bang_database(options)
+            conn.close()
+        except Exception as ex:
             if options.dbconnectionerrorfatal:
                 print("Database error: missing/wrong configuration or database not running", file=sys.stderr)
                 sys.exit(1)
@@ -232,10 +224,10 @@ def main(argv):
 
         # Create a scanjob for the first file to be scanned
         fileresult = FileResult(
-                pathlib.Path(os.path.basename(checkfile)),
-                None,
-                set(),
-                set(labels))
+            pathlib.Path(os.path.basename(checkfile)),
+            None,
+            set(),
+            set(labels))
         j = ScanJob(fileresult)
         scanfilequeue.put(j)
 
@@ -274,13 +266,14 @@ def main(argv):
             else:
                 dbconn0 = bangdbconns[i][0]
                 dbconn1 = bangdbconns[i][1]
-            p = multiprocessing.Process(target=processfile,
-                    args=(dbconn0, dbconn1, scanenvironment))
-            processes.append(p)
+            process = multiprocessing.Process(
+                target=processfile,
+                args=(dbconn0, dbconn1, scanenvironment))
+            processes.append(process)
 
         # then start all the processes
-        for p in processes:
-            p.start()
+        for process in processes:
+            process.start()
 
         # wait for the queues to be empty.
         scanfilequeue.join()
@@ -302,15 +295,15 @@ def main(argv):
                     # TODO: this is never the case, is it?
                     pass
 
-            except queue.Empty as e:
+            except queue.Empty:
                 # Queue is empty
                 break
 
         resultqueue.join()
 
         # Done processing, terminate processes that were created
-        for p in processes:
-            p.terminate()
+        for process in processes:
+            process.terminate()
 
         scandatefinished = datetime.datetime.utcnow()
 
@@ -380,11 +373,11 @@ def main(argv):
 
     # clean up the database cursors and
     # close all connections to the database
-    for c in bangdbconns:
+    for ccs in bangdbconns:
         # first close the cursor
-        c[1].close()
+        ccs[1].close()
         # then close the database connection
-        c[0].close()
+        ccs[0].close()
 
     # finally shut down logging
     logging.shutdown()
