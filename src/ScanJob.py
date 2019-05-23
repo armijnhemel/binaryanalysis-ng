@@ -188,15 +188,15 @@ class ScanJob:
             if bangsignatures.matches_file_pattern(self.fileresult.filename, extension):
                 log(logging.INFO, "TRY extension match %s %s" % (self.fileresult.filename, extension))
                 unpackresult = unpacker.try_unpack_file_for_extension(
-                        self.fileresult, self.scanenvironment,
-                        self.fileresult.filename, extension)
+                    self.fileresult, self.scanenvironment,
+                    self.fileresult.filename, extension)
                 if unpackresult is None:
                     continue
                 if not unpackresult['status']:
                     # No data could be unpacked for some reason
                     log(logging.DEBUG, "FAIL %s known extension %s: %s" %
-                            (self.fileresult.filename, extension,
-                            unpackresult['error']['reason']))
+                        (self.fileresult.filename, extension,
+                         unpackresult['error']['reason']))
                     # Fatal errors should lead to the program stopping
                     # execution. Ignored for now.
                     if unpackresult['error']['fatal']:
@@ -207,8 +207,8 @@ class ScanJob:
                 # the file could be unpacked successfully,
                 # so log it as such.
                 log(logging.INFO, "SUCCESS %s %s at offset: 0, length: %d" %
-                        (self.fileresult.filename, extension,
-                        unpackresult['length']))
+                    (self.fileresult.filename, extension,
+                     unpackresult['length']))
 
                 unpacker.file_unpacked(unpackresult, self.fileresult.filesize)
 
@@ -227,10 +227,10 @@ class ScanJob:
 
                 for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                     fr = FileResult(
-                            pathlib.Path(unpackedfile),
-                            self.fileresult.filename,
-                            self.fileresult.labels,
-                            set(unpackedlabel))
+                        pathlib.Path(unpackedfile),
+                        self.fileresult.filename,
+                        self.fileresult.labels,
+                        set(unpackedlabel))
                     j = ScanJob(fr)
                     self.scanenvironment.scanfilequeue.put(j)
                     report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
@@ -287,11 +287,11 @@ class ScanJob:
                     # First log which identifier was found and
                     # at which offset for possible later analysis.
                     log(logging.DEBUG, "TRYING %s %s at offset: %d" %
-                            (self.fileresult.filename, signature, offset))
+                        (self.fileresult.filename, signature, offset))
 
                     unpackresult = unpacker.try_unpack_file_for_signatures(
-                            self.fileresult, self.scanenvironment,
-                            signature, offset)
+                        self.fileresult, self.scanenvironment,
+                        signature, offset)
                     if unpackresult is None:
                         continue
 
@@ -299,8 +299,8 @@ class ScanJob:
                         # No data could be unpacked for some reason,
                         # so log the status and error message
                         log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
-                                (self.fileresult.filename, signature, offset,
-                                    unpackresult['error']['reason']))
+                            (self.fileresult.filename, signature, offset,
+                             unpackresult['error']['reason']))
 
                         # Fatal errors should lead to the program
                         # stopping execution. Ignored for now.
@@ -316,7 +316,7 @@ class ScanJob:
                     # the file could be unpacked successfully,
                     # so log it as such.
                     log(logging.INFO, "SUCCESS %s %s at offset: %d, length: %d" %
-                            (self.fileresult.filename, signature, offset, unpackresult['length']))
+                        (self.fileresult.filename, signature, offset, unpackresult['length']))
 
                     # store the name counter
                     counterspersignature[signature] = namecounter
@@ -358,10 +358,10 @@ class ScanJob:
                         report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
                         # add the data, plus possibly any label
                         fr = FileResult(
-                                pathlib.Path(unpackedfile),
-                                self.fileresult.filename,
-                                self.fileresult.labels,
-                                set(unpackedlabel))
+                            pathlib.Path(unpackedfile),
+                            self.fileresult.filename,
+                            self.fileresult.labels,
+                            set(unpackedlabel))
                         j = ScanJob(fr)
                         self.scanenvironment.scanfilequeue.put(j)
 
@@ -468,10 +468,10 @@ class ScanJob:
 
                         # add the data, plus labels, to the queue
                         fr = FileResult(
-                                pathlib.Path(outfile_rel),
-                                self.fileresult.filename,
-                                self.fileresult.labels,
-                                set(unpackedlabel))
+                            pathlib.Path(outfile_rel),
+                            self.fileresult.filename,
+                            self.fileresult.labels,
+                            set(unpackedlabel))
                         j = ScanJob(fr)
                         self.scanenvironment.scanfilequeue.put(j)
                     carve_index = u_high
@@ -525,8 +525,8 @@ class ScanJob:
 
                 log(logging.DEBUG, "TRYING %s %s at offset: 0" % (self.fileresult.filename, f))
                 unpackresult = unpacker.try_textonlyfunctions(
-                        self.fileresult, self.scanenvironment,
-                        f, 0)
+                    self.fileresult, self.scanenvironment,
+                    f, 0)
                 if unpackresult is None:
                     continue
 
@@ -588,10 +588,10 @@ class ScanJob:
 
                     # add the data, plus possibly any label
                     fr = FileResult(
-                            pathlib.Path(unpackedfile),
-                            self.fileresult.filename,
-                            self.fileresult.labels,
-                            set(unpackedlabel))
+                        pathlib.Path(unpackedfile),
+                        self.fileresult.filename,
+                        self.fileresult.labels,
+                        set(unpackedlabel))
                     j = ScanJob(fr)
                     self.scanenvironment.scanfilequeue.put(j)
 
