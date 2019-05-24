@@ -14,5 +14,5 @@ class TestFileResult(TestBase):
         self.assertEqual(d['parent'], str(relative_path.parent))
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     unittest.main()

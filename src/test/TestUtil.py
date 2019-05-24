@@ -84,7 +84,7 @@ class TestBase(unittest.TestCase):
             checksumdict = self.checksum_dict,
             )
 
-    def _create_clean_directory(self,dirname):
+    def _create_clean_directory(self, dirname):
         try:
             shutil.rmtree(dirname)
         except FileNotFoundError:
@@ -107,5 +107,3 @@ class TestBase(unittest.TestCase):
         except FileExistsError:
             pass
         shutil.copy(self.testdata_dir / path, unpacked_path)
-
-
