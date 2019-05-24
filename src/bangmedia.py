@@ -75,8 +75,8 @@ def unpack_webp(fileresult, scanenvironment, offset, unpackdir):
         labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
             labels += ['webp', 'graphics']
-        for u in unpackres['filesandlabels']:
-            unpackedfilesandlabels.append((u, ['webp', 'graphics', 'unpacked']))
+        for result in unpackres['filesandlabels']:
+            unpackedfilesandlabels.append((result, ['webp', 'graphics', 'unpacked']))
         return {'status': True, 'length': unpackres['length'],
                 'filesandlabels': unpackedfilesandlabels, 'labels': labels}
     return {'status': False, 'error': unpackres['error']}
@@ -216,8 +216,8 @@ def unpack_wav(fileresult, scanenvironment, offset, unpackdir):
         labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
             labels += ['wav', 'audio']
-        for u in unpackres['filesandlabels']:
-            unpackedfilesandlabels.append((u, ['wav', 'audio', 'unpacked']))
+        for result in unpackres['filesandlabels']:
+            unpackedfilesandlabels.append((result, ['wav', 'audio', 'unpacked']))
         return {'status': True, 'length': unpackres['length'],
                 'filesandlabels': unpackedfilesandlabels, 'labels': labels}
     return {'status': False, 'error': unpackres['error']}
@@ -433,8 +433,8 @@ def unpack_ani(fileresult, scanenvironment, offset, unpackdir):
         labels = unpackres['labels']
         if offset == 0 and unpackres['length'] == filesize:
             labels += ['ani', 'graphics']
-        for u in unpackres['filesandlabels']:
-            unpackedfilesandlabels.append((u, ['ani', 'graphics', 'unpacked']))
+        for result in unpackres['filesandlabels']:
+            unpackedfilesandlabels.append((result, ['ani', 'graphics', 'unpacked']))
         return {'status': True, 'length': unpackres['length'],
                 'filesandlabels': unpackedfilesandlabels, 'labels': labels}
     return {'status': False, 'error': unpackres['error']}
@@ -925,7 +925,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
                 testimg = PIL.Image.open(checkfile)
                 testimg.load()
                 testimg.close()
-            except Exception as e:
+            except OSError:
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid PNG data according to PIL'}
@@ -965,7 +965,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
             testimg.load()
             testimg.close()
             outfile.close()
-        except:
+        except OSError:
             outfile.close()
             os.unlink(outfile_full)
             unpackingerror = {'offset': offset, 'fatal': False,
@@ -1079,7 +1079,7 @@ def unpack_bmp(fileresult, scanenvironment, offset, unpackdir):
             testimg = PIL.Image.open(checkfile)
             testimg.load()
             testimg.close()
-        except:
+        except OSError:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid BMP according to PIL'}
@@ -1108,7 +1108,7 @@ def unpack_bmp(fileresult, scanenvironment, offset, unpackdir):
         testimg.load()
         testimg.close()
         outfile.close()
-    except:
+    except OSError:
         outfile.close()
         os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -1564,7 +1564,7 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
             testimg = PIL.Image.open(checkfile)
             testimg.load()
             testimg.close()
-        except:
+        except OSError:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid GIF data according to PIL'}
@@ -1594,7 +1594,7 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
         testimg.load()
         testimg.close()
         outfile.close()
-    except:
+    except OSError:
         outfile.close()
         os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -2153,7 +2153,7 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
             testimg = PIL.Image.open(checkfile)
             testimg.load()
             testimg.close()
-        except:
+        except OSError:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid JPEG data according to PIL'}
@@ -2182,7 +2182,7 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
         testimg.load()
         testimg.close()
         outfile.close()
-    except:
+    except OSError:
         outfile.close()
         os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -2329,7 +2329,7 @@ def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
             testimg = PIL.Image.open(checkfile)
             testimg.load()
             testimg.close()
-        except Exception as e:
+        except OSError:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid ICO data according to PIL'}
@@ -2351,7 +2351,7 @@ def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
         testimg = PIL.Image.open(outfile)
         testimg.load()
         testimg.close()
-    except Exception as e:
+    except OSError:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid ICO data according to PIL'}
@@ -2489,7 +2489,7 @@ def unpack_sgi(fileresult, scanenvironment, offset, unpackdir):
                 testimg = PIL.Image.open(checkfile)
                 testimg.load()
                 testimg.close()
-            except:
+            except OSError:
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid SGI according to PIL'}
@@ -2527,7 +2527,7 @@ def unpack_sgi(fileresult, scanenvironment, offset, unpackdir):
             testimg.load()
             testimg.close()
             outfile.close()
-        except:
+        except OSError:
             outfile.close()
             os.unlink(outfile_full)
             unpackingerror = {'offset': offset, 'fatal': False,
@@ -3004,7 +3004,7 @@ def unpack_apple_icon(fileresult, scanenvironment, offset, unpackdir):
             testimg = PIL.Image.open(checkfile)
             testimg.load()
             testimg.close()
-        except:
+        except OSError:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid Apple icon according to PIL'}
@@ -3036,7 +3036,7 @@ def unpack_apple_icon(fileresult, scanenvironment, offset, unpackdir):
         testimg.load()
         testimg.close()
         outfile.close()
-    except:
+    except OSError:
         outfile.close()
         os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -3399,7 +3399,7 @@ def unpack_swf(fileresult, scanenvironment, offset, unpackdir):
                 unpackedsize += len(checkbytes) - len(decompressor.unused_data)
                 if len(decompressor.unused_data) != 0:
                     break
-            except Exception as e:
+            except:
                 checkfile.close()
                 unpackingerror = {'offset': offset,
                                   'reason': 'zlib decompression failure',
@@ -3500,7 +3500,7 @@ def unpack_swf(fileresult, scanenvironment, offset, unpackdir):
             unpackedsize += len(checkbytes) - len(decompressor.unused_data)
             if len(decompressor.unused_data) != 0:
                 break
-        except Exception as e:
+        except:
             # TODO: more specific exceptions
             checkfile.close()
             unpackingerror = {'offset': offset,
@@ -4044,10 +4044,10 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
             # the cross reference section might have
             # subsections. The first line is always
             # two integers
-            for o in objectdefs:
+            for obj in objectdefs:
                 if not firstlineseen:
                     # first line has to be two integers
-                    linesplits = o.split()
+                    linesplits = obj.split()
                     if len(linesplits) != 2:
                         validxref = False
                         break
@@ -4061,7 +4061,7 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
                     firstlineseen = True
                     xrefseen = 0
                     continue
-                linesplits = o.split()
+                linesplits = obj.split()
                 if len(linesplits) != 2 and len(linesplits) != 3:
                     validxref = False
                     break
@@ -4072,7 +4072,7 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
                     if xrefcount != xrefseen:
                         validxref = False
                         break
-                    linesplits = o.split()
+                    linesplits = obj.split()
                     if len(linesplits) != 2:
                         validxref = False
                         break
@@ -4385,7 +4385,7 @@ def unpack_gimp_brush(fileresult, scanenvironment, offset, unpackdir):
             testimg = PIL.Image.open(checkfile)
             testimg.load()
             testimg.close()
-        except Exception as e:
+        except OSError:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid GIMP brush according to PIL'}
@@ -4413,7 +4413,7 @@ def unpack_gimp_brush(fileresult, scanenvironment, offset, unpackdir):
         testimg.load()
         testimg.close()
         outfile.close()
-    except:
+    except OSError:
         outfile.close()
         os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -5240,7 +5240,7 @@ def unpack_psd(fileresult, scanenvironment, offset, unpackdir):
             testimg = PIL.Image.open(checkfile)
             testimg.load()
             testimg.close()
-        except Exception as e:
+        except OSError:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid PSD data according to PIL'}
@@ -5266,7 +5266,7 @@ def unpack_psd(fileresult, scanenvironment, offset, unpackdir):
         testimg.load()
         testimg.close()
         outfile.close()
-    except Exception as e:
+    except OSError:
         outfile.close()
         os.unlink(outfile_full)
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -5341,7 +5341,7 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
             int(checkbytes)
             widthbytes += checkbytes
             seenint = True
-        except Exception as e:
+        except ValueError:
             if seenint:
                 checkfile.seek(-1, os.SEEK_CUR)
                 break
@@ -5391,7 +5391,7 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
             int(checkbytes)
             heightbytes += checkbytes
             seenint = True
-        except Exception as e:
+        except ValueError:
             if seenint:
                 checkfile.seek(-1, os.SEEK_CUR)
                 break
@@ -5442,7 +5442,7 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
                 int(checkbytes)
                 maxbytes += checkbytes
                 seenint = True
-            except Exception as e:
+            except ValueError:
                 if seenint:
                     checkfile.seek(-1, os.SEEK_CUR)
                     break
@@ -5494,7 +5494,7 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
             testimg = PIL.Image.open(checkfile)
             testimg.load()
             testimg.close()
-        except Exception as e:
+        except OSError:
             checkfile.close()
             if pnmtype == 'pgm':
                 unpackingerror = {'offset': offset, 'fatal': False,
@@ -5527,7 +5527,7 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
         testimg.load()
         testimg.close()
         outfile.close()
-    except Exception as e:
+    except OSError:
         outfile.close()
         os.unlink(outfile_full)
         if pnmtype == 'pgm':
