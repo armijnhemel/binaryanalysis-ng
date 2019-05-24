@@ -23,8 +23,6 @@
 
 # Test modules for BANG
 import unittest
-import tempfile
-import shutil
 import pathlib
 import os
 import sys
@@ -45,6 +43,7 @@ from TestUtil import *
 
 # a test class for testing GIFs
 class TestGIF(TestBase):
+    '''Test class for GIF image files'''
 
     # a test for the file being a single GIF
     def test_fullfile(self):
@@ -116,6 +115,8 @@ class TestGIF(TestBase):
 
 # a test class for testing PNG files
 class TestPNG(TestBase):
+    '''Test class for PNG and APNG image files'''
+
     # a test for the file being a single PNG
     def test_fullfile(self):
         '''Test a single PNG'''
@@ -259,6 +260,8 @@ class TestPNG(TestBase):
 
 # a test class for testing JPEG files
 class TestJPEG(TestBase):
+    '''Test class for JPEG image files'''
+
     # a test for the file being a single JPEG
     def test_fullfile(self):
         '''Test a single JPEG'''
@@ -272,8 +275,8 @@ class TestJPEG(TestBase):
 
     # a test for the file being a single JPEG with data appended to it
     def test_appended(self):
-        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-add-random-data.jpg'
         '''Test a single JPEG with data appended'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'jpeg' / 'test-add-random-data.jpg'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
         testres = bangmedia.unpack_jpeg(fileresult, self.scan_environment, offset, self.unpackdir)
@@ -329,6 +332,8 @@ class TestJPEG(TestBase):
 
 # a test class for testing BMP files
 class TestBMP(TestBase):
+    '''Test class for BMP image files'''
+
     # a test for the file being a single BMP
     def test_fullfile(self):
         '''Test a single BMP'''
@@ -399,6 +404,8 @@ class TestBMP(TestBase):
 
 # a test class for testing SGI files
 class TestSGI(TestBase):
+    '''Test class for SGI image files'''
+
     # a test for the file being a single SGI
     def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'sgi' / 'test.sgi'
@@ -519,6 +526,8 @@ class TestSGI(TestBase):
 
 # a test class for testing Android sparse files
 class TestAndroidSparse(TestBase):
+    '''Test class for Android sparse image files'''
+
     # a test for the file being a single Android sparse image
     def test_fullfile(self):
         '''Test an Android sparse image'''
@@ -533,6 +542,7 @@ class TestAndroidSparse(TestBase):
 
 # a test class for testing SREC files
 class TestSREC(TestBase):
+    '''Test class for files in Motorola SREC format'''
 
     def test_srec_wrong(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'srec' / 'srec-wrong.txt'
@@ -544,6 +554,8 @@ class TestSREC(TestBase):
 
 # a test class for testing GZIP files
 class TestGZIP(TestBase):
+    '''Test class for gzip compressed data'''
+
     # a test for the file being a single gzip
     def test_fullfile(self):
         '''Test a single gzip compressed file'''
@@ -614,6 +626,8 @@ class TestGZIP(TestBase):
 
 # a test class for testing ZIP files
 class TestZIP(TestBase):
+    '''Test class for ZIP files'''
+
     # a test for the file being a single ZIP
     def test_fullfile(self):
         '''Test a single ZIP compressed file'''
@@ -684,6 +698,7 @@ class TestZIP(TestBase):
 
 # a test class for testing LZ4 files
 class TestLZ4(TestBase):
+    '''Test class for LZ4 compressed files'''
 
     # a test for the file being a single LZ4
     def test_fullfile(self):
@@ -755,6 +770,7 @@ class TestLZ4(TestBase):
 
 # a test class for testing CPIO files
 class TestCPIO(TestBase):
+    '''Test class for CPIO archives'''
 
     # a test for the file being a single CPIO
     def test_fullfile_bin(self):
@@ -999,6 +1015,7 @@ class TestCPIO(TestBase):
 
 # a test class for testing XZ files
 class TestXZ(TestBase):
+    '''Test class for XZ compressed data'''
 
     # a test for the file being a single XZ
     def test_fullfile(self):
@@ -1070,6 +1087,7 @@ class TestXZ(TestBase):
 
 # a test class for testing LZMA files
 class TestLZMA(TestBase):
+    '''Test class for LZMA compressed data'''
 
     # a test for the file being a single LZMA
     def test_fullfile(self):
@@ -1141,6 +1159,7 @@ class TestLZMA(TestBase):
 
 # a test class for testing bzip2 files
 class TestBzip2(TestBase):
+    '''Test class for bzip2 compressed data'''
 
     # a test for the file being a single bzip2
     def test_fullfile(self):
@@ -1212,6 +1231,7 @@ class TestBzip2(TestBase):
 
 # a test class for testing lzip files
 class TestLzip(TestBase):
+    '''Test class for lzip compressed files'''
 
     # a test for the file being a single lzip
     def test_fullfile(self):
@@ -1283,6 +1303,7 @@ class TestLzip(TestBase):
 
 # a test class for testing lzop files
 class TestLzop(TestBase):
+    '''Test class for lzop compressed data'''
 
     # a test for the file being a single lzop
     def test_fullfile(self):
@@ -1354,6 +1375,7 @@ class TestLzop(TestBase):
 
 # a test class for testing zstd files
 class TestZstd(TestBase):
+    '''Test class for zstd compressed data'''
 
     # a test for the file being a single zstd
     def test_fullfile(self):
@@ -1425,6 +1447,7 @@ class TestZstd(TestBase):
 
 # a test class for testing 7z files
 class Test7z(TestBase):
+    '''Test class for 7z compressed data'''
 
     # a test for the file being a single 7z
     def test_fullfile(self):
@@ -1496,6 +1519,7 @@ class Test7z(TestBase):
 
 # a test class for testing ar files
 class TestAr(TestBase):
+    '''Test class for Unix ar files'''
 
     # a test for the file being a single ar
     def test_fullfile(self):
@@ -1566,6 +1590,7 @@ class TestAr(TestBase):
 
 # a test class for testing XAR files
 class TestXAR(TestBase):
+    '''Test class for XAR files'''
 
     # a test for the file being a single xar
     def test_fullfile(self):
@@ -1752,6 +1777,7 @@ class TestXAR(TestBase):
 
 # a test class for testing squashfs files
 class TestSquashfs(TestBase):
+    '''Test class for squashfs'''
 
     # a test for the file being a single squashfs
     def test_fullfile(self):
@@ -1824,7 +1850,7 @@ class TestSquashfs(TestBase):
 
 # a test class for testing snappy files
 class TestSnappy(TestBase):
-
+    '''Test for snappy compressed files'''
     # a test for the file being a single snappy
     def test_fullfile(self):
         '''Test a single snappy compressed file'''
@@ -1896,7 +1922,7 @@ class TestSnappy(TestBase):
 
 # a test class for testing ISO files
 class TestISO9660(TestBase):
-
+    '''Test class for ISO9660 files'''
     # a test for the file being a single iso9660
     def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'iso9660' / 'test.iso'
@@ -1961,7 +1987,7 @@ class TestISO9660(TestBase):
 
 # a test class for testing tar files
 class TestTar(TestBase):
-
+    '''Test class for tar files'''
     # a test for the file being a single tar
     def test_fullfile(self):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test.tar'
@@ -2044,7 +2070,7 @@ class TestTar(TestBase):
 
 # a test class for testing jffs2 files
 class TestJFFS2(TestBase):
-
+    '''Test class for JFFS2'''
     # a test for the file being a single jffs2
     def test_fullfile_little(self):
         '''Test a JFFS2 file (little endian)'''
@@ -2182,6 +2208,7 @@ class TestJFFS2(TestBase):
 
 # a test class for testing rzip files
 class TestRzip(TestBase):
+    '''Test class for rzip'''
     # a test for the file being a single rzip
     def test_fullfile(self):
         '''Test a single RZIP file'''
