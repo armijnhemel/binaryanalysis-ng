@@ -34,49 +34,49 @@ Start: %s
 Stop: %s
 Duration (seconds): %s
 
-""" % ( checkfile, scandate.isoformat(), scandatefinished.isoformat(), (scandatefinished - scandate).total_seconds() )
+""" % (checkfile, scandate.isoformat(), scandatefinished.isoformat(), (scandatefinished - scandate).total_seconds())
     def _fileheader(self, fn):
         return """File: %s
 %s
 
 """ % (fn, "=" * (6 + len(fn)))
-    def _filechecksum(self,fn):
+    def _filechecksum(self, fn):
         return """MD5: %s
 SHA256: %s
-""" % ( self.scantree[fn]['hash']['md5'], self.scantree[fn]['hash']['sha256'] )
+""" % (self.scantree[fn]['hash']['md5'], self.scantree[fn]['hash']['sha256'])
 
-    def _filesize(self,fn):
+    def _filesize(self, fn):
         return "Size: %d\n" % self.scantree[fn]['filesize']
 
-    def _filemimetype(self,fn):
+    def _filemimetype(self, fn):
         return "MIME type: " + self.scantree[fn]['mimetype'] + "\n"
-    def _fileparent(self,fn):
+    def _fileparent(self, fn):
         return "Parent: " + self.scantree[fn]['parent'] + "\n"
-    def _filelabels(self,fn):
+    def _filelabels(self, fn):
         return "Labels: "  +  ", ".join(sorted(self.scantree[fn]['labels'])) + "\n"
 
-    def _fileunpackedfiles(self,fn):
+    def _fileunpackedfiles(self, fn):
         bytesscanned = 0
         s = ""
         for l in self.scantree[fn]['unpackedfiles']:
             bytesscanned += l['size']
             if len(l['files']) != 0:
                 s += "Data unpacked at offset %d from %s:\n%s\n" % (
-                        l['offset'], l['type'], " ".join(sorted(l['files']))
+                    l['offset'], l['type'], " ".join(sorted(l['files']))
                     )
         return "Bytes identified: %d (%f %%)\n" % (bytesscanned, bytesscanned/self.scantree[fn]['filesize'] * 100) + s + "\n"
 
-    def _filetotallabels(self,fn, labels):
-        s = """Total labels:
+    def _filetotallabels(self, fn, labels):
+        label_string = """Total labels:
 =============
 """
         for l in labels.most_common():
-            s += """Name: %s
+            label_string += """Name: %s
 Amount: %d
 """ % l
-        return s
+        return label_string
 
-    def report(self,scanresult):
+    def report(self, scanresult):
 
         self.scanresult = scanresult
         labelcounter = collections.Counter()
@@ -99,8 +99,6 @@ Amount: %d
             bytesscanned = 0
             if 'unpackedfiles' in self.scantree[fn]:
                 s += self._fileunpackedfiles(fn)
-        s += self._filetotallabels(fn,labelcounter)
+        s += self._filetotallabels(fn, labelcounter)
         s += "\n"
         self.reportfile.write(s)
-
-

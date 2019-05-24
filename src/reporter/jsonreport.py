@@ -26,14 +26,13 @@ import copy
 class JsonReporter:
     def __init__(self, reportfile):
         self.reportfile = reportfile
-    def report(self,scanresult):
+    def report(self, scanresult):
+        '''Report results in JSON format'''
         # copy scanresult because json cannot serialize datetime objects by itself
-        sr = copy.deepcopy(scanresult)
-        sr['session']['start'] = sr['session']['start'].isoformat()
-        sr['session']['stop'] = sr['session']['stop'].isoformat()
+        result = copy.deepcopy(scanresult)
+        result['session']['start'] = result['session']['start'].isoformat()
+        result['session']['stop'] = result['session']['stop'].isoformat()
 
         # store the scan uuid in URN (RFC 4122) form
-        sr['session']['uuid'] = sr['session']['uuid'].urn
-        json.dump(sr, self.reportfile, indent=4)
-
-
+        result['session']['uuid'] = result['session']['uuid'].urn
+        json.dump(result, self.reportfile, indent=4)
