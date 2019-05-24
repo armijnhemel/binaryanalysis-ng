@@ -26,6 +26,7 @@ import collections
 import tlsh
 
 class FileContentsComputer:
+    '''Class to proocess the contents of a file'''
     def __init__(self, read_size):
         self.computers = []
         self.read_size = read_size
@@ -36,37 +37,36 @@ class FileContentsComputer:
     def read(self, filename):
         if all(c.supports_memoryview for c in self.computers):
             return self._read_with_memory_view(filename)
-        else:
-            return self._read_with_file_read(filename)
+        return self._read_with_file_read(filename)
 
     def _read_with_file_read(self, filename):
         scanfile = open(filename, 'rb')
         scanfile.seek(0)
-        for c in self.computers:
-            c.initialize()
+        for computer in self.computers:
+            computer.initialize()
         data = scanfile.read(self.read_size)
         while data != b'':
-            for c in self.computers:
-                c.compute(data)
+            for computer in self.computers:
+                computer.compute(data)
             data = scanfile.read(self.read_size)
-        for c in self.computers:
-            c.finalize()
+        for computer in self.computers:
+            computer.finalize()
         scanfile.close()
 
     def _read_with_memory_view(self, filename):
         scanfile = open(filename, 'rb')
         scanfile.seek(0)
-        for c in self.computers:
-            c.initialize()
+        for computer in self.computers:
+            computer.initialize()
         scanbytes = bytearray(self.read_size)
         bytes_read = scanfile.readinto(scanbytes)
         while bytes_read != 0:
             data = memoryview(scanbytes[:bytes_read])
-            for c in self.computers:
-                c.compute(data)
+            for computer in self.computers:
+                computer.compute(data)
             bytes_read = scanfile.readinto(scanbytes)
-        for c in self.computers:
-            c.finalize()
+        for computer in self.computers:
+            computer.finalize()
         scanfile.close()
 
 
