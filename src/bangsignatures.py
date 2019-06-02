@@ -143,7 +143,8 @@ signatures = {
     'bflt': b'bFLT', # https://web.archive.org/web/20120123212024/http://retired.beyondlogic.org/uClinux/bflt.htm
     'ubi': b'UBI#', # http://www.dubeiko.com/development/FileSystems/UBI/ubidesign.pdf
     'ubifs': b'\x31\x18\x10\x06',
-    'nar': b'\x0d\x00\x00\x00\x00\x00\x00\x00nix-archive-1\x00\x00\x00'
+    'nar': b'\x0d\x00\x00\x00\x00\x00\x00\x00nix-archive-1\x00\x00\x00',
+    'grub2font': b'FILE\x00\x00\x00\x04PFF2',
 }
 
 # some signatures do not start at the beginning of the file
@@ -303,6 +304,7 @@ signaturetofunction = {
     'romfs_ambarella': bangunpack.unpack_romfs_ambarella,
     'bflt': bangunpack.unpack_bflt,
     'ubi': bangfilesystems.unpack_ubi,
+    'grub2font': bangunpack.unpack_grub2font,
 }
 
 # a lookup table to map signatures to a name for

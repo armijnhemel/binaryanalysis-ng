@@ -165,6 +165,7 @@ larger file, unless stated otherwise.
 117. bFLT
 118. Samba password files
 119. UBI (not UBIFS!), fastmap not supported
+120. GRUB2 font files
 
 
 ## Invocation

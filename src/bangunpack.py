@@ -14685,3 +14685,144 @@ def unpack_smbpasswd(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# http://grub.gibibit.com/New_font_format
+def unpack_grub2font(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify/carve a GRUB2 font file'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file, skip the magic
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset+12)
+    unpackedsize = 12
+
+    valid_chunks = [b'NAME', b'FAMI', b'WEIG', b'SLAN',
+                    b'PTSZ', b'MAXW', b'MAXH', b'ASCE',
+                    b'DESC', b'CHIX', b'DATA']
+
+    character_index = {}
+
+    dataunpacked = False
+    while True:
+        is_data = False
+
+        # read 4 bytes
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            break
+
+        if checkbytes not in valid_chunks:
+            break
+        chunkname = checkbytes
+
+        if chunkname == b'DATA':
+            is_data = True
+
+        # chunk size
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            break
+
+        if is_data:
+            if checkbytes != b'\xff\xff\xff\xff':
+                break
+            maxoffset = checkfile.tell()
+            supported_data = True
+            valid_data = True
+
+            for ch in character_index:
+                # future code, not yet supported in GRUB2
+                if character_index[ch]['flags'] != 0:
+                    supported_data = False
+                    break
+                if character_index[ch]['offset'] < endofchix:
+                    valid_data = False
+                    break
+                # check if the character data isn't outside of the file. Each
+                # character has at least 10 bytes of data.
+                if offset + character_index[ch]['offset'] + 10 > filesize:
+                    valid_data = False
+                    break
+
+                # jump to the offset and process the character
+                checkfile.seek(offset + character_index[ch]['offset'])
+                checkbytes = checkfile.read(2)
+                width = int.from_bytes(checkbytes, byteorder='big')
+
+                checkbytes = checkfile.read(2)
+                height = int.from_bytes(checkbytes, byteorder='big')
+
+                checkbytes = checkfile.read(2)
+                xoffset = int.from_bytes(checkbytes, byteorder='big')
+
+                checkbytes = checkfile.read(2)
+                yoffset = int.from_bytes(checkbytes, byteorder='big')
+
+                checkbytes = checkfile.read(2)
+                devicewidth = int.from_bytes(checkbytes, byteorder='big')
+
+                # then several bytes
+                bitmap_data_length = math.ceil((width * height)/8)
+                if checkfile.tell() + bitmap_data_length > filesize:
+                    valid_data = False
+                    break
+                maxoffset = max(maxoffset, checkfile.tell() + bitmap_data_length)
+
+            dataunpacked = True
+        else:
+            chunk_size = int.from_bytes(checkbytes, byteorder='big')
+            if checkfile.tell() + chunk_size > filesize:
+                break
+
+            if chunkname == b'CHIX':
+                if chunk_size%9 != 0:
+                    break
+                character_count = chunk_size//9
+
+                # process the character index
+                for ch in range(0, character_count):
+                    checkbytes = checkfile.read(4)
+                    codepoint = int.from_bytes(checkbytes, byteorder='big')
+
+                    checkbytes = checkfile.read(1)
+                    flags = ord(checkbytes)
+                    if flags != 0:
+                        # future code, not yet supported in GRUB2
+                        break
+
+                    checkbytes = checkfile.read(4)
+                    char_offset = int.from_bytes(checkbytes, byteorder='big')
+
+                    character_index[codepoint] = {'flags': flags, 'offset': char_offset}
+                endofchix = checkfile.tell() - offset
+            else:
+                checkfile.seek(chunk_size, os.SEEK_CUR)
+
+    if not dataunpacked:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not a valid GRUB2 font file'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = maxoffset - offset
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels = ['font', 'resource', 'grub2']
+    else:
+        # else carve the file
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-grub2font")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfile_rel, ['font', 'resource', 'grub2', 'unpacked']))
+        checkfile.close()
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
