@@ -4366,6 +4366,22 @@ def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
+    # size of the hashing table
+    checkbytes = checkfile.read(4)
+    size_hashing_table = int.from_bytes(checkbytes, byteorder=endianness)
+    unpackedsize += 4
+
+    # offset of hashing table
+    checkbytes = checkfile.read(4)
+    offset_hashing_table = int.from_bytes(checkbytes, byteorder=endianness)
+    unpackedsize += 4
+
+    if offset + offset_hashing_table + size_hashing_table > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for hashing table'}
+        return {'status': False, 'error': unpackingerror}
+
     maxoffset = checkfile.tell()
 
     # now verify if the locations of the original strings and
@@ -4428,7 +4444,7 @@ def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
                 return {'status': False, 'error': unpackingerror}
         maxoffset = max(maxoffset, checkfile.tell())
 
-    unpackedsize = checkfile.tell() - offset
+    unpackedsize = max(checkfile.tell() - offset, size_hashing_table, offset_hashing_table)
 
     # see if the whole file is a GNU message catalog
     if offset == 0 and unpackedsize == filesize:
