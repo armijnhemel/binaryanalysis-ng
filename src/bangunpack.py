@@ -13566,6 +13566,11 @@ def unpackMinidump(fileresult, scanenvironment, offset, unpackdir):
     # offset to an array with MDRawDirectory structures
     checkbytes = checkfile.read(4)
     mdrawoffset = int.from_bytes(checkbytes, byteorder='little')
+    if mdrawoffset == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid offset'}
+        return {'status': False, 'error': unpackingerror}
     if offset + mdrawoffset > filesize:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -13657,6 +13662,12 @@ def unpackMinidump(fileresult, scanenvironment, offset, unpackdir):
         maxoffset = max(maxoffset, mdrawoffset + mdrawdatasize)
 
     unpackedsize = maxoffset
+    if unpackedsize == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'no data unpacked'}
+        return {'status': False, 'error': unpackingerror}
 
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
