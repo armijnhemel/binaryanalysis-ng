@@ -11446,6 +11446,11 @@ def unpackJSON(fileresult, scanenvironment, offset, unpackdir):
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid JSON'}
         return {'status': False, 'error': unpackingerror}
+    except RecursionError:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'recursion limit exceeded'}
+        return {'status': False, 'error': unpackingerror}
 
     checkfile.close()
 
