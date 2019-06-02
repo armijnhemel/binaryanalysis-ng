@@ -4321,15 +4321,15 @@ def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
     # or little endian.
     checkbytes = checkfile.read(4)
     if checkbytes == b'\x95\x04\x12\xde':
+        endianness = 'big'
         bigendian = True
+    else:
+        endianness = 'little'
     unpackedsize += 4
 
     # then the version. The "major version" can only be 0 or 1
     checkbytes = checkfile.read(4)
-    if bigendian:
-        version = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        version = int.from_bytes(checkbytes, byteorder='little')
+    version = int.from_bytes(checkbytes, byteorder=endianness)
     if (version >> 16) > 1:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -4339,18 +4339,12 @@ def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
 
     # then the message count
     checkbytes = checkfile.read(4)
-    if bigendian:
-        message_count = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        message_count = int.from_bytes(checkbytes, byteorder='little')
+    message_count = int.from_bytes(checkbytes, byteorder=endianness)
     unpackedsize += 4
 
     # followed by the offset of the id of the original strings
     checkbytes = checkfile.read(4)
-    if bigendian:
-        textoffsets = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        textoffsets = int.from_bytes(checkbytes, byteorder='little')
+    textoffsets = int.from_bytes(checkbytes, byteorder=endianness)
 
     # the offset for the original strings cannot be outside of the file
     if offset + textoffsets > filesize:
@@ -4362,10 +4356,7 @@ def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
 
     # followed by the offset of the id of the translations
     checkbytes = checkfile.read(4)
-    if bigendian:
-        translationoffsets = int.from_bytes(checkbytes, byteorder='big')
-    else:
-        translationoffsets = int.from_bytes(checkbytes, byteorder='little')
+    translationoffsets = int.from_bytes(checkbytes, byteorder=endianness)
 
     # the offset for the translations cannot be outside of the file
     if offset + translationoffsets > filesize:
