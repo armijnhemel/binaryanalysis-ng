@@ -2346,16 +2346,17 @@ def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
     outfile_full = scanenvironment.unpack_path(outfile_rel)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-    outfile.close()
     try:
         testimg = PIL.Image.open(outfile)
         testimg.load()
         testimg.close()
     except OSError:
         checkfile.close()
+        outfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid ICO data according to PIL'}
         return {'status': False, 'error': unpackingerror}
+    outfile.close()
     checkfile.close()
 
     unpackedfilesandlabels.append((outfile_rel, ['ico', 'graphics', 'resource', 'unpacked']))
