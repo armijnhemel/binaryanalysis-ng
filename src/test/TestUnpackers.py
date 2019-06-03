@@ -539,6 +539,17 @@ class TestICO(TestBase):
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
+    # a test for the file being a single ICO
+    def test_fullfile_png(self):
+        '''Test a single ICO'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ico' / 'test-png.ico'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        filesize = fileresult.filesize
+        offset = 0
+        testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], filesize)
+
     # a test for the file being a single ICO with data appended to it
     def test_appended(self):
         '''Test a single ICO with data appended'''
@@ -548,6 +559,16 @@ class TestICO(TestBase):
         testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 2686)
+
+    # a test for the file being a single ICO with data appended to it
+    def test_appended_png(self):
+        '''Test a single ICO with data appended'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ico' / 'test-png-add-random-data.ico'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 0
+        testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 327)
 
     # a test for the file being a single ICO with data in front
     def test_prepended(self):
@@ -559,10 +580,29 @@ class TestICO(TestBase):
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 2686)
 
+    # a test for the file being a single ICO with data in front
+    def test_prepended_png(self):
+        '''Test a single ICO with data prepended'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ico' / 'test-png-prepend-random-data.ico'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 128
+        testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 327)
+
     # a test for the file being a single ICO with data cut from the end
     def test_cut_from_end(self):
         '''Test a single ICO with data cut from the end'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ico' / 'test-cut-data-from-end.ico'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 0
+        testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertFalse(testres['status'])
+
+    # a test for the file being a single ICO with data cut from the end
+    def test_cut_from_end_png(self):
+        '''Test a single ICO with data cut from the end'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ico' / 'test-png-cut-data-from-end.ico'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
         testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
@@ -577,6 +617,15 @@ class TestICO(TestBase):
         testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
+    # a test for the file being a single ICO with data cut from the middle
+    def test_cut_from_middle_png(self):
+        '''Test a single ICO with data cut from the middle'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ico' / 'test-png-cut-data-from-middle.ico'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 0
+        testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertFalse(testres['status'])
+
     # a test for the file being a single ICO with data added in the middle
     def test_added_in_middle(self):
         '''Test a single ICO with data added in the middle'''
@@ -586,10 +635,28 @@ class TestICO(TestBase):
         testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
+    # a test for the file being a single ICO with data added in the middle
+    def test_added_in_middle_png(self):
+        '''Test a single ICO with data added in the middle'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ico' / 'test-png-data-added-to-middle.ico'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 0
+        testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertFalse(testres['status'])
+
     # a test for the file being a single ICO with data replaced in the middle
     def test_replaced_in_middle(self):
         '''Test a single ICO with data replaced in the middle'''
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ico' / 'test-data-replaced-in-middle.ico'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 0
+        testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertFalse(testres['status'])
+
+    # a test for the file being a single ICO with data replaced in the middle
+    def test_replaced_in_middle_png(self):
+        '''Test a single ICO with data replaced in the middle'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ico' / 'test-png-data-replaced-in-middle.ico'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
         testres = bangmedia.unpack_ico(fileresult, self.scan_environment, offset, self.unpackdir)
