@@ -14,7 +14,7 @@ def get_execution_info(scandir):
     return (scandir, checkfile, duration)
 
 if __name__ == "__main__":
-    headers = [('scandir','checkfile','duration')]
+    headers = [('scandir', 'checkfile', 'duration')]
     r = [get_execution_info(arg) for arg in sys.argv[1:]]
     csv_writer = csv.writer(sys.stdout)
     csv_writer.writerows(headers + r)
