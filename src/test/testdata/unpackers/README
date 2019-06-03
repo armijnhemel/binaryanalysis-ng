@@ -21,6 +21,8 @@ test.png: Picture by Armijn Hemel, licensed under CC BY-SA 4.0
 test.jpeg: Picture by Armijn Hemel, licensed under CC BY-SA 4.0
 test.bmp: Picture by Armijn Hemel, licensed under CC BY-SA 4.0
 test.sgi: Picture by Armijn Hemel, licensed under CC BY-SA 4.0
+test.ico: Picture by Armijn Hemel, licensed under CC BY-SA 4.0
+test-png.ico: Picture by Armijn Hemel, licensed under CC BY-SA 4.0
 
 Animated_PNG_example_bouncing_beach_ball.png: public domain https://commons.wikimedia.org/wiki/File:Animated_PNG_example_bouncing_beach_ball.png
 
