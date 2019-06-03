@@ -2346,6 +2346,10 @@ def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
     outfile_full = scanenvironment.unpack_path(outfile_rel)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+
+    # reopen output file in read only mode
+    outfile = open(outfile_full, 'rb')
     try:
         testimg = PIL.Image.open(outfile)
         testimg.load()
