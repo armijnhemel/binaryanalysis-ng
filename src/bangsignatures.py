@@ -28,6 +28,7 @@ import bangunpack
 import bangfilesystems
 import bangmedia
 import bangandroid
+import banggames
 
 # store a few standard signatures
 signatures = {
@@ -298,8 +299,8 @@ signaturetofunction = {
     'romfs': bangfilesystems.unpack_romfs,
     'cramfs_le': bangfilesystems.unpack_cramfs,
     'cramfs_be': bangfilesystems.unpack_cramfs,
-    'quakepak': bangunpack.unpack_pak,
-    'doomwad': bangunpack.unpack_wad,
+    'quakepak': banggames.unpack_pak,
+    'doomwad': banggames.unpack_wad,
     'ambarella': bangunpack.unpack_ambarella,
     'romfs_ambarella': bangunpack.unpack_romfs_ambarella,
     'bflt': bangunpack.unpack_bflt,
