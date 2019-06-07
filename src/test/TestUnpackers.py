@@ -735,6 +735,78 @@ class TestGIMPBrush(TestBase):
         self.assertFalse(testres['status'])
 
 
+# a test class for testing PNM files
+class TestPNM(TestBase):
+    '''Test class for PNM image files'''
+
+    # a test for the file being a single PNM
+    def test_fullfile(self):
+        '''Test a single PNM'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'pnm' / 'test.pnm'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        filesize = fileresult.filesize
+        offset = 0
+        testres = bangmedia.unpack_pnm(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], filesize)
+
+    # a test for the file being a single PNM with data appended to it
+    def test_appended(self):
+        '''Test a single PNM with data appended'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'pnm' / 'test-add-random-data.pnm'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 0
+        testres = bangmedia.unpack_pnm(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 12340)
+
+    # a test for the file being a single PNM with data in front
+    def test_prepended(self):
+        '''Test a single PNM with data prepended'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'pnm' / 'test-prepend-random-data.pnm'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 128
+        testres = bangmedia.unpack_pnm(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertTrue(testres['status'])
+        self.assertEqual(testres['length'], 12340)
+
+    # a test for the file being a single PNM with data cut from the end
+    def test_cut_from_end(self):
+        '''Test a single PNM with data cut from the end'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'pnm' / 'test-cut-data-from-end.pnm'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 0
+        testres = bangmedia.unpack_pnm(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertFalse(testres['status'])
+
+    # a test for the file being a single PNM with data cut from the middle
+    def test_cut_from_middle(self):
+        '''Test a single PNM with data cut from the middle'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'pnm' / 'test-cut-data-from-middle.pnm'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 0
+        testres = bangmedia.unpack_pnm(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertFalse(testres['status'])
+
+    # a test for the file being a single PNM with data added in the middle
+    def test_added_in_middle(self):
+        '''Test a single PNM with data added in the middle'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'pnm' / 'test-data-added-to-middle.pnm'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 0
+        testres = bangmedia.unpack_pnm(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertFalse(testres['status'])
+
+    # a test for the file being a single PNM with data replaced in the middle
+    def test_replaced_in_middle(self):
+        '''Test a single PNM with data replaced in the middle'''
+        filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'pnm' / 'test-data-replaced-in-middle.pnm'
+        fileresult = create_fileresult_for_path(self.unpackdir, filename)
+        offset = 0
+        testres = bangmedia.unpack_pnm(fileresult, self.scan_environment, offset, self.unpackdir)
+        self.assertFalse(testres['status'])
+
+
 # a test class for testing Android sparse files
 class TestAndroidSparse(TestBase):
     '''Test class for Android sparse image files'''
