@@ -5342,6 +5342,21 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
                               'fatal': False,
                               'reason': 'not enough data for width'}
             return {'status': False, 'error': unpackingerror}
+        if checkbytes == b'#':
+            # comment, read until newline is found
+            unpackedsize += 1
+            while True:
+                checkbytes = checkfile.read(1)
+                if checkbytes == b'':
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize,
+                                      'fatal': False,
+                                      'reason': 'not enough data for width'}
+                    return {'status': False, 'error': unpackingerror}
+                unpackedsize += 1
+                if checkbytes == b'\n':
+                    break
+            continue
         try:
             int(checkbytes)
             widthbytes += checkbytes
