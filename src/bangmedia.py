@@ -81,6 +81,9 @@ def unpack_webp(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels, 'labels': labels}
     return {'status': False, 'error': unpackres['error']}
 
+unpack_webp.signatures = {'webp': b'WEBP'}
+unpack_webp.offset = 8
+
 
 # A verifier for the WAV file format.
 # Uses the description of the WAV file format as described here:
@@ -221,6 +224,9 @@ def unpack_wav(fileresult, scanenvironment, offset, unpackdir):
         return {'status': True, 'length': unpackres['length'],
                 'filesandlabels': unpackedfilesandlabels, 'labels': labels}
     return {'status': False, 'error': unpackres['error']}
+
+unpack_wav.signatures = {'wav': b'WAVE'}
+unpack_wav.offset = 8
 
 
 # An unpacker for RIFF. This is a helper method used by unpackers for:
@@ -438,6 +444,9 @@ def unpack_ani(fileresult, scanenvironment, offset, unpackdir):
         return {'status': True, 'length': unpackres['length'],
                 'filesandlabels': unpackedfilesandlabels, 'labels': labels}
     return {'status': False, 'error': unpackres['error']}
+
+unpack_ani.signatures = {'ani': b'ACON'}
+unpack_ani.offset = 8
 
 
 # PNG specifications can be found at:
@@ -996,6 +1005,8 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
                       'reason': 'No IEND found'}
     return {'status': False, 'error': unpackingerror}
 
+unpack_png.signatures = {'png': b'\x89PNG\x0d\x0a\x1a\x0a'}
+
 
 # https://en.wikipedia.org/wiki/BMP_file_format
 def unpack_bmp(fileresult, scanenvironment, offset, unpackdir):
@@ -1118,6 +1129,9 @@ def unpack_bmp(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['bmp', 'graphics', 'unpacked']))
     return {'status': True, 'length': bmpsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# https://en.wikipedia.org/wiki/BMP_file_format
+unpack_bmp.signatures = {'bmp': b'BM'}
 
 
 # GIF unpacker for the GIF87a and GIF89a formats. The specification
@@ -1607,6 +1621,10 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, outlabels))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+unpack_gif.signatures = {'gif87': b'GIF87a', 'gif89': b'GIF89a'}
+unpack_gif.pretty = 'gif'
 
 
 # JPEG
@@ -2193,6 +2211,8 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_jpeg.signatures = {'jpeg': b'\xff\xd8'}
+
 
 # https://en.wikipedia.org/wiki/ICO_%28file_format%29
 def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
@@ -2366,6 +2386,9 @@ def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['ico', 'graphics', 'resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# https://en.wikipedia.org/wiki/ICO_%28file_format%29
+unpack_ico.signatures = {'ico': b'\x00\x00\x01\x00'}
 
 
 # SGI file format
@@ -2599,6 +2622,9 @@ def unpack_sgi(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# https://media.xiph.org/svt/SGIIMAGESPEC
+unpack_sgi.signatures = {'sgi': b'\x01\xda'}
+
 
 # Derived from specifications linked at:
 # https://en.wikipedia.org/wiki/Audio_Interchange_File_Format
@@ -2715,6 +2741,8 @@ def unpack_aiff(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_aiff.signatures = {'aiff': b'FORM'}
+
 
 # Derived from specifications at:
 # https://en.wikipedia.org/wiki/Au_file_format
@@ -2823,6 +2851,8 @@ def unpack_au(fileresult, scanenvironment, offset, unpackdir):
                       'reason': 'Cannot determine size for AU file'}
     return {'status': False, 'error': unpackingerror}
 
+unpack_au.signatures = {'au': b'.snd'}
+
 
 # https://www.fileformat.info/format/sunraster/egff.htm
 # This is not a perfect catch and Only some raster files
@@ -2930,6 +2960,9 @@ def unpack_sunraster(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['sun raster', 'raster', 'graphics', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# https://www.fileformat.info/format/sunraster/egff.htm
+unpack_sunraster.signatures = {'sunraster': b'\x59\xa6\x6a\x95'}
 
 
 # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
@@ -3051,6 +3084,9 @@ def unpack_apple_icon(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['apple icon', 'graphics', 'resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# https://en.wikipedia.org/wiki/Apple_Icon_Image_format
+unpack_apple_icon.signatures = {'apple_icon': b'icns'}
 
 
 # MNG specifications can be found at:
@@ -3182,6 +3218,8 @@ def unpack_mng(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                       'reason': 'No MEND found'}
     return {'status': False, 'error': unpackingerror}
+
+unpack_mng.signatures = {'mng': b'\x8aMNG\x0d\x0a\x1a\x0a'}
 
 
 # An unpacker for the SWF format, able to carve/label zlib &
@@ -3538,6 +3576,9 @@ def unpack_swf(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_swf.signatures = {'swf': b'FWS', 'swf_zlib': b'CWS', 'swf_lzma': b'ZWS'}
+unpack_swf.pretty = 'swf'
+
 
 # Specifications (10.1.2.01) can be found on the Adobe site:
 # https://wwwimages2.adobe.com/content/dam/acom/en/devnet/flv/video_file_format_spec_v10_1.pdf
@@ -3764,6 +3805,8 @@ def unpack_flv(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, outlabels))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_flv.signatures = {'flv': b'FLV'}
 
 
 # The specifications for PDF 1.7 are an ISO standard and can be found
@@ -4290,6 +4333,8 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
                       'reason': 'not a valid PDF'}
     return {'status': False, 'error': unpackingerror}
 
+unpack_pdf.signatures = {'pdf': b'%PDF-'}
+
 
 # https://github.com/GNOME/gimp/blob/master/devel-docs/gbr.txt
 def unpack_gimp_brush(fileresult, scanenvironment, offset, unpackdir):
@@ -4429,6 +4474,9 @@ def unpack_gimp_brush(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_gimp_brush.signatures = {'gimpbrush': b'GIMP'}
+unpack_gimp_brush.offset = 20
+
 
 # https://www.csie.ntu.edu.tw/~r92092/ref/midi/
 def unpack_midi(fileresult, scanenvironment, offset, unpackdir):
@@ -4527,6 +4575,7 @@ def unpack_midi(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_midi.signatures = {'midi': b'MThd'}
 
 # a seemingly proprietary file format from 3D Studio Max. There is not
 # much to extract, but at least the size of the file can be verified.
@@ -4603,6 +4652,8 @@ def unpackXG3D(fileresult, scanenvironment, offset, unpackdir):
 
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
+
+unpackXG3D.signatures = {'xg3d': b'XG3D'}
 
 
 # Microsoft DirectDraw Surface files
@@ -4812,6 +4863,8 @@ def unpack_dds(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['graphics', 'dds', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_dds.signatures = {'dds': b'DDS'}
 
 
 # https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/
@@ -5043,6 +5096,9 @@ def unpack_ktx11(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['graphics', 'ktx', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_ktx11.signatures = {'ktx11': b'\xabKTX 11\xbb\r\n\x1a\n'}
+unpack_ktx11.pretty = 'ktx'
 
 
 # Try to read Photoshop PSD files.
@@ -5282,6 +5338,8 @@ def unpack_psd(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['graphics', 'psd', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_psd.signatures = {'psd': b'8BPS'}
 
 
 # Read PPM files and PGM files
@@ -5565,3 +5623,5 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['graphics', pnmtype, 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_pnm.signatures = {'ppm': b'P6', 'pgm': b'P5', 'pbm': b'P4'}
