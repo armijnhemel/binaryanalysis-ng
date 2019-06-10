@@ -151,6 +151,7 @@ def unpack_pak(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_pak.signatures = {'quakepak': b'PACK'}
 
 # Doom WAD files
 #
@@ -245,3 +246,5 @@ def unpack_wad(fileresult, scanenvironment, offset, unpackdir):
     checkfile.close()
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_wad.signatures = {'doomwad': b'IWAD'}

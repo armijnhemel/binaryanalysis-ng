@@ -229,6 +229,9 @@ def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_android_sparse_data.extension = '.new.dat'
+unpack_android_sparse_data.pretty = 'androidsparsedata'
+
 
 # Android backup files
 #
@@ -345,6 +348,8 @@ def unpack_android_backup(fileresult, scanenvironment, offset, unpackdir):
     labels.append('android')
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': tarresult['filesandlabels']}
+
+unpack_android_backup.signatures = {'android_backup': b'ANDROID BACKUP\n'}
 
 
 # Chrome PAK
@@ -595,6 +600,9 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': endoffile, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_chrome_pak.extension = '.pak'
+unpack_chrome_pak.pretty = 'pak'
+
 
 # The Android sparse format is documented in the Android source code tree:
 #
@@ -759,6 +767,8 @@ def unpack_android_sparse(fileresult, scanenvironment, offset, unpackdir):
                       'reason': 'Not a valid Android sparse file'}
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_android_sparse.signatures = {'androidsparse': b'\x3a\xff\x26\xed'}
 
 
 # Android Dalvik
@@ -1481,6 +1491,8 @@ def unpack_dex(
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_dex.signatures = {'dex': b'dex\n'}
+
 
 # Android Dalvik, optimized
 #
@@ -1623,6 +1635,8 @@ def unpack_odex(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['dex', 'android', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_odex.signatures = {'odex': b'dey\n'}
 
 
 # Android resources files (such as "resources.arsc") as found in
@@ -2015,6 +2029,9 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_android_resource.extension = 'resources.arsc'
+unpack_android_resource.pretty = 'androidresource'
+
 
 # Android tzdata file. These are actually time zone files, with
 # some extra metadata.
@@ -2235,6 +2252,9 @@ def unpack_android_tzdata(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_android_tzdata.extension = 'tzdata'
+unpack_android_tzdata.pretty = 'tzdata'
+
 
 # Android verfied boot images
 # https://android.googlesource.com/platform/external/avb/+/master/avbtool
@@ -2442,6 +2462,8 @@ def unpack_avb(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_avb.signatures = {'avb': b'AVB0'}
+
 
 # unpack boot files found on certain Android devices equiped with
 # Qualcomm Snapdragon chips.
@@ -2554,6 +2576,8 @@ def unpack_android_boot_msm(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_android_boot_msm.signatures = {'androidbootmsm': b'BOOTLDR!'}
 
 
 # Android bootloader
@@ -2755,6 +2779,8 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_android_boot_img.signatures = {'androidbootimg': b'ANDROID!'}
+
 
 # unpack boot files found on certain Android devices from Huawei
 #
@@ -2876,6 +2902,8 @@ def unpack_android_boot_huawei(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_android_boot_huawei.signatures = {'androidboothuawei': b'\x3c\xd6\x1a\xce'}
+
 
 # unpack update files in nb0 format
 #
@@ -2975,3 +3003,6 @@ def unpack_nb0(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_nb0.extension = '.nb0'
+unpack_nb0.pretty = 'nb0'
