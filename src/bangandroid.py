@@ -229,7 +229,7 @@ def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
-unpack_android_sparse_data.extension = '.new.dat'
+unpack_android_sparse_data.extensions = ['.new.dat']
 unpack_android_sparse_data.pretty = 'androidsparsedata'
 
 
@@ -600,7 +600,7 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': endoffile, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
-unpack_chrome_pak.extension = '.pak'
+unpack_chrome_pak.extensions = ['.pak']
 unpack_chrome_pak.pretty = 'pak'
 
 
@@ -2029,7 +2029,7 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
-unpack_android_resource.extension = 'resources.arsc'
+unpack_android_resource.extensions = ['resources.arsc']
 unpack_android_resource.pretty = 'androidresource'
 
 
@@ -2252,7 +2252,7 @@ def unpack_android_tzdata(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
-unpack_android_tzdata.extension = 'tzdata'
+unpack_android_tzdata.extensions = ['tzdata']
 unpack_android_tzdata.pretty = 'tzdata'
 
 
@@ -3004,5 +3004,5 @@ def unpack_nb0(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
-unpack_nb0.extension = '.nb0'
+unpack_nb0.extensions = ['.nb0']
 unpack_nb0.pretty = 'nb0'
