@@ -98,6 +98,7 @@ def main(argv):
 
     # set a few default values)
     storedirectory = ''
+    verbose = False
 
     # then process each individual section and extract configuration options
     for section in config.sections():
@@ -282,8 +283,9 @@ def main(argv):
     for p in processes:
         p.terminate()
 
-    print("Successfully downloaded: %d files" % ((apkcounter + srccounter) - len(failedfiles)))
-    print("Failed to download: %d files" % len(failedfiles))
+    if verbose:
+        print("Successfully downloaded: %d files" % ((apkcounter + srccounter) - len(failedfiles)))
+        print("Failed to download: %d files" % len(failedfiles))
 
 if __name__ == "__main__":
     main(sys.argv)
