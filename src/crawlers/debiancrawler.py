@@ -48,13 +48,13 @@ def downloadfile(downloadqueue, failqueue, debianmirror):
             os.unlink(resultfilename)
 
         try:
-            r = requests.get(downloadurl)
+            req = requests.get(downloadurl)
         except:
             failqueue.put(debianfile)
             downloadqueue.task_done()
             continue
 
-        if r.status_code != 200:
+        if req.status_code != 200:
             failqueue.put(debianfile)
             downloadqueue.task_done()
             logging.info('FAIL: %s' % downloadurl)
@@ -62,7 +62,7 @@ def downloadfile(downloadqueue, failqueue, debianmirror):
 
         # write the data to the output file
         resultfile = open(resultfilename, 'wb')
-        resultfile.write(r.content)
+        resultfile.write(req.content)
         resultfile.close()
 
         logging.info('SUCCESS: %s' % downloadurl)
@@ -93,7 +93,7 @@ def main(argv):
 
     try:
         configfile = open(args.cfg, 'r')
-        config.readfp(configfile)
+        config.read_file(configfile)
     except:
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
@@ -153,7 +153,7 @@ def main(argv):
     try:
         testfile = tempfile.mkstemp(dir=storedirectory)
         os.unlink(testfile[1])
-    except Exception as e:
+    except Exception:
         print("Base unpack directory %s cannot be written to, exiting" % storedirectory, file=sys.stderr)
         sys.exit(1)
 
@@ -205,31 +205,31 @@ def main(argv):
     metadataoutname = pathlib.Path(metadatadirectory, "ls-lR.gz-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
 
     if metadataoutname.exists():
-        print("metadata file %s already exists, please retry later. Exiting." % xmloutname, file=sys.stderr)
+        print("metadata file %s already exists, please retry later. Exiting." % metadataoutname, file=sys.stderr)
         sys.exit(1)
 
     # first download the ls-lR.gz file and see if it needs to be
     # processed by comparing it to the hash of the previously
     # downloaded file.
     try:
-        r = requests.get('%s/ls-lR.gz' % debianmirror)
+        req = requests.get('%s/ls-lR.gz' % debianmirror)
     except:
         print("Could not connect to Debian mirror, exiting.", file=sys.stderr)
         sys.exit(1)
 
-    if r.status_code != 200:
-        print("Could not get Debian ls-lR.gz file, got code %d, exiting." % r.status_code, file=sys.stderr)
+    if req.status_code != 200:
+        print("Could not get Debian ls-lR.gz file, got code %d, exiting." % req.status_code, file=sys.stderr)
         sys.exit(1)
 
     # now store the ls-lR.gz file for future reference
     metadataoutname = pathlib.Path(metadatadirectory, "ls-lR.gz-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
     metadata = metadataoutname.open(mode='wb')
-    metadata.write(r.content)
+    metadata.write(req.content)
     metadata.close()
 
     # compute the SHA256 of the file to see if it is already known
     h = hashlib.new('sha256')
-    h.update(r.content)
+    h.update(req.content)
     filehash = h.hexdigest()
 
     # the hash of the latest file should always be stored in a file called HASH
@@ -265,6 +265,11 @@ def main(argv):
     lslr = gzip.open(metadataoutname)
     inpool = False
     curdir = ''
+
+    debcounter = 0
+    srccounter = 0
+    diffcounter = 0
+    dsccounter = 0
     for i in lslr:
         if i.decode().startswith('./pool'):
             inpool = True
@@ -279,19 +284,25 @@ def main(argv):
             filesize = int(re.sub(r'  +', ' ', i.decode().strip()).split(' ')[4])
             if downloadpath.endswith('.dsc'):
                 downloadqueue.put((curdir, downloadpath, filesize, dscdirectory))
+                dsccounter += 1
             if downloadpath.endswith('.deb'):
                 for d in debianarchitectures:
                     if downloadpath.endswith('_%s.deb' % d):
                         downloadqueue.put((curdir, downloadpath, filesize, binarydirectory))
+                        debcounter += 1
                         break
             if downloadpath.endswith('.diff.gz'):
                 downloadqueue.put((curdir, downloadpath, filesize, patchesdirectory))
+                diffcounter += 1
             if downloadpath.endswith('.orig.tar.bz2'):
                 downloadqueue.put((curdir, downloadpath, filesize, sourcedirectory))
+                srccounter += 1
             if downloadpath.endswith('.orig.tar.gz'):
                 downloadqueue.put((curdir, downloadpath, filesize, sourcedirectory))
+                srccounter += 1
             if downloadpath.endswith('.orig.tar.xz'):
                 downloadqueue.put((curdir, downloadpath, filesize, sourcedirectory))
+                srccounter += 1
     lslr.close()
 
     # create processes for unpacking archives
@@ -311,7 +322,7 @@ def main(argv):
         try:
             failedfiles.append(failqueue.get_nowait())
             failqueue.task_done()
-        except queue.Empty as e:
+        except queue.Empty:
             # Queue is empty
             break
 
@@ -323,7 +334,7 @@ def main(argv):
         p.terminate()
 
     if verbose:
-        print("Successfully downloaded: %d files" % ((apkcounter + srccounter) - len(failedfiles)))
+        print("Successfully downloaded: %d files" % ((debcounter + srccounter + dsccounter + diffcounter) - len(failedfiles)))
         print("Failed to download: %d files" % len(failedfiles))
 
 if __name__ == "__main__":

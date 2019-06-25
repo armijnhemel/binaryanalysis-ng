@@ -40,13 +40,13 @@ def downloadfile(downloadqueue, failqueue):
     while True:
         (fdroidfile, storedirectory, filehash) = downloadqueue.get()
         try:
-            r = requests.get('https://f-droid.org/repo/%s' % fdroidfile)
+            req = requests.get('https://f-droid.org/repo/%s' % fdroidfile)
         except:
             failqueue.put(fdroidfile)
             downloadqueue.task_done()
             continue
 
-        if r.status_code != 200:
+        if req.status_code != 200:
             failqueue.put(fdroidfile)
             downloadqueue.task_done()
             continue
@@ -54,12 +54,12 @@ def downloadfile(downloadqueue, failqueue):
         # write the downloaded data to a file
         resultfilename = os.path.join(storedirectory, fdroidfile)
         resultfile = open(resultfilename, 'wb')
-        resultfile.write(r.content)
+        resultfile.write(req.content)
         resultfile.close()
 
         if filehash is not None:
             h = hashlib.new('sha256')
-            h.update(r.content)
+            h.update(req.content)
             if filehash != h.hexdigest():
                 os.unlink(resultfilename)
                 failqueue.put(fdroidfile)
@@ -91,7 +91,7 @@ def main(argv):
 
     try:
         configfile = open(args.cfg, 'r')
-        config.readfp(configfile)
+        config.read_file(configfile)
     except:
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
@@ -143,7 +143,7 @@ def main(argv):
     try:
         testfile = tempfile.mkstemp(dir=storedirectory)
         os.unlink(testfile[1])
-    except Exception as e:
+    except Exception:
         print("Base unpack directory %s cannot be written to, exiting" % storedirectory, file=sys.stderr)
         sys.exit(1)
 
@@ -173,25 +173,25 @@ def main(argv):
     # first download the XML and see if it needs to be processed by
     # comparing it to the hash of the previous downloaded XML.
     try:
-        r = requests.get('https://f-droid.org/repo/index.xml')
+        req = requests.get('https://f-droid.org/repo/index.xml')
     except:
         print("Could not connect to F-Droid, exiting.", file=sys.stderr)
         sys.exit(1)
 
-    if r.status_code != 200:
-        print("Could not get F-Droid XML file, got code %d, exiting." % r.status_code, file=sys.stderr)
+    if req.status_code != 200:
+        print("Could not get F-Droid XML file, got code %d, exiting." % req.status_code, file=sys.stderr)
         sys.exit(1)
 
     # now store the XML file for future reference
     xmloutname = os.path.join(xmldirectory, "index.xml-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
     xmlfile = open(xmloutname, 'wb')
-    xmlfile.write(r.content)
+    xmlfile.write(req.content)
     xmlfile.close()
 
     # first parse the XML data to see if it is valid XML data, else
     # remove the XML file and exit.
     try:
-        fdroidxml = xml.dom.minidom.parseString(r.content)
+        fdroidxml = xml.dom.minidom.parseString(req.content)
     except:
         os.unlink(xmloutname)
         print("Could not parse F-Droid XML, exiting.", file=sys.stderr)
@@ -199,7 +199,7 @@ def main(argv):
 
     # compute the SHA256 of the file to see if it is already known
     h = hashlib.new('sha256')
-    h.update(r.content)
+    h.update(req.content)
     filehash = h.hexdigest()
 
     # the hash of the latest file should always be stored in a file called HASH
@@ -272,7 +272,7 @@ def main(argv):
         try:
             failedfiles.append(failqueue.get_nowait())
             failqueue.task_done()
-        except queue.Empty as e:
+        except queue.Empty:
             ## Queue is empty
             break
 
