@@ -40,9 +40,7 @@ import bangsignatures
 
 
 def knownfile_nsrl(fileresult, hashresults, dbconn, dbcursor, scanenvironment):
-    '''Search a hash of a file in the NSRL database
-       Context: file
-    '''
+    '''Search a hash of a file in the NSRL database'''
     # results is (for now) a list
     results = []
 
@@ -101,8 +99,6 @@ def extract_identifier(fileresult, hashresults, dbconn, dbcursor, scanenvironmen
        Search the presence of references to forges and other
        collaborative software development sites in a file
        (URLs and other references)
-       Context: file
-       Ignore: archive, audio, audio, database, encrypted, filesystem, graphics, video
     '''
 
     # results is a dictionary, constructed as:
