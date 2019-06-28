@@ -147,6 +147,7 @@ signatures = {
     'ubifs': b'\x31\x18\x10\x06',
     'nar': b'\x0d\x00\x00\x00\x00\x00\x00\x00nix-archive-1\x00\x00\x00',
     'grub2font': b'FILE\x00\x00\x00\x04PFF2',
+    'bittorrent': b'd8:announce',
 }
 
 # some signatures do not start at the beginning of the file
@@ -307,6 +308,7 @@ signaturetofunction = {
     'bflt': bangunpack.unpack_bflt,
     'ubi': bangfilesystems.unpack_ubi,
     'grub2font': bangunpack.unpack_grub2font,
+    'bittorrent': bangunpack.unpack_bittorrent,
 }
 
 # a lookup table to map signatures to a name for
