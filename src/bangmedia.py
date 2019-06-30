@@ -5605,7 +5605,7 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
         testimg.load()
         testimg.close()
         outfile.close()
-    except OSError:
+    except (OSError, ValueError):
         outfile.close()
         os.unlink(outfile_full)
         if pnmtype == 'pgm':
