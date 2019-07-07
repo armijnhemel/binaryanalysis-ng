@@ -929,7 +929,9 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
             if checkbytes == b'\n':
                 unpackedsize += 1
         if offset == 0 and unpackedsize == filesize:
-            # now load the file into PIL as an extra sanity check
+            # now load the file into PIL as an extra sanity check.
+            # Some chunks are not well supported in PIL and will
+            # thrown an AttributeError
             try:
                 testimg = PIL.Image.open(checkfile)
                 testimg.load()
@@ -971,7 +973,9 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
         # reopen as read only
         outfile = open(outfile_full, 'rb')
 
-        # now load the file into PIL as an extra sanity check
+        # now load the file into PIL as an extra sanity check.
+        # Some chunks are not well supported in PIL and will
+        # thrown an AttributeError
         try:
             testimg = PIL.Image.open(outfile)
             testimg.load()
