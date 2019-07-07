@@ -939,6 +939,9 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid PNG data according to PIL'}
                 return {'status': False, 'error': unpackingerror}
+            except AttributeError as e:
+                pass
+
             checkfile.close()
             labels += ['png', 'graphics']
             if animated:
@@ -955,7 +958,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
             if fireworks:
                 labels.append('adobe fireworks')
             return {'status': True, 'length': unpackedsize, 'labels': labels,
-                    'filesandlabels': unpackedfilesandlabels}
+                    'filesandlabels': unpackedfilesandlabels, 'metadata': pngresults}
 
         # else carve the file. It is anonymous, so just give it a name
         outfile_rel = os.path.join(unpackdir, "unpacked.png")
@@ -980,6 +983,8 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid PNG data according to PIL'}
             return {'status': False, 'error': unpackingerror}
+        except AttributeError as e:
+            pass
 
         outlabels = ['png', 'graphics', 'unpacked']
         if animated:
@@ -997,7 +1002,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
             outlabels.append('adobe fireworks')
         unpackedfilesandlabels.append((outfile_rel, outlabels))
         return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
+                'filesandlabels': unpackedfilesandlabels, 'metadata': pngresults}
 
     # There is no end of file, so it is not a valid PNG.
     checkfile.close()
