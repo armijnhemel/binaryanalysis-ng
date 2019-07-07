@@ -1264,9 +1264,9 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
     inodetofilename[1] = ''
 
     # different kinds of compression
-    # Jefferson ( https://github.com/sviehb/jefferson ) defines more
-    # types than standard JFFS2. LZMA compression is available as a
-    # patch from OpenWrt.
+    # The mtd-utils code defines more types of "compression"
+    # than supported by mkfs.jffs2
+    # LZMA compression is available as a patch from OpenWrt.
     COMPR_NONE = 0x00
     COMPR_ZERO = 0x01
     COMPR_RTIME = 0x02
@@ -1642,6 +1642,8 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                         dataunpacked = True
                     except Exception as e:
                         break
+                elif compression_used == COMPR_RTIME:
+                    break
                 #elif compression_used == COMPR_LZO:
                 # The JFFS2 version of LZO somehow cannot be unpacked with
                 # python-lzo
