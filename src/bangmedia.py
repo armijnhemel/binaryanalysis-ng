@@ -1238,6 +1238,9 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
 
     havegiftrailer = False
     animated = False
+
+    # there are GIF files where the XMP block does not follow
+    # the actual XMP standard
     allowbrokenxmp = True
 
     # store extracted data from application extensions
@@ -5342,7 +5345,7 @@ def unpack_psd(fileresult, scanenvironment, offset, unpackdir):
 unpack_psd.signatures = {'psd': b'8BPS'}
 
 
-# Read PPM files and PGM files
+# Read PPM files, PBM files and PGM files
 # man 5 ppm
 # man 5 pgm
 def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
