@@ -1592,7 +1592,7 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
         if animated:
             labels.append('animated')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
+                'filesandlabels': unpackedfilesandlabels, 'metadata': gifresults}
 
     # Carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.gif")
@@ -1623,7 +1623,7 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
         outlabels.append('animated')
     unpackedfilesandlabels.append((outfile_rel, outlabels))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+            'filesandlabels': unpackedfilesandlabels, 'metadata': gifresults}
 
 # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
 unpack_gif.signatures = {'gif87': b'GIF87a', 'gif89': b'GIF89a'}
