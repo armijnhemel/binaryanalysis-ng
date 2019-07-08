@@ -32,6 +32,7 @@ class FileResult:
         self.labels = labels
         self.parentlabels = parentlabels
         self.unpackedfiles = None
+        self.metdata = None
         self.filesize = None
         self.mimetype = None
         self.mimetype_encoding = None
@@ -57,6 +58,9 @@ class FileResult:
     def set_mimetype(self, mimeres):
         self.mimetype = mimeres[0]
         self.mimetype_encoding = mimeres[1]
+
+    def set_metadata(self, metadata):
+        self.metadata = metadata
 
     def get(self):
         """gets the fileresult as a dictionary."""
