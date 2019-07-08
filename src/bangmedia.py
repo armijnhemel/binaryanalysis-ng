@@ -1367,7 +1367,10 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
                     unpackedsize += datasize
                 # only store non-empty comments
                 if gifcomment != b'':
-                    gifcomments.add(gifcomment)
+                    try:
+                        gifcomments.add(gifcomment.decode())
+                    except UnicodeDecodeError:
+                        pass
 
             # process the application extension (section 26)
             elif checkbytes == b'\xff':
@@ -1603,7 +1606,7 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     if gifcomments != set():
-        gifresults['comments'] = gifcomments
+        gifresults['comments'] = list(gifcomments)
     if xmps != []:
         gifresults['xmp'] = xmps
 
