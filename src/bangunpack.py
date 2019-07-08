@@ -12868,7 +12868,8 @@ def unpack_bittorrent(fileresult, scanenvironment, offset, unpackdir):
         checkfile.close()
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+            'filesandlabels': unpackedfilesandlabels,
+            'metadata': torrent_elements}
 
 
 def parse_bittorrent_bytestring(checkfile, offset, filesize, raw=False, skip=False):
