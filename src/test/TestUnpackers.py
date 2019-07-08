@@ -991,7 +991,7 @@ class TestLZ4(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpackLZ4(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lz4(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1001,7 +1001,7 @@ class TestLZ4(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-add-random-data.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZ4(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lz4(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 755644)
 
@@ -1011,7 +1011,7 @@ class TestLZ4(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-prepend-random-data.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangunpack.unpackLZ4(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lz4(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 755644)
 
@@ -1021,7 +1021,7 @@ class TestLZ4(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-cut-data-from-end.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZ4(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lz4(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZ4 with data cut from the middle
@@ -1030,7 +1030,7 @@ class TestLZ4(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-cut-data-from-middle.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZ4(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lz4(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZ4 with data added in the middle
@@ -1039,7 +1039,7 @@ class TestLZ4(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-data-added-to-middle.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZ4(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lz4(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZ4 with data replaced in the middle
@@ -1048,7 +1048,7 @@ class TestLZ4(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lz4' / 'pg6130.txt-data-replaced-in-middle.lz4'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZ4(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lz4(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -1596,7 +1596,7 @@ class TestLzop(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpackLZOP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzop(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1606,7 +1606,7 @@ class TestLzop(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-add-random-data.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZOP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzop(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 588927)
 
@@ -1616,7 +1616,7 @@ class TestLzop(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-prepend-random-data.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangunpack.unpackLZOP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzop(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 588927)
 
@@ -1626,7 +1626,7 @@ class TestLzop(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-cut-data-from-end.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZOP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzop(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single lzop with data cut from the middle
@@ -1635,7 +1635,7 @@ class TestLzop(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-cut-data-from-middle.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZOP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzop(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single lzop with data added in the middle
@@ -1644,7 +1644,7 @@ class TestLzop(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-data-added-to-middle.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZOP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzop(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single lzop with data replaced in the middle
@@ -1653,7 +1653,7 @@ class TestLzop(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzop' / 'test-data-replaced-in-middle.lzo'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZOP(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzop(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -1740,7 +1740,7 @@ class Test7z(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpack7z(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_7z(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1750,7 +1750,7 @@ class Test7z(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-add-random-data.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpack7z(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_7z(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 511498)
 
@@ -1760,7 +1760,7 @@ class Test7z(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-prepend-random-data.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangunpack.unpack7z(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_7z(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 511498)
 
@@ -1770,7 +1770,7 @@ class Test7z(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-cut-data-from-end.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpack7z(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_7z(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single 7z with data cut from the middle
@@ -1779,7 +1779,7 @@ class Test7z(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-cut-data-from-middle.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpack7z(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_7z(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single 7z with data added in the middle
@@ -1788,7 +1788,7 @@ class Test7z(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-data-added-to-middle.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpack7z(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_7z(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single 7z with data replaced in the middle
@@ -1797,7 +1797,7 @@ class Test7z(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / '7z' / 'test-data-replaced-in-middle.7z'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpack7z(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_7z(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -2142,7 +2142,7 @@ class TestSnappy(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpackSnappy(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_snappy(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -2152,7 +2152,7 @@ class TestSnappy(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-add-random-data.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackSnappy(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_snappy(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 592508)
 
@@ -2162,7 +2162,7 @@ class TestSnappy(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-prepend-random-data.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangunpack.unpackSnappy(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_snappy(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 592508)
 
@@ -2172,7 +2172,7 @@ class TestSnappy(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-cut-data-from-end.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackSnappy(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_snappy(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single snappy with data cut from the middle
@@ -2181,7 +2181,7 @@ class TestSnappy(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-cut-data-from-middle.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackSnappy(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_snappy(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single snappy with data added in the middle
@@ -2190,7 +2190,7 @@ class TestSnappy(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-data-added-to-middle.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackSnappy(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_snappy(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single snappy
@@ -2200,7 +2200,7 @@ class TestSnappy(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'snappy' / 'test-data-replaced-in-middle.sz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackSnappy(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_snappy(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 

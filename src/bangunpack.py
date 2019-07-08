@@ -445,12 +445,12 @@ def unpack_lzma(fileresult, scanenvironment, offset, unpackdir):
     else:
         lzmaunpackedsize = -1
 
-    return unpackLZMAWrapper(fileresult, scanenvironment, offset, unpackdir, '.lzma', 'lzma', 'LZMA', lzmaunpackedsize)
+    return unpack_lzma_wrapper(fileresult, scanenvironment, offset, unpackdir, '.lzma', 'lzma', 'LZMA', lzmaunpackedsize)
 
 
 # wrapper for both LZMA and XZ
 # Uses standard Python code.
-def unpackLZMAWrapper(
+def unpack_lzma_wrapper(
         fileresult, scanenvironment, offset, unpackdir, extension,
         filetype, ppfiletype, lzmaunpackedsize):
     '''Wrapper method to unpack LZMA and XZ based files'''
@@ -594,7 +594,7 @@ def unpack_xz(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'not enough bytes'}
             return {'status': False, 'error': unpackingerror}
 
-    xzres = unpackLZMAWrapper(fileresult, scanenvironment, offset, unpackdir, '.xz', 'xz', 'XZ', -1)
+    xzres = unpack_lzma_wrapper(fileresult, scanenvironment, offset, unpackdir, '.xz', 'xz', 'XZ', -1)
     if not allowbroken:
         # now check the header and footer, as the
         # stream flags have to be identical.
@@ -635,7 +635,7 @@ def unpack_xz(fileresult, scanenvironment, offset, unpackdir):
 #
 # in case the distribution man page does not cover version
 # 3 of the timezone file format.
-def unpackTimeZone(fileresult, scanenvironment, offset, unpackdir):
+def unpack_timezone(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a timezone file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -1346,7 +1346,7 @@ def unpack_ar(fileresult, scanenvironment, offset, unpackdir):
 # test files: any ZIP file unpacked on MacOS X which
 # has a directory called "__MACOSX"
 # Files starting with ._ are likely AppleDouble encoded
-def unpackAppleDouble(fileresult, scanenvironment, offset, unpackdir):
+def unpack_appledouble(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an AppleDouble encoded file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -3658,8 +3658,8 @@ def unpack_woff(fileresult, scanenvironment, offset, unpackdir):
 #
 # These fonts have a similar structure, but differ in the magic
 # header and the required tables.
-def unpackFont(fileresult, scanenvironment, offset, unpackdir,
-               fontextension, collectionoffset=None):
+def unpack_font(fileresult, scanenvironment, offset, unpackdir,
+                fontextension, collectionoffset=None):
     '''Helper method to unpack various fonts'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -4016,7 +4016,7 @@ def unpackFont(fileresult, scanenvironment, offset, unpackdir,
 
 
 # https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html
-def unpackTrueTypeFont(fileresult, scanenvironment, offset, unpackdir):
+def unpack_truetype_font(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a TrueType font file.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -4036,7 +4036,7 @@ def unpackTrueTypeFont(fileresult, scanenvironment, offset, unpackdir):
     requiredtables = set([b'cmap', b'glyf', b'head', b'hhea', b'hmtx',
                           b'loca', b'maxp', b'name', b'post'])
 
-    fontres = unpackFont(fileresult, scanenvironment, offset, unpackdir, 'ttf')
+    fontres = unpack_font(fileresult, scanenvironment, offset, unpackdir, 'ttf')
     if not fontres['status']:
         return fontres
 
@@ -4063,7 +4063,7 @@ def unpackTrueTypeFont(fileresult, scanenvironment, offset, unpackdir):
 
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
-def unpackOpenTypeFont(fileresult, scanenvironment, offset, unpackdir):
+def unpack_opentype_font(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an OpenType font file.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -4083,7 +4083,7 @@ def unpackOpenTypeFont(fileresult, scanenvironment, offset, unpackdir):
     requiredtables = set([b'cmap', b'head', b'hhea', b'hmtx',
                           b'maxp', b'name', b'OS/2', b'post'])
 
-    fontres = unpackFont(fileresult, scanenvironment, offset, unpackdir, 'otf')
+    fontres = unpack_font(fileresult, scanenvironment, offset, unpackdir, 'otf')
     if not fontres['status']:
         return fontres
 
@@ -4110,7 +4110,7 @@ def unpackOpenTypeFont(fileresult, scanenvironment, offset, unpackdir):
 # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
 #
 # Good test files in google-noto-sans-cjk-ttc-fonts (name of Fedora package)
-def unpackOpenTypeFontCollection(
+def unpack_opentype_font_collection(
         fileresult, scanenvironment, offset,
         unpackdir):
     '''Verify an OpenType font collection file.'''
@@ -4183,7 +4183,7 @@ def unpackOpenTypeFontCollection(
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'font offset table outside of file'}
             return {'status': False, 'error': unpackingerror}
-        fontres = unpackFont(fileresult, scanenvironment, offset + fontoffset, unpackdir, 'otf', collectionoffset=offset)
+        fontres = unpack_font(fileresult, scanenvironment, offset + fontoffset, unpackdir, 'otf', collectionoffset=offset)
         if not fontres['status']:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
@@ -4211,7 +4211,7 @@ def unpackOpenTypeFontCollection(
 # format.
 # Various other structs (data block, pointer block) are also described
 # in this file.
-def unpackVimSwapfile(fileresult, scanenvironment, offset, unpackdir):
+def unpack_vim_swapfile(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Vim swap file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -4275,7 +4275,7 @@ def unpackVimSwapfile(fileresult, scanenvironment, offset, unpackdir):
 # https://www.gnu.org/software/gettext/manual/gettext.html#index-file-format_002c-_002emo
 #
 # The extension for these files is often '.mo'
-def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
+def unpack_gnu_message_catalog(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a GNU message catalog file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -6033,7 +6033,7 @@ def unpack_cpio(fileresult, scanenvironment, offset, unpackdir):
 # Variants exist: Texas Instruments' AR7 uses a modified
 # version with that identifies itself as version 48.50
 # which cannot be unpacked with an unmodified 7z
-def unpack7z(fileresult, scanenvironment, offset, unpackdir):
+def unpack_7z(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack 7z compressed data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -6166,7 +6166,7 @@ def unpack7z(fileresult, scanenvironment, offset, unpackdir):
 # Windows Compiled HTML help
 # https://en.wikipedia.org/wiki/Microsoft_Compiled_HTML_Help
 # http://web.archive.org/web/20021209123621/www.speakeasy.org/~russotto/chm/chmformat.html
-def unpackCHM(fileresult, scanenvironment, offset, unpackdir):
+def unpack_chm(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a Windows Compiled HTML file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -6332,7 +6332,7 @@ def unpackCHM(fileresult, scanenvironment, offset, unpackdir):
 #
 # Windows data types can be found here:
 # https://msdn.microsoft.com/en-us/library/windows/desktop/aa383751(v=vs.85).aspx
-def unpackWIM(fileresult, scanenvironment, offset, unpackdir):
+def unpack_wim(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a Windows Imaging Format file file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -6603,7 +6603,7 @@ def unpackWIM(fileresult, scanenvironment, offset, unpackdir):
 # This code can detect, but not unpack, delta RPMs:
 #
 # https://github.com/rpm-software-management/deltarpm/blob/master/README
-def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
+def unpack_rpm(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a RPM file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -7307,7 +7307,7 @@ def unpack_zstd(fileresult, scanenvironment, offset, unpackdir):
 
 # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
 # uses https://pypi.org/project/lz4/
-def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
+def unpack_lz4(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack LZ4 compressed data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -7379,7 +7379,7 @@ def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
 # supported in python-lz4:
 # https://github.com/python-lz4/python-lz4/issues/169
 # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
-def unpackLZ4Legacy(fileresult, scanenvironment, offset, unpackdir):
+def unpack_lz4legacy(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack LZ4 legacy compressed data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -7483,7 +7483,7 @@ def unpackLZ4Legacy(fileresult, scanenvironment, offset, unpackdir):
 # Android has a "binary XML", where the XML data has been translated
 # into a binary file. This one will eventually be covered by
 # unpackAndroidResource()
-def unpackXML(fileresult, scanenvironment, offset, unpackdir):
+def unpack_xml(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a XML file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -7578,7 +7578,7 @@ def unpackXML(fileresult, scanenvironment, offset, unpackdir):
 #
 # https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html
 # TODO: many more checks for valid pointers into the constant pool
-def unpackJavaClass(fileresult, scanenvironment, offset, unpackdir):
+def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a Java class file.'''
     # a couple of constants. Same names as in the Java class
     # documentation from Oracle.
@@ -8238,7 +8238,7 @@ def unpackJavaClass(fileresult, scanenvironment, offset, unpackdir):
 # https://github.com/google/snappy/blob/master/framing_format.txt
 # Test files can be created with snzip: https://github.com/kubo/snzip
 # This only unpacks snzip's "framing2" format
-def unpackSnappy(fileresult, scanenvironment, offset, unpackdir):
+def unpack_snappy(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack snappy compressed data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -8368,7 +8368,7 @@ def unpackSnappy(fileresult, scanenvironment, offset, unpackdir):
 # http://refspecs.linuxfoundation.org/elf/elf.pdf
 # https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-43405/index.html
 # https://android.googlesource.com/platform/art/+/master/runtime/elf.h
-def unpackELF(fileresult, scanenvironment, offset, unpackdir):
+def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an ELF file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -9343,7 +9343,7 @@ def unpackELF(fileresult, scanenvironment, offset, unpackdir):
 # https://www.denx.de/wiki/DULG/UBootImages
 # 'U-Boot operates on "image" files which can be basically anything,
 # preceeded by a special header'
-def unpackUBootLegacy(fileresult, scanenvironment, offset, unpackdir):
+def unpack_uboot_legacy(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a U-Boot file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -9562,7 +9562,7 @@ def unpackUBootLegacy(fileresult, scanenvironment, offset, unpackdir):
 # The SSL certificate formats themselves are defined in for example:
 # * X.690 - https://en.wikipedia.org/wiki/X.690
 # * X.509 - https://en.wikipedia.org/wiki/X.509
-def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
+def unpack_certificate(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a certificate file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -9581,7 +9581,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     if offset == 0:
-        certres = extractCertificate(filename_full, scanenvironment, offset)
+        certres = extract_certificate(filename_full, scanenvironment, offset)
         if certres['status']:
             labels += certres['labels']
             labels = list(set(labels))
@@ -9659,7 +9659,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     checkfile.close()
 
     # as an extra sanity check run it through the unpacker
-    certres = extractCertificate(outfile_full, scanenvironment, 0)
+    certres = extract_certificate(outfile_full, scanenvironment, 0)
     if certres['status']:
         tmplabels += certres['labels']
         tmplabels = list(set(tmplabels))
@@ -9676,7 +9676,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     return {'status': False, 'error': unpackingerror}
 
 
-def extractCertificate(filename_full, scanenvironment, offset):
+def extract_certificate(filename_full, scanenvironment, offset):
     '''Helper method to extract certificate files.'''
     unpackedfilesandlabels = []
     labels = []
@@ -9739,7 +9739,7 @@ def extractCertificate(filename_full, scanenvironment, offset):
 
 
 # https://github.com/git/git/blob/master/Documentation/technical/index-format.txt
-def unpackGitIndex(fileresult, scanenvironment, offset, unpackdir):
+def unpack_git_index(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a Git index file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -9912,7 +9912,7 @@ def unpackGitIndex(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 
-def unpackLZOP(fileresult, scanenvironment, offset, unpackdir):
+def unpack_lzop(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a lzop compressed file'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -10144,7 +10144,7 @@ def unpackLZOP(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 
-def unpackJSON(fileresult, scanenvironment, offset, unpackdir):
+def unpack_json(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a JSON file'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -10192,7 +10192,7 @@ def unpackJSON(fileresult, scanenvironment, offset, unpackdir):
 # https://docs.oracle.com/javase/7/docs/technotes/guides/pack200/pack-spec.html
 #
 # The header format is described in section 5.2
-def unpackPack200(fileresult, scanenvironment, offset, unpackdir):
+def unpack_pack200(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a pack200 file back into a JAR'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -10262,7 +10262,7 @@ def unpackPack200(fileresult, scanenvironment, offset, unpackdir):
 # https://wiki.openzim.org/wiki/ZIM_file_format
 # https://wiki.openzim.org/wiki/ZIM_File_Example
 # Test files: https://wiki.kiwix.org/wiki/Content_in_all_languages
-def unpackZim(fileresult, scanenvironment, offset, unpackdir):
+def unpack_zim(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack/verify a ZIM file'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -10802,7 +10802,7 @@ def unpackZim(fileresult, scanenvironment, offset, unpackdir):
 # and extra clarifications from pyjks (MIT licensed):
 #
 # https://github.com/kurtbrose/pyjks
-def unpackJavaKeyStore(fileresult, scanenvironment, offset, unpackdir):
+def unpack_java_keystore(fileresult, scanenvironment, offset, unpackdir):
     '''Verify Java KeyStore files (Sun/Oracle format)'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -10961,7 +10961,7 @@ def unpackJavaKeyStore(fileresult, scanenvironment, offset, unpackdir):
 # Label audio calibration database files from Qualcomm.
 # This analysis was based on a few samples found inside the
 # firmware of several Android devices using a Qualcomm chipset.
-def unpackACDB(fileresult, scanenvironment, offset, unpackdir):
+def unpack_acdb(fileresult, scanenvironment, offset, unpackdir):
     '''Verify Qualcomm's ACDB files'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -11058,7 +11058,7 @@ def unpackACDB(fileresult, scanenvironment, offset, unpackdir):
 
 
 # https://sqlite.org/fileformat.html
-def unpackSQLite(fileresult, scanenvironment, offset, unpackdir):
+def unpack_sqlite(fileresult, scanenvironment, offset, unpackdir):
     '''Label/verify/carve SQLite databases'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -11341,7 +11341,7 @@ def unpackSQLite(fileresult, scanenvironment, offset, unpackdir):
 
 
 # https://github.com/devicetree-org/devicetree-specification/releases/download/v0.2/devicetree-specification-v0.2.pdf
-def unpackDeviceTree(fileresult, scanenvironment, offset, unpackdir):
+def unpack_device_tree(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Linux device tree'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -11612,7 +11612,7 @@ def unpackDeviceTree(fileresult, scanenvironment, offset, unpackdir):
 #
 # https://openwrt.org/docs/techref/header
 # http://web.archive.org/web/20190127154419/https://openwrt.org/docs/techref/header
-def unpackTRX(fileresult, scanenvironment, offset, unpackdir):
+def unpack_trx(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Broadcom TRX file'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -11783,7 +11783,7 @@ def unpackTRX(fileresult, scanenvironment, offset, unpackdir):
 
 # minidump files, used in for example Firefox crash reports
 # https://chromium.googlesource.com/breakpad/breakpad/+/master/src/google_breakpad/common/minidump_format.h
-def unpackMinidump(fileresult, scanenvironment, offset, unpackdir):
+def unpack_minidump(fileresult, scanenvironment, offset, unpackdir):
     ''''''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -11946,7 +11946,7 @@ def unpackMinidump(fileresult, scanenvironment, offset, unpackdir):
 # https://en.wikipedia.org/wiki/Compress
 # https://github.com/vapier/ncompress/releases
 # https://wiki.wxwidgets.org/Development:_Z_File_Format
-def unpackCompress(fileresult, scanenvironment, offset, unpackdir):
+def unpack_compress(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack UNIX compress'd data'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
