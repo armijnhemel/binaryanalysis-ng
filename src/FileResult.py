@@ -32,7 +32,7 @@ class FileResult:
         self.labels = labels
         self.parentlabels = parentlabels
         self.unpackedfiles = None
-        self.metdata = None
+        self.metadata = None
         self.filesize = None
         self.mimetype = None
         self.mimetype_encoding = None
