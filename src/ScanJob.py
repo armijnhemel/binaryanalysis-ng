@@ -706,6 +706,8 @@ def processfile(dbconn, dbcursor, scanenvironment):
                     resultout[a] = h
 
                 resultout['labels'] = list(scanjob.fileresult.labels)
+                resultout['metadata'] = scanjob.fileresult.metadata
+
                 picklefilename = scanenvironment.resultsdirectory / ("%s.pickle" % scanjob.fileresult.get_hash('sha256'))
                 # TODO: this is vulnerable to a race condition, replace with EAFP pattern
                 if not picklefilename.exists():
