@@ -52,7 +52,6 @@ import hashlib
 import base64
 import re
 import pathlib
-import email.parser
 import datetime
 import sqlite3
 
@@ -61,9 +60,6 @@ import defusedxml.minidom
 import lz4
 import lz4.frame
 import snappy
-import tinycss2
-import dockerfile_parse
-import icalendar
 
 from FileResult import *
 
@@ -129,7 +125,7 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # Python's gzip module cannot be used, as it cannot correctly process
 # gzip data if there is other non-gzip data following the gzip compressed
 # data, so it has to be processed another way.
-def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
+def unpack_gzip(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack gzip compressed data.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -385,7 +381,7 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
             # in this case report the original name as well in a
             # different data structure
             try:
-                outfile_rel = os.path.join(unpackdir,origname)
+                outfile_rel = os.path.join(unpackdir, origname)
                 new_outfile_full = scanenvironment.unpack_path(outfile_rel)
                 shutil.move(outfile_full, new_outfile_full)
                 outfile_full = new_outfile_full
@@ -409,7 +405,7 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
 
 # wrapper for LZMA, with a few extra sanity checks based on
 # LZMA format specifications.
-def unpackLZMA(fileresult, scanenvironment, offset, unpackdir):
+def unpack_lzma(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack LZMA compressed data.'''
     filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -583,7 +579,7 @@ def unpackLZMAWrapper(
 #
 # XZ has some extra data (footer) that can be used for
 # verifying the integrity of the file.
-def unpackXZ(fileresult, scanenvironment, offset, unpackdir):
+def unpack_xz(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack XZ compressed data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -1104,7 +1100,7 @@ def unpackTimeZone(fileresult, scanenvironment, offset, unpackdir):
 
 # unpacker for tar files. Uses the standard Python library.
 # https://docs.python.org/3/library/tarfile.html
-def unpackTar(fileresult, scanenvironment, offset, unpackdir):
+def unpack_tar(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack tar concatenated data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -1282,7 +1278,7 @@ def unpackTar(fileresult, scanenvironment, offset, unpackdir):
 # Unix portable archiver
 # https://en.wikipedia.org/wiki/Ar_%28Unix%29
 # https://sourceware.org/binutils/docs/binutils/ar.html
-def unpackAr(fileresult, scanenvironment, offset, unpackdir):
+def unpack_ar(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack ar concatenated data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -1690,9 +1686,9 @@ def unpackICC(fileresult, scanenvironment, offset, unpackdir):
 
 # Dahua is a Chinese vendor that is using the ZIP format for its firmware
 # updates, but has changed the first two characters of the file from PK to DH
-def unpackDahua(fileresult, scanenvironment, offset, unpackdir):
+def unpack_dahua(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack modified ZIP compressed data from Dahua.'''
-    return unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=True)
+    return unpack_zip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=True)
 
 
 # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
@@ -1709,7 +1705,7 @@ def unpackDahua(fileresult, scanenvironment, offset, unpackdir):
 # when writing this code can be found here:
 #
 # http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html
-def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False):
+def unpack_zip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False):
     '''Unpack ZIP compressed data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -2616,11 +2612,11 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
                 for entry in dirwalk:
                     for direntry in entry[1]:
                         fn = scanenvironment.rel_unpack_path(
-                                os.path.join(entry[0], direntry))
+                            os.path.join(entry[0], direntry))
                         unpackedfilesandlabels.append((fn, []))
                     for direntry in entry[2]:
                         fn = scanenvironment.rel_unpack_path(
-                                os.path.join(entry[0], direntry))
+                            os.path.join(entry[0], direntry))
                         unpackedfilesandlabels.append((fn, []))
             else:
                 labels.append("unknown compression")
@@ -5308,7 +5304,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
                     unpackdir_full = scanenvironment.unpack_path(
-                            os.path.join(unpackdir, unpackdirname))
+                        os.path.join(unpackdir, unpackdirname))
                     os.makedirs(unpackdir_full, exist_ok=True)
                 checkbytes = checkfile.read(cpiodatasize)
 
@@ -5331,7 +5327,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
                     unpackdir_full = scanenvironment.unpack_path(
-                            os.path.join(unpackdir, unpackdirname))
+                        os.path.join(unpackdir, unpackdirname))
                     os.makedirs(unpackdir_full, exist_ok=True)
                 outfile_rel = os.path.join(unpackdir, unpackname)
                 outfile_full = scanenvironment.unpack_path(outfile_rel)
@@ -5577,7 +5573,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
 
             # if it is a directory, then just create the directory
             if isdir:
-                outfile_rel = os.path.join(unpackdir, unpackname) 
+                outfile_rel = os.path.join(unpackdir, unpackname)
                 outfile_full = scanenvironment.unpack_path(outfile_rel)
                 os.makedirs(outfile_full, exist_ok=True)
                 unpackedfilesandlabels.append((outfile_rel, []))
@@ -5589,7 +5585,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
                     outdir_full = scanenvironment.unpack_path(
-                            os.path.join(unpackdir, unpackdirname))
+                        os.path.join(unpackdir, unpackdirname))
                     os.makedirs(outdir_full, exist_ok=True)
                 checkbytes = checkfile.read(cpiodatasize)
 
@@ -5612,7 +5608,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
                     outdir_full = scanenvironment.unpack_path(
-                            os.path.join(unpackdir, unpackdirname))
+                        os.path.join(unpackdir, unpackdirname))
                     os.makedirs(outdir_full, exist_ok=True)
                 outfile_rel = os.path.join(unpackdir, unpackname)
                 outfile_full = scanenvironment.unpack_path(outfile_rel)
@@ -5903,7 +5899,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
             # if it is a directory, then just create the directory
             if isdir:
                 dataunpacked = True
-                outfile_rel = os.path.join(unpackdir, unpackname) 
+                outfile_rel = os.path.join(unpackdir, unpackname)
                 outfile_full = scanenvironment.unpack_path(outfile_rel)
                 os.makedirs(outfile_full, exist_ok=True)
                 unpackedfilesandlabels.append((outfile_rel, []))
@@ -5916,7 +5912,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
                     outdir_full = scanenvironment.unpack_path(
-                            os.path.join(unpackdir, unpackdirname))
+                        os.path.join(unpackdir, unpackdirname))
                     os.makedirs(outdir_full, exist_ok=True)
                 checkbytes = checkfile.read(cpiodatasize)
 
@@ -5941,9 +5937,9 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
                 unpackdirname = os.path.dirname(unpackname)
                 if unpackdirname != '':
                     outdir_full = scanenvironment.unpack_path(
-                            os.path.join(unpackdir, unpackdirname))
+                        os.path.join(unpackdir, unpackdirname))
                     os.makedirs(outdir_full, exist_ok=True)
-                outfile_rel = os.path.join(unpackdir, unpackname) 
+                outfile_rel = os.path.join(unpackdir, unpackname)
                 outfile_full = scanenvironment.unpack_path(outfile_rel)
                 outfile = open(outfile_full, 'wb')
                 os.sendfile(outfile.fileno(), checkfile.fileno(), offset+unpackedsize, cpiodatasize)
@@ -5993,7 +5989,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
         target = None
         for i in range(len(devinodes[n]), 0, -1):
             targetfile_full = scanenvironment.unpack_path(
-                    os.path.join(unpackdir, devinodes[n][i-1]))
+                os.path.join(unpackdir, devinodes[n][i-1]))
             if os.stat(targetfile_full).st_size != 0:
                 target = devinodes[n][i-1]
         if target is None:
@@ -6002,12 +5998,12 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
             if devinodes[n][i-1] == target:
                 continue
             linkname = scanenvironment.unpack_path(
-                    os.path.join(unpackdir, devinodes[n][i-1]))
+                os.path.join(unpackdir, devinodes[n][i-1]))
             # remove the empty file...
             os.unlink(linkname)
             # ...and create hard link
             outfile_full = scanenvironment.unpack_path(
-                    os.path.join(unpackdir, target))
+                os.path.join(unpackdir, target))
             os.link(outfile_full, linkname)
 
     # no trailer was found
@@ -7054,7 +7050,7 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
     # 1125 is the tag for the compressor.
     if 1125 not in tagstoresults:
         # gzip by default
-        unpackresult = unpackGzip(fileresult, scanenvironment, checkfile.tell(), unpackdir)
+        unpackresult = unpack_gzip(fileresult, scanenvironment, checkfile.tell(), unpackdir)
     else:
         if len(tagstoresults[1125]) != 1:
             checkfile.close()
@@ -7063,18 +7059,18 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
             return {'status': False, 'error': unpackingerror}
         compressor = tagstoresults[1125][0]
         if compressor == b'gzip':
-            unpackresult = unpackGzip(fileresult, scanenvironment, checkfile.tell(), unpackdir)
+            unpackresult = unpack_gzip(fileresult, scanenvironment, checkfile.tell(), unpackdir)
         elif compressor == b'bzip2':
             unpackresult = unpackBzip2(fileresult, scanenvironment, checkfile.tell(), unpackdir)
         elif compressor == b'xz':
-            unpackresult = unpackXZ(fileresult, scanenvironment, checkfile.tell(), unpackdir)
+            unpackresult = unpack_xz(fileresult, scanenvironment, checkfile.tell(), unpackdir)
         elif compressor == b'lzma':
-            unpackresult = unpackLZMA(fileresult, scanenvironment, checkfile.tell(), unpackdir)
+            unpackresult = unpack_lzma(fileresult, scanenvironment, checkfile.tell(), unpackdir)
         elif compressor == b'zstd':
             unpackresult = unpackZstd(fileresult, scanenvironment, checkfile.tell(), unpackdir)
         else:
             # gzip is default
-            unpackresult = unpackGzip(fileresult, scanenvironment, checkfile.tell(), unpackdir)
+            unpackresult = unpack_gzip(fileresult, scanenvironment, checkfile.tell(), unpackdir)
 
     if not unpackresult['status']:
         checkfile.close()
@@ -7113,10 +7109,10 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
 
             # create a file result object and pass it to the CPIO unpacker
             fr = FileResult(
-                   payloaddir / os.path.basename(payloadfile),
-                   (payloaddir / os.path.basename(payloadfile)).parent,
-                   set(),
-                   [])
+               payloaddir / os.path.basename(payloadfile),
+               (payloaddir / os.path.basename(payloadfile)).parent,
+               set(),
+               [])
             fr.set_filesize(payloadsize)
             unpackresult = unpackCpio(fr, scanenvironment, 0, unpackdir)
             # cleanup
@@ -10760,7 +10756,6 @@ def unpackZim(fileresult, scanenvironment, offset, unpackdir):
                     # the filesystem?
                     os.makedirs(os.path.dirname(outfilename), exist_ok=True)
                     outfilename = os.path.relpath(outfilename.name, '/')
-                    
 
                 blobsize = bloboffsets[blobnumber+1] - bloboffsets[blobnumber]
 
@@ -12475,7 +12470,7 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
     if gzip_compressed:
         # try to unpack the gzip compressed data. Some files seem to have
         # been compressed with the multi-part gzip flag and other flags set.
-        unpackresult = unpackGzip(fileresult, scanenvironment, offset + offset_entry, unpackdir)
+        unpackresult = unpack_gzip(fileresult, scanenvironment, offset + offset_entry, unpackdir)
         if not unpackresult['status']:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -12493,7 +12488,7 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
 
         # now perform all the checks that couldn't be done
         # because the data is gzip compressed
-        if offset_data_start >  gzip_size + 64:
+        if offset_data_start > gzip_size + 64:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'invalid data start offset'}

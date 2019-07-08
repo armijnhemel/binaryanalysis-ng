@@ -847,7 +847,7 @@ class TestGZIP(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpackGzip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_gzip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -857,7 +857,7 @@ class TestGZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-add-random-data.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackGzip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_gzip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 4665601)
 
@@ -867,7 +867,7 @@ class TestGZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-prepend-random-data.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangunpack.unpackGzip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_gzip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 4665601)
 
@@ -877,7 +877,7 @@ class TestGZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-cut-data-from-end.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackGzip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_gzip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single gzip with data cut from the middle
@@ -886,7 +886,7 @@ class TestGZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-cut-data-from-middle.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackGzip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_gzip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single gzip with data added in the middle
@@ -895,7 +895,7 @@ class TestGZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-data-added-to-middle.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackGzip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_gzip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single gzip with data replaced in the middle
@@ -904,7 +904,7 @@ class TestGZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'gzip' / 'test.jpg-data-replaced-in-middle.gz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackGzip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_gzip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -919,7 +919,7 @@ class TestZIP(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpackZip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_zip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -929,7 +929,7 @@ class TestZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-add-random-data.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackZip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_zip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 4665740)
 
@@ -939,7 +939,7 @@ class TestZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-prepend-random-data.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangunpack.unpackZip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_zip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 4665740)
 
@@ -949,7 +949,7 @@ class TestZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-cut-data-from-end.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackZip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_zip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ZIP with data cut from the middle
@@ -958,7 +958,7 @@ class TestZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-cut-data-from-middle.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackZip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_zip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ZIP with data added in the middle
@@ -967,7 +967,7 @@ class TestZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-data-added-to-middle.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackZip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_zip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ZIP with data replaced in the middle
@@ -976,7 +976,7 @@ class TestZIP(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'zip' / 'test-data-replaced-in-middle.zip'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackZip(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_zip(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -1308,7 +1308,7 @@ class TestXZ(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpackXZ(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_xz(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1318,7 +1318,7 @@ class TestXZ(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-add-random-data.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackXZ(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_xz(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 510744)
 
@@ -1328,7 +1328,7 @@ class TestXZ(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-prepend-random-data.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangunpack.unpackXZ(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_xz(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 510744)
 
@@ -1338,7 +1338,7 @@ class TestXZ(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-cut-data-from-end.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackXZ(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_xz(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single XZ with data cut from the middle
@@ -1347,7 +1347,7 @@ class TestXZ(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-cut-data-from-middle.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackXZ(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_xz(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single XZ with data added in the middle
@@ -1356,7 +1356,7 @@ class TestXZ(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-data-added-to-middle.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackXZ(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_xz(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single XZ with data replaced in the middle
@@ -1365,7 +1365,7 @@ class TestXZ(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'xz' / 'test-data-replaced-in-middle.xz'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackXZ(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_xz(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -1380,7 +1380,7 @@ class TestLZMA(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpackLZMA(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzma(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1390,7 +1390,7 @@ class TestLZMA(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-add-random-data.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZMA(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzma(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 510623)
 
@@ -1400,7 +1400,7 @@ class TestLZMA(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-prepend-random-data.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangunpack.unpackLZMA(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzma(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 510623)
 
@@ -1410,7 +1410,7 @@ class TestLZMA(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-cut-data-from-end.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZMA(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzma(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZMA with data cut from the middle
@@ -1419,7 +1419,7 @@ class TestLZMA(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-cut-data-from-middle.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZMA(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzma(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZMA with data added in the middle
@@ -1428,7 +1428,7 @@ class TestLZMA(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-data-added-to-middle.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZMA(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzma(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single LZMA with data replaced in the middle
@@ -1437,7 +1437,7 @@ class TestLZMA(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'lzma' / 'test-data-replaced-in-middle.lzma'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackLZMA(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_lzma(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -1811,7 +1811,7 @@ class TestAr(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpackAr(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_ar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -1820,7 +1820,7 @@ class TestAr(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-add-random-data.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackAr(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_ar(fileresult, self.scan_environment, offset, self.unpackdir)
 
         # ar unpacker only works on complete files
         self.assertFalse(testres['status'])
@@ -1832,7 +1832,7 @@ class TestAr(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-prepend-random-data.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangunpack.unpackAr(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_ar(fileresult, self.scan_environment, offset, self.unpackdir)
 
         # ar unpacker only works on complete files
         self.assertFalse(testres['status'])
@@ -1844,7 +1844,7 @@ class TestAr(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-cut-data-from-end.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackAr(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_ar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ar with data cut from the middle
@@ -1852,7 +1852,7 @@ class TestAr(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-cut-data-from-middle.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackAr(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_ar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ar with data added in the middle
@@ -1860,7 +1860,7 @@ class TestAr(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-data-added-to-middle.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackAr(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_ar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single ar with data replaced in the middle
@@ -1868,7 +1868,7 @@ class TestAr(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'ar' / 'test-data-replaced-in-middle.ar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackAr(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_ar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
@@ -2278,7 +2278,7 @@ class TestTar(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpackTar(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_tar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -2288,7 +2288,7 @@ class TestTar(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         filesize = fileresult.filesize
         offset = 0
-        testres = bangunpack.unpackTar(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_tar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], filesize)
 
@@ -2297,7 +2297,7 @@ class TestTar(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-add-random-data.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackTar(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_tar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 604160)
 
@@ -2306,7 +2306,7 @@ class TestTar(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-prepend-random-data.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 128
-        testres = bangunpack.unpackTar(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_tar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 604160)
 
@@ -2315,7 +2315,7 @@ class TestTar(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-cut-data-from-end.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackTar(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_tar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single tar with data cut from the middle
@@ -2323,7 +2323,7 @@ class TestTar(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-cut-data-from-middle.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackTar(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_tar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single tar with data added in the middle
@@ -2331,7 +2331,7 @@ class TestTar(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-data-added-to-middle.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackTar(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_tar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single tar with data replaced in the middle
@@ -2339,7 +2339,7 @@ class TestTar(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-data-replaced-in-middle.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackTar(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_tar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
     # a test for the file being a single tar with just directories
@@ -2347,7 +2347,7 @@ class TestTar(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'tar' / 'test-dir.tar'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackTar(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangunpack.unpack_tar(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertTrue(testres['status'])
         self.assertEqual(testres['length'], 10240)
 
