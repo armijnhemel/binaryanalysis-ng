@@ -678,8 +678,18 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
 
     # https://zdoom.org/wiki/PNG
     zdoom = False
-    if 'grAb' in chunknames or 'alPh' in chunknames:
-        zdoom = True
+    for i in ['grAb', 'alPh', 'huBs', 'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd']:
+        if i in chunknames:
+            zdoom = True
+            break
+
+    # https://zdoom.org/wiki/Savegame
+    # This was changed in September 2016
+    zdoomsavegame = False
+    for i in ['huBs', 'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd']:
+        if i in chunknames:
+            zdoomsavegame = True
+            break
 
     # check if the file was made using Adobe Fireworks
     fireworks = False
@@ -695,7 +705,8 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
                        'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
                        'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT',
                        'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT',
-                       'sCAL', 'sTER', 'meTa', 'grAb', 'alPh'])
+                       'sCAL', 'sTER', 'meTa', 'grAb', 'alPh', 'huBs',
+                       'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd'])
 
     unknownchunks = chunknames.difference(knownchunks)
     hasunknownchunks = False
