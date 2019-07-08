@@ -227,7 +227,7 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
 
     # extract the original file name, if any
     # This can be used later to rename the file. Because of
-    # false positives the name cannot be checked now.
+    # false positives the name should not be checked now.
     if havefname:
         origname = b''
         while True:
