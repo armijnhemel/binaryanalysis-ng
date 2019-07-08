@@ -708,10 +708,10 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
                        'sCAL', 'sTER', 'meTa', 'grAb', 'alPh', 'huBs',
                        'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd'])
 
-    unknownchunks = chunknames.difference(knownchunks)
+    unknownchunks = list(chunknames.difference(knownchunks))
     hasunknownchunks = False
 
-    if unknownchunks != set():
+    if unknownchunks != []:
         hasunknownchunks = True
 
     pngresults['chunks'] = chunknametooffsets
