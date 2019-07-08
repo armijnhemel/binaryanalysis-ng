@@ -136,6 +136,7 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    metadata = {}
 
     # treat CRC errors as fatal
     wrongcrcfatal = True
@@ -259,7 +260,10 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
                 break
             origcomment += checkbytes
             unpackedsize += 1
-    #origcomment = origcomment.decode()
+    try:
+        metadata['comment'] = origcomment.decode()
+    except UnicodeDecodeError:
+        pass
 
     # skip over the CRC16, if present
     if havecrc16:
@@ -400,7 +404,7 @@ def unpackGzip(fileresult, scanenvironment, offset, unpackdir):
         labels += ['gzip', 'compressed']
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+            'filesandlabels': unpackedfilesandlabels, 'metadata': metadata}
 
 
 # wrapper for LZMA, with a few extra sanity checks based on
