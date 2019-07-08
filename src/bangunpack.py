@@ -9272,7 +9272,7 @@ def unpackELF(fileresult, scanenvironment, offset, unpackdir):
             labels.append('oat')
             labels.append('android')
         return {'status': True, 'length': maxoffset, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
+                'filesandlabels': unpackedfilesandlabels, 'metadata': elfresult}
 
     # it could be that the file is a Linux kernel module that has a signature
     # as detailed in scripts/sign-file.c in the Linux kernel
@@ -9292,7 +9292,7 @@ def unpackELF(fileresult, scanenvironment, offset, unpackdir):
                 labels.append('elf')
                 labels.append('linuxkernelmodule')
                 return {'status': True, 'length': maxoffset, 'labels': labels,
-                        'filesandlabels': unpackedfilesandlabels}
+                        'filesandlabels': unpackedfilesandlabels, 'metadata': elfresult}
 
         # instead forward search to the signature and carve
         checkfile.seek(offset + maxoffset)
@@ -9332,7 +9332,7 @@ def unpackELF(fileresult, scanenvironment, offset, unpackdir):
         unpackedfilesandlabels.append((outfile_rel, outlabels))
 
         return {'status': True, 'length': maxoffset, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
+                'filesandlabels': unpackedfilesandlabels, 'metadata': elfresult}
 
     # Carve the file. It is anonymous, so just give it a name
     if soname is not None:
@@ -9351,7 +9351,7 @@ def unpackELF(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, outlabels))
 
     return {'status': True, 'length': maxoffset, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+            'filesandlabels': unpackedfilesandlabels, 'metadata': elfresult}
 
 
 # U-Boot legacy file format
