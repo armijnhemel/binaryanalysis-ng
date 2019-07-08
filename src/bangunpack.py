@@ -1500,7 +1500,7 @@ def unpackAppleDouble(fileresult, scanenvironment, offset, unpackdir):
 # Older specifications: http://www.color.org/icc_specs2.xalter
 #
 # Test files in package "colord" on for example Fedora
-def unpackICC(fileresult, scanenvironment, offset, unpackdir):
+def unpack_icc(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an ICC color profile file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -2673,7 +2673,7 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False
 
 # Derived from public bzip2 specifications
 # and Python module documentation
-def unpackBzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
+def unpack_bzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
     '''Unpack bzip2 compressed data.'''
     filesize = fileresult.filesize
     filename_full = pathlib.Path(scanenvironment.unpack_path(fileresult.filename))
@@ -2784,7 +2784,7 @@ def unpackBzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
 # Other versions (from Git) can also use:
 # * xz
 # * lzma
-def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
+def unpack_xar(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a XAR archive.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -3206,7 +3206,7 @@ def unpackXAR(fileresult, scanenvironment, offset, unpackdir):
 
 
 # http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
-def unpackLzip(fileresult, scanenvironment, offset, unpackdir):
+def unpack_lzip(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack lzip compressed data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -3357,7 +3357,7 @@ def unpackLzip(fileresult, scanenvironment, offset, unpackdir):
 # Derived from specifications at:
 # https://www.w3.org/TR/WOFF/
 # section 3 and 4 describe the format
-def unpackWOFF(fileresult, scanenvironment, offset, unpackdir):
+def unpack_woff(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a WOFF font file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -4473,7 +4473,7 @@ def unpackGNUMessageCatalog(fileresult, scanenvironment, offset, unpackdir):
 # https://msdn.microsoft.com/en-us/library/bb267310.aspx#struct_spec
 #
 # but is currently not under the open specification promise
-def unpackCab(fileresult, scanenvironment, offset, unpackdir):
+def unpack_cab(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a Microsoft Cabinet file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -4561,7 +4561,7 @@ def unpackCab(fileresult, scanenvironment, offset, unpackdir):
 
 # terminfo files, format described in the Linux man page for terminfo files
 # man 5 term
-def unpackTerminfo(fileresult, scanenvironment, offset, unpackdir):
+def unpack_terminfo(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve a terminfo file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -4842,7 +4842,7 @@ def unpackTerminfo(fileresult, scanenvironment, offset, unpackdir):
 
 # https://rzip.samba.org/
 # https://en.wikipedia.org/wiki/Rzip
-def unpackRzip(fileresult, scanenvironment, offset, unpackdir):
+def unpack_rzip(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack rzip compressed data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -4910,7 +4910,7 @@ def unpackRzip(fileresult, scanenvironment, offset, unpackdir):
             return {'status': False, 'error': unpackingerror}
 
         # uncompress the bzip2 data
-        bzip2res = unpackBzip2(fileresult, scanenvironment, bzip2pos, unpackdir, dryrun=True)
+        bzip2res = unpack_bzip2(fileresult, scanenvironment, bzip2pos, unpackdir, dryrun=True)
         if not bzip2res['status']:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
@@ -4995,7 +4995,7 @@ def unpackRzip(fileresult, scanenvironment, offset, unpackdir):
 # unpack on Linux.
 # See https://bugs.python.org/issue11016 for background information
 # about event ports, doors and whiteout files.
-def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
+def unpack_cpio(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a CPIO archive.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -7061,13 +7061,13 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
         if compressor == b'gzip':
             unpackresult = unpack_gzip(fileresult, scanenvironment, checkfile.tell(), unpackdir)
         elif compressor == b'bzip2':
-            unpackresult = unpackBzip2(fileresult, scanenvironment, checkfile.tell(), unpackdir)
+            unpackresult = unpack_bzip2(fileresult, scanenvironment, checkfile.tell(), unpackdir)
         elif compressor == b'xz':
             unpackresult = unpack_xz(fileresult, scanenvironment, checkfile.tell(), unpackdir)
         elif compressor == b'lzma':
             unpackresult = unpack_lzma(fileresult, scanenvironment, checkfile.tell(), unpackdir)
         elif compressor == b'zstd':
-            unpackresult = unpackZstd(fileresult, scanenvironment, checkfile.tell(), unpackdir)
+            unpackresult = unpack_zstd(fileresult, scanenvironment, checkfile.tell(), unpackdir)
         else:
             # gzip is default
             unpackresult = unpack_gzip(fileresult, scanenvironment, checkfile.tell(), unpackdir)
@@ -7109,12 +7109,12 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
 
             # create a file result object and pass it to the CPIO unpacker
             fr = FileResult(
-               payloaddir / os.path.basename(payloadfile),
-               (payloaddir / os.path.basename(payloadfile)).parent,
-               set(),
-               [])
+                payloaddir / os.path.basename(payloadfile),
+                (payloaddir / os.path.basename(payloadfile)).parent,
+                set(),
+                [])
             fr.set_filesize(payloadsize)
-            unpackresult = unpackCpio(fr, scanenvironment, 0, unpackdir)
+            unpackresult = unpack_cpio(fr, scanenvironment, 0, unpackdir)
             # cleanup
             shutil.rmtree(payloaddir)
             if not unpackresult['status']:
@@ -7144,7 +7144,7 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
 
 # zstd
 # https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md
-def unpackZstd(fileresult, scanenvironment, offset, unpackdir):
+def unpack_zstd(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack zstd compressed data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
