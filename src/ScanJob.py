@@ -225,6 +225,9 @@ class ScanJob:
                     'files': [],
                 }
 
+                if 'metadata' in unpackresult:
+                    self.fileresult.set_metadata(unpackresult['metadata'])
+
                 for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                     fr = FileResult(
                         pathlib.Path(unpackedfile),
@@ -345,6 +348,9 @@ class ScanJob:
                         'size': unpackresult['length'],
                         'files': [],
                     }
+
+                    if 'metadata' in unpackresult:
+                        self.fileresult.set_metadata(unpackresult['metadata'])
 
                     # set unpackdirectory, but only if needed: if the entire
                     # file is a file that was verified (example: GIF or PNG)
@@ -578,6 +584,9 @@ class ScanJob:
                     'size': unpackresult['length'],
                     'files': [],
                 }
+
+                if 'metadata' in unpackresult:
+                    self.fileresult.set_metadata(unpackresult['metadata'])
 
                 unpacker.set_last_unpacked_offset(unpackresult['length'])
                 unpacker.append_unpacked_range(0, unpackresult['length'])
