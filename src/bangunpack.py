@@ -1688,7 +1688,33 @@ def unpack_icc(fileresult, scanenvironment, offset, unpackdir):
 # updates, but has changed the first two characters of the file from PK to DH
 def unpack_dahua(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack modified ZIP compressed data from Dahua.'''
-    return unpack_zip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=True)
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+
+    # first change the header
+    checkfile = open(filename_full, 'r+b')
+
+    # seek to the offset and change the identifier
+    # from DH to PK
+    checkfile.seek(offset)
+    checkfile.write(b'PK')
+    checkfile.close()
+
+    zipres = unpack_zip(fileresult, scanenvironment, offset, unpackdir)
+
+    # reopen for writing
+    checkfile = open(filename_full, 'r+b')
+
+    # seek to the offset and change the identifier
+    # back from PK to DH
+    checkfile.seek(offset)
+    checkfile.write(b'DH')
+    checkfile.close()
+
+    if zipres['status']:
+        dahuares = zipres
+        dahuares['labels'].append('dahua')
+    else:
+        return zipres
 
 
 # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
@@ -1705,7 +1731,7 @@ def unpack_dahua(fileresult, scanenvironment, offset, unpackdir):
 # when writing this code can be found here:
 #
 # http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html
-def unpack_zip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False):
+def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack ZIP compressed data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -1745,10 +1771,7 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False
     localfiles = []
     centraldirectoryfiles = []
 
-    if dahuaformat:
-        localfileheader = b'DH\x03\x04'
-    else:
-        localfileheader = b'\x50\x4b\x03\x04'
+    localfileheader = b'\x50\x4b\x03\x04'
 
     seenfirstheader = False
 
@@ -2070,12 +2093,6 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False
             break
 
         unpackedsize += 4
-
-        # for the dahua format only the first header
-        # has been changed
-        if not seenfirstheader:
-            seenfirstheader
-            localfileheader = b'\x50\x4b\x03\x04'
 
         # minimal version needed. According to 4.4.3.2 the minimal
         # version is 1.0 and the latest is 6.3. As new versions of
@@ -2493,22 +2510,6 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False
 
     unpackedsize = checkfile.tell() - offset
     if not encrypted:
-        if dahuaformat:
-            # first close the file
-            checkfile.close()
-
-            # reopen for writing
-            checkfile = open(filename_full, 'r+b')
-
-            # seek to the offset and change the identifier
-            # from DH to PK
-            checkfile.seek(offset)
-            checkfile.write(b'PK')
-            checkfile.close()
-
-            # reopen in read mode
-            checkfile = open(filename_full, 'rb')
-
         # if the ZIP file is at the end of the file then the ZIP module
         # from Python will do a lot of the heavy lifting.
         # Malformed ZIP files that need a workaround exist:
@@ -2537,21 +2538,6 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False
             os.chdir(unpackdir_full)
             knowncompression = True
 
-            if dahuaformat:
-                # first close the file
-                checkfile.close()
-
-                # reopen for writing
-                checkfile = open(filename_full, 'r+b')
-
-                # seek to the offset and change the identifier
-                # back from PK to DH
-                checkfile.seek(offset)
-                checkfile.write(b'DH')
-                checkfile.close()
-
-                # reopen in read mode
-                checkfile = open(filename_full, 'rb')
             # check if there have been directories stored
             # as regular files.
             faultyzipfiles = []
@@ -2634,15 +2620,6 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False
                     'filesandlabels': unpackedfilesandlabels}
         except zipfile.BadZipFile:
             checkfile.close()
-            if dahuaformat:
-                # reopen for writing
-                checkfile = open(filename_full, 'r+b')
-
-                # seek to the offset and change the identifier
-                # back from PK to DH
-                checkfile.seek(offset)
-                checkfile.write(b'DH')
-                checkfile.close()
             if carved:
                 os.unlink(temporaryfile[1])
             unpackingerror = {'offset': offset, 'fatal': False,
