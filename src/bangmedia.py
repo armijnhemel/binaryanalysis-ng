@@ -676,6 +676,11 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
     if 'vpAg' in chunknames or 'caNv' in chunknames or 'orNT' in chunknames:
         imagemagick = True
 
+    # https://zdoom.org/wiki/PNG
+    zdoom = False
+    if 'grAb' in chunknames or 'alPh' in chunknames:
+        zdoom = True
+
     # check if the file was made using Adobe Fireworks
     fireworks = False
     for i in ['prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF']:
@@ -690,7 +695,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
                        'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
                        'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT',
                        'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT',
-                       'sCAL', 'sTER', 'meTa'])
+                       'sCAL', 'sTER', 'meTa', 'grAb', 'alPh'])
 
     unknownchunks = chunknames.difference(knownchunks)
     hasunknownchunks = False
