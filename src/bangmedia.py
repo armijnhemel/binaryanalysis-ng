@@ -1272,7 +1272,10 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
     # such as comments (multiple allowed), XMP (multiple allowed)
     # and so on.
     applicationextensions = []
-    gifcomments = []
+
+    # this is a set, as some files have many identical comments
+    # (sometimes hundreds)
+    gifcomments = set()
     xmps = []
 
     while True:
@@ -1362,7 +1365,9 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
                         return {'status': False, 'error': unpackingerror}
                     gifcomment += checkfile.read(datasize)
                     unpackedsize += datasize
-                gifcomments.append(gifcomment)
+                # only store non-empty comments
+                if gifcomment != b'':
+                    gifcomments.add(gifcomment)
 
             # process the application extension (section 26)
             elif checkbytes == b'\xff':
@@ -1597,6 +1602,8 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
                           'fatal': False, 'reason': 'GIF trailer not found'}
         return {'status': False, 'error': unpackingerror}
 
+    if gifcomments != set():
+        gifresults['comments'] = gifcomments
     if xmps != []:
         gifresults['xmp'] = xmps
 
