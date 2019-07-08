@@ -35,6 +35,7 @@ import bangunpack
 import bangfilesystems
 import bangmedia
 import bangandroid
+import bangtext
 
 # basetestdir = pathlib.Path('/home/armijn/git/binaryanalysis-ng/test')
 # tmpdirectory = '/home/armijn/tmp'
@@ -831,7 +832,7 @@ class TestSREC(TestBase):
         filename = pathlib.Path(self.testdata_dir) / 'unpackers' / 'srec' / 'srec-wrong.txt'
         fileresult = create_fileresult_for_path(self.unpackdir, filename)
         offset = 0
-        testres = bangunpack.unpackSREC(fileresult, self.scan_environment, offset, self.unpackdir)
+        testres = bangtext.unpack_srec(fileresult, self.scan_environment, offset, self.unpackdir)
         self.assertFalse(testres['status'])
 
 
