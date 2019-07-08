@@ -920,7 +920,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
             pngdate = datetime.datetime(pngyear, pngmonth, pngday, pnghour, pngminute, pngsecond)
             if 'time' not in pngresults:
                 pngresults['time'] = []
-            pngresults['time'].append({'time': pngdate, 'offset': o['offset']})
+            pngresults['time'].append({'time': pngdate.isoformat(), 'offset': o['offset']})
 
     # no idea what this chunk means or does, but
     # found in a few files made with Adobe ImageReady
