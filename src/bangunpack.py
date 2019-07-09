@@ -402,6 +402,10 @@ def unpack_gzip(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels, 'metadata': metadata}
 
+# gzip's specifications allow for multiple compression methods
+# but RFC 1952 says x08 is the only compression method allowed
+unpack_gzip.signatures = {'gzip': b'\x1f\x8b\x08'}
+
 
 # wrapper for LZMA, with a few extra sanity checks based on
 # LZMA format specifications.
@@ -446,6 +450,16 @@ def unpack_lzma(fileresult, scanenvironment, offset, unpackdir):
         lzmaunpackedsize = -1
 
     return unpack_lzma_wrapper(fileresult, scanenvironment, offset, unpackdir, '.lzma', 'lzma', 'LZMA', lzmaunpackedsize)
+
+# most common signatures, although it won't catch everything, as the first
+# bytes in LZMA will actually
+# lzma_var1 is by far the most used
+# lzma_var2 is seen a lot in OpenWrt
+# lzma_var3 is used in some routers, like the ZyXEL NBG5615
+unpack_lzma.signatures = {'lzma_var1': b'\x5d\x00\x00',
+                          'lzma_var2': b'\x6d\x00\x00',
+                          'lzma_var3': b'\x6c\x00\x00'}
+unpack_lzma.pretty = 'lzma'
 
 
 # wrapper for both LZMA and XZ
@@ -622,6 +636,8 @@ def unpack_xz(fileresult, scanenvironment, offset, unpackdir):
                                   'reason': 'invalid footer magic'}
                 return {'status': False, 'error': unpackingerror}
     return xzres
+
+unpack_xz.signatures = {'xz': b'\xfd\x37\x7a\x58\x5a\x00'}
 
 
 # timezone files
@@ -1097,6 +1113,9 @@ def unpack_timezone(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# man 5 tzfile
+unpack_timezone.signatures = {'timezone': b'TZif'}
+
 
 # unpacker for tar files. Uses the standard Python library.
 # https://docs.python.org/3/library/tarfile.html
@@ -1274,6 +1293,13 @@ def unpack_tar(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# /usr/share/magic
+unpack_tar.signatures = {'tar_posix': b'ustar\x00',
+                         'tar_gnu': b'ustar\x20\x20\x00'}
+unpack_tar.extensions = ['.tar']
+unpack_tar.pretty = 'tar'
+unpack_tar.offset = 0x101
+
 
 # Unix portable archiver
 # https://en.wikipedia.org/wiki/Ar_%28Unix%29
@@ -1339,6 +1365,8 @@ def unpack_ar(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_ar.signatures = {'ar': b'!<arch>'}
 
 
 # https://tools.ietf.org/html/rfc1740
@@ -1488,6 +1516,9 @@ def unpack_appledouble(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['appledouble', 'resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# https://tools.ietf.org/html/rfc1740 Appendix B
+unpack_appledouble.signatures = {'appledouble': b'\x00\x05\x16\x07'}
 
 
 # ICC color profile
@@ -1683,6 +1714,10 @@ def unpack_icc(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# http://www.color.org/specification/ICC1v43_2010-12.pdf, section 7.2
+unpack_icc.signatures = {'icc': b'acsp'}
+unpack_icc.offset = 36
+
 
 # Dahua is a Chinese vendor that is using the ZIP format for its firmware
 # updates, but has changed the first two characters of the file from PK to DH
@@ -1715,6 +1750,9 @@ def unpack_dahua(fileresult, scanenvironment, offset, unpackdir):
         dahuares['labels'].append('dahua')
     else:
         return zipres
+
+# http://web.archive.org/web/20190709133846/https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/page-2
+unpack_dahua.signatures = {'dahua': b'DH\x03\04'}
 
 
 # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
@@ -2647,6 +2685,9 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
+unpack_zip.signatures = {'zip': b'\x50\x4b\x03\04'}
+
 
 # Derived from public bzip2 specifications
 # and Python module documentation
@@ -2742,6 +2783,9 @@ def unpack_bzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
         unpackedfilesandlabels.append((outfile_rel, []))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# https://en.wikipedia.org/wiki/Bzip2#File_format
+unpack_bzip2.signatures = {'bzip2': b'BZh'}
 
 
 # Derived from specifications at:
@@ -3181,6 +3225,8 @@ def unpack_xar(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_xar.signatures = {'xar': b'\x78\x61\x72\x21'}
+
 
 # http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
 def unpack_lzip(fileresult, scanenvironment, offset, unpackdir):
@@ -3329,6 +3375,9 @@ def unpack_lzip(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
+unpack_lzip.signatures = {'lzip': b'LZIP'}
 
 
 # Derived from specifications at:
@@ -3649,6 +3698,8 @@ def unpack_woff(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['woff', 'font', 'resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_woff.signatures = {'woff': b'wOFF'}
 
 
 # a generic method for unpacking fonts:
@@ -4061,6 +4112,8 @@ def unpack_truetype_font(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': fontres['length'], 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_truetype_font.signatures = {'truetype': b'\x00\x01\x00\x00'}
+
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
 def unpack_opentype_font(fileresult, scanenvironment, offset, unpackdir):
@@ -4102,6 +4155,8 @@ def unpack_opentype_font(fileresult, scanenvironment, offset, unpackdir):
         unpackedfilesandlabels[0][1].append('OpenType')
     return {'status': True, 'length': fontres['length'], 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_opentype_font.signatures = {'opentype': b'OTTO'}
 
 
 # Multiple fonts can be stored in font collections. The offsets
@@ -4203,6 +4258,8 @@ def unpack_opentype_font_collection(
                       'reason': 'not a valid font collection file or unsupported file'}
     return {'status': False, 'error': unpackingerror}
 
+unpack_opentype_font_collection.signatures = {'ttc': b'ttcf'}
+
 
 # method to see if a file is a Vim swap file
 # These always start with a certain header, including a page size.
@@ -4269,6 +4326,8 @@ def unpack_vim_swapfile(fileresult, scanenvironment, offset, unpackdir):
     labels.append('vim swap')
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_vim_swapfile.extensions = ['.swp']
 
 
 # The on disk format for GNU message catalog files is described here:
@@ -4442,6 +4501,11 @@ def unpack_gnu_message_catalog(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# /usr/share/magic
+unpack_gnu_message_catalog.signatures = {
+    'gnu_message_catalog_le': b'\xde\x12\x04\x95',
+    'gnu_message_catalog_be': b'\x95\x04\x12\xde'}
+
 
 # https://en.wikipedia.org/wiki/Cabinet_(file_format)
 #
@@ -4534,6 +4598,9 @@ def unpack_cab(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# /usr/share/magic
+unpack_cab.signatures = {'cab': b'MSCF\x00\x00\x00\x00'}
 
 
 # terminfo files, format described in the Linux man page for terminfo files
@@ -4816,6 +4883,8 @@ def unpack_terminfo(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_terminfo.signatures = {'terminfo': b'\x1a\x01'}
+
 
 # https://rzip.samba.org/
 # https://en.wikipedia.org/wiki/Rzip
@@ -4956,6 +5025,9 @@ def unpack_rzip(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# /usr/share/magic
+unpack_rzip.signatures = {'rzip': b'RZIP'}
 
 
 # An unpacker for various CPIO flavours.
@@ -6019,6 +6091,11 @@ def unpack_cpio(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# man 5 cpio
+unpack_cpio.signatures = {'cpio_old': b'\xc7\x71', 'cpio_portable': b'070707',
+                          'cpio_newascii': b'070701', 'cpio_newcrc': b'070702'}
+unpack_cpio.pretty = 'cpio'
+
 
 # https://en.wikipedia.org/wiki/7z
 # Inside the 7z distribution there is a file called
@@ -6161,6 +6238,9 @@ def unpack_7z(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# documentation in 7-Zip source code
+unpack_7z.signatures = {'7z': b'7z\xbc\xaf\x27\x1c'}
 
 
 # Windows Compiled HTML help
@@ -6320,6 +6400,10 @@ def unpack_chm(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# full signature in /usr/share/magic
+# this is only a part and only for version 3
+unpack_chm.signatures = {'chm': b'ITSF\x03\x00\x00\x00'}
 
 
 # Windows Imaging Format
@@ -6592,6 +6676,9 @@ def unpack_wim(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# /usr/share/magic
+unpack_wim.signatures = {'mswim': b'MSWIM\x00\x00\x00'}
 
 
 # The RPM format is described as part of the Linux Standards Base:
@@ -7118,6 +7205,8 @@ def unpack_rpm(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_rpm.signatures = {'rpm': b'\xed\xab\xee\xdb'}
+
 
 # zstd
 # https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md
@@ -7304,6 +7393,10 @@ def unpack_zstd(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# /usr/share/magic
+unpack_zstd.signatures = {'zstd_08': b'\x28\xb5\x2f\xfd'}
+unpack_zstd.pretty = 'zstd'
+
 
 # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
 # uses https://pypi.org/project/lz4/
@@ -7373,6 +7466,9 @@ def unpack_lz4(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, []))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
+unpack_lz4.signatures = {'lz4': b'\x04\x22\x4d\x18'}
 
 
 # LZ4 legacy format, uses external tools as it is not
@@ -7475,6 +7571,9 @@ def unpack_lz4legacy(fileresult, scanenvironment, offset, unpackdir):
                       'reason': 'invalid LZ4 legacy data'}
     return {'status': False, 'error': unpackingerror}
 
+# https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
+unpack_lz4legacy.signatures = {'lz4_legacy': b'\x02\x21\x4c\x18'}
+
 
 # There are a few variants of XML. The first one is the "regular"
 # one, which is documented at:
@@ -7572,6 +7671,8 @@ def unpack_xml(fileresult, scanenvironment, offset, unpackdir):
     labels.append('xml')
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_xml.extensions = ['.xml', '.xsd', '.ncx', '.opf', '.svg']
 
 
 # Uses the description of the Java class file format as described here:
@@ -8231,6 +8332,8 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_java_class.signatures = {'javaclass': b'\xca\xfe\xba\xbe'}
+
 
 # snappy
 #
@@ -8360,6 +8463,9 @@ def unpack_snappy(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {'offset': offset, 'fatal': False,
                       'reason': 'invalid Snappy file'}
     return {'status': False, 'error': unpackingerror}
+
+# https://github.com/google/snappy/blob/master/framing_format.txt
+unpack_snappy.signatures = {'snappy_framed': b'\xff\x06\x00\x00\x73\x4e\x61\x50\x70\x59'}
 
 
 # The ELF format is documented in numerous places:
@@ -9330,6 +9436,8 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels, 'metadata': elfresult}
 
+unpack_elf.signatures = {'elf': b'\x7f\x45\x4c\x46'}
+
 
 # U-Boot legacy file format
 #
@@ -9557,6 +9665,8 @@ def unpack_uboot_legacy(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_uboot_legacy.signatures = {'ubootlegacy': b'\x27\x05\x19\x56'}
+
 
 # method to see if a file has one or more certificates in various formats
 # The SSL certificate formats themselves are defined in for example:
@@ -9674,6 +9784,10 @@ def unpack_certificate(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {'offset': offset, 'fatal': False,
                       'reason': 'not a valid certificate'}
     return {'status': False, 'error': unpackingerror}
+
+unpack_certificate.signatures = {'certificate': b'-----BEGIN '}
+unpack_certificate.extensions = ['.rsa', '.pem']
+unpack_certificate.pretty = 'certificate'
 
 
 def extract_certificate(filename_full, scanenvironment, offset):
@@ -9911,6 +10025,9 @@ def unpack_git_index(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# https://github.com/git/git/blob/master/Documentation/technical/index-format.txt
+unpack_git_index.signatures = {'git_index': b'DIRC'}
+
 
 def unpack_lzop(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a lzop compressed file'''
@@ -10143,6 +10260,8 @@ def unpack_lzop(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_lzop.signatures = {'lzop': b'\x89\x4c\x5a\x4f\x00\x0d\x0a\x1a\x0a'}
+
 
 def unpack_json(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a JSON file'''
@@ -10183,6 +10302,9 @@ def unpack_json(fileresult, scanenvironment, offset, unpackdir):
     labels.append('json')
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_json.extensions = ['.json']
+unpack_json.pretty = 'json'
 
 
 # Transform a pack200 file to a JAR file using the unpack200 tool.
@@ -10257,6 +10379,8 @@ def unpack_pack200(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_pack200.signatures = {'pack200': b'\xca\xfe\xd0\x0d'}
 
 
 # https://wiki.openzim.org/wiki/ZIM_file_format
@@ -10793,6 +10917,8 @@ def unpack_zim(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_zim.signatures = {'zim': b'\x5a\x49\x4d\x04'}
+
 
 # Java key store files
 # format described in:
@@ -10957,6 +11083,8 @@ def unpack_java_keystore(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_java_keystore.signatures = {'javakeystore': b'\xfe\xed\xfe\xed'}
+
 
 # Label audio calibration database files from Qualcomm.
 # This analysis was based on a few samples found inside the
@@ -11055,6 +11183,8 @@ def unpack_acdb(fileresult, scanenvironment, offset, unpackdir):
 
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
+
+unpack_acdb.signatures = {'acdb': b'QCMSNDDB'}
 
 
 # https://sqlite.org/fileformat.html
@@ -11339,6 +11469,8 @@ def unpack_sqlite(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_sqlite.signatures = {'sqlite3': b'SQLite format 3\x00'}
+
 
 # https://github.com/devicetree-org/devicetree-specification/releases/download/v0.2/devicetree-specification-v0.2.pdf
 def unpack_device_tree(fileresult, scanenvironment, offset, unpackdir):
@@ -11602,6 +11734,8 @@ def unpack_device_tree(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_device_tree.signatures = {'dtb': b'\xd0\x0d\xfe\xed'}
+
 
 # Many firmware files for Broadcom devices start with a TRX header. While
 # data can be perfectly unpacked without looking at the header (as the
@@ -11780,6 +11914,8 @@ def unpack_trx(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_trx.signatures = {'trx': b'HDR0'}
+
 
 # minidump files, used in for example Firefox crash reports
 # https://chromium.googlesource.com/breakpad/breakpad/+/master/src/google_breakpad/common/minidump_format.h
@@ -11941,6 +12077,8 @@ def unpack_minidump(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_minidump.signatures = {'minidump': b'MDMP'}
+
 
 # /usr/share/magic
 # https://en.wikipedia.org/wiki/Compress
@@ -12040,6 +12178,9 @@ def unpack_compress(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+# /usr/share/magic
+unpack_compress.signatures = {'compress': b'\x1f\x9d'}
 
 
 # Ambarella firmware files
@@ -12181,6 +12322,9 @@ def unpack_ambarella(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+unpack_ambarella.signatures = {'ambarella': b'\x90\xeb\x24\xa3'}
+unpack_ambarella.offset = 0x818
+
 
 # Ambarella romfs
 #
@@ -12286,6 +12430,9 @@ def unpack_romfs_ambarella(fileresult, scanenvironment, offset, unpackdir):
     checkfile.close()
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_romfs_ambarella.signatures = {'romfs_ambarella': b'\x8a\x32\xfc\x66'}
+unpack_romfs_ambarella.offset = 4
 
 
 # bFLT binaries
@@ -12507,6 +12654,9 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# https://web.archive.org/web/20120123212024/http://retired.beyondlogic.org/uClinux/bflt.htm
+unpack_bflt.signatures = {'bflt': b'bFLT'}
+
 
 # http://grub.gibibit.com/New_font_format
 def unpack_grub2font(fileresult, scanenvironment, offset, unpackdir):
@@ -12647,6 +12797,8 @@ def unpack_grub2font(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_grub2font.signatures = {'grub2font': b'FILE\x00\x00\x00\x04PFF2'}
 
 
 # https://en.wikipedia.org/wiki/Torrent_file
@@ -12846,6 +12998,8 @@ def unpack_bittorrent(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels,
             'metadata': torrent_elements}
+
+unpack_bittorrent.signatures = {'bittorrent': b'd8:announce'}
 
 
 def parse_bittorrent_bytestring(checkfile, offset, filesize, raw=False, skip=False):
