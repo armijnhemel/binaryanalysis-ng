@@ -30,6 +30,8 @@ class JsonReporter:
         '''Report results in JSON format'''
         # copy scanresult because json cannot serialize datetime objects by itself
         result = copy.deepcopy(scanresult)
+
+        # pretty print datetime formats first before serializing
         result['session']['start'] = result['session']['start'].isoformat()
         result['session']['stop'] = result['session']['stop'].isoformat()
 
