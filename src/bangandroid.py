@@ -1958,7 +1958,7 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
             packageresourcetype = int.from_bytes(checkbytes, byteorder='little')
 
             # package chunk types (around line 230)
-            if packageresourcetype > 515 and packageresource < 512:
+            if packageresourcetype > 515 and packageresourcetype < 512:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
