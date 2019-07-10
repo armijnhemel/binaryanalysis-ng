@@ -30,6 +30,8 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * defusedxml (possibly named python3-defusedxml)
 * icalendar (possibly named python3-icalendar)
 * ncompress
+* util-linux (for 'fsck.cramfs')
+* lz4 (for 'lz4c')
 
 or if you are fortunate enough to be using [nix](https://nixos.org/nix), run
 `nix-shell` to load all the dependencies during development.
