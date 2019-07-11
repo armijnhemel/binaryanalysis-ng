@@ -9079,7 +9079,8 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
         checkfile.seek(offset + sectionheaders[symbolsection]['sh_offset'])
         symbolstringstable = checkfile.read(sectionheaders[symbolsection]['sh_size'])
 
-    # then extract data from the dynamic section and dynamic symbol table
+    # then extract data from the dynamic section
+    # and dynamic symbol table (if any)
     for s in sectionheaders:
         if sectionheaders[s]['sh_type'] == 6:
             if 'name' not in sectionheaders[s]:
