@@ -9119,6 +9119,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
 
                 # process various tags that are relevant
                 if d_tag == 1:
+                    # DT_NEEDED
                     if d_val > len(dynamicstringstable):
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
@@ -9133,6 +9134,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                                           'reason': 'invalid library name'}
                         return {'status': False, 'error': unpackingerror}
                 elif d_tag == 14:
+                    # DT_SONAME
                     if d_val > len(dynamicstringstable):
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
@@ -9147,6 +9149,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                                           'reason': 'invalid SONAME'}
                         return {'status': False, 'error': unpackingerror}
                 elif d_tag == 15:
+                    # DT_RPATH
                     if d_val > len(dynamicstringstable):
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
@@ -9161,6 +9164,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                                           'reason': 'invalid RPATH'}
                         return {'status': False, 'error': unpackingerror}
                 elif d_tag == 29:
+                    # DT_RUNPATH
                     if d_val > len(dynamicstringstable):
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
