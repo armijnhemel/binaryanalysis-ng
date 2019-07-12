@@ -9090,6 +9090,15 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
         checkfile.seek(offset + sectionheaders[symbolsection]['sh_offset'])
         symbolstringstable = checkfile.read(sectionheaders[symbolsection]['sh_size'])
 
+    # a list of (partial) names of functions that have been
+    # compiled with FORTIFY_SOURCE. This list is not necessarily
+    # complete, but at least catches some verified functions.
+    fortify_names = ['cpy_chk', 'printf_chk', 'cat_chk', 'poll_chk',
+                     'read_chk', '__memset_chk', '__memmove_chk',
+                     'syslog_chk', '__longjmp_chk', '__fdelt_chk',
+                     '__realpath_chk', '__explicit_bzero_chk', '__recv_chk',
+                     '__getdomainname_chk', '__gethostname_chk']
+
     # then extract data from the dynamic section
     # and dynamic symbol table (if any)
     is_pie = False
@@ -9256,6 +9265,11 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                         symbolname = dynamicstringstable[st_name:endofsymbolname].decode()
                         if symbolname == '__stack_chk_fail':
                             elfresult['security'].append('stack smashing protector')
+                        else:
+                            for fortify_name in fortify_names:
+                                if symbolname.endswith(fortify_name):
+                                    elfresult['security'].append('fortify')
+                                    break
                     except UnicodeDecodeError:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
