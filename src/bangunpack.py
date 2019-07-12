@@ -9266,10 +9266,11 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                         if symbolname == '__stack_chk_fail':
                             elfresult['security'].append('stack smashing protector')
                         else:
-                            for fortify_name in fortify_names:
-                                if symbolname.endswith(fortify_name):
-                                    elfresult['security'].append('fortify')
-                                    break
+                            if 'fortify' not in elfresult['security']:
+                                for fortify_name in fortify_names:
+                                    if symbolname.endswith(fortify_name):
+                                        elfresult['security'].append('fortify')
+                                        break
                     except UnicodeDecodeError:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
