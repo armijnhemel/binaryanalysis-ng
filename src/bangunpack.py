@@ -9265,7 +9265,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                         symbolname = dynamicstringstable[st_name:endofsymbolname].decode()
                         if symbolname == '__stack_chk_fail':
                             elfresult['security'].append('stack smashing protector')
-                        else:
+                        elif '_chk' in symbolname:
                             if 'fortify' not in elfresult['security']:
                                 for fortify_name in fortify_names:
                                     if symbolname.endswith(fortify_name):
