@@ -8484,6 +8484,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {}
     unpackedsize = 0
     elfresult = {}
+    elfresult['security'] = []
 
     # ELF header is at least 52 bytes
     if filesize - offset < 52:
@@ -9231,6 +9232,8 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                     endofsymbolname = dynamicstringstable.find(b'\x00', st_name)
                     try:
                         symbolname = dynamicstringstable[st_name:endofsymbolname].decode()
+                        if symbolname == '__stack_chk_fail':
+                            elfresult['security'].append('stack smashing protector')
                     except UnicodeDecodeError:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
@@ -9240,6 +9243,8 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                     endofsymbolname = symbolstringstable.find(b'\x00', st_name)
                     try:
                         symbolname = symbolstringstable[st_name:endofsymbolname].decode()
+                        if symbolname == '__stack_chk_fail':
+                            elfresult['security'].append('stack smashing protector')
                     except UnicodeDecodeError:
                         checkfile.close()
                         unpackingerror = {'offset': offset, 'fatal': False,
