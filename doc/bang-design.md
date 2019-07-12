@@ -180,6 +180,8 @@ will also be present:
 *   offset (optional): an offset where the data starts. Only needs to be set
     if the offset where the data starts isn't the offset that was given as a
     parameter (example: coreboot images)
+*   metadata (optional): a data structure with scan specific information.
+    Example scans that have this: unpack_elf and unpack_png
 
 If the scan was unsuccessful then the dictionary will contain:
 
