@@ -8572,8 +8572,9 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize += 2
 
     # label depending on the ELF type
-    # This is not always logical: on recent Fedora systems executables
-    # are not ELF executables, but ELF shared objects.
+    # On systems that have position independent executables (PIE), like
+    # recent Fedora systems, executables are not ELF executables,
+    # but ELF shared objects.
     if elftype == 0:
         elflabels.append('elf no type')
         elfresult['type'] = None
@@ -8732,6 +8733,10 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize = phoff
     seeninterpreter = False
 
+    # RELRO is a technique to mitigate some security vulnerabilities
+    # http://refspecs.linuxfoundation.org/LSB_4.1.0/LSB-Core-generic/LSB-Core-generic/progheader.html
+    seenrelro = False
+
     programheaders = {}
 
     for i in range(0, phnum):
@@ -8748,6 +8753,11 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                                   'reason': 'multiple definitions for program interpreter'}
                 return {'status': False, 'error': unpackingerror}
             seeninterpreter = True
+
+        # check if the RELRO segment type is set
+        if p_type == 0x6474e552:
+            elfresult['security'].append('relro')
+            seenrelro = True
 
         # p_flags (64 bit only)
         if is64bit:
@@ -9082,6 +9092,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
 
     # then extract data from the dynamic section
     # and dynamic symbol table (if any)
+    is_pie = False
     for s in sectionheaders:
         if sectionheaders[s]['sh_type'] == 6:
             if 'name' not in sectionheaders[s]:
@@ -9179,6 +9190,17 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                         unpackingerror = {'offset': offset, 'fatal': False,
                                           'reason': 'invalid RUNPATH'}
                         return {'status': False, 'error': unpackingerror}
+                elif d_tag == 0x6ffffffb:
+                    # DT_FLAGS_1, check for BIND_NOW and PIE
+                    # https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;h=7c6d6094edbe3b09dd8eadbe0b635d315a3ac35a;hb=HEAD#l969
+                    if d_tag & 0x1 == 0x1:
+                        if seenrelro:
+                            elfresult['security'].append('full relro')
+                        else:
+                            elfresult['security'].append('partial relro')
+                    if d_tag & 0x8000000 == 0x8000000:
+                        elfresult['security'].append('pie')
+                        is_pie = True
 
                 if is64bit:
                     localoffset += 16
