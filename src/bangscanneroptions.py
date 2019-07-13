@@ -68,6 +68,7 @@ class BangScannerOptions:
             'elastic_index': None,
             'elastic_connectionerrorfatal': False,
             'elastic_port': None,
+            'elastic_host': None,
             'writereport': True,
             'uselogging': True,
             'bangthreads': multiprocessing.cpu_count(),
