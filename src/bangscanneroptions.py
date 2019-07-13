@@ -130,6 +130,8 @@ class BangScannerOptions:
             v = self.config.get(section, option)
         except configparser.NoOptionError:
             return
+        except configparser.NoSectionError:
+            return
         except KeyError:
             return
         self.options[option_name] = v
@@ -144,6 +146,8 @@ class BangScannerOptions:
             return
         except KeyError:
             return
+        except configparser.NoSectionError:
+            return
         except ValueError:
             return
         self.options[option_name] = v
@@ -155,6 +159,8 @@ class BangScannerOptions:
         try:
             v = self.config.get(section, option) == 'yes'
         except configparser.NoOptionError:
+            return
+        except configparser.NoSectionError:
             return
         except KeyError:
             return
