@@ -8303,7 +8303,8 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
         checkfile.close()
         labels.append('java class')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
+                'filesandlabels': unpackedfilesandlabels,
+                'metadata': javaresults}
 
     # else carve the file. The name of the class file can often
     # be derived from the class data itself.
@@ -8330,7 +8331,7 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
     checkfile.close()
     unpackedfilesandlabels.append((outfile_rel, ['java class', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+            'filesandlabels': unpackedfilesandlabels, 'metadata': javaresults}
 
 unpack_java_class.signatures = {'javaclass': b'\xca\xfe\xba\xbe'}
 
