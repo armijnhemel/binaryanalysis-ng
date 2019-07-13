@@ -62,6 +62,12 @@ class BangScannerOptions:
             'postgresql_db': None,
             'usedatabase': True,
             'dbconnectionerrorfatal': False,
+            'elastic_enabled': False,
+            'elastic_user': None,
+            'elastic_password': None,
+            'elastic_index': None,
+            'elastic_connectionerrorfatal': False,
+            'elastic_port': None,
             'writereport': True,
             'uselogging': True,
             'bangthreads': multiprocessing.cpu_count(),
@@ -195,6 +201,15 @@ class BangScannerOptions:
         self._set_string_option_from_config('postgresql_db', section='database')
         self._set_string_option_from_config('postgresql_host', section='database')
         self._set_integer_option_from_config('postgresql_port', section='database')
+        self._set_boolean_option_from_config('elastic_enabled',
+                section='elasticsearch', option='elastic_enabled')
+        self._set_string_option_from_config('elastic_user', section='elasticsearch')
+        self._set_string_option_from_config('elastic_password', section='elasticsearch')
+        self._set_string_option_from_config('elastic_index', section='elasticsearch')
+        self._set_boolean_option_from_config('elastic_connectionerrorfatal',
+                section='elasticsearch')
+        self._set_string_option_from_config('elastic_host', section='elasticsearch')
+        self._set_integer_option_from_config('elastic_port', section='elasticsearchs')
 
     def _set_options_from_arguments(self):
         self.options.checkpath = self.args.checkpath
