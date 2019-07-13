@@ -48,6 +48,9 @@ import getpass
 # import module for database
 import psycopg2
 
+# import module for Elasticsearch
+import elasticsearch
+
 # import other local files
 from bangsignatures import maxsignaturesoffset
 from bangscanneroptions import BangScannerOptions
@@ -57,6 +60,7 @@ import banglogging
 from reporter.picklereport import *
 from reporter.jsonreport import *
 from reporter.humanreadablereport import *
+from reporter.elasticsearch import *
 
 from FileContentsComputer import *
 from FileResult import FileResult
@@ -97,6 +101,10 @@ def main(argv):
             bangconn = connect_to_bang_database(options)
             bangcursor = bangconn.cursor()
             bangdbconns.append((bangconn, bangcursor))
+
+    # test if Elasticsearch is running
+    if options.elastic_enabled:
+        pass
 
     # first determine how many bytes should be scanned for known
     # signatures using a sliding window. This should not be set too
@@ -360,6 +368,10 @@ def main(argv):
             reportfile = open(scandirectory / 'report.txt', 'w')
             HumanReadableReporter(reportfile).report(scanresult)
             reportfile.close()
+
+        # optionally store the data in Elasticsearch
+        if options.elastic_enabled:
+            ElasticsearchReporter(options).report(scanresult)
 
         log(logging.INFO, "Finished scanning %s" % checkfile)
 
