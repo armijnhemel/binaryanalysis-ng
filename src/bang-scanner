@@ -60,7 +60,7 @@ import banglogging
 from reporter.picklereport import *
 from reporter.jsonreport import *
 from reporter.humanreadablereport import *
-from reporter.elasticsearch import *
+from reporter.elasticsearchreport import *
 
 from FileContentsComputer import *
 from FileResult import FileResult

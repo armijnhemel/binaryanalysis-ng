@@ -20,7 +20,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import json
 import copy
 import elasticsearch
 
@@ -44,27 +43,27 @@ class ElasticsearchReporter:
         # first create the Elasticsearch connection string. TODO: sanitize
         connectionstring = 'http://%s:%s@%s:%d/'
 
-        if self.environment['elastic_port'] == None:
+        if self.environment['elastic_port'] is None:
             elastic_port = 9200
         else:
             elastic_port = self.environment['elastic_port']
 
-        if self.environment['elastic_host'] == None:
+        if self.environment['elastic_host'] is None:
             elastic_host = 'localhost'
         else:
             elastic_host = self.environment['elastic_host']
 
-        if self.environment['elastic_index'] == None:
+        if self.environment['elastic_index'] is None:
             elastic_index = ''
         else:
             elastic_index = self.environment['elastic_index']
 
-        if self.environment['elastic_user'] == None:
+        if self.environment['elastic_user'] is None:
             elastic_user = ''
         else:
             elastic_user = self.environment['elastic_user']
 
-        if self.environment['elastic_password'] == None:
+        if self.environment['elastic_password'] is None:
             elastic_password = ''
         else:
             elastic_password = self.environment['elastic_password']
