@@ -170,6 +170,7 @@ larger file, unless stated otherwise.
 119. UBI (not UBIFS!), fastmap not supported
 120. GRUB2 font files
 121. BitTorrent files (subset)
+122. pcapng (carving, structural checks, little endian only)
 
 
 ## Invocation

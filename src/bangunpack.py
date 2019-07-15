@@ -13105,3 +13105,100 @@ def parse_bittorrent_bytestring(checkfile, offset, filesize, raw=False, skip=Fal
 
     unpackedsize += value_size
     return {'status': True, 'size': unpackedsize, 'value': elem_value}
+
+
+# https://github.com/pcapng/pcapng
+# only process little endian files
+def unpack_pcapng(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify/carve a pcapng file'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # standard blocks
+    interface_block = 0x1
+    simple_packet_block = 0x3
+    name_resolution_block = 0x4
+    interface_statistics_block = 0x5
+    enhanced_packet_block = 0x6
+    systemd_journal_export_block = 0x9
+    decryption_secrets_block = 0xa
+    custom_block = 0xbad
+    custom_block2 = 0x40000bad
+    regular_blocks = [interface_block, simple_packet_block,
+                      name_resolution_block, interface_statistics_block,
+                      enhanced_packet_block, systemd_journal_export_block,
+                      decryption_secrets_block, custom_block,
+                      custom_block2]
+
+    # project/vendor specific blocks
+    hone_blocks = [0x101, 0x102]
+    sysdig_blocks = [0x201, 0x202, 0x203, 0x204, 0x205, 0x206, 0x207,
+                     0x208, 0x209, 0x210, 0x211, 0x212, 0x213]
+
+    all_blocks = regular_blocks + hone_blocks + sysdig_blocks
+
+    # open the file
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset)
+
+    # process the blocks
+    sectionheaderseen = False
+    dataprocessed = False
+    byteorder = 'little'
+    while True:
+        # block is at least 12 bytes
+        if filesize - checkfile.tell() < 12:
+            break
+        # first the block type
+        checkbytes = checkfile.read(4)
+        if checkbytes == b'\x0a\x0d\x0d\x0a':
+            sectionheaderseen = True
+        else:
+            if not sectionheaderseen:
+                # section header block is mandatory
+                break
+            block_type = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            # only process blocks defined in the specification
+            if not block_type in all_blocks:
+                break
+
+        # then the block size, which includes the block type
+        # and the two "block total length" blocks
+        checkbytes = checkfile.read(4)
+        block_length = int.from_bytes(checkbytes, byteorder=byteorder)
+        if filesize - checkfile.tell() < block_length-12:
+            break
+
+        # skip the bytes
+        checkfile.seek(block_length-12, os.SEEK_CUR)
+
+        # read block length again
+        checkbytes = checkfile.read(4)
+        block_length2 = int.from_bytes(checkbytes, byteorder=byteorder)
+        if block_length != block_length2:
+            break
+        unpackedsize += block_length
+        dataprocessed = True
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels = ['pcapng']
+    else:
+        # else carve the file
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-pcapng")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfile_rel, ['pcapng', 'unpacked']))
+        checkfile.close()
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+unpack_pcapng.signatures = {'pcapng': b'\x0a\x0d\x0d\x0a'}

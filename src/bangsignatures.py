@@ -148,6 +148,7 @@ signatures = {
     'nar': b'\x0d\x00\x00\x00\x00\x00\x00\x00nix-archive-1\x00\x00\x00',
     'grub2font': b'FILE\x00\x00\x00\x04PFF2',
     'bittorrent': b'd8:announce',
+    'pcapng': b'\x0a\x0d\x0d\x0a',
 }
 
 # some signatures do not start at the beginning of the file
@@ -309,6 +310,7 @@ signaturetofunction = {
     'ubi': bangfilesystems.unpack_ubi,
     'grub2font': bangunpack.unpack_grub2font,
     'bittorrent': bangunpack.unpack_bittorrent,
+    'pcapng': bangunpack.unpack_pcapng,
 }
 
 # a lookup table to map signatures to a name for
