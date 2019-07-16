@@ -227,7 +227,8 @@ class BangScannerOptions:
         if self.options.bangthreads < 1:
             self.options.bangthreads = self.defaults['bangthreads']
         # option usedatabase true if db parameters set
-        self.options.usedatabase = self.options.postgresql_db and \
+        self.options.usedatabase = self.options.postgresql_enabled and \
+            self.options.postgresql_db and \
             self.options.postgresql_user and \
             self.options.postgresql_password
         # if postgresql_error_fatal, db parameters must be set
