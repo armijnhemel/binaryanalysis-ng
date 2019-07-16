@@ -13214,6 +13214,8 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {}
     unpackedsize = 0
 
+    metadata = {}
+
     # header is 24 bytes
     if offset + 24 > filesize:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -13237,6 +13239,9 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
         byteorder = 'big'
         nano_second = True
     unpackedsize += 4
+
+    metadata['endian'] = byteorder
+    metadata['nanoseconds'] = nano_second
 
     # major version
     checkbytes = checkfile.read(2)
@@ -13315,6 +13320,8 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
         unpackedsize += incl_len
         data_unpacked = True
 
+    metadata['count'] = packet_count
+
     if not data_unpacked:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'no valid pcap data unpacked'}
@@ -13334,7 +13341,7 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
         checkfile.close()
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+            'filesandlabels': unpackedfilesandlabels, 'metadata': metadata}
 
 unpack_pcap.signatures = {'pcap_le': b'\xd4\xc3\xb2\xa1',
                           'pcap_be': b'\xa1\xb2\xc3\xd4',
