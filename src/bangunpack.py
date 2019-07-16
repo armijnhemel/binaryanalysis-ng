@@ -13185,6 +13185,12 @@ def unpack_pcapng(fileresult, scanenvironment, offset, unpackdir):
         unpackedsize += block_length
         dataprocessed = True
 
+    if not dataprocessed:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no pcapng data processed'}
+        return {'status': False, 'error': unpackingerror}
+
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
         labels = ['pcapng']
