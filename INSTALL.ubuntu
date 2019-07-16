@@ -1,4 +1,4 @@
-# Package list for Ubuntu
+# Package list for Ubuntu 18.04
 
 * cabextract
 * default-jdk
@@ -14,15 +14,21 @@
 * python3-lz4
 * python3-pil
 * python3-icalendar
+* python3-snappy
 * python3-tlsh
 * qemu-utils
 * rzip
 * squashfs-tools
 * zstd
 
-The following do not seem to be available for all Ubuntu versions:
+or, in a single line:
 
-* snappy
-* lz4.frame (?)
+    apt-get install cabextract default-jdk e2tools liblz4-tool libxml2-utils \
+    lzop ncompress p7zip-full python3-psycopg2 python3-elasticsearch \
+    python3-defusedxml python3-lz4 python3-pil python3-icalendar \
+    python3-snappy python3-tlsh qemu-utils rzip squashfs-tools zstd
+
+The following packages do not seem to be available for all Ubuntu versions:
+
 * tinycss2
 * dockerfile_parse
