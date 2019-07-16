@@ -37,6 +37,10 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 or if you are fortunate enough to be using [nix](https://nixos.org/nix), run
 `nix-shell` to load all the dependencies during development.
 
+## Supported hardware
+
+It is assumed that BANG is run on little endian hardware (such as x86 or x86-64).
+
 ## Unsupported distributions
 
 * Fedora 28 and earlier
