@@ -55,13 +55,14 @@ class BangScannerOptions:
             'createbytecounter': False,
             'createjson': True,
             'tlshmaximum': sys.maxsize,
+            'postgresql_enabled': True,
             'postgresql_host': None,
             'postgresql_port': None,
             'postgresql_user': None,
             'postgresql_password': None,
             'postgresql_db': None,
             'usedatabase': True,
-            'dbconnectionerrorfatal': False,
+            'postgresql_error_fatal': False,
             'elastic_enabled': False,
             'elastic_user': None,
             'elastic_password': None,
@@ -194,7 +195,9 @@ class BangScannerOptions:
                 section='configuration', option='report')
         self._set_boolean_option_from_config('uselogging',
                 section='configuration', option='logging')
-        self._set_boolean_option_from_config('dbconnectionerrorfatal',
+        self._set_boolean_option_from_config('postgresql_error_fatal',
+                section='database')
+        self._set_boolean_option_from_config('postgresql_enabled',
                 section='database')
         self._set_string_option_from_config('postgresql_user', section='database')
         self._set_string_option_from_config('postgresql_password',
@@ -227,8 +230,8 @@ class BangScannerOptions:
         self.options.usedatabase = self.options.postgresql_db and \
             self.options.postgresql_user and \
             self.options.postgresql_password
-        # if dbconnectionerrorfatal, db parameters must be set
-        if self.options.dbconnectionerrorfatal and \
+        # if postgresql_error_fatal, db parameters must be set
+        if self.options.postgresql_error_fatal and \
                 self.options.usedatabase is False:
             self._error('Missing or invalid database information')
 

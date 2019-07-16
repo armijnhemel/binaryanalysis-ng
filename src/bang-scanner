@@ -87,7 +87,7 @@ def main(argv):
             conn = connect_to_bang_database(options)
             conn.close()
         except Exception as ex:
-            if options.dbconnectionerrorfatal:
+            if options.postgresql_error_fatal:
                 print("Database error: missing/wrong configuration or database not running", file=sys.stderr)
                 sys.exit(1)
             options.usedatabase = False
