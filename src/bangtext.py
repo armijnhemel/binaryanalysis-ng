@@ -487,7 +487,7 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {}
     unpackedsize = 0
 
-    validattributes = set(['Name',
+    valid_attributes = set(['Name',
                            'Manifest-Version',
                            'Created-By',
                            'Signature-Version',
@@ -508,12 +508,14 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
                            'Java-Bean',
                            'Magic'])
 
-    extensionattributes = ['-Extension-Name',
+    extension_attributes = ['-Extension-Name',
                            '-Specification-Version',
                            '-Implementation-Version',
                            '-Implementation-Vendor-Id',
                            '-Implementation-URL',
                            '-Digest-Manifest']
+
+    custom_attributes = ['Built-By']
 
     isopened = False
 
@@ -553,7 +555,7 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
                     return {'status': False, 'error': unpackingerror}
             isnewline = True
             manifestattribute = i.strip().split(':', 1)[0].strip()
-            if manifestattribute in validattributes:
+            if manifestattribute in valid_attributes:
                 manifestlinesseen = True
                 continue
             # check the digest values
@@ -569,11 +571,16 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
                 continue
             # check a few exceptions
             validextensionattribute = False
-            for a in extensionattributes:
+            customattribute = False
+            for a in extension_attributes:
                 if manifestattribute.endswith(a):
                     validextensionattribute = True
                     break
-            if not validextensionattribute:
+            for a in custom_attributes:
+                if manifestattribute.endswith(a):
+                    customattribute = True
+                    break
+            if not validextensionattribute and not customattribute:
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid manifest line'}
