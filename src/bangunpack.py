@@ -13202,3 +13202,134 @@ def unpack_pcapng(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_pcapng.signatures = {'pcapng': b'\x0a\x0d\x0d\x0a'}
+
+
+# https://wiki.wireshark.org/Development/LibpcapFileFormat
+def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify/carve a pcap file'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # header is 24 bytes
+    if offset + 24 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file, read the signature to determine byte order
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(4)
+
+    nano_second = False
+    if checkbytes == b'\xd4\xc3\xb2\xa1':
+        byteorder = 'little'
+    elif checkbytes == b'\x4d\x3c\xb2\xa1':
+        byteorder = 'little'
+        nano_second = True
+    elif checkbytes == b'\xa1\xb2\xc3\xd4':
+        byteorder = 'big'
+    else:
+        byteorder = 'big'
+        nano_second = True
+    unpackedsize += 4
+
+    # major version
+    checkbytes = checkfile.read(2)
+    major = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 2
+
+    # minor version
+    checkbytes = checkfile.read(2)
+    minor = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 2
+
+    # this_zone
+    checkbytes = checkfile.read(4)
+    this_zone = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 4
+
+    # sigfigs
+    checkbytes = checkfile.read(4)
+    sigfigs = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 4
+
+    # snaplen
+    checkbytes = checkfile.read(4)
+    snaplen = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 4
+
+    # data link type
+    checkbytes = checkfile.read(4)
+    data_link_type = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 4
+
+    data_unpacked = False
+
+    # then the captured packets: packet header followed by packet data
+    while True:
+        # packet header is 16 bytes
+        if checkfile.tell() + 16 > filesize:
+            break
+        # ts_sec, skip for now
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # ts_usec, skip for now
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # incl_len
+        checkbytes = checkfile.read(4)
+        incl_len = int.from_bytes(checkbytes, byteorder=byteorder)
+        unpackedsize += 4
+
+        # orig_len
+        checkbytes = checkfile.read(4)
+        orig_len = int.from_bytes(checkbytes, byteorder=byteorder)
+        unpackedsize += 4
+
+        if incl_len > orig_len:
+            break
+
+        if incl_len > snaplen:
+            break
+
+        if checkfile.tell() + incl_len > filesize:
+            break
+
+        # skip the packet data
+        checkfile.seek(incl_len, os.SEEK_CUR)
+        unpackedsize += incl_len
+        data_unpacked = True
+
+    if not data_unpacked:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no valid pcap data unpacked'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels = ['pcap']
+    else:
+        # else carve the file
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-pcap")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfile_rel, ['pcap', 'unpacked']))
+        checkfile.close()
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+unpack_pcap.signatures = {'pcap_le': b'\xd4\xc3\xb2\xa1',
+                          'pcap_be': b'\xa1\xb2\xc3\xd4',
+                          'pcap_le_nano': b'\x4d\x3c\xb2\xa1',
+                          'pcap_be_nano': b'\xa1\xb2\x3c\x4d'}
+unpack_pcap.pretty = 'pcap'

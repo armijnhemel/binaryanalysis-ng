@@ -149,6 +149,10 @@ signatures = {
     'grub2font': b'FILE\x00\x00\x00\x04PFF2',
     'bittorrent': b'd8:announce',
     'pcapng': b'\x0a\x0d\x0d\x0a',
+    'pcap_le': b'\xd4\xc3\xb2\xa1',
+    'pcap_be': b'\xa1\xb2\xc3\xd4',
+    'pcap_le_nano': b'\x4d\x3c\xb2\xa1',
+    'pcap_be_nano': b'\xa1\xb2\x3c\x4d',
 }
 
 # some signatures do not start at the beginning of the file
@@ -311,6 +315,10 @@ signaturetofunction = {
     'grub2font': bangunpack.unpack_grub2font,
     'bittorrent': bangunpack.unpack_bittorrent,
     'pcapng': bangunpack.unpack_pcapng,
+    'pcap_le': bangunpack.unpack_pcap,
+    'pcap_be': bangunpack.unpack_pcap,
+    'pcap_le_nano': bangunpack.unpack_pcap,
+    'pcap_be_nano': bangunpack.unpack_pcap,
 }
 
 # a lookup table to map signatures to a name for
@@ -338,6 +346,10 @@ signatureprettyprint = {
     'minix_1l': 'minix',
     'cramfs_le': 'cramfs',
     'cramfs_be': 'cramfs',
+    'pcap_le': 'pcap',
+    'pcap_be': 'pcap',
+    'pcap_le_nano': 'pcap',
+    'pcap_be_nano': 'pcap',
 }
 
 # extensions to unpacking functions. This should only be
