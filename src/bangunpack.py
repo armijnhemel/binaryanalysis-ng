@@ -13269,6 +13269,7 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize += 4
 
     data_unpacked = False
+    packet_count = 0
 
     # then the captured packets: packet header followed by packet data
     while True:
@@ -13276,11 +13277,13 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
         if checkfile.tell() + 16 > filesize:
             break
         # ts_sec, skip for now
-        checkfile.seek(4, os.SEEK_CUR)
+        checkbytes = checkfile.read(4)
+        ts_sec = int.from_bytes(checkbytes, byteorder=byteorder)
         unpackedsize += 4
 
         # ts_usec, skip for now
-        checkfile.seek(4, os.SEEK_CUR)
+        checkbytes = checkfile.read(4)
+        ts_usec = int.from_bytes(checkbytes, byteorder=byteorder)
         unpackedsize += 4
 
         # incl_len
@@ -13302,7 +13305,9 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
         if checkfile.tell() + incl_len > filesize:
             break
 
-        # skip the packet data
+        packet_count += 1
+
+        # skip the bytes
         checkfile.seek(incl_len, os.SEEK_CUR)
         unpackedsize += incl_len
         data_unpacked = True
