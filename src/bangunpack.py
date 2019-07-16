@@ -7581,7 +7581,7 @@ unpack_lz4legacy.signatures = {'lz4_legacy': b'\x02\x21\x4c\x18'}
 #
 # Android has a "binary XML", where the XML data has been translated
 # into a binary file. This one will eventually be covered by
-# unpackAndroidResource()
+# bangandroid.unpack_android_resource()
 def unpack_xml(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a XML file.'''
     filesize = fileresult.filesize
