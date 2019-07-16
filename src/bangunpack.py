@@ -13274,7 +13274,7 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize += 4
 
     data_unpacked = False
-    packet_count = 0
+    packet_count = 1
     prev_ts_sec = 0
 
     # then the captured packets: packet header followed by packet data
@@ -13282,10 +13282,15 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
         # packet header is 16 bytes
         if checkfile.tell() + 16 > filesize:
             break
-        # ts_sec, skip for now
+
+        # ts_sec
         checkbytes = checkfile.read(4)
         ts_sec = int.from_bytes(checkbytes, byteorder=byteorder)
 
+        # extra sanity check, assuming that packets are in
+        # chronological order. This is not always the case, for
+        # example in the case of TCP Retransmissions.
+        # More work needs to be done here. TODO.
         if ts_sec < prev_ts_sec:
             break
         prev_ts_sec = ts_sec
@@ -13313,12 +13318,11 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
 
         unpackedsize += 16
 
-        packet_count += 1
-
         # skip the bytes
         checkfile.seek(incl_len, os.SEEK_CUR)
         unpackedsize += incl_len
         data_unpacked = True
+        packet_count += 1
 
     metadata['count'] = packet_count
 
