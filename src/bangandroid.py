@@ -2030,6 +2030,7 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_android_resource.extensions = ['resources.arsc']
+unpack_android_resource.signatures = {'android_binary_xml': b'\x03\x00\x08\x00'}
 unpack_android_resource.pretty = 'androidresource'
 
 
