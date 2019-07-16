@@ -545,7 +545,7 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
                     return {'status': False, 'error': unpackingerror}
             else:
                 if ':' not in i:
-                    if re.match('\s+[\.\w\d]+', i) is not None:
+                    if re.match('\s+[\-\.\w\d/]+$', i.rstrip()) is not None:
                         continue
                     checkfile.close()
                     unpackingerror = {'offset': offset, 'fatal': False,
