@@ -39,7 +39,8 @@ or if you are fortunate enough to be using [nix](https://nixos.org/nix), run
 
 ## Unsupported distributions
 
-* Ubuntu 16.04 and lower are not supported (Python version too old)
+* Fedora 28 and earlier
+* Ubuntu 16.04 and lower (Python version too old)
 
 ## Supported file types
 
