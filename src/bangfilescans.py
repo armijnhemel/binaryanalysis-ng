@@ -146,6 +146,6 @@ extract_identifier.ignore = ['archive', 'audio', 'audio', 'database', 'encrypted
 
 bangfunctions = inspect.getmembers(sys.modules[__name__], inspect.isfunction)
 bangfilefunctions = [func for name, func in bangfunctions
-                     if func.context == 'file']
+                     if 'file' in func.context]
 bangwholecontextfunctions = [func for name, func in bangfunctions
                              if func.context == 'whole']

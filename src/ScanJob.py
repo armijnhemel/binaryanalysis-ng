@@ -682,7 +682,8 @@ def processfile(dbconn, dbcursor, scanenvironment):
             processlock.release()
 
             if not duplicate:
-                scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
+                if bangfilefunctions != []:
+                    scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
 
                 # write a pickle with output data
                 # The pickle contains:
