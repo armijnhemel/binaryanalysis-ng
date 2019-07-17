@@ -148,4 +148,4 @@ bangfunctions = inspect.getmembers(sys.modules[__name__], inspect.isfunction)
 bangfilefunctions = [func for name, func in bangfunctions
                      if 'file' in func.context]
 bangwholecontextfunctions = [func for name, func in bangfunctions
-                             if func.context == 'whole']
+                             if 'whole' in func.context]
