@@ -1883,11 +1883,12 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
             xmlresourcetype = int.from_bytes(checkbytes, byteorder=byteorder)
 
         # followed by a start namespace element or start element
-        havenamespace = False
+        # record if the first element is a name space element
+        first_is_namespace = False
         if xmlresourcetype == 0x100:
-            havenamespace = True
+            first_is_namespace = True
 
-        if not havenamespace and xmlresourcetype != 0x102:
+        if not first_is_namespace and xmlresourcetype != 0x102:
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'start namespace or start element not found'}
@@ -1933,13 +1934,13 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
                 namespaces += 1
             elif xmlresourcetype == 0x101:
                 namespaces -= 1
-                if namespaces == 0:
+                if namespaces == 0 and first_is_namespace:
                     break
             elif xmlresourcetype == 0x102:
                 elementcount += 1
             elif xmlresourcetype == 0x103:
                 elementcount -= 1
-                if elementcount == 0 and not havenamespace:
+                if elementcount == 0 and not first_is_namespace:
                     break
         unpackedsize = checkfile.tell() - offset
     else:
