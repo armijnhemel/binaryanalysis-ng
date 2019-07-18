@@ -1029,6 +1029,10 @@ def unpack_base64(fileresult, scanenvironment, offset, unpackdir):
     base64contents = bytearray(filesize)
     checkfile.readinto(base64contents)
     checkfile.close()
+
+    # first remove all the different line endings. These are not
+    # valid characters in the base64 alphabet, plus it also conveniently
+    # translates CRLF encoded files.
     base64contents = base64contents.replace(b'\n', b'')
     base64contents = base64contents.replace(b'\r', b'')
 
