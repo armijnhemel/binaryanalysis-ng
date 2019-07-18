@@ -1750,11 +1750,9 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
         oldoffset = checkfile.tell()
 
         stringres = android_resource_string_pool(checkfile, byteorder, offset, oldoffset, filesize)
-        if not stringres:
+        if not stringres['status']:
             checkfile.close()
             return stringres
-
-        checkfile.seek(oldoffset + stringres['styleoffset'])
 
         # skip over the entire chunk
         checkfile.seek(oldoffset + stringres['stringpoolheaderchunksize'])
@@ -1875,6 +1873,7 @@ def android_resource_string_pool(checkfile, byteorder, offset, oldoffset, filesi
                           'fatal': False,
                           'reason': 'unsupported string pool resource type'}
         return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
 
     # then the string pool header size
     checkbytes = checkfile.read(2)
