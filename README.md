@@ -91,7 +91,7 @@ larger file, unless stated otherwise.
 37. Android Dex/Odex (not OAT, just carving)
 38. ELF
 39. SWF (uncompressed, zlib, LZMA)
-40. Android resource files (table type only, possibly not all types)
+40. Android resource files (table type, but possibly not all types, binary XML)
 41. Java/Android MANIFEST.MF files (whole file)
 42. Linux kernel configuration files (whole file)
 43. Dockerfile files (whole file)
