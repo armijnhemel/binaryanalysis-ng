@@ -1896,7 +1896,7 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
         # go back 2 bytes
         checkfile.seek(-2, os.SEEK_CUR)
 
-        # and process elements until an "end namespace" is found
+        # and process elements until the end of the file
         namespaces = 0
         elementcount = 0
         while True:
