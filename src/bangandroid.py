@@ -1939,7 +1939,7 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
                 elementcount += 1
             elif xmlresourcetype == 0x103:
                 elementcount -= 1
-                if elementcount == 0:
+                if elementcount == 0 and not havenamespace:
                     break
         unpackedsize = checkfile.tell() - offset
     else:
