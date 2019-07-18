@@ -29,9 +29,9 @@ class ScanEnvironment:
         'database'])
 
     def __init__(self, maxbytes, readsize, createbytecounter, createjson,
-                 tlshmaximum, synthesizedminimum, logging, paddingname,
-                 unpackdirectory, temporarydirectory, resultsdirectory,
-                 scanfilequeue, resultqueue,
+                 runfilescans, tlshmaximum, synthesizedminimum, logging,
+                 paddingname, unpackdirectory, temporarydirectory,
+                 resultsdirectory, scanfilequeue, resultqueue,
                  processlock, checksumdict,
                 ):
         """unpackdirectory: a Path object
@@ -59,6 +59,10 @@ class ScanEnvironment:
         self.resultqueue = resultqueue
         self.processlock = processlock
         self.checksumdict = checksumdict
+        self.runfilescans = runfilescans
+
+    def get_runfilescans(self):
+        return self.runfilescans
 
     def get_readsize(self):
         return self.readsize

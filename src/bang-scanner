@@ -253,6 +253,7 @@ def main(argv):
             readsize = 10240,
             createbytecounter = options.createbytecounter,
             createjson = options.createjson,
+            runfilescans = options.runfilescans,
             tlshmaximum = options.tlshmaximum,
             synthesizedminimum = 10,
             logging = banglogging.uselogging,
