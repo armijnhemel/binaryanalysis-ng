@@ -1819,6 +1819,118 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
             # skip over the entire chunk
             checkfile.seek(oldoffset + packagesize)
             unpackedsize = checkfile.tell() - offset
+    elif resourcetype == 3:
+        # http://web.archive.org/web/20140916071519/http://justanapplication.wordpress.com/2011/09/22/android-internals-binary-xml-part-two-the-xml-chunk/
+        if checkfile.tell() + 8 > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'Not enough data for string pool'}
+            return {'status': False, 'error': unpackingerror}
+
+        # first a StringPool
+        # store the old offset, as it is important to determine
+        # the start of the string table and style offsets.
+        oldoffset = checkfile.tell()
+
+        stringres = android_resource_string_pool(checkfile, byteorder, offset, oldoffset, filesize)
+        if not stringres['status']:
+            checkfile.close()
+            return stringres
+
+        # skip over the entire chunk
+        checkfile.seek(oldoffset + stringres['stringpoolheaderchunksize'])
+        unpackedsize = checkfile.tell() - offset
+
+        # store the old offset
+        oldoffset = checkfile.tell()
+
+        # then an optional xml resource map and mandatory start namespace,
+        # at least 8 bytes
+        if checkfile.tell() + 8 > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'Not enough data for string pool'}
+            return {'status': False, 'error': unpackingerror}
+
+        checkbytes = checkfile.read(2)
+        xmlresourcetype = int.from_bytes(checkbytes, byteorder=byteorder)
+        if xmlresourcetype == 0x180:
+            # header size
+            checkbytes = checkfile.read(2)
+            chunkheadersize = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            # chunk size
+            checkbytes = checkfile.read(2)
+            chunksize = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            # sanity checks
+            if oldoffset + chunksize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'Not enough data for XML resource map'}
+                return {'status': False, 'error': unpackingerror}
+
+            # and skip the chunk
+            checkfile.seek(oldoffset + chunksize)
+
+            # and continue reading the start namespace element
+            if checkfile.tell() + 8 > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'Not enough data for string pool'}
+                return {'status': False, 'error': unpackingerror}
+            checkbytes = checkfile.read(2)
+            xmlresourcetype = int.from_bytes(checkbytes, byteorder=byteorder)
+
+        # followed by a Start namespace element
+        if xmlresourcetype != 0x100:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'Start Namespace not found'}
+            return {'status': False, 'error': unpackingerror}
+
+        # go back 2 bytes
+        checkfile.seek(-2, os.SEEK_CUR)
+
+        # and process elements until an "end namespace" is found
+        namespaces = 0
+        while True:
+            # store the old offset
+            oldoffset = checkfile.tell()
+
+            if checkfile.tell() + 8 > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'Not enough data for XML element'}
+                return {'status': False, 'error': unpackingerror}
+
+            checkbytes = checkfile.read(2)
+            xmlresourcetype = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            checkbytes = checkfile.read(2)
+            chunkheadersize = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            # chunk size
+            checkbytes = checkfile.read(2)
+            chunksize = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            # sanity checks
+            if oldoffset + chunksize > filesize:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'Not enough data for XML resource map'}
+                return {'status': False, 'error': unpackingerror}
+
+            # and skip the chunk
+            checkfile.seek(oldoffset + chunksize)
+
+            if xmlresourcetype == 0x100:
+                namespaces += 1
+            elif xmlresourcetype == 0x101:
+                namespaces -= 1
+                if namespaces == 0:
+                    break
+        unpackedsize = checkfile.tell() - offset
     else:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -1826,21 +1938,29 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # see if the whole file is the android resource file
-    if offset + totalchunksize == filesize:
+    if offset == 0 and totalchunksize == filesize:
         checkfile.close()
         labels.append('resource')
         labels.append('android')
+        if resourcetype == 3:
+            labels.append('binary xml')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file
-    outfile_rel = os.path.join(unpackdir, "unpacked-from-resources.arsc")
+    if resourcetype == 3:
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-binary.xml")
+    else:
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-resources.arsc")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
-    unpackedfilesandlabels.append((outfile_rel, ['resource', 'android resource', 'unpacked']))
     checkfile.close()
+    if resourcetype == 3:
+        unpackedfilesandlabels.append((outfile_rel, ['resource', 'binary xml', 'android resource', 'unpacked']))
+    else:
+        unpackedfilesandlabels.append((outfile_rel, ['resource', 'android resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
