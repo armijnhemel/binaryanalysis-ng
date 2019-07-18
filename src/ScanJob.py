@@ -186,7 +186,7 @@ class ScanJob:
         # if they match. Is this the intention?
         for extension in bangsignatures.extensiontofunction:
             if bangsignatures.matches_file_pattern(self.fileresult.filename, extension):
-                log(logging.INFO, "TRY extension match %s %s" % (self.fileresult.filename, extension))
+                log(logging.INFO, "TRYING extension match %s %s" % (self.fileresult.filename, extension))
                 unpackresult = unpacker.try_unpack_file_for_extension(
                     self.fileresult, self.scanenvironment,
                     self.fileresult.filename, extension)
