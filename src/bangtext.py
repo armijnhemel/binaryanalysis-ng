@@ -513,9 +513,10 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
                            '-Implementation-Version',
                            '-Implementation-Vendor-Id',
                            '-Implementation-URL',
-                           '-Digest-Manifest']
+                           '-Digest-Manifest',
+                           '-Digest-Manifest-Main-Attributes']
 
-    custom_attributes = ['Built-By']
+    custom_attributes = ['Built-By', 'Ant-Version']
     android_attributes = ['X-Android-APK-Signed']
 
     isopened = False
