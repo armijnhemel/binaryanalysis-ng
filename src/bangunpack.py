@@ -11175,9 +11175,9 @@ def unpack_acdb(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # next 4 bytes can be various values, such as "AVDB"
-    # or "GCDB"
+    # "GCDB" or "CCDB"
     checkbytes = checkfile.read(4)
-    if checkbytes not in [b'AVDB', b'GCDB']:
+    if checkbytes not in [b'AVDB', b'GCDB', b'CCDB']:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False,
