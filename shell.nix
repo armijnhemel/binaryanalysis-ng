@@ -1,5 +1,9 @@
 let
-  pkgs = import <nixpkgs> {};
+  # Use `niv update` to update nixpkgs.
+  # See https://github.com/nmattia/niv/
+  sources = import ./nix/sources.nix;
+
+  pkgs = import sources.nixpkgs { config = {}; overlays = []; };
 
   my-python = pkgs.python3.withPackages (p: with p; [
     defusedxml
