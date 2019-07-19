@@ -354,6 +354,9 @@ unpack_android_backup.signatures = {'android_backup': b'ANDROID BACKUP\n'}
 
 # Chrome PAK
 #
+# These files contain various resources (such as PNGs), and
+# localized strings and are frequently used on Android.
+#
 # version 4:
 # http://dev.chromium.org/developers/design-documents/linuxresourcesandlocalizedstrings
 # https://chromium.googlesource.com/chromium/src/tools/grit/+/22f7a68bb5ad68fe4192d0f34466049038735b9c/grit/format/data_pack.py
@@ -468,13 +471,32 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
                 lenbytes = endoffile - sorteditems[i][1]
             else:
                 lenbytes = sorteditems[i+1][1] - sorteditems[i][1]
-            outfile_rel = os.path.join(unpackdir, 'resource-%d' % sorteditems[i][0])
-            outfile_full = scanenvironment.unpack_path(outfile_rel)
-            outfile = open(outfile_full, 'wb')
-            outfile.write(checkfile.read(lenbytes))
-            outfile.flush()
-            outfile.close()
-            unpackedfilesandlabels.append((outfile_rel, []))
+
+            # determine whether or not a resource needs
+            # to be written to a file
+            writedata = True
+            outbytes = checkfile.read(lenbytes)
+            if pakencoding != 0:
+                if pakencoding == 1:
+                    try:
+                        resource = outbytes.decode()
+                    except UnicodeDecodeError:
+                        writedata = True
+                elif pakencoding == 2:
+                    try:
+                        resource = outbytes.decode('utf_16_le')
+                    except:
+                        writedata = True
+            else:
+                writedata = True
+            if writedata:
+                outfile_rel = os.path.join(unpackdir, 'resource-%d' % sorteditems[i][0])
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                outfile = open(outfile_full, 'wb')
+                outfile.write(checkfile.read(lenbytes))
+                outfile.flush()
+                outfile.close()
+                unpackedfilesandlabels.append((outfile_rel, []))
 
     elif pakversion == 5:
         resourceidtooffset = {}
@@ -573,13 +595,32 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
                 lenbytes = endoffile - sorteditems[i][1]
             else:
                 lenbytes = sorteditems[i+1][1] - sorteditems[i][1]
-            outfile_rel = os.path.join(unpackdir, 'resource-%d' % sorteditems[i][0])
-            outfile_full = scanenvironment.unpack_path(outfile_rel)
-            outfile = open(outfile_full, 'wb')
-            outfile.write(checkfile.read(lenbytes))
-            outfile.flush()
-            outfile.close()
-            unpackedfilesandlabels.append((outfile_rel, []))
+
+            # determine whether or not a resource needs
+            # to be written to a file
+            writedata = True
+            outbytes = checkfile.read(lenbytes)
+            if pakencoding != 0:
+                if pakencoding == 1:
+                    try:
+                        resource = outbytes.decode()
+                    except UnicodeDecodeError:
+                        writedata = True
+                elif pakencoding == 2:
+                    try:
+                        resource = outbytes.decode('utf_16_le')
+                    except:
+                        writedata = True
+            else:
+                writedata = True
+            if writedata:
+                outfile_rel = os.path.join(unpackdir, 'resource-%d' % sorteditems[i][0])
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                outfile = open(outfile_full, 'wb')
+                outfile.write(checkfile.read(lenbytes))
+                outfile.flush()
+                outfile.close()
+                unpackedfilesandlabels.append((outfile_rel, []))
 
     if endoffile + offset == filesize:
         checkfile.close()
