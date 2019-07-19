@@ -516,6 +516,7 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
                            '-Digest-Manifest']
 
     custom_attributes = ['Built-By']
+    android_attributes = ['X-Android-APK-Signed']
 
     isopened = False
 
@@ -530,6 +531,7 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
 
     checkfile.seek(0)
     manifestlinesseen = False
+    isandroid = False
 
     try:
         isnewline = True
@@ -572,6 +574,7 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
             # check a few exceptions
             validextensionattribute = False
             customattribute = False
+            androidattribute = False
             for a in extension_attributes:
                 if manifestattribute.endswith(a):
                     validextensionattribute = True
@@ -580,7 +583,12 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
                 if manifestattribute.endswith(a):
                     customattribute = True
                     break
-            if not validextensionattribute and not customattribute:
+            for a in android_attributes:
+                if manifestattribute.endswith(a):
+                    androidattribute = True
+                    isandroid = True
+                    break
+            if not validextensionattribute and not customattribute and not androidattribute:
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid manifest line'}
@@ -600,6 +608,8 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
 
     labels.append('text')
     labels.append('javamanifest')
+    if isandroid:
+        labels.append('android')
 
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
