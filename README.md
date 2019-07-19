@@ -181,6 +181,7 @@ larger file, unless stated otherwise.
 121. BitTorrent files (subset)
 122. pcapng (carving, structural checks, little endian only)
 123. pcap (carving, structural checks)
+124. serialized Java (block data only, carving, structural checks)
 
 
 ## Invocation

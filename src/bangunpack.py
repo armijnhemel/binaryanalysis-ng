@@ -13358,3 +13358,79 @@ unpack_pcap.signatures = {'pcap_le': b'\xd4\xc3\xb2\xa1',
                           'pcap_le_nano': b'\x4d\x3c\xb2\xa1',
                           'pcap_be_nano': b'\xa1\xb2\x3c\x4d'}
 unpack_pcap.pretty = 'pcap'
+
+
+# https://docs.oracle.com/javase/8/docs/platform/serialization/spec/protocol.html
+# only support version 5 for now
+def unpack_serialized_java(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify/carve a serialized Java file'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # file is at least 5 bytes: magic (2 bytes),
+    # version (2 bytes), data (1 byte)
+    if offset + 5 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not a valid serialized Java file'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file, skip magic and version
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    data_unpacked = False
+
+    # followed by one or more "content" blocks. A content block
+    # is either "object" or "blockdata". Only suppport block data
+    # for now as that is the most common (example: Android)
+    while True:
+        checkbytes = checkfile.read(1)
+        if len(checkbytes) != 1:
+            # EOF reached
+            break
+        tc_byte = ord(checkbytes)
+        if tc_byte == 0x77:
+            # block data
+            readbytes = 1
+        elif tc_byte == 0x7a:
+            # block data long
+            readbytes = 4
+            pass
+        else:
+            break
+        checkbytes = checkfile.read(readbytes)
+        if len(checkbytes) != readbytes:
+            break
+        datasize = int.from_bytes(checkbytes, byteorder='big')
+        if checkfile.tell() + datasize > filesize:
+            break
+        # skip over the bytes
+        checkfile.seek(datasize, os.SEEK_CUR)
+        data_unpacked = True
+        unpackedsize += 1 + readbytes + datasize
+
+    if not data_unpacked:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no valid serialized Java data unpacked'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels = ['serialized java']
+    else:
+        # else carve the file
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-serialized-java")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfile_rel, ['serialized java', 'unpacked']))
+        checkfile.close()
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
