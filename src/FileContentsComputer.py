@@ -20,6 +20,7 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import os
 import hashlib
 import string
 import collections
@@ -41,20 +42,28 @@ class FileContentsComputer:
         return self._read_with_file_read(filename)
 
     def _read_with_file_read(self, filename):
+        filesize = filename.stat().st_size
+        bytes_processed = 0
         scanfile = open(filename, 'rb')
         scanfile.seek(0)
         for computer in self.computers:
             computer.initialize()
         data = scanfile.read(self.read_size)
         while data != b'':
+            bytes_processed += len(data)
             for computer in self.computers:
                 computer.compute(data)
+            if self.overlap > 0 and filesize - bytes_processed > self.overlap:
+                scanfile.seek(-self.overlap, os.SEEK_CUR)
+                bytes_processed -= self.overlap
             data = scanfile.read(self.read_size)
         for computer in self.computers:
             computer.finalize()
         scanfile.close()
 
     def _read_with_memory_view(self, filename):
+        filesize = filename.stat().st_size
+        bytes_processed = 0
         scanfile = open(filename, 'rb')
         scanfile.seek(0)
         for computer in self.computers:
@@ -62,9 +71,13 @@ class FileContentsComputer:
         scanbytes = bytearray(self.read_size)
         bytes_read = scanfile.readinto(scanbytes)
         while bytes_read != 0:
+            bytes_processed += bytes_read
             data = memoryview(scanbytes[:bytes_read])
             for computer in self.computers:
                 computer.compute(data)
+            if self.overlap > 0 and filesize - bytes_processed > self.overlap:
+                scanfile.seek(-self.overlap, os.SEEK_CUR)
+                bytes_processed -= self.overlap
             bytes_read = scanfile.readinto(scanbytes)
         for computer in self.computers:
             computer.finalize()
