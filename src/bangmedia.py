@@ -2387,7 +2387,7 @@ def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
             testimg = PIL.Image.open(checkfile)
             testimg.load()
             testimg.close()
-        except OSError:
+        except (OSError, ValueError):
             checkfile.close()
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid ICO data according to PIL'}
@@ -2412,7 +2412,7 @@ def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
         testimg = PIL.Image.open(outfile)
         testimg.load()
         testimg.close()
-    except OSError:
+    except (OSError, ValueError):
         checkfile.close()
         outfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
