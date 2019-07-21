@@ -27,9 +27,10 @@ import tlsh
 
 class FileContentsComputer:
     '''Class to process the contents of a file'''
-    def __init__(self, read_size):
+    def __init__(self, read_size, overlap=0):
         self.computers = []
         self.read_size = read_size
+        self.overlap = overlap
 
     def subscribe(self, input_computer):
         self.computers.append(input_computer)
