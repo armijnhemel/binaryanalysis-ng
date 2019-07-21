@@ -541,8 +541,6 @@ class ScanJob:
                     # so check the status first
                     log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
                         (self.fileresult.filename, f, 0, unpackresult['error']['reason']))
-                    #print(s[1], unpackresult['error'])
-                    #sys.stdout.flush()
                     # unpackerror contains:
                     # * offset in the file where the error occured
                     #   (integer)
