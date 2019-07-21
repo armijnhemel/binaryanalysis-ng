@@ -5664,6 +5664,7 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_pnm.signatures = {'ppm': b'P6', 'pgm': b'P5', 'pbm': b'P4'}
 
+
 # https://github.com/mapsforge/mapsforge/blob/master/docs/Specification-Binary-Map-File.md
 def unpack_mapsforge(fileresult, scanenvironment, offset, unpackdir):
     '''Verify/carve a Mapsforge binary mape file'''
@@ -5756,3 +5757,5 @@ def unpack_mapsforge(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels.append((outfile_rel, ['mapsforge', 'unpacked']))
     return {'status': True, 'length': map_size, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_mapsforge.signatures = {'mapsforge': b'mapsforge binary OSM'}
