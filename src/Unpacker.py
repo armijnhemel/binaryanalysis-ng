@@ -115,8 +115,7 @@ class Unpacker:
         try:
             self.make_data_unpack_directory(relpath, bangsignatures.extensionprettyprint[extension])
             return bangsignatures.unpack_file_with_extension(fileresult, scanenvironment, extension, self.dataunpackdirectory)
-        except AttributeError as ex:
-            print(ex)
+        except AttributeError:
             self.remove_data_unpack_directory()
             return None
 
