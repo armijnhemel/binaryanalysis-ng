@@ -122,10 +122,14 @@ class Unpacker:
 
     def open_scanfile(self, filename):
         '''Open the file read-only in raw mode'''
+        if filename.stat().st_mode &  stat.S_IRUSR != stat.S_IRUSR:
+            filename.chmod(stat.S_IRUSR)
         self.scanfile = open(filename, 'rb')
 
     def open_scanfile_with_memoryview(self, filename, maxbytes):
         '''Open the file using a memory view to reduce I/O'''
+        if filename.stat().st_mode &  stat.S_IRUSR != stat.S_IRUSR:
+            filename.chmod(stat.S_IRUSR)
         self.scanfile = open(filename, 'rb')
         self.scanbytesarray = bytearray(maxbytes)
         self.scanbytes = memoryview(self.scanbytesarray)
