@@ -26,7 +26,7 @@ import collections
 import tlsh
 
 class FileContentsComputer:
-    '''Class to proocess the contents of a file'''
+    '''Class to process the contents of a file'''
     def __init__(self, read_size):
         self.computers = []
         self.read_size = read_size
