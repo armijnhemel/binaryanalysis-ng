@@ -155,6 +155,7 @@ signatures = {
     'pcap_be_nano': b'\xa1\xb2\x3c\x4d',
     'android_binary_xml': b'\x03\x00\x08\x00',
     'serialized_java': b'\xac\xed\x00\x05',
+    'mapsforge': b'mapsforge binary OSM',
 }
 
 # some signatures do not start at the beginning of the file
@@ -323,6 +324,7 @@ signaturetofunction = {
     'pcap_be_nano': bangunpack.unpack_pcap,
     'android_binary_xml': bangandroid.unpack_android_resource,
     'serialized_java': bangunpack.unpack_serialized_java,
+    'mapsforge': bangmedia.unpack_mapsforge,
 }
 
 # a lookup table to map signatures to a name for
