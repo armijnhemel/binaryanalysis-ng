@@ -183,6 +183,7 @@ larger file, unless stated otherwise.
 123. pcap (carving, structural checks)
 124. serialized Java (block data only, carving, structural checks)
 125. mapsforge map files (very basic structural checks)
+126. Parrot PLF files
 
 
 ## Invocation

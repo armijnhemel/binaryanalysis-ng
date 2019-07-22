@@ -156,6 +156,7 @@ signatures = {
     'android_binary_xml': b'\x03\x00\x08\x00',
     'serialized_java': b'\xac\xed\x00\x05',
     'mapsforge': b'mapsforge binary OSM',
+    'plf': b'PLF!',
 }
 
 # some signatures do not start at the beginning of the file
@@ -325,6 +326,7 @@ signaturetofunction = {
     'android_binary_xml': bangandroid.unpack_android_resource,
     'serialized_java': bangunpack.unpack_serialized_java,
     'mapsforge': bangmedia.unpack_mapsforge,
+    'plf': bangfilesystems.unpack_plf,
 }
 
 # a lookup table to map signatures to a name for

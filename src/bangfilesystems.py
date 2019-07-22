@@ -39,6 +39,7 @@ import collections
 import math
 import lzma
 import zlib
+import gzip
 import stat
 import subprocess
 import json
@@ -4483,6 +4484,381 @@ def unpack_cramfs(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': cramfssize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# Parrot (drone manufacturer) has its own update files that have some sort
+# of file system (PLF) with various types of partitions. Only some of these
+# partitions are somewhat documented. It seems that there is also some
+# inconsistency in the formats, but there is too little documentation.
+# Not all data from this format might be unpacked in a sane way.
+#
+# http://embedded-software.blogspot.com/2010/12/plf-file-format.html
+# http://thecyberrecce.net/2017/01/09/reversing-the-parrot-skycontroller-firmware/
+# https://github.com/Parrot-Developers/libARUpdater/blob/5b3667dd97c4ba0e38cb5f9a477773012c1e55d3/Sources/ARUPDATER_Plf.h
+# https://github.com/Parrot-Developers/libpuf/blob/master/src/libpuf_plf.h
+def unpack_plf(fileresult, scanenvironment, offset, unpackdir):
+    '''Unpack a Parrot file system'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # header is 56 bytes
+    if offset + 56 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset+4)
+    unpackedsize += 4
+
+    # header version (values observed: 0x9, 0xa, 0xb, 0xc, 0xd)
+    checkbytes = checkfile.read(4)
+    header_version = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # header size
+    checkbytes = checkfile.read(4)
+    header_size = int.from_bytes(checkbytes, byteorder='little')
+    if header_size != 56:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid header size value'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # entry header size, always 20 bytes
+    checkbytes = checkfile.read(4)
+    entry_header_size = int.from_bytes(checkbytes, byteorder='little')
+    if entry_header_size != 20:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unsupported header entry size'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # file type, not used
+    checkbytes = checkfile.read(4)
+    file_type = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # entry point, not used
+    checkbytes = checkfile.read(4)
+    entry_point = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # target platform, not used
+    checkbytes = checkfile.read(4)
+    target_platform = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # target application, not used
+    checkbytes = checkfile.read(4)
+    target_application = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # hardware compatibility, not used
+    checkbytes = checkfile.read(4)
+    hardware_compatibility = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # major version
+    checkbytes = checkfile.read(4)
+    major_version = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # minor version
+    checkbytes = checkfile.read(4)
+    minor_version = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # bugfix version
+    checkbytes = checkfile.read(4)
+    bugfix_version = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # language zone, not used
+    checkbytes = checkfile.read(4)
+    language_zone = int.from_bytes(checkbytes, byteorder='little')
+    unpackedsize += 4
+
+    # file size
+    checkbytes = checkfile.read(4)
+    plf_size = int.from_bytes(checkbytes, byteorder='little')
+    if plf_size < 56:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid file size value'}
+        return {'status': False, 'error': unpackingerror}
+    if offset + plf_size > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for file system'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # set several couunters
+    partition_counter = 1
+    data_unpacked = False
+    data_partition = 0
+
+    # then the file system entries
+    while True:
+        if checkfile.tell() + entry_header_size > filesize:
+            break
+
+        # section type
+        checkbytes = checkfile.read(4)
+        section_type = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        # entry size
+        checkbytes = checkfile.read(4)
+        entry_size = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        # CRC32, skip
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # unknown bytes, skip
+        checkfile.seek(4, os.SEEK_CUR)
+        unpackedsize += 4
+
+        # uncompressed size
+        checkbytes = checkfile.read(4)
+        uncompressed_size = int.from_bytes(checkbytes, byteorder='little')
+        unpackedsize += 4
+
+        if uncompressed_size == 0:
+           is_compressed = False
+        else:
+           is_compressed = True
+
+        # sanity check: data can't be outside of the file
+        if checkfile.tell() + entry_size > filesize:
+            break
+
+        if section_type == 0x3:
+            outfile_rel = os.path.join(unpackdir, 'partition-%d' % partition_counter, "bootloader")
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
+            os.makedirs(outfile_full.parent, exist_ok=True)
+            outfile = open(outfile_full, 'wb')
+            os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), entry_size)
+
+            # add result to result set
+            unpackedfilesandlabels.append((outfile_rel, []))
+
+            # skip over the data
+            checkfile.seek(entry_size, os.SEEK_CUR)
+            unpackedsize += entry_size
+            data_unpacked = True
+        elif section_type == 0x4 or section_type == 0x9:
+            # sections with type 0x4 seem to contain other files, but
+            # more as some sort of "raw" dump.
+            # sections with type 0x9 contain file system data, including
+            # meta information (type, permissions).
+            local_bytes_read = 0
+
+            # read the name in the PLF file
+            if is_compressed:
+                checkbytes = checkfile.read(entry_size)
+                checkbytes = gzip.decompress(checkbytes)
+
+                (entry_name, entry_data) = checkbytes.split(b'\x00', 1)
+                if section_type == 0x9:
+                    # the first four bytes of entry_data are metadata
+                    entry_tag = entry_data[:4]
+            else:
+                entry_name = b''
+                while True:
+                    checkbytes = checkfile.read(1)
+                    if checkbytes == b'':
+                        break
+                    local_bytes_read += 1
+                    if checkbytes == b'\x00':
+                        break
+                    entry_name += checkbytes
+                if section_type == 0x9:
+                    entry_tag = checkfile.read(4)
+                    local_bytes_read += 4
+
+            if entry_name == b'':
+                break
+            try:
+                entry_name = os.path.normpath(entry_name.decode())
+                if os.path.isabs(entry_name):
+                    entry_name = os.path.relpath(entry_name, '/')
+            except UnicodeDecodeError:
+                break
+
+            # first create the data directory if needed
+            if section_type == 0x4:
+                plf_dir_rel = os.path.join(unpackdir, 'partition-%d' % partition_counter)
+                partition_counter += 1
+            else:
+                if data_partition == 0:
+                    data_partition = partition_counter
+                    partition_counter += 1
+                plf_dir_rel = os.path.join(unpackdir, 'partition-%d' % partition_counter)
+            plf_dir_full = scanenvironment.unpack_path(plf_dir_rel)
+
+            if section_type == 0x4:
+                # write the data
+                outfile_rel = os.path.join(plf_dir_rel, entry_name)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full.parent, exist_ok=True)
+                outfile = open(outfile_full, 'wb')
+                if is_compressed:
+                    outfile.write(entry_data)
+                else:
+                    os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), entry_size-local_bytes_read)
+                outfile.close()
+
+                # add the file system to the result set
+                unpackedfilesandlabels.append((outfile_rel, []))
+                data_unpacked = True
+            else:
+                if len(entry_tag) != 4:
+                    break
+                entry_flags = int.from_bytes(entry_tag, byteorder='little')
+                entry_filetype = entry_flags >> 12
+
+                outfile_rel = os.path.join(plf_dir_rel, entry_name)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                if entry_filetype == 0x4:
+                    os.makedirs(outfile_full, exist_ok=True)
+
+                    # add result to result set
+                    unpackedfilesandlabels.append((outfile_rel, ['directory']))
+                elif entry_filetype == 0x8:
+                    # write data
+                    outfile = open(outfile_full, 'wb')
+                    if is_compressed:
+                        outfile.write(entry_data[12:])
+                    else:
+                        os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell()+8, entry_size-local_bytes_read)
+                    outfile.close()
+
+                    # add result to result set
+                    unpackedfilesandlabels.append((outfile_rel, []))
+
+                elif entry_filetype == 0xa:
+                    # symlink, only process if not compressed
+                    if not is_compressed:
+                        # skip 8 bytes from the entry tag
+                        checkfile.seek(8, os.SEEK_CUR)
+                        local_bytes_read += 8
+                        try:
+                            target_name = checkfile.read(entry_size-local_bytes_read).split(b'\x00', 1)[0].decode()
+                        except:
+                            break
+                        local_bytes_read = entry_size
+
+                        # add result to result set
+                        os.symlink(target_name, outfile_full)
+                        unpackedfilesandlabels.append((outfile_rel, ['symbolic link']))
+                else:
+                    pass
+                data_unpacked = True
+
+            # for compressed entries all data has already been
+            # read, but not for uncompressed entries.
+            if not is_compressed:
+                # skip over the data
+                checkfile.seek(entry_size-local_bytes_read, os.SEEK_CUR)
+            unpackedsize += entry_size
+        elif section_type == 0x5:
+            # in test firmware files analysed these seem to
+            # be directory names that can be safely skipped
+            checkfile.seek(entry_size, os.SEEK_CUR)
+            unpackedsize += entry_size
+        elif section_type == 0x7:
+            # apparently these are boot configurations
+            outfile_rel = os.path.join(unpackdir, 'partition-%d' % partition_counter, "bootconfiguration")
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
+            os.makedirs(outfile_full.parent, exist_ok=True)
+            outfile = open(outfile_full, 'wb')
+            os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), entry_size)
+            outfile.close()
+
+            # add result to result set
+            unpackedfilesandlabels.append((outfile_rel, []))
+
+            # skip over the data
+            checkfile.seek(entry_size, os.SEEK_CUR)
+            unpackedsize += entry_size
+            data_unpacked = True
+
+            # increase counter in case there are more bootloaders
+            partition_counter += 1
+        elif section_type == 0xb:
+            # the section contains a partition table. This does not
+            # reflect sections inside the firmware update, but only(?)
+            # on the device.
+            if entry_size != 0:
+                outfile_rel = os.path.join(unpackdir, 'partition-%d' % partition_counter, 'partition_table')
+                partition_counter += 1
+                unpackedfilesandlabels.append((outfile_rel, ['partition table']))
+
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full.parent, exist_ok=True)
+                outfile = open(outfile_full, 'wb')
+                os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), entry_size)
+                outfile.close()
+
+                # skip over the data
+                checkfile.seek(entry_size, os.SEEK_CUR)
+                data_unpacked = True
+
+                unpackedsize += entry_size
+        else:
+            # these are the sections that are unknown
+            if entry_size != 0:
+                outfile_rel = os.path.join(unpackdir, 'partition-%d' % partition_counter, 'partition')
+                partition_counter += 1
+                unpackedfilesandlabels.append((outfile_rel, []))
+
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full.parent, exist_ok=True)
+                outfile = open(outfile_full, 'wb')
+                os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), entry_size)
+                outfile.close()
+
+                # skip over the data
+                checkfile.seek(entry_size, os.SEEK_CUR)
+                data_unpacked = True
+
+            unpackedsize += entry_size
+
+        # skip any additional padding
+        if entry_size % 4 != 0:
+            padding = 4 - entry_size % 4
+            checkfile.seek(padding, os.SEEK_CUR)
+            unpackedsize += padding
+
+        # check if the end of the PLF has been reached
+        if checkfile.tell() - offset == plf_size:
+            break
+
+    checkfile.close()
+    if data_unpacked:
+        if offset == 0 and unpackedsize == filesize:
+            labels.append('plf')
+            labels.append('filesystem')
+
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    unpackingerror = {'offset': offset,
+                      'fatal': False,
+                      'reason': 'no valid PLF found'}
+    return {'status': False, 'error': unpackingerror}
 
 
 # UBI (Unsorted Block Image) is not a file system, but it
