@@ -8479,7 +8479,7 @@ unpack_snappy.signatures = {'snappy_framed': b'\xff\x06\x00\x00\x73\x4e\x61\x50\
 # https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
 # http://refspecs.linuxfoundation.org/elf/elf.pdf
 # https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-43405/index.html
-# https://android.googlesource.com/platform/art/+/master/runtime/elf.h
+# https://android.googlesource.com/platform/art/+/21a6ec5a5e9d392e33e4febffaa581da4d4855f2/libelffile/elf/elf.h
 def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an ELF file.'''
     filesize = fileresult.filesize
@@ -8604,6 +8604,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     checkbytes = checkfile.read(2)
     elfmachine = int.from_bytes(checkbytes, byteorder=byteorder)
     unpackedsize += 2
+    elfresult['machine'] = elfmachine
 
     # ELF version
     checkbytes = checkfile.read(4)
@@ -8614,6 +8615,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'invalid ELF version'}
         return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
+    elfresult['version'] = elfversion
 
     # ELF entry point (virtual address)
     if is64bit:
