@@ -107,7 +107,6 @@ def extract_identifier(fileresult, hashresults, dbconn, dbcursor, scanenvironmen
     forgeresults = {}
 
     seekbuf = bytearray(1000000)
-    # filesize = filename.stat().st_size
     filename_full = scanenvironment.unpack_path(fileresult.filename)
     filesize = fileresult.filesize
 
