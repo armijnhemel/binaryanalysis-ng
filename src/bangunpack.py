@@ -8540,6 +8540,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
         bigendian = True
         byteorder = 'big'
     unpackedsize += 1
+    elfresult['endian'] = byteorder
 
     # version (in e_ident), has to be 1
     checkbytes = checkfile.read(1)
