@@ -35,7 +35,7 @@ import os
 
 # unpack Quake PAK files
 # https://quakewiki.org/wiki/.pak
-def unpack_pak(fileresult, scanenvironment, offset, unpackdir):
+def unpack_quake_pak(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a Quake PAK file'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -151,15 +151,15 @@ def unpack_pak(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
-unpack_pak.signatures = {'quakepak': b'PACK'}
-unpack_pak.minimum_size = 12
+unpack_quake_pak.signatures = {'quakepak': b'PACK'}
+unpack_quake_pak.minimum_size = 12
 
 
 # Doom WAD files
 #
 # http://web.archive.org/web/20090530112359/http://www.gamers.org/dhs/helpdocs/dmsp1666.html
 # Chapter 2
-def unpack_wad(fileresult, scanenvironment, offset, unpackdir):
+def unpack_doom_wad(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Doom WAD file'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -249,5 +249,5 @@ def unpack_wad(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': maxoffset, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
-unpack_wad.signatures = {'doomwad': b'IWAD'}
-unpack_wad.minimum_size = 12
+unpack_doom_wad.signatures = {'doomwad': b'IWAD'}
+unpack_doom_wad.minimum_size = 12
