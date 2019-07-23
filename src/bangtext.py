@@ -2084,3 +2084,6 @@ def unpack_ini(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+unpack_ini.extensions = ['.ini']
+unpack_ini.pretty = 'ini'
