@@ -1702,6 +1702,7 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {}
     unpackedsize = 0
     byteorder='little'
+    dataunpacked = False
 
     # first check the kind of file. There are four types of
     # top level files.
@@ -1864,6 +1865,7 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
             # skip over the entire chunk
             checkfile.seek(oldoffset + packagesize)
             unpackedsize = checkfile.tell() - offset
+        dataunpacked = True
     elif resourcetype == 3:
         # http://web.archive.org/web/20140916071519/http://justanapplication.wordpress.com/2011/09/22/android-internals-binary-xml-part-two-the-xml-chunk/
         if checkfile.tell() + 8 > filesize:
@@ -1966,6 +1968,8 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
             chunksize = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # sanity checks
+            if chunksize == 0:
+                break
             if oldoffset + chunksize > filesize:
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
@@ -1980,18 +1984,26 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
             elif xmlresourcetype == 0x101:
                 namespaces -= 1
                 if namespaces == 0 and first_is_namespace:
+                    dataunpacked = True
                     break
             elif xmlresourcetype == 0x102:
                 elementcount += 1
             elif xmlresourcetype == 0x103:
                 elementcount -= 1
                 if elementcount == 0 and not first_is_namespace:
+                    dataunpacked = True
                     break
         unpackedsize = checkfile.tell() - offset
     else:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'cannot process chunk with resource type %d' % resourcetype}
+        return {'status': False, 'error': unpackingerror}
+
+    if not dataunpacked:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'no data could be unpacked'}
         return {'status': False, 'error': unpackingerror}
 
     # see if the whole file is the android resource file
