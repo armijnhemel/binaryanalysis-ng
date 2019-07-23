@@ -384,6 +384,12 @@ class ScanJob:
                 if unpacker.get_current_offset_in_file() == self.fileresult.filesize:
                     break
 
+                # this should not happen, but in case a scan reports the wrong
+                # size (outside of the file) then the program should also exit.
+                # TODO: add proper warning.
+                if unpacker.get_current_offset_in_file() > self.fileresult.filesize:
+                    break
+
                 unpacker.seek_to_find_next_signature()
                 unpacker.read_chunk_from_scanfile()
 
