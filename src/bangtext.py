@@ -30,6 +30,7 @@ import tempfile
 import base64
 import re
 import pathlib
+import configparser
 import email.parser
 
 # some external packages that are needed
@@ -2052,3 +2053,34 @@ def unpack_smbpasswd(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_smbpasswd.extensions = ['smbpasswd']
 unpack_smbpasswd.pretty = 'smbpasswd'
+
+def unpack_ini(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify an INI file '''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    iniconfig = configparser.ConfigParser()
+    configfile = open(filename_full, 'r')
+
+    try:
+        iniconfig.read_file(configfile)
+        configfile.close()
+    except:
+        # could include:
+        # configparser.MissingSectionHeaderError
+        # configparser.DuplicateOptionErrorr
+        #  configparser.ParsingError
+        configfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not a valid INI file'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = filesize
+    labels.append('ini')
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}

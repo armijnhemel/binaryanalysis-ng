@@ -402,6 +402,7 @@ extensiontofunction = {
     'trans.tbl': bangtext.unpack_trans_tbl,
     '.nb0': bangandroid.unpack_nb0,
     'smbpasswd': bangtext.unpack_smbpasswd,
+    '.ini': bangtext.unpack_ini,
 }
 
 # a lookup table to map extensions to a name
@@ -442,6 +443,7 @@ extensionprettyprint = {
     'trans.tbl': 'trans.tbl',
     '.nb0': 'nb0',
     'smbpasswd': 'smbpasswd',
+    '.ini': 'ini',
 }
 
 def matches_file_pattern(filename, extension):
