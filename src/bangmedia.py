@@ -83,6 +83,7 @@ def unpack_webp(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_webp.signatures = {'webp': b'WEBP'}
 unpack_webp.offset = 8
+unpack_webp.minimum_size = 12
 
 
 # A verifier for the WAV file format.
@@ -227,6 +228,7 @@ def unpack_wav(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_wav.signatures = {'wav': b'WAVE'}
 unpack_wav.offset = 8
+unpack_wav.minimum_size = 12
 
 
 # An unpacker for RIFF. This is a helper method used by unpackers for:
@@ -447,6 +449,7 @@ def unpack_ani(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_ani.signatures = {'ani': b'ACON'}
 unpack_ani.offset = 8
+unpack_ani.minimum_size = 12
 
 
 # PNG specifications can be found at:
@@ -1031,6 +1034,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
     return {'status': False, 'error': unpackingerror}
 
 unpack_png.signatures = {'png': b'\x89PNG\x0d\x0a\x1a\x0a'}
+unpack_png.minimum_size = 57
 
 
 # https://en.wikipedia.org/wiki/BMP_file_format
@@ -1157,6 +1161,7 @@ def unpack_bmp(fileresult, scanenvironment, offset, unpackdir):
 
 # https://en.wikipedia.org/wiki/BMP_file_format
 unpack_bmp.signatures = {'bmp': b'BM'}
+unpack_bmp.minimum_size = 26
 
 
 # GIF unpacker for the GIF87a and GIF89a formats. The specification
@@ -1663,6 +1668,7 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
 # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
 unpack_gif.signatures = {'gif87': b'GIF87a', 'gif89': b'GIF89a'}
 unpack_gif.pretty = 'gif'
+unpack_gif.minimum_size = 19
 
 
 # JPEG
@@ -2427,6 +2433,7 @@ def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
 
 # https://en.wikipedia.org/wiki/ICO_%28file_format%29
 unpack_ico.signatures = {'ico': b'\x00\x00\x01\x00'}
+unpack_ico.minimum_size = 26
 
 
 # SGI file format
@@ -2662,6 +2669,7 @@ def unpack_sgi(fileresult, scanenvironment, offset, unpackdir):
 
 # https://media.xiph.org/svt/SGIIMAGESPEC
 unpack_sgi.signatures = {'sgi': b'\x01\xda'}
+unpack_sgi.minimum_size = 512
 
 
 # Derived from specifications linked at:
@@ -2780,6 +2788,7 @@ def unpack_aiff(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_aiff.signatures = {'aiff': b'FORM'}
+unpack_aiff.minimum_size = 12
 
 
 # Derived from specifications at:
@@ -2890,6 +2899,7 @@ def unpack_au(fileresult, scanenvironment, offset, unpackdir):
     return {'status': False, 'error': unpackingerror}
 
 unpack_au.signatures = {'au': b'.snd'}
+unpack_au.minimum_size = 24
 
 
 # https://www.fileformat.info/format/sunraster/egff.htm
@@ -3001,6 +3011,7 @@ def unpack_sunraster(fileresult, scanenvironment, offset, unpackdir):
 
 # https://www.fileformat.info/format/sunraster/egff.htm
 unpack_sunraster.signatures = {'sunraster': b'\x59\xa6\x6a\x95'}
+unpack_sunraster.minimum_size = 32
 
 
 # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
@@ -3258,6 +3269,7 @@ def unpack_mng(fileresult, scanenvironment, offset, unpackdir):
     return {'status': False, 'error': unpackingerror}
 
 unpack_mng.signatures = {'mng': b'\x8aMNG\x0d\x0a\x1a\x0a'}
+unpack_mng.minimum_size = 52
 
 
 # An unpacker for the SWF format, able to carve/label zlib &
@@ -3616,6 +3628,7 @@ def unpack_swf(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_swf.signatures = {'swf': b'FWS', 'swf_zlib': b'CWS', 'swf_lzma': b'ZWS'}
 unpack_swf.pretty = 'swf'
+unpack_swf.minimum_size = 8
 
 
 # Specifications (10.1.2.01) can be found on the Adobe site:
@@ -3845,6 +3858,7 @@ def unpack_flv(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_flv.signatures = {'flv': b'FLV'}
+unpack_flv.minimum_size = 9
 
 
 # The specifications for PDF 1.7 are an ISO standard and can be found
@@ -4514,6 +4528,7 @@ def unpack_gimp_brush(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_gimp_brush.signatures = {'gimpbrush': b'GIMP'}
 unpack_gimp_brush.offset = 20
+unpack_gimp_brush.minimum_size = 28
 
 
 # https://www.csie.ntu.edu.tw/~r92092/ref/midi/
@@ -5137,6 +5152,7 @@ def unpack_ktx11(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_ktx11.signatures = {'ktx11': b'\xabKTX 11\xbb\r\n\x1a\n'}
 unpack_ktx11.pretty = 'ktx'
+unpack_ktx11.minimum_size = 64
 
 
 # Try to read Photoshop PSD files.
@@ -5378,6 +5394,7 @@ def unpack_psd(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_psd.signatures = {'psd': b'8BPS'}
+unpack_psd.minimum_size = 30
 
 
 # Read PPM files, PBM files and PGM files
@@ -5759,3 +5776,4 @@ def unpack_mapsforge(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_mapsforge.signatures = {'mapsforge': b'mapsforge binary OSM'}
+unpack_mapsforge.minimum_size = 64
