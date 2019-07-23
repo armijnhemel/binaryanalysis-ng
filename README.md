@@ -185,6 +185,7 @@ larger file, unless stated otherwise.
 125. mapsforge map files (very basic structural checks)
 126. Parrot PLF files
 127. Windows INI files (text only)
+128. Subversion hash files (wcprops, all-wcprops, etc.)
 
 
 ## Invocation

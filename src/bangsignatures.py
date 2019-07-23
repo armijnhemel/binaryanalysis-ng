@@ -403,6 +403,7 @@ extensiontofunction = {
     '.nb0': bangandroid.unpack_nb0,
     'smbpasswd': bangtext.unpack_smbpasswd,
     '.ini': bangtext.unpack_ini,
+    'wcprops': bangtext.unpack_subversion_hash,
 }
 
 # a lookup table to map extensions to a name
@@ -444,6 +445,7 @@ extensionprettyprint = {
     '.nb0': 'nb0',
     'smbpasswd': 'smbpasswd',
     '.ini': 'ini',
+    'wcprops': 'subversion_hash',
 }
 
 def matches_file_pattern(filename, extension):

@@ -2087,3 +2087,82 @@ def unpack_ini(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_ini.extensions = ['.ini']
 unpack_ini.pretty = 'ini'
+
+
+# file subversion/libsvn_subr/hash.c in Subversion source code
+def unpack_subversion_hash(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify a Subversion hash file '''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    # open the file in text only mode
+    try:
+        checkfile = open(filename_full, 'r')
+        isopened = True
+    except:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid subversion hash file'}
+        return {'status': False, 'error': unpackingerror}
+
+    firstentry = True
+    bytesread = 0
+    nextaction = 'new'
+    localbytesread = 0
+    try:
+        # simple state machine
+        for line in checkfile:
+            localbytesread += len(line)
+            if nextaction == 'filename':
+                lineres = re.match('[\w\d\!\./-]+$', line.rstrip())
+                if lineres != None:
+                    nextaction = 'new'
+                    continue
+                nextaction = 'new'
+            if nextaction == 'new':
+                lineres = re.match('K (\d+)$', line.rstrip())
+                if lineres == None:
+                    break
+                linelength = int(lineres.groups()[0])
+                nextaction = 'data'
+                firstentry = False
+            elif nextaction == 'data':
+                if linelength != len(line) - 1:
+                    break
+                nextaction = 'value'
+            elif nextaction == 'value':
+                if line.rstrip() == 'END':
+                    bytesread += localbytesread
+                    # reset a few values
+                    localbytesread = 0
+                    nextaction = 'filename'
+                else:
+                    lineres = re.match('V (\d+)$', line.rstrip())
+                    if lineres == None:
+                        break
+                    linelength = int(lineres.groups()[0])
+                    nextaction = 'data'
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not a valid subversion hash file'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    if bytesread != filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not a valid subversion hash file'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = filesize
+    labels.append('subversion hash')
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+unpack_subversion_hash.extensions = ['wcprops']
+unpack_subversion_hash.pretty = 'subversion_hash'
