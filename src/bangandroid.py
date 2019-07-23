@@ -2962,14 +2962,14 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
         outfile_rel = os.path.join(unpackdir, secondstagename)
         outfile_full = scanenvironment.unpack_path(outfile_rel)
         outfile = open(outfile_full, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), ramdisksize)
+        os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), secondsize)
         outfile.close()
-        checkfile.seek(ramdisksize, os.SEEK_CUR)
+        checkfile.seek(secondsize, os.SEEK_CUR)
         unpackedfilesandlabels.append((outfile_rel, ["bootloader"]))
-        unpackedsize += ramdisksize
+        unpackedsize += secondsize
 
-        if ramdisksize % pagesize != 0:
-            paddingneeded = pagesize - (ramdisksize % pagesize)
+        if secondsize % pagesize != 0:
+            paddingneeded = pagesize - (secondsize % pagesize)
             checkfile.seek(paddingneeded, os.SEEK_CUR)
             unpackedsize += paddingneeded
 
