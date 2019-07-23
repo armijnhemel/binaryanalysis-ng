@@ -385,7 +385,7 @@ class ScanJob:
                     break
 
                 # this should not happen, but in case a scan reports the wrong
-                # size (outside of the file) then the program should also exit.
+                # size (outside of the file) then the method should also exit.
                 # TODO: add proper warning.
                 if unpacker.get_current_offset_in_file() > self.fileresult.filesize:
                     break
