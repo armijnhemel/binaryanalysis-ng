@@ -52,6 +52,8 @@ cd ~/kaitai_struct/runtime/python
 python3 setup.py install --user
 ```
 
+The `--user` will install the module into your home directory instead of system-wide.
+
 ## Compiling a parser
 
 After installation of the compiler and runtime, you can use the compiler to generate python code from a kaitai format description. If I had a format description for a GIF file in the file `gif.ksy`, the following command generates a Python module `gif.py`:
