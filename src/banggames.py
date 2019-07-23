@@ -152,6 +152,8 @@ def unpack_pak(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_pak.signatures = {'quakepak': b'PACK'}
+unpack_pak.minimum_size = 12
+
 
 # Doom WAD files
 #
@@ -248,3 +250,4 @@ def unpack_wad(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_wad.signatures = {'doomwad': b'IWAD'}
+unpack_wad.minimum_size = 12

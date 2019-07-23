@@ -643,6 +643,7 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_chrome_pak.extensions = ['.pak']
 unpack_chrome_pak.pretty = 'pak'
+unpack_chrome_pak.minimum_size = 12
 
 
 # The Android sparse format is documented in the Android source code tree:
@@ -810,6 +811,7 @@ def unpack_android_sparse(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_android_sparse.signatures = {'androidsparse': b'\x3a\xff\x26\xed'}
+unpack_android_sparse.minimum_size = 28
 
 
 # Android Dalvik
@@ -1533,6 +1535,7 @@ def unpack_dex(
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_dex.signatures = {'dex': b'dex\n'}
+unpack_dex.minimum_size = 70
 
 
 # Android Dalvik, optimized
@@ -1678,6 +1681,7 @@ def unpack_odex(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_odex.signatures = {'odex': b'dey\n'}
+unpack_odex.minimum_size = 40
 
 
 # Android resources files (such as "resources.arsc") as found in
@@ -2436,6 +2440,7 @@ def unpack_android_tzdata(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_android_tzdata.extensions = ['tzdata']
 unpack_android_tzdata.pretty = 'tzdata'
+unpack_android_tzdata.minimum_size = 24
 
 
 # Android verfied boot images
@@ -2645,6 +2650,7 @@ def unpack_avb(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_avb.signatures = {'avb': b'AVB0'}
+unpack_avb.minimum_size = 256
 
 
 # unpack boot files found on certain Android devices equiped with
@@ -2760,6 +2766,7 @@ def unpack_android_boot_msm(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_android_boot_msm.signatures = {'androidbootmsm': b'BOOTLDR!'}
+unpack_android_boot_msm.minimum_size = 20
 
 
 # Android bootloader
@@ -2962,6 +2969,7 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_android_boot_img.signatures = {'androidbootimg': b'ANDROID!'}
+unpack_android_boot_img.minimum_size = 48
 
 
 # unpack boot files found on certain Android devices from Huawei
@@ -3085,6 +3093,7 @@ def unpack_android_boot_huawei(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_android_boot_huawei.signatures = {'androidboothuawei': b'\x3c\xd6\x1a\xce'}
+unpack_android_boot_huawei.minimum_size = 76
 
 
 # unpack update files in nb0 format
