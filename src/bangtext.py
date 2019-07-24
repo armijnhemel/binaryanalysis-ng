@@ -2108,7 +2108,6 @@ def unpack_subversion_hash(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'not a valid subversion hash file'}
         return {'status': False, 'error': unpackingerror}
 
-    firstentry = True
     bytesread = 0
     nextaction = 'new'
     localbytesread = 0
@@ -2128,7 +2127,6 @@ def unpack_subversion_hash(fileresult, scanenvironment, offset, unpackdir):
                     break
                 linelength = int(lineres.groups()[0])
                 nextaction = 'data'
-                firstentry = False
             elif nextaction == 'data':
                 if linelength != len(line) - 1:
                     break
