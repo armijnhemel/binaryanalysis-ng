@@ -17,9 +17,9 @@ from ScanEnvironment import *
 def create_fileresult_for_path(unpackdir, path, labels=set(),
         calculate_size=True):
     parentlabels = set()
-    fp = pathlib.Path(unpackdir) / path
     fr = FileResult(path, str(path.parent), parentlabels, labels)
     if calculate_size:
+        fp = pathlib.Path(unpackdir) / path
         fr.set_filesize(fp.stat().st_size)
     return fr
 
@@ -72,6 +72,7 @@ class TestBase(unittest.TestCase):
             readsize = 10240,
             createbytecounter = False,
             createjson = True,
+            runfilescans = True, # TODO: is this the correct value?
             tlshmaximum = sys.maxsize,
             synthesizedminimum = 10,
             logging = False,
