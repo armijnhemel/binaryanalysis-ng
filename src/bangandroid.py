@@ -388,7 +388,7 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
     # first the version number
     checkbytes = checkfile.read(4)
     pakversion = int.from_bytes(checkbytes, byteorder='little')
-    if pakversion != 4 and pakversion != 5:
+    if pakversion not in [4, 5]:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'unsupported .pak version (can only process version 4 or 5)'}
@@ -1701,7 +1701,7 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
-    byteorder='little'
+    byteorder = 'little'
     dataunpacked = False
 
     # first check the kind of file. There are four types of
