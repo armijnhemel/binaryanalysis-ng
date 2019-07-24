@@ -7,7 +7,6 @@ from TestUtil import *
 from Parser import GifParser
 from ParserException import ParserException
 
-
 class TestGifParser(TestBase):
     def test_load_standard_gif_file(self):
         rel_testfile = pathlib.Path('unpackers') / 'gif' / 'test.gif'
@@ -17,16 +16,13 @@ class TestGifParser(TestBase):
         filesize = fileresult.filesize
         p = GifParser()
         # dummy data unpack dir
-        data_unpack_dir = self.unpackdir / rel_testfile.parent
-        print(data_unpack_dir)
+        data_unpack_dir = (self.unpackdir / rel_testfile).parent
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
-        print(r)
-        print(dir(p.data))
-        self.assertEqual(p.data.logical_screen.image_width, 3024)
         self.assertTrue(r['status'])
         self.assertEqual(r['length'], filesize)
         self.assertEqual(r['filesandlabels'], [])
+        self.assertEqual(r['metadata']['width'], 3024)
 
     def test_gif_file_is_extracted(self):
         rel_testfile = pathlib.Path('unpackers') / 'gif' / 'test-prepend-random-data.gif'
@@ -35,17 +31,19 @@ class TestGifParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
         filesize = fileresult.filesize
         p = GifParser()
-        data_unpack_dir = self.unpackdir / rel_testfile.parent
-        print(data_unpack_dir)
+        # dummy data unpack dir
+        data_unpack_dir = (self.unpackdir / rel_testfile).parent
         r = p.parse_and_unpack(fileresult, self.scan_environment, 128,
                 data_unpack_dir)
-        # check if file exists
         self.assertTrue(r['status'])
         self.assertEqual(r['length'], 7073713)
-        print(self.fileresult)
-        print(r['filesandlabels'])
-        #self.assertTrue(os.path.exists
-        self.assertEqual(p.data.logical_screen.image_width, 3024)
+        unpacked_file = r['filesandlabels'][0][0]
+        unpacked_labels = r['filesandlabels'][0][1]
+        self.assertTrue((self.unpackdir / unpacked_file).exists())
+        self.assertEqual((self.unpackdir / unpacked_file).stat().st_size, r['length'])
+        self.assertEqual(r['metadata']['width'], 3024)
+        self.assertSetEqual(set(unpacked_labels),
+                set(r['labels'] + ['unpacked']))
 
     def test_load_png_file(self):
         rel_testfile = pathlib.Path('unpackers') / 'png' / 'test.png'

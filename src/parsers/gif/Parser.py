@@ -11,7 +11,7 @@ class GifParser:
         # self.data = fmt_gif.Gif.from_file(fn)
         self.infile.seek(offset)
         self.data = fmt_gif.Gif.from_io(self.infile)
-        self.unpacked_size = self.infile.tell()
+        self.unpacked_size = self.infile.tell() - offset
     def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
         try:
             filename_full = scan_environment.unpack_path(fileresult.filename)
@@ -28,7 +28,6 @@ class GifParser:
                 return r
         except Exception as e:
             # raise ParserException(*e.args)
-            print(e.args)
             unpacking_error = {
                     'offset': offset + self.unpacked_size,
                     'fatal' : False,
@@ -53,8 +52,19 @@ class GifParser:
             return []
     def set_metadata_and_labels(self, unpack_results, metadata):
         """sets metadata and labels for the unpackresults"""
-        # print "width = %d" % (g.logical_screen.image_width)
-        # print "height = %d" % (g.logical_screen.image_height)
-        pass
+        extensions = [ x.body for x in self.data.blocks
+                if x.block_type == self.data.BlockType.extension ]
+        subblocks = [ x.body.entries for x in extensions
+            if x.label == self.data.ExtensionLabel.comment ]
+        # TODO: deal with duplicate comments
+        comments = [b''.join([ y.bytes for y in x ]) for x in subblocks]
+        unpack_results['metadata'] = {
+                'width': self.data.logical_screen_descriptor.screen_width,
+                'height': self.data.logical_screen_descriptor.screen_height,
+                'comments': comments,
+                # 'xmp': xmps
+            }
+        unpack_results['labels'] = [ 'gif', 'graphics' ]
+        # TODO: animated
 
 
