@@ -37,6 +37,10 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 or if you are fortunate enough to be using [nix](https://nixos.org/nix), run
 `nix-shell` to load all the dependencies during development.
 
+Additionally install "sasquatch"
+
+https://github.com/devttys0/sasquatch
+
 ## Supported hardware
 
 It is assumed that BANG is run on little endian hardware (such as x86 or x86-64).
@@ -131,7 +135,8 @@ larger file, unless stated otherwise.
 74. CSS
 75. PNG/APNG (needs PIL)
 76. ar/deb (needs binutils)
-77. squashfs (needs squashfs-tools), only regular squashfs, not vendor specific exotic variants
+77. squashfs (needs squashfs-tools), only regular squashfs, vendor
+    specific exotic variants need sasquatch
 78. BMP (needs PIL)
 79. PDF (simple verification, no object streams, incremental updates
     at end of the file)

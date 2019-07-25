@@ -67,12 +67,16 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {}
 
     unpackedsize = 0
+    usesasquatch = True
 
     if shutil.which('unsquashfs') is None:
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False,
                           'reason': 'unsquashfs program not found'}
         return {'status': False, 'error': unpackingerror}
+
+    if shutil.which('sasquatch') is None:
+        usesasquatch = False
 
     # need at least a header, plus version
     # see /usr/share/magic
@@ -85,10 +89,12 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
     checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
+    littleendians = [b'hsqs', b'shsq', b'hsqt']
+
     # sanity checks for the squashfs header.
     # First determine the endianness of the file system.
     checkbytes = checkfile.read(4)
-    if checkbytes == b'hsqs':
+    if checkbytes in littleendians:
         bigendian = False
         byteorder = 'little'
     else:
@@ -143,6 +149,15 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'not enough data to read size'}
             return {'status': False, 'error': unpackingerror}
         squashfssize = int.from_bytes(checkbytes, byteorder=byteorder)
+    else:
+        squashfssize = 0
+
+    if squashfssize == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'cannot determine size of squashfs file system'}
+        return {'status': False, 'error': unpackingerror}
 
     # file size sanity check
     if offset + squashfssize > filesize:
@@ -177,15 +192,37 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
                              cwd=squashfsunpackdirectory)
     (outputmsg, errormsg) = p.communicate()
 
-    if offset != 0:
-        os.unlink(temporaryfile[1])
-
     if p.returncode != 0:
         shutil.rmtree(squashfsunpackdirectory)
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'Not a valid squashfs file'}
-        return {'status': False, 'error': unpackingerror}
+        if usesasquatch:
+            # retry with sasquatch, using 1 thread
+            squashfsunpackdirectory = tempfile.mkdtemp(dir=scanenvironment.temporarydirectory)
+            if offset != 0:
+                p = subprocess.Popen(['sasquatch', '-p', '1', temporaryfile[1]],
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                     cwd=squashfsunpackdirectory)
+            else:
+                p = subprocess.Popen(['sasquatch', '-p', '1', filename_full],
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                     cwd=squashfsunpackdirectory)
+            (outputmsg, errormsg) = p.communicate()
+
+            if p.returncode != 0:
+                # remove old data
+                if offset != 0:
+                    os.unlink(temporaryfile[1])
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'Not a valid squashfs file'}
+                return {'status': False, 'error': unpackingerror}
+    else:
+        # remove old data
+        if offset != 0:
+            os.unlink(temporaryfile[1])
+
+    # remove old data
+    if offset != 0:
+        os.unlink(temporaryfile[1])
 
     unpackedsize = squashfssize
 
