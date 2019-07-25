@@ -50,9 +50,6 @@ class TestGifParser(TestBase):
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
-        # with self.assertRaises(ParserException) as context:
-        #    p = GifParser()
-        #    p.parse_and_unpack(fileresult, self.scan_environment, 0, self.unpackdir)
         p = GifParser()
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0, self.unpackdir)
         self.assertFalse(r['status'])
