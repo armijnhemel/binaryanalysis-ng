@@ -43,7 +43,6 @@ class GifParser:
             outfile = open(outfile_full, 'wb')
             os.sendfile(outfile.fileno(), self.infile.fileno(), offset, self.unpacked_size)
             outfile.close()
-            # TODO: copy labels to outlabels and add 'unpacked'
             outlabels = self.unpack_results['labels'] + ['unpacked']
             return [ (outfile_rel, outlabels) ]
         else:
