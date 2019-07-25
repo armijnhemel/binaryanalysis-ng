@@ -2625,7 +2625,7 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
                         unpackingerror = {'offset': offset, 'fatal': False,
                                           'reason': 'Unknown compression method'}
                         return {'status': False, 'error': unpackingerror}
-                    except NotADirectoryError as e:
+                    except NotADirectoryError:
                         # TODO: find out what to do with this. This happens
                         # sometimes with zip files with symbolic links from
                         # one directory to another.
