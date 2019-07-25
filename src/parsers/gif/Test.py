@@ -24,7 +24,7 @@ class TestGifParser(TestBase):
         self.assertEqual(r['filesandlabels'], [])
         self.assertEqual(r['metadata']['width'], 3024)
 
-    def test_gif_file_is_extracted(self):
+    def test_extracted_gif_file_is_correct(self):
         rel_testfile = pathlib.Path('unpackers') / 'gif' / 'test-prepend-random-data.gif'
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
         self._copy_file_from_testdata(rel_testfile)
