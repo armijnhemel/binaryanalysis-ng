@@ -1,6 +1,6 @@
 
 import os
-import fmt_gif
+from . import fmt_gif
 from ParserException import ParserException
 
 class GifParser:
@@ -27,7 +27,7 @@ class GifParser:
                 r['filesandlabels'] = files_and_labels
                 return r
         except Exception as e:
-            # raise ParserException(*e.args)
+            raise ParserException(*e.args)
             unpacking_error = {
                     'offset': offset + self.unpacked_size,
                     'fatal' : False,
@@ -37,15 +37,13 @@ class GifParser:
     def unpack(self, fileresult, scan_environment, offset, unpack_dir):
         """extract any files from the input file"""
         if offset != 0 or self.unpacked_size != fileresult.filesize:
-            # write [offset:offset+unpacked_size] to a file
             outfile_rel = os.path.join(unpack_dir, "unpacked.gif")
-            # outfile_rel = "unpacked.gif"
             outfile_full = scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent)
+            os.makedirs(outfile_full.parent, exist_ok=True)
             outfile = open(outfile_full, 'wb')
             os.sendfile(outfile.fileno(), self.infile.fileno(), offset, self.unpacked_size)
             outfile.close()
-            # copy labels to outlabels and add 'unpacked'
+            # TODO: copy labels to outlabels and add 'unpacked'
             outlabels = ['gif', 'graphics', 'unpacked']
             return [ (outfile_rel, outlabels) ]
         else:

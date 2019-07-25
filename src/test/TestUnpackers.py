@@ -26,6 +26,7 @@ import unittest
 import pathlib
 import os
 import sys
+from parameterized import parameterized
 
 _scriptdir = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(_scriptdir, '..'))
@@ -37,10 +38,41 @@ import bangmedia
 import bangandroid
 import bangtext
 
+from parsers.gif.Parser import GifParser
+
 # basetestdir = pathlib.Path('/home/armijn/git/binaryanalysis-ng/test')
 # tmpdirectory = '/home/armijn/tmp'
 
+
 from TestUtil import *
+
+
+class TestGeneric(TestBase):
+    """Test class based parsers/unpackers."""
+    testcases = [
+            [GifParser, 'unpackers/gif/test.gif', 0, 7073713],
+            [GifParser, 'unpackers/gif/test-prepend-random-data.gif', 128,
+                7073713],
+        ]
+
+    @parameterized.expand(testcases)
+    def test_unpack_files(self, parser, rel_testfile, offset, filesize):
+        filename = pathlib.Path(self.testdata_dir) / rel_testfile
+        self._copy_file_from_testdata(rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        # make dummy data unpack dir
+        data_unpack_dir = (self.unpackdir / rel_testfile).parent
+        r = parser().parse_and_unpack(fileresult, self.scan_environment, offset,
+                data_unpack_dir)
+        self.assertTrue(r['status'], "unpack status for {}".format(rel_testfile))
+        self.assertEqual(r['length'], filesize)
+        unpacked_total_size = 0
+        for unpacked_file, unpacked_label in r['filesandlabels']:
+            self.assertTrue((self.unpackdir / unpacked_file).exists())
+            unpacked_total_size += (self.unpackdir / unpacked_file).stat().st_size
+        self.assertLessEqual(unpacked_total_size, r['length'],
+            'Length of unpacked files more than file itself')
+
 
 # a test class for testing GIFs
 class TestGIF(TestBase):
