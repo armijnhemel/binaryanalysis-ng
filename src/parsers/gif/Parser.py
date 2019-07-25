@@ -27,7 +27,7 @@ class GifParser:
                 r['filesandlabels'] = files_and_labels
                 return r
         except Exception as e:
-            raise ParserException(*e.args)
+            # raise ParserException(*e.args)
             unpacking_error = {
                     'offset': offset + self.unpacked_size,
                     'fatal' : False,
