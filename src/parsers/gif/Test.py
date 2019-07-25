@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
 # import unittest
 from TestUtil import *
 
-from Parser import GifParser
+from parsers.gif.Parser import GifParser
 from ParserException import ParserException
 
 class TestGifParser(TestBase):
