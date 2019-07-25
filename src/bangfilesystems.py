@@ -1315,13 +1315,12 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
             nodemagictype = 'dirty'
         elif checkbytes == b'\xff\xff':
             # empty space
-            unpackedsize += 2
-            paddingbytes = 0x10000 - (unpackedsize % 0x10000)
-            if paddingbytes != 0:
-                checkbytes = checkfile.read(paddingbytes)
-                if len(checkbytes) != paddingbytes:
-                    break
-                unpackedsize += paddingbytes
+            # read the next two bytes to see if they are empty as well
+            checkbytes = checkfile.read(2)
+            if checkbytes == b'\xff\xff':
+                unpackedsize += 4
+            else:
+                break
             continue
         else:
             nodemagictype = 'normal'
