@@ -59,7 +59,8 @@ class TestGeneric(TestBase):
     def test_unpack_files(self, parser, rel_testfile, offset, filesize):
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
         self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir,
+                pathlib.Path(rel_testfile))
         # make dummy data unpack dir
         data_unpack_dir = (self.unpackdir / rel_testfile).parent
         r = parser().parse_and_unpack(fileresult, self.scan_environment, offset,
