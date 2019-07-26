@@ -39,6 +39,7 @@ import bangandroid
 import bangtext
 
 from parsers.gif.Parser import GifParser
+from parsers.ico.Parser import IcoParser
 
 # basetestdir = pathlib.Path('/home/armijn/git/binaryanalysis-ng/test')
 # tmpdirectory = '/home/armijn/tmp'
@@ -53,6 +54,9 @@ class TestGeneric(TestBase):
             [GifParser, 'unpackers/gif/test.gif', 0, 7073713],
             [GifParser, 'unpackers/gif/test-prepend-random-data.gif', 128,
                 7073713],
+            [IcoParser, 'unpackers/ico/test.ico', 0, 2686],
+            [IcoParser, 'unpackers/ico/test-png.ico', 0, 327],
+            [IcoParser, 'unpackers/ico/test-prepend-random-data.ico', 128, 2686],
         ]
 
     @parameterized.expand(testcases)
