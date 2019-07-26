@@ -1,6 +1,6 @@
 
 import os
-from . import fmt_gif
+from . import gif
 from ParserException import ParserException
 
 class GifParser:
