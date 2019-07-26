@@ -62,6 +62,53 @@ After installation of the compiler and runtime, you can use the compiler to gene
 kaitai-struct-compiler -t python gif.ksy 
 ```
 
+## Debugging kaitai parsers
+
+### Using the WebIDE
+
+Install the web IDE according to the instructions on https://github.com/kaitai-io/kaitai_struct_webide, for example:
+
+```
+git clone https://github.com/kaitai-io/ide-kaitai-io.github.io
+cd ide-kaitai-io.github.io
+python3 -m http.server
+```
+
+* Point your browser to http://localhost:8000/
+* Klik the upload icon on the bottom left area (a cloud with an upwards arrow)
+* upload a test file
+* selecteer the kaitai parser from the list
+* check if the parser handles the file correctly
+
+### Using the kaitai-struct-visualizer tools
+
+The visualizer gives us two tools, `ksv`, an interactive visualizer, and `ksdump`, a non-interactive command line visualizer. Both call `kaitai-struct-compiler`, therefore the compiler must be in your shell's search path.
+
+You can install the visualizer as a Ruby gem:
+
+```
+gem install kaitai-struct-visualizer
+```
+
+Note that the version of the Ruby runtime of the visualizer must match the compiler version, which may not be the case.
+
+You can also run the Ruby script directly from the `kaitai_struct` repository, e.g.  `~/kaitai_struct/visualizer/bin/ksv`. If you want you can put it into your search path just as you need to do for `kaitai-struct-compiler`.
+
+See https://github.com/kaitai-io/kaitai_struct_visualizer for more details.
+
+Run the visualizer as follows:
+
+```
+ksdump <binary-file> <ksy file>
+```
+
+or
+
+```
+ksv <binary-file> <ksy file>
+```
+
+
 
 ## Issues with kaitai parsers
 
