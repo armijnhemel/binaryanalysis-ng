@@ -9,9 +9,9 @@ class GifParser:
         self.unpack_results = {}
     def parse(self, fileresult, scan_environment, offset):
         # try to parse the data
-        # self.data = fmt_gif.Gif.from_file(fn)
+        # self.data = gif.Gif.from_file(fn)
         self.infile.seek(offset)
-        self.data = fmt_gif.Gif.from_io(self.infile)
+        self.data = gif.Gif.from_io(self.infile)
         self.unpacked_size = self.infile.tell() - offset
     def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
         try:
