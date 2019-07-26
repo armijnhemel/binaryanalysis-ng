@@ -63,3 +63,8 @@ kaitai-struct-compiler -t python gif.ksy
 ```
 
 
+## Issues with kaitai parsers
+
+Not all kaitai parsers read the complete file. The unpacker determines the file length by checking how many bytes have been read from the input stream. You must compensate for this in the unpacker that wraps the kaitai parser. For example, the `ico` parser does not parse the contained PNG files. You can either adjust `self.unpacked_size` by adding the length of the unparsed part, call a PNG parser on the PNG part. Perhaps you will have to do both.
+
+
