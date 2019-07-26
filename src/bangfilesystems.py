@@ -215,10 +215,6 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
                                   'fatal': False,
                                   'reason': 'Not a valid squashfs file'}
                 return {'status': False, 'error': unpackingerror}
-    else:
-        # remove old data
-        if offset != 0:
-            os.unlink(temporaryfile[1])
 
     # remove old data
     if offset != 0:
