@@ -52,6 +52,7 @@ def unpack_ihex(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     allowbroken = False
 
@@ -64,7 +65,9 @@ def unpack_ihex(fileresult, scanenvironment, offset, unpackdir):
         outfile_rel = os.path.join(unpackdir, filename_full.stem)
 
     outfile_full = scanenvironment.unpack_path(outfile_rel)
-    outfile = open(outfile_full, 'wb')
+
+    outfile_opened = False
+
     endofihex = False
     seenrecordtypes = set()
 
@@ -76,9 +79,10 @@ def unpack_ihex(fileresult, scanenvironment, offset, unpackdir):
                 if line.startswith('#'):
                     unpackedsize += len(line)
                     continue
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'line does not start with :'}
@@ -89,9 +93,10 @@ def unpack_ihex(fileresult, scanenvironment, offset, unpackdir):
             # uses 1 character.
             # That means that each line has an uneven length.
             if len(line.strip()) < 11 or len(line.strip()) % 2 != 1:
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not enough bytes in line'}
@@ -100,18 +105,20 @@ def unpack_ihex(fileresult, scanenvironment, offset, unpackdir):
             try:
                 bytescount = int.from_bytes(bytes.fromhex(line[1:3]), byteorder='big')
             except:
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not valid hex data'}
                 return {'status': False, 'error': unpackingerror}
 
             if 3 + bytescount + 2 > len(line.strip()):
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert to hex'}
@@ -122,17 +129,19 @@ def unpack_ihex(fileresult, scanenvironment, offset, unpackdir):
             try:
                 recordtype = int.from_bytes(bytes.fromhex(line[7:9]), byteorder='big')
             except:
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert to hex'}
                 return {'status': False, 'error': unpackingerror}
             if recordtype > 5:
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'invalid record type'}
@@ -148,13 +157,19 @@ def unpack_ihex(fileresult, scanenvironment, offset, unpackdir):
                 try:
                     ihexdata = bytes.fromhex(line[9:9+bytescount*2])
                 except ValueError:
-                    checkfile.close()
-                    outfile.close()
-                    os.unlink(outfile_full)
+                    if outfile_opened:
+                        checkfile.close()
+                        outfile.close()
+                        os.unlink(outfile_full)
                     unpackingerror = {'offset': offset+unpackedsize,
                                       'fatal': False,
                                       'reason': 'cannot convert to hex'}
                     return {'status': False, 'error': unpackingerror}
+                if not outfile_opened:
+                     # create the unpacking directory
+                     os.makedirs(unpackdir_full, exist_ok=True)
+                     outfile = open(outfile_full, 'wb')
+                     outfile_opened = True
                 outfile.write(ihexdata)
             seenrecordtypes.add(recordtype)
 
@@ -163,20 +178,23 @@ def unpack_ihex(fileresult, scanenvironment, offset, unpackdir):
             if endofihex:
                 break
     except UnicodeDecodeError:
-        checkfile.close()
-        outfile.close()
-        os.unlink(outfile_full)
+        if outfile_opened:
+            checkfile.close()
+            outfile.close()
+            os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False,
                           'reason': 'not a text file'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile.close()
-    outfile.close()
+    if outfile_opened:
+        checkfile.close()
+        outfile.close()
 
     if 4 in seenrecordtypes or 5 in seenrecordtypes:
         if 3 in seenrecordtypes:
-            os.unlink(outfile_full)
+            if outfile_opened:
+                os.unlink(outfile_full)
             unpackingerror = {'offset': offset+unpackedsize,
                               'fatal': False,
                               'reason': 'incompatible record types combined'}
@@ -184,7 +202,8 @@ def unpack_ihex(fileresult, scanenvironment, offset, unpackdir):
 
     # each valid IHex file has to have a terminator
     if not endofihex and not allowbroken:
-        os.unlink(outfile_full)
+        if outfile_opened:
+            os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'no end of data found'}
         return {'status': False, 'error': unpackingerror}
@@ -212,6 +231,7 @@ def unpack_srec(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     allowbroken = False
 
@@ -222,9 +242,9 @@ def unpack_srec(fileresult, scanenvironment, offset, unpackdir):
     outfile_rel = os.path.join(unpackdir, "unpacked-from-srec")
     if filename_full.suffix.lower() == '.srec':
         outfile_rel = os.path.join(unpackdir, filename_full.stem)
-
     outfile_full = scanenvironment.unpack_path(outfile_rel)
-    outfile = open(outfile_full, 'wb')
+
+    outfile_opened = False
 
     # process each line until the end of the SREC data is read
     seenheader = False
@@ -240,9 +260,10 @@ def unpack_srec(fileresult, scanenvironment, offset, unpackdir):
                 if line.startswith(';'):
                     unpackedsize += len(line)
                     continue
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'line does not start with S'}
@@ -254,9 +275,10 @@ def unpack_srec(fileresult, scanenvironment, offset, unpackdir):
             # two characters.
             # That means that each line has an even length.
             if len(line.strip()) < 10 or len(line.strip()) % 2 != 0:
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not enough bytes in line'}
@@ -271,17 +293,19 @@ def unpack_srec(fileresult, scanenvironment, offset, unpackdir):
             elif line[:2] == 'S7' or line[:2] == 'S8' or line[:2] == 'S9':
                 seenterminator = True
             elif line[:2] == 'S4':
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'reserved S-Record value found'}
                 return {'status': False, 'error': unpackingerror}
             else:
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not an S-Record line'}
@@ -293,25 +317,28 @@ def unpack_srec(fileresult, scanenvironment, offset, unpackdir):
             try:
                 bytescount = int.from_bytes(bytes.fromhex(line[2:4]), byteorder='big')
             except ValueError:
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert to hex'}
                 return {'status': False, 'error': unpackingerror}
             if bytescount < 3:
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'bytecount too small'}
                 return {'status': False, 'error': unpackingerror}
             if 4 + bytescount * 2 != len(line.strip()):
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'not enough bytes in line'}
@@ -332,14 +359,20 @@ def unpack_srec(fileresult, scanenvironment, offset, unpackdir):
                 else:
                     srecdata = bytes.fromhex(line[12:12+(bytescount-5)*2])
             except ValueError:
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
+                if outfile_opened:
+                    checkfile.close()
+                    outfile.close()
+                    os.unlink(outfile_full)
                 unpackingerror = {'offset': offset+unpackedsize,
                                   'fatal': False,
                                   'reason': 'cannot convert to hex'}
                 return {'status': False, 'error': unpackingerror}
 
+            if not outfile_opened:
+                # create the unpacking directory
+                os.makedirs(unpackdir_full, exist_ok=True)
+                outfile = open(outfile_full, 'wb')
+                outfile_opened = True
             # write the unpacked data to a file, but only for the
             # data records.
             if isdata:
@@ -351,19 +384,22 @@ def unpack_srec(fileresult, scanenvironment, offset, unpackdir):
                 break
 
     except UnicodeDecodeError:
-        checkfile.close()
-        outfile.close()
-        os.unlink(outfile_full)
+        if outfile_opened:
+            checkfile.close()
+            outfile.close()
+            os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False, 'reason': 'not a text file'}
         return {'status': False, 'error': unpackingerror}
 
-    checkfile.close()
-    outfile.close()
+    if outfile_opened:
+        checkfile.close()
+        outfile.close()
 
     # each valid SREC file has to have a terminator
     if not seenterminator and not allowbroken:
-        os.unlink(outfile_full)
+        if outfile_opened:
+            os.unlink(outfile_full)
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'no terminator record found'}
         return {'status': False, 'error': unpackingerror}
@@ -981,6 +1017,7 @@ def unpack_base64(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # false positives: base64 files in Chrome PAK files
     if 'pak' in fileresult.parentlabels:
@@ -1146,6 +1183,9 @@ def unpack_base64(fileresult, scanenvironment, offset, unpackdir):
     # write the output to a file
     outfile_rel = os.path.join(unpackdir, "unpacked.%s" % encoding)
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     outfile.write(decodedcontents)
     outfile.close()

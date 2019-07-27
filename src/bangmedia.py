@@ -252,6 +252,7 @@ def unpack_riff(
 
     unpackedsize = 0
     unpackedfilesandlabels = []
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     chunkstooffsets = {}
 
     # http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/riffmci.pdf
@@ -399,6 +400,9 @@ def unpack_riff(
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.%s" % applicationname.lower())
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -469,6 +473,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackedsize = 0
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     if filesize - offset < 57:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'File too small (less than 57 bytes'}
@@ -984,6 +989,9 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file. It is anonymous, so just give it a name
         outfile_rel = os.path.join(unpackdir, "unpacked.png")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -1045,6 +1053,7 @@ def unpack_bmp(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # first check if the data is large enough
     # BMP header is 14 bytes, smallest DIB header is 12 bytes
@@ -1134,6 +1143,9 @@ def unpack_bmp(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file
     outfile_rel = os.path.join(unpackdir, "unpacked.bmp")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, bmpsize)
     outfile.close()
@@ -1181,6 +1193,7 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {}
     unpackedsize = 0
     gifresults = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # a minimal GIF file is 6 + 6 + 6 + 1 = 19
     if filesize - offset < 19:
@@ -1637,6 +1650,9 @@ def unpack_gif(fileresult, scanenvironment, offset, unpackdir):
     # Carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.gif")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -1688,6 +1704,7 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file and skip the SOI magic
     checkfile = open(filename_full, 'rb')
@@ -1839,6 +1856,9 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
             # else carve the file
             outfile_rel = os.path.join(unpackdir, "unpacked.jpg")
             outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+            # create the unpacking directory
+            os.makedirs(unpackdir_full, exist_ok=True)
             outfile = open(outfile_full, 'wb')
             os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
             outfile.close()
@@ -2230,6 +2250,9 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file
     outfile_rel = os.path.join(unpackdir, "unpacked.jpg")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -2267,6 +2290,7 @@ def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # header is 6 bytes
     if offset + 6 > filesize:
@@ -2408,6 +2432,9 @@ def unpack_ico(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file
     outfile_rel = os.path.join(unpackdir, "unpacked.ico")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory and write the file
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -2446,6 +2473,7 @@ def unpack_sgi(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if filesize - offset < 512:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -2586,6 +2614,9 @@ def unpack_sgi(fileresult, scanenvironment, offset, unpackdir):
         else:
             outfile_rel = os.path.join(unpackdir, "unpacked.sgi")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, imagelength)
         outfile.close()
@@ -2659,6 +2690,9 @@ def unpack_sgi(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(offset)
     outfile_rel = os.path.join(unpackdir, "unpacked.sgi")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -3023,6 +3057,7 @@ def unpack_apple_icon(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     checkfile = open(filename_full, 'rb')
     # skip over the magic
@@ -3109,6 +3144,9 @@ def unpack_apple_icon(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(offset)
     outfile_rel = os.path.join(unpackdir, "unpacked.icns")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -3883,6 +3921,7 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     pdfinfo = {}
 
@@ -4371,6 +4410,9 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "unpacked.pdf")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, validpdfsize)
         outfile.close()
@@ -4397,6 +4439,7 @@ def unpack_gimp_brush(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file
     checkfile = open(filename_full, 'rb')
@@ -4501,6 +4544,9 @@ def unpack_gimp_brush(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, but the brush name can be used
     outfile_rel = os.path.join(unpackdir, "%s.gbr" % brushname)
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -5408,6 +5454,7 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file and read the magic
     checkfile = open(filename_full, 'rb')
@@ -5647,6 +5694,9 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked." + pnmtype)
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()

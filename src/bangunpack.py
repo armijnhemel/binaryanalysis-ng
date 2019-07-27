@@ -308,6 +308,7 @@ def unpack_gzip(fileresult, scanenvironment, offset, unpackdir):
     outfile_full = scanenvironment.unpack_path(outfile_rel)
 
     # open a file to write any unpacked data to
+    os.makedirs(outfile_full.parent, exist_ok=True)
     outfile = open(outfile_full, 'wb')
 
     # store the CRC of the uncompressed data
@@ -474,6 +475,7 @@ def unpack_lzma_wrapper(
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     unpackedsize = 0
     checkfile = open(filename_full, 'rb')
@@ -515,6 +517,7 @@ def unpack_lzma_wrapper(
 
     # data has been unpacked, so open a file and write the data to it.
     # unpacked, or if all data has been unpacked
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     outfile.write(unpackeddata)
     unpackedsize += bytesread - len(decompressor.unused_data)
@@ -855,6 +858,9 @@ def unpack_timezone(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "unpacked-from-timezone")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory and write the file
+        os.makedirs(outfile_full.parent, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -1107,6 +1113,9 @@ def unpack_timezone(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file
     outfile_rel = os.path.join(unpackdir, "unpacked-from-timezone")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory and write the file
+    os.makedirs(outfile_full.parent, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -1337,6 +1346,9 @@ def unpack_ar(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'Not a valid ar file'}
         return {'status': False, 'error': unpackingerror}
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     # then extract the file
     p = subprocess.Popen(['ar', 'x', filename_full], stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, cwd=unpackdir_full)
@@ -1542,6 +1554,7 @@ def unpack_icc(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # ICC.1:2010, section 7.1
     if filesize - offset < 128:
@@ -1709,6 +1722,9 @@ def unpack_icc(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.icc")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxtagoffset - offset)
     outfile.close()
@@ -2578,6 +2594,9 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
             zipfiles = unpackzipfile.namelist()
             zipinfolist = unpackzipfile.infolist()
             oldcwd = os.getcwd()
+
+            # create the unpacking directory
+            os.makedirs(unpackdir_full, exist_ok=True)
             os.chdir(unpackdir_full)
             knowncompression = True
 
@@ -2713,6 +2732,7 @@ def unpack_bzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'File too small (less than 10 bytes'}
         return {'status': False, 'error': unpackingerror}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     unpackedsize = 0
     checkfile = open(filename_full, 'rb')
@@ -2748,6 +2768,8 @@ def unpack_bzip2(fileresult, scanenvironment, offset, unpackdir, dryrun=False):
     # data has been unpacked, so open a file and write the data to it.
     # unpacked, or if all data has been unpacked
     if not dryrun:
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         outfile.write(unpackeddata)
 
@@ -3005,6 +3027,9 @@ def unpack_xar(fileresult, scanenvironment, offset, unpackdir):
                     return {'status': False, 'error': unpackingerror}
                 maxoffset = max(maxoffset, offset + unpackedsize + checksumoffset + checksumsize)
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     while len(nodestotraverse) != 0:
         (nodetoinspect, nodecwd) = nodestotraverse.popleft()
 
@@ -3250,6 +3275,7 @@ def unpack_lzip(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if filesize < 26:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -3293,6 +3319,9 @@ def unpack_lzip(fileresult, scanenvironment, offset, unpackdir):
     else:
         outfile_rel = os.path.join(unpackdir, filename_full.stem)
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
 
     # while decompressing also compute the CRC of the uncompressed
@@ -3406,6 +3435,7 @@ def unpack_woff(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {}
     unpackedsize = 0
     checkfile = open(filename_full, 'rb')
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # skip over the header
     checkfile.seek(offset+4)
@@ -3705,6 +3735,9 @@ def unpack_woff(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked-woff")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -3732,6 +3765,7 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     checkfile = open(filename_full, 'rb')
 
@@ -4071,6 +4105,9 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
         outfile_rel = os.path.join(unpackdir, "unpacked." + fontextension)
 
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -4360,6 +4397,7 @@ def unpack_gnu_message_catalog(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # header has at least 20 bytes
     if filesize - offset < 20:
@@ -4511,6 +4549,9 @@ def unpack_gnu_message_catalog(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file
     outfile_rel = os.path.join(unpackdir, "unpacked-from-message-catalog")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -4633,6 +4674,7 @@ def unpack_terminfo(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # the header is 12 bytes long
     if filesize - offset < 12:
@@ -4895,6 +4937,9 @@ def unpack_terminfo(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(offset)
     outfile_rel = os.path.join(unpackdir, "unpacked-from-term")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -5074,6 +5119,7 @@ def unpack_cpio(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # old binary format has a 26 byte header
     # portable ASCII format has a 76 byte header
@@ -5085,6 +5131,9 @@ def unpack_cpio(fileresult, scanenvironment, offset, unpackdir):
 
     checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     dataunpacked = False
     trailerfound = False
@@ -7245,6 +7294,7 @@ def unpack_zstd(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if shutil.which('zstd') is None:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -7372,6 +7422,9 @@ def unpack_zstd(fileresult, scanenvironment, offset, unpackdir):
 
     unpackedsize = checkfile.tell() - offset
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     # zstd does not record the name of the file that was
     # compressed, so guess, or just set a name.
     if offset == 0 and unpackedsize == filesize:
@@ -7435,9 +7488,13 @@ def unpack_lz4(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     outfile_rel = os.path.join(unpackdir, "unpacked-from-lz4")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
 
     # first create a decompressor object
@@ -7731,6 +7788,7 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # store the results for Java:
     # * methods
@@ -8352,6 +8410,9 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
 
     outfile_rel = os.path.join(unpackdir, classname)
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -8378,6 +8439,7 @@ def unpack_snappy(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     checkfile = open(filename_full, 'rb')
 
@@ -8431,6 +8493,9 @@ def unpack_snappy(fileresult, scanenvironment, offset, unpackdir):
 
     outfile_rel = os.path.join(unpackdir, "unpacked-from-snappy")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
 
     # start at the beginning of the frame
@@ -8512,6 +8577,8 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     elflabels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+
     elfresult = {}
     elfresult['security'] = []
 
@@ -9485,6 +9552,9 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                     if modulename != '':
                         outfile_rel = os.path.join(unpackdir, modulename)
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
         outfile.close()
@@ -9502,6 +9572,9 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     else:
         outfile_rel = os.path.join(unpackdir, "unpacked-from-elf")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
     outfile.close()
@@ -9539,6 +9612,7 @@ def unpack_uboot_legacy(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     ostoname = {0: 'invalid',
                 1: 'OpenBSD',
@@ -9735,6 +9809,10 @@ def unpack_uboot_legacy(fileresult, scanenvironment, offset, unpackdir):
             outfile_rel = os.path.join(unpackdir, imagename)
     else:
         outfile_rel = os.path.join(unpackdir, "unpacked.uboot")
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     outfile_full = scanenvironment.unpack_path(outfile_rel)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset+64, unpackedsize)
@@ -9761,6 +9839,7 @@ def unpack_certificate(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     dataunpacked = False
 
@@ -9803,6 +9882,9 @@ def unpack_certificate(fileresult, scanenvironment, offset, unpackdir):
         outfile_rel = os.path.join(unpackdir, 'unpacked-certificate')
 
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
 
     # this is a bit hackish, but hey, it works in most of the cases :-)
@@ -10120,6 +10202,7 @@ def unpack_lzop(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if shutil.which('lzop') is None:
         checkfile.close()
@@ -10291,6 +10374,9 @@ def unpack_lzop(fileresult, scanenvironment, offset, unpackdir):
         # stop if the end of the file has been reached
         if checkfile.tell() == filesize:
             break
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     carved = False
     # carve the file if necessary
@@ -11566,6 +11652,7 @@ def unpack_device_tree(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if offset + 40 > filesize:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -11810,6 +11897,9 @@ def unpack_device_tree(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.dtb")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()

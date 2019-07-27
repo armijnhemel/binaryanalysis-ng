@@ -222,6 +222,9 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
 
     unpackedsize = squashfssize
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     # move contents of the unpacked file system
     foundfiles = os.listdir(squashfsunpackdirectory)
     if len(foundfiles) == 1:
@@ -351,6 +354,9 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
     havezisofs = False
 
     isobuffer = bytearray(2048)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # read all sectors, until there are none left, or
     # a volume set descriptor terminator is found
@@ -1326,6 +1332,9 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
 
     rootseen = False
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     # reset the file pointer and read all the inodes
     checkfile.seek(offset)
     while True:
@@ -2027,6 +2036,9 @@ def unpack_ext2(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'e2ls error'}
             return {'status': False, 'error': unpackingerror}
         dirlisting = outputmsg.rstrip().split(b'\n')
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         for d in dirlisting:
             # ignore deleted files
             if d.strip().startswith(b'>'):

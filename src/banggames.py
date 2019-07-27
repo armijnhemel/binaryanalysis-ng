@@ -43,6 +43,7 @@ def unpack_quake_pak(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if offset + 12 > filesize:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -96,6 +97,9 @@ def unpack_quake_pak(fileresult, scanenvironment, offset, unpackdir):
     number_of_files = file_table_size//64
 
     maxoffset = file_table_offset + file_table_size
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # seek to the file table offset
     checkfile.seek(offset + file_table_offset)
@@ -167,6 +171,7 @@ def unpack_doom_wad(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if offset + 12 > filesize:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -240,6 +245,9 @@ def unpack_doom_wad(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "unpacked.wad")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxoffset)
         outfile.close()
