@@ -279,12 +279,12 @@ class ScanJob:
                     # always change to the declared unpacking directory
                     os.chdir(self.scanenvironment.unpackdirectory)
                     # then create an unpacking directory specifically
-                    # for the signature including the signature name
-                    # and a counter for the signature.
-                    namecounter = counterspersignature.get(signature, 0) + 1
+                    # for the signature including the pretty printed signature
+                    # name and a counter for the signature.
+                    pretty_signature = bangsignatures.signatureprettyprint.get(signature, signature)
+                    namecounter = counterspersignature.get(pretty_signature, 0) + 1
                     namecounter = unpacker.make_data_unpack_directory(self.fileresult.filename,
-                            bangsignatures.signatureprettyprint.get(signature, signature),
-                            namecounter)
+                            pretty_signature, namecounter)
 
                     # run the scan for the offset that was found
                     # First log which identifier was found and
@@ -322,7 +322,7 @@ class ScanJob:
                         (self.fileresult.filename, signature, offset, unpackresult['length']))
 
                     # store the name counter
-                    counterspersignature[signature] = namecounter
+                    counterspersignature[pretty_signature] = namecounter
 
                     # store the labels for files that could be
                     # unpacked/verified completely.
@@ -464,6 +464,7 @@ class ScanJob:
 
                         outfile_rel = os.path.join(unpacker.get_data_unpack_directory(), "unpacked-%s-%s" % (hex(carve_index), hex(u_low-1)))
                         outfile_full = self.scanenvironment.unpack_path(outfile_rel)
+
                         outfile = open(outfile_full, 'wb')
                         os.sendfile(outfile.fileno(), scanfile.fileno(), carve_index, u_low - carve_index)
                         outfile.close()
