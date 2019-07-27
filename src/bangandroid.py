@@ -338,7 +338,7 @@ def unpack_android_backup(fileresult, scanenvironment, offset, unpackdir):
     # now unpack the tar ball
     # fr = FileResult( ??? )
     # TODO: fix this: source file not in unpackdir
-    tarresult = bangunpack.unpack_tar(pathlib.Path(tempbackupfile[1]), 0, unpackdir)
+    tarresult = bangunpack.unpack_tar(pathlib.Path(tempbackupfile[1]), scanenvironment, 0, unpackdir)
 
     # cleanup
     os.unlink(tempbackupfile[1])
