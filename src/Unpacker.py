@@ -85,11 +85,15 @@ class Unpacker:
 
     def remove_data_unpack_directory(self):
         '''Remove the unpacking directory'''
+        if not (self.unpackroot / self.dataunpackdirectory).exists():
+            return
         os.rmdir(os.path.join(self.unpackroot, self.dataunpackdirectory))
 
     def remove_data_unpack_directory_tree(self):
         '''Remove the unpacking directory, including any
         data that might accidentily have been left behind.'''
+        if not (self.unpackroot / self.dataunpackdirectory).exists():
+            return
         dirwalk = os.walk(os.path.join(self.unpackroot, self.dataunpackdirectory))
         for direntries in dirwalk:
             # make sure all subdirectories and files can
