@@ -555,6 +555,13 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
 
     custom_attributes = ['Built-By', 'Ant-Version']
     android_attributes = ['X-Android-APK-Signed']
+    bnd_attributes = ['Bnd-LastModified', 'Bundle-License',
+                      'Bundle-ManifestVersion', 'Bundle-Name',
+                      'Bundle-RequiredExecutionEnvironment',
+                      'Bundle-SymbolicName', 'Bundle-Vendor',
+                      'Bundle-Version', 'DSTAMP', 'DynamicImport-Package',
+                      'Export-Package', 'Extension-name', 'Import-Package',
+                      'Include-Resource', 'TODAY', 'Tool', 'TSTAMP']
 
     isopened = False
 
@@ -578,8 +585,8 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
                 continue
             # regular lines need to have : in them, unless they
             # are a continuation of a previous line
-            if ':' not in i:
-                if re.match('\s+[\-\.\w\d/=]+$', i.rstrip()) is not None:
+            if ':' not in i or i.startswith(' '):
+                if re.match('\s+[\"; \-\.,\w\d/=:]+$', i.rstrip()) is not None:
                     continue
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
@@ -604,6 +611,7 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
             validextensionattribute = False
             customattribute = False
             androidattribute = False
+            bndattribute = False
             for a in extension_attributes:
                 if manifestattribute.endswith(a):
                     validextensionattribute = True
@@ -617,7 +625,11 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
                     androidattribute = True
                     isandroid = True
                     break
-            if not validextensionattribute and not customattribute and not androidattribute:
+            for a in bnd_attributes:
+                if manifestattribute.endswith(a):
+                    bndattribute = True
+                    break
+            if not (validextensionattribute or customattribute or androidattribute or bndattribute):
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'invalid manifest line'}
