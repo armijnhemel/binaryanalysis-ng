@@ -465,6 +465,9 @@ class ScanJob:
                         outfile_rel = os.path.join(unpacker.get_data_unpack_directory(), "unpacked-%s-%s" % (hex(carve_index), hex(u_low-1)))
                         outfile_full = self.scanenvironment.unpack_path(outfile_rel)
 
+                        # create the unpacking directory and write the file
+                        os.makedirs(outfile_full.parent, exist_ok=True)
+
                         outfile = open(outfile_full, 'wb')
                         os.sendfile(outfile.fileno(), scanfile.fileno(), carve_index, u_low - carve_index)
                         outfile.close()
