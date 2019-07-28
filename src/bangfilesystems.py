@@ -3915,6 +3915,7 @@ def unpack_romfs(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file, skip the magic
     checkfile = open(filename_full, 'rb')
@@ -3970,6 +3971,9 @@ def unpack_romfs(fileresult, scanenvironment, offset, unpackdir):
     curoffset = checkfile.tell() - offset
     curcwd = ''
     offsets.append((curoffset, curcwd))
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # now keep processing offsets, until none
     # are left to process.

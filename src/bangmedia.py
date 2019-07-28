@@ -2836,6 +2836,7 @@ def unpack_au(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if filesize - offset < 24:
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -2918,6 +2919,9 @@ def unpack_au(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file. It is anonymous, so give it a name
         outfile_rel = os.path.join(unpackdir, "unpacked-au")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -2947,6 +2951,7 @@ def unpack_sunraster(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # header has 8 fields, each 4 bytes
     if filesize - offset < 32:
@@ -3035,6 +3040,9 @@ def unpack_sunraster(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(offset)
     outfile_rel = os.path.join(unpackdir, "unpacked.rast")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -3191,6 +3199,8 @@ def unpack_mng(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackedsize = 0
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+
     if filesize - offset < 52:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'File too small (less than 52 bytes'}
@@ -3291,6 +3301,9 @@ def unpack_mng(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file. It is anonymous, so just give it a name
         outfile_rel = os.path.join(unpackdir, "unpacked.mng")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -3324,6 +3337,7 @@ def unpack_swf(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackedfilesandlabels = []
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     unpackedsize = 0
 
@@ -3496,6 +3510,9 @@ def unpack_swf(fileresult, scanenvironment, offset, unpackdir):
         # Carve the file. It is anonymous, so just give it a name
         outfile_rel = os.path.join(unpackdir, "unpacked.swf")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -3553,6 +3570,9 @@ def unpack_swf(fileresult, scanenvironment, offset, unpackdir):
         # Carve the file. It is anonymous, so just give it a name
         outfile_rel = os.path.join(unpackdir, "unpacked.swf")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -3655,6 +3675,9 @@ def unpack_swf(fileresult, scanenvironment, offset, unpackdir):
     # Carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.swf")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -3679,6 +3702,7 @@ def unpack_flv(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedfilesandlabels = []
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     unpackedsize = 0
 
@@ -3886,6 +3910,9 @@ def unpack_flv(fileresult, scanenvironment, offset, unpackdir):
     # Carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.flv")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -4586,6 +4613,7 @@ def unpack_midi(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file and skip the offset
     checkfile = open(filename_full, 'rb')
@@ -4665,6 +4693,9 @@ def unpack_midi(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.midi")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -4688,6 +4719,7 @@ def unpackXG3D(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # only support files starting at offset 0 for now
     if offset != 0:
@@ -4765,6 +4797,7 @@ def unpack_dds(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if filesize - offset < 128:
         unpackingerror = {'offset': offset+unpackedsize,
@@ -4954,6 +4987,9 @@ def unpack_dds(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.dds")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -4975,6 +5011,7 @@ def unpack_ktx11(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if filesize - offset < 64:
         unpackingerror = {'offset': offset+unpackedsize,
@@ -5187,6 +5224,9 @@ def unpack_ktx11(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.ktx")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -5213,6 +5253,7 @@ def unpack_psd(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # header + length field of color mode data section is 30
     if offset + 30 > filesize:
@@ -5414,6 +5455,9 @@ def unpack_psd(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.psd")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -5741,6 +5785,7 @@ def unpack_mapsforge(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # header is at least 64 bytes
     if offset + 64 > filesize:
@@ -5816,6 +5861,9 @@ def unpack_mapsforge(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.map")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, map_size)
     outfile.close()
