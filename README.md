@@ -191,6 +191,7 @@ larger file, unless stated otherwise.
 127. Parrot PLF files
 128. Windows INI files (text only)
 129. Subversion hash files (wcprops, all-wcprops, etc.)
+130. PFS file system
 
 
 ## Invocation
