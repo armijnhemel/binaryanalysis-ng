@@ -1629,18 +1629,21 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                 # the offset to the compressed data length
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
+                    outfile.close()
                     break
                 compressedsize = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 # read the decompressed size
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
+                    outfile.close()
                     break
                 decompressedsize = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 # find out which compression algorithm has been used
                 checkbytes = checkfile.read(1)
                 if len(checkbytes) != 1:
+                    outfile.close()
                     break
                 compression_used = ord(checkbytes)
 
@@ -1648,6 +1651,7 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                 checkfile.seek(11, os.SEEK_CUR)
                 checkbytes = checkfile.read(compressedsize)
                 if len(checkbytes) != compressedsize:
+                    outfile.close()
                     break
 
                 # Check the compression that's used as it could be that
@@ -1667,6 +1671,7 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                         outfile.write(zlib.decompress(checkbytes))
                         dataunpacked = True
                     except Exception as e:
+                        outfile.close()
                         break
                 elif compression_used == COMPR_LZMA:
                     # The data is LZMA compressed, so create a
@@ -1683,14 +1688,21 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                         outfile.write(decompressor.decompress(checkbytes))
                         dataunpacked = True
                     except Exception as e:
+                        outfile.close()
                         break
                 elif compression_used == COMPR_RTIME:
+                    outfile.close()
                     break
                 #elif compression_used == COMPR_LZO:
                 # The JFFS2 version of LZO somehow cannot be unpacked with
                 # python-lzo
                 else:
+                    outfile.close()
                     break
+
+                # flush any remaining data and close the file
+                outfile.flush()
+                outfile.close()
                 inodetowriteoffset[inodenumber] = writeoffset + decompressedsize
             else:
                 # unsure what to do here now
@@ -1710,10 +1722,8 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'no data unpacked'}
         return {'status': False, 'error': unpackingerror}
 
-    # close all the open files
+    # add the files to the unpack result
     for i in inodetoopenfiles:
-        inodetoopenfiles[i].flush()
-        inodetoopenfiles[i].close()
         fn_rel = scanenvironment.rel_unpack_path(inodetoopenfiles[i].name)
         unpackedfilesandlabels.append((fn_rel, []))
 
