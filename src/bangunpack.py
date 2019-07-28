@@ -2705,6 +2705,9 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file
     targetfile_rel = os.path.join(unpackdir, 'encrypted.zip')
     targetfile_full = scanenvironment.unpack_path(targetfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     targetfile = open(targetfile_full, 'wb')
     os.sendfile(targetfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     targetfile.close()
@@ -4962,6 +4965,7 @@ def unpack_rzip(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if filesize - offset < 10:
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -4997,6 +5001,9 @@ def unpack_rzip(fileresult, scanenvironment, offset, unpackdir):
     # then read the size of the uncompressed data
     checkbytes = checkfile.read(4)
     uncompressedsize = int.from_bytes(checkbytes, byteorder='big')
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # check if there actually is bzip2 compressed data.
     bzip2headerfound = False
@@ -6494,11 +6501,11 @@ def unpack_wim(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a Windows Imaging Format file file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackdir_full = scanenvironment.unpack_path(unpackdir)
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # a WIM signature header is at least 208 bytes
     if filesize - offset < 208:
@@ -7567,6 +7574,7 @@ def unpack_lz4legacy(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file, seek to the offset
     checkfile = open(filename_full, 'rb')
@@ -7605,6 +7613,9 @@ def unpack_lz4legacy(fileresult, scanenvironment, offset, unpackdir):
         if unpackedsize == filesize:
             break
         blockunpacked = True
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
@@ -10492,6 +10503,7 @@ def unpack_pack200(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # first check if the unpack200 program is actually there
     if shutil.which('unpack200') is None:
@@ -10514,6 +10526,9 @@ def unpack_pack200(fileresult, scanenvironment, offset, unpackdir):
     # write unpacked data to a JAR file
     outfile_rel = os.path.join(unpackdir, "unpacked.jar")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # then extract the file
     if offset != 0:
@@ -10563,6 +10578,7 @@ def unpack_zim(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # ZIM header is 80 bytes
     if offset + 80 > filesize:
@@ -10847,6 +10863,9 @@ def unpack_zim(fileresult, scanenvironment, offset, unpackdir):
     # a list of name spaces with actual content, and no metadata
     contentnamespaces = set(['-', 'A', 'I'])
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     # then process all the articles
     for i in urlpointers:
         checkfile.seek(offset + i)
@@ -11106,6 +11125,7 @@ def unpack_java_keystore(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file and skip the offset
     checkfile = open(filename_full, 'rb')
@@ -11244,6 +11264,9 @@ def unpack_java_keystore(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.jks")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -11267,6 +11290,7 @@ def unpack_acdb(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # only support files starting at offset 0 for now
     if offset != 0:
@@ -11366,6 +11390,7 @@ def unpack_sqlite(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if filesize - offset < 100:
         unpackingerror = {'offset': offset+unpackedsize,
@@ -11603,6 +11628,9 @@ def unpack_sqlite(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.sqlite3")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -11930,6 +11958,7 @@ def unpack_trx(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if offset + 28 > filesize:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -12018,6 +12047,9 @@ def unpack_trx(fileresult, scanenvironment, offset, unpackdir):
             return {'status': False, 'error': unpackingerror}
         unpackedsize += 4
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     # write partition 1
     if offset1 != 0:
         if offset2 != 0:
@@ -12104,6 +12136,7 @@ def unpack_minidump(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # header is 32 bytes long
     if offset + 32 > filesize:
@@ -12245,6 +12278,9 @@ def unpack_minidump(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.dmp")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -12270,6 +12306,7 @@ def unpack_compress(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file, skip the magic
     checkfile = open(filename_full, 'rb')
@@ -12307,6 +12344,9 @@ def unpack_compress(fileresult, scanenvironment, offset, unpackdir):
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'invalid compress\'d data'}
         return {'status': False, 'error': unpackingerror}
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     havetmpfile = False
     if offset != 0:
@@ -12373,6 +12413,7 @@ def unpack_ambarella(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file
     checkfile = open(filename_full, 'rb')
@@ -12421,6 +12462,9 @@ def unpack_ambarella(fileresult, scanenvironment, offset, unpackdir):
                      11: 'linux'}
 
     dataunpacked = False
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # write the data of each section
     for section in sections:
@@ -12516,6 +12560,7 @@ def unpack_romfs_ambarella(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file
     checkfile = open(filename_full, 'rb')
@@ -12576,6 +12621,9 @@ def unpack_romfs_ambarella(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'invalid magic'}
             return {'status': False, 'error': unpackingerror}
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     for inode in inodes:
         outfile_rel = os.path.join(unpackdir, inodes[inode]['name'])
         outfile_full = scanenvironment.unpack_path(outfile_rel)
@@ -12629,6 +12677,7 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # header is 64 bytes
     if offset + 64 > filesize:
@@ -12824,6 +12873,9 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "unpacked-from-blft")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -12847,6 +12899,7 @@ def unpack_grub2font(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file, skip the magic
     checkfile = open(filename_full, 'rb')
@@ -12969,6 +13022,9 @@ def unpack_grub2font(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "unpacked-from-grub2font")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -12992,6 +13048,7 @@ def unpack_bittorrent(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file, skip part of the 'magic'
     checkfile = open(filename_full, 'rb')
@@ -13170,6 +13227,9 @@ def unpack_bittorrent(fileresult, scanenvironment, offset, unpackdir):
         outfile_rel = os.path.join(unpackdir, "unpacked-from-torrent")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
         outfile = open(outfile_full, 'wb')
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
         unpackedfilesandlabels.append((outfile_rel, ['resource', 'torrent', 'unpacked']))
@@ -13249,6 +13309,7 @@ def unpack_pcapng(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # standard blocks
     interface_block = 0x1
@@ -13330,6 +13391,9 @@ def unpack_pcapng(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "unpacked-from-pcapng")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -13351,6 +13415,7 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     metadata = {}
 
@@ -13476,6 +13541,9 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "unpacked-from-pcap")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -13503,6 +13571,7 @@ def unpack_serialized_java(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # file is at least 5 bytes: magic (2 bytes),
     # version (2 bytes), data (1 byte)
@@ -13559,6 +13628,9 @@ def unpack_serialized_java(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "unpacked-from-serialized-java")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
