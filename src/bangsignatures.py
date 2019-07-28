@@ -162,6 +162,7 @@ signatures = {
     'serialized_java': b'\xac\xed\x00\x05',
     'mapsforge': b'mapsforge binary OSM',
     'plf': b'PLF!',
+    'pfs': b'PFS/0.9\x00',
 }
 
 # some signatures do not start at the beginning of the file
@@ -337,6 +338,7 @@ signaturetofunction = {
     'serialized_java': bangunpack.unpack_serialized_java,
     'mapsforge': bangmedia.unpack_mapsforge,
     'plf': bangfilesystems.unpack_plf,
+    'pfs': bangfilesystems.unpack_pfs,
 }
 
 # a lookup table to map signatures to a name for
