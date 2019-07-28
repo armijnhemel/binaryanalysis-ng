@@ -382,11 +382,17 @@ def unpack_gzip(fileresult, scanenvironment, offset, unpackdir):
             # in this case report the original name as well in a
             # different data structure
             try:
-                outfile_rel = os.path.join(unpackdir, origname)
-                new_outfile_full = scanenvironment.unpack_path(outfile_rel)
-                shutil.move(outfile_full, new_outfile_full)
-                outfile_full = new_outfile_full
-                anonymous = False
+                movefile = True
+                if '/' in origname:
+                    origname = origname.split('/', 1)[0]
+                    if origname != '':
+                        movefile = False
+                if movefile:
+                    outfile_rel = os.path.join(unpackdir, origname)
+                    new_outfile_full = scanenvironment.unpack_path(outfile_rel)
+                    shutil.move(outfile_full, new_outfile_full)
+                    outfile_full = new_outfile_full
+                    anonymous = False
             except:
                 pass
 
