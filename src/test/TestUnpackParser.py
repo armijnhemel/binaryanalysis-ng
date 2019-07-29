@@ -1,6 +1,6 @@
 
 from TestUtil import *
-from UnpackParserException import ParserException
+from UnpackParserException import UnpackParserException
 from UnpackParser import UnpackParser
 
 class InvalidUnpackParser(UnpackParser):
@@ -9,7 +9,7 @@ class InvalidUnpackParser(UnpackParser):
 class TestFileResult(TestBase):
     def test_unpack_parser_without_parse_method(self):
         p = InvalidUnpackParser()
-        with self.assertRaisesRegex(ParserException, r"undefined parse method") as cm:
+        with self.assertRaisesRegex(UnpackParserException, r"undefined parse method") as cm:
             p.parse()
 
 

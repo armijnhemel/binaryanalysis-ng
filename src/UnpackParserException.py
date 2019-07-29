@@ -1,4 +1,4 @@
 
-class ParserException(Exception):
+class UnpackParserException(Exception):
     pass
 
