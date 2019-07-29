@@ -1,7 +1,6 @@
 import sys, os
 _scriptdir = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
-# import unittest
 from TestUtil import *
 
 from parsers.ico.Parser import IcoParser
@@ -22,7 +21,6 @@ class TestIcoParser(TestBase):
         self.assertTrue(r['status'], r.get('error'))
         self.assertEqual(r['length'], filesize)
         self.assertEqual(r['filesandlabels'], [])
-        self.assertEqual(r['metadata']['width'], 64)
 
 if __name__ == '__main__':
     unittest.main()

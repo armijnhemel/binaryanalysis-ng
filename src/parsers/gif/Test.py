@@ -1,7 +1,6 @@
 import sys, os
 _scriptdir = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
-# import unittest
 from TestUtil import *
 
 from parsers.gif.Parser import GifParser
