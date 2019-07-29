@@ -3,17 +3,17 @@ _scriptdir = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
 from TestUtil import *
 
-from parsers.gif.Parser import GifParser
+from parsers.gif.Parser import GifUnpackParser
 from ParserException import ParserException
 
-class TestGifParser(TestBase):
+class TestGifUnpackParser(TestBase):
     def test_load_standard_gif_file(self):
         rel_testfile = pathlib.Path('unpackers') / 'gif' / 'test.gif'
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
         filesize = fileresult.filesize
-        p = GifParser()
+        p = GifUnpackParser()
         # dummy data unpack dir
         data_unpack_dir = (self.unpackdir / rel_testfile).parent
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
@@ -29,7 +29,7 @@ class TestGifParser(TestBase):
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
         filesize = fileresult.filesize
-        p = GifParser()
+        p = GifUnpackParser()
         # dummy data unpack dir
         data_unpack_dir = (self.unpackdir / rel_testfile).parent
         r = p.parse_and_unpack(fileresult, self.scan_environment, 128,
@@ -49,7 +49,7 @@ class TestGifParser(TestBase):
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
-        p = GifParser()
+        p = GifUnpackParser()
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0, self.unpackdir)
         self.assertFalse(r['status'])
         self.assertIsNotNone(r['error']['reason'])
