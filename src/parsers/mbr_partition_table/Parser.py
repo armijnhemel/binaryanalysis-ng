@@ -143,7 +143,7 @@ class MbrPartitionTableParser:
         files_and_labels = []
         partition_number = 0
         for p in self.data.partitions:
-            partition_ext = ".part"
+            partition_ext = "part"
             partition_start = p.lba_start * 512
             partition_length = p.num_sectors * 512
             outfile_rel = os.path.join(unpack_dir,
