@@ -22,7 +22,7 @@ class GifUnpackParser(UnpackParser):
             return [ (outfile_rel, outlabels) ]
         else:
             return []
-    def set_metadata_and_labels(self, metadata):
+    def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         extensions = [ x.body for x in self.data.blocks
                 if x.block_type == self.data.BlockType.extension ]

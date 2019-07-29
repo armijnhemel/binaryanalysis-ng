@@ -23,10 +23,8 @@ class IcoUnpackParser(UnpackParser):
             return [ (outfile_rel, outlabels) ]
         else:
             return []
-    def set_metadata_and_labels(self, metadata):
+    def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         self.unpack_results['labels'] = ['graphics','ico','resource']
         self.unpack_results['metadata'] = {}
-
-
 
