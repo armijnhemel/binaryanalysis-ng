@@ -1330,6 +1330,7 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
 
     # a mapping of inodes to open files
     inodetoopenfiles = {}
+    currentinode = None
 
     rootseen = False
 
@@ -1615,11 +1616,19 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                         break
                     if inodenumber in inodetoopenfiles:
                         break
+                    if currentinode != None:
+                        if currentinode in inodetoopenfiles:
+                            try:
+                                inodetoopenfiles[currentinode].close()
+                            except:
+                                pass
+
                     # open a file and store it as a reference
                     fn_rel = os.path.join(unpackdir, inodetofilename[inodenumber])
                     fn_full = scanenvironment.unpack_path(fn_rel)
                     outfile = open(fn_full, 'wb')
                     inodetoopenfiles[inodenumber] = outfile
+                    currentinode = inodenumber
                 else:
                     if writeoffset != inodetowriteoffset[inodenumber]:
                         break
@@ -1701,9 +1710,8 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                     outfile.close()
                     break
 
-                # flush any remaining data and close the file
+                # flush any remaining data
                 outfile.flush()
-                outfile.close()
                 inodetowriteoffset[inodenumber] = writeoffset + decompressedsize
             else:
                 # unsure what to do here now
