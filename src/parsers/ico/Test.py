@@ -4,7 +4,6 @@ sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
 from TestUtil import *
 
 from parsers.ico.UnpackParser import IcoUnpackParser
-from ParserException import ParserException
 
 class TestIcoUnpackParser(TestBase):
     def test_load_standard_ico_file(self):

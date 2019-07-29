@@ -1,6 +1,6 @@
 
 from TestUtil import *
-from ParserException import ParserException
+from UnpackParserException import ParserException
 from UnpackParser import UnpackParser
 
 class InvalidUnpackParser(UnpackParser):

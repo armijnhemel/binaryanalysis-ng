@@ -1,7 +1,6 @@
 
 import os
 from . import gif
-from ParserException import ParserException
 from UnpackParser import UnpackParser
 
 class GifUnpackParser(UnpackParser):

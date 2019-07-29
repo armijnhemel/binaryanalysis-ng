@@ -4,7 +4,6 @@ sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
 from TestUtil import *
 
 from parsers.mbr_partition_table.UnpackParser import MbrPartitionTableUnpackParser
-from ParserException import ParserException
 
 class TestMbrPartitionTableUnpackParser(TestBase):
     def test_load_standard_file(self):
