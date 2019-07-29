@@ -38,8 +38,8 @@ import bangmedia
 import bangandroid
 import bangtext
 
-from parsers.gif.Parser import GifUnpackParser
-from parsers.ico.Parser import IcoUnpackParser
+from parsers.gif.UnpackParser import GifUnpackParser
+from parsers.ico.UnpackParser import IcoUnpackParser
 
 # basetestdir = pathlib.Path('/home/armijn/git/binaryanalysis-ng/test')
 # tmpdirectory = '/home/armijn/tmp'

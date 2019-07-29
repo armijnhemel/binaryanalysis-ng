@@ -3,7 +3,7 @@ _scriptdir = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
 from TestUtil import *
 
-from parsers.mbr_partition_table.Parser import MbrPartitionTableUnpackParser
+from parsers.mbr_partition_table.UnpackParser import MbrPartitionTableUnpackParser
 from ParserException import ParserException
 
 class TestMbrPartitionTableUnpackParser(TestBase):

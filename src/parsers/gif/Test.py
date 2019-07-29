@@ -3,7 +3,7 @@ _scriptdir = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
 from TestUtil import *
 
-from parsers.gif.Parser import GifUnpackParser
+from parsers.gif.UnpackParser import GifUnpackParser
 from ParserException import ParserException
 
 class TestGifUnpackParser(TestBase):
