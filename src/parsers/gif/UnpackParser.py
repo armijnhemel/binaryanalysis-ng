@@ -4,6 +4,12 @@ from . import gif
 from UnpackParser import UnpackParser
 
 class GifUnpackParser(UnpackParser):
+    extensions = ['gif']
+    signatures = [
+        (0, b'GIF87a'),  # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+        (0, b'GIF89a'),  # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+    ]
+
     def parse(self):
         self.data = gif.Gif.from_io(self.infile)
     def calculate_unpacked_size(self, offset):

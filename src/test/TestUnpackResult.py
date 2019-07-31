@@ -1,4 +1,5 @@
 import inspect
+import pkgutil
 
 from TestUtil import *
 
@@ -9,9 +10,33 @@ import bangandroid
 import bangmedia
 import bangfilesystems
 import bangunpack
+import importlib
+
+import parsers
+from UnpackParser import UnpackParser
+
+
+def _get_unpackers_recursive(parent_module_path):
+    unpackers = []
+    for m in pkgutil.iter_modules([parent_module_path]):
+        try:
+            module_name = 'parsers.{}.UnpackParser'.format(m.name)
+            module = importlib.import_module(module_name)
+            for name, member in inspect.getmembers(module):
+                if inspect.isclass(member) and issubclass(member, UnpackParser):
+                    unpackers.append(member)
+        except ModuleNotFoundError as e:
+            pass
+        unpackers.extend(_get_unpackers_recursive(
+                os.path.join(parent_module_path, m.name)))
+    return unpackers
 
 
 def get_unpackers():
+    unpackers = _get_unpackers_recursive(os.path.dirname(parsers.__file__))
+    print(unpackers)
+    return unpackers
+
     functions = []
     for m in bangandroid, bangfilesystems, bangmedia, bangunpack:
         functions += [(name, func) for name, func in
@@ -19,13 +44,20 @@ def get_unpackers():
                       if name.startswith('unpack')]
     return dict(functions)
 
-def get_unpackers_for_file(unpackername, f):
-    ext = os.path.splitext(f)[1]
-    try:
-        yield bangsignatures.extensiontofunction[ext]
-    except KeyError:
-        pass
+_unpackers = get_unpackers()
 
+def get_unpackers_for_extension(ext):
+    return [ u for u in _unpackers if u.is_valid_extension(ext) ]
+
+def get_unpackers_for_file(unpackername, f):
+    ext = pathlib.Path(f).suffix
+    # ext = os.path.splitext(f)[1]
+    
+    for unpacker in get_unpackers_for_extension(ext):
+        yield unpacker
+    return
+
+    print('unpackername', unpackername)
     try:
         yield bangsignatures.signaturetofunction[unpackername]
     except KeyError:
@@ -90,15 +122,15 @@ class TestUnpackResult(TestBase):
             # 'unpackers/squashfs/test-cut-data-from-end.sqsh',
             # 'unpackers/squashfs/test-data-replaced-in-middle.sqsh',
             ]
-        for fn, unpackfunc in sorted(set(self.walk_available_files_with_unpackers())):
+        for fn, unpackparser in sorted(set(self.walk_available_files_with_unpackers())):
             if fn in skipfiles:
                 # print('skip file', fn)
                 continue
             # print('TestUnpackResult::before', os.getcwd())
             self._copy_file_from_testdata(fn)
-            unpacker.make_data_unpack_directory(fn, unpackfunc.__name__)
+            unpacker.make_data_unpack_directory(fn, unpackparser.__name__)
             fileresult = create_fileresult_for_path(self.unpackdir, pathlib.Path(fn))
-            unpackresult = unpackfunc(fileresult, self.scan_environment, 0, unpacker.get_data_unpack_directory())
+            unpackresult = unpackparser.parse_and_unpack(fileresult, self.scan_environment, 0, unpacker.get_data_unpack_directory())
             # print('TestUnpackResult::after', os.getcwd())
 
             try:
@@ -141,8 +173,8 @@ class TestUnpackResult(TestBase):
         self.assertEqual(str(fileresult.filename), name)
         # unpackresult = unpacker(fileresult, self.scan_environment, 0, self.unpackdir)
         for unpackername in sorted(unpackers.keys()):
-            unpacker = unpackers[unpackername]
-            unpackresult = unpacker(fileresult, self.scan_environment, 0, self.unpackdir)
+            unpackparser = unpackers[unpackername]
+            unpackresult = unpackparser.parse_and_unpack(fileresult, self.scan_environment, 0, self.unpackdir)
 
 if __name__ == "__main__":
     unittest.main()

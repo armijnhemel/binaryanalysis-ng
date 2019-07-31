@@ -1,6 +1,10 @@
 from UnpackParserException import UnpackParserException
 
 class UnpackParser:
+    extensions = []
+    # signatures are tuples, (offset, bytestring)
+    signatures = []
+
     def __init__(self):
         self.unpacked_size = 0
         self.unpack_results = {}
@@ -54,5 +58,8 @@ class UnpackParser:
         Must return a list of tuples containing filename and labels.
         """
         return []
+    @classmethod
+    def is_valid_extension(cls, ext):
+        return ext in cls.extensions
 
 
