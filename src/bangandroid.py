@@ -64,6 +64,7 @@ def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # for each .new.dat file there has to be a corresponding
     # .transfer.list file as well.
@@ -192,6 +193,9 @@ def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
         outputfile_rel = os.path.join(unpackdir, filename_full.stem)
     outputfile_full = scanenvironment.unpack_path(outputfile_rel)
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     # first create the targetfile
     targetfile = open(outputfile_full, 'wb')
 
@@ -249,6 +253,7 @@ def unpack_android_backup(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     checkfile = open(filename_full, 'rb')
 
@@ -327,10 +332,13 @@ def unpack_android_backup(fileresult, scanenvironment, offset, unpackdir):
 
     tarfilesize = os.stat(tempbackupfile[1]).st_size
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     # now unpack the tar ball
     # fr = FileResult( ??? )
     # TODO: fix this: source file not in unpackdir
-    tarresult = bangunpack.unpack_tar(pathlib.Path(tempbackupfile[1]), 0, unpackdir)
+    tarresult = bangunpack.unpack_tar(pathlib.Path(tempbackupfile[1]), scanenvironment, 0, unpackdir)
 
     # cleanup
     os.unlink(tempbackupfile[1])
@@ -371,6 +379,7 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # minimum for version 4: version + number of resources + encoding
     # + 2 zero bytes + end of last file = 15
@@ -388,7 +397,7 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
     # first the version number
     checkbytes = checkfile.read(4)
     pakversion = int.from_bytes(checkbytes, byteorder='little')
-    if pakversion != 4 and pakversion != 5:
+    if pakversion not in [4, 5]:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'unsupported .pak version (can only process version 4 or 5)'}
@@ -492,6 +501,9 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
             if writedata:
                 outfile_rel = os.path.join(unpackdir, 'resource-%d' % sorteditems[i][0])
                 outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+                # create the unpacking directory
+                os.makedirs(unpackdir_full, exist_ok=True)
                 outfile = open(outfile_full, 'wb')
                 outfile.write(checkfile.read(lenbytes))
                 outfile.flush()
@@ -616,6 +628,9 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
             if writedata:
                 outfile_rel = os.path.join(unpackdir, 'resource-%d' % sorteditems[i][0])
                 outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+                # create the unpacking directory
+                os.makedirs(unpackdir_full, exist_ok=True)
                 outfile = open(outfile_full, 'wb')
                 outfile.write(checkfile.read(lenbytes))
                 outfile.flush()
@@ -632,6 +647,9 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file
     outfile_rel = os.path.join(unpackdir, "unpacked-from-pak")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, endoffile - offset)
     outfile.close()
@@ -643,6 +661,7 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_chrome_pak.extensions = ['.pak']
 unpack_chrome_pak.pretty = 'pak'
+unpack_chrome_pak.minimum_size = 12
 
 
 # The Android sparse format is documented in the Android source code tree:
@@ -661,6 +680,7 @@ def unpack_android_sparse(fileresult, scanenvironment, offset, unpackdir):
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     unpackedsize = 0
     checkfile = open(filename_full, 'rb')
@@ -744,6 +764,9 @@ def unpack_android_sparse(fileresult, scanenvironment, offset, unpackdir):
     # open an output file
     outputfile_rel = os.path.join(unpackdir, "sparse.out")
     outputfile_full = scanenvironment.unpack_path(outputfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outputfile = open(outputfile_full, 'wb')
 
     # then determine the size of the sparse file
@@ -810,6 +833,7 @@ def unpack_android_sparse(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_android_sparse.signatures = {'androidsparse': b'\x3a\xff\x26\xed'}
+unpack_android_sparse.minimum_size = 28
 
 
 # Android Dalvik
@@ -832,6 +856,7 @@ def unpack_dex(
     labels = []
     unpackedsize = 0
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     dexresult = {}
 
@@ -1523,6 +1548,9 @@ def unpack_dex(
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "classes.dex")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
@@ -1533,6 +1561,7 @@ def unpack_dex(
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_dex.signatures = {'dex': b'dex\n'}
+unpack_dex.minimum_size = 70
 
 
 # Android Dalvik, optimized
@@ -1552,6 +1581,7 @@ def unpack_odex(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackedsize = 0
     unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if filesize < 40:
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
@@ -1668,6 +1698,9 @@ def unpack_odex(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file
     outfile_rel = os.path.join(unpackdir, "unpacked.odex")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -1678,6 +1711,7 @@ def unpack_odex(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_odex.signatures = {'odex': b'dey\n'}
+unpack_odex.minimum_size = 40
 
 
 # Android resources files (such as "resources.arsc") as found in
@@ -1697,7 +1731,9 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
-    byteorder='little'
+    byteorder = 'little'
+    dataunpacked = False
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # first check the kind of file. There are four types of
     # top level files.
@@ -1860,6 +1896,7 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
             # skip over the entire chunk
             checkfile.seek(oldoffset + packagesize)
             unpackedsize = checkfile.tell() - offset
+        dataunpacked = True
     elif resourcetype == 3:
         # http://web.archive.org/web/20140916071519/http://justanapplication.wordpress.com/2011/09/22/android-internals-binary-xml-part-two-the-xml-chunk/
         if checkfile.tell() + 8 > filesize:
@@ -1962,6 +1999,8 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
             chunksize = int.from_bytes(checkbytes, byteorder=byteorder)
 
             # sanity checks
+            if chunksize == 0:
+                break
             if oldoffset + chunksize > filesize:
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
@@ -1976,18 +2015,26 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
             elif xmlresourcetype == 0x101:
                 namespaces -= 1
                 if namespaces == 0 and first_is_namespace:
+                    dataunpacked = True
                     break
             elif xmlresourcetype == 0x102:
                 elementcount += 1
             elif xmlresourcetype == 0x103:
                 elementcount -= 1
                 if elementcount == 0 and not first_is_namespace:
+                    dataunpacked = True
                     break
         unpackedsize = checkfile.tell() - offset
     else:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'cannot process chunk with resource type %d' % resourcetype}
+        return {'status': False, 'error': unpackingerror}
+
+    if not dataunpacked:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'no data could be unpacked'}
         return {'status': False, 'error': unpackingerror}
 
     # see if the whole file is the android resource file
@@ -2006,6 +2053,9 @@ def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
     else:
         outfile_rel = os.path.join(unpackdir, "unpacked-from-resources.arsc")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -2227,6 +2277,7 @@ def unpack_android_tzdata(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if offset + 24 > filesize:
         unpackingerror = {'offset': offset+unpackedsize,
@@ -2302,6 +2353,9 @@ def unpack_android_tzdata(fileresult, scanenvironment, offset, unpackdir):
     maxoffset = unpackedsize
     dataunpacked = False
     tzcounter = 0
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # read all the fonts, until either the data_offset or zonetab_offset
     while True:
@@ -2436,6 +2490,7 @@ def unpack_android_tzdata(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_android_tzdata.extensions = ['tzdata']
 unpack_android_tzdata.pretty = 'tzdata'
+unpack_android_tzdata.minimum_size = 24
 
 
 # Android verfied boot images
@@ -2448,6 +2503,7 @@ def unpack_avb(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if filesize - offset < 256:
         unpackingerror = {'offset': offset+unpackedsize,
@@ -2635,6 +2691,9 @@ def unpack_avb(fileresult, scanenvironment, offset, unpackdir):
     # else carve the file. It is anonymous, so just give it a name
     outfile_rel = os.path.join(unpackdir, "unpacked.img")
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     outfile.close()
@@ -2645,6 +2704,7 @@ def unpack_avb(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_avb.signatures = {'avb': b'AVB0'}
+unpack_avb.minimum_size = 256
 
 
 # unpack boot files found on certain Android devices equiped with
@@ -2662,6 +2722,7 @@ def unpack_android_boot_msm(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if offset + 20 > filesize:
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -2741,6 +2802,9 @@ def unpack_android_boot_msm(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'size of images and bootloader size do not match'}
         return {'status': False, 'error': unpackingerror}
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     checkfile.seek(offset+startoffset)
     for i in imginfo:
         outfile_rel = os.path.join(unpackdir, i[0])
@@ -2760,6 +2824,7 @@ def unpack_android_boot_msm(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_android_boot_msm.signatures = {'androidbootmsm': b'BOOTLDR!'}
+unpack_android_boot_msm.minimum_size = 20
 
 
 # Android bootloader
@@ -2773,6 +2838,7 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # the android boot loader images don't have names recorded
     # for the different parts, so just hardcode these.
@@ -2910,6 +2976,9 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     # write the kernel data
     outfile_rel = os.path.join(unpackdir, kernelname)
     outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
     outfile = open(outfile_full, 'wb')
     os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), kernelsize)
     outfile.close()
@@ -2943,14 +3012,14 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
         outfile_rel = os.path.join(unpackdir, secondstagename)
         outfile_full = scanenvironment.unpack_path(outfile_rel)
         outfile = open(outfile_full, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), ramdisksize)
+        os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), secondsize)
         outfile.close()
-        checkfile.seek(ramdisksize, os.SEEK_CUR)
+        checkfile.seek(secondsize, os.SEEK_CUR)
         unpackedfilesandlabels.append((outfile_rel, ["bootloader"]))
-        unpackedsize += ramdisksize
+        unpackedsize += secondsize
 
-        if ramdisksize % pagesize != 0:
-            paddingneeded = pagesize - (ramdisksize % pagesize)
+        if secondsize % pagesize != 0:
+            paddingneeded = pagesize - (secondsize % pagesize)
             checkfile.seek(paddingneeded, os.SEEK_CUR)
             unpackedsize += paddingneeded
 
@@ -2962,6 +3031,7 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_android_boot_img.signatures = {'androidbootimg': b'ANDROID!'}
+unpack_android_boot_img.minimum_size = 48
 
 
 # unpack boot files found on certain Android devices from Huawei
@@ -2978,6 +3048,7 @@ def unpack_android_boot_huawei(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     if offset + 76 > filesize:
         unpackingerror = {'offset': offset, 'fatal': False,
@@ -3063,6 +3134,9 @@ def unpack_android_boot_huawei(fileresult, scanenvironment, offset, unpackdir):
         if imgsize != 0:
             imginfo.append((imgname, startoffset, imgsize))
 
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
     maxoffset = unpackedsize
     for i in imginfo:
         (imgname, startoffset, imgsize) = i
@@ -3085,6 +3159,7 @@ def unpack_android_boot_huawei(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_android_boot_huawei.signatures = {'androidboothuawei': b'\x3c\xd6\x1a\xce'}
+unpack_android_boot_huawei.minimum_size = 76
 
 
 # unpack update files in nb0 format
@@ -3106,6 +3181,7 @@ def unpack_nb0(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file
     checkfile = open(filename_full, 'rb')
@@ -3167,6 +3243,9 @@ def unpack_nb0(fileresult, scanenvironment, offset, unpackdir):
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'data outside of file'}
         return {'status': False, 'error': unpackingerror}
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # short sanity check to see if there is enough data
     for header in headers:

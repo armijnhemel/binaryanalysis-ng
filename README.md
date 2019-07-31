@@ -37,6 +37,10 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 or if you are fortunate enough to be using [nix](https://nixos.org/nix), run
 `nix-shell` to load all the dependencies during development.
 
+Additionally install "sasquatch"
+
+https://github.com/devttys0/sasquatch
+
 ## Supported hardware
 
 It is assumed that BANG is run on little endian hardware (such as x86 or x86-64).
@@ -131,7 +135,8 @@ larger file, unless stated otherwise.
 74. CSS
 75. PNG/APNG (needs PIL)
 76. ar/deb (needs binutils)
-77. squashfs (needs squashfs-tools), only regular squashfs, not vendor specific exotic variants
+77. squashfs (needs squashfs-tools), only regular squashfs, vendor
+    specific exotic variants need sasquatch
 78. BMP (needs PIL)
 79. PDF (simple verification, no object streams, incremental updates
     at end of the file)
@@ -154,36 +159,39 @@ larger file, unless stated otherwise.
 96. pkg-config files
 97. minidump files
 98. PPM files ('raw' PPM only)
-98. PGM files ('raw' PGM only)
-99. PBM files ('raw' PBM only)
-100. Android bootloader for Qualcomm Snapdragon
-101. Android bootloader image
-102. Android bootloader for Huawei devices
-103. FAT16 file systems (8.3 file names)
-104. iCalendar (RFC 5545) files (whole file only)
-105. Coreboot images
-106. Minix V1 file system (Linux variant)
-107. Unix compress (needs 'uncompress'), only if end
+99. PGM files ('raw' PGM only)
+100. PBM files ('raw' PBM only)
+101. Android bootloader for Qualcomm Snapdragon
+102. Android bootloader image
+103. Android bootloader for Huawei devices
+104. FAT16 file systems (8.3 file names)
+105. iCalendar (RFC 5545) files (whole file only)
+106. Coreboot images
+107. Minix V1 file system (Linux variant)
+108. Unix compress (needs 'uncompress'), only if end
      of the file is compress'd data
-108. Unix group files (whole file)
-109. TRANS.TBL files
-110. romfs
-111. cramfs (version 2 only)
-112. nb0 Android updates
-113. Quake PAK files
-114. Doom WAD files (IWAD only)
-115. Ambarella firmware files
-116. Ambarella romfs (used in Ambarella firmware files)
-117. bFLT
-118. Samba password files
-119. UBI (not UBIFS!), fastmap not supported
-120. GRUB2 font files
-121. BitTorrent files (subset)
-122. pcapng (carving, structural checks, little endian only)
-123. pcap (carving, structural checks)
-124. serialized Java (block data only, carving, structural checks)
-125. mapsforge map files (very basic structural checks)
-126. Parrot PLF files
+109. Unix group files (whole file)
+110. TRANS.TBL files
+111. romfs
+112. cramfs (version 2 only)
+113. nb0 Android updates
+114. Quake PAK files
+115. Doom WAD files (IWAD only)
+116. Ambarella firmware files
+117. Ambarella romfs (used in Ambarella firmware files)
+118. bFLT
+119. Samba password files
+120. UBI (not UBIFS!), fastmap not supported
+121. GRUB2 font files
+122. BitTorrent files (subset)
+123. pcapng (carving, structural checks, little endian only)
+124. pcap (carving, structural checks)
+125. serialized Java (block data only, carving, structural checks)
+126. mapsforge map files (very basic structural checks)
+127. Parrot PLF files
+128. Windows INI files (text only)
+129. Subversion hash files (wcprops, all-wcprops, etc.)
+130. PFS file system
 
 
 ## Invocation

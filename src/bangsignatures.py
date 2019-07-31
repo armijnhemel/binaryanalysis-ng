@@ -50,6 +50,11 @@ signatures = {
     'ar': b'!<arch>',
     'squashfs_var1': b'sqsh',
     'squashfs_var2': b'hsqs',
+    'squashfs_var3': b'shsq',
+    'squashfs_var4': b'qshs',
+    'squashfs_var5': b'tqsh',
+    'squashfs_var6': b'hsqt',
+    'squashfs_var7': b'sqlz',
     'appledouble': b'\x00\x05\x16\x07',  # https://tools.ietf.org/html/rfc1740 Appendix B
     'icc': b'acsp',  # http://www.color.org/specification/ICC1v43_2010-12.pdf, section 7.2
     'zip': b'\x50\x4b\x03\04',  # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
@@ -157,6 +162,7 @@ signatures = {
     'serialized_java': b'\xac\xed\x00\x05',
     'mapsforge': b'mapsforge binary OSM',
     'plf': b'PLF!',
+    'pfs': b'PFS/0.9\x00',
 }
 
 # some signatures do not start at the beginning of the file
@@ -222,6 +228,11 @@ signaturetofunction = {
     'ar': bangunpack.unpack_ar,
     'squashfs_var1': bangfilesystems.unpack_squashfs,
     'squashfs_var2': bangfilesystems.unpack_squashfs,
+    'squashfs_var3': bangfilesystems.unpack_squashfs,
+    'squashfs_var4': bangfilesystems.unpack_squashfs,
+    'squashfs_var5': bangfilesystems.unpack_squashfs,
+    'squashfs_var6': bangfilesystems.unpack_squashfs,
+    'squashfs_var7': bangfilesystems.unpack_squashfs,
     'appledouble': bangunpack.unpack_appledouble,
     'icc': bangunpack.unpack_icc,
     'zip': bangunpack.unpack_zip,
@@ -310,8 +321,8 @@ signaturetofunction = {
     'romfs': bangfilesystems.unpack_romfs,
     'cramfs_le': bangfilesystems.unpack_cramfs,
     'cramfs_be': bangfilesystems.unpack_cramfs,
-    'quakepak': banggames.unpack_pak,
-    'doomwad': banggames.unpack_wad,
+    'quakepak': banggames.unpack_quake_pak,
+    'doomwad': banggames.unpack_doom_wad,
     'ambarella': bangunpack.unpack_ambarella,
     'romfs_ambarella': bangunpack.unpack_romfs_ambarella,
     'bflt': bangunpack.unpack_bflt,
@@ -327,6 +338,7 @@ signaturetofunction = {
     'serialized_java': bangunpack.unpack_serialized_java,
     'mapsforge': bangmedia.unpack_mapsforge,
     'plf': bangfilesystems.unpack_plf,
+    'pfs': bangfilesystems.unpack_pfs,
 }
 
 # a lookup table to map signatures to a name for
@@ -339,6 +351,11 @@ signatureprettyprint = {
     'tar_gnu': 'tar',
     'squashfs_var1': 'squashfs',
     'squashfs_var2': 'squashfs',
+    'squashfs_var3': 'squashfs',
+    'squashfs_var4': 'squashfs',
+    'squashfs_var5': 'squashfs',
+    'squashfs_var6': 'squashfs',
+    'squashfs_var7': 'squashfs',
     'gif87': 'gif',
     'gif89': 'gif',
     'jffs2_little_endian': 'jffs2',
@@ -402,6 +419,8 @@ extensiontofunction = {
     'trans.tbl': bangtext.unpack_trans_tbl,
     '.nb0': bangandroid.unpack_nb0,
     'smbpasswd': bangtext.unpack_smbpasswd,
+    '.ini': bangtext.unpack_ini,
+    'wcprops': bangtext.unpack_subversion_hash,
 }
 
 # a lookup table to map extensions to a name
@@ -442,6 +461,8 @@ extensionprettyprint = {
     'trans.tbl': 'trans.tbl',
     '.nb0': 'nb0',
     'smbpasswd': 'smbpasswd',
+    '.ini': 'ini',
+    'wcprops': 'subversion_hash',
 }
 
 def matches_file_pattern(filename, extension):

@@ -90,6 +90,8 @@ def knownfile_nsrl(fileresult, hashresults, dbconn, dbcursor, scanenvironment):
 
 knownfile_nsrl.context = ['file']
 knownfile_nsrl.ignore = []
+knownfile_nsrl.needsdatabase = True
+
 
 # search files for license and forge references.
 # https://en.wikipedia.org/wiki/Forge_(software)
@@ -142,6 +144,7 @@ def extract_identifier(fileresult, hashresults, dbconn, dbcursor, scanenvironmen
 
 extract_identifier.context = ['file']
 extract_identifier.ignore = ['archive', 'audio', 'audio', 'database', 'encrypted', 'filesystem', 'graphics', 'video']
+extract_identifier.needsdatabase = False
 
 bangfunctions = inspect.getmembers(sys.modules[__name__], inspect.isfunction)
 bangfilefunctions = [func for name, func in bangfunctions

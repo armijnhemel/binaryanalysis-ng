@@ -44,6 +44,7 @@ import stat
 import subprocess
 import json
 import re
+import pathlib
 
 encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                         'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
@@ -67,12 +68,16 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
     unpackingerror = {}
 
     unpackedsize = 0
+    usesasquatch = True
 
     if shutil.which('unsquashfs') is None:
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False,
                           'reason': 'unsquashfs program not found'}
         return {'status': False, 'error': unpackingerror}
+
+    if shutil.which('sasquatch') is None:
+        usesasquatch = False
 
     # need at least a header, plus version
     # see /usr/share/magic
@@ -85,10 +90,12 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
     checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
+    littleendians = [b'hsqs', b'shsq', b'hsqt']
+
     # sanity checks for the squashfs header.
     # First determine the endianness of the file system.
     checkbytes = checkfile.read(4)
-    if checkbytes == b'hsqs':
+    if checkbytes in littleendians:
         bigendian = False
         byteorder = 'little'
     else:
@@ -143,6 +150,15 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'not enough data to read size'}
             return {'status': False, 'error': unpackingerror}
         squashfssize = int.from_bytes(checkbytes, byteorder=byteorder)
+    else:
+        squashfssize = 0
+
+    if squashfssize == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'cannot determine size of squashfs file system'}
+        return {'status': False, 'error': unpackingerror}
 
     # file size sanity check
     if offset + squashfssize > filesize:
@@ -177,17 +193,38 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
                              cwd=squashfsunpackdirectory)
     (outputmsg, errormsg) = p.communicate()
 
+    if p.returncode != 0:
+        shutil.rmtree(squashfsunpackdirectory)
+        if usesasquatch:
+            # retry with sasquatch, using 1 thread
+            squashfsunpackdirectory = tempfile.mkdtemp(dir=scanenvironment.temporarydirectory)
+            if offset != 0:
+                p = subprocess.Popen(['sasquatch', '-p', '1', temporaryfile[1]],
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                     cwd=squashfsunpackdirectory)
+            else:
+                p = subprocess.Popen(['sasquatch', '-p', '1', filename_full],
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                     cwd=squashfsunpackdirectory)
+            (outputmsg, errormsg) = p.communicate()
+
+            if p.returncode != 0:
+                # remove old data
+                if offset != 0:
+                    os.unlink(temporaryfile[1])
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'Not a valid squashfs file'}
+                return {'status': False, 'error': unpackingerror}
+
+    # remove old data
     if offset != 0:
         os.unlink(temporaryfile[1])
 
-    if p.returncode != 0:
-        shutil.rmtree(squashfsunpackdirectory)
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'Not a valid squashfs file'}
-        return {'status': False, 'error': unpackingerror}
-
     unpackedsize = squashfssize
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # move contents of the unpacked file system
     foundfiles = os.listdir(squashfsunpackdirectory)
@@ -318,6 +355,9 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
     havezisofs = False
 
     isobuffer = bytearray(2048)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # read all sectors, until there are none left, or
     # a volume set descriptor terminator is found
@@ -1290,8 +1330,12 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
 
     # a mapping of inodes to open files
     inodetoopenfiles = {}
+    currentinode = None
 
     rootseen = False
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # reset the file pointer and read all the inodes
     checkfile.seek(offset)
@@ -1315,13 +1359,12 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
             nodemagictype = 'dirty'
         elif checkbytes == b'\xff\xff':
             # empty space
-            unpackedsize += 2
-            paddingbytes = 0x10000 - (unpackedsize % 0x10000)
-            if paddingbytes != 0:
-                checkbytes = checkfile.read(paddingbytes)
-                if len(checkbytes) != paddingbytes:
-                    break
-                unpackedsize += paddingbytes
+            # read the next two bytes to see if they are empty as well
+            checkbytes = checkfile.read(2)
+            if checkbytes == b'\xff\xff':
+                unpackedsize += 4
+            else:
+                break
             continue
         else:
             nodemagictype = 'normal'
@@ -1573,11 +1616,19 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                         break
                     if inodenumber in inodetoopenfiles:
                         break
+                    if currentinode != None:
+                        if currentinode in inodetoopenfiles:
+                            try:
+                                inodetoopenfiles[currentinode].close()
+                            except:
+                                pass
+
                     # open a file and store it as a reference
                     fn_rel = os.path.join(unpackdir, inodetofilename[inodenumber])
                     fn_full = scanenvironment.unpack_path(fn_rel)
                     outfile = open(fn_full, 'wb')
                     inodetoopenfiles[inodenumber] = outfile
+                    currentinode = inodenumber
                 else:
                     if writeoffset != inodetowriteoffset[inodenumber]:
                         break
@@ -1588,18 +1639,21 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                 # the offset to the compressed data length
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
+                    outfile.close()
                     break
                 compressedsize = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 # read the decompressed size
                 checkbytes = checkfile.read(4)
                 if len(checkbytes) != 4:
+                    outfile.close()
                     break
                 decompressedsize = int.from_bytes(checkbytes, byteorder=byteorder)
 
                 # find out which compression algorithm has been used
                 checkbytes = checkfile.read(1)
                 if len(checkbytes) != 1:
+                    outfile.close()
                     break
                 compression_used = ord(checkbytes)
 
@@ -1607,6 +1661,7 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                 checkfile.seek(11, os.SEEK_CUR)
                 checkbytes = checkfile.read(compressedsize)
                 if len(checkbytes) != compressedsize:
+                    outfile.close()
                     break
 
                 # Check the compression that's used as it could be that
@@ -1626,6 +1681,7 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                         outfile.write(zlib.decompress(checkbytes))
                         dataunpacked = True
                     except Exception as e:
+                        outfile.close()
                         break
                 elif compression_used == COMPR_LZMA:
                     # The data is LZMA compressed, so create a
@@ -1642,14 +1698,20 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                         outfile.write(decompressor.decompress(checkbytes))
                         dataunpacked = True
                     except Exception as e:
+                        outfile.close()
                         break
                 elif compression_used == COMPR_RTIME:
+                    outfile.close()
                     break
                 #elif compression_used == COMPR_LZO:
                 # The JFFS2 version of LZO somehow cannot be unpacked with
                 # python-lzo
                 else:
+                    outfile.close()
                     break
+
+                # flush any remaining data
+                outfile.flush()
                 inodetowriteoffset[inodenumber] = writeoffset + decompressedsize
             else:
                 # unsure what to do here now
@@ -1669,10 +1731,8 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'no data unpacked'}
         return {'status': False, 'error': unpackingerror}
 
-    # close all the open files
+    # add the files to the unpack result
     for i in inodetoopenfiles:
-        inodetoopenfiles[i].flush()
-        inodetoopenfiles[i].close()
         fn_rel = scanenvironment.rel_unpack_path(inodetoopenfiles[i].name)
         unpackedfilesandlabels.append((fn_rel, []))
 
@@ -1995,6 +2055,9 @@ def unpack_ext2(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'e2ls error'}
             return {'status': False, 'error': unpackingerror}
         dirlisting = outputmsg.rstrip().split(b'\n')
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
         for d in dirlisting:
             # ignore deleted files
             if d.strip().startswith(b'>'):
@@ -3861,6 +3924,7 @@ def unpack_romfs(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # open the file, skip the magic
     checkfile = open(filename_full, 'rb')
@@ -3916,6 +3980,9 @@ def unpack_romfs(fileresult, scanenvironment, offset, unpackdir):
     curoffset = checkfile.tell() - offset
     curcwd = ''
     offsets.append((curoffset, curcwd))
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
 
     # now keep processing offsets, until none
     # are left to process.
@@ -5304,3 +5371,135 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
                       'fatal': False,
                       'reason': 'no valid UBI found'}
     return {'status': False, 'error': unpackingerror}
+
+
+# http://web.archive.org/web/20140107233423/http://www.cba.si/pfs/_README
+def unpack_pfs(fileresult, scanenvironment, offset, unpackdir):
+    '''Unpack a PFS/0.9 image'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+    byteorder = 'little'
+
+    if offset + 16 > filesize:
+        unpackingerror = {'offset': offset,
+                          'fatal': False,
+                          'reason': 'not enough data'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset+8)
+    unpackedsize += 8
+
+    # read six bytes, check if they are all 0x00
+    checkbytes = checkfile.read(6)
+    if checkbytes != b'\x00\x00\x00\x00\x00\x00':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'invalid header data'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 6
+
+    # the amount of entries
+    checkbytes = checkfile.read(2)
+    nr_entries = int.from_bytes(checkbytes, byteorder=byteorder)
+    unpackedsize += 2
+
+    isfirst = True
+    namesize = 32
+    dataunpacked = False
+
+    entries = []
+
+    for i in range(0, nr_entries):
+        # each entry consists of:
+        # * name/path (32 or 40 bytes, NUL-terminated)
+        # * unknown (4 non-zero bytes)
+        # * offset (4 bytes)
+        # * size (4 bytes)
+
+        if checkfile.tell() + namesize + 16 > filesize:
+            break
+
+        checkbytes = checkfile.read(namesize)
+
+        # first determine the correct size of the path/name
+        if isfirst:
+            # read the next four bytes
+            checkbytes = checkfile.read(4)
+
+            # seek back to the beginning
+            checkfile.seek(-namesize - 4, os.SEEK_CUR)
+            if checkbytes != b'\x00\x00':
+                namesize = 40
+                if checkfile.tell() + namesize + 16 > filesize:
+                    break
+            checkbytes = checkfile.read(namesize)
+            isfirst = False
+
+        try:
+            entry_name = checkbytes.split(b'\x00')[0]
+            if entry_name == b'':
+                break
+            entry_name = pathlib.PureWindowsPath(entry_name.decode())
+        except:
+            break
+
+        # skip unknown bytes
+        checkfile.seek(4, os.SEEK_CUR)
+
+        # offset
+        checkbytes = checkfile.read(4)
+        entry_offset = int.from_bytes(checkbytes, byteorder=byteorder)
+
+        # size
+        checkbytes = checkfile.read(4)
+        entry_size = int.from_bytes(checkbytes, byteorder=byteorder)
+        entries.append({'name': entry_name, 'offset': entry_offset,
+                        'size': entry_size})
+        unpackedsize += namesize + 4 + 4 + 4
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
+    maxoffset = 0
+    orig_offset = checkfile.tell()
+
+    for i in entries:
+        if checkfile.tell() + i['offset'] + i['size'] > filesize:
+            continue
+
+        # data has now been unpacked, even if some of the files are empty
+        dataunpacked = True
+        outfile_rel = os.path.join(unpackdir, i['name'].as_posix())
+        outfile_full = unpackdir_full / i['name'].as_posix()
+        os.makedirs(outfile_full.parent, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        if i['size'] != 0:
+            os.sendfile(outfile.fileno(), checkfile.fileno(), orig_offset + i['offset'], i['size'])
+        unpackedfilesandlabels.append((outfile_rel, []))
+        outfile.close()
+        maxoffset = max(maxoffset, i['offset'] + i['size'] + orig_offset - offset)
+
+    checkfile.close()
+
+    if not dataunpacked:
+        unpackingerror = {'offset': offset,
+                          'fatal': False,
+                          'reason': 'no data unpacked'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = maxoffset
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('pfs')
+        labels.append('filesystem')
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
