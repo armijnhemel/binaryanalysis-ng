@@ -76,7 +76,7 @@ class TestScanJob(TestBase):
             if e.e.__class__ != QueueEmptyError:
                 raise e
         result = self.result_queue.get()
-        self.assertSetEqual(result.labels, set(['text', 'css']))
+        self.assertSetEqual(result.labels, set(['binary', 'css']))
 
     def test_openwrt_version_has_correct_labels(self):
         # openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/openwrt_version
