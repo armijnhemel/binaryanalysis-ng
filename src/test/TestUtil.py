@@ -44,10 +44,14 @@ class MockLock:
     def release(self): pass
 
 class MockDBConn:
-    pass
+    def commit(self):
+        pass
 
 class MockDBCursor:
-    pass
+    def execute(self, query, args):
+        pass
+    def fetchall(self):
+        return []
 
 
 class TestBase(unittest.TestCase):
