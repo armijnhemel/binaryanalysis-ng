@@ -8861,6 +8861,11 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
         p_type = int.from_bytes(checkbytes, byteorder=byteorder)
         unpackedsize += 4
 
+        # store the permissions
+        permission_read = False
+        permission_write = False
+        permission_execute = False
+
         # there can only be one program interpreter
         if p_type == 3:
             if seeninterpreter:
@@ -8879,6 +8884,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
         if is64bit:
             checkbytes = checkfile.read(4)
             unpackedsize += 4
+            p_flags = int.from_bytes(checkbytes, byteorder=byteorder)
 
         # p_offset
         if is64bit:
@@ -8942,6 +8948,18 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
         if not is64bit:
             checkbytes = checkfile.read(4)
             unpackedsize += 4
+            p_flags = int.from_bytes(checkbytes, byteorder=byteorder)
+
+        if p_flags & 0x1 == 0x1:
+            permission_execute = True
+        if p_flags & 0x2 == 0x2:
+            permission_write = True
+        if p_flags & 0x4 == 0x4:
+            permission_read = True
+
+        if p_type == 0x6474e551:
+            if not permission_execute:
+                elfresult['security'].append('nx')
 
         # palign, skip for now
         if is64bit:
