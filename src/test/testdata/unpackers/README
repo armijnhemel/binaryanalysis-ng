@@ -30,3 +30,12 @@ pg6130.txt.lz4 : Gutenberg license  http://www.gutenberg.org/wiki/Gutenberg:The_
 Original found at : http://www.gutenberg.org/cache/epub/6130/pg6130.txt
 Overview page at : https://www.gutenberg.org/ebooks/6130
 
+
+YAFFS2 images were created using mkyaff2simage, which can be found in git://www.aleph1.co.uk/yaffs2
+
+As yaffs2 can have various sizes for "chunks" and "spares" (for this myaffs2image.c needs to be changed) the following test files were made:
+
+* yaffs2-1024-32-le-empty-file.img : chunk: 1024 bytes, spare: 32 bytes, little endian, single empty file called "test"
+* yaffs2-2048-64-le-empty-file.img : chunk: 2048 bytes, spare: 64 bytes, little endian, single empty file called "test"
+* yaffs2-4096-128-le-empty-file.img : chunk: 4096 bytes, spare: 128 bytes, little endian, single empty file called "test"
+* yaffs2-8192-256-le-empty-file.img : chunk: 8192 bytes, spare: 256 bytes, little endian, single empty file called "test"
