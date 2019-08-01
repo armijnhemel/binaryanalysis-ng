@@ -13250,10 +13250,10 @@ def unpack_bittorrent(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "unpacked-from-torrent")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
-        outfile = open(outfile_full, 'wb')
 
         # create the unpacking directory
         os.makedirs(unpackdir_full, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
         unpackedfilesandlabels.append((outfile_rel, ['resource', 'torrent', 'unpacked']))
