@@ -33,9 +33,46 @@ Overview page at : https://www.gutenberg.org/ebooks/6130
 
 YAFFS2 images were created using mkyaff2simage, which can be found in git://www.aleph1.co.uk/yaffs2
 
-As yaffs2 can have various sizes for "chunks" and "spares" (for this myaffs2image.c needs to be changed) the following test files were made:
+As yaffs2 can have various sizes for "chunks" and "spares" (for this myaffs2image.c needs to be changed) the following test files were made. The 
 
-* yaffs2-1024-32-le-empty-file.img : chunk: 1024 bytes, spare: 32 bytes, little endian, single empty file called "test"
-* yaffs2-2048-64-le-empty-file.img : chunk: 2048 bytes, spare: 64 bytes, little endian, single empty file called "test"
-* yaffs2-4096-128-le-empty-file.img : chunk: 4096 bytes, spare: 128 bytes, little endian, single empty file called "test"
-* yaffs2-8192-256-le-empty-file.img : chunk: 8192 bytes, spare: 256 bytes, little endian, single empty file called "test"
+chunk/spare 1024/32:
+
+* yaffs2-1024-32-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-1024-32-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-1024-32-le-empty-dir.img : little endian, single empty directory "test"
+* yaffs2-1024-32-be-empty-dir.img : big endian, single empty directory "test"
+
+chunk/spare 2048/64:
+
+* yaffs2-2048-64-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-2048-64-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-2048-64-le-empty-dir.img : little endian, single directory file "test"
+* yaffs2-2048-64-be-empty-dir.img : big endian, single empty directory "test"
+
+chunk/spare 4096/32:
+
+* yaffs2-4096-32-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-4096-32-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-4096-32-le-empty-dir.img : little endian, single empty directory "test"
+* yaffs2-4096-32-be-empty-dir.img : big endian, single empty directory "test"
+
+chunk/spare 4096/64:
+
+* yaffs2-4096-64-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-4096-64-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-4096-64-le-empty-dir.img : little endian, single empty dir "test"
+* yaffs2-4096-64-be-empty-dir.img : big endian, single empty dir "test"
+
+chunk/spare 4096/128:
+
+* yaffs2-4096-128-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-4096-128-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-4096-128-le-empty-dir.img : little endian, single empty dir "test"
+* yaffs2-4096-128-be-empty-dir.img : big endian, single empty dir "test"
+
+chunk/spare 8192/256:
+
+* yaffs2-8192-256-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-8192-256-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-8192-256-le-empty-dir.img : little endian, single empty dir "test"
+* yaffs2-8192-256-be-empty-dir.img : big endian, single empty dir "test"
