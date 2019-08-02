@@ -255,7 +255,6 @@ class ScanJob:
             # while unpacker.get_current_offset_in_file() != self.fileresult.filesize:
             while True:
                 candidateoffsetsfound = set()
-                # for s in bangsignatures.signatures:
                 for s, unpackparsers in \
                     bangsignatures.signature_to_unpackparser.items():
                     offsets = unpacker.find_offsets_for_signature(s,
