@@ -184,60 +184,61 @@ class ScanJob:
     def check_for_valid_extension(self, unpacker):
         # TODO: this method will try to unpack multiple extensions
         # if they match. Is this the intention?
-        for extension in bangsignatures.extensiontofunction:
-            if bangsignatures.matches_file_pattern(self.fileresult.filename, extension):
-                log(logging.INFO, "TRYING extension match %s %s" % (self.fileresult.filename, extension))
-                unpackresult = unpacker.try_unpack_file_for_extension(
-                    self.fileresult, self.scanenvironment,
-                    self.fileresult.filename, extension)
-                if unpackresult is None:
-                    continue
-                if not unpackresult['status']:
-                    # No data could be unpacked for some reason
-                    log(logging.DEBUG, "FAIL %s known extension %s: %s" %
+        for extension, unpackparsers in bangsignatures.extension_to_unpackparser.items():
+            for unpackparser in unpackparsers:
+                if bangsignatures.matches_file_pattern(self.fileresult.filename, extension):
+                    log(logging.INFO, "TRYING extension match %s %s" % (self.fileresult.filename, extension))
+                    unpackresult = unpacker.try_unpack_file_for_extension(
+                        self.fileresult, self.scanenvironment,
+                        self.fileresult.filename, extension, unpackparser)
+                    if unpackresult is None:
+                        continue
+                    if not unpackresult['status']:
+                        # No data could be unpacked for some reason
+                        log(logging.DEBUG, "FAIL %s known extension %s: %s" %
+                            (self.fileresult.filename, extension,
+                             unpackresult['error']['reason']))
+                        # Fatal errors should lead to the program stopping
+                        # execution. Ignored for now.
+                        if unpackresult['error']['fatal']:
+                            pass
+                        unpacker.remove_data_unpack_directory_tree()
+                        continue
+
+                    # the file could be unpacked successfully,
+                    # so log it as such.
+                    log(logging.INFO, "SUCCESS %s %s at offset: 0, length: %d" %
                         (self.fileresult.filename, extension,
-                         unpackresult['error']['reason']))
-                    # Fatal errors should lead to the program stopping
-                    # execution. Ignored for now.
-                    if unpackresult['error']['fatal']:
-                        pass
-                    unpacker.remove_data_unpack_directory_tree()
-                    continue
+                         unpackresult['length']))
 
-                # the file could be unpacked successfully,
-                # so log it as such.
-                log(logging.INFO, "SUCCESS %s %s at offset: 0, length: %d" %
-                    (self.fileresult.filename, extension,
-                     unpackresult['length']))
+                    unpacker.file_unpacked(unpackresult, self.fileresult.filesize)
 
-                unpacker.file_unpacked(unpackresult, self.fileresult.filesize)
+                    # store any labels that were passed as a result and
+                    # add them to the current list of labels
+                    self.fileresult.labels.update(unpackresult['labels'])
 
-                # store any labels that were passed as a result and
-                # add them to the current list of labels
-                self.fileresult.labels.update(unpackresult['labels'])
+                    # store lot of information about the unpacked files
+                    report = {
+                        'offset': 0,
+                        'extension': extension,
+                        'type': unpackparser.pretty_name,
+                        'size': unpackresult['length'],
+                        'files': [],
+                    }
 
-                # store lot of information about the unpacked files
-                report = {
-                    'offset': 0,
-                    'extension': extension,
-                    'type': bangsignatures.extensionprettyprint[extension],
-                    'size': unpackresult['length'],
-                    'files': [],
-                }
+                    if 'metadata' in unpackresult:
+                        self.fileresult.set_metadata(unpackresult['metadata'])
 
-                if 'metadata' in unpackresult:
-                    self.fileresult.set_metadata(unpackresult['metadata'])
-
-                for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
-                    fr = FileResult(
-                        pathlib.Path(unpackedfile),
-                        self.fileresult.filename,
-                        self.fileresult.labels,
-                        set(unpackedlabel))
-                    j = ScanJob(fr)
-                    self.scanenvironment.scanfilequeue.put(j)
-                    report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
-                self.fileresult.add_unpackedfile(report)
+                    for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
+                        fr = FileResult(
+                            pathlib.Path(unpackedfile),
+                            self.fileresult.filename,
+                            self.fileresult.labels,
+                            set(unpackedlabel))
+                        j = ScanJob(fr)
+                        self.scanenvironment.scanfilequeue.put(j)
+                        report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
+                    self.fileresult.add_unpackedfile(report)
 
     def check_for_signatures(self, unpacker):
             signaturesfound = []
@@ -254,47 +255,45 @@ class ScanJob:
             # while unpacker.get_current_offset_in_file() != self.fileresult.filesize:
             while True:
                 candidateoffsetsfound = set()
-                for s in bangsignatures.signatures:
-                    offsets = unpacker.find_offsets_for_signature(s, self.fileresult.filesize)
+                # for s in bangsignatures.signatures:
+                for s, unpackparsers in \
+                    bangsignatures.signature_to_unpackparser.items():
+                    offsets = unpacker.find_offsets_for_signature(s,
+                            unpackparsers, self.fileresult.filesize)
                     candidateoffsetsfound.update(offsets)
 
                 # For each of the found candidates see if any
                 # data can be unpacked. Process these in the order
                 # in which the signatures were found in the file.
-                for offset_with_signature in sorted(candidateoffsetsfound):
+                for offset_with_unpackparser in sorted(candidateoffsetsfound):
                     # skip offsets which are not useful to look at
                     # for example because the data has already been
                     # unpacked.
-                    (offset, signature) = offset_with_signature
+                    (offset, unpackparser) = offset_with_unpackparser
                     if unpacker.offset_overlaps_with_unpacked_data(offset):
                         continue
 
-                    # first see if there actually is a method to unpack
-                    # this type of file
-                    if signature not in bangsignatures.signaturetofunction:
-                        continue
-
-                    signaturesfound.append(offset_with_signature)
+                    signaturesfound.append(offset_with_unpackparser)
 
                     # always change to the declared unpacking directory
                     os.chdir(self.scanenvironment.unpackdirectory)
                     # then create an unpacking directory specifically
                     # for the signature including the pretty printed signature
                     # name and a counter for the signature.
-                    pretty_signature = bangsignatures.signatureprettyprint.get(signature, signature)
-                    namecounter = counterspersignature.get(pretty_signature, 0) + 1
+                    # pretty_signature = bangsignatures.signatureprettyprint.get(signature, signature)
+                    namecounter = counterspersignature.get(unpackparser.pretty_name, 0) + 1
                     namecounter = unpacker.make_data_unpack_directory(self.fileresult.filename,
-                            pretty_signature, namecounter)
+                            unpackparser.pretty_name, namecounter)
 
                     # run the scan for the offset that was found
                     # First log which identifier was found and
                     # at which offset for possible later analysis.
                     log(logging.DEBUG, "TRYING %s %s at offset: %d" %
-                        (self.fileresult.filename, signature, offset))
+                        (self.fileresult.filename, unpackparser.pretty_name, offset))
 
                     unpackresult = unpacker.try_unpack_file_for_signatures(
                         self.fileresult, self.scanenvironment,
-                        signature, offset)
+                        unpackparser, offset)
                     if unpackresult is None:
                         continue
 
@@ -302,7 +301,7 @@ class ScanJob:
                         # No data could be unpacked for some reason,
                         # so log the status and error message
                         log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
-                            (self.fileresult.filename, signature, offset,
+                            (self.fileresult.filename, unpackparser.pretty_name, offset,
                              unpackresult['error']['reason']))
 
                         # Fatal errors should lead to the program
@@ -319,10 +318,10 @@ class ScanJob:
                     # the file could be unpacked successfully,
                     # so log it as such.
                     log(logging.INFO, "SUCCESS %s %s at offset: %d, length: %d" %
-                        (self.fileresult.filename, signature, offset, unpackresult['length']))
+                        (self.fileresult.filename, unpackparser.pretty_name, offset, unpackresult['length']))
 
                     # store the name counter
-                    counterspersignature[pretty_signature] = namecounter
+                    counterspersignature[unpackparser.pretty_name] = namecounter
 
                     # store the labels for files that could be
                     # unpacked/verified completely.
@@ -343,8 +342,9 @@ class ScanJob:
                     # store lot of information about the unpacked files
                     report = {
                         'offset': offset,
-                        'signature': signature,
-                        'type': bangsignatures.signatureprettyprint.get(signature, signature),
+                        # TODO: signature text or index?
+                        'signature': unpackparser.pretty_name,
+                        'type': unpackparser.pretty_name,
                         'size': unpackresult['length'],
                         'files': [],
                     }

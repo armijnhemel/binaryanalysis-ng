@@ -15,39 +15,8 @@ import importlib
 import parsers
 from UnpackParser import UnpackParser
 
-
-def _get_unpackers_recursive(parent_module_path):
-    unpackers = []
-    for m in pkgutil.iter_modules([parent_module_path]):
-        try:
-            module_name = 'parsers.{}.UnpackParser'.format(m.name)
-            module = importlib.import_module(module_name)
-            for name, member in inspect.getmembers(module):
-                if inspect.isclass(member) and issubclass(member, UnpackParser):
-                    unpackers.append(member)
-        except ModuleNotFoundError as e:
-            pass
-        unpackers.extend(_get_unpackers_recursive(
-                os.path.join(parent_module_path, m.name)))
-    return unpackers
-
-
-def get_unpackers():
-    unpackers = _get_unpackers_recursive(os.path.dirname(parsers.__file__))
-    print(unpackers)
-    return unpackers
-
-    functions = []
-    for m in bangandroid, bangfilesystems, bangmedia, bangunpack:
-        functions += [(name, func) for name, func in
-                      inspect.getmembers(m, inspect.isfunction)
-                      if name.startswith('unpack')]
-    return dict(functions)
-
-_unpackers = get_unpackers()
-
 def get_unpackers_for_extension(ext):
-    return [ u for u in _unpackers if u.is_valid_extension(ext) ]
+    return bangsignatures.extension_to_unpackparser.get(ext, [])
 
 def get_unpackers_for_file(unpackername, f):
     ext = pathlib.Path(f).suffix
@@ -90,7 +59,7 @@ def is_prefix(pref, full):
 
 class TestUnpackResult(TestBase):
     def test_unpackdata_for_all_unpackers(self):
-        unpackers = get_unpackers()
+        unpackers = bangsignatures.get_unpackers()
         for f, u in self.walk_available_files_with_unpackers():
             try:
                 del unpackers[u.__name__]

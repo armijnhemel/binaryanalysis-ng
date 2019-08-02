@@ -423,6 +423,53 @@ extensiontofunction = {
     'wcprops': bangtext.unpack_subversion_hash,
 }
 
+import os
+import pkgutil
+import importlib
+import inspect
+import parsers
+from UnpackParser import UnpackParser
+
+def _get_unpackers_recursive(parent_module_path):
+    unpackers = []
+    for m in pkgutil.iter_modules([parent_module_path]):
+        try:
+            module_name = 'parsers.{}.UnpackParser'.format(m.name)
+            module = importlib.import_module(module_name)
+            for name, member in inspect.getmembers(module):
+                if inspect.isclass(member) and issubclass(member, UnpackParser):
+                    unpackers.append(member)
+        except ModuleNotFoundError as e:
+            pass
+        unpackers.extend(_get_unpackers_recursive(
+                os.path.join(parent_module_path, m.name)))
+    return unpackers
+
+
+def get_unpackers():
+    unpackers = _get_unpackers_recursive(os.path.dirname(parsers.__file__))
+    return unpackers
+
+def get_unpackers_for_extensions():
+    d = {}
+    for u in get_unpackers():
+        for e in u.extensions:
+            d.setdefault(e,[])
+            d[e].append(u)
+    return d
+
+extension_to_unpackparser = get_unpackers_for_extensions()
+
+def get_unpackers_for_signatures():
+    d = {}
+    for u in get_unpackers():
+        for s in u.signatures:
+            d.setdefault(s,[])
+            d[s].append(u)
+    return d
+
+signature_to_unpackparser = get_unpackers_for_signatures()
+
 # a lookup table to map extensions to a name
 # for pretty printing.
 extensionprettyprint = {
@@ -494,8 +541,9 @@ textonlyfunctions = {
 # * error message (human readable)
 # * flag to indicate if it is a fatal error
 #   (boolean)
-def unpack_file_with_extension(fileresult, scanenvironment, extension, unpack_directory):
-    return extensiontofunction[extension](fileresult, scanenvironment, 0, unpack_directory)
+def unpack_file_with_extension(fileresult, scanenvironment, unpackparser, unpack_directory):
+    return unpackparser.parse_and_unpack(fileresult, scanenvironment, 0, unpack_directory)
+    # return extensiontofunction[extension](fileresult, scanenvironment, 0, unpack_directory)
 
 # Prescan functions:
 #

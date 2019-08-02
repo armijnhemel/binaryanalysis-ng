@@ -115,10 +115,12 @@ class Unpacker:
         '''Return the location of the data unpack directory'''
         return self.dataunpackdirectory
 
-    def try_unpack_file_for_extension(self, fileresult, scanenvironment, relpath, extension):
+    def try_unpack_file_for_extension(self, fileresult, scanenvironment,
+            relpath, extension, unpackparser):
         try:
             self.make_data_unpack_directory(relpath, bangsignatures.extensionprettyprint[extension])
-            return bangsignatures.unpack_file_with_extension(fileresult, scanenvironment, extension, self.dataunpackdirectory)
+            return bangsignatures.unpack_file_with_extension(fileresult,
+                    scanenvironment, unpackparser, self.dataunpackdirectory)
         except AttributeError:
             self.remove_data_unpack_directory()
             return None
@@ -166,36 +168,35 @@ class Unpacker:
             # use an overlap, i.e. go back
             self.scanfile.seek(-maxsignaturesoffset, 1)
 
-    def find_offsets_for_signature(self, sig, filesize):
+    def find_offsets_for_signature(self, sig, unpackparsers, filesize):
         offsets = set()
+        s_offset, s_text = sig
         # TODO: precompile regexp patterns in bangsignatures
-        res = re.finditer(re.escape(bangsignatures.signatures[sig]), self.scanbytes[:self.bytesread])
+        res = re.finditer(re.escape(s_text), self.scanbytes[:self.bytesread])
         if res is not None:
             for r in res:
-                if sig in bangsignatures.signaturesoffset:
-                    # skip files that aren't big enough if the
-                    # signature is not at the start of the data
-                    # to be carved (example: ISO9660).
-                    if r.start() + self.offsetinfile - bangsignatures.signaturesoffset[sig] < 0:
-                        continue
+                # skip files that aren't big enough if the
+                # signature is not at the start of the data
+                # to be carved (example: ISO9660).
+                if r.start() + self.offsetinfile - s_offset < 0:
+                    continue
 
                 offset = r.start()
-                if not bangsignatures.prescan(sig, self.scanbytes, self.bytesread, filesize, offset, self.offsetinfile):
+                if not bangsignatures.prescan(s_text, self.scanbytes, self.bytesread, filesize, offset, self.offsetinfile):
                     continue
 
                 # default: store a tuple (offset, signature name)
-                if sig in bangsignatures.signaturesoffset:
-                    offsets.add((offset + self.offsetinfile - bangsignatures.signaturesoffset[sig], sig))
-                else:
-                    offsets.add((offset + self.offsetinfile, sig))
+                offsets.update({ (offset + self.offsetinfile - s_offset, u) for
+                    u in unpackparsers })
         return offsets
 
     def offset_overlaps_with_unpacked_data(self, offset):
         return offset < self.lastunpackedoffset
 
-    def try_unpack_file_for_signatures(self, fileresult, scanenvironment, signature, offset):
+    def try_unpack_file_for_signatures(self, fileresult, scanenvironment,
+            unpackparser, offset):
         try:
-            return bangsignatures.signaturetofunction[signature](fileresult, scanenvironment, offset, self.dataunpackdirectory)
+            return unpackparser().parse_and_unpack(fileresult, scanenvironment, offset, self.dataunpackdirectory)
         except AttributeError as ex:
             print(ex)
             self.remove_data_unpack_directory()
