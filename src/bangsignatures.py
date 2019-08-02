@@ -437,7 +437,8 @@ def _get_unpackers_recursive(parent_module_path):
             module_name = 'parsers.{}.UnpackParser'.format(m.name)
             module = importlib.import_module(module_name)
             for name, member in inspect.getmembers(module):
-                if inspect.isclass(member) and issubclass(member, UnpackParser):
+                if inspect.isclass(member) and issubclass(member, UnpackParser) \
+                    and member != UnpackParser:
                     unpackers.append(member)
         except ModuleNotFoundError as e:
             pass
