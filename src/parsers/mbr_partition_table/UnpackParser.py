@@ -108,6 +108,10 @@ partition_types = {
 }
 
 class MbrPartitionTableUnpackParser(UnpackParser):
+    pretty_name = 'mbr'
+    signatures = [
+            (0x1be + 4*(1+3+1+3+4+4), b'\x55\xaa')
+    ]
     def parse(self):
         self.data = mbr_partition_table.MbrPartitionTable.from_io(self.infile)
     def calculate_unpacked_size(self, offset):

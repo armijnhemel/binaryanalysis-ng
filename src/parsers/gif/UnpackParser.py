@@ -9,6 +9,7 @@ class GifUnpackParser(UnpackParser):
         (0, b'GIF87a'),  # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
         (0, b'GIF89a'),  # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
     ]
+    pretty_name = 'gif'
 
     def parse(self):
         self.data = gif.Gif.from_io(self.infile)

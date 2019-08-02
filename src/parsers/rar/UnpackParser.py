@@ -3,6 +3,10 @@ from . import rar
 from UnpackParser import UnpackParser
 
 class RarUnpackParser(UnpackParser):
+    pretty_name = 'rar'
+    signatures = [
+            (0, b'Rar!\x1a\x07'),
+    ]
     def parse(self):
         self.data = rar.Rar.from_io(self.infile)
     def calculate_unpacked_size(self, offset):
@@ -18,5 +22,9 @@ class RarUnpackParser(UnpackParser):
         # for b in self.data.blocks:
         #    if b.block_type == self.data.BlockTypes.file_header:
         #        print(b.body.file_name)
+
+    @classmethod
+    def is_valid_extension(cls, ext):
+        return ext == 'rar' or re.matches(r'r\d\d', ext)
 
 

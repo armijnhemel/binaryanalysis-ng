@@ -3,6 +3,11 @@ from . import ico
 from UnpackParser import UnpackParser
 
 class IcoUnpackParser(UnpackParser):
+    pretty_name = 'ico'
+    extensions = [ 'ico' ]
+    signatures = [
+        (0, b'\x00\x00\x01\x00')
+    ]
     def parse(self):
         self.data = ico.Ico.from_io(self.infile)
     def calculate_unpacked_size(self, offset):
