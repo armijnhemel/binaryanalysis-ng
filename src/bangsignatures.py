@@ -543,8 +543,7 @@ textonlyfunctions = {
 # * flag to indicate if it is a fatal error
 #   (boolean)
 def unpack_file_with_extension(fileresult, scanenvironment, unpackparser, unpack_directory):
-    return unpackparser.parse_and_unpack(fileresult, scanenvironment, 0, unpack_directory)
-    # return extensiontofunction[extension](fileresult, scanenvironment, 0, unpack_directory)
+    return unpackparser().parse_and_unpack(fileresult, scanenvironment, 0, unpack_directory)
 
 # Prescan functions:
 #
