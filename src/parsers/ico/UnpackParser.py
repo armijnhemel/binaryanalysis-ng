@@ -4,7 +4,7 @@ from UnpackParser import UnpackParser
 
 class IcoUnpackParser(UnpackParser):
     pretty_name = 'ico'
-    extensions = [ 'ico' ]
+    extensions = [ '.ico' ]
     signatures = [
         (0, b'\x00\x00\x01\x00')
     ]

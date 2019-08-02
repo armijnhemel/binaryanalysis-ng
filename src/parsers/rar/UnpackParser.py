@@ -25,6 +25,6 @@ class RarUnpackParser(UnpackParser):
 
     @classmethod
     def is_valid_extension(cls, ext):
-        return ext == 'rar' or re.matches(r'r\d\d', ext)
+        return ext == '.rar' or re.matches(r'\.r\d\d', ext)
 
 
