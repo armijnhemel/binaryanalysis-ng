@@ -18,10 +18,13 @@ class TestFileResult(TestBase):
 
     def test_all_unpack_parsers_have_attributes(self):
         for unpackparser in get_unpackers():
-            print(unpackparser)
             self.assertIsNotNone(unpackparser.pretty_name)
             self.assertIsNotNone(unpackparser.extensions)
             self.assertIsNotNone(unpackparser.signatures)
+            # assert all signatures are bytestrings
+            i = 0
+            for s_offset, s_text in unpackparser.signatures:
+                self.assertEquals(type(s_text),type(b''))
 
 if __name__ == "__main__":
     unittest.main()
