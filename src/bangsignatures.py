@@ -298,7 +298,7 @@ signaturetofunction = {
     'zim': bangunpack.unpack_zim,
     'midi': bangmedia.unpack_midi,
     'javakeystore': bangunpack.unpack_java_keystore,
-    'xg3d': bangmedia.unpackXG3D,
+    'xg3d': bangmedia.unpack_xg3d,
     'acdb': bangunpack.unpack_acdb,
     'dds': bangmedia.unpack_dds,
     'ktx11': bangmedia.unpack_ktx11,

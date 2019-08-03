@@ -4711,7 +4711,7 @@ unpack_midi.signatures = {'midi': b'MThd'}
 # much to extract, but at least the size of the file can be verified.
 # This analysis was based on just a few samples found inside the
 # firmware of an Android phone made by LG Electronics.
-def unpackXG3D(fileresult, scanenvironment, offset, unpackdir):
+def unpack_xg3d(fileresult, scanenvironment, offset, unpackdir):
     '''Verify XG files (3D Studio Max format)'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -4784,7 +4784,7 @@ def unpackXG3D(fileresult, scanenvironment, offset, unpackdir):
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
-unpackXG3D.signatures = {'xg3d': b'XG3D'}
+unpack_xg3d.signatures = {'xg3d': b'XG3D'}
 
 
 # Microsoft DirectDraw Surface files
@@ -5106,7 +5106,7 @@ def unpack_ktx11(fileresult, scanenvironment, offset, unpackdir):
     # number of faces
     checkbytes = checkfile.read(4)
     numberoffaces = int.from_bytes(checkbytes, byteorder=endianness)
-    if numberoffaces != 1 and numberoffaces != 6:
+    if numberoffaces not in [1, 6]:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize,
                           'fatal': False,
@@ -5402,7 +5402,7 @@ def unpack_psd(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize += 2
 
     # only support compression method 1 right now
-    if compressionmethod != 0 and compressionmethod != 1:
+    if compressionmethod not in [0, 1]:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'unsupported pixel data compression method'}
