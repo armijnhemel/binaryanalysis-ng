@@ -5592,7 +5592,7 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
     # some devices use "in band" tags to save flash space.
     # (4080, 16) is an example of a common size for inline tags
     chunks_and_spares = [(2048, 64), (1024, 32), (4096, 128), (8192, 256),
-                         (512, 16), (4096, 16), (4080, 16)]
+                         (8192, 448), (512, 16), (4096, 16), (4080, 16)]
 
     # open the file and seek to the offset
     checkfile = open(filename_full, 'rb')
