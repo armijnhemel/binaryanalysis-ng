@@ -1150,14 +1150,15 @@ def unpack_base64(fileresult, scanenvironment, offset, unpackdir):
         if not invalidbase64:
             try:
                 decodedcontents = base64.standard_b64decode(base64contents)
-                # sanity check: in an ideal situation the base64 data is
-                # 1/3 larger than the decoded data.
-                # Anything 1.5 times larger (or more) is bogus.
-                # TODO: is this necessary? the decoder will not result in
-                # output larger than possible
-                if len(base64contents)/len(decodedcontents) < 1.5:
-                    decoded = True
-                    encoding = 'base64'
+                if decodedcontents != b'':
+                    # sanity check: in an ideal situation the base64 data is
+                    # 1/3 larger than the decoded data.
+                    # Anything 1.5 times larger (or more) is bogus.
+                    # TODO: is this necessary? the decoder will not result in
+                    # output larger than possible
+                    if len(base64contents)/len(decodedcontents) < 1.5:
+                        decoded = True
+                        encoding = 'base64'
             except binascii.Error:
                 pass
 
@@ -1173,15 +1174,16 @@ def unpack_base64(fileresult, scanenvironment, offset, unpackdir):
         if not invalidbase64:
             try:
                 decodedcontents = base64.urlsafe_b64decode(base64contents)
-                # sanity check: in an ideal situation the base64 data is
-                # 1/3 larger than the decoded data.
-                # Anything 1.5 times larger (or more) is bogus.
-                # TODO: is this necessary? the decoder will not result in
-                # output larger than possible
-                if len(base64contents)/len(decodedcontents) < 1.5:
-                    decoded = True
-                    encoding = 'base64'
-                    labels.append('urlsafe')
+                if decodedcontents != b'':
+                    # sanity check: in an ideal situation the base64 data is
+                    # 1/3 larger than the decoded data.
+                    # Anything 1.5 times larger (or more) is bogus.
+                    # TODO: is this necessary? the decoder will not result in
+                    # output larger than possible
+                    if len(base64contents)/len(decodedcontents) < 1.5:
+                        decoded = True
+                        encoding = 'base64'
+                        labels.append('urlsafe')
             except binascii.Error:
                 pass
 
