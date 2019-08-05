@@ -192,7 +192,7 @@ larger file, unless stated otherwise.
 128. Windows INI files (text only)
 129. Subversion hash files (wcprops, all-wcprops, etc.)
 130. PFS file system
-131. YAFFS2 (no inband tags)
+131. YAFFS2 (including inband tags)
 
 
 ## Invocation
