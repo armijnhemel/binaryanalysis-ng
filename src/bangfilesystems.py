@@ -140,7 +140,7 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'not enough data to read size'}
             return {'status': False, 'error': unpackingerror}
         squashfssize = int.from_bytes(checkbytes, byteorder=byteorder)
-    elif majorversion == 1 or majorversion == 2:
+    elif majorversion in [1, 2]:
         checkfile.seek(offset+8)
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
@@ -4710,9 +4710,9 @@ def unpack_plf(fileresult, scanenvironment, offset, unpackdir):
         unpackedsize += 4
 
         if uncompressed_size == 0:
-           is_compressed = False
+            is_compressed = False
         else:
-           is_compressed = True
+            is_compressed = True
 
         # sanity check: data can't be outside of the file
         if checkfile.tell() + entry_size > filesize:
@@ -4732,7 +4732,7 @@ def unpack_plf(fileresult, scanenvironment, offset, unpackdir):
             checkfile.seek(entry_size, os.SEEK_CUR)
             unpackedsize += entry_size
             data_unpacked = True
-        elif section_type == 0x4 or section_type == 0x9:
+        elif section_type in [0x4, 0x9]:
             # sections with type 0x4 seem to contain other files, but
             # more as some sort of "raw" dump.
             # sections with type 0x9 contain file system data, including
@@ -5124,7 +5124,7 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
         # volume type, can be 1 (dynamic) or 2 (static)
         checkbytes = checkfile.read(1)
         volumetype = ord(checkbytes)
-        if volumetype != 1 and volumetype != 2:
+        if volumetype not in [1, 2]:
             break
         unpackedsize += 1
 
@@ -5319,7 +5319,7 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
             # store the blocks per image, the first two are always
             # layout volume blocks
             if image_sequence not in image_to_erase_blocks:
-                image_to_erase_blocks[image_sequence] = [0,1]
+                image_to_erase_blocks[image_sequence] = [0, 1]
             image_to_erase_blocks[image_sequence].append(blockid)
             curoffset += blocksize
         if curoffset > filesize:
@@ -5692,8 +5692,8 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
             # are described in the YAFFS2 code in the file yaffs_packedtags2.c
             if chunkid & EXTRA_HEADER_INFO_FLAG == EXTRA_HEADER_INFO_FLAG:
                 if not is_first_element and not inband:
-                   # can't mix inband and out of band
-                   break
+                    # can't mix inband and out of band
+                    break
 
                 # store the original chunkid as it will be used later
                 orig_chunkid = chunkid
