@@ -5540,6 +5540,10 @@ def unpack_pfs(fileresult, scanenvironment, offset, unpackdir):
 # Layout of the chunk:
 #
 # https://android.googlesource.com/platform/external/yaffs2/+/donut-release/yaffs2/yaffs_guts.h#290
+#
+# A YAFFS2 file system is basically a concatenation of chunks, with associated
+# metadata which is either stored separately from the data ("out of band")
+# or with the data ("in band").
 def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a YAFFS2 image'''
     filesize = fileresult.filesize
