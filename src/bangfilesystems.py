@@ -5594,8 +5594,6 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
     checkfile = open(filename_full, 'rb')
     checkfile.seek(offset)
 
-    dataunpacked = False
-
     # YAFFS2 come in little endian and big endian flavour.
     # In practice little endian will be used the most.
     little_endian_patterns = []
