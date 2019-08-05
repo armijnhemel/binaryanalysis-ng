@@ -11937,9 +11937,6 @@ def unpack_device_tree(fileresult, scanenvironment, offset, unpackdir):
             return {'status': False, 'error': unpackingerror}
 
     unpackedsize = totalsize
-    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                      'reason': 'bla'}
-    return {'status': False, 'error': unpackingerror}
 
     if offset == 0 and unpackedsize == filesize:
         checkfile.close()
