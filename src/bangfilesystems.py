@@ -5675,6 +5675,10 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
             checkbytes = checkfile.read(4)
             objectid = int.from_bytes(checkbytes, byteorder=byteorder)
 
+            # object id 0 is invalid so likely this is a false positive.
+            if objectid == 0:
+                break
+
             # read the chunk id
             checkbytes = checkfile.read(4)
             chunkid = int.from_bytes(checkbytes, byteorder=byteorder)
