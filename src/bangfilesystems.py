@@ -5860,6 +5860,12 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
                 objectid_to_name[objectid] = full_object_name
 
                 if chunk_object_type == YAFFS_OBJECT_TYPE_FILE:
+                    # extra sanity check: in case the chunk/spare
+                    # combination is not known false positives can happen
+                    # where a regular file with name '.' can seem to
+                    # exist, when it actually doesn't.
+                    if object_name == '.':
+                        break
                     # first reconstruct the file size.
                     if object_size_high != 0xffffffff:
                         object_size = (object_size_high << 32) + object_size_low
