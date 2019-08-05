@@ -163,6 +163,10 @@ signatures = {
     'mapsforge': b'mapsforge binary OSM',
     'plf': b'PLF!',
     'pfs': b'PFS/0.9\x00',
+    'yaffs_le_1': b'\x03\x00\x00\x00\x01\x00\x00\x00\xff\xff',
+    'yaffs_le_2': b'\x01\x00\x00\x00\x01\x00\x00\x00\xff\xff',
+    'yaffs_be_1': b'\x00\x00\x00\x03\x00\x00\x00\x01\xff\xff',
+    'yaffs_be_2': b'\x00\x00\x00\x01\x00\x00\x00\x01\xff\xff',
 }
 
 # some signatures do not start at the beginning of the file
@@ -339,6 +343,10 @@ signaturetofunction = {
     'mapsforge': bangmedia.unpack_mapsforge,
     'plf': bangfilesystems.unpack_plf,
     'pfs': bangfilesystems.unpack_pfs,
+    'yaffs_le_1': bangfilesystems.unpack_yaffs2,
+    'yaffs_le_2': bangfilesystems.unpack_yaffs2,
+    'yaffs_be_1': bangfilesystems.unpack_yaffs2,
+    'yaffs_be_2': bangfilesystems.unpack_yaffs2,
 }
 
 # a lookup table to map signatures to a name for
@@ -376,6 +384,10 @@ signatureprettyprint = {
     'pcap_le_nano': 'pcap',
     'pcap_be_nano': 'pcap',
     'android_binary_xml': 'androidresource',
+    'yaffs_le_1': 'yaffs2',
+    'yaffs_le_2':'yaffs2',
+    'yaffs_be_1':'yaffs2',
+    'yaffs_be_2':'yaffs2',
 }
 
 # extensions to unpacking functions. This should only be

@@ -5510,3 +5510,359 @@ def unpack_pfs(fileresult, scanenvironment, offset, unpackdir):
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
+
+
+# YAFFS2 is a file system that was at some point popular on Android devices
+# but which seems to have lost its popularity. It can still be found
+# every now and then. The following method unpacks them, but only images
+# created by mkyaffs2image, not any flash dumps from a live device with
+# deleted chunks (TODO).
+#
+# YAFFS2 does not have any magic numbers, so it is not always easy to
+# recognize. There are a few common patterns that can be searched for.
+# These patterns can be found by creating images with mkyaffs2image and
+# analyzing them.
+#
+# Some notes:
+#
+# https://wiki.sleuthkit.org/index.php?title=YAFFS2
+# https://wiki.sleuthkit.org/index.php?title=YAFFS2_Implementation_Notes
+#
+# Presentation (relevant page: 10):
+#
+# http://tree.celinuxforum.org/CelfPubWiki/ELCEurope2007Presentations?action=AttachFile&do=get&target=yaffs.pdf
+#
+# The layout of the spare data can be found in the YAFFS2 header
+# files (LGPL 2.1 licensed):
+#
+# https://android.googlesource.com/platform/external/yaffs2/+/donut-release/yaffs2/yaffs_packedtags2.h
+#
+# Layout of the chunk:
+#
+# https://android.googlesource.com/platform/external/yaffs2/+/donut-release/yaffs2/yaffs_guts.h#290
+def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
+    '''Unpack a YAFFS2 image'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    metadata = {}
+
+    # the different yaffs2 chunk types
+    YAFFS_OBJECT_TYPE_UNKNOWN = 0
+    YAFFS_OBJECT_TYPE_FILE = 1
+    YAFFS_OBJECT_TYPE_SYMLINK = 2
+    YAFFS_OBJECT_TYPE_DIRECTORY = 3
+    YAFFS_OBJECT_TYPE_HARDLINK = 4
+    YAFFS_OBJECT_TYPE_SPECIAL = 5
+
+    # the maximum name length and alias length. These are hardcoded in
+    # the YAFFS2 code and only this value has been observed, but it
+    # could be that other values exist.
+    YAFFS_MAX_NAME_LENGTH = 255
+    YAFFS_MAX_ALIAS_LENGTH = 159
+
+    # common signatures from little endian file systems.
+    little_endian_signatures = [b'\x03\x00\x00\x00\x01\x00\x00\x00\xff\xff',
+                                b'\x01\x00\x00\x00\x01\x00\x00\x00\xff\xff']
+
+    # common values for chunk/spare combinations, sorted by
+    # occurance.
+    # The default in mkyaffs2image is (2048, 64)
+    # Android primarily uses (1024, 32)
+    chunks_and_spares = [(2048, 64), (1024, 32), (4096, 128), (8192, 256), (512, 16), (4096, 16)]
+
+    # open the file and seek to the offset
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset)
+
+    dataunpacked = False
+
+    # YAFFS2 come in little endian and big endian flavour.
+    # In practice little endian will be used the most.
+    little_endian_patterns = []
+
+    # First read 10 bytes to see if it is possibly
+    # little or big endian
+    checkbytes = checkfile.read(10)
+    if checkbytes in little_endian_signatures:
+        byteorder = 'little'
+    else:
+        byteorder = 'big'
+
+    dataunpacked = False
+
+    # then try to read the file system for various chunk/spare
+    # combinations. In band tags are not supported yet.
+    for (chunk_size, spare_size) in chunks_and_spares:
+        # seek to the original offset
+        checkfile.seek(offset)
+
+        # keep a mapping of object ids to latest chunk id
+        objectid_to_latest_chunk = {}
+
+        # keep a mapping of object ids to type
+        objectid_to_type = {}
+
+        # keep a mapping of object ids to name
+        objectid_to_name = {}
+
+        # keep a mapping of object ids to file size
+        # for sanity checks
+        objectid_to_size = {}
+
+        # store the last open file for an object
+        last_open = None
+
+        # store how many bytes need to be read for an open file
+        open_bytes_left = 0
+
+        # store if element with object id 1 has been seen. Most, but not all,
+        # YAFFS2 images have this as a separate chunk.
+        seen_root_element = False
+        is_first_element = True
+
+        if unpackedfilesandlabels != []:
+            # remove leftover data TODO
+            unpackedfilesandlabels = []
+
+        while True:
+            unpackedsize = checkfile.tell() - offset
+            if checkfile.tell() + chunk_size + spare_size > filesize:
+                break
+            oldoffset = checkfile.tell()
+
+            # skip the chunk data and read the spare data
+            checkfile.seek(chunk_size, os.SEEK_CUR)
+
+            # read the sequence number
+            checkbytes = checkfile.read(4)
+            sequence_number = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            # mkyaffs2image uses 0xff for padding. Skip these bytes
+            # and continue reading to determine the real size of the
+            # yaffs2 image.
+            if sequence_number == 0xffffffff:
+                checkfile.seek(oldoffset + chunk_size + spare_size)
+                continue
+
+            # read the object id
+            checkbytes = checkfile.read(4)
+            objectid = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            # read the chunk id
+            checkbytes = checkfile.read(4)
+            chunkid = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            # read the chunk byte count
+            checkbytes = checkfile.read(4)
+            byte_count = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            # depending on the objectid, chunkid and object type the
+            # chunk is either a continuation, or a new object.
+
+            # if it is a new object, then the chunk id
+            # should be 0, as it is the header.
+            if chunkid != 0:
+                if objectid not in objectid_to_latest_chunk:
+                    break
+                # chunk ids have to be sequential
+                if chunkid - objectid_to_latest_chunk[objectid] != 1:
+                    break
+                # only files can be spread over multiple chunks
+                if objectid_to_type[objectid] != YAFFS_OBJECT_TYPE_FILE:
+                    break
+                objectid_to_latest_chunk[objectid] = chunkid
+
+                # it is a continuation, so there should be an open file
+                # and the following check should never be true, but
+                # just include it anyway.
+                if last_open is None:
+                    break
+                # jump to the offset of the chunk and write data
+                os.sendfile(last_open.fileno(), checkfile.fileno(), oldoffset, byte_count)
+            else:
+                # object id should not have been seen yet
+                if objectid in objectid_to_latest_chunk:
+                    break
+
+                # close open file, if any
+                if last_open is not None:
+                    # file size sanity check (TODO)
+                    last_open.close()
+
+                objectid_to_latest_chunk[objectid] = chunkid
+
+                # jump to the offset of the chunk and analyze
+                checkfile.seek(oldoffset)
+
+                # object type
+                checkbytes = checkfile.read(4)
+                chunk_object_type = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                # check the object type
+                if chunk_object_type == YAFFS_OBJECT_TYPE_UNKNOWN:
+                    break
+
+                # read the parent object id
+                checkbytes = checkfile.read(4)
+                parent_object_id = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                # skip the name checksum (2 bytes)
+                checkfile.seek(2, os.SEEK_CUR)
+
+                # object name
+                # For some reason 2 extra bytes need to be read that have
+                # been initialized to 0xff
+                checkbytes = checkfile.read(YAFFS_MAX_NAME_LENGTH + 1 + 2)
+                try:
+                    object_name = os.path.normpath(checkbytes.split(b'\x00', 1)[0].decode())
+
+                    # sanity check, needs more TODO
+                    if os.path.isabs(object_name):
+                        object_name = os.path.relpath(object_name, '/')
+                except:
+                    break
+
+                # yst_mode
+                checkbytes = checkfile.read(4)
+                yst_mode = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                # stat information: uid, gid, atime, mtime, ctime
+                checkbytes = checkfile.read(4)
+                yst_uid = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                checkbytes = checkfile.read(4)
+                yst_gid = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                checkbytes = checkfile.read(4)
+                yst_atime = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                checkbytes = checkfile.read(4)
+                yst_mtime = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                checkbytes = checkfile.read(4)
+                yst_ctime = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                # the object size. This only makes sense for files. The real
+                # size depends on the "high" value as well.
+                checkbytes = checkfile.read(4)
+                object_size_low = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                # equiv_id, only makes sense for hard links
+                checkbytes = checkfile.read(4)
+                equiv_id = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                # alias, only makes sense for symlinks
+                alias = checkfile.read(YAFFS_MAX_ALIAS_LENGTH + 1)
+
+                # rdev, only for special files (block/char)
+                checkbytes = checkfile.read(4)
+                yst_rdev = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                # skip some Windows specific structures
+                checkfile.seek(24, os.SEEK_CUR)
+
+                # skip some inband related structures
+                checkfile.seek(8, os.SEEK_CUR)
+
+                # object size high
+                checkbytes = checkfile.read(4)
+                object_size_high = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                # element 1 is special, but not every yaffs2 file system
+                # seems to have element 1, so sometimes it needs to be added.
+                if objectid != 1:
+                    if is_first_element:
+                        # artificially add object 1
+                        objectid_to_type[1] = YAFFS_OBJECT_TYPE_DIRECTORY
+                        objectid_to_name[1] = ''
+                else:
+                    # sanity checks for the root element
+                    if not is_first_element:
+                        break
+                    if chunk_object_type != YAFFS_OBJECT_TYPE_DIRECTORY:
+                        break
+
+                    # add the root element and skip to the next chunk
+                    objectid_to_type[1] = YAFFS_OBJECT_TYPE_DIRECTORY
+                    objectid_to_name[1] = ''
+                    checkfile.seek(oldoffset + chunk_size + spare_size)
+                    continue
+
+                if parent_object_id not in objectid_to_type:
+                    break
+
+                # parent objects always have to be a directory
+                if objectid_to_type[parent_object_id] != YAFFS_OBJECT_TYPE_DIRECTORY:
+                    break
+
+                full_object_name = os.path.join(objectid_to_name[parent_object_id], object_name)
+                outfile_rel = os.path.join(unpackdir, full_object_name)
+                outfile_full = os.path.join(unpackdir_full, full_object_name)
+                objectid_to_name[objectid] = full_object_name
+
+                if chunk_object_type == YAFFS_OBJECT_TYPE_FILE:
+                    # first reconstruct the file size.
+                    if object_size_high != 0xffffffff:
+                        object_size = (object_size_high << 32) + object_size_low
+                    else:
+                        object_size = object_size_low
+
+                    last_open = open(outfile_full, 'wb')
+                    unpackedfilesandlabels.append((outfile_rel, []))
+                elif chunk_object_type == YAFFS_OBJECT_TYPE_SYMLINK:
+                    try:
+                        alias = alias.split(b'\x00', 1)[0].decode()
+                    except:
+                        break
+                    # create the symlink
+                    os.symlink(alias, outfile_full)
+                    unpackedfilesandlabels.append((outfile_rel, ['symbolic link']))
+                elif chunk_object_type == YAFFS_OBJECT_TYPE_DIRECTORY:
+                    # create the directory
+                    os.makedirs(outfile_full, exist_ok=True)
+                    unpackedfilesandlabels.append((outfile_rel, ['directory']))
+                elif chunk_object_type == YAFFS_OBJECT_TYPE_HARDLINK:
+                    if equiv_id not in objectid_to_name:
+                        break
+                    linkname = os.path.join(unpackdir_full, objectid_to_name[equiv_id])
+                    os.link(linkname, outfile_full)
+                elif chunk_object_type == YAFFS_OBJECT_TYPE_SPECIAL:
+                    # no permissions to create special files,
+                    # so don't create, but report instead. TODO
+                    pass
+                else:
+                    break
+                objectid_to_type[objectid] = chunk_object_type
+                is_first_element = False
+                dataunpacked = True
+
+            # skip to the next chunk/spare
+            checkfile.seek(oldoffset + chunk_size + spare_size)
+            if checkfile.tell() == filesize:
+                unpackedsize = filesize - offset
+                break
+        # close any open files
+        if last_open is not None:
+            last_open.close()
+        if dataunpacked:
+            metadata['chunk size'] = chunk_size
+            metadata['spare size'] = spare_size
+            break
+
+    if not dataunpacked:
+        unpackingerror = {'offset': offset,
+                          'fatal': False,
+                          'reason': 'no data unpacked'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and unpackedsize == filesize:
+        labels.append('yaffs')
+        labels.append('filesystem')
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels, 'metadata': metadata}
