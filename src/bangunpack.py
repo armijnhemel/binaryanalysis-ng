@@ -2169,14 +2169,20 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
                               'fatal': False,
                               'reason': 'not enough data for local file header'}
             return {'status': False, 'error': unpackingerror}
+        brokenzipversion = False
         minversion = int.from_bytes(checkbytes, byteorder='little')
+
+        # some files observed in the wild have a weird version
+        if minversion == 0x314:
+            brokenzipversion = True
+
         if minversion < minzipversion:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize,
                               'fatal': False,
                               'reason': 'invalid ZIP version'}
             return {'status': False, 'error': unpackingerror}
-        if minversion > maxzipversion:
+        if minversion > maxzipversion and not brokenzipversion:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize,
                               'fatal': False,
