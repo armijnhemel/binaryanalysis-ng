@@ -1,4 +1,5 @@
 import os
+import re
 from . import rar
 from UnpackParser import UnpackParser
 
@@ -25,6 +26,6 @@ class RarUnpackParser(UnpackParser):
 
     @classmethod
     def is_valid_extension(cls, ext):
-        return ext == '.rar' or re.matches(r'\.r\d\d', ext)
+        return ext == '.rar' or re.match(r'\.r\d\d', ext)
 
 
