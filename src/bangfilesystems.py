@@ -5593,6 +5593,12 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
     else:
         byteorder = 'big'
 
+    if byteorder == 'big':
+        unpackingerror = {'offset': offset,
+                          'fatal': False,
+                          'reason': 'big endian images not supported'}
+        return {'status': False, 'error': unpackingerror}
+
     dataunpacked = False
 
     # then try to read the file system for various chunk/spare
