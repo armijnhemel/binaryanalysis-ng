@@ -5565,15 +5565,30 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
     YAFFS_MAX_NAME_LENGTH = 255
     YAFFS_MAX_ALIAS_LENGTH = 159
 
+    # flags for inband tags (from yaffs_packedtags2.c )
+    EXTRA_HEADER_INFO_FLAG = 0x80000000
+    EXTRA_SHRINK_FLAG = 0x40000000
+    EXTRA_SHADOWS_FLAG = 0x20000000
+    EXTRA_SPARE_FLAGS = 0x10000000
+    ALL_EXTRA_FLAG = 0xf0000000
+
+    EXTRA_OBJECT_TYPE_SHIFT = 28
+    EXTRA_OBJECT_TYPE_MASK = 0x0f << EXTRA_OBJECT_TYPE_SHIFT
+
     # common signatures from little endian file systems.
     little_endian_signatures = [b'\x03\x00\x00\x00\x01\x00\x00\x00\xff\xff',
                                 b'\x01\x00\x00\x00\x01\x00\x00\x00\xff\xff']
 
     # common values for chunk/spare combinations, sorted by
     # occurance.
-    # The default in mkyaffs2image is (2048, 64)
-    # Android primarily uses (1024, 32)
-    chunks_and_spares = [(2048, 64), (1024, 32), (4096, 128), (8192, 256), (512, 16), (4096, 16)]
+    # The default in mkyaffs2image is (2048, 64) and Android
+    # primarily uses (1024, 32).
+    #
+    # Most devices use "out of band" (OOB) tags, but
+    # some devices use "in band" tags to save flash space.
+    # (4080, 16) is an example of a common size for inline tags
+    chunks_and_spares = [(2048, 64), (1024, 32), (4096, 128), (8192, 256),
+                         (512, 16), (4096, 16), (4080, 16)]
 
     # open the file and seek to the offset
     checkfile = open(filename_full, 'rb')
@@ -5631,6 +5646,9 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
         seen_root_element = False
         is_first_element = True
 
+        # store if this is an inband image
+        inband = False
+
         if unpackedfilesandlabels != []:
             # remove leftover data TODO
             unpackedfilesandlabels = []
@@ -5662,6 +5680,27 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
             # read the chunk id
             checkbytes = checkfile.read(4)
             chunkid = int.from_bytes(checkbytes, byteorder=byteorder)
+
+            # first check if the relevant info is stored in an inband tag
+            # or in a normal tag. This needs some juggling. These tags
+            # are described in the YAFFS2 code in the file yaffs_packedtags2.c
+            if chunkid & EXTRA_HEADER_INFO_FLAG == EXTRA_HEADER_INFO_FLAG:
+                if not is_first_element and not inband:
+                   # can't mix inband and out of band
+                   break
+
+                # store the original chunkid as it will be used later
+                orig_chunkid = chunkid
+
+                # extract the objectid
+                objectid = objectid & ~EXTRA_OBJECT_TYPE_MASK
+
+                # the chunkid will only have been changed for
+                # the chunk with id 0, but not for any chunks
+                # with data (files), so it is safe to set the
+                # chunkid to 0 here.
+                chunkid = 0
+                inband = True
 
             # read the chunk byte count
             checkbytes = checkfile.read(4)
@@ -5716,6 +5755,9 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
                 # read the parent object id
                 checkbytes = checkfile.read(4)
                 parent_object_id = int.from_bytes(checkbytes, byteorder=byteorder)
+
+                if inband:
+                    parent_object_id = orig_chunkid & ~ALL_EXTRA_FLAG
 
                 # skip the name checksum (2 bytes)
                 checkfile.seek(2, os.SEEK_CUR)
