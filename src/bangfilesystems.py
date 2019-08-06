@@ -2654,6 +2654,8 @@ def unpack_dlink_romfs(fileresult, scanenvironment, offset, unpackdir):
             entryuid = int(checkbytes.decode())
         except UnicodeDecodeError:
             break
+        except ValueError:
+            break
         unpackedsize += 4
 
         if entryuid in entryuidtopath:
