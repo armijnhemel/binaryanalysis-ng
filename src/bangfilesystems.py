@@ -2576,6 +2576,20 @@ def unpack_dlink_romfs(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(4, os.SEEK_CUR)
     unpackedsize += 4
 
+    # skip to the version and extract it
+    checkfile.seek(offset + 22)
+    unpackedsize = 22
+
+    if checkbytes == b'v1.0':
+        version = 1
+    elif checkbytes == b'v9.0':
+        version = 9
+    else:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unsupported version'}
+        return {'status': False, 'error': unpackingerror}
+
     # skip the superblock
     checkfile.seek(offset + 32)
     unpackedsize = 32
