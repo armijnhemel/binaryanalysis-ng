@@ -2829,7 +2829,7 @@ unpack_android_boot_msm.minimum_size = 20
 
 # Android bootloader
 #
-# https://android.googlesource.com/platform/system/core.git/+/master/mkbootimg/include/bootimg/bootimg.h
+# https://android.googlesource.com/platform/system/core.git/+/refs/heads/pie-platform-release/mkbootimg/include/bootimg/bootimg.h
 def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack Android bootloader images'''
     filesize = fileresult.filesize
