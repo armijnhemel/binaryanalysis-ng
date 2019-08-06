@@ -2871,7 +2871,8 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(4, os.SEEK_CUR)
     unpackedsize += 4
 
-    # ramdisk size
+    # ramdisk size. Officially this should not be 0, but there
+    # are images where the ramdisk actually is 0.
     checkbytes = checkfile.read(4)
     ramdisksize = int.from_bytes(checkbytes, byteorder='little')
     if ramdisksize == 0:
