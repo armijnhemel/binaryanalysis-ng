@@ -2586,6 +2586,8 @@ def unpack_dlink_romfs(fileresult, scanenvironment, offset, unpackdir):
 
     maxunpacked = unpackedsize
 
+    dataunpacked = False
+
     while True:
         # read metadata entries, but stop as soon
         # as the data part starts.
@@ -2737,8 +2739,16 @@ def unpack_dlink_romfs(fileresult, scanenvironment, offset, unpackdir):
                 unpackedfilesandlabels.append((outfile_rel, []))
                 maxunpacked = max(maxunpacked, offset + entryoffset + entrysize)
 
+        dataunpacked = True
+
         # return to the old offset
         checkfile.seek(oldoffset)
+
+    if not dataunpacked:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no data unpacked'}
+        return {'status': False, 'error': unpackingerror}
 
     unpackedsize = maxunpacked
 
