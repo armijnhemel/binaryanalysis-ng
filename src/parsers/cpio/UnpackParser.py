@@ -24,6 +24,7 @@ class CpioBaseUnpackParser(UnpackParser):
             if e.filename != self.data.trailing_filename:
                 filedata_start = e.header.hsize + e.header.nsize + e.header.npaddingsize
                 # TODO: validate filename
+                # TODO: check file type (directory, symlink, etc)
                 outfile_rel = rel_unpack_dir / e.filename
                 self.extract_to_file(scan_environment, outfile_rel,
                         pos + filedata_start, e.header.fsize)
