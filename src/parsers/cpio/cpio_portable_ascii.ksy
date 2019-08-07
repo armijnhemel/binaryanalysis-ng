@@ -1,11 +1,14 @@
 meta:
     id: cpio_portable_ascii
     endian: be
+instances:
+        trailing_filename:
+                value: '"TRAILER!!!"'
 seq:
     - id: entries
       type: cpio_portable_ascii_header_and_file
       repeat: until
-      repeat-until: _.filename == "TRAILER!!!"
+      repeat-until: _.filename == trailing_filename and _.header.fsize == 0
 types:
     cpio_portable_ascii_header_and_file:
         seq:

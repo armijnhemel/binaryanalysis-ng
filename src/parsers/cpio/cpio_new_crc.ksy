@@ -1,11 +1,14 @@
 meta:
     id: cpio_new_crc
     endian: be
+instances:
+        trailing_filename:
+                value: '"TRAILER!!!"'
 seq:
     - id: entries
       type: cpio_new_crc_header_and_file
       repeat: until
-      repeat-until: _.filename == "TRAILER!!!"
+      repeat-until: _.filename == trailing_filename and _.header.fsize == 0
 types:
     cpio_new_crc_header_and_file:
         seq:
@@ -80,7 +83,7 @@ types:
               type: str
               size: 8
               encoding: ascii
-    instances:
+      instances:
               hsize:
                       value: 13*8+6
               fsize:

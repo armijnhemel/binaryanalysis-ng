@@ -21,7 +21,7 @@ class CpioUnpackParser(UnpackParser):
         files_and_labels = []
         pos = 0
         for e in self.data.entries:
-            if e.filename != "TRAILER!!!":
+            if e.filename != self.data.trailing_filename:
                 filedata_start = e.header.hsize + e.header.nsize + e.header.npaddingsize
                 # TODO: validate filename
                 outfile_rel = rel_unpack_dir / e.filename
