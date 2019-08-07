@@ -7,8 +7,7 @@ from UnpackParser import UnpackParser
 
 class CpioBaseUnpackParser(UnpackParser):
     extensions = []
-    signatures = [
-    ]
+    signatures = []
     pretty_name = 'cpio'
 
     def calculate_unpacked_size(self, offset):
@@ -36,16 +35,14 @@ class CpioBaseUnpackParser(UnpackParser):
 
 class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
     extensions = []
-    signatures = [
-    ]
+    signatures = [ (0, b'070701') ]
 
     def parse(self):
         self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
 
 class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
     extensions = []
-    signatures = [
-    ]
+    signatures = [ (0, b'070702') ]
     pretty_name = 'cpio'
 
     def parse(self):
@@ -53,12 +50,9 @@ class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
 
 class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
     extensions = []
-    signatures = [
-    ]
+    signatures = [ (0, b'070707') ]
     pretty_name = 'cpio'
 
     def parse(self):
         self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
-
-
 
