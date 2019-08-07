@@ -14,7 +14,7 @@ class TestGifUnpackParser(TestBase):
         filesize = fileresult.filesize
         p = GifUnpackParser()
         # dummy data unpack dir
-        data_unpack_dir = (self.unpackdir / rel_testfile).parent
+        data_unpack_dir = rel_testfile.parent / 'some_dir'
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
         self.assertTrue(r['status'])
@@ -30,13 +30,15 @@ class TestGifUnpackParser(TestBase):
         filesize = fileresult.filesize
         p = GifUnpackParser()
         # dummy data unpack dir
-        data_unpack_dir = (self.unpackdir / rel_testfile).parent
+        data_unpack_dir = rel_testfile.parent / 'some_dir'
         r = p.parse_and_unpack(fileresult, self.scan_environment, 128,
                 data_unpack_dir)
         self.assertTrue(r['status'])
         self.assertEqual(r['length'], 7073713)
         unpacked_file = r['filesandlabels'][0][0]
         unpacked_labels = r['filesandlabels'][0][1]
+        self.assertEqual(pathlib.Path(unpacked_file),
+                pathlib.Path(data_unpack_dir) / 'unpacked.gif')
         self.assertTrue((self.unpackdir / unpacked_file).exists())
         self.assertEqual((self.unpackdir / unpacked_file).stat().st_size, r['length'])
         self.assertEqual(r['metadata']['width'], 3024)
@@ -49,7 +51,9 @@ class TestGifUnpackParser(TestBase):
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
         p = GifUnpackParser()
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0, self.unpackdir)
+        data_unpack_dir = rel_testfile.parent / 'some_dir'
+        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
+                data_unpack_dir)
         self.assertFalse(r['status'])
         self.assertIsNotNone(r['error']['reason'])
 
