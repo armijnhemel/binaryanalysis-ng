@@ -14,22 +14,17 @@ class GptPartitionTableUnpackParser(UnpackParser):
         # According to https://web.archive.org/web/20080321063028/http://technet2.microsoft.com/windowsserver/en/library/bdeda920-1f08-4683-9ffb-7b4b50df0b5a1033.mspx?mfr=true
         # the backup GPT header is at the last sector of the disk
         self.unpacked_size = (self.data.primary.backup_lba+1)*self.data.sector_size
-    def unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
         files_and_labels = []
         partition_number = 0
         for e in self.data.primary.entries:
             partition_start = e.first_lba * self.data.sector_size
             partition_end = (e.last_lba + 1) * self.data.sector_size
             partition_ext = 'part'
-            outfile_rel = os.path.join(unpack_dir,
-                    "unpacked.gpt-partition%d.%s" % (partition_number,
-                    partition_ext))
-            outfile_full = scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            os.sendfile(outfile.fileno(), self.infile.fileno(),
+            outfile_rel = rel_unpack_dir / ("unpacked.gpt-partition%d.%s" %
+                    (partition_number, partition_ext))
+            self.extract_to_file(scan_environment, outfile_rel,
                     partition_start, partition_end - partition_start)
-            outfile.close()
             # TODO: add partition GUID to labels
             # print(e.guid)
             outlabels = ['partition', 'unpacked']

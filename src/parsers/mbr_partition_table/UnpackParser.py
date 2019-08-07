@@ -119,7 +119,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
         for p in self.data.partitions:
             self.unpacked_size = max( self.unpacked_size,
                     (p.lba_start + p.num_sectors) * 512 )
-    def unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
         """extract any files from the input file"""
         files_and_labels = []
         partition_number = 0
@@ -127,15 +127,10 @@ class MbrPartitionTableUnpackParser(UnpackParser):
             partition_ext = "part"
             partition_start = p.lba_start * 512
             partition_length = p.num_sectors * 512
-            outfile_rel = os.path.join(unpack_dir,
-                    "unpacked.mbr-partition%d.%s" % (partition_number,
-                    partition_ext))
-            outfile_full = scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            os.sendfile(outfile.fileno(), self.infile.fileno(),
+            outfile_rel = rel_unpack_dir / ("unpacked.mbr-partition%d.%s" %
+                (partition_number, partition_ext))
+            self.extract_to_file(scan_environment, outfile_rel, 
                     partition_start, partition_length)
-            outfile.close()
             partition_name = partition_types.get(p.partition_type)
             # TODO: add partition name to labels
             outlabels = ['partition', 'unpacked']
