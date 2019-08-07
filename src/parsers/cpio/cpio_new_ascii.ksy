@@ -15,16 +15,16 @@ types:
               # new ascii: The pathname is followed by NUL bytes so that the total size of the fixed header plus pathname is a multiple of four. Likewise, the file data is padded to a multiple of four bytes. 
               type: str
               encoding: ascii
-              size: header.namesize.to_i(16)
+              size: header.nsize
               terminator: 0
               # old binary: rounded up to even number
-              # size: '(header.namesize.to_i(16) & 0x01 == 0) ? (header.namesize.to_i(16)) : (header.namesize.to_i(16) + 1)'
+              # size: '(header.nsize & 0x01 == 0) ? (header.nsize) : (header.nsize + 1)'
             - id: filename_padding
-              size: '4 - (( header.namesize.to_i(16) + 13*8+6 ) % 4)'
-            - id: filedata
-              size: header.filesize.to_i(16)
+              size: '4 - (( header.nsize + 13*8+6 ) % 4)'
+            - id: filedata  # TODO: make this an instance, not an attribute
+              size: header.fsize
             - id: filedata_padding
-              size: 4 - (header.filesize.to_i(16) % 4)
+              size: 4 - (header.fsize % 4)
     cpio_new_ascii_header:
       seq:
             - id: magic
@@ -81,5 +81,18 @@ types:
               type: str
               size: 8
               encoding: ascii
+      instances:
+              hsize:
+                      value: 13*8+6
+              fsize:
+                      value: filesize.to_i(16)
+              nsize:
+                      value: namesize.to_i(16)
+              npaddingsize:
+                      value: '4 - (( nsize + hsize ) % 4)'
+              fpaddingsize:
+                      value: 4 - (fsize % 4)
+              bsize:
+                      value: hsize + nsize + npaddingsize + fsize + fpaddingsize
 
 
