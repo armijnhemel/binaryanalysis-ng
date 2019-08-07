@@ -1,6 +1,7 @@
 meta:
     id: cpio_new_crc
     endian: be
+    ks-opaque-types: true
 instances:
         trailing_filename:
                 value: '"TRAILER!!!"'
@@ -24,6 +25,7 @@ types:
             - id: filename_padding
               size: '4 - (( header.nsize + header.hsize ) % 4)'
             - id: filedata
+              type: skip_and_ignore_type
               size: header.fsize
             - id: filedata_padding
               size: 4 - (header.fsize % 4)

@@ -1,6 +1,7 @@
 meta:
     id: cpio_portable_ascii
     endian: be
+    ks-opaque-types: true
 instances:
         trailing_filename:
                 value: '"TRAILER!!!"'
@@ -21,6 +22,7 @@ types:
               terminator: 0
               # Unlike the old binary format, there is no additional padding after the pathname or file contents.
             - id: filedata
+              type: skip_and_ignore_type
               size: header.fsize
     cpio_portable_ascii_header:
       seq:

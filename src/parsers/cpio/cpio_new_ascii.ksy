@@ -1,6 +1,7 @@
 meta:
     id: cpio_new_ascii
     endian: be
+    ks-opaque-types: true
 instances:
         trailing_filename:
                 value: '"TRAILER!!!"'
@@ -25,9 +26,7 @@ types:
             - id: filename_padding
               size: '4 - (( header.nsize + header.hsize ) % 4)'
             - id: filedata 
-              # TODO: make this an instance, not an attribute.
-              # an opaque type that simply seeks to the next element would
-              # be better and cleaner
+              type: skip_and_ignore_type
               size: header.fsize
             - id: filedata_padding
               size: 4 - (header.fsize % 4)
