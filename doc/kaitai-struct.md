@@ -112,6 +112,11 @@ ksv <binary-file> <ksy file>
 
 ## Issues with kaitai parsers
 
+### Position in the stream after reading
+
 Not all kaitai parsers read the complete file. The unpacker determines the file length by checking how many bytes have been read from the input stream. You must compensate for this in the unpacker that wraps the kaitai parser. For example, the `ico` parser does not parse the contained image data. You can either adjust `self.unpacked_size` by adding the length of the unparsed part, call a subparser on the image data, or perhaps even both.
 
+### Kaitai parser expects an end of stream
+
+Kaitai parsers that expect an end of stream, for example by using `size-eos`, or calling `size` on a kaitai stream object, cannot be used for carving data from a file. When carving, we have a stream that can contain data beyond the file that we want to extract, and therefore, our parser cannot depend on that.
 
