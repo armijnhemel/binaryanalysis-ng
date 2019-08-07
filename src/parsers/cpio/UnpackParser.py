@@ -3,6 +3,7 @@ import os
 from . import cpio_new_ascii
 from . import cpio_new_crc
 from . import cpio_portable_ascii
+from . import cpio_old_binary
 from UnpackParser import UnpackParser
 
 class CpioBaseUnpackParser(UnpackParser):
@@ -55,4 +56,13 @@ class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
 
     def parse(self):
         self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
+
+class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
+    extensions = []
+    signatures = [ (0, b'\xc7\x71') ]
+    pretty_name = 'cpio'
+
+    def parse(self):
+        self.data = cpio_old_binary.CpioOldBinary.from_io(self.infile)
+
 
