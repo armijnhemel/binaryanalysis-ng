@@ -20,8 +20,11 @@ types:
               # old binary: rounded up to even number
               # size: '(header.nsize & 0x01 == 0) ? (header.nsize) : (header.nsize + 1)'
             - id: filename_padding
-              size: '4 - (( header.nsize + 13*8+6 ) % 4)'
-            - id: filedata  # TODO: make this an instance, not an attribute
+              size: '4 - (( header.nsize + header.hsize ) % 4)'
+            - id: filedata 
+              # TODO: make this an instance, not an attribute.
+              # an opaque type that simply seeks to the next element would
+              # be better and cleaner
               size: header.fsize
             - id: filedata_padding
               size: 4 - (header.fsize % 4)

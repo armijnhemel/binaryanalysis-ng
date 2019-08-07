@@ -14,11 +14,11 @@ types:
             - id: filename
               type: str
               encoding: ascii
-              size: header.namesize.to_i(8)
+              size: header.nsize
               terminator: 0
               # Unlike the old binary format, there is no additional padding after the pathname or file contents.
             - id: filedata
-              size: header.filesize.to_i(8)
+              size: header.fsize
     cpio_portable_ascii_header:
       seq:
             - id: magic
@@ -63,3 +63,18 @@ types:
               type: str
               size: 11
               encoding: ascii
+      instances:
+              hsize:
+                      value: 2*11 + 9*6
+              fsize:
+                      value: filesize.to_i(8)
+              nsize:
+                      value: namesize.to_i(8)
+              npaddingsize:
+                      value: 0
+              fpaddingsize:
+                      value: 0
+              bsize:
+                      value: hsize + nsize + npaddingsize + fsize + fpaddingsize
+
+
