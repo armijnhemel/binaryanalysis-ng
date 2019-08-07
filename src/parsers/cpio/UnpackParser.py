@@ -1,16 +1,16 @@
 
 import os
 from . import cpio_new_ascii
+from . import cpio_new_crc
+from . import cpio_portable_ascii
 from UnpackParser import UnpackParser
 
-class CpioUnpackParser(UnpackParser):
+class CpioBaseUnpackParser(UnpackParser):
     extensions = []
     signatures = [
     ]
     pretty_name = 'cpio'
 
-    def parse(self):
-        self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
     def calculate_unpacked_size(self, offset):
         self.unpacked_size = self.infile.tell() - offset
         # the cpio specs (https://www.mankier.com/5/cpio) are unclear about
@@ -33,5 +33,32 @@ class CpioUnpackParser(UnpackParser):
         return files_and_labels
     def set_metadata_and_labels(self):
         return
+
+class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
+    extensions = []
+    signatures = [
+    ]
+
+    def parse(self):
+        self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
+
+class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
+    extensions = []
+    signatures = [
+    ]
+    pretty_name = 'cpio'
+
+    def parse(self):
+        self.data = cpio_new_crc.CpioNewCrc.from_io(self.infile)
+
+class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
+    extensions = []
+    signatures = [
+    ]
+    pretty_name = 'cpio'
+
+    def parse(self):
+        self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
+
 
 
