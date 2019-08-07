@@ -58,10 +58,10 @@ class TestBase(unittest.TestCase):
     # create a temporary directory and copy
     # the test file to the temporary directory
     def setUp(self):
-        self.testdata_dir = pathlib.Path(_scriptdir) / 'testdata'
-        self.unpackdir = pathlib.Path(_scriptdir) / 'unpack'
-        self.tmpdir = pathlib.Path(_scriptdir) / 'tmp'
-        self.resultsdir = pathlib.Path(_scriptdir) / 'results'
+        self.testdata_dir = pathlib.Path(_scriptdir).resolve() / 'testdata'
+        self.unpackdir = pathlib.Path(_scriptdir).resolve() / 'unpack'
+        self.tmpdir = pathlib.Path(_scriptdir).resolve() / 'tmp'
+        self.resultsdir = pathlib.Path(_scriptdir).resolve() / 'results'
         self._create_clean_directory(self.unpackdir)
         self._create_clean_directory(self.tmpdir)
         self._create_clean_directory(self.resultsdir)

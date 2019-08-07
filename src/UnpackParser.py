@@ -1,5 +1,7 @@
 from UnpackParserException import UnpackParserException
 
+import os
+
 class UnpackParser:
     extensions = []
     # signatures are tuples, (offset, bytestring)
@@ -51,7 +53,7 @@ class UnpackParser:
         """Override this method to set metadata and labels."""
         self.unpack_results['labels'] = []
         self.unpack_results['metadata'] = {}
-    def unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
         """Override this method to unpack any data into subfiles.
         The filenames are relative to the unpack directory root that the
         scan_environment points to (usually this is a file under unpack_dir).
@@ -61,5 +63,12 @@ class UnpackParser:
     @classmethod
     def is_valid_extension(cls, ext):
         return ext in cls.extensions
+    def extract_to_file(self, scan_environment, filename, start, length):
+        """filename: path relative to unpack root"""
+        outfile_full = scan_environment.unpack_path(filename)
+        os.makedirs(outfile_full.parent, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), self.infile.fileno(), start, length)
+        outfile.close()
 
 

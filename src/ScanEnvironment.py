@@ -34,8 +34,8 @@ class ScanEnvironment:
                  resultsdirectory, scanfilequeue, resultqueue,
                  processlock, checksumdict,
                 ):
-        """unpackdirectory: a Path object
-           temporarydirectory: a Path object
+        """unpackdirectory: a Path object, absolute
+           temporarydirectory: a Path object, absolute
            scanfilequeue: a Queue where files to scan will be fetched from
            resultqueue: a Queue where results will be written to
            processlock: a Lock object that guards access to shared objects
