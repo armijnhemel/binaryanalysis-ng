@@ -1,6 +1,5 @@
 meta:
     id: cpio_portable_ascii
-    endian: be
     ks-opaque-types: true
 instances:
         trailing_filename:

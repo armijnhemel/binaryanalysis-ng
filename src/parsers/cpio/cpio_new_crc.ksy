@@ -1,6 +1,5 @@
 meta:
     id: cpio_new_crc
-    endian: be
     ks-opaque-types: true
 instances:
         trailing_filename:
