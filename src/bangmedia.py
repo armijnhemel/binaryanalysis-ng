@@ -476,7 +476,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
     unpackdir_full = scanenvironment.unpack_path(unpackdir)
     if filesize - offset < 57:
         unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'File too small (less than 57 bytes'}
+                          'reason': 'File too small (less than 57 bytes)'}
         return {'status': False, 'error': unpackingerror}
 
     # There are files that have an extra newline ('\n') at the end
