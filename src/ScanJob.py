@@ -311,9 +311,19 @@ class ScanJob:
                             pass
 
                         unpacker.remove_data_unpack_directory_tree()
+
+                        # unfortunately it is not correct to store
+                        # the last inspected offset, as it could be
+                        # that later some signatures are found that
+                        # for that format only occur later in the file
+                        # such as ISO9660 or ext2. It would be possible
+                        # that these signatures are then missed. This
+                        # could lead to some overlap and redundant
+                        # scanning. TODO: find an elegant solution for this.
                         continue
 
                     # first rewrite the offset, if needed
+                    # (example: coreboot file system)
                     offset = unpackresult.get('offset', offset)
 
                     # the file could be unpacked successfully,
