@@ -167,6 +167,7 @@ signatures = {
     'yaffs_le_2': b'\x01\x00\x00\x00\x01\x00\x00\x00\xff\xff',
     'yaffs_be_1': b'\x00\x00\x00\x03\x00\x00\x00\x01\xff\xff',
     'yaffs_be_2': b'\x00\x00\x00\x01\x00\x00\x00\x01\xff\xff',
+    'qcdt': b'QCDT',
 }
 
 # some signatures do not start at the beginning of the file
@@ -347,6 +348,7 @@ signaturetofunction = {
     'yaffs_le_2': bangfilesystems.unpack_yaffs2,
     'yaffs_be_1': bangfilesystems.unpack_yaffs2,
     'yaffs_be_2': bangfilesystems.unpack_yaffs2,
+    'qcdt': bangunpack.unpack_qcdt,
 }
 
 # a lookup table to map signatures to a name for

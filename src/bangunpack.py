@@ -13672,3 +13672,116 @@ def unpack_serialized_java(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_serialized_java.signatures = {'serialized_java': b'\xac\xed\x00\x05'}
 unpack_serialized_java.minimum_size = 5
+
+
+# Qualcomm bootloader DTB files
+#
+# Specification:
+#
+# http://web.archive.org/web/20160402060151if_/https://developer.qualcomm.com/qfile/28821/lm80-p0436-1_little_kernel_boot_loader_overview.pdf
+def unpack_qcdt(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify a Qualcomm QCDT file'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+
+    if offset + 12 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset + 4)
+    unpackedsize += 4
+
+    # version
+    checkbytes = checkfile.read(4)
+    qcdtversion = int.from_bytes(checkbytes, byteorder='little')
+
+    # number of entries
+    checkbytes = checkfile.read(4)
+    qcdtentries = int.from_bytes(checkbytes, byteorder='little')
+
+    if qcdtentries == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no data to unpack'}
+        return {'status': False, 'error': unpackingerror}
+
+    # each entry is 40 bytes
+    if checkfile.tell() + qcdtentries * 40 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for qcdt entries'}
+        return {'status': False, 'error': unpackingerror}
+
+    maxsize = checkfile.tell() - offset
+    dataunpacked = False
+    seenoffsets = set()
+
+    # process each entry. Entries are not necessarily sorted.
+    for i in range(1, qcdtentries+1):
+        # platform id
+        checkbytes = checkfile.read(4)
+        platform_id = int.from_bytes(checkbytes, byteorder='little')
+
+        # variant id
+        checkbytes = checkfile.read(4)
+        variant_id = int.from_bytes(checkbytes, byteorder='little')
+
+        # board hw subtype
+        checkbytes = checkfile.read(4)
+        board_hw_subtype = int.from_bytes(checkbytes, byteorder='little')
+
+        # soc revision
+        checkbytes = checkfile.read(4)
+        soc_revision = int.from_bytes(checkbytes, byteorder='little')
+
+        # pmic revision (16 bytes) (skip for now)
+        checkbytes = checkfile.read(16)
+
+        # offset
+        checkbytes = checkfile.read(4)
+        entry_offset = int.from_bytes(checkbytes, byteorder='little')
+
+        # size. This will include padding.
+        checkbytes = checkfile.read(4)
+        entry_size = int.from_bytes(checkbytes, byteorder='little')
+
+        # sanity check
+        if offset + entry_offset + entry_size > filesize:
+            continue
+
+        maxsize = max(maxsize, entry_offset + entry_size)
+
+        # write the file. The format actually allows for entries
+        # to point to the same offset.
+        outfile_rel = os.path.join(unpackdir, "qcdt-%d" % i)
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        os.makedirs(outfile_full.parent, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset + entry_offset, entry_size)
+        outfile.close()
+        unpackedfilesandlabels.append((outfile_rel, []))
+        dataunpacked = True
+
+    checkfile.close()
+    if not dataunpacked:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no data unpacked'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and maxsize == filesize:
+        labels = ['qcdt']
+
+    return {'status': True, 'length': maxsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+unpack_qcdt.signatures = {'qcdt': b'QCDT'}
+unpack_qcdt.minimum_size = 12
