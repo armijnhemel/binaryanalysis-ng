@@ -3259,6 +3259,7 @@ def unpack_nb0(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file
     checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset)
 
     # first four bytes are the number of headers
     checkbytes = checkfile.read(4)
