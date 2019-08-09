@@ -284,7 +284,7 @@ class ScanJob:
                     pretty_signature = bangsignatures.signatureprettyprint.get(signature, signature)
                     namecounter = counterspersignature.get(pretty_signature, 0) + 1
                     namecounter = unpacker.make_data_unpack_directory(self.fileresult.filename,
-                            pretty_signature, namecounter)
+                            pretty_signature, offset, namecounter)
 
                     # run the scan for the offset that was found
                     # First log which identifier was found and
@@ -470,7 +470,7 @@ class ScanJob:
                         #if u_low - carve_index < scanenvironment.get_synthesizedminimum():
                         #        carve_index = u_high
                         #        continue
-                        synthesizedcounter = unpacker.make_data_unpack_directory(self.fileresult.filename, "synthesized", synthesizedcounter)
+                        synthesizedcounter = unpacker.make_data_unpack_directory(self.fileresult.filename, "synthesized", carve_index, synthesizedcounter)
 
                         outfile_rel = os.path.join(unpacker.get_data_unpack_directory(), "unpacked-%s-%s" % (hex(carve_index), hex(u_low-1)))
                         outfile_full = self.scanenvironment.unpack_path(outfile_rel)
@@ -547,7 +547,7 @@ class ScanJob:
     def check_entire_file(self, unpacker):
         if 'text' in self.fileresult.labels and unpacker.unpacked_range() == []:
             for f in bangsignatures.textonlyfunctions:
-                namecounter = unpacker.make_data_unpack_directory(self.fileresult.filename, f, 1)
+                namecounter = unpacker.make_data_unpack_directory(self.fileresult.filename, f, 0, 1)
 
                 log(logging.DEBUG, "TRYING %s %s at offset: 0" % (self.fileresult.filename, f))
                 unpackresult = unpacker.try_textonlyfunctions(
