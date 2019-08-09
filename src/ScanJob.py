@@ -500,6 +500,9 @@ class ScanJob:
                             set(unpackedlabel))
                         j = ScanJob(fr)
                         self.scanenvironment.scanfilequeue.put(j)
+
+                        # ugly hack to work around default behaviour of make_data_unpack_directory
+                        synthesizedcounter += 1
                     carve_index = u_high
 
                 scanfile.close()
