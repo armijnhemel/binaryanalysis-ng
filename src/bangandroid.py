@@ -3342,3 +3342,74 @@ def unpack_nb0(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_nb0.extensions = ['.nb0']
 unpack_nb0.pretty = 'nb0'
+
+
+# DHTB signing header
+# https://github.com/osm0sis/dhtbsign
+def unpack_dhtb(fileresult, scanenvironment, offset, unpackdir):
+    '''Unpack Samsung/Spreadtrum DHTB signing header'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+
+    if offset + 512 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and jump to the offset of the payload size
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset + 48)
+
+    checkbytes = checkfile.read(4)
+    payload_size = int.from_bytes(checkbytes, byteorder='little')
+
+    if offset + 512 + payload_size > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for payload'}
+        return {'status': False, 'error': unpackingerror}
+
+    # jump back to the start of the sha256 (32 bytes)
+    checkfile.seek(offset + 8)
+    checkbytes = checkfile.read(32)
+    checksum = int.from_bytes(checkbytes, byteorder='little')
+
+    # optionally pad
+    padding = 0
+    if payload_size % 512 != 0:
+        padding = 512 - (payload_size%512)
+        checkfile.seek(offset + 512 + payload_size)
+        checkbytes = set(checkfile.read(padding))
+        if len(checkbytes) != 1:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid padding bytes'}
+            return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = 512 + payload_size + padding
+    if offset == 0 and filesize == unpackedsize:
+        labels.append('dhtb')
+        labels.append('android')
+    else:
+        # else carve the file
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-dhtb")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+            # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfile_rel, ['dhtb', 'android', 'unpacked']))
+    checkfile.close()
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+unpack_dhtb.signatures = {'dhtb': b'DHTB\x01\x00\x00'}
+unpack_dhtb.minimum_size = 512
