@@ -2173,21 +2173,23 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
         minversion = int.from_bytes(checkbytes, byteorder='little')
 
         # some files observed in the wild have a weird version
-        if minversion == 0x314:
+        if minversion in [0x30a, 0x314]:
             brokenzipversion = True
 
         if minversion < minzipversion:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize,
                               'fatal': False,
-                              'reason': 'invalid ZIP version'}
+                              'reason': 'invalid ZIP version %d' % minversion}
             return {'status': False, 'error': unpackingerror}
-        if minversion > maxzipversion and not brokenzipversion:
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize,
-                              'fatal': False,
-                              'reason': 'invalid ZIP version'}
-            return {'status': False, 'error': unpackingerror}
+
+        if not brokenzipversion:
+            if minversion > maxzipversion:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'invalid ZIP version %d' % minversion}
+                return {'status': False, 'error': unpackingerror}
         unpackedsize += 2
 
         # then the "general purpose bit flag" (section 4.4.4)
