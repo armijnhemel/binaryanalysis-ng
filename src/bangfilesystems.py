@@ -5013,8 +5013,10 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
     image_to_erase_blocks = {}
 
     # Now keep processing UBI blocks until no more valid UBI blocks can
-    # be found. It could be that multiple images are concatenated. Each
-    # image should have two layout volumes first.
+    # be found. It could be that multiple images are concatenated. Typically
+    # each image should have two layout volumes first, but there are UBI
+    # volumes where the layout volumes appear later in the file. These
+    # are not yet supported.
     ubiseen = 0
     blockid = 0
     while True:
