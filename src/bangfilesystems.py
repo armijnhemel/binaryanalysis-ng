@@ -5359,6 +5359,8 @@ def unpack_ubi(fileresult, scanenvironment, offset, unpackdir):
     for image_sequence in volume_tables:
         image_block_counter = 2
         for vt in sorted(volume_tables[image_sequence].keys()):
+            if image_sequence not in image_to_erase_blocks:
+                continue
             volume_table = volume_tables[image_sequence][vt]
 
             # open the output file
