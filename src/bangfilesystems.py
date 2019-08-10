@@ -4964,7 +4964,7 @@ def unpack_plf(fileresult, scanenvironment, offset, unpackdir):
 # UBI (Unsorted Block Image) is not a file system, but it
 # is used in combination with UBIFS
 #
-# http://www.dubeiko.com/development/FileSystems/UBI/ubidesign.pdf
+# http://www.linux-mtd.infradead.org/doc/ubidesign/ubidesign.pdf
 #
 # Linux kernel source code: drivers/mtd/ubi/ubi-media.h
 #
