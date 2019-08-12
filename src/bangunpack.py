@@ -1770,8 +1770,7 @@ def unpack_dahua(fileresult, scanenvironment, offset, unpackdir):
     if zipres['status']:
         dahuares = zipres
         dahuares['labels'].append('dahua')
-    else:
-        return zipres
+    return zipres
 
 # http://web.archive.org/web/20190709133846/https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/page-2
 unpack_dahua.signatures = {'dahua': b'DH\x03\04'}
