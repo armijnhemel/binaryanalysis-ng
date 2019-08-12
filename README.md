@@ -194,6 +194,7 @@ larger file, unless stated otherwise.
 130. PFS file system
 131. YAFFS2 (including inband tags)
 132. Qualcomm QCDT files
+133. Chrome extensions (.crx)
 
 
 ## Invocation

@@ -169,6 +169,7 @@ signatures = {
     'yaffs_be_2': b'\x00\x00\x00\x01\x00\x00\x00\x01\xff\xff',
     'qcdt': b'QCDT',
     'dhtb': b'DHTB\x01\x00\x00\x00',
+    'crx': b'Cr24',
 }
 
 # some signatures do not start at the beginning of the file
@@ -351,6 +352,7 @@ signaturetofunction = {
     'yaffs_be_2': bangfilesystems.unpack_yaffs2,
     'qcdt': bangunpack.unpack_qcdt,
     #'dhtb': bangandroid.unpack_dhtb,
+    'crx': bangunpack.unpack_crx,
 }
 
 # a lookup table to map signatures to a name for
