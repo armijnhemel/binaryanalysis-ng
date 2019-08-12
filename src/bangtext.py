@@ -525,33 +525,33 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize = 0
 
     valid_attributes = set(['Name',
-                           'Manifest-Version',
-                           'Created-By',
-                           'Signature-Version',
-                           'Class-Path',
-                           'Main-Class',
-                           'Extension-List',
-                           'Extension-Name',
-                           'Implementation-Title',
-                           'Implementation-Version',
-                           'Implementation-Vendor',
-                           'Implementation-Vendor-Id ',
-                           'Implementation-URL',
-                           'Specification-Title',
-                           'Specification-Version',
-                           'Specification-Vendor',
-                           'Sealed',
-                           'Content-Type',
-                           'Java-Bean',
-                           'Magic'])
+                            'Manifest-Version',
+                            'Created-By',
+                            'Signature-Version',
+                            'Class-Path',
+                            'Main-Class',
+                            'Extension-List',
+                            'Extension-Name',
+                            'Implementation-Title',
+                            'Implementation-Version',
+                            'Implementation-Vendor',
+                            'Implementation-Vendor-Id ',
+                            'Implementation-URL',
+                            'Specification-Title',
+                            'Specification-Version',
+                            'Specification-Vendor',
+                            'Sealed',
+                            'Content-Type',
+                            'Java-Bean',
+                            'Magic'])
 
     extension_attributes = ['-Extension-Name',
-                           '-Specification-Version',
-                           '-Implementation-Version',
-                           '-Implementation-Vendor-Id',
-                           '-Implementation-URL',
-                           '-Digest-Manifest',
-                           '-Digest-Manifest-Main-Attributes']
+                            '-Specification-Version',
+                            '-Implementation-Version',
+                            '-Implementation-Vendor-Id',
+                            '-Implementation-URL',
+                            '-Digest-Manifest',
+                            '-Digest-Manifest-Main-Attributes']
 
     custom_attributes = ['Built-By', 'Ant-Version']
     android_attributes = ['X-Android-APK-Signed']
@@ -1060,7 +1060,7 @@ def unpack_base64(fileresult, scanenvironment, offset, unpackdir):
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid character not in base16/32/64 alphabets'}
             return {'status': False, 'error': unpackingerror}
-        if len(i.strip()) != 0:
+        if i.strip() != '':
             if len(i) > prevlinelength:
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
