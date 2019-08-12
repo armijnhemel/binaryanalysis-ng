@@ -2339,7 +2339,10 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
                                           'fatal': False,
                                           'reason': 'wrong minimal needed version for ZIP64'}
                         return {'status': False, 'error': unpackingerror}
-                    if extrafieldheaderlength != 28:
+                    # according to the official ZIP specifications the length of the
+                    # header should be 28, but there are files where this field is
+                    # 16 bytes long instead, sigh...
+                    if extrafieldheaderlength not in [16, 28]:
                         checkfile.close()
                         unpackingerror = {'offset': offset+unpackedsize,
                                           'fatal': False,
