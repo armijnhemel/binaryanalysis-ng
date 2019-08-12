@@ -1778,7 +1778,7 @@ unpack_dahua.minimum_size = 30
 
 
 # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
-# Documenting version 6.3.5
+# Documenting version 6.3.6
 # This method first verifies a file to see where the ZIP data
 # starts and where it ends.
 #
