@@ -778,7 +778,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
 
             # first a keyword followed by \x00
             endofkeyword = checkbytes.find(b'\x00')
-            if endofkeyword == -1 or endofkeyword == 0:
+            if endofkeyword in [-1, 0]:
                 continue
 
             # keyword should be Latin-1, UTF-8 will do as well
@@ -811,7 +811,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
 
             # first a keyword followed by \x00
             endofkeyword = checkbytes.find(b'\x00')
-            if endofkeyword == -1 or endofkeyword == 0:
+            if endofkeyword in [-1, 0]:
                 continue
 
             localoffset += endofkeyword
@@ -1793,7 +1793,7 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
                 checkbytes = checkfile.read(1)
                 pqtq = ord(checkbytes)
                 pq = pqtq >> 4
-                if not (pq == 0 or pq == 1):
+                if pq not in [0, 1]:
                     checkfile.close()
                     unpackingerror = {'offset': offset+unpackedsize,
                                       'fatal': False,
@@ -2501,7 +2501,7 @@ def unpack_sgi(fileresult, scanenvironment, offset, unpackdir):
     # next the bytes per pixel channel
     checkbytes = checkfile.read(1)
     bytesperpixel = ord(checkbytes)
-    if not (bytesperpixel == 1 or bytesperpixel == 2):
+    if bytesperpixel not in [1, 2]:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong value for BPC'}
@@ -2743,7 +2743,7 @@ def unpack_aiff(fileresult, scanenvironment, offset, unpackdir):
 
     checkbytes = checkfile.read(4)
 
-    if not (checkbytes == b'AIFF' or checkbytes == b'AIFC'):
+    if checkbytes not in [b'AIFF', b'AIFC']:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong form type'}
@@ -3964,7 +3964,7 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'not enough bytes for version number'}
         return {'status': False, 'error': unpackingerror}
-    if checkbytes != b'1.' and checkbytes != b'2.':
+    if checkbytes not in [b'1.', b'2.']:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid version number'}
@@ -4002,7 +4002,7 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
     if checkbytes == b'\x20':
         unpackedsize += 1
         checkbytes = checkfile.read(1)
-    if checkbytes != b'\x0a' and checkbytes != b'\x0d':
+    if checkbytes not in [b'\x0a', b'\x0d']:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong line ending'}
@@ -4075,7 +4075,7 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
 
                 # then either LF, CR, or CRLF (section 7.5.1)
                 checkbytes = checkfile.read(1)
-                if checkbytes != b'\x0a' and checkbytes != b'\x0d':
+                if checkbytes not in [b'\x0a', b'\x0d']:
                     startxrefpos = -1
                 if checkbytes == b'\x0d':
                     checkbytes = checkfile.read(1)
@@ -4086,7 +4086,7 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
 
                 while True:
                     checkbytes = checkfile.read(1)
-                    if checkbytes == b'\x0a' or checkbytes == b'\x0d':
+                    if checkbytes in [b'\x0a', b'\x0d']:
                         seeneol = True
                         break
                     if checkfile.tell() == filesize:
@@ -4133,7 +4133,7 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
                 # include "end of line" (but these two do not contradict)
                 # which likely confused people.
                 checkbytes = checkfile.read(1)
-                if checkbytes == b'\x0a' or checkbytes == b'\x0d':
+                if checkbytes in [b'\x0a', b'\x0d']:
                     if checkbytes == b'\x0d':
                         if checkfile.tell() != filesize:
                             checkbytes = checkfile.read(1)
@@ -5832,19 +5832,19 @@ def unpack_mapsforge(fileresult, scanenvironment, offset, unpackdir):
 
     # bounding box
     checkbytes = checkfile.read(4)
-    minLat = int.from_bytes(checkbytes, byteorder='big')
+    min_lat = int.from_bytes(checkbytes, byteorder='big')
     unpackedsize += 4
 
     checkbytes = checkfile.read(4)
-    minLon = int.from_bytes(checkbytes, byteorder='big')
+    min_lon = int.from_bytes(checkbytes, byteorder='big')
     unpackedsize += 4
 
     checkbytes = checkfile.read(4)
-    maxLat = int.from_bytes(checkbytes, byteorder='big')
+    max_lat = int.from_bytes(checkbytes, byteorder='big')
     unpackedsize += 4
 
     checkbytes = checkfile.read(4)
-    maxLon = int.from_bytes(checkbytes, byteorder='big')
+    max_lon = int.from_bytes(checkbytes, byteorder='big')
     unpackedsize += 4
 
     # tile size
