@@ -30,7 +30,6 @@
 #
 # https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
-import sys
 import os
 import shutil
 import binascii
@@ -49,10 +48,7 @@ import subprocess
 import json
 import xml.dom
 import hashlib
-import base64
-import re
 import pathlib
-import datetime
 import sqlite3
 
 # some external packages that are needed
@@ -4016,7 +4012,7 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
                 # extract the font name if it exists
                 if namelength != 0:
                     if nameid == 6:
-                        if platformid == 0 or platformid == 1:
+                        if platformid in [0, 1]:
                             fontname = checkbytes[nametablestringoffset+nameoffset:nametablestringoffset+nameoffset+namelength]
         computedsum = 0
         for j in range(0, tablelength + padding, 4):
@@ -4804,7 +4800,7 @@ def unpack_terminfo(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(offset + 12 + namessectionsize)
     for n in range(0, booleansize):
         checkbytes = checkfile.read(1)
-        if checkbytes != b'\x00' and checkbytes != b'\x01':
+        if checkbytes not in [b'\x00', b'\x01']:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'invalid value for boolean table entry'}
@@ -4881,7 +4877,7 @@ def unpack_terminfo(fileresult, scanenvironment, offset, unpackdir):
         if validextension:
             for n in range(0, extendedboolean):
                 checkbytes = checkfile.read(1)
-                if checkbytes != b'\x00' and checkbytes != b'\x01':
+                if checkbytes not in [b'\x00', b'\x01']:
                     validextension = False
                     break
                 localunpackedsize += 1
@@ -7895,7 +7891,7 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
                 return {'status': False, 'error': unpackingerror}
             class_table[i] = int.from_bytes(checkbytes, byteorder='big')
             unpackedsize += 2
-        elif tag == CONSTANT_Fieldref or tag == CONSTANT_Methodref or tag == CONSTANT_InterfaceMethodref:
+        elif tag in [CONSTANT_Fieldref, CONSTANT_Methodref, CONSTANT_InterfaceMethodref]:
             # section 4.4.2
             # class index
             checkbytes = checkfile.read(2)
@@ -7930,7 +7926,7 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
                 return {'status': False, 'error': unpackingerror}
             string_table[i] = int.from_bytes(checkbytes, byteorder='big')
             unpackedsize += 2
-        elif tag == CONSTANT_Integer or tag == CONSTANT_Float:
+        elif tag in [CONSTANT_Integer, CONSTANT_Float]:
             # section 4.4.4
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
@@ -7940,7 +7936,7 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
                                   'reason': 'no integer/float bytes'}
                 return {'status': False, 'error': unpackingerror}
             unpackedsize += 4
-        elif tag == CONSTANT_Long or tag == CONSTANT_Double:
+        elif tag in [CONSTANT_Long, CONSTANT_Double]:
             # section 4.4.5
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
@@ -8686,7 +8682,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     elftype = int.from_bytes(checkbytes, byteorder=byteorder)
 
     # only a few types have been defined
-    if elftype > 4 and not (elftype == 0xff00 or elftype == 0xffff):
+    if elftype > 4 and not (elftype in [0xff00, 0xffff]):
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'unsupported ELF type'}
@@ -10918,7 +10914,7 @@ def unpack_zim(fileresult, scanenvironment, offset, unpackdir):
         if mimetypenumber == 0xffff:
             # redirect
             pass
-        elif mimetypenumber == 0xfffe or mimetypenumber == 0xfffd:
+        elif mimetypenumber in [0xfffe, 0xfffd]:
             # link target (0xfffe)
             # deleted (0xfffd)
             pass
@@ -10959,7 +10955,7 @@ def unpack_zim(fileresult, scanenvironment, offset, unpackdir):
         if mimetypenumber == 0xffff:
             # redirect
             pass
-        elif mimetypenumber == 0xfffe or mimetypenumber == 0xfffd:
+        elif mimetypenumber in [0xfffe, 0xfffd]:
             # link target (0xfffe)
             # deleted (0xfffd)
             pass
@@ -11167,7 +11163,7 @@ def unpack_java_keystore(fileresult, scanenvironment, offset, unpackdir):
     # read the version numner
     checkbytes = checkfile.read(4)
     version = int.from_bytes(checkbytes, byteorder='big')
-    if version != 1 and version != 2:
+    if version not in [1, 2]:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong version number'}
@@ -12029,7 +12025,7 @@ def unpack_trx(fileresult, scanenvironment, offset, unpackdir):
     # TRX version
     checkbytes = checkfile.read(2)
     trxversion = int.from_bytes(checkbytes, byteorder='little')
-    if trxversion != 1 and trxversion != 2:
+    if trxversion not in [1, 2]:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid TRX version'}
