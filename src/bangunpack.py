@@ -2062,7 +2062,7 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
                 #
                 # https://source.android.com/security/apksigning/v2
                 #
-                # The Android signing block is squeeze in between the
+                # The Android signing block is squeezed in between the
                 # latest entry and the central directory, despite the
                 # ZIP specification not allowing this. There have been
                 # various versions.
@@ -2526,6 +2526,10 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
         unpackedsize = checkfile.tell() - offset
 
         # data descriptor follows the file data
+        # * crc32
+        # * compressed size
+        # * uncompressed size
+        # section 4.3.9
         if datadescriptor and ddsearched and ddfound:
             possiblesignature = checkfile.read(4)
             if possiblesignature == b'PK\x07\x08':
