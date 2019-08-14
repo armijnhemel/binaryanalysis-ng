@@ -2587,7 +2587,7 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
         # if the ZIP file is at the end of the file then the ZIP module
         # from Python will do a lot of the heavy lifting.
         # Malformed ZIP files that need a workaround exist:
-        # https://bugzilla.redhat.com/show_bug.cgi?id=907442
+        # http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442
         if checkfile.tell() == filesize:
             carved = False
         else:
