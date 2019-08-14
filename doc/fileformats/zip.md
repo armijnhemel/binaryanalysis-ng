@@ -179,3 +179,10 @@ the file header. The latest minimum version that has been defined is 6.3.
 There are a few files where the minimum version is something like 0x314 (778)
 or similar in the local file header, but not in the central directory. These
 known invalid versions are silently ignored in BANG.
+
+## Customized headers
+
+There are some vendors, such as the Chinese vendor Dahua, that use the ZIP
+format, but that slightly change one or more headers. In the case of Dahua the
+only change is that the first local file header is changed from "PK\x03\x04"
+to "DH\x03\x04".
