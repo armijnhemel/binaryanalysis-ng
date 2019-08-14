@@ -161,3 +161,15 @@ is not unpacked with Python's zipinfo module, but a directory with the name of
 the entry is created instead.
 
 This might not be entirely fool proof, but it is a very rare edge case.
+
+## Minimum ZIP versions
+
+Some features in ZIP files were introduced in later versions of ZIP files. The
+versions are stored in the local file header (section 4.3.7) and other headers.
+The versions (section 4.4.3) can be computed by dividing the value from the
+local file header by 10. For example, "version 6.3" will be stored as "63" in
+the file header. The latest minimum version that has been defined is 6.3.
+
+There are a few files where the minimum version is something like 0x314 (778)
+or similar in the local file header, but not in the central directory. These
+known invalid versions are silently ignored in BANG.
