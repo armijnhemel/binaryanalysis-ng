@@ -50,7 +50,7 @@ entries from A you need to find out where A ends.
 
 ZIP file unpacking in BANG works as follows (simplified):
 
-1. the file is opened
+1. open the file
 2. go to the start of a local file header (section 4.3.7)
 3. read and parse the data in a local file header
 4. skip over the compressed data
@@ -64,6 +64,12 @@ ZIP file unpacking in BANG works as follows (simplified):
 
 This (simplified) workflow works well, but as it turns out there are quite a
 few exceptions that make it a lot trickier.
+
+## Encryption
+
+ZIP files can be encrypted. In case an encrypted entry is encountered then
+no unpacking is attempted, but only structural checks are done to check
+whether or not a file is a complete ZIP file or carving needs to be done.
 
 ## Data descriptors
 
