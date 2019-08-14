@@ -86,7 +86,13 @@ flag" (section 4.4.4) is set. If so then, according to the specification:
 This means that the size of an entry is not always known in advance, but has
 to be determined. The data descriptor does not have a standard header, but there
 is a value that is often associated with it that can be scanned for (section
-4.3.9.3).
+4.3.9.3). This means that possibly all data in a file entry has to be scanned
+for either:
+
+* a common data descriptor header
+* a local file header (possibly meaning a new entry is starting)
+* another known header (central directory, archive headers)
+* the presence of an APK signing block (see next section)
 
 ## APK signing blocks
 
