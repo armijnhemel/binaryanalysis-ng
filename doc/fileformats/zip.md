@@ -93,3 +93,65 @@ will work because every unpacking program (except BANG) will simply read the
 central directory to get the offsets for the individual file entries. As long
 as the offsets in the central directory are correct it doesn't really matter
 how much extra data is in the file.
+
+## ZIP64
+
+The size field in the local file header cannot store a number larger than
+4,294,967,295 bytes (4 bytes, maximum 0xffffffff). If a file is equal to or
+larger than this number the actual size is stored in the "extra field" in the
+local file header (section 4.3.7). Storing files with file sizes equal to or
+larger than this limit is referred to as ZIP64. The specification of ZIP64
+(section 4.5.3) says that the size of the data should be 28 bytes (8 bytes for
+compressed and uncompresed size, and some other fields), but there are programs
+that will only store 16 bytes (compressed and uncompressed size).
+
+## Directories unpacked as regular files
+
+Most, if not all, ZIP implementations rely on names of directories being stored
+with a '/' at the end of the entry name (even though the specification does not
+seem to mandate this). There are files that contain files where a directory
+name does not end in '/' and which make the standard utilities fail and where
+instead of a directory a zero byte file with the same name as the directory is
+created. Despite bug reports being filed this is still a problem. A bug report
+can be found at:
+
+http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442 )
+
+Trying to unpack the file mentioned in this bug report leads to the following
+error (on Fedora 30):
+
+    $ unzip 1_06_03P.zip
+    Archive:  1_06_03P.zip
+     extracting: online_upgrade_img
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/bp28v_md5.
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/bp28_md5.
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/emergency_recovery.sh.
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/J120.bp28.
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/machine_type.
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/md5.
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/ouimg.bin.
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/ouimg.ver.
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/OU_Burner.
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/Software_Version.
+    checkdir error:  online_upgrade_img exists but is not directory
+                     unable to process online_upgrade_img/V10X.bp28v.
+
+In BANG this is solved by first looking at the "external file attributes"
+field from the central directory (section 4.3.12) and checking if the low
+order byte corresponds to the MS-DOS directory attribute byte (section 4.4.15)
+while also checking that the size is 0 and that Python's zipinfo module does
+not recognize the file as a directory. If this is the case, then the directory
+is not unpacked with Python's zipinfo module, but a directory with the name of
+the entry is created instead.
+
+This might not be entirely fool proof, but it is a very rare edge case.
