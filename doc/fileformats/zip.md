@@ -98,13 +98,14 @@ for either:
 
 Android APK files are essentially ZIP files. To increase security Google added
 signatures, or so called "APK signing blocks". Three versions have been
-published so far. Since there is no standard header to put this information in
-Google decided to add it after the last data descriptor and before the central
-directory. Even though this is not allowed according to the specifications it
-will work because every unpacking program (except BANG) will simply read the
-central directory to get the offsets for the individual file entries. As long
-as the offsets in the central directory are correct it doesn't really matter
-how much extra data is in the file.
+published so far. Since there is no standard header in the ZIP file format for
+this information Google decided to add it after the last data descriptor and
+before the central directory. Even though this is not allowed according to the
+specifications it will work because every unpacking program (except, of course,
+BANG) will simply read the central directory to get the offsets for the
+individual file entries. As long as the offsets in the central directory are
+correct it doesn't really matter how much extra data is in the file and where
+this data is in the ZIP file.
 
 ## ZIP64
 
@@ -186,3 +187,10 @@ There are some vendors, such as the Chinese vendor Dahua, that use the ZIP
 format, but that slightly change one or more headers. In the case of Dahua the
 only change is that the first local file header is changed from "PK\x03\x04"
 to "DH\x03\x04".
+
+## Multiple entries with the same name
+
+It is possible to have multiple entries in the same ZIP file, with different
+properties, for example a copy of a file, and a link with the same name. It
+is unclear how these conflicts should be resolved and BANG currently does
+not handle this correctly.
