@@ -20,15 +20,14 @@ types:
               encoding: ascii
               size: header.nsize
               terminator: 0
-              # old binary: rounded up to even number
-              # size: '(header.nsize & 0x01 == 0) ? (header.nsize) : (header.nsize + 1)'
             - id: filename_padding
-              size: '4 - (( header.nsize + header.hsize ) % 4)'
+              size: (4 - (( header.nsize + header.hsize ) % 4)) % 4
             - id: filedata 
-              type: skip_and_ignore_type
+              # TODO: only set this type if file is regular
+              # type: skip_and_ignore_type
               size: header.fsize
             - id: filedata_padding
-              size: 4 - (header.fsize % 4)
+              size: (4 - (header.fsize % 4)) % 4
     cpio_new_ascii_header:
       seq:
             - id: magic
@@ -98,5 +97,7 @@ types:
                       value: 4 - (fsize % 4)
               bsize:
                       value: hsize + nsize + npaddingsize + fsize + fpaddingsize
+              cpio_mode:
+                      value: mode.to_i(16)
 
 

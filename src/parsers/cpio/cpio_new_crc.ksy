@@ -22,12 +22,12 @@ types:
               size: header.nsize
               terminator: 0
             - id: filename_padding
-              size: '4 - (( header.nsize + header.hsize ) % 4)'
+              size: (4 - (( header.nsize + header.hsize ) % 4)) % 4
             - id: filedata
               type: skip_and_ignore_type
               size: header.fsize
             - id: filedata_padding
-              size: 4 - (header.fsize % 4)
+              size: (4 - (header.fsize % 4)) % 4
     cpio_new_crc_header:
       seq:
             - id: magic

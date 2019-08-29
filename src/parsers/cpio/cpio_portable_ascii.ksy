@@ -80,5 +80,7 @@ types:
                       value: 0
               bsize:
                       value: hsize + nsize + npaddingsize + fsize + fpaddingsize
+              cpio_mode:
+                      value: mode.to_i(8)
 
 
