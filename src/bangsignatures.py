@@ -57,8 +57,8 @@ signatures = {
     'squashfs_var7': b'sqlz',
     'appledouble': b'\x00\x05\x16\x07',  # https://tools.ietf.org/html/rfc1740 Appendix B
     'icc': b'acsp',  # http://www.color.org/specification/ICC1v43_2010-12.pdf, section 7.2
-    'zip': b'\x50\x4b\x03\04',  # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
-    'dahua': b'DH\x03\04', # https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/#post-288739
+    'zip': b'PK\x03\x04',  # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
+    'dahua': b'DH\x03\x04', # https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/#post-288739
     'bzip2': b'BZh',  # https://en.wikipedia.org/wiki/Bzip2#File_format
     'xar': b'\x78\x61\x72\x21',  # https://github.com/mackyle/xar/wiki/xarformat
     'gif87': b'GIF87a',  # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
@@ -163,6 +163,13 @@ signatures = {
     'mapsforge': b'mapsforge binary OSM',
     'plf': b'PLF!',
     'pfs': b'PFS/0.9\x00',
+    'yaffs_le_1': b'\x03\x00\x00\x00\x01\x00\x00\x00\xff\xff',
+    'yaffs_le_2': b'\x01\x00\x00\x00\x01\x00\x00\x00\xff\xff',
+    'yaffs_be_1': b'\x00\x00\x00\x03\x00\x00\x00\x01\xff\xff',
+    'yaffs_be_2': b'\x00\x00\x00\x01\x00\x00\x00\x01\xff\xff',
+    'qcdt': b'QCDT',
+    'dhtb': b'DHTB\x01\x00\x00\x00',
+    'crx': b'Cr24',
 }
 
 # some signatures do not start at the beginning of the file
@@ -298,7 +305,7 @@ signaturetofunction = {
     'zim': bangunpack.unpack_zim,
     'midi': bangmedia.unpack_midi,
     'javakeystore': bangunpack.unpack_java_keystore,
-    'xg3d': bangmedia.unpackXG3D,
+    'xg3d': bangmedia.unpack_xg3d,
     'acdb': bangunpack.unpack_acdb,
     'dds': bangmedia.unpack_dds,
     'ktx11': bangmedia.unpack_ktx11,
@@ -339,6 +346,13 @@ signaturetofunction = {
     'mapsforge': bangmedia.unpack_mapsforge,
     'plf': bangfilesystems.unpack_plf,
     'pfs': bangfilesystems.unpack_pfs,
+    'yaffs_le_1': bangfilesystems.unpack_yaffs2,
+    'yaffs_le_2': bangfilesystems.unpack_yaffs2,
+    'yaffs_be_1': bangfilesystems.unpack_yaffs2,
+    'yaffs_be_2': bangfilesystems.unpack_yaffs2,
+    'qcdt': bangunpack.unpack_qcdt,
+    #'dhtb': bangandroid.unpack_dhtb,
+    'crx': bangunpack.unpack_crx,
 }
 
 # a lookup table to map signatures to a name for
@@ -376,6 +390,10 @@ signatureprettyprint = {
     'pcap_le_nano': 'pcap',
     'pcap_be_nano': 'pcap',
     'android_binary_xml': 'androidresource',
+    'yaffs_le_1': 'yaffs2',
+    'yaffs_le_2':'yaffs2',
+    'yaffs_be_1':'yaffs2',
+    'yaffs_be_2':'yaffs2',
 }
 
 # extensions to unpacking functions. This should only be

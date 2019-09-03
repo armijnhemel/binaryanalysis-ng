@@ -2829,7 +2829,12 @@ unpack_android_boot_msm.minimum_size = 20
 
 # Android bootloader
 #
-# https://android.googlesource.com/platform/system/core.git/+/master/mkbootimg/include/bootimg/bootimg.h
+# https://android.googlesource.com/platform/system/core.git/+/refs/heads/pie-platform-release/mkbootimg/include/bootimg/bootimg.h
+#
+# There is also a variant based on Little Kernel that uses a slightly
+# different header format:
+#
+# https://github.com/M1cha/android_bootable_bootloader_lk/blob/condor/app/aboot/bootimg.h
 def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack Android bootloader images'''
     filesize = fileresult.filesize
@@ -2845,6 +2850,7 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     kernelname = 'kernel'
     ramdiskname = 'ramdisk'
     secondstagename = 'secondstageloader'
+    dtbname = 'dtb'
 
     # version 0 header is 48 bytes, other headers more
     if offset + 48 > filesize:
@@ -2871,14 +2877,11 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(4, os.SEEK_CUR)
     unpackedsize += 4
 
-    # ramdisk size
+    # ramdisk size. Officially this should not be 0, but there
+    # are images where the ramdisk actually is 0, but then it
+    # likely is a variant format.
     checkbytes = checkfile.read(4)
     ramdisksize = int.from_bytes(checkbytes, byteorder='little')
-    if ramdisksize == 0:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'ramdisk cannot be empty'}
-        return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
     # ramdisk load address, currently not interesting
@@ -2903,18 +2906,39 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     pagesize = int.from_bytes(checkbytes, byteorder='little')
     unpackedsize += 4
 
+    is_dtb = False
+
     # header version, only 0, 1 and 2 have been defined so far
+    # There is also a version for Little Kernel that stores a dtb
+    # instead and instead of the header version there is a dtb size
     checkbytes = checkfile.read(4)
     headerversion = int.from_bytes(checkbytes, byteorder='little')
     if headerversion > 2:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'unknown boot image header version'}
-        return {'status': False, 'error': unpackingerror}
+        # check if the header version is at least 40 (minimum size of dtb)
+        if headerversion >= 40:
+            is_dtb = True
+            dtbsize = headerversion
+        else:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'unknown boot image header version'}
+            return {'status': False, 'error': unpackingerror}
     unpackedsize += 4
 
-    # os version, skip for now
-    checkfile.seek(4, os.SEEK_CUR)
+    if not is_dtb:
+        # sanity check for ramdisk size
+        if ramdisksize == 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'ramdisk cannot be empty'}
+            return {'status': False, 'error': unpackingerror}
+
+        # os version, skip for now
+        checkbytes = checkfile.read(4)
+        os_version = int.from_bytes(checkbytes, byteorder='little')
+    else:
+        # unused, skip
+        checkfile.seek(4, os.SEEK_CUR)
     unpackedsize += 4
 
     # boot name (default: 16 bytes)
@@ -2943,20 +2967,22 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(32, os.SEEK_CUR)
     unpackedsize += 32
 
-    # boot extra args (default: 1024 bytes)
-    checkbytes = checkfile.read(1024)
-    try:
-        bootextraargs = checkbytes.split(b'\x00', 1)[0].decode()
-    except UnicodeError:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'invalid boot extra args'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 1024
+    # some but not all variants have extra boot args
+    if not is_dtb:
+        # boot extra args (default: 1024 bytes)
+        checkbytes = checkfile.read(1024)
+        try:
+            bootextraargs = checkbytes.split(b'\x00', 1)[0].decode()
+        except UnicodeError:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid boot extra args'}
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 1024
 
     # now extra data for version 1 and version 2, wait for
     # test files first to verify.
-    if headerversion != 0:
+    if headerversion != 0 and not is_dtb:
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'currently unsupported header version'}
@@ -2972,6 +2998,13 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
     # skip the rest of the header
     checkfile.seek(offset + pagesize)
     unpackedsize = pagesize
+
+    # sanity check: need enough data
+    if checkfile.tell() + kernelsize > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough data for kernel'}
+        return {'status': False, 'error': unpackingerror}
 
     # write the kernel data
     outfile_rel = os.path.join(unpackdir, kernelname)
@@ -2993,21 +3026,36 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
         unpackedsize += paddingneeded
 
     # write the ramdisk
-    outfile_rel = os.path.join(unpackdir, ramdiskname)
-    outfile_full = scanenvironment.unpack_path(outfile_rel)
-    outfile = open(outfile_full, 'wb')
-    os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), ramdisksize)
-    outfile.close()
-    checkfile.seek(ramdisksize, os.SEEK_CUR)
-    unpackedfilesandlabels.append((outfile_rel, []))
-    unpackedsize += ramdisksize
+    if ramdisksize != 0:
+        # sanity check: need enough data
+        if checkfile.tell() + ramdisksize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for ramdisk'}
+            return {'status': False, 'error': unpackingerror}
 
-    if ramdisksize % pagesize != 0:
-        paddingneeded = pagesize - (ramdisksize % pagesize)
-        checkfile.seek(paddingneeded, os.SEEK_CUR)
-        unpackedsize += paddingneeded
+        outfile_rel = os.path.join(unpackdir, ramdiskname)
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), ramdisksize)
+        outfile.close()
+        checkfile.seek(ramdisksize, os.SEEK_CUR)
+        unpackedfilesandlabels.append((outfile_rel, []))
+        unpackedsize += ramdisksize
+
+        if ramdisksize % pagesize != 0:
+            paddingneeded = pagesize - (ramdisksize % pagesize)
+            checkfile.seek(paddingneeded, os.SEEK_CUR)
+            unpackedsize += paddingneeded
 
     if secondsize != 0:
+        # sanity check: need enough data
+        if checkfile.tell() + secondsize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for second stage bootloader'}
+            return {'status': False, 'error': unpackingerror}
+
         # write the second stage bootloader
         outfile_rel = os.path.join(unpackdir, secondstagename)
         outfile_full = scanenvironment.unpack_path(outfile_rel)
@@ -3023,9 +3071,35 @@ def unpack_android_boot_img(fileresult, scanenvironment, offset, unpackdir):
             checkfile.seek(paddingneeded, os.SEEK_CUR)
             unpackedsize += paddingneeded
 
+    if is_dtb:
+        # sanity check: need enough data
+        if checkfile.tell() + dtbsize > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'not enough data for dtb data'}
+            return {'status': False, 'error': unpackingerror}
+
+        # write the dtb data
+        outfile_rel = os.path.join(unpackdir, dtbname)
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), checkfile.tell(), dtbsize)
+        outfile.close()
+        checkfile.seek(secondsize, os.SEEK_CUR)
+        unpackedfilesandlabels.append((outfile_rel, ["dtb"]))
+        unpackedsize += dtbsize
+
+        if dtbsize % pagesize != 0:
+            paddingneeded = pagesize - (dtbsize % pagesize)
+            checkfile.seek(paddingneeded, os.SEEK_CUR)
+            unpackedsize += paddingneeded
+
     if offset == 0 and unpackedsize == filesize:
         labels.append("android")
         labels.append("android boot image")
+        #if is_dtb:
+            # would this label be correct? TODO
+            #labels.append("little kernel")
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
@@ -3185,6 +3259,7 @@ def unpack_nb0(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file
     checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset)
 
     # first four bytes are the number of headers
     checkbytes = checkfile.read(4)
@@ -3267,3 +3342,74 @@ def unpack_nb0(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_nb0.extensions = ['.nb0']
 unpack_nb0.pretty = 'nb0'
+
+
+# DHTB signing header
+# https://github.com/osm0sis/dhtbsign
+def unpack_dhtb(fileresult, scanenvironment, offset, unpackdir):
+    '''Unpack Samsung/Spreadtrum DHTB signing header'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+
+    if offset + 512 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and jump to the offset of the payload size
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset + 48)
+
+    checkbytes = checkfile.read(4)
+    payload_size = int.from_bytes(checkbytes, byteorder='little')
+
+    if offset + 512 + payload_size > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for payload'}
+        return {'status': False, 'error': unpackingerror}
+
+    # jump back to the start of the sha256 (32 bytes)
+    checkfile.seek(offset + 8)
+    checkbytes = checkfile.read(32)
+    checksum = int.from_bytes(checkbytes, byteorder='little')
+
+    # optionally pad
+    padding = 0
+    if payload_size % 512 != 0:
+        padding = 512 - (payload_size%512)
+        checkfile.seek(offset + 512 + payload_size)
+        checkbytes = set(checkfile.read(padding))
+        if len(checkbytes) != 1:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid padding bytes'}
+            return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = 512 + payload_size + padding
+    if offset == 0 and filesize == unpackedsize:
+        labels.append('dhtb')
+        labels.append('android')
+    else:
+        # else carve the file
+        outfile_rel = os.path.join(unpackdir, "unpacked-from-dhtb")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+            # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        unpackedfilesandlabels.append((outfile_rel, ['dhtb', 'android', 'unpacked']))
+    checkfile.close()
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+unpack_dhtb.signatures = {'dhtb': b'DHTB\x01\x00\x00'}
+unpack_dhtb.minimum_size = 512

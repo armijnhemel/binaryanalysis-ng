@@ -30,7 +30,6 @@
 #
 # https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
-import sys
 import os
 import shutil
 import binascii
@@ -49,10 +48,7 @@ import subprocess
 import json
 import xml.dom
 import hashlib
-import base64
-import re
 import pathlib
-import datetime
 import sqlite3
 
 # some external packages that are needed
@@ -1760,7 +1756,7 @@ def unpack_dahua(fileresult, scanenvironment, offset, unpackdir):
     checkfile.write(b'PK')
     checkfile.close()
 
-    zipres = unpack_zip(fileresult, scanenvironment, offset, unpackdir)
+    dahuares = unpack_zip(fileresult, scanenvironment, offset, unpackdir)
 
     # reopen for writing
     checkfile = open(filename_full, 'r+b')
@@ -1771,11 +1767,9 @@ def unpack_dahua(fileresult, scanenvironment, offset, unpackdir):
     checkfile.write(b'DH')
     checkfile.close()
 
-    if zipres['status']:
-        dahuares = zipres
+    if dahuares['status']:
         dahuares['labels'].append('dahua')
-    else:
-        return zipres
+    return dahuares
 
 # http://web.archive.org/web/20190709133846/https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/page-2
 unpack_dahua.signatures = {'dahua': b'DH\x03\04'}
@@ -1783,7 +1777,7 @@ unpack_dahua.minimum_size = 30
 
 
 # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
-# Documenting version 6.3.5
+# Documenting version 6.3.6
 # This method first verifies a file to see where the ZIP data
 # starts and where it ends.
 #
@@ -2067,7 +2061,7 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
                 #
                 # https://source.android.com/security/apksigning/v2
                 #
-                # The Android signing block is squeeze in between the
+                # The Android signing block is squeezed in between the
                 # latest entry and the central directory, despite the
                 # ZIP specification not allowing this. There have been
                 # various versions.
@@ -2169,19 +2163,27 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
                               'fatal': False,
                               'reason': 'not enough data for local file header'}
             return {'status': False, 'error': unpackingerror}
+        brokenzipversion = False
         minversion = int.from_bytes(checkbytes, byteorder='little')
+
+        # some files observed in the wild have a weird version
+        if minversion in [0x30a, 0x314]:
+            brokenzipversion = True
+
         if minversion < minzipversion:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize,
                               'fatal': False,
-                              'reason': 'invalid ZIP version'}
+                              'reason': 'invalid ZIP version %d' % minversion}
             return {'status': False, 'error': unpackingerror}
-        if minversion > maxzipversion:
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize,
-                              'fatal': False,
-                              'reason': 'invalid ZIP version'}
-            return {'status': False, 'error': unpackingerror}
+
+        if not brokenzipversion:
+            if minversion > maxzipversion:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'invalid ZIP version %d' % minversion}
+                return {'status': False, 'error': unpackingerror}
         unpackedsize += 2
 
         # then the "general purpose bit flag" (section 4.4.4)
@@ -2336,7 +2338,10 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
                                           'fatal': False,
                                           'reason': 'wrong minimal needed version for ZIP64'}
                         return {'status': False, 'error': unpackingerror}
-                    if extrafieldheaderlength != 28:
+                    # according to the official ZIP specifications the length of the
+                    # header should be 28, but there are files where this field is
+                    # 16 bytes long instead, sigh...
+                    if extrafieldheaderlength not in [16, 28]:
                         checkfile.close()
                         unpackingerror = {'offset': offset+unpackedsize,
                                           'fatal': False,
@@ -2520,6 +2525,10 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
         unpackedsize = checkfile.tell() - offset
 
         # data descriptor follows the file data
+        # * crc32
+        # * compressed size
+        # * uncompressed size
+        # section 4.3.9
         if datadescriptor and ddsearched and ddfound:
             possiblesignature = checkfile.read(4)
             if possiblesignature == b'PK\x07\x08':
@@ -2578,7 +2587,7 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
         # if the ZIP file is at the end of the file then the ZIP module
         # from Python will do a lot of the heavy lifting.
         # Malformed ZIP files that need a workaround exist:
-        # https://bugzilla.redhat.com/show_bug.cgi?id=907442
+        # http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442
         if checkfile.tell() == filesize:
             carved = False
         else:
@@ -4008,7 +4017,7 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
                 # extract the font name if it exists
                 if namelength != 0:
                     if nameid == 6:
-                        if platformid == 0 or platformid == 1:
+                        if platformid in [0, 1]:
                             fontname = checkbytes[nametablestringoffset+nameoffset:nametablestringoffset+nameoffset+namelength]
         computedsum = 0
         for j in range(0, tablelength + padding, 4):
@@ -4796,7 +4805,7 @@ def unpack_terminfo(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(offset + 12 + namessectionsize)
     for n in range(0, booleansize):
         checkbytes = checkfile.read(1)
-        if checkbytes != b'\x00' and checkbytes != b'\x01':
+        if checkbytes not in [b'\x00', b'\x01']:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'invalid value for boolean table entry'}
@@ -4873,7 +4882,7 @@ def unpack_terminfo(fileresult, scanenvironment, offset, unpackdir):
         if validextension:
             for n in range(0, extendedboolean):
                 checkbytes = checkfile.read(1)
-                if checkbytes != b'\x00' and checkbytes != b'\x01':
+                if checkbytes not in [b'\x00', b'\x01']:
                     validextension = False
                     break
                 localunpackedsize += 1
@@ -7887,7 +7896,7 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
                 return {'status': False, 'error': unpackingerror}
             class_table[i] = int.from_bytes(checkbytes, byteorder='big')
             unpackedsize += 2
-        elif tag == CONSTANT_Fieldref or tag == CONSTANT_Methodref or tag == CONSTANT_InterfaceMethodref:
+        elif tag in [CONSTANT_Fieldref, CONSTANT_Methodref, CONSTANT_InterfaceMethodref]:
             # section 4.4.2
             # class index
             checkbytes = checkfile.read(2)
@@ -7922,7 +7931,7 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
                 return {'status': False, 'error': unpackingerror}
             string_table[i] = int.from_bytes(checkbytes, byteorder='big')
             unpackedsize += 2
-        elif tag == CONSTANT_Integer or tag == CONSTANT_Float:
+        elif tag in [CONSTANT_Integer, CONSTANT_Float]:
             # section 4.4.4
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
@@ -7932,7 +7941,7 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
                                   'reason': 'no integer/float bytes'}
                 return {'status': False, 'error': unpackingerror}
             unpackedsize += 4
-        elif tag == CONSTANT_Long or tag == CONSTANT_Double:
+        elif tag in [CONSTANT_Long, CONSTANT_Double]:
             # section 4.4.5
             checkbytes = checkfile.read(4)
             if len(checkbytes) != 4:
@@ -8678,7 +8687,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     elftype = int.from_bytes(checkbytes, byteorder=byteorder)
 
     # only a few types have been defined
-    if elftype > 4 and not (elftype == 0xff00 or elftype == 0xffff):
+    if elftype > 4 and not (elftype in [0xff00, 0xffff]):
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'unsupported ELF type'}
@@ -8861,6 +8870,11 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
         p_type = int.from_bytes(checkbytes, byteorder=byteorder)
         unpackedsize += 4
 
+        # store the permissions
+        permission_read = False
+        permission_write = False
+        permission_execute = False
+
         # there can only be one program interpreter
         if p_type == 3:
             if seeninterpreter:
@@ -8879,6 +8893,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
         if is64bit:
             checkbytes = checkfile.read(4)
             unpackedsize += 4
+            p_flags = int.from_bytes(checkbytes, byteorder=byteorder)
 
         # p_offset
         if is64bit:
@@ -8942,6 +8957,18 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
         if not is64bit:
             checkbytes = checkfile.read(4)
             unpackedsize += 4
+            p_flags = int.from_bytes(checkbytes, byteorder=byteorder)
+
+        if p_flags & 0x1 == 0x1:
+            permission_execute = True
+        if p_flags & 0x2 == 0x2:
+            permission_write = True
+        if p_flags & 0x4 == 0x4:
+            permission_read = True
+
+        if p_type == 0x6474e551:
+            if not permission_execute:
+                elfresult['security'].append('nx')
 
         # palign, skip for now
         if is64bit:
@@ -10892,7 +10919,7 @@ def unpack_zim(fileresult, scanenvironment, offset, unpackdir):
         if mimetypenumber == 0xffff:
             # redirect
             pass
-        elif mimetypenumber == 0xfffe or mimetypenumber == 0xfffd:
+        elif mimetypenumber in [0xfffe, 0xfffd]:
             # link target (0xfffe)
             # deleted (0xfffd)
             pass
@@ -10933,7 +10960,7 @@ def unpack_zim(fileresult, scanenvironment, offset, unpackdir):
         if mimetypenumber == 0xffff:
             # redirect
             pass
-        elif mimetypenumber == 0xfffe or mimetypenumber == 0xfffd:
+        elif mimetypenumber in [0xfffe, 0xfffd]:
             # link target (0xfffe)
             # deleted (0xfffd)
             pass
@@ -11141,7 +11168,7 @@ def unpack_java_keystore(fileresult, scanenvironment, offset, unpackdir):
     # read the version numner
     checkbytes = checkfile.read(4)
     version = int.from_bytes(checkbytes, byteorder='big')
-    if version != 1 and version != 2:
+    if version not in [1, 2]:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'wrong version number'}
@@ -12003,7 +12030,7 @@ def unpack_trx(fileresult, scanenvironment, offset, unpackdir):
     # TRX version
     checkbytes = checkfile.read(2)
     trxversion = int.from_bytes(checkbytes, byteorder='little')
-    if trxversion != 1 and trxversion != 2:
+    if trxversion not in [1, 2]:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid TRX version'}
@@ -13232,10 +13259,10 @@ def unpack_bittorrent(fileresult, scanenvironment, offset, unpackdir):
         # else carve the file
         outfile_rel = os.path.join(unpackdir, "unpacked-from-torrent")
         outfile_full = scanenvironment.unpack_path(outfile_rel)
-        outfile = open(outfile_full, 'wb')
 
         # create the unpacking directory
         os.makedirs(unpackdir_full, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
         unpackedfilesandlabels.append((outfile_rel, ['resource', 'torrent', 'unpacked']))
@@ -13648,3 +13675,191 @@ def unpack_serialized_java(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_serialized_java.signatures = {'serialized_java': b'\xac\xed\x00\x05'}
 unpack_serialized_java.minimum_size = 5
+
+
+# Qualcomm bootloader DTB files
+#
+# Specification:
+#
+# http://web.archive.org/web/20160402060151if_/https://developer.qualcomm.com/qfile/28821/lm80-p0436-1_little_kernel_boot_loader_overview.pdf
+def unpack_qcdt(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify a Qualcomm QCDT file'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+
+    if offset + 12 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset + 4)
+    unpackedsize += 4
+
+    # version
+    checkbytes = checkfile.read(4)
+    qcdtversion = int.from_bytes(checkbytes, byteorder='little')
+
+    # number of entries
+    checkbytes = checkfile.read(4)
+    qcdtentries = int.from_bytes(checkbytes, byteorder='little')
+
+    if qcdtentries == 0:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no data to unpack'}
+        return {'status': False, 'error': unpackingerror}
+
+    # each entry is 40 bytes
+    if checkfile.tell() + qcdtentries * 40 > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for qcdt entries'}
+        return {'status': False, 'error': unpackingerror}
+
+    maxsize = checkfile.tell() - offset
+    dataunpacked = False
+    seenoffsets = set()
+
+    # process each entry. Entries are not necessarily sorted.
+    for i in range(1, qcdtentries+1):
+        # platform id
+        checkbytes = checkfile.read(4)
+        platform_id = int.from_bytes(checkbytes, byteorder='little')
+
+        # variant id
+        checkbytes = checkfile.read(4)
+        variant_id = int.from_bytes(checkbytes, byteorder='little')
+
+        # board hw subtype
+        checkbytes = checkfile.read(4)
+        board_hw_subtype = int.from_bytes(checkbytes, byteorder='little')
+
+        # soc revision
+        checkbytes = checkfile.read(4)
+        soc_revision = int.from_bytes(checkbytes, byteorder='little')
+
+        # pmic revision (16 bytes) (skip for now)
+        checkbytes = checkfile.read(16)
+
+        # offset
+        checkbytes = checkfile.read(4)
+        entry_offset = int.from_bytes(checkbytes, byteorder='little')
+
+        # size. This will include padding.
+        checkbytes = checkfile.read(4)
+        entry_size = int.from_bytes(checkbytes, byteorder='little')
+
+        # sanity check
+        if offset + entry_offset + entry_size > filesize:
+            continue
+
+        maxsize = max(maxsize, entry_offset + entry_size)
+
+        # write the file. The format actually allows for entries
+        # to point to the same offset.
+        outfile_rel = os.path.join(unpackdir, "qcdt-%d" % i)
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        os.makedirs(outfile_full.parent, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset + entry_offset, entry_size)
+        outfile.close()
+        unpackedfilesandlabels.append((outfile_rel, []))
+        dataunpacked = True
+
+    checkfile.close()
+    if not dataunpacked:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no data unpacked'}
+        return {'status': False, 'error': unpackingerror}
+
+    if offset == 0 and maxsize == filesize:
+        labels = ['qcdt']
+
+    return {'status': True, 'length': maxsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+unpack_qcdt.signatures = {'qcdt': b'QCDT'}
+unpack_qcdt.minimum_size = 12
+
+
+# Chrome extensions
+#
+# Specification:
+#
+# https://pypi.org/project/crx-unpack/
+# https://chromium.googlesource.com/chromium/src.git/+/62.0.3178.1/chrome/common/extensions/docs/templates/articles/crx.html
+def unpack_crx(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify a Chrome extension (CRX) file'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+
+    if offset + 32 > filesize:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for header'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file and skip the magic
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset + 4)
+    unpackedsize += 4
+
+    # version, has to be 2
+    checkbytes = checkfile.read(4)
+    version = int.from_bytes(checkbytes, byteorder='little')
+
+    # public key length
+    checkbytes = checkfile.read(4)
+    public_key_length = int.from_bytes(checkbytes, byteorder='little')
+
+    # signature lengtj
+    checkbytes = checkfile.read(4)
+    signature_length = int.from_bytes(checkbytes, byteorder='little')
+
+    if checkfile.tell() + public_key_length + signature_length > filesize:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for public key or signature'}
+        return {'status': False, 'error': unpackingerror}
+
+    # skip public key and signature
+    checkfile.seek(public_key_length + signature_length, os.SEEK_CUR)
+    zipoffset = checkfile.tell()
+    unpackedsize = zipoffset - offset
+
+    # read 4 bytes to see if it contains a valid ZIP header
+    checkbytes = checkfile.read(4)
+    if checkbytes != b'PK\x03\x04':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid ZIP data'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+    crxres = unpack_zip(fileresult, scanenvironment, zipoffset, unpackdir)
+
+    if not crxres['status']:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid ZIP data'}
+        return {'status': False, 'error': unpackingerror}
+    crxres['length'] += unpackedsize
+    if offset == 0 and crxres['length'] == filesize:
+        crxres['labels'].append('crx')
+        crxres['labels'].append('chrome')
+    return crxres
+
+
+unpack_crx.signatures = {'crx': b'Cr24'}
+unpack_crx.minimum_size = 32

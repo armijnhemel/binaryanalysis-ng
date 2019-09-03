@@ -30,3 +30,61 @@ pg6130.txt.lz4 : Gutenberg license  http://www.gutenberg.org/wiki/Gutenberg:The_
 Original found at : http://www.gutenberg.org/cache/epub/6130/pg6130.txt
 Overview page at : https://www.gutenberg.org/ebooks/6130
 
+
+YAFFS2 images were created using mkyaff2simage, which can be found in git://www.aleph1.co.uk/yaffs2
+
+As yaffs2 can have various sizes for "chunks" and "spares" (for this myaffs2image.c needs to be changed) the following test files were made. The 
+
+chunk/spare 1024/32:
+
+* yaffs2-1024-32-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-1024-32-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-1024-32-le-empty-dir.img : little endian, single empty directory "test"
+* yaffs2-1024-32-be-empty-dir.img : big endian, single empty directory "test"
+* yaffs2-1024-32-le-dir-with-file.img : little endian, dir "test" with file "test.ico"
+* yaffs2-1024-32-be-dir-with-file.img : big endian, dir "test" with file "test.ico"
+
+chunk/spare 2048/64:
+
+* yaffs2-2048-64-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-2048-64-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-2048-64-le-empty-dir.img : little endian, single directory file "test"
+* yaffs2-2048-64-be-empty-dir.img : big endian, single empty directory "test"
+* yaffs2-2048-64-le-dir-with-file.img : little endian, dir "test" with file "test.ico"
+* yaffs2-2048-64-be-dir-with-file.img : big endian, dir "test" with file "test.ico"
+
+chunk/spare 4096/32:
+
+* yaffs2-4096-32-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-4096-32-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-4096-32-le-empty-dir.img : little endian, single empty directory "test"
+* yaffs2-4096-32-be-empty-dir.img : big endian, single empty directory "test"
+* yaffs2-4096-32-le-dir-with-file.img : little endian, dir "test" with file "test.ico"
+* yaffs2-4096-32-be-dir-with-file.img : big endian, dir "test" with file "test.ico"
+
+chunk/spare 4096/64:
+
+* yaffs2-4096-64-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-4096-64-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-4096-64-le-empty-dir.img : little endian, single empty dir "test"
+* yaffs2-4096-64-be-empty-dir.img : big endian, single empty dir "test"
+* yaffs2-4096-64-le-dir-with-file.img : little endian, dir "test" with file "test.ico"
+* yaffs2-4096-64-be-dir-with-file.img : big endian, dir "test" with file "test.ico"
+
+chunk/spare 4096/128:
+
+* yaffs2-4096-128-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-4096-128-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-4096-128-le-empty-dir.img : little endian, single empty dir "test"
+* yaffs2-4096-128-be-empty-dir.img : big endian, single empty dir "test"
+* yaffs2-4096-128-le-dir-with-file.img : little endian, dir "test" with file "test.ico"
+* yaffs2-4096-128-be-dir-with-file.img : big endian, dir "test" with file "test.ico"
+
+chunk/spare 8192/256:
+
+* yaffs2-8192-256-le-empty-file.img : little endian, single empty file "test"
+* yaffs2-8192-256-be-empty-file.img : big endian, single empty file "test"
+* yaffs2-8192-256-le-empty-dir.img : little endian, single empty dir "test"
+* yaffs2-8192-256-be-empty-dir.img : big endian, single empty dir "test"
+* yaffs2-8192-256-le-dir-with-file.img : little endian, dir "test" with file "test.ico"
+* yaffs2-8192-256-be-dir-with-file.img : big endian, dir "test" with file "test.ico"

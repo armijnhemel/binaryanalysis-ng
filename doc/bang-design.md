@@ -61,8 +61,8 @@ and other Google products).
 There are three different types of files that can currently be unpacked:
 
 1.  files with a known extension, but without a known magic header. This is
-    for for example Android sparse data image formats, or several other
-    Android or Google formats (Chrome PAK, etc.)
+    for for example Android sparse data image formats (for example "protobuf"
+    files), or several other Android or Google formats (Chrome PAK, etc.)
 2.  files which are inspected for known headers, after which several checks
     are run and data is possibly carved from a larger file.
 3.  text only files, where it is not immediately clear what
@@ -70,22 +70,22 @@ There are three different types of files that can currently be unpacked:
     converted to a binary (examples: Intel Hex).
 
 The files are scanned in the above order to prevent false positives as much
-as possible. Sometimes extra information, such as extensions, are used to
-make a better guess.
+as possible. Sometimes extra information will be used to make a better guess.
 
 Each unpacker has a specific interface:
 
-def unpacker(filename, offset, unpackdir, temporarydirectory)
+def unpacker(fileresult, scanenvironment, offset, unpackdir)
 
-1.  filename: full file name (pathlib.PosixPath object)
-2.  offset: offset inside the file where the file system, compressed
+1.  fileresult: an object containing information about the file, including
+    the full file name, file size, parent object, and so on
+2.  scanenvironment: an object containing information about the scan
+    environment
+3.  offset: offset inside the file where the file system, compressed
     file media file possibly starts
-3.  unpackdir: the target directory where data should be written to
-4.  temporarydirectory: a directory where temporary files are stored
-    and temporary directories are created
+4.  unpackdir: the target directory where data should be written to
 
-For each file that is unpacked, a result is returned in the form of a
-dictionary field:
+For each file that is successfully unpacked, a result is returned in the
+form of a dictionary, containing the following fields:
 
 * unpack status (boolean) to indicate whether or not any data was
   unpacked
@@ -209,9 +209,9 @@ The data generated during the scan is separated in two parts:
 
 The difference between the two is that the latter will always be the same
 (except when the scanner changes), while the former can change: an ELF
-executable can be included in an archive twice, but with different permissions,
-or a different parent file. The data specific to the file wouldn't change,
-but the metadata would.
+executable can be included in two different files, but with different
+permissions, different ownership, and so on. The data specific to the file
+(the contents) wouldn't change, but the metadata would.
 
 The structure of the scan is stored in a Python pickle file called
 "bang.pickle" found at the top level of the scan directory. The file

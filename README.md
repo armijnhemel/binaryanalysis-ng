@@ -162,7 +162,7 @@ larger file, unless stated otherwise.
 99. PGM files ('raw' PGM only)
 100. PBM files ('raw' PBM only)
 101. Android bootloader for Qualcomm Snapdragon
-102. Android bootloader image
+102. Android bootloader image (also a Lttle Kernel based variant)
 103. Android bootloader for Huawei devices
 104. FAT16 file systems (8.3 file names)
 105. iCalendar (RFC 5545) files (whole file only)
@@ -192,6 +192,9 @@ larger file, unless stated otherwise.
 128. Windows INI files (text only)
 129. Subversion hash files (wcprops, all-wcprops, etc.)
 130. PFS file system
+131. YAFFS2 (including inband tags)
+132. Qualcomm QCDT files
+133. Chrome extensions (.crx)
 
 
 ## Invocation

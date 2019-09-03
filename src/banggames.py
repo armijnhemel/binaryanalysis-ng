@@ -101,6 +101,8 @@ def unpack_quake_pak(fileresult, scanenvironment, offset, unpackdir):
     # create the unpacking directory
     os.makedirs(unpackdir_full, exist_ok=True)
 
+    dataunpacked = False
+
     # seek to the file table offset
     checkfile.seek(offset + file_table_offset)
     for fn in range(0, number_of_files):
@@ -116,6 +118,10 @@ def unpack_quake_pak(fileresult, scanenvironment, offset, unpackdir):
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                               'reason': 'invalid file name'}
             return {'status': False, 'error': unpackingerror}
+
+        # name cannot be empty
+        if fn_name == '':
+            break
 
         # read the offset
         checkbytes = checkfile.read(4)
@@ -146,8 +152,14 @@ def unpack_quake_pak(fileresult, scanenvironment, offset, unpackdir):
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset + fn_offset, fn_size)
         outfile.close()
         unpackedfilesandlabels.append((outfile_rel, []))
+        dataunpacked = True
 
     checkfile.close()
+
+    if not dataunpacked:
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'no data unpacked'}
+        return {'status': False, 'error': unpackingerror}
 
     if offset == 0 and maxoffset == filesize:
         labels.append('quake')
