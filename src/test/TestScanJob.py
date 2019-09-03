@@ -131,7 +131,7 @@ class TestScanJob(TestBase):
                 raise e
         result1 = self.result_queue.get()
         result2 = self.result_queue.get()
-        self.assertEqual(str(result2.filename), str(fn)+'-gzip-1/hello')
+        self.assertEqual(str(result2.filename), str(fn)+'-0x00000000-gzip-1/hello')
 
 
 if __name__ == "__main__":
