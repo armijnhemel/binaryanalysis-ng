@@ -613,7 +613,7 @@ class ScanJob:
 
                 for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                     # TODO: make relative wrt unpackdir
-                    report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
+                    report['files'].append(unpackedfile)
 
                     # add the data, plus possibly any label
                     fr = FileResult(
