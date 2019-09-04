@@ -133,6 +133,28 @@ class TestScanJob(TestBase):
         result2 = self.result_queue.get()
         self.assertEqual(str(result2.filename), str(fn)+'-0x00000000-gzip-1/hello')
 
+    def test_report_has_correct_path(self):
+        fn = pathlib.Path("a/hello.gz")
+        self._copy_file_from_testdata(fn)
+        fileresult = create_fileresult_for_path(self.unpackdir, fn, set())
+
+        scanjob = ScanJob(fileresult)
+        self.scanfile_queue.put(scanjob)
+        try:
+            processfile(self.dbconn, self.dbcursor, self.scan_environment)
+        except QueueEmptyError:
+            pass
+        except ScanJobError as e:
+            if e.e.__class__ != QueueEmptyError:
+                raise e
+        result1 = self.result_queue.get()
+        result2 = self.result_queue.get()
+        unpack_report = result1.unpackedfiles[0]
+        self.assertEqual(unpack_report['unpackdirectory'],
+                str(fn)+'-0x00000000-gzip-1')
+        self.assertEqual(unpack_report['files'],
+                [ str(fn)+'-0x00000000-gzip-1/hello' ])
+
 
 if __name__ == "__main__":
     unittest.main()

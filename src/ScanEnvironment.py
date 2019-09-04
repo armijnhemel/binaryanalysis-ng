@@ -89,9 +89,9 @@ class ScanEnvironment:
     def get_maxbytes(self):
         return self.maxbytes
 
-    def get_relative_path(self, fn):
+    def get_relative_path(self, p):
         """Gets the path relative to the unpackdirectory."""
-        return fn[self.lenunpackdirectory:]
+        return p.relative_to(self.unpackdirectory)
 
     def unpack_path(self, fn):
         """Returns a path object containing the absolute path of the file in

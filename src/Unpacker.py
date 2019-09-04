@@ -24,13 +24,19 @@ import re
 import os
 import shutil
 import stat
+import pathlib
 
 import bangsignatures
 from bangsignatures import maxsignaturesoffset
 
 
 class Unpacker:
+    """The Unpacker manages the unpacking (analysis and extraction) of a
+    file."""
     def __init__(self, unpackroot):
+        """Create unpacker object, relative to unpackroot.
+        unpackroot is an absolute path object.
+        """
         # Invariant: lastunpackedoffset ==
         # last known position in file with successfully unpacked data
         # everything before this offset is unpacked and identified.
@@ -67,17 +73,21 @@ class Unpacker:
         self.unpackedrange.append((low, high))
 
     def make_data_unpack_directory(self, relpath, filetype, offset, seqnr=1):
-        '''Makes a data unpack directory.'''
-        # relpath is the relative path to the file that is unpacked.
-        # filetype is the type of the file
-        # seqnr is a sequence number that will be increased
-        # if the directory with that nr already exists.
-        # returns the sequence number of the directory
+        '''Makes a data unpack directory.
+        relpath is the relative path to the file that is unpacked.
+        filetype is the type of the file.
+        offset is the offset in the file from which we extract (used in the
+        data unpack directory name)
+        seqnr is a sequence number that will be increased
+        if the directory with that nr already exists.
+        returns the sequence number of the directory
+        '''
         while True:
             dirname = "%s-%#010x-%s-%d" % (relpath, offset, filetype, seqnr)
             try:
+                
                 os.mkdir(os.path.join(self.unpackroot, dirname))
-                self.dataunpackdirectory = dirname
+                self.dataunpackdirectory = pathlib.Path(dirname)
                 break
             except FileExistsError:
                 seqnr += 1
@@ -92,9 +102,11 @@ class Unpacker:
     def remove_data_unpack_directory_tree(self):
         '''Remove the unpacking directory, including any
         data that might accidentily have been left behind.'''
+        # TODO: use exception
         if not (self.unpackroot / self.dataunpackdirectory).exists():
             return
-        dirwalk = os.walk(os.path.join(self.unpackroot, self.dataunpackdirectory))
+        # dirwalk = os.walk(os.path.join(self.unpackroot, self.dataunpackdirectory))
+        dirwalk = os.walk(self.unpackroot / self.dataunpackdirectory)
         for direntries in dirwalk:
             # make sure all subdirectories and files can
             # be accessed and then removed by first changing the
@@ -121,7 +133,6 @@ class Unpacker:
             self.make_data_unpack_directory(relpath, bangsignatures.extensionprettyprint[extension], 0)
             return bangsignatures.unpack_file_with_extension(fileresult,
                     scanenvironment, unpackparser, self.dataunpackdirectory)
-            return bangsignatures.unpack_file_with_extension(fileresult, scanenvironment, extension, self.dataunpackdirectory)
         except AttributeError:
             self.remove_data_unpack_directory()
             return None

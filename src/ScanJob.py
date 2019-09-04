@@ -365,12 +365,12 @@ class ScanJob:
                     # file is a file that was verified (example: GIF or PNG)
                     # then there will not be an unpacking directory.
                     if unpackresult['filesandlabels'] != []:
-                        # report['unpackdirectory'] = unpacker.get_data_unpack_directory()[len(str(self.scanenvironment.unpackdirectory))+1:]
-                        report['unpackdirectory'] = self.scanenvironment.get_relative_path(unpacker.get_data_unpack_directory())
+                        report['unpackdirectory'] = \
+                            str(unpacker.get_data_unpack_directory())
 
                     for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
-                        # TODO: make relative wrt unpackdir
-                        report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
+                        # TODO: make relative wrt unpackdir?
+                        report['files'].append(unpackedfile)
                         # add the data, plus possibly any label
                         fr = FileResult(
                             pathlib.Path(unpackedfile),
