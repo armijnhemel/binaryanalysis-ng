@@ -237,7 +237,7 @@ class ScanJob:
                             set(unpackedlabel))
                         j = ScanJob(fr)
                         self.scanenvironment.scanfilequeue.put(j)
-                        report['files'].append(unpackedfile[len(unpacker.get_data_unpack_directory())+1:])
+                        report['files'].append(str(unpackedfile))
                     self.fileresult.add_unpackedfile(report)
 
     def check_for_signatures(self, unpacker):
@@ -370,7 +370,7 @@ class ScanJob:
 
                     for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                         # TODO: make relative wrt unpackdir?
-                        report['files'].append(unpackedfile)
+                        report['files'].append(str(unpackedfile))
                         # add the data, plus possibly any label
                         fr = FileResult(
                             pathlib.Path(unpackedfile),
@@ -613,7 +613,7 @@ class ScanJob:
 
                 for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
                     # TODO: make relative wrt unpackdir
-                    report['files'].append(unpackedfile)
+                    report['files'].append(str(unpackedfile))
 
                     # add the data, plus possibly any label
                     fr = FileResult(
