@@ -30,6 +30,7 @@ import pickle
 import sys
 import traceback
 import json
+from operator import itemgetter
 
 import bangsignatures
 from bangfilescans import bangfilefunctions, bangwholecontextfunctions
@@ -264,7 +265,8 @@ class ScanJob:
                 # For each of the found candidates see if any
                 # data can be unpacked. Process these in the order
                 # in which the signatures were found in the file.
-                for offset_with_unpackparser in sorted(candidateoffsetsfound):
+                for offset_with_unpackparser in sorted(candidateoffsetsfound,
+                        key=itemgetter(0)):
                     # skip offsets which are not useful to look at
                     # for example because the data has already been
                     # unpacked.
@@ -377,6 +379,8 @@ class ScanJob:
                             self.fileresult.filename,
                             self.fileresult.labels,
                             set(unpackedlabel))
+                        log(logging.INFO, "Added scanjob for %s" %
+                                fr.filename)
                         j = ScanJob(fr)
                         self.scanenvironment.scanfilequeue.put(j)
 
@@ -666,10 +670,12 @@ def processfile(dbconn, dbcursor, scanenvironment):
             scanjob.initialize()
             fileresult = scanjob.fileresult
 
+            log(logging.INFO, "Started scanjob for %s" % fileresult.filename)
             unscannable = scanjob.check_unscannable_file()
             if unscannable:
                 resultqueue.put(scanjob.fileresult)
                 scanfilequeue.task_done()
+                log(logging.INFO, "Unscannable file %s" % fileresult.filename)
                 continue
 
             unpacker = Unpacker(scanenvironment.unpackdirectory)
@@ -678,18 +684,25 @@ def processfile(dbconn, dbcursor, scanenvironment):
             scanjob.check_for_unpacked_file(unpacker)
             scanjob.check_mime_types()
 
+            log(logging.INFO, "needs_unpacking(ext) %s: %s" % (fileresult.filename,
+                unpacker.needs_unpacking()))
             if unpacker.needs_unpacking():
+                log(logging.INFO, "Check for valid extension %s" % fileresult.filename)
                 scanjob.check_for_valid_extension(unpacker)
 
+            log(logging.INFO, "needs_unpacking(sig) %s: %s" % (fileresult.filename, unpacker.needs_unpacking()))
             if unpacker.needs_unpacking():
+                log(logging.INFO, "Check for valid signatures %s" % fileresult.filename)
                 scanjob.check_for_signatures(unpacker)
 
             if carveunpacked:
+                log(logging.INFO, "Carve file data in %s" % fileresult.filename)
                 scanjob.carve_file_data(unpacker)
 
             scanjob.do_content_computations()
 
             if unpacker.needs_unpacking():
+                log(logging.INFO, "Check entire file: %s" % fileresult.filename)
                 scanjob.check_entire_file(unpacker)
 
             duplicate = False
