@@ -1,5 +1,6 @@
 import inspect
 import pkgutil
+from operator import itemgetter
 
 from TestUtil import *
 
@@ -61,7 +62,9 @@ class TestUnpackResult(TestBase):
             # 'unpackers/squashfs/test-cut-data-from-end.sqsh',
             # 'unpackers/squashfs/test-data-replaced-in-middle.sqsh',
             ]
-        for fn, unpackparser in sorted(set(self.walk_available_files_with_unpackers())):
+        for fn, unpackparser in \
+            sorted(set(self.walk_available_files_with_unpackers()),
+                key=itemgetter(0)):
             if fn in skipfiles:
                 continue
             self._copy_file_from_testdata(fn)
