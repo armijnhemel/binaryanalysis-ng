@@ -133,7 +133,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
                     partition_start, partition_length)
             partition_name = partition_types.get(p.partition_type)
             # TODO: add partition name to labels
-            outlabels = ['partition', 'unpacked']
+            outlabels = ['partition']
             files_and_labels.append( (outfile_rel, outlabels) )
             partition_number += 1
         return files_and_labels
