@@ -48,6 +48,7 @@ class TestVfatUnpackParser(TestBase):
             # compare to md5 hash of /usr/share/licenses/glibc/COPYING
             self.assertEqual(m.hexdigest(), 'b234ee4d69f5fce4486a80fdaf4a4263')
 
+    # test if extraction of (nested) subdirectories went ok
     def test_fat12_subdirectories_unpacked_correctly(self):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
         self._copy_file_from_testdata(rel_testfile)
@@ -58,6 +59,7 @@ class TestVfatUnpackParser(TestBase):
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
         self.assertTrue(r['status'], r.get('error'))
+        self.assertEqual(len(r['filesandlabels']), 4)
 
         unpacked_path_rel = data_unpack_dir / 'subdir1.dir'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel
@@ -69,12 +71,10 @@ class TestVfatUnpackParser(TestBase):
         self.assertTrue(unpacked_path_abs.exists())
         self.assertTrue(unpacked_path_abs.is_dir())
 
-        unpacked_path_rel = data_unpack_dir / 'subdir2.dir' / 'subdir2a.dir' / 'LICENSE'
+        unpacked_path_rel = data_unpack_dir / 'subdir2.dir' / 'subdir2a.dir' / 'license'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel
         self.assertTrue(unpacked_path_abs.exists())
-        self.assertTrue(unpacked_path_abs.is_dir())
 
-    # test if extraction of (nested) subdirectories went ok
     # test FAT12, FAT16, FAT32
     # test LFN (long filenames)
 

@@ -1,6 +1,7 @@
 import os
 import struct
 from . import vfat
+from . import vfat_directory
 from UnpackParser import UnpackParser
 
 def get_lfn_part(record):
@@ -71,7 +72,6 @@ class VfatUnpackParser(UnpackParser):
         lfn = False
         fn = ''
         for record in directory_records:
-            # print('->', record.is_lfn_entry, fn)
             if not lfn:
                 if record.is_lfn_entry:
                     lfn = True
@@ -88,32 +88,46 @@ class VfatUnpackParser(UnpackParser):
             if not lfn:
                 if fn[0] == '\0': continue
                 # get other attributes
-                print('fn', repr(fn))
                 rel_outfile = rel_unpack_dir / fn
                 if record.attr_subdirectory:
-                    pass
+                    if fn != '.' and fn != '..':
+                        dir_entries = self.extract_dir(scan_environment, offset, record.start_clus, rel_outfile)
+                        # parse dir_entries and process
+                        subdir = vfat_directory.VfatDirectory.from_bytes(dir_entries)
+                        for file_and_label in self.unpack_directory(
+                                scan_environment, offset,
+                                subdir.records, rel_outfile):
+                            yield file_and_label
+                     
                 else:
                     # TODO: if normal_file
                     yield self.extract_file(scan_environment, offset, record.start_clus, record.file_size, rel_outfile)
 
+
+    def extract_dir(self, scan_environment, offset, start_cluster, rel_outfile):
+        abs_outfile = scan_environment.unpack_path(rel_outfile)
+        os.makedirs(abs_outfile, exist_ok=True)
+        dir_entries = b''
+        cluster_size = self.data.boot_sector.bpb.ls_per_clus * \
+                self.data.boot_sector.bpb.bytes_per_ls
+        for cluster in self.cluster_chain(start_cluster):
+            start = offset + self.pos_data + (cluster-2) * cluster_size
+            self.infile.seek(start)
+            dir_entries += self.infile.read(cluster_size)
+        return dir_entries
+
     def extract_file(self, scan_environment, offset, start_cluster, file_size, rel_outfile):
         abs_outfile = scan_environment.unpack_path(rel_outfile)
-        print(abs_outfile)
         os.makedirs(abs_outfile.parent, exist_ok=True)
         outfile = open(abs_outfile, 'wb')
-        cluster = start_cluster
         size_read = 0
         cluster_size = self.data.boot_sector.bpb.ls_per_clus * \
                 self.data.boot_sector.bpb.bytes_per_ls
-        while not self.is_end_cluster(cluster):
+        for cluster in self.cluster_chain(start_cluster):
             bytes_to_read = min(cluster_size, file_size - size_read)
-            print("read", bytes_to_read, "from cluster", cluster)
-
             start = offset + self.pos_data + (cluster-2) * cluster_size
             os.sendfile(outfile.fileno(), self.infile.fileno(), start, bytes_to_read)
-
             size_read += bytes_to_read
-            cluster = self.get_cluster_map_entry(cluster)
         outfile.close()
         outlabels = ['unpacked']
         return (rel_outfile, outlabels)
@@ -123,6 +137,7 @@ class VfatUnpackParser(UnpackParser):
         if self.fat12:
             return cluster >= 0xff8
         if self.fat32:
+            # return cluster >= 0x0ffffff8   # if cluster already masked
             return (cluster & 0xffffff8) == 0xffffff8
         return cluster >= 0xfff8
 
@@ -133,3 +148,8 @@ class VfatUnpackParser(UnpackParser):
             return self.get_fat32_entry(cluster)
         return self.get_fat16_entry(cluster)
 
+    def cluster_chain(self, start_cluster):
+        cluster = start_cluster
+        while not self.is_end_cluster(cluster):
+            yield cluster
+            cluster = self.get_cluster_map_entry(cluster)
