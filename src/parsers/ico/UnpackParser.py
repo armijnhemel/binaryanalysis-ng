@@ -10,6 +10,19 @@ class IcoUnpackParser(UnpackParser):
     ]
     def parse(self):
         self.data = ico.Ico.from_io(self.infile)
+        if self.data.num_images <= 0:
+            raise Exception("Invalid ico file: not enough images")
+        for img in self.data.images:
+            if img.width <= 0:
+                raise Exception("Invalid ico file: zero or negative width")
+            if img.height <= 0:
+                raise Exception("Invalid ico file: zero or negative height")
+            if img.num_colors <= 0:
+                raise Exception("Invalid ico file: zero or negative num_colors")
+            if img.num_planes <= 0:
+                raise Exception("Invalid ico file: zero or negative num_planes")
+            if img.bpp <= 0:
+                raise Exception("Invalid ico file: zero or negative bpp")
     def calculate_unpacked_size(self, offset):
         self.unpacked_size = self.infile.tell() - offset
         for i in self.data.images:
