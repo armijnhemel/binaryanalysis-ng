@@ -20,7 +20,12 @@ def get_short_filename(record):
 
 class VfatUnpackParser(UnpackParser):
     pretty_name = 'fat'
+    # FAT does not have a reliable signature
+    # the best way to extract is from the context, i.e. knowing that this
+    # is a FAT filesystem. We can use the 'file system type' string, but since
+    # this was never intended as a signature, it is unreliable.
     signatures = [
+            (54, b'FAT')
             ]
 
     def parse(self):
