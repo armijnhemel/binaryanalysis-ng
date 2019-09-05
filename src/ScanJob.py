@@ -265,6 +265,7 @@ class ScanJob:
                 # For each of the found candidates see if any
                 # data can be unpacked. Process these in the order
                 # in which the signatures were found in the file.
+                log(logging.INFO, "offsets&unpackers: %s" % sorted(candidateoffsetsfound, key=itemgetter(0)))
                 for offset_with_unpackparser in sorted(candidateoffsetsfound,
                         key=itemgetter(0)):
                     # skip offsets which are not useful to look at
