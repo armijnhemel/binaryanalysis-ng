@@ -6,10 +6,10 @@ from TestUtil import *
 from parsers.vfat.UnpackParser import VfatUnpackParser
 
 class TestVfatUnpackParser(TestBase):
-    def test_fat12(self):
+    def test_fat12_single_file_unpacked_correctly(self):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test.fat'
         # rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-b24.fat'
-        rel_testfile = pathlib.Path('a') / 'unpacked.mbr-partition0.part'
+        # rel_testfile = pathlib.Path('a') / 'unpacked.mbr-partition0.part'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
         filesize = fileresult.filesize
@@ -19,7 +19,13 @@ class TestVfatUnpackParser(TestBase):
                 data_unpack_dir)
         self.assertTrue(r['status'], r.get('error'))
         self.assertEqual(r['length'], filesize)
-        self.assertEqual(len(r['filesandlabels']), 4)
+        self.assertEqual(len(r['filesandlabels']), 1)
+        unpacked_path_rel = data_unpack_dir / 'hellofat.txt'
+        unpacked_path_abs = self.unpackdir / unpacked_path_rel
+        self.assertEqual(r['filesandlabels'][0][0], unpacked_path_rel)
+        self.assertTrue(unpacked_path_abs.exists())
+        with open(unpacked_path_abs,"rb") as f:
+            self.assertEqual(f.read(), b'hello fat\n')
 
     # test if extraction of file of multiple blocks went ok
     # test if extraction of (nested) subdirectories went ok

@@ -62,10 +62,12 @@ class VfatUnpackParser(UnpackParser):
         return struct.unpack("<I", self.data.fats[0][4*n:4*n+4])[0] & 0x0fffffff
 
     def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
-        out_dir_rel = '.'
-        self.unpack_directory(self.data.root_dir.records, out_dir_rel)
+        files_and_labels = [
+                x for x in self.unpack_directory(scan_environment, offset, self.data.root_dir.records, rel_unpack_dir)
+            ]
+        return files_and_labels
 
-    def unpack_directory(self, directory_records, out_dir_rel):
+    def unpack_directory(self, scan_environment, offset, directory_records, rel_unpack_dir):
         lfn = False
         fn = ''
         for record in directory_records:
@@ -87,33 +89,33 @@ class VfatUnpackParser(UnpackParser):
                 if fn[0] == 0: continue
                 # get other attributes
                 print('fn', repr(fn))
+                rel_outfile = rel_unpack_dir / fn
                 # TODO: if normal_file
-                self.extract_file(record.start_clus, record.file_size)
+                yield self.extract_file(scan_environment, offset, record.start_clus, record.file_size, rel_outfile)
                 # if directory
 
-    def extract_file(self, start_cluster, file_size):
-        # TODO: parameter out_file_rel
-        # print('clus', start_cluster)
-        # print('size',file_size)
+    def extract_file(self, scan_environment, offset, start_cluster, file_size, rel_outfile):
+        abs_outfile = scan_environment.unpack_path(rel_outfile)
+        os.makedirs(abs_outfile.parent, exist_ok=True)
+        outfile = open(abs_outfile, 'wb')
         cluster = start_cluster
         size_read = 0
         cluster_size = self.data.boot_sector.bpb.ls_per_clus * \
                 self.data.boot_sector.bpb.bytes_per_ls
         while not self.is_end_cluster(cluster):
-            print('lookup cluster', cluster)
-            print('read bytes', min(cluster_size, file_size - size_read))
-            # TODO: find data in file, copy data to outfile
             bytes_to_read = min(cluster_size, file_size - size_read)
 
-            self.infile.seek(self.pos_data + (cluster-2) * cluster_size)
-            bs = self.infile.read(bytes_to_read)
-            print(repr(bs))
-            # TODO: use os.sendfile to copy the cluster bytes to the outfile
+            start = offset + self.pos_data + (cluster-2) * cluster_size
+            os.sendfile(outfile.fileno(), self.infile.fileno(), start, bytes_to_read)
 
             size_read += bytes_to_read
             cluster = self.get_cluster_map_entry(cluster)
+        outfile.close()
+        outlabels = ['unpacked']
+        return (rel_outfile, outlabels)
 
     def is_end_cluster(self, cluster):
+        # TODO: handle bad clusters and other exceptions
         if self.fat12:
             return cluster >= 0xff8
         if self.fat32:
