@@ -15,7 +15,7 @@ def get_short_filename(record):
     ext = record.short_ext.rstrip(b' ')
     if ext:
         fn += b'.' + ext
-    return fn.lower()
+    return fn.decode().lower()
 
 class VfatUnpackParser(UnpackParser):
     pretty_name = 'fat'
@@ -86,16 +86,19 @@ class VfatUnpackParser(UnpackParser):
                     lfn = False
                     pass # keep long filename
             if not lfn:
-                if fn[0] == 0: continue
+                if fn[0] == '\0': continue
                 # get other attributes
                 print('fn', repr(fn))
                 rel_outfile = rel_unpack_dir / fn
-                # TODO: if normal_file
-                yield self.extract_file(scan_environment, offset, record.start_clus, record.file_size, rel_outfile)
-                # if directory
+                if record.attr_subdirectory:
+                    pass
+                else:
+                    # TODO: if normal_file
+                    yield self.extract_file(scan_environment, offset, record.start_clus, record.file_size, rel_outfile)
 
     def extract_file(self, scan_environment, offset, start_cluster, file_size, rel_outfile):
         abs_outfile = scan_environment.unpack_path(rel_outfile)
+        print(abs_outfile)
         os.makedirs(abs_outfile.parent, exist_ok=True)
         outfile = open(abs_outfile, 'wb')
         cluster = start_cluster
@@ -104,6 +107,7 @@ class VfatUnpackParser(UnpackParser):
                 self.data.boot_sector.bpb.bytes_per_ls
         while not self.is_end_cluster(cluster):
             bytes_to_read = min(cluster_size, file_size - size_read)
+            print("read", bytes_to_read, "from cluster", cluster)
 
             start = offset + self.pos_data + (cluster-2) * cluster_size
             os.sendfile(outfile.fileno(), self.infile.fileno(), start, bytes_to_read)
