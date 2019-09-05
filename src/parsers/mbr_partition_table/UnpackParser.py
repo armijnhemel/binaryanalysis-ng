@@ -115,10 +115,15 @@ class MbrPartitionTableUnpackParser(UnpackParser):
     def parse(self):
         self.data = mbr_partition_table.MbrPartitionTable.from_io(self.infile)
     def calculate_unpacked_size(self, offset):
-        self.unpacked_size = self.infile.tell() - offset
+        # self.unpacked_size = self.infile.tell() - offset
+        self.unpacked_size = 0
         for p in self.data.partitions:
             self.unpacked_size = max( self.unpacked_size,
                     (p.lba_start + p.num_sectors) * 512 )
+        if self.unpacked_size > self.fileresult.filesize:
+            raise Exception("partition bigger than file")
+        if self.unpacked_size < 0x1be:
+            raise Exception("invalid partition table: no partitions")
     def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
         """extract any files from the input file"""
         files_and_labels = []

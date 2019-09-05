@@ -21,6 +21,19 @@ class TestMbrPartitionTableUnpackParser(TestBase):
         self.assertEqual(r['length'], filesize)
         self.assertEqual(len(r['filesandlabels']), 4)
 
+    def test_load_fat_partition(self):
+        rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test.fat'
+        self._copy_file_from_testdata(rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        filesize = fileresult.filesize
+        p = MbrPartitionTableUnpackParser()
+        # dummy data unpack dir
+        data_unpack_dir = rel_testfile.parent / 'some_dir'
+        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
+                data_unpack_dir)
+        self.assertFalse(r['status'])
+
+
 if __name__ == '__main__':
     unittest.main()
 

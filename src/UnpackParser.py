@@ -29,6 +29,7 @@ class UnpackParser:
         """Parses the file and unpacks any contents into other files. Files are
         stored in the filesandlabels field of the unpack_results dictionary.
         """
+        self.fileresult = fileresult
         try:
             filename_full = scan_environment.unpack_path(fileresult.filename)
             with filename_full.open('rb') as self.infile:
