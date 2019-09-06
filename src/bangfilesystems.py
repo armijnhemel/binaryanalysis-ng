@@ -2983,6 +2983,8 @@ def unpack_fat(fileresult, scanenvironment, offset, unpackdir):
 
     clusterchainsperfat = {}
 
+    reservedblocks = [0xfff0, 0xfff1, 0xfff2, 0xfff3, 0xfff4, 0xfff5, 0xfff6]
+
     # process the file allocation tables
     for i in range(0, numberoffat):
         clusterchainsperfat[i] = []
@@ -3060,6 +3062,8 @@ def unpack_fat(fileresult, scanenvironment, offset, unpackdir):
                     # add the index to the chain
                     chain.append(chainindex)
                     seenchainindexes.add(chainindex)
+                    if chainindex in reservedblocks:
+                        break
 
                     # look at the next value
                     chainindex = clustervals[chainindex]
