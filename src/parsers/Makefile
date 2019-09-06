@@ -9,4 +9,5 @@ all: $(KAITAI_PARSERS)
 
 %.py : %.ksy
 	$(KAITAISTRUCT_COMPILER) -t python --outdir `dirname "$<"` $<
+	sed -i '/from kaitaistruct/,$$ s/^import/from . import/' "$@"
 
