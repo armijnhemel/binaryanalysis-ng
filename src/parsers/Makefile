@@ -11,3 +11,6 @@ all: $(KAITAI_PARSERS)
 	$(KAITAISTRUCT_COMPILER) -t python --outdir `dirname "$<"` $<
 	sed -i '/from kaitaistruct/,$$ s/^import/from . import/' "$@"
 
+test:
+	python3 -m unittest discover . -v -p 'Test.py'
+
