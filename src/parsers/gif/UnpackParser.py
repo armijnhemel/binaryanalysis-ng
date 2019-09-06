@@ -13,6 +13,10 @@ class GifUnpackParser(UnpackParser):
 
     def parse(self):
         self.data = gif.Gif.from_io(self.infile)
+        if self.data.logical_screen_descriptor.screen_width <= 0:
+            raise Exception("invalid width")
+        if self.data.logical_screen_descriptor.screen_height <= 0:
+            raise Exception("invalid height")
     def calculate_unpacked_size(self, offset):
         self.unpacked_size = self.infile.tell() - offset
 
