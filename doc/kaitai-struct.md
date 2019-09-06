@@ -120,3 +120,25 @@ Not all kaitai parsers read the complete file. The unpacker determines the file 
 
 Kaitai parsers that expect an end of stream, for example by using `size-eos`, or calling `size` on a kaitai stream object, cannot be used for carving data from a file. When carving, we have a stream that can contain data beyond the file that we want to extract, and therefore, our parser cannot depend on that.
 
+### Importing kaitai types
+
+If you import a kaitai-struct file in another (relative import), say `vfat_directory_rec` the translated Python code contains:
+
+```
+import vfat_directory_rec
+```
+
+If we run tests with unittest's `discover` command, Python cannot find this module:
+
+```
+ModuleNotFoundError: No module named 'vfat_directory_rec'
+```
+
+The compilation of the kaitai-struct parser in the `Makefile` contains an extra step to rewrite this import to
+
+```
+import vfat_directory_rec
+```
+
+Note that this may break absolute kaitai imports.
+
