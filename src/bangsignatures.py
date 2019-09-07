@@ -446,27 +446,33 @@ import pkgutil
 import importlib
 import inspect
 import parsers
+import pathlib
 from UnpackParser import UnpackParser
 
-def _get_unpackers_recursive(parent_module_path):
+def _get_unpackers_recursive(unpackers_root, parent_module_path):
     unpackers = []
-    for m in pkgutil.iter_modules([parent_module_path]):
-        try:
-            module_name = 'parsers.{}.UnpackParser'.format(m.name)
-            module = importlib.import_module(module_name)
-            for name, member in inspect.getmembers(module):
-                if inspect.isclass(member) and issubclass(member, UnpackParser) \
-                    and member != UnpackParser:
-                    unpackers.append(member)
-        except ModuleNotFoundError as e:
-            pass
-        unpackers.extend(_get_unpackers_recursive(
-                os.path.join(parent_module_path, m.name)))
+    abs_module_path = unpackers_root / parent_module_path
+    for m in pkgutil.iter_modules([abs_module_path]):
+        full_module_path = parent_module_path / m.name
+        if (unpackers_root / full_module_path).is_dir():
+            try:
+                full_module_name = ".".join(full_module_path.parts)
+                module_name = 'parsers.{}.UnpackParser'.format(full_module_name)
+                module = importlib.import_module(module_name)
+                for name, member in inspect.getmembers(module):
+                    if inspect.isclass(member) and issubclass(member, UnpackParser) \
+                        and member != UnpackParser:
+                        unpackers.append(member)
+            except ModuleNotFoundError as e:
+                pass
+            unpackers.extend(_get_unpackers_recursive(
+                unpackers_root, full_module_path ))
     return unpackers
 
 
 def get_unpackers():
-    unpackers = _get_unpackers_recursive(os.path.dirname(parsers.__file__))
+    unpackers = _get_unpackers_recursive(
+            pathlib.Path(os.path.dirname(parsers.__file__)), pathlib.Path('.'))
     return unpackers
 
 def get_unpackers_for_extensions():
