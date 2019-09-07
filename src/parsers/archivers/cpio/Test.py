@@ -20,8 +20,7 @@ class TestCpioUnpackParser(TestBase):
         self.assertLessEqual(r['length'], filesize)
         extracted_fn = data_unpack_dir / 'test.sgi'
         self.assertEqual(r['filesandlabels'], [(str(extracted_fn), ['unpacked'])])
-        extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
-        self.assertTrue(extracted_fn_abs.exists())
+        self.assertUnpackedPathExists(extracted_fn)
 
     def test_load_cpio_file_portable_ascii(self):
         rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-old.cpio'
@@ -37,8 +36,7 @@ class TestCpioUnpackParser(TestBase):
         self.assertLessEqual(r['length'], filesize)
         extracted_fn = data_unpack_dir / 'test.sgi'
         self.assertEqual(r['filesandlabels'], [(str(extracted_fn), ['unpacked'])])
-        extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
-        self.assertTrue(extracted_fn_abs.exists())
+        self.assertUnpackedPathExists(extracted_fn)
 
     def test_unpack_different_filetypes(self):
         # test file from kr105_ps4kerneltest.zip
@@ -74,8 +72,7 @@ class TestCpioUnpackParser(TestBase):
 
         # check if device /dev/zero is skipped
         extracted_fn = data_unpack_dir / 'dev' / 'zero'
-        extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
-        self.assertFalse(extracted_fn_abs.exists())
+        self.assertUnpackedPathDoesNotExist(extracted_fn)
         extracted_files_and_labels = [ i for i in r['filesandlabels'] if i[0] ==
                 str(extracted_fn)]
         self.assertEqual(extracted_files_and_labels, [])
@@ -94,13 +91,10 @@ class TestCpioUnpackParser(TestBase):
         self.assertLessEqual(r['length'], filesize)
 
         extracted_fn = data_unpack_dir / 'e' / 't.sgi'
-        extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
-        self.assertTrue(extracted_fn_abs.exists())
+        self.assertUnpackedPathExists(extracted_fn)
         extracted_labels = [ i for i in r['filesandlabels'] if i[0] ==
                 str(extracted_fn)][0][1]
         self.assertEqual(extracted_labels, ['unpacked'])
-
-
 
     def test_rewrite_symlink(self):
         p = CpioNewAsciiUnpackParser()

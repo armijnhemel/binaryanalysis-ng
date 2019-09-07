@@ -22,7 +22,7 @@ class TestVfatUnpackParser(TestBase):
         unpacked_path_rel = data_unpack_dir / 'hellofat.txt'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel
         self.assertEqual(r['filesandlabels'][0][0], unpacked_path_rel)
-        self.assertTrue(unpacked_path_abs.exists())
+        self.assertUnpackedPathExists(unpacked_path_rel)
         with open(unpacked_path_abs,"rb") as f:
             self.assertEqual(f.read(), b'hello fat\n')
 
@@ -39,7 +39,7 @@ class TestVfatUnpackParser(TestBase):
         self.assertTrue(r['status'], r.get('error'))
         unpacked_path_rel = data_unpack_dir / 'copying'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel
-        self.assertTrue(unpacked_path_abs.exists())
+        self.assertUnpackedPathExists(unpacked_path_rel)
         with open(unpacked_path_abs,"rb") as f:
             m = hashlib.md5()
             m.update(f.read())
@@ -61,17 +61,17 @@ class TestVfatUnpackParser(TestBase):
 
         unpacked_path_rel = data_unpack_dir / 'subdir1.dir'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel
-        self.assertTrue(unpacked_path_abs.exists())
+        self.assertUnpackedPathExists(unpacked_path_rel)
         self.assertTrue(unpacked_path_abs.is_dir())
 
         unpacked_path_rel = data_unpack_dir / 'subdir2.dir' / 'subdir2a.dir'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel
-        self.assertTrue(unpacked_path_abs.exists())
+        self.assertUnpackedPathExists(unpacked_path_rel)
         self.assertTrue(unpacked_path_abs.is_dir())
 
         unpacked_path_rel = data_unpack_dir / 'subdir2.dir' / 'subdir2a.dir' / 'license'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel
-        self.assertTrue(unpacked_path_abs.exists())
+        self.assertUnpackedPathExists(unpacked_path_rel)
 
     # test FAT12, FAT16, FAT32
     # test LFN (long filenames)

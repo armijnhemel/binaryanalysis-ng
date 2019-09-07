@@ -112,3 +112,12 @@ class TestBase(unittest.TestCase):
         except FileExistsError:
             pass
         shutil.copy(self.testdata_dir / path, unpacked_path)
+
+    def assertUnpackedPathExists(self, extracted_fn, message=None):
+        extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
+        self.assertTrue(extracted_fn_abs.exists(), message)
+
+    def assertUnpackedPathDoesNotExist(self, extracted_fn, message=None):
+        extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
+        self.assertFalse(extracted_fn_abs.exists(), message)
+

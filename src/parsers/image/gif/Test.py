@@ -37,7 +37,7 @@ class TestGifUnpackParser(TestBase):
         unpacked_labels = r['filesandlabels'][0][1]
         self.assertEqual(pathlib.Path(unpacked_file),
                 pathlib.Path(data_unpack_dir) / 'unpacked.gif')
-        self.assertTrue((self.unpackdir / unpacked_file).exists())
+        self.assertUnpackedPathExists(unpacked_file)
         self.assertEqual((self.unpackdir / unpacked_file).stat().st_size, r['length'])
         self.assertEqual(r['metadata']['width'], 3024)
         self.assertSetEqual(set(unpacked_labels),
