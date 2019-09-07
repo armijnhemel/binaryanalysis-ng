@@ -2,7 +2,7 @@ import inspect
 import pkgutil
 from operator import itemgetter
 
-from TestUtil import *
+from .TestUtil import *
 
 from Unpacker import *
 

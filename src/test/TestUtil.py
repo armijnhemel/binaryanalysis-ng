@@ -6,7 +6,6 @@ import unittest
 import collections
 
 _scriptdir = os.path.dirname(__file__)
-sys.path.insert(0, os.path.join(_scriptdir, '..'))
 
 from bangsignatures import maxsignaturesoffset
 import bangfilescans

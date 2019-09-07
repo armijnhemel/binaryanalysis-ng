@@ -28,9 +28,6 @@ import os
 import sys
 from parameterized import parameterized
 
-_scriptdir = os.path.dirname(__file__)
-sys.path.insert(0, os.path.join(_scriptdir, '..'))
-
 # load own modules
 import bangunpack
 import bangfilesystems
@@ -38,14 +35,14 @@ import bangmedia
 import bangandroid
 import bangtext
 
-from parsers.gif.UnpackParser import GifUnpackParser
-from parsers.ico.UnpackParser import IcoUnpackParser
+from parsers.image.gif.UnpackParser import GifUnpackParser
+from parsers.image.ico.UnpackParser import IcoUnpackParser
 
 # basetestdir = pathlib.Path('/home/armijn/git/binaryanalysis-ng/test')
 # tmpdirectory = '/home/armijn/tmp'
 
 
-from TestUtil import *
+from .TestUtil import *
 
 
 class TestGeneric(TestBase):

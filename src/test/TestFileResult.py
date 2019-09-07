@@ -1,4 +1,4 @@
-from TestUtil import *
+from .TestUtil import *
 
 class TestFileResult(TestBase):
     def test_fileresult_has_correct_filenames(self):

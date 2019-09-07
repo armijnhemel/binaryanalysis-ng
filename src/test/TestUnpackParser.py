@@ -1,5 +1,5 @@
 
-from TestUtil import *
+from .TestUtil import *
 from UnpackParserException import UnpackParserException
 from UnpackParser import UnpackParser
 from bangsignatures import get_unpackers

@@ -5,7 +5,7 @@ import pathlib
 import inspect
 import unittest
 
-from TestUtil import *
+from .TestUtil import *
 
 from FileResult import *
 from ScanJob import *
