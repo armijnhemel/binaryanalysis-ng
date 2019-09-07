@@ -7,7 +7,7 @@ from bangsignatures import get_unpackers
 class InvalidUnpackParser(UnpackParser):
     pass
 
-class TestFileResult(TestBase):
+class TestUnpackParser(TestBase):
     def test_unpack_parser_without_parse_method(self):
         p = InvalidUnpackParser()
         with self.assertRaisesRegex(UnpackParserException, r"undefined parse method") as cm:
