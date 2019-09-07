@@ -1,9 +1,7 @@
 import sys, os
-_scriptdir = os.path.dirname(__file__)
-sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
-from TestUtil import *
+from test.TestUtil import *
 
-from parsers.cpio.UnpackParser import CpioNewAsciiUnpackParser, \
+from .UnpackParser import CpioNewAsciiUnpackParser, \
     CpioNewCrcUnpackParser, CpioPortableAsciiUnpackParser, \
     rewrite_symlink
 

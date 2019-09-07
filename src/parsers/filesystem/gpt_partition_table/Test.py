@@ -1,9 +1,7 @@
 import sys, os
-_scriptdir = os.path.dirname(__file__)
-sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
-from TestUtil import *
+from test.TestUtil import *
 
-from parsers.gpt_partition_table.UnpackParser import GptPartitionTableUnpackParser
+from .UnpackParser import GptPartitionTableUnpackParser
 
 class TestGptPartitionTableUnpackParser(TestBase):
     def test_load_standard_file(self):

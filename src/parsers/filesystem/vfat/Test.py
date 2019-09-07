@@ -1,10 +1,8 @@
 import sys, os
 import hashlib
-_scriptdir = os.path.dirname(__file__)
-sys.path.insert(0, os.path.join(_scriptdir, '..','..','test'))
-from TestUtil import *
+from test.TestUtil import *
 
-from parsers.vfat.UnpackParser import VfatUnpackParser
+from .UnpackParser import VfatUnpackParser
 
 class TestVfatUnpackParser(TestBase):
     def test_fat12_single_file_unpacked_correctly(self):
