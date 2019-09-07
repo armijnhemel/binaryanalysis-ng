@@ -26,5 +26,10 @@ class TestFileResult(TestBase):
             for s_offset, s_text in unpackparser.signatures:
                 self.assertEquals(type(s_text),type(b''))
 
+    def test_unpackparsers_are_found(self):
+        unpacker_names = [ u.__name__ for u in get_unpackers() ]
+        self.assertIn('GifUnpackParser', unpacker_names)
+        self.assertIn('VfatUnpackParser', unpacker_names)
+
 if __name__ == "__main__":
     unittest.main()
