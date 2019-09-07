@@ -1031,7 +1031,7 @@ forgereferences['sourceware.org'] = ["sourceware.org/git/"]
 # store the maximum look ahead window. This is unlikely to matter, but
 # just in case.
 # maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
-maxsignaturelength = max([ len(x[1]) for x in signature_to_unpackparser.keys() ])
-maxsignaturesoffset = max([ x[0] for x in signature_to_unpackparser.keys() ]) + maxsignaturelength
+maxsignaturelength = max([0] + [ len(x[1]) for x in signature_to_unpackparser.keys() ])
+maxsignaturesoffset = max([0] + [ x[0] for x in signature_to_unpackparser.keys() ]) + maxsignaturelength
 
 # maxsignaturesoffset = max(signaturesoffset.values()) + maxsignaturelength
