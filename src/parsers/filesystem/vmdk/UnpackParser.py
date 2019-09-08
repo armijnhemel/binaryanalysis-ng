@@ -5,7 +5,7 @@ from bangfilesystems import unpack_vmdk
 
 class VmdkUnpackParser(UnpackParser):
     extensions = []
-    signatures = 
+    signatures = [
         (0, b'KDMV')
     ]
     pretty_name = 'vmdk'
