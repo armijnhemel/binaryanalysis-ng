@@ -3,7 +3,7 @@ import os
 from UnpackParser import UnpackParser
 from bangunpack import unpack_appledouble
 
-class GzipUnpackParser(UnpackParser):
+class AppledoubleUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x00\x05\x16\x07')
