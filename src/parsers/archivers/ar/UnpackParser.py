@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_ar
 
-class ArUnpackParser(UnpackParser):
+class ArUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'!<arch>')
     ]
     pretty_name = 'ar'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_ar(fileresult, scan_environment, offset, unpack_dir)
 
