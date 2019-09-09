@@ -7,7 +7,8 @@ class TestRarUnpackParser(TestBase):
     def test_load_standard_file(self):
         rel_testfile = pathlib.Path('a') / 'hachoir-core.rar'
         self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set())
         filesize = fileresult.filesize
         p = RarUnpackParser()
         # dummy data unpack dir

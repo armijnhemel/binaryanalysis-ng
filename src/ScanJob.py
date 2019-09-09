@@ -553,13 +553,15 @@ class ScanJob:
 
     def check_entire_file(self, unpacker):
         if 'text' in self.fileresult.labels and unpacker.unpacked_range() == []:
-            for f in bangsignatures.textonlyfunctions:
-                namecounter = unpacker.make_data_unpack_directory(self.fileresult.filename, f, 0, 1)
+            for unpack_parser in \
+                    bangsignatures.unpackers_for_featureless_files:
+                namecounter = unpacker.make_data_unpack_directory(
+                        self.fileresult.filename, unpack_parser.pretty_name, 0, 1)
 
-                log(logging.DEBUG, "TRYING %s %s at offset: 0" % (self.fileresult.filename, f))
-                unpackresult = unpacker.try_textonlyfunctions(
-                    self.fileresult, self.scanenvironment,
-                    f, 0)
+                log(logging.DEBUG, "TRYING %s %s at offset: 0" %
+                        (self.fileresult.filename, unpack_parser.pretty_name))
+                unpackresult = unpacker.try_unpack_without_features(
+                    self.fileresult, self.scanenvironment, unpack_parser, 0)
                 if unpackresult is None:
                     continue
 
@@ -567,7 +569,7 @@ class ScanJob:
                     # No data could be unpacked for some reason,
                     # so check the status first
                     log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
-                        (self.fileresult.filename, f, 0, unpackresult['error']['reason']))
+                        (self.fileresult.filename, unpack_parser.pretty_name, 0, unpackresult['error']['reason']))
                     # unpackerror contains:
                     # * offset in the file where the error occured
                     #   (integer)
@@ -586,7 +588,7 @@ class ScanJob:
                     continue
 
                 log(logging.INFO, "SUCCESS %s %s at offset: %d, length: %d" %
-                    (self.fileresult.filename, f, 0, unpackresult['length']))
+                    (self.fileresult.filename, unpack_parser.pretty_name, 0, unpackresult['length']))
 
                 # store the labels for files that could be
                 # unpacked/verified completely.
@@ -604,8 +606,8 @@ class ScanJob:
                 # store lot of information about the unpacked files
                 report = {
                     'offset': 0,
-                    'signature': f,
-                    'type': f,
+                    'signature': unpack_parser.pretty_name,
+                    'type': unpack_parser.pretty_name,
                     'size': unpackresult['length'],
                     'files': [],
                 }

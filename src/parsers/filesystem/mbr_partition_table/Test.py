@@ -8,7 +8,8 @@ class TestMbrPartitionTableUnpackParser(TestBase):
         rel_testfile = pathlib.Path('a') / \
             'openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img'
         self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set())
         filesize = fileresult.filesize
         p = MbrPartitionTableUnpackParser()
         # dummy data unpack dir
@@ -22,7 +23,8 @@ class TestMbrPartitionTableUnpackParser(TestBase):
     def test_load_fat_partition(self):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test.fat'
         self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set())
         filesize = fileresult.filesize
         p = MbrPartitionTableUnpackParser()
         # dummy data unpack dir

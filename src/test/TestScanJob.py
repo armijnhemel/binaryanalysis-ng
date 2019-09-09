@@ -34,7 +34,8 @@ class TestScanJob(TestBase):
 
     def test_carved_padding_file_has_correct_labels(self):
         self._create_padding_file_in_directory()
-        fileresult = create_fileresult_for_path(self.unpackdir, self.padding_file)
+        fileresult = create_fileresult_for_path(self.unpackdir,
+                self.padding_file, set())
         scanjob = ScanJob(fileresult)
         scanjob.set_scanenvironment(self.scan_environment)
         scanjob.initialize()
@@ -101,7 +102,7 @@ class TestScanJob(TestBase):
         # /home/tim/bang-test-scrap/bang-scan-wd8il1i5/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/lib/netifd/proto/dhcpv6.sh
         fn = pathlib.Path("a/dhcpv6.sh")
         self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn)
+        fileresult = create_fileresult_for_path(self.unpackdir, fn, set())
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -118,7 +119,8 @@ class TestScanJob(TestBase):
     def test_kernelconfig_is_processed(self):
         rel_testfile = pathlib.Path('unpackers') / 'kernelconfig' / 'kernelconfig'
         self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set())
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)

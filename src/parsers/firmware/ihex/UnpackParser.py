@@ -7,6 +7,7 @@ class IhexUnpackParser(UnpackParser):
     extensions = ['.hex', '.ihex']
     signatures = [
     ]
+    scan_if_featureless = True
     pretty_name = 'ihex'
 
     def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):

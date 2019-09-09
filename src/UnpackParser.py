@@ -6,6 +6,7 @@ class UnpackParser:
     extensions = []
     # signatures are tuples, (offset, bytestring)
     signatures = []
+    scan_if_featureless = False
 
     def __init__(self):
         self.unpacked_size = 0

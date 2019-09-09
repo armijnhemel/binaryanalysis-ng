@@ -214,15 +214,15 @@ class Unpacker:
             self.remove_data_unpack_directory()
             return None
 
-    def try_textonlyfunctions(self, fileresult, scanenvironment, filetype, offset):
+    def try_unpack_without_features(self, fileresult, scanenvironment, unpack_parser,  offset):
         try:
-            return bangsignatures.textonlyfunctions[filetype](fileresult, scanenvironment, 0, self.dataunpackdirectory)
+            return unpack_parser().parse_and_unpack(fileresult, scanenvironment,
+                    0, self.dataunpackdirectory)
         except Exception as ex:
             # TODO: make exception more specific, it is too general
             print(ex)
             self.remove_data_unpack_directory()
             return None
-
 
     def file_unpacked(self, unpackresult, filesize):
         # store the location of where the successfully

@@ -7,7 +7,8 @@ class TestIcoUnpackParser(TestBase):
     def test_load_standard_ico_file(self):
         rel_testfile = pathlib.Path('unpackers') / 'ico' / 'test.ico'
         self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set())
         filesize = fileresult.filesize
         p = IcoUnpackParser()
         # dummy data unpack dir

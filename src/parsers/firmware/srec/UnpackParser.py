@@ -7,6 +7,7 @@ class SrecUnpackParser(UnpackParser):
     extensions = ['.srec']
     signatures = [
     ]
+    scan_if_featureless = True
     pretty_name = 'srec'
 
     def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):

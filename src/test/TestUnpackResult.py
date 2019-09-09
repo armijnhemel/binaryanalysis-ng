@@ -69,7 +69,8 @@ class TestUnpackResult(TestBase):
                 continue
             self._copy_file_from_testdata(fn)
             unpacker.make_data_unpack_directory(fn, unpackparser.__name__)
-            fileresult = create_fileresult_for_path(self.unpackdir, pathlib.Path(fn))
+            fileresult = create_fileresult_for_path(self.unpackdir,
+                    pathlib.Path(fn), set())
             unpackresult = unpackparser().parse_and_unpack(fileresult, self.scan_environment, 0, unpacker.get_data_unpack_directory())
 
             try:
@@ -107,7 +108,8 @@ class TestUnpackResult(TestBase):
         fn = "/dev/null"
         name = "null"
         self._copy_file_from_testdata(fn, name)
-        fileresult = create_fileresult_for_path(self.unpackdir, pathlib.Path(name))
+        fileresult = create_fileresult_for_path(self.unpackdir,
+                pathlib.Path(name), set())
         self.assertEqual(str(fileresult.filename), name)
         for unpackername in sorted(unpackers.keys()):
             unpackparser = unpackers[unpackername]

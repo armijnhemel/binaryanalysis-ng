@@ -9,7 +9,8 @@ class TestCpioUnpackParser(TestBase):
     def test_load_cpio_file_new_ascii(self):
         rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-new.cpio'
         self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set())
         filesize = fileresult.filesize
         p = CpioNewAsciiUnpackParser()
         # dummy data unpack dir
@@ -25,7 +26,8 @@ class TestCpioUnpackParser(TestBase):
     def test_load_cpio_file_portable_ascii(self):
         rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-old.cpio'
         self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set())
         filesize = fileresult.filesize
         p = CpioPortableAsciiUnpackParser()
         # dummy data unpack dir
@@ -42,7 +44,8 @@ class TestCpioUnpackParser(TestBase):
         # test file from kr105_ps4kerneltest.zip
         rel_testfile = pathlib.Path('a') / 'initramfs.cpio'
         self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set())
         filesize = fileresult.filesize
         p = CpioNewAsciiUnpackParser()
         # dummy data unpack dir
@@ -80,7 +83,8 @@ class TestCpioUnpackParser(TestBase):
     def test_cpio_with_absolute_path(self):
         rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-absolute-path.cpio'
         self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set())
         filesize = fileresult.filesize
         p = CpioNewAsciiUnpackParser()
         # dummy data unpack dir

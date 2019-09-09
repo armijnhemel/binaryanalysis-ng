@@ -495,6 +495,11 @@ def get_unpackers_for_signatures():
 
 signature_to_unpackparser = get_unpackers_for_signatures()
 
+def get_unpackers_for_featureless_files():
+    return [u for u in get_unpackers() if u.scan_if_featureless ]
+
+unpackers_for_featureless_files = get_unpackers_for_featureless_files()
+
 # a lookup table to map extensions to a name
 # for pretty printing.
 extensionprettyprint = {
