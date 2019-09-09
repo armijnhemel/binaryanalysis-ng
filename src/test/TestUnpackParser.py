@@ -26,7 +26,7 @@ class TestUnpackParser(TestBase):
             # assert all signatures are bytestrings
             i = 0
             for s_offset, s_text in unpackparser.signatures:
-                self.assertEquals(type(s_text),type(b''))
+                self.assertEqual(type(s_text),type(b''))
 
     def test_unpackparsers_are_found(self):
         unpacker_names = [ u.__name__ for u in get_unpackers() ]
