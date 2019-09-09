@@ -68,7 +68,7 @@ class TestUnpackResult(TestBase):
             if fn in skipfiles:
                 continue
             self._copy_file_from_testdata(fn)
-            unpacker.make_data_unpack_directory(fn, unpackparser.__name__)
+            unpacker.make_data_unpack_directory(fn, unpackparser.__name__, 0)
             fileresult = create_fileresult_for_path(self.unpackdir,
                     pathlib.Path(fn), set())
             unpackresult = unpackparser().parse_and_unpack(fileresult, self.scan_environment, 0, unpacker.get_data_unpack_directory())
