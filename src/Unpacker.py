@@ -134,6 +134,7 @@ class Unpacker:
             return bangsignatures.unpack_file_with_extension(fileresult,
                     scanenvironment, unpackparser, self.dataunpackdirectory)
         except AttributeError:
+            # TODO: figure out what exception this should be
             self.remove_data_unpack_directory()
             return None
 
