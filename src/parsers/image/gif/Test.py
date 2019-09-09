@@ -1,6 +1,7 @@
 import sys, os
 from test.TestUtil import *
 
+from UnpackParserException import UnpackParserException
 from .UnpackParser import GifUnpackParser
 
 class TestGifUnpackParser(TestBase):
@@ -53,10 +54,11 @@ class TestGifUnpackParser(TestBase):
                 set())
         p = GifUnpackParser()
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
+        with self.assertRaisesRegex(UnpackParserException, r".*") as cm:
+            r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
-        self.assertFalse(r['status'])
-        self.assertIsNotNone(r['error']['reason'])
+        # self.assertFalse(r['status'])
+        # self.assertIsNotNone(r['error']['reason'])
 
 if __name__ == '__main__':
     unittest.main()

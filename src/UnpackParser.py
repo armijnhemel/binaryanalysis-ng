@@ -75,4 +75,10 @@ class UnpackParser:
         os.sendfile(outfile.fileno(), self.infile.fileno(), start, length)
         outfile.close()
 
+class WrappedUnpackParser(UnpackParser):
+    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+        r = unpack_function(fileresult, scan_environment, offset, unpack_dir)
+        if r['status'] is False:
+            raise UnpackParserException(r.get('error'))
+        return r
 
