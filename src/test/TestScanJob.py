@@ -115,6 +115,25 @@ class TestScanJob(TestBase):
         result = self.result_queue.get()
         self.assertSetEqual(result.labels, set(['text', 'script', 'shell']))
 
+    def test_kernelconfig_is_processed(self):
+        rel_testfile = pathlib.Path('unpackers') / 'kernelconfig' / 'kernelconfig'
+        self._copy_file_from_testdata(rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile)
+
+        scanjob = ScanJob(fileresult)
+        self.scanfile_queue.put(scanjob)
+        try:
+            processfile(self.dbconn, self.dbcursor, self.scan_environment)
+        except QueueEmptyError:
+            pass
+        except ScanJobError as e:
+            if e.e.__class__ != QueueEmptyError:
+                raise e
+        result = self.result_queue.get()
+
+        self.assertEqual(result.filename, rel_testfile)
+        self.assertSetEqual(result.labels, set(['text', 'kernel configuration']))
+
     def test_gzip_unpacks_to_right_directory(self):
         fn = pathlib.Path("a/hello.gz")
         self._copy_file_from_testdata(fn)
