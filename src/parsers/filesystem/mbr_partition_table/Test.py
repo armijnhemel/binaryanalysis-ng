@@ -1,5 +1,6 @@
 import sys, os
 from test.TestUtil import *
+from UnpackParserException import UnpackParserException
 
 from .UnpackParser import MbrPartitionTableUnpackParser
 
@@ -29,9 +30,9 @@ class TestMbrPartitionTableUnpackParser(TestBase):
         p = MbrPartitionTableUnpackParser()
         # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
-        self.assertFalse(r['status'])
+        with self.assertRaisesRegex(UnpackParserException, r"no partitions") as cm:
+            r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
+                    data_unpack_dir)
 
 
 if __name__ == '__main__':
