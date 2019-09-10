@@ -447,7 +447,7 @@ import importlib
 import inspect
 import parsers
 import pathlib
-from UnpackParser import UnpackParser
+from UnpackParser import UnpackParser, WrappedUnpackParser
 
 def _get_unpackers_recursive(unpackers_root, parent_module_path):
     unpackers = []
@@ -461,7 +461,8 @@ def _get_unpackers_recursive(unpackers_root, parent_module_path):
                 module = importlib.import_module(module_name)
                 for name, member in inspect.getmembers(module):
                     if inspect.isclass(member) and issubclass(member, UnpackParser) \
-                        and member != UnpackParser:
+                        and member != UnpackParser \
+                        and member != WrappedUnpackParser:
                         unpackers.append(member)
             except ModuleNotFoundError as e:
                 pass

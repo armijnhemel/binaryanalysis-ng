@@ -1,6 +1,7 @@
 import os
 from . import mbr_partition_table
 from UnpackParser import UnpackParser
+from UnpackParserException import UnpackParserException
 
 # table from
 # https://git.kernel.org/pub/scm/utils/util-linux/util-linux.git/plain/include/pt-mbr-partnames.h
@@ -113,7 +114,10 @@ class MbrPartitionTableUnpackParser(UnpackParser):
             (0x1be + 4*(1+3+1+3+4+4), b'\x55\xaa')
     ]
     def parse(self):
-        self.data = mbr_partition_table.MbrPartitionTable.from_io(self.infile)
+        try:
+                self.data = mbr_partition_table.MbrPartitionTable.from_io(self.infile)
+        except Exception as e:
+            raise UnpackParserException(e.args)
     def calculate_unpacked_size(self, offset):
         # self.unpacked_size = self.infile.tell() - offset
         self.unpacked_size = 0
@@ -121,9 +125,9 @@ class MbrPartitionTableUnpackParser(UnpackParser):
             self.unpacked_size = max( self.unpacked_size,
                     (p.lba_start + p.num_sectors) * 512 )
         if self.unpacked_size > self.fileresult.filesize:
-            raise Exception("partition bigger than file")
+            raise UnpackParserException("partition bigger than file")
         if self.unpacked_size < 0x1be:
-            raise Exception("invalid partition table: no partitions")
+            raise UnpackParserException("invalid partition table: no partitions")
     def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
         """extract any files from the input file"""
         files_and_labels = []

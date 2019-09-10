@@ -3,6 +3,7 @@ import struct
 from . import vfat
 from . import vfat_directory
 from UnpackParser import UnpackParser
+from UnpackParserException import UnpackParserException
 
 def get_lfn_part(record):
     # note: because python lacks a ucs-2 decoder, we use utf-16. In almost all
@@ -29,7 +30,10 @@ class VfatUnpackParser(UnpackParser):
             ]
 
     def parse(self):
-        self.data = vfat.Vfat.from_io(self.infile)
+        try:
+                self.data = vfat.Vfat.from_io(self.infile)
+        except Exception as e:
+            raise UnpackParserException(e.args)
         self.fat12 = self.is_fat12()
         self.fat32 = self.data.boot_sector.is_fat32
         self.pos_data = self.data.boot_sector.pos_root_dir + self.data.boot_sector.size_root_dir

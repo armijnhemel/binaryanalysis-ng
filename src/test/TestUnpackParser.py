@@ -56,7 +56,19 @@ class TestUnpackParser(TestBase):
             r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
 
+    def test_all_unpack_parsers_raise_exception_on_empty_file(self):
+        rel_testfile = pathlib.Path('unpackers') / 'empty'
+        self._copy_file_from_testdata(rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set())
+        data_unpack_dir = rel_testfile.parent / 'some_dir'
+        for unpackparser in get_unpackers():
+            with self.assertRaisesRegex(UnpackParserException, r".*",
+                    msg=unpackparser.__name__) as cm:
+                r = unpackparser().parse_and_unpack(fileresult,
+                        self.scan_environment, 0, data_unpack_dir)
 
+ 
 
  
 if __name__ == "__main__":

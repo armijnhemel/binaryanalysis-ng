@@ -2,6 +2,7 @@ import os
 import re
 from . import rar
 from UnpackParser import UnpackParser
+from UnpackParserException import UnpackParserException
 
 class RarUnpackParser(UnpackParser):
     pretty_name = 'rar'
@@ -9,7 +10,10 @@ class RarUnpackParser(UnpackParser):
             (0, b'Rar!\x1a\x07'),
     ]
     def parse(self):
-        self.data = rar.Rar.from_io(self.infile)
+        try:
+            self.data = rar.Rar.from_io(self.infile)
+        except Exception as e:
+            raise UnpackParserException(e.args)
     def calculate_unpacked_size(self, offset):
         self.unpacked_size = self.infile.tell() - offset
     def unpack(self, fileresult, scan_environment, offset, unpack_dir):

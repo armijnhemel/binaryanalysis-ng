@@ -7,6 +7,7 @@ from . import cpio_new_crc
 from . import cpio_portable_ascii
 from . import cpio_old_binary
 from UnpackParser import UnpackParser
+from UnpackParserException import UnpackParserException
 
 def rewrite_symlink(file_path, target_path):
     """rewrites a symlink of target_path, relative to file_path.
@@ -101,7 +102,10 @@ class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
     signatures = [ (0, b'070701') ]
 
     def parse(self):
-        self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
+        try:
+                self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
+        except Exception as e:
+            raise UnpackParserException(e.args)
 
 class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
     extensions = []
@@ -109,7 +113,10 @@ class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
     pretty_name = 'cpio'
 
     def parse(self):
-        self.data = cpio_new_crc.CpioNewCrc.from_io(self.infile)
+        try:
+            self.data = cpio_new_crc.CpioNewCrc.from_io(self.infile)
+        except Exception as e:
+            raise UnpackParserException(e.args)
 
 class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
     extensions = []
@@ -117,7 +124,10 @@ class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
     pretty_name = 'cpio'
 
     def parse(self):
-        self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
+        try:
+            self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
+        except Exception as e:
+            raise UnpackParserException(e.args)
 
 class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
     extensions = []
@@ -125,6 +135,9 @@ class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
     pretty_name = 'cpio'
 
     def parse(self):
-        self.data = cpio_old_binary.CpioOldBinary.from_io(self.infile)
+        try:
+            self.data = cpio_old_binary.CpioOldBinary.from_io(self.infile)
+        except Exception as e:
+            raise UnpackParserException(e.args)
 
 

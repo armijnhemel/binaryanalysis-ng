@@ -2,6 +2,7 @@
 import os
 from . import gif
 from UnpackParser import UnpackParser
+from UnpackParserException import UnpackParserException
 
 class GifUnpackParser(UnpackParser):
     extensions = ['.gif']
@@ -12,11 +13,14 @@ class GifUnpackParser(UnpackParser):
     pretty_name = 'gif'
 
     def parse(self):
-        self.data = gif.Gif.from_io(self.infile)
+        try:
+            self.data = gif.Gif.from_io(self.infile)
+        except Exception as e:
+            raise UnpackParserException(e.args)
         if self.data.logical_screen_descriptor.screen_width <= 0:
-            raise Exception("invalid width")
+            raise UnpackParserException("invalid width")
         if self.data.logical_screen_descriptor.screen_height <= 0:
-            raise Exception("invalid height")
+            raise UnpackParserException("invalid height")
     def calculate_unpacked_size(self, offset):
         self.unpacked_size = self.infile.tell() - offset
 
