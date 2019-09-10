@@ -194,8 +194,6 @@ class ScanJob:
                         unpackresult = unpacker.try_unpack_file_for_extension(
                             self.fileresult, self.scanenvironment,
                             self.fileresult.filename, extension, unpackparser)
-                        if unpackresult is None:
-                            continue
                     except UnpackParserException as e:
                         # No data could be unpacked for some reason
                         log(logging.DEBUG, "FAIL %s known extension %s: %s" %
@@ -299,14 +297,9 @@ class ScanJob:
                         unpackresult = unpacker.try_unpack_file_for_signatures(
                             self.fileresult, self.scanenvironment,
                             unpackparser, offset)
-                        if unpackresult is None:
-                            continue
                     except UnpackParserException as e:
                         # No data could be unpacked for some reason,
                         # so log the status and error message
-                        print('UnpackParserException: %s, %s: %s' %
-                                (self.fileresult.filename,
-                                unpackparser.pretty_name, e.args))
                         log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
                             (self.fileresult.filename, unpackparser.pretty_name, offset,
                              e.args))
@@ -568,8 +561,6 @@ class ScanJob:
                 try:
                     unpackresult = unpacker.try_unpack_without_features(
                         self.fileresult, self.scanenvironment, unpack_parser, 0)
-                    if unpackresult is None:
-                        continue
                 except UnpackParserException as e:
                     # No data could be unpacked for some reason,
                     # so check the status first

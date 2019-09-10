@@ -129,14 +129,17 @@ class Unpacker:
 
     def try_unpack_file_for_extension(self, fileresult, scanenvironment,
             relpath, extension, unpackparser):
-        try:
-            self.make_data_unpack_directory(relpath, unpackparser.pretty_name, 0)
-            return bangsignatures.unpack_file_with_extension(fileresult,
-                    scanenvironment, unpackparser, self.dataunpackdirectory)
-        except AttributeError:
-            # TODO: figure out what exception this should be
-            self.remove_data_unpack_directory()
-            return None
+        self.make_data_unpack_directory(relpath, unpackparser.pretty_name, 0)
+        return bangsignatures.unpack_file_with_extension(fileresult,
+                scanenvironment, unpackparser, self.dataunpackdirectory)
+        # try:
+        #    self.make_data_unpack_directory(relpath, unpackparser.pretty_name, 0)
+        #    return bangsignatures.unpack_file_with_extension(fileresult,
+        #            scanenvironment, unpackparser, self.dataunpackdirectory)
+        #except AttributeError:
+        #    # TODO: figure out what exception this should be
+        #    self.remove_data_unpack_directory()
+        #    return None
 
     def open_scanfile(self, filename):
         '''Open the file read-only in raw mode'''
@@ -208,22 +211,25 @@ class Unpacker:
 
     def try_unpack_file_for_signatures(self, fileresult, scanenvironment,
             unpackparser, offset):
-        try:
-            return unpackparser().parse_and_unpack(fileresult, scanenvironment, offset, self.dataunpackdirectory)
-        except AttributeError as ex:
-            print(ex)
-            self.remove_data_unpack_directory()
-            return None
+        return unpackparser().parse_and_unpack(fileresult, scanenvironment, offset, self.dataunpackdirectory)
+        # try:
+        #    return unpackparser().parse_and_unpack(fileresult, scanenvironment, offset, self.dataunpackdirectory)
+        #except AttributeError as ex:
+        #    print(ex)
+        #    self.remove_data_unpack_directory()
+        #    return None
 
     def try_unpack_without_features(self, fileresult, scanenvironment, unpack_parser,  offset):
-        try:
-            return unpack_parser().parse_and_unpack(fileresult, scanenvironment,
-                    0, self.dataunpackdirectory)
-        except Exception as ex:
-            # TODO: make exception more specific, it is too general
-            print(ex)
-            self.remove_data_unpack_directory()
-            return None
+        return unpack_parser().parse_and_unpack(fileresult, scanenvironment,
+                0, self.dataunpackdirectory)
+        # try:
+        #    return unpack_parser().parse_and_unpack(fileresult, scanenvironment,
+        #            0, self.dataunpackdirectory)
+        #except Exception as ex:
+        #    # TODO: make exception more specific, it is too general
+        #    print(ex)
+        #    self.remove_data_unpack_directory()
+        #    return None
 
     def file_unpacked(self, unpackresult, filesize):
         # store the location of where the successfully
