@@ -1,6 +1,6 @@
 import os
 from . import mbr_partition_table
-from UnpackParser import UnpackParser
+from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
 # table from
@@ -124,10 +124,10 @@ class MbrPartitionTableUnpackParser(UnpackParser):
         for p in self.data.partitions:
             self.unpacked_size = max( self.unpacked_size,
                     (p.lba_start + p.num_sectors) * 512 )
-        if self.unpacked_size > self.fileresult.filesize:
-            raise UnpackParserException("partition bigger than file")
-        if self.unpacked_size < 0x1be:
-            raise UnpackParserException("invalid partition table: no partitions")
+        check_condition(self.unpacked_size <= self.fileresult.filesize,
+                "partition bigger than file")
+        check_condition(self.unpacked_size >= 0x1be,
+                "invalid partition table: no partitions")
     def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
         """extract any files from the input file"""
         files_and_labels = []

@@ -1,6 +1,6 @@
 import os
 from . import gpt_partition_table
-from UnpackParser import UnpackParser
+from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
 class GptPartitionTableUnpackParser(UnpackParser):
@@ -21,8 +21,8 @@ class GptPartitionTableUnpackParser(UnpackParser):
             self.unpacked_size = (self.data.primary.backup_lba+1)*self.data.sector_size
         except Exception as e:
             raise UnpackParserException(e.args)
-        if self.unpacked_size > self.fileresult.filesize:
-            raise UnpackParserException("partition bigger than file")
+        check_condition(self.unpacked_size <= self.fileresult.filesize,
+                "partition bigger than file")
     def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
         files_and_labels = []
         partition_number = 0

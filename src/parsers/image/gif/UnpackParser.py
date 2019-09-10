@@ -1,7 +1,7 @@
 
 import os
 from . import gif
-from UnpackParser import UnpackParser
+from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
 class GifUnpackParser(UnpackParser):
@@ -17,10 +17,10 @@ class GifUnpackParser(UnpackParser):
             self.data = gif.Gif.from_io(self.infile)
         except Exception as e:
             raise UnpackParserException(e.args)
-        if self.data.logical_screen_descriptor.screen_width <= 0:
-            raise UnpackParserException("invalid width")
-        if self.data.logical_screen_descriptor.screen_height <= 0:
-            raise UnpackParserException("invalid height")
+        check_condition(self.data.logical_screen_descriptor.screen_width > 0,
+                "invalid width")
+        check_condition(self.data.logical_screen_descriptor.screen_height > 0,
+                "invalid height")
     def calculate_unpacked_size(self, offset):
         self.unpacked_size = self.infile.tell() - offset
 

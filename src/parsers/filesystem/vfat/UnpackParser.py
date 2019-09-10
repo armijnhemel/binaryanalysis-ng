@@ -2,7 +2,7 @@ import os
 import struct
 from . import vfat
 from . import vfat_directory
-from UnpackParser import UnpackParser
+from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
 def get_lfn_part(record):
@@ -34,9 +34,14 @@ class VfatUnpackParser(UnpackParser):
                 self.data = vfat.Vfat.from_io(self.infile)
         except Exception as e:
             raise UnpackParserException(e.args)
+        bpb = self.data.boot_sector.bpb
+        check_condition(bpb.ls_per_clus > 0, "invalid bpb value: ls_per_clus")
+        check_condition(bpb.bytes_per_ls > 0, "invalid bpb value: bytes_per_ls")
         self.fat12 = self.is_fat12()
         self.fat32 = self.data.boot_sector.is_fat32
         self.pos_data = self.data.boot_sector.pos_root_dir + self.data.boot_sector.size_root_dir
+        check_condition(self.pos_data <= self.fileresult.filesize,
+                "data sector outside file")
 
     def calculate_unpacked_size(self, offset):
         total_ls = max(self.data.boot_sector.bpb.total_ls_2,
@@ -124,6 +129,8 @@ class VfatUnpackParser(UnpackParser):
                 self.data.boot_sector.bpb.bytes_per_ls
         for cluster in self.cluster_chain(start_cluster):
             start = offset + self.pos_data + (cluster-2) * cluster_size
+            check_condition(start+cluster_size <= self.fileresult.filesize,
+                    "file data outside file")
             self.infile.seek(start)
             dir_entries += self.infile.read(cluster_size)
         return dir_entries
@@ -138,6 +145,8 @@ class VfatUnpackParser(UnpackParser):
         for cluster in self.cluster_chain(start_cluster):
             bytes_to_read = min(cluster_size, file_size - size_read)
             start = offset + self.pos_data + (cluster-2) * cluster_size
+            check_condition(start+bytes_to_read <= self.fileresult.filesize,
+                    "file data outside file")
             os.sendfile(outfile.fileno(), self.infile.fileno(), start, bytes_to_read)
             size_read += bytes_to_read
         outfile.close()

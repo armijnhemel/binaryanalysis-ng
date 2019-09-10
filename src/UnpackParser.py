@@ -136,3 +136,10 @@ class WrappedUnpackParser(UnpackParser):
             raise UnpackParserException(r.get('error'))
         return r
 
+def check_condition(condition, message):
+    """semantic check function to see if condition is True.
+    Raises an UnpackParserException with message if not.
+    """
+    if not condition:
+        raise UnpackParserException(message)
+

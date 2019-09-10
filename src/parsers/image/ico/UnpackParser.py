@@ -1,6 +1,6 @@
 import os
 from . import ico
-from UnpackParser import UnpackParser
+from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
 class IcoUnpackParser(UnpackParser):
@@ -14,23 +14,23 @@ class IcoUnpackParser(UnpackParser):
                 self.data = ico.Ico.from_io(self.infile)
         except Exception as e:
                 raise UnpackParserException(e.args)
-        if self.data.num_images <= 0:
-            raise UnpackParserException("Invalid ico file: not enough images")
+        check_condition(self.data.num_images > 0,
+                "Invalid ico file: not enough images")
         for img in self.data.images:
-            if img.width <= 0:
-                raise UnpackParserException("Invalid ico file: zero or negative width")
-            if img.height <= 0:
-                raise UnpackParserException("Invalid ico file: zero or negative height")
-            if img.num_colors <= 0:
-                raise UnpackParserException("Invalid ico file: zero or negative num_colors")
-            if img.num_planes <= 0:
-                raise UnpackParserException("Invalid ico file: zero or negative num_planes")
-            if img.bpp <= 0:
-                raise UnpackParserException("Invalid ico file: zero or negative bpp")
-            if img.ofs_img + img.len_img > self.fileresult.filesize:
-                raise UnpackParserException("Invalid ico file: image outside of file")
-            if img.ofs_img < 6 + self.data.num_images * 16:
-                raise UnpackParserException("Invalid ico file: image inside header")
+            check_condition(img.width > 0,
+                    "Invalid ico file: zero or negative width")
+            check_condition(img.height > 0,
+                    "Invalid ico file: zero or negative height")
+            check_condition(img.num_colors > 0,
+                    "Invalid ico file: zero or negative num_colors")
+            check_condition(img.num_planes > 0,
+                    "Invalid ico file: zero or negative num_planes")
+            check_condition(img.bpp > 0,
+                    "Invalid ico file: zero or negative bpp")
+            check_condition(img.ofs_img + img.len_img <= self.fileresult.filesize,
+                    "Invalid ico file: image outside of file")
+            check_condition(img.ofs_img >= 6 + self.data.num_images * 16,
+                    "Invalid ico file: image inside header")
     def calculate_unpacked_size(self, offset):
         self.unpacked_size = self.infile.tell() - offset
         for i in self.data.images:
