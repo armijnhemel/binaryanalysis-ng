@@ -1,14 +1,14 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangtext import unpack_shadow
 
-class ShadowUnpackParser(UnpackParser):
+class ShadowUnpackParser(WrappedUnpackParser):
     extensions = ['shadow']
     signatures = [
     ]
     pretty_name = 'shadow'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_shadow(fileresult, scan_environment, offset, unpack_dir)
 

@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_minidump
 
-class MinidumpUnpackParser(UnpackParser):
+class MinidumpUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'MDMP')
     ]
     pretty_name = 'minidump'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_minidump(fileresult, scan_environment, offset, unpack_dir)
 

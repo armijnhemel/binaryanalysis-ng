@@ -1,14 +1,14 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_json
 
-class JsonUnpackParser(UnpackParser):
+class JsonUnpackParser(WrappedUnpackParser):
     extensions = ['.json']
     signatures = [
     ]
     pretty_name = 'json'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_json(fileresult, scan_environment, offset, unpack_dir)
 

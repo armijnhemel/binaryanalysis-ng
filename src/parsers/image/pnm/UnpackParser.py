@@ -1,9 +1,9 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_pnm
 
-class PnmUnpackParser(UnpackParser):
+class PnmUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'P6'),
@@ -12,6 +12,6 @@ class PnmUnpackParser(UnpackParser):
     ]
     pretty_name = 'pnm'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_pnm(fileresult, scan_environment, offset, unpack_dir)
 

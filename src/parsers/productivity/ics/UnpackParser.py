@@ -1,14 +1,14 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangtext import unpack_ics
 
-class IcsUnpackParser(UnpackParser):
+class IcsUnpackParser(WrappedUnpackParser):
     extensions = ['.ics']
     signatures = [
     ]
     pretty_name = 'ics'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_ics(fileresult, scan_environment, offset, unpack_dir)
 

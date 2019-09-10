@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_bittorrent
 
-class BittorrentUnpackParser(UnpackParser):
+class BittorrentUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'd8:announce')
     ]
     pretty_name = 'bittorrent'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_bittorrent(fileresult, scan_environment, offset, unpack_dir)
 

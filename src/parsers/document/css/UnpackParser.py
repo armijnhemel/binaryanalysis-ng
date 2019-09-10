@@ -1,13 +1,13 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangtext import unpack_css
 
-class CssUnpackParser(UnpackParser):
+class CssUnpackParser(WrappedUnpackParser):
     extensions = [ '.css' ]
     signatures = [ ]
     pretty_name = 'css'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_css(fileresult, scan_environment, offset, unpack_dir)
 

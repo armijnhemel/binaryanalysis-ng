@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_mng
 
-class MngUnpackParser(UnpackParser):
+class MngUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'\x8aMNG\x0d\x0a\x1a\x0a')
     ]
     pretty_name = 'mng'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_mng(fileresult, scan_environment, offset, unpack_dir)
 

@@ -1,9 +1,9 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_cramfs
 
-class CramfsUnpackParser(UnpackParser):
+class CramfsUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'\x45\x3d\xcd\x28'),
@@ -11,6 +11,6 @@ class CramfsUnpackParser(UnpackParser):
     ]
     pretty_name = 'cramfs'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_cramfs(fileresult, scan_environment, offset, unpack_dir)
 

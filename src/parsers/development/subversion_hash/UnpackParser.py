@@ -1,14 +1,14 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangtext import unpack_subversion_hash
 
-class SubversionHashUnpackParser(UnpackParser):
+class SubversionHashUnpackParser(WrappedUnpackParser):
     extensions = ['wcprops']
     signatures = [
     ]
     pretty_name = 'subversion_hash'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_subversion_hash(fileresult, scan_environment, offset, unpack_dir)
 

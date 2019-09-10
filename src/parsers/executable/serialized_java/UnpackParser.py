@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_serialized_java
 
-class SerializedJavaUnpackParser(UnpackParser):
+class SerializedJavaUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'\xac\xed\x00\x05')
     ]
     pretty_name = 'serialized_java'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_serialized_java(fileresult, scan_environment, offset, unpack_dir)
 

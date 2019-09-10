@@ -1,9 +1,9 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_lzma
 
-class LzmaUnpackParser(UnpackParser):
+class LzmaUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'\x5d\x00\x00'),
@@ -12,6 +12,6 @@ class LzmaUnpackParser(UnpackParser):
     ]
     pretty_name = 'lzma'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_lzma(fileresult, scan_environment, offset, unpack_dir)
 

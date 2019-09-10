@@ -1,14 +1,14 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangtext import unpack_dockerfile
 
-class DockerfileUnpackParser(UnpackParser):
+class DockerfileUnpackParser(WrappedUnpackParser):
     extensions = ['dockerfile', '.dockerfile']
     signatures = [
     ]
     pretty_name = 'dockerfile'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_dockerfile(fileresult, scan_environment, offset, unpack_dir)
 

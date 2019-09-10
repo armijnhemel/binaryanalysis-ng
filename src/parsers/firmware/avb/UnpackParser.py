@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangandroid import unpack_avb
 
-class AvbUnpackParser(UnpackParser):
+class AvbUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'AVB0')
     ]
     pretty_name = 'avb'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_avb(fileresult, scan_environment, offset, unpack_dir)
 

@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_webp
 
-class WebpUnpackParser(UnpackParser):
+class WebpUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (8, b'WEBP')
     ]
     pretty_name = 'webp'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_webp(fileresult, scan_environment, offset, unpack_dir)
 

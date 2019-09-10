@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from banggames import unpack_quake_pak
 
-class QuakePakUnpackParser(UnpackParser):
+class QuakePakUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'PACK')
     ]
     pretty_name = 'quakepak'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_quake_pak(fileresult, scan_environment, offset, unpack_dir)
 

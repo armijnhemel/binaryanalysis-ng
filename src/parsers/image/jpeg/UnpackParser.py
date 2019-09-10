@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_jpeg
 
-class JpegUnpackParser(UnpackParser):
+class JpegUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'\xff\xd8')
     ]
     pretty_name = 'jpeg'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_jpeg(fileresult, scan_environment, offset, unpack_dir)
 

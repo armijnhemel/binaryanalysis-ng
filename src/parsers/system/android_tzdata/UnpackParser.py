@@ -1,13 +1,13 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangandroid import unpack_android_tzdata
 
-class TzdataUnpackParser(UnpackParser):
+class TzdataUnpackParser(WrappedUnpackParser):
     extensions = ['tzdata']
     signatures = []
     pretty_name = 'tzdata'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_android_tzdata(fileresult, scan_environment, offset, unpack_dir)
 

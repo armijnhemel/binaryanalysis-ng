@@ -1,9 +1,9 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_jffs2
 
-class Jffs2UnpackParser(UnpackParser):
+class Jffs2UnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'\x85\x19'),
@@ -11,6 +11,6 @@ class Jffs2UnpackParser(UnpackParser):
     ]
     pretty_name = 'jffs2'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_jffs2(fileresult, scan_environment, offset, unpack_dir)
 

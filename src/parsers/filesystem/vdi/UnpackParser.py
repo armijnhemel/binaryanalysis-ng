@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_vdi
 
-class VdiUnpackParser(UnpackParser):
+class VdiUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'<<< Oracle VM VirtualBox Disk Image >>>\n')
     ]
     pretty_name = 'vdi'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_vdi(fileresult, scan_environment, offset, unpack_dir)
 

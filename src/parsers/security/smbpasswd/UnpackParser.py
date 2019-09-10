@@ -1,14 +1,14 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangtext import unpack_smbpasswd
 
-class SmbpasswdUnpackParser(UnpackParser):
+class SmbpasswdUnpackParser(WrappedUnpackParser):
     extensions = ['smbpasswd']
     signatures = [
     ]
     pretty_name = 'smbpasswd'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_smbpasswd(fileresult, scan_environment, offset, unpack_dir)
 

@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_rzip
 
-class RzipUnpackParser(UnpackParser):
+class RzipUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'RZIP')
     ]
     pretty_name = 'rzip'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_rzip(fileresult, scan_environment, offset, unpack_dir)
 

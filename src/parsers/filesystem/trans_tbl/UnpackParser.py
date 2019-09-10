@@ -1,14 +1,14 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangtext import unpack_trans_tbl
 
-class TransTblUnpackParser(UnpackParser):
+class TransTblUnpackParser(WrappedUnpackParser):
     extensions = ['trans.tbl']
     signatures = [
     ]
     pretty_name = 'trans.tbl'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_trans_tbl(fileresult, scan_environment, offset, unpack_dir)
 

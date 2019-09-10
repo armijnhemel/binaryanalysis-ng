@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_gimp_brush
 
-class GimpBrushUnpackParser(UnpackParser):
+class GimpBrushUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (20, b'GIMP')
     ]
     pretty_name = 'gimpbrush'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_gimp_brush(fileresult, scan_environment, offset, unpack_dir)
 

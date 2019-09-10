@@ -1,9 +1,9 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_gnu_message_catalog
 
-class GnuMessageCatalogUnpackParser(UnpackParser):
+class GnuMessageCatalogUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'\xde\x12\x04\x95'),
@@ -11,6 +11,6 @@ class GnuMessageCatalogUnpackParser(UnpackParser):
     ]
     pretty_name = 'gnu_message_catalog'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_gnu_message_catalog(fileresult, scan_environment, offset, unpack_dir)
 

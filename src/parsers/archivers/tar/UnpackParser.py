@@ -1,9 +1,9 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_tar
 
-class TarUnpackParser(UnpackParser):
+class TarUnpackParser(WrappedUnpackParser):
     extensions = ['.tar']
     signatures = [
         (0x101, b'ustar\x00'),
@@ -11,6 +11,6 @@ class TarUnpackParser(UnpackParser):
     ]
     pretty_name = 'tar'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_tar(fileresult, scan_environment, offset, unpack_dir)
 

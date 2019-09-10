@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_lzip
 
-class LzipUnpackParser(UnpackParser):
+class LzipUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'LZIP')
     ]
     pretty_name = 'lzip'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_lzip(fileresult, scan_environment, offset, unpack_dir)
 

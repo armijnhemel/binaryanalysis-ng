@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_plf
 
-class PlfUnpackParser(UnpackParser):
+class PlfUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'PLF!')
     ]
     pretty_name = 'plf'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_plf(fileresult, scan_environment, offset, unpack_dir)
 

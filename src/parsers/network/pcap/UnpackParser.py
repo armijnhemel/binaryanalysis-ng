@@ -1,9 +1,9 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_pcap
 
-class PcapUnpackParser(UnpackParser):
+class PcapUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'\xd4\xc3\xb2\xa1'),
@@ -13,6 +13,6 @@ class PcapUnpackParser(UnpackParser):
     ]
     pretty_name = 'pcap'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_pcap(fileresult, scan_environment, offset, unpack_dir)
 

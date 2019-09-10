@@ -1,9 +1,9 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_yaffs2
 
-class Yaffs2UnpackParser(UnpackParser):
+class Yaffs2UnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'\x03\x00\x00\x00\x01\x00\x00\x00\xff\xff'),
@@ -13,6 +13,6 @@ class Yaffs2UnpackParser(UnpackParser):
     ]
     pretty_name = 'yaffs2'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_yaffs2(fileresult, scan_environment, offset, unpack_dir)
 

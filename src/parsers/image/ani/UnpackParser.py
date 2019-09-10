@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_ani
 
-class AniUnpackParser(UnpackParser):
+class AniUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (8, b'ACON')
     ]
     pretty_name = 'ani'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_ani(fileresult, scan_environment, offset, unpack_dir)
 

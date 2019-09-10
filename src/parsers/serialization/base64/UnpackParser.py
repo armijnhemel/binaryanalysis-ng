@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangtext import unpack_base64
 
-class Base64UnpackParser(UnpackParser):
+class Base64UnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
     ]
     scan_if_featureless = True
     pretty_name = 'base64'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_base64(fileresult, scan_environment, offset, unpack_dir)
 

@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_bmp
 
-class BmpUnpackParser(UnpackParser):
+class BmpUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'BM')
     ]
     pretty_name = 'bmp'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_bmp(fileresult, scan_environment, offset, unpack_dir)
 

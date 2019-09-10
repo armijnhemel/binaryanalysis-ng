@@ -1,15 +1,15 @@
 
 import os
-from UnpackParser import UnpackParser
+from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_qcdt
 
-class QcdtUnpackParser(UnpackParser):
+class QcdtUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
         (0, b'QCDT')
     ]
     pretty_name = 'qcdt'
 
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_qcdt(fileresult, scan_environment, offset, unpack_dir)
 
