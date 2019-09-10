@@ -120,6 +120,10 @@ Not all kaitai parsers read the complete file. The unpacker determines the file 
 
 Kaitai parsers that expect an end of stream, for example by using `size-eos`, or calling `size` on a kaitai stream object, cannot be used for carving data from a file. When carving, we have a stream that can contain data beyond the file that we want to extract, and therefore, our parser cannot depend on that.
 
+### Handling parse errors
+
+The UnpackParser class asks us to raise UnpackParserExceptions for non-fatal errors. This means that we need to catch all parse errors when processing a file with kaitai-struct. You must not only handle any exceptions from calling `from_io`, but also from any kaitai-struct instances, as they may trigger the kaitai parser to read data.
+
 ### Importing kaitai types
 
 If you import a kaitai-struct file in another (relative import), say `vfat_directory_rec` the translated Python code contains:

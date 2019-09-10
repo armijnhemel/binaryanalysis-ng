@@ -72,9 +72,12 @@ class VfatUnpackParser(UnpackParser):
         return struct.unpack("<I", self.data.fats[0][4*n:4*n+4])[0] & 0x0fffffff
 
     def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
-        files_and_labels = [
+        try:
+            files_and_labels = [
                 x for x in self.unpack_directory(scan_environment, offset, self.data.root_dir.records, rel_unpack_dir)
             ]
+        except Exception as e:
+            raise UnpackParserException(e.args)
         return files_and_labels
 
     def unpack_directory(self, scan_environment, offset, directory_records, rel_unpack_dir):

@@ -39,6 +39,7 @@ import banglogging
 from FileResult import FileResult
 from FileContentsComputer import *
 from Unpacker import *
+from UnpackParserException import UnpackParserException
 
 
 class ScanJobError(Exception):
@@ -189,20 +190,21 @@ class ScanJob:
             for unpackparser in unpackparsers:
                 if bangsignatures.matches_file_pattern(self.fileresult.filename, extension):
                     log(logging.INFO, "TRYING extension match %s %s" % (self.fileresult.filename, extension))
-                    unpackresult = unpacker.try_unpack_file_for_extension(
-                        self.fileresult, self.scanenvironment,
-                        self.fileresult.filename, extension, unpackparser)
-                    if unpackresult is None:
-                        continue
-                    if not unpackresult['status']:
+                    try:
+                        unpackresult = unpacker.try_unpack_file_for_extension(
+                            self.fileresult, self.scanenvironment,
+                            self.fileresult.filename, extension, unpackparser)
+                        if unpackresult is None:
+                            continue
+                    except UnpackParserException as e:
                         # No data could be unpacked for some reason
                         log(logging.DEBUG, "FAIL %s known extension %s: %s" %
                             (self.fileresult.filename, extension,
-                             unpackresult['error']['reason']))
+                             e.args))
                         # Fatal errors should lead to the program stopping
                         # execution. Ignored for now.
-                        if unpackresult['error']['fatal']:
-                            pass
+                        # if unpackresult['error']['fatal']:
+                        #    pass
                         unpacker.remove_data_unpack_directory_tree()
                         continue
 
@@ -293,23 +295,26 @@ class ScanJob:
                     log(logging.DEBUG, "TRYING %s %s at offset: %d" %
                         (self.fileresult.filename, unpackparser.pretty_name, offset))
 
-                    unpackresult = unpacker.try_unpack_file_for_signatures(
-                        self.fileresult, self.scanenvironment,
-                        unpackparser, offset)
-                    if unpackresult is None:
-                        continue
-
-                    if not unpackresult['status']:
+                    try:
+                        unpackresult = unpacker.try_unpack_file_for_signatures(
+                            self.fileresult, self.scanenvironment,
+                            unpackparser, offset)
+                        if unpackresult is None:
+                            continue
+                    except UnpackParserException as e:
                         # No data could be unpacked for some reason,
                         # so log the status and error message
+                        print('UnpackParserException: %s, %s: %s' %
+                                (self.fileresult.filename,
+                                unpackparser.pretty_name, e.args))
                         log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
                             (self.fileresult.filename, unpackparser.pretty_name, offset,
-                             unpackresult['error']['reason']))
+                             e.args))
 
                         # Fatal errors should lead to the program
                         # stopping execution. Ignored for now.
-                        if unpackresult['error']['fatal']:
-                            pass
+                        # if unpackresult['error']['fatal']:
+                        #    pass
 
                         unpacker.remove_data_unpack_directory_tree()
 
@@ -560,16 +565,17 @@ class ScanJob:
 
                 log(logging.DEBUG, "TRYING %s %s at offset: 0" %
                         (self.fileresult.filename, unpack_parser.pretty_name))
-                unpackresult = unpacker.try_unpack_without_features(
-                    self.fileresult, self.scanenvironment, unpack_parser, 0)
-                if unpackresult is None:
-                    continue
-
-                if not unpackresult['status']:
+                try:
+                    unpackresult = unpacker.try_unpack_without_features(
+                        self.fileresult, self.scanenvironment, unpack_parser, 0)
+                    if unpackresult is None:
+                        continue
+                except UnpackParserException as e:
                     # No data could be unpacked for some reason,
                     # so check the status first
                     log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
-                        (self.fileresult.filename, unpack_parser.pretty_name, 0, unpackresult['error']['reason']))
+                        (self.fileresult.filename, unpack_parser.pretty_name, 0,
+                            e.args))
                     # unpackerror contains:
                     # * offset in the file where the error occured
                     #   (integer)
@@ -581,8 +587,8 @@ class ScanJob:
                     # program and remove the unpacking directory,
                     # so first change the permissions of
                     # all the files so they can be safely removed.
-                    if unpackresult['error']['fatal']:
-                        pass
+                    # if unpackresult['error']['fatal']:
+                    #    pass
 
                     unpacker.remove_data_unpack_directory_tree()
                     continue
