@@ -254,7 +254,12 @@ class TestScanJob(TestBase):
         self.assertEqual(j.fileresult.filename, expected_extracted_fn)
         self.assertUnpackedPathExists(j.fileresult.filename)
 
-
+    # test to verify how signatures are matched
+    # 1. non-overlapping files with unpackers that unpack
+    # 2. overlapping files with unpackers that unpack
+    # 3. same offset, different unpackers: one unpacks, the other does not
+    # 4. same offset, different unpackers that both unpack
+    # 5. files with unpackers that do not unpack
 
 if __name__ == "__main__":
     unittest.main()
