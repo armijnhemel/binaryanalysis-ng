@@ -176,6 +176,85 @@ class TestScanJob(TestBase):
         self.assertEqual(unpack_report['files'],
                 [ str(fn)+'-0x00000000-gzip-1/hello' ])
 
+    def test_file_is_unpacked_by_extension(self):
+        fn = pathlib.Path("unpackers") / "gif" / "test.gif"
+        self._copy_file_from_testdata(fn)
+        fileresult = create_fileresult_for_path(self.unpackdir, fn, set())
+
+        scanjob = ScanJob(fileresult)
+        scanjob.set_scanenvironment(self.scan_environment)
+        scanjob.initialize()
+        unpacker = Unpacker(self.unpackdir)
+        scanjob.prepare_for_unpacking()
+        scanjob.check_for_valid_extension(unpacker)
+        # j = self.scanfile_queue.get()
+        self.assertIn('gif', fileresult.labels)
+
+    def test_file_is_unpacked_by_signature(self):
+        fn = pathlib.Path("unpackers") / "gif" / "test-prepend-random-data.gif"
+        self._copy_file_from_testdata(fn)
+        fileresult = create_fileresult_for_path(self.unpackdir, fn, set())
+
+        scanjob = ScanJob(fileresult)
+        scanjob.set_scanenvironment(self.scan_environment)
+        scanjob.initialize()
+        unpacker = Unpacker(self.unpackdir)
+        scanjob.prepare_for_unpacking()
+        scanjob.check_for_valid_extension(unpacker)
+        self.assertNotIn('gif', fileresult.labels)
+        scanjob.check_for_signatures(unpacker)
+        self.assertNotIn('gif', fileresult.labels)
+        j = self.scanfile_queue.get()
+        self.assertIn('gif', j.fileresult.labels)
+
+    def test_carved_data_is_extracted_from_file(self):
+        fn = pathlib.Path("unpackers") / "gif" / "test-prepend-random-data.gif"
+        self._copy_file_from_testdata(fn)
+        fileresult = create_fileresult_for_path(self.unpackdir, fn, set())
+
+        scanjob = ScanJob(fileresult)
+        scanjob.set_scanenvironment(self.scan_environment)
+        scanjob.initialize()
+        unpacker = Unpacker(self.unpackdir)
+        scanjob.prepare_for_unpacking()
+        scanjob.check_for_valid_extension(unpacker)
+        scanjob.check_for_signatures(unpacker)
+        j = self.scanfile_queue.get()
+        scanjob.carve_file_data(unpacker)
+        j = self.scanfile_queue.get()
+        synthesized_name = fn.parent / \
+                ("%s-0x%08x-synthesized-1" % (fn.name,0)) / \
+                ("unpacked-0x%x-0x%x" % (0,127))
+        self.assertEqual(j.fileresult.filename, synthesized_name)
+        self.assertUnpackedPathExists(j.fileresult.filename)
+
+    def test_featureless_file_is_unpacked(self):
+        fn = pathlib.Path("unpackers") / "ihex" / "example.txt"
+        self._copy_file_from_testdata(fn)
+        fileresult = create_fileresult_for_path(self.unpackdir, fn, set())
+
+        scanjob = ScanJob(fileresult)
+        scanjob.set_scanenvironment(self.scan_environment)
+        scanjob.initialize()
+        unpacker = Unpacker(self.unpackdir)
+        scanjob.prepare_for_unpacking()
+        scanjob.check_for_valid_extension(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        scanjob.check_for_signatures(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        self.assertEqual(fileresult.unpackedfiles, [])
+        scanjob.carve_file_data(unpacker)
+        self.assertEqual(fileresult.unpackedfiles, [])
+        fileresult.labels.add('text')
+        scanjob.check_entire_file(unpacker)
+        self.assertEqual(len(fileresult.unpackedfiles), 1)
+        j = self.scanfile_queue.get()
+        expected_extracted_fn = fn.parent / \
+                ("%s-0x%08x-ihex-1" % (fn.name, 0)) / "unpacked-from-ihex"
+        self.assertEqual(j.fileresult.filename, expected_extracted_fn)
+        self.assertUnpackedPathExists(j.fileresult.filename)
+
+
 
 if __name__ == "__main__":
     unittest.main()
