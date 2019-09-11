@@ -443,6 +443,9 @@ class ScanJob:
         # padding data.
         #
         # This also makes it easier for doing a "post mortem".
+        #
+        # TODO: this assumes that only one file was unpacked, as there can
+        # only be one unpacked_range?
         unpacked_range = unpacker.unpacked_range()
         if unpacked_range != []:
             # first check if the first entry covers the entire file
@@ -547,6 +550,8 @@ class ScanJob:
             self.fileresult.labels.add('binary')
 
     def check_entire_file(self, unpacker):
+        # TODO: this is making an assumption that all featureless files are
+        # text based.
         if 'text' in self.fileresult.labels and unpacker.unpacked_range() == []:
             for unpack_parser in \
                     bangsignatures.unpackers_for_featureless_files:
