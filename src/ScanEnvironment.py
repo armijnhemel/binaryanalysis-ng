@@ -60,6 +60,10 @@ class ScanEnvironment:
         self.processlock = processlock
         self.checksumdict = checksumdict
         self.runfilescans = runfilescans
+        self.unpackparsers = []
+        self.unpackparsers_for_extensions = {}
+        self.unpackparsers_for_signatures = {}
+        self.unpackparsers_for_featureless_files = []
 
     def get_runfilescans(self):
         return self.runfilescans
@@ -112,3 +116,27 @@ class ScanEnvironment:
 
     def rel_tmp_path(self, fn):
         return os.path.relpath(fn, self.temporarydirectory)
+
+    def add_unpackparser(self, unpackparser):
+        self.unpackparsers.append(unpackparser)
+        for ext in unpackparser.extensions:
+            self.unpackparsers_for_extensions.setdefault(ext,[])
+            self.unpackparsers_for_extensions[ext].append(unpackparser)
+        for signature in unpackparser.signatures:
+            self.unpackparsers_for_signatures.setdefault(signature,[])
+            self.unpackparsers_for_signatures[signature].append(unpackparser)
+        if unpackparser.scan_if_featureless:
+            self.unpackparsers_for_featureless_files.append(unpackparser)
+
+    def get_unpackparsers(self):
+        return self.unpackparsers
+
+    def get_unpackparsers_for_extensions(self):
+        return self.unpackparsers_for_extensions
+
+    def get_unpackparsers_for_signatures(self):
+        return self.unpackparsers_for_signatures
+
+    def get_unpackparsers_for_featureless_files(self):
+        return self.unpackparsers_for_featureless_files
+
