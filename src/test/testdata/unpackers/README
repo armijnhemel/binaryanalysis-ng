@@ -88,3 +88,8 @@ chunk/spare 8192/256:
 * yaffs2-8192-256-be-empty-dir.img : big endian, single empty dir "test"
 * yaffs2-8192-256-le-dir-with-file.img : little endian, dir "test" with file "test.ico"
 * yaffs2-8192-256-be-dir-with-file.img : big endian, dir "test" with file "test.ico"
+
+ihex/example.hex, ihex/example.txt: CC-BY-SA-3.0, https://en.wikipedia.org/wiki/Intel_HEX
+srec/helloworld.srec: GPL-3.0, srec_motorola(5) man page at http://srecord.sourceforge.net/man/man5/srec_motorola.html
+
+
