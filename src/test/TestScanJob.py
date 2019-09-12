@@ -260,6 +260,12 @@ class TestScanJob(TestBase):
     # 3. same offset, different unpackers: one unpacks, the other does not
     # 4. same offset, different unpackers that both unpack
     # 5. files with unpackers that do not unpack
+    # test carving:
+    # 1. file that unpacks by extension but filesize is not the entire file
+    #    the remainder of the file is then scanned by signatures
+    #    ex: 2 .gbr files concatenated with extension .gbr
+    # 2. ex: 2 .gbr files concatenated with extension .bla
+    # 3. ex: kernelconfig (featureless file) concatenated with .gbr
 
 if __name__ == "__main__":
     unittest.main()
