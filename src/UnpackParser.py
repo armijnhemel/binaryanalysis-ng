@@ -34,6 +34,9 @@ class UnpackParser:
     scan_if_featureless = False
 
     def __init__(self, fileresult, scan_environment, rel_unpack_dir, offset):
+        """Constructor. All constructor arguments are available as object
+        fields of the same name.
+        """
         self.unpacked_size = 0
         self.unpack_results = {}
         self.fileresult = fileresult
@@ -46,7 +49,7 @@ class UnpackParser:
         UnpackParserException.
         """
         raise UnpackParserException("%s: undefined parse method" % self.__class__.__name__)
-    def parse_from_offset(self, fileresult, scan_environment, offset):
+    def parse_from_offset(self):
         """Parses the data from a file pointed to by fileresult, starting from
         offset. Normally you do not need to override this.
         """
@@ -58,30 +61,31 @@ class UnpackParser:
         self.infile = filename_full.open('rb')
     def close(self):
         self.infile.close()
-    def calculate_unpacked_size(self, offset):
+    def calculate_unpacked_size(self):
         """Override this to calculate the length of the file data that is
         extracted. Needed if you call the UnpackParser to extract (carve)
         data that is contained in another file or if the parse method does
         not read the entire content and you need a custom length calculation.
+        You must assign the length to self.unpacked_size.
         """
-        self.unpacked_size = self.infile.tell() - offset
+        self.unpacked_size = self.infile.tell() - self.offset
     def parse_and_unpack(self):
         """Parses the file and unpacks any contents into other files. Files are
-        stored in the filesandlabels field of the unpack_results dictionary.
+        stored in the filesandlabels field of the self.unpack_results
+        dictionary.
         You normally do not need to override this method. Any
         UnpackParserExceptions that are raised are assumed to be non-fatal,
         i.e. the program can continue. Other exceptions are not assumed to be
         handled and may cause the program to abort.
         """
 
-        self.parse_from_offset(self.fileresult, self.scan_environment, self.offset)
+        self.parse_from_offset()
         self.unpack_results = {
                 'status': True,
                 'length': self.unpacked_size
             }
         self.set_metadata_and_labels()
-        files_and_labels = self.unpack(self.fileresult, self.scan_environment,
-                self.offset, self.rel_unpack_dir)
+        files_and_labels = self.unpack()
         self.unpack_results['filesandlabels'] = files_and_labels
         return self.unpack_results
 
@@ -110,7 +114,7 @@ class UnpackParser:
         """Override this method to set metadata and labels."""
         self.unpack_results['labels'] = []
         self.unpack_results['metadata'] = {}
-    def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
+    def unpack(self):
         """Override this method to unpack any data into subfiles.
         The filenames are relative to the unpack directory root that the
         scan_environment points to (usually this is a file under unpack_dir).
@@ -123,7 +127,7 @@ class UnpackParser:
     @classmethod
     def is_valid_extension(cls, ext):
         return ext in cls.extensions
-    def extract_to_file(self, scan_environment, filename, start, length):
+    def extract_to_file(self, filename, start, length):
         """Extracts data from the input stream, starting at start, of length
         length, to the file pointed to by filename.
         filename is a path, relative to the unpack root directory.,
@@ -131,7 +135,7 @@ class UnpackParser:
         data is assumed to start at an offset in the input stream, you will
         need to add this offset when calling this method.
         """
-        outfile_full = scan_environment.unpack_path(filename)
+        outfile_full = self.scan_environment.unpack_path(filename)
         os.makedirs(outfile_full.parent, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), self.infile.fileno(), start, length)
