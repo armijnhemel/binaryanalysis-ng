@@ -14,10 +14,10 @@ class TestVfatUnpackParser(TestBase):
                 set())
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir)
+        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                0)
         p.open()
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
+        r = p.parse_and_unpack()
         p.close()
         self.assertTrue(r['status'])
         self.assertEqual(r['length'], filesize)
@@ -37,10 +37,10 @@ class TestVfatUnpackParser(TestBase):
                 set())
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir)
+        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                0)
         p.open()
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
+        r = p.parse_and_unpack()
         p.close()
         self.assertTrue(r['status'])
         unpacked_path_rel = data_unpack_dir / 'copying'
@@ -60,10 +60,10 @@ class TestVfatUnpackParser(TestBase):
                 set())
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir)
+        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                0)
         p.open()
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
+        r = p.parse_and_unpack()
         p.close()
         self.assertTrue(r['status'])
         self.assertEqual(len(r['filesandlabels']), 4)

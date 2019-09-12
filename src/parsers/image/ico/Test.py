@@ -11,11 +11,11 @@ class TestIcoUnpackParser(TestBase):
                 set())
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = IcoUnpackParser(fileresult, self.scan_environment, data_unpack_dir)
+        p = IcoUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                0)
         p.open()
         # dummy data unpack dir
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
+        r = p.parse_and_unpack()
         p.close()
         self.assertTrue(r['status'])
         self.assertEqual(r['length'], filesize)

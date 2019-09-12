@@ -33,12 +33,13 @@ class UnpackParser:
     signatures = []
     scan_if_featureless = False
 
-    def __init__(self, fileresult, scan_environment, rel_unpack_dir):
+    def __init__(self, fileresult, scan_environment, rel_unpack_dir, offset):
         self.unpacked_size = 0
         self.unpack_results = {}
         self.fileresult = fileresult
         self.scan_environment = scan_environment
         self.rel_unpack_dir = rel_unpack_dir
+        self.offset = offset
     def parse(self):
         """Override this method to implement parsing the file data. If there is
         a (non-fatal) error during the parsing, you should raise an
@@ -49,10 +50,9 @@ class UnpackParser:
         """Parses the data from a file pointed to by fileresult, starting from
         offset. Normally you do not need to override this.
         """
-        self.offset = offset
-        self.infile.seek(offset)
+        self.infile.seek(self.offset)
         self.parse()
-        self.calculate_unpacked_size(offset)
+        self.calculate_unpacked_size(self.offset)
     def open(self):
         filename_full = self.scan_environment.unpack_path(self.fileresult.filename)
         self.infile = filename_full.open('rb')
@@ -65,7 +65,7 @@ class UnpackParser:
         not read the entire content and you need a custom length calculation.
         """
         self.unpacked_size = self.infile.tell() - offset
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def parse_and_unpack(self):
         """Parses the file and unpacks any contents into other files. Files are
         stored in the filesandlabels field of the unpack_results dictionary.
         You normally do not need to override this method. Any
@@ -74,13 +74,14 @@ class UnpackParser:
         handled and may cause the program to abort.
         """
 
-        self.parse_from_offset(fileresult, scan_environment, offset)
+        self.parse_from_offset(self.fileresult, self.scan_environment, self.offset)
         self.unpack_results = {
                 'status': True,
                 'length': self.unpacked_size
             }
         self.set_metadata_and_labels()
-        files_and_labels = self.unpack(fileresult, scan_environment, offset, unpack_dir)
+        files_and_labels = self.unpack(self.fileresult, self.scan_environment,
+                self.offset, self.rel_unpack_dir)
         self.unpack_results['filesandlabels'] = files_and_labels
         return self.unpack_results
 
@@ -150,8 +151,9 @@ class WrappedUnpackParser(UnpackParser):
         to an UnpackParserException automatically by parse_and_unpack.
         """
         raise UnpackParserException("%s: must call unpack function" % self.__class__.__name__)
-    def parse_and_unpack(self, fileresult, scan_environment, offset, unpack_dir):
-        r = self.unpack_function(fileresult, scan_environment, offset, unpack_dir)
+    def parse_and_unpack(self):
+        r = self.unpack_function(self.fileresult, self.scan_environment,
+                self.offset, self.rel_unpack_dir)
         if r['status'] is False:
             raise UnpackParserException(r.get('error'))
         return r

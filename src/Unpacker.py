@@ -131,10 +131,11 @@ class Unpacker:
     def try_unpack_file_for_extension(self, fileresult, scanenvironment,
             relpath, extension, unpackparser):
         self.make_data_unpack_directory(relpath, unpackparser.pretty_name, 0)
-        up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory)
+        up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory,
+                0)
         up.open()
         try:
-            unpackresult = up.parse_and_unpack(fileresult, scanenvironment, 0, self.dataunpackdirectory)
+            unpackresult = up.parse_and_unpack()
             if unpackresult['length'] != fileresult.filesize:
                 up.carve()
         except UnpackParserException as e:
@@ -214,10 +215,11 @@ class Unpacker:
 
     def try_unpack_file_for_signatures(self, fileresult, scanenvironment,
             unpackparser, offset):
-        up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory)
+        up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory,
+                offset)
         up.open()
         try:
-            unpackresult = up.parse_and_unpack(fileresult, scanenvironment, offset, self.dataunpackdirectory)
+            unpackresult = up.parse_and_unpack()
             if unpackresult['length'] != fileresult.filesize:
                 up.carve()
         except UnpackParserException as e:
@@ -227,10 +229,11 @@ class Unpacker:
         return unpackresult
 
     def try_unpack_without_features(self, fileresult, scanenvironment, unpackparser,  offset):
-        up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory)
+        up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory,
+                0)
         up.open()
         try:
-            unpackresult = up.parse_and_unpack(fileresult, scanenvironment, 0, self.dataunpackdirectory)
+            unpackresult = up.parse_and_unpack()
             if unpackresult['length'] != fileresult.filesize:
                 # TODO: let up generate name
                 up.carve()

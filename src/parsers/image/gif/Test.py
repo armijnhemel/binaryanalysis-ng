@@ -13,10 +13,10 @@ class TestGifUnpackParser(TestBase):
                 set())
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir)
+        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                0)
         p.open()
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
+        r = p.parse_and_unpack()
         p.close()
         self.assertTrue(r['status'])
         self.assertEqual(r['length'], filesize)
@@ -31,10 +31,10 @@ class TestGifUnpackParser(TestBase):
                 set())
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir)
+        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                128)
         p.open()
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 128,
-                data_unpack_dir)
+        r = p.parse_and_unpack()
         p.carve()
         p.close()
         self.assertTrue(r['status'])
@@ -56,14 +56,12 @@ class TestGifUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir)
+        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                0)
         p.open()
         with self.assertRaisesRegex(UnpackParserException, r".*") as cm:
-            r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
+            r = p.parse_and_unpack()
         p.close()
-        # self.assertFalse(r['status'])
-        # self.assertIsNotNone(r['error']['reason'])
 
 if __name__ == '__main__':
     unittest.main()
