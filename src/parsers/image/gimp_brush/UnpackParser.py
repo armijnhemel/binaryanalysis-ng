@@ -38,5 +38,5 @@ class GimpBrushUnpackParser(UnpackParser):
         check_condition(self.data.width > 0, "Invalid width")
         check_condition(self.data.height > 0, "Invalid height")
         check_condition(self.data.color_depth > 0, "Invalid color depth")
-        check_condition(self.header_size > 0, "Invalid header_size")
+        check_condition(self.data.header_size > 0, "Invalid header_size")
 
