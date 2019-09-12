@@ -12,12 +12,14 @@ class TestCpioUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = CpioNewAsciiUnpackParser()
+        p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment)
         # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
+        p.open()
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
-        self.assertTrue(r['status'], r.get('error'))
+        p.close()
+        self.assertTrue(r['status'])
         self.assertLessEqual(r['length'], filesize)
         extracted_fn = data_unpack_dir / 'test.sgi'
         self.assertEqual(r['filesandlabels'], [(str(extracted_fn), ['unpacked'])])
@@ -29,12 +31,14 @@ class TestCpioUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = CpioPortableAsciiUnpackParser()
+        p = CpioPortableAsciiUnpackParser(fileresult, self.scan_environment)
         # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-2")
+        p.open()
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
-        self.assertTrue(r['status'], r.get('error'))
+        p.close()
+        self.assertTrue(r['status'])
         self.assertLessEqual(r['length'], filesize)
         extracted_fn = data_unpack_dir / 'test.sgi'
         self.assertEqual(r['filesandlabels'], [(str(extracted_fn), ['unpacked'])])
@@ -47,12 +51,14 @@ class TestCpioUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = CpioNewAsciiUnpackParser()
+        p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment)
         # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-3")
+        p.open()
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
-        self.assertTrue(r['status'], r.get('error'))
+        p.close()
+        self.assertTrue(r['status'])
         self.assertLessEqual(r['length'], filesize)
 
         # check if etc is a directory
@@ -86,12 +92,14 @@ class TestCpioUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = CpioNewAsciiUnpackParser()
+        p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment)
         # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-4")
+        p.open()
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
-        self.assertTrue(r['status'], r.get('error'))
+        p.close()
+        self.assertTrue(r['status'])
         self.assertLessEqual(r['length'], filesize)
 
         extracted_fn = data_unpack_dir / 'e' / 't.sgi'
@@ -101,7 +109,7 @@ class TestCpioUnpackParser(TestBase):
         self.assertEqual(extracted_labels, ['unpacked'])
 
     def test_rewrite_symlink(self):
-        p = CpioNewAsciiUnpackParser()
+        p = CpioNewAsciiUnpackParser(None, None)
 
         expected_results = [
             ('test/dir/a.txt', '../c.txt', '../c.txt'),
