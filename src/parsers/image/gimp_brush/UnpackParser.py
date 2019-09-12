@@ -40,3 +40,8 @@ class GimpBrushUnpackParser(UnpackParser):
         check_condition(self.data.color_depth > 0, "Invalid color depth")
         check_condition(self.data.header_size > 0, "Invalid header_size")
 
+    def set_metadata_and_labels(self):
+        self.unpack_results['metadata'] = {'width': self.data.width,
+                                           'height': self.data.height,
+                                           'color_depth': self.data.color_depth}
+
