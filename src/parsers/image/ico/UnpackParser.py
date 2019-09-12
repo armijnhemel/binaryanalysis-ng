@@ -31,22 +31,14 @@ class IcoUnpackParser(UnpackParser):
                     "Invalid ico file: image outside of file")
             check_condition(img.ofs_img >= 6 + self.data.num_images * 16,
                     "Invalid ico file: image inside header")
-    def calculate_unpacked_size(self, offset):
-        self.unpacked_size = self.infile.tell() - offset
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.infile.tell() - self.offset
         for i in self.data.images:
             self.unpacked_size = max(self.unpacked_size, i.ofs_img + i.len_img)
 
-    def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
+    def unpack(self):
         """extract any files from the input file"""
-        if offset != 0 or self.unpacked_size != fileresult.filesize:
-            outfile_rel = rel_unpack_dir / "unpacked.ico"
-
-            self.extract_to_file(scan_environment, outfile_rel, offset,
-                    self.unpacked_size)
-            outlabels = self.unpack_results['labels'] + ['unpacked']
-            return [ (outfile_rel, outlabels) ]
-        else:
-            return []
+        return []
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         self.unpack_results['labels'] = ['graphics','ico','resource']
