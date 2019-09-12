@@ -71,7 +71,8 @@ class TestUnpackResult(TestBase):
             unpacker.make_data_unpack_directory(fn, unpackparser.__name__, 0)
             fileresult = create_fileresult_for_path(self.unpackdir,
                     pathlib.Path(fn), set())
-            up = unpackparser(fileresult, self.scan_environment)
+            up = unpackparser(fileresult, self.scan_environment,
+                    unpacker.get_data_unpack_directory())
             unpackresult = up.parse_and_unpack(fileresult, self.scan_environment, 0, unpacker.get_data_unpack_directory())
 
             try:
@@ -114,7 +115,7 @@ class TestUnpackResult(TestBase):
         self.assertEqual(str(fileresult.filename), name)
         for unpackername in sorted(unpackers.keys()):
             unpackparser = unpackers[unpackername]
-            up = unpackparser(fileresult, self.scan_environment)
+            up = unpackparser(fileresult, self.scan_environment, self.unpackdir)
             unpackresult = up.parse_and_unpack(fileresult, self.scan_environment, 0, self.unpackdir)
 
 if __name__ == "__main__":

@@ -64,8 +64,11 @@ class TestGeneric(TestBase):
                 pathlib.Path(rel_testfile), set())
         # make dummy data unpack dir
         data_unpack_dir = (self.unpackdir / rel_testfile).parent
-        r = parser().parse_and_unpack(fileresult, self.scan_environment, offset,
+        p = parser(fileresult, self.scan_environment, data_unpack_dir)
+        p.open()
+        r = p.parse_and_unpack(fileresult, self.scan_environment, offset,
                 data_unpack_dir)
+        p.close()
         self.assertTrue(r['status'], "unpack status for {}".format(rel_testfile))
         self.assertEqual(r['length'], filesize)
         unpacked_total_size = 0

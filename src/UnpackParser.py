@@ -33,11 +33,12 @@ class UnpackParser:
     signatures = []
     scan_if_featureless = False
 
-    def __init__(self, fileresult, scan_environment):
+    def __init__(self, fileresult, scan_environment, rel_unpack_dir):
         self.unpacked_size = 0
         self.unpack_results = {}
         self.fileresult = fileresult
         self.scan_environment = scan_environment
+        self.rel_unpack_dir = rel_unpack_dir
     def parse(self):
         """Override this method to implement parsing the file data. If there is
         a (non-fatal) error during the parsing, you should raise an
@@ -83,15 +84,26 @@ class UnpackParser:
         self.unpack_results['filesandlabels'] = files_and_labels
         return self.unpack_results
 
-    def carve(self, rel_output_path):
-        """Carve data and write to a (relative) path."""
-        # TODO: generate rel_output_path
+    @classmethod
+    def get_carved_filename(cls):
+        """Override this to change the name of the unpacked file if it is
+        carved. Default is unpacked.<pretty_name>.
+        """
+        return "unpacked.%s" % cls.pretty_name
+
+    def carve(self):
+        """If the UnpackParser recognizes data but there is still data left in
+        the file, this method saves the parsed part of the file, leaving the
+        rest to be  analyzed. The part is saved to the unpack data directory,
+        under the name given by get_carved_filename.
+        """
+        rel_output_path = self.rel_unpack_dir / self.get_carved_filename()
         abs_output_path = self.scan_environment.unpack_path(rel_output_path)
         os.makedirs(abs_output_path.parent, exist_ok=True)
         outfile = open(abs_output_path, 'wb')
         os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset, self.unpacked_size)
         outfile.close()
-        out_labels = self.fileresult.labels.union({'unpacked'})
+        out_labels = self.unpack_results['labels'] + ['unpacked']
         self.unpack_results['filesandlabels'].append( (rel_output_path, out_labels) )
     def set_metadata_and_labels(self):
         """Override this method to set metadata and labels."""
@@ -147,7 +159,7 @@ class WrappedUnpackParser(UnpackParser):
         pass
     def close(self):
         pass
-    def carve(self, rel_output_path):
+    def carve(self):
         pass
 
 def check_condition(condition, message):

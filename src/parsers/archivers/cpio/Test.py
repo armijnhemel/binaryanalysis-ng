@@ -12,9 +12,9 @@ class TestCpioUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment)
-        # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
+        p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment,
+                data_unpack_dir)
         p.open()
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
@@ -31,9 +31,9 @@ class TestCpioUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = CpioPortableAsciiUnpackParser(fileresult, self.scan_environment)
-        # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-2")
+        p = CpioPortableAsciiUnpackParser(fileresult, self.scan_environment,
+                data_unpack_dir)
         p.open()
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
@@ -51,9 +51,9 @@ class TestCpioUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment)
-        # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-3")
+        p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment,
+                data_unpack_dir)
         p.open()
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
@@ -92,9 +92,9 @@ class TestCpioUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment)
-        # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-4")
+        p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment,
+                data_unpack_dir)
         p.open()
         r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
@@ -109,7 +109,7 @@ class TestCpioUnpackParser(TestBase):
         self.assertEqual(extracted_labels, ['unpacked'])
 
     def test_rewrite_symlink(self):
-        p = CpioNewAsciiUnpackParser(None, None)
+        p = CpioNewAsciiUnpackParser(None, None, None)
 
         expected_results = [
             ('test/dir/a.txt', '../c.txt', '../c.txt'),
