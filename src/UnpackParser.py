@@ -33,9 +33,11 @@ class UnpackParser:
     signatures = []
     scan_if_featureless = False
 
-    def __init__(self):
+    def __init__(self, fileresult, scan_environment):
         self.unpacked_size = 0
         self.unpack_results = {}
+        self.fileresult = fileresult
+        self.scan_environment = scan_environment
     def parse(self):
         """Override this method to implement parsing the file data. If there is
         a (non-fatal) error during the parsing, you should raise an
@@ -46,9 +48,15 @@ class UnpackParser:
         """Parses the data from a file pointed to by fileresult, starting from
         offset. Normally you do not need to override this.
         """
+        self.offset = offset
         self.infile.seek(offset)
         self.parse()
         self.calculate_unpacked_size(offset)
+    def open(self):
+        filename_full = self.scan_environment.unpack_path(self.fileresult.filename)
+        self.infile = filename_full.open('rb')
+    def close(self):
+        self.infile.close()
     def calculate_unpacked_size(self, offset):
         """Override this to calculate the length of the file data that is
         extracted. Needed if you call the UnpackParser to extract (carve)
@@ -64,27 +72,27 @@ class UnpackParser:
         i.e. the program can continue. Other exceptions are not assumed to be
         handled and may cause the program to abort.
         """
-        self.fileresult = fileresult
 
-        filename_full = scan_environment.unpack_path(fileresult.filename)
-        with filename_full.open('rb') as self.infile:
-            self.parse_from_offset(fileresult, scan_environment, offset)
-            self.unpack_results = {
-                    'status': True,
-                    'length': self.unpacked_size
-                }
-            self.set_metadata_and_labels()
-            files_and_labels = self.unpack(fileresult, scan_environment, offset, unpack_dir)
-            self.unpack_results['filesandlabels'] = files_and_labels
-            return self.unpack_results
+        self.parse_from_offset(fileresult, scan_environment, offset)
+        self.unpack_results = {
+                'status': True,
+                'length': self.unpacked_size
+            }
+        self.set_metadata_and_labels()
+        files_and_labels = self.unpack(fileresult, scan_environment, offset, unpack_dir)
+        self.unpack_results['filesandlabels'] = files_and_labels
+        return self.unpack_results
 
-            # raise UnpackParserException(*e.args)
-            # unpacking_error = {
-            #         'offset': offset + self.unpacked_size,
-            #         'fatal' : False,
-            #         'reason' : "{}: {}".format(e.__class__.__name__,str(e))
-            #     }
-            # return { 'status' : False, 'error': unpacking_error }
+    def carve(self, rel_output_path):
+        """Carve data and write to a (relative) path."""
+        # TODO: generate rel_output_path
+        abs_output_path = self.scan_environment.unpack_path(rel_output_path)
+        os.makedirs(abs_output_path.parent, exist_ok=True)
+        outfile = open(abs_output_path, 'wb')
+        os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset, self.unpacked_size)
+        outfile.close()
+        out_labels = self.fileresult.labels.union({'unpacked'})
+        self.unpack_results['filesandlabels'].append( (rel_output_path, out_labels) )
     def set_metadata_and_labels(self):
         """Override this method to set metadata and labels."""
         self.unpack_results['labels'] = []
@@ -135,6 +143,12 @@ class WrappedUnpackParser(UnpackParser):
         if r['status'] is False:
             raise UnpackParserException(r.get('error'))
         return r
+    def open(self):
+        pass
+    def close(self):
+        pass
+    def carve(self, rel_output_path):
+        pass
 
 def check_condition(condition, message):
     """semantic check function to see if condition is True.

@@ -11,7 +11,7 @@ class InvalidUnpackParser(UnpackParser):
 
 class TestUnpackParser(TestBase):
     def test_unpack_parser_without_parse_method(self):
-        p = InvalidUnpackParser()
+        p = InvalidUnpackParser(None, None)
         with self.assertRaisesRegex(UnpackParserException, r"undefined parse method") as cm:
             p.parse()
 
@@ -39,22 +39,26 @@ class TestUnpackParser(TestBase):
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
-        p = SqliteUnpackParser()
+        p = SqliteUnpackParser(fileresult, self.scan_environment)
+        p.open()
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         with self.assertRaisesRegex(UnpackParserException, r".*") as cm:
             r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
+        p.close()
 
     def test_unpackparser_raises_exception(self):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
-        p = GifUnpackParser()
+        p = GifUnpackParser(fileresult, self.scan_environment)
+        p.open()
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         with self.assertRaisesRegex(UnpackParserException, r".*") as cm:
             r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
                 data_unpack_dir)
+        p.close()
 
     def test_all_unpack_parsers_raise_exception_on_empty_file(self):
         rel_testfile = pathlib.Path('unpackers') / 'empty'
@@ -63,10 +67,13 @@ class TestUnpackParser(TestBase):
                 set())
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         for unpackparser in get_unpackers():
+            up = unpackparser(fileresult, self.scan_environment)
+            up.open()
             with self.assertRaisesRegex(UnpackParserException, r".*",
                     msg=unpackparser.__name__) as cm:
-                r = unpackparser().parse_and_unpack(fileresult,
+                r = up.parse_and_unpack(fileresult,
                         self.scan_environment, 0, data_unpack_dir)
+            up.close()
 
  
 
