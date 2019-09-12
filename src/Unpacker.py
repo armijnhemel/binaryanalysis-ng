@@ -136,8 +136,8 @@ class Unpacker:
         try:
             unpackresult = up.parse_and_unpack(fileresult, scanenvironment, 0, self.dataunpackdirectory)
             if unpackresult['length'] != fileresult.filesize:
-                # TODO: generate name
-                rel_out_path = self.dataunpackdirectory / 'bla'
+                # TODO: let up generate name
+                rel_out_path = self.dataunpackdirectory / ('unpacked-%s' % up.pretty_name)
                 up.carve(rel_out_path)
         except UnpackParserException as e:
             raise e
@@ -221,8 +221,8 @@ class Unpacker:
         try:
             unpackresult = up.parse_and_unpack(fileresult, scanenvironment, offset, self.dataunpackdirectory)
             if unpackresult['length'] != fileresult.filesize:
-                # TODO: generate name
-                rel_out_path = self.dataunpackdirectory / 'bla'
+                # TODO: let up generate name
+                rel_out_path = self.dataunpackdirectory / ('unpacked-%s' % up.pretty_name)
                 up.carve(rel_out_path)
         except UnpackParserException as e:
             raise e
@@ -236,8 +236,8 @@ class Unpacker:
         try:
             unpackresult = up.parse_and_unpack(fileresult, scanenvironment, 0, self.dataunpackdirectory)
             if unpackresult['length'] != fileresult.filesize:
-                # TODO: generate name
-                rel_out_path = self.dataunpackdirectory / 'bla'
+                # TODO: let up generate name
+                rel_out_path = self.dataunpackdirectory / ('unpacked-%s' % up.pretty_name)
                 up.carve(rel_out_path)
         except UnpackParserException as e:
             raise e

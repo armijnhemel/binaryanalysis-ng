@@ -85,6 +85,7 @@ class UnpackParser:
 
     def carve(self, rel_output_path):
         """Carve data and write to a (relative) path."""
+        # TODO: generate rel_output_path
         abs_output_path = self.scan_environment.unpack_path(rel_output_path)
         os.makedirs(abs_output_path.parent, exist_ok=True)
         outfile = open(abs_output_path, 'wb')
