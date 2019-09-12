@@ -71,7 +71,8 @@ class TestUnpackResult(TestBase):
             unpacker.make_data_unpack_directory(fn, unpackparser.__name__, 0)
             fileresult = create_fileresult_for_path(self.unpackdir,
                     pathlib.Path(fn), set())
-            unpackresult = unpackparser().parse_and_unpack(fileresult, self.scan_environment, 0, unpacker.get_data_unpack_directory())
+            up = unpackparser(fileresult, self.scan_environment)
+            unpackresult = up.parse_and_unpack(fileresult, self.scan_environment, 0, unpacker.get_data_unpack_directory())
 
             try:
                 # all paths in unpackresults are relative to unpackdir
@@ -113,7 +114,8 @@ class TestUnpackResult(TestBase):
         self.assertEqual(str(fileresult.filename), name)
         for unpackername in sorted(unpackers.keys()):
             unpackparser = unpackers[unpackername]
-            unpackresult = unpackparser.parse_and_unpack(fileresult, self.scan_environment, 0, self.unpackdir)
+            up = unpackparser(fileresult, self.scan_environment)
+            unpackresult = up.parse_and_unpack(fileresult, self.scan_environment, 0, self.unpackdir)
 
 if __name__ == "__main__":
     unittest.main()

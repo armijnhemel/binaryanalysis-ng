@@ -29,6 +29,7 @@ import pathlib
 import bangsignatures
 from bangsignatures import maxsignaturesoffset
 
+from UnpackParserException import UnpackParserException
 
 class Unpacker:
     """The Unpacker manages the unpacking (analysis and extraction) of a
@@ -130,16 +131,20 @@ class Unpacker:
     def try_unpack_file_for_extension(self, fileresult, scanenvironment,
             relpath, extension, unpackparser):
         self.make_data_unpack_directory(relpath, unpackparser.pretty_name, 0)
-        return bangsignatures.unpack_file_with_extension(fileresult,
-                scanenvironment, unpackparser, self.dataunpackdirectory)
-        # try:
-        #    self.make_data_unpack_directory(relpath, unpackparser.pretty_name, 0)
-        #    return bangsignatures.unpack_file_with_extension(fileresult,
-        #            scanenvironment, unpackparser, self.dataunpackdirectory)
-        #except AttributeError:
-        #    # TODO: figure out what exception this should be
-        #    self.remove_data_unpack_directory()
-        #    return None
+        up = unpackparser(fileresult, scanenvironment)
+        up.open()
+        try:
+            unpackresult = up.parse_and_unpack(fileresult, scanenvironment, 0, self.dataunpackdirectory)
+            if unpackresult['length'] != fileresult.filesize:
+                # TODO: generate name
+                rel_out_path = self.dataunpackdirectory / 'bla'
+                up.carve(rel_out_path)
+        except UnpackParserException as e:
+            raise e
+        finally:
+            up.close()
+
+        return unpackresult
 
     def open_scanfile(self, filename):
         '''Open the file read-only in raw mode'''
@@ -211,25 +216,34 @@ class Unpacker:
 
     def try_unpack_file_for_signatures(self, fileresult, scanenvironment,
             unpackparser, offset):
-        return unpackparser().parse_and_unpack(fileresult, scanenvironment, offset, self.dataunpackdirectory)
-        # try:
-        #    return unpackparser().parse_and_unpack(fileresult, scanenvironment, offset, self.dataunpackdirectory)
-        #except AttributeError as ex:
-        #    print(ex)
-        #    self.remove_data_unpack_directory()
-        #    return None
+        up = unpackparser(fileresult, scanenvironment)
+        up.open()
+        try:
+            unpackresult = up.parse_and_unpack(fileresult, scanenvironment, offset, self.dataunpackdirectory)
+            if unpackresult['length'] != fileresult.filesize:
+                # TODO: generate name
+                rel_out_path = self.dataunpackdirectory / 'bla'
+                up.carve(rel_out_path)
+        except UnpackParserException as e:
+            raise e
+        finally:
+            up.close()
+        return unpackresult
 
-    def try_unpack_without_features(self, fileresult, scanenvironment, unpack_parser,  offset):
-        return unpack_parser().parse_and_unpack(fileresult, scanenvironment,
-                0, self.dataunpackdirectory)
-        # try:
-        #    return unpack_parser().parse_and_unpack(fileresult, scanenvironment,
-        #            0, self.dataunpackdirectory)
-        #except Exception as ex:
-        #    # TODO: make exception more specific, it is too general
-        #    print(ex)
-        #    self.remove_data_unpack_directory()
-        #    return None
+    def try_unpack_without_features(self, fileresult, scanenvironment, unpackparser,  offset):
+        up = unpackparser(fileresult, scanenvironment)
+        up.open()
+        try:
+            unpackresult = up.parse_and_unpack(fileresult, scanenvironment, 0, self.dataunpackdirectory)
+            if unpackresult['length'] != fileresult.filesize:
+                # TODO: generate name
+                rel_out_path = self.dataunpackdirectory / 'bla'
+                up.carve(rel_out_path)
+        except UnpackParserException as e:
+            raise e
+        finally:
+            up.close()
+        return unpackresult
 
     def file_unpacked(self, unpackresult, filesize):
         # store the location of where the successfully
