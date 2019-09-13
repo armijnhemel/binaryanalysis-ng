@@ -312,7 +312,8 @@ class TestScanJob(TestBase):
 
     # 3. ex: kernelconfig (featureless file) concatenated with .gbr
     def test_file_without_features_is_carved(self):
-        fn = pathlib.Path("unpackers") / "combined" / "kernelconfig-gimpbrush.bla"
+        # TODO: review if this test does what we want it to do
+        fn = pathlib.Path("unpackers") / "combined" / "kernelconfig-gif.bla"
         self._copy_file_from_testdata(fn)
         fileresult = create_fileresult_for_path(self.unpackdir, fn, set())
 
@@ -330,8 +331,11 @@ class TestScanJob(TestBase):
         result2 = self.result_queue.get()
         result3 = self.result_queue.get()
         self.assertEqual(result1.filename, fn)
-        self.assertEqual(result2.filename.name, 'unpacked.kernelconfig')
-        self.assertEqual(result3.filename.name, 'unpacked.gimpbrush')
+        self.assertEqual(result2.filename.name, 'unpacked.gif')
+        # gif_offset = 202554
+        gif_offset = result1.unpackedfiles[0]['offset']
+        self.assertEqual(result3.filename.name,
+                'unpacked-0x%x-0x%x' % (0,gif_offset-1))
 
 
 if __name__ == "__main__":
