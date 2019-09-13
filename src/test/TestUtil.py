@@ -73,7 +73,7 @@ class TestBase(unittest.TestCase):
             maxbytes = max(200000, maxsignaturesoffset+1),
             readsize = 10240,
             createbytecounter = False,
-            createjson = True,
+            createjson = False,
             runfilescans = True, # TODO: is this the correct value?
             tlshmaximum = sys.maxsize,
             synthesizedminimum = 10,
