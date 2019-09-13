@@ -7,13 +7,13 @@ import pathlib
 from ScanEnvironment import ScanEnvironment
 from UnpackParser import UnpackParser
 
-def parse_and_unpack_success(self, fileresult, scan_environment, offset, unpack_dir):
+def parse_and_unpack_success(self):
     return {
             'status': True,
     }
     pass
     
-def parse_and_unpack_fail(self, fileresult, scan_environment, offset, unpack_dir):
+def parse_and_unpack_fail(self):
     raise UnpackParserException("failing unpackparser")
 
 def create_unpackparser(name, fail = False,
