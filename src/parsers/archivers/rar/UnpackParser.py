@@ -14,10 +14,7 @@ class RarUnpackParser(UnpackParser):
             self.data = rar.Rar.from_io(self.infile)
         except Exception as e:
             raise UnpackParserException(e.args)
-    def calculate_unpacked_size(self, offset):
-        self.unpacked_size = self.infile.tell() - offset
-    def unpack(self, fileresult, scan_environment, offset, unpack_dir):
-        # skip extraction
+    def unpack(self):
         return []
         # TODO: (?) for multifile rar only process the .rar file and let it
         # search for .r00, .r01 etc. (these must be written to disk before
