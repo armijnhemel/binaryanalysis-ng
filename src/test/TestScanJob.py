@@ -337,6 +337,8 @@ class TestScanJob(TestBase):
         self.assertEqual(result3.filename.name,
                 'unpacked-0x%x-0x%x' % (0,gif_offset-1))
 
+    # 4. Polyglot files
+
 
 if __name__ == "__main__":
     unittest.main()
