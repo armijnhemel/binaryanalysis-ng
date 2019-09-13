@@ -288,6 +288,28 @@ class TestScanJob(TestBase):
         self.assertEqual(result3.filename.name, 'unpacked.gimpbrush')
 
     # 2. ex: 2 .gbr files concatenated with extension .bla
+    def test_file_with_signature_match_is_carved(self):
+        fn = pathlib.Path("unpackers") / "combined" / "double-gimpbrush.bla"
+        self._copy_file_from_testdata(fn)
+        fileresult = create_fileresult_for_path(self.unpackdir, fn, set())
+
+        scanjob = ScanJob(fileresult)
+        self.scanfile_queue.put(scanjob)
+        try:
+            processfile(self.dbconn, self.dbcursor, self.scan_environment)
+        except QueueEmptyError:
+            pass
+        except ScanJobError as e:
+            if e.e.__class__ != QueueEmptyError:
+                raise e
+        self.assertEqual(len(self.result_queue.queue), 3)
+        result1 = self.result_queue.get()
+        result2 = self.result_queue.get()
+        result3 = self.result_queue.get()
+        self.assertEqual(result1.filename, fn)
+        self.assertEqual(result2.filename.name, 'unpacked.gimpbrush')
+        self.assertEqual(result3.filename.name, 'unpacked.gimpbrush')
+
     # 3. ex: kernelconfig (featureless file) concatenated with .gbr
 
 if __name__ == "__main__":
