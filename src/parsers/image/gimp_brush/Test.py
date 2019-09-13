@@ -31,13 +31,14 @@ class TestGifUnpackParser(TestBase):
                 set())
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
+        offset = 128
         p = GimpBrushUnpackParser(fileresult, self.scan_environment,
-                data_unpack_dir, 128)
+                data_unpack_dir, offset)
         p.open()
         r = p.parse_and_unpack()
         p.close()
         self.assertTrue(r['status'])
-        self.assertEqual(r['length'], filesize)
+        self.assertEqual(r['length'], filesize - offset)
         self.assertEqual(r['filesandlabels'], [])
         self.assertEqual(r['metadata']['width'], 64)
 
