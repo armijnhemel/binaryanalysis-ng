@@ -10,12 +10,13 @@ class TestRarUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = RarUnpackParser()
-        # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
-        self.assertTrue(r['status'], r.get('error'))
+        p = RarUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                0)
+        p.open()
+        r = p.parse_and_unpack()
+        p.close()
+        self.assertTrue(r['status'])
         self.assertEqual(r['length'], filesize)
         self.assertEqual(len(r['filesandlabels']), 0)
 

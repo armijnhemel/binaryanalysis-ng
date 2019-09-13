@@ -21,22 +21,9 @@ class GifUnpackParser(UnpackParser):
                 "invalid width")
         check_condition(self.data.logical_screen_descriptor.screen_height > 0,
                 "invalid height")
-    def calculate_unpacked_size(self, offset):
-        self.unpacked_size = self.infile.tell() - offset
-
-    def unpack(self, fileresult, scan_environment, offset, unpack_dir):
+    def unpack(self):
         """extract any files from the input file"""
-        if offset != 0 or self.unpacked_size != fileresult.filesize:
-            outfile_rel = os.path.join(unpack_dir, "unpacked.gif")
-            outfile_full = scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            os.sendfile(outfile.fileno(), self.infile.fileno(), offset, self.unpacked_size)
-            outfile.close()
-            outlabels = self.unpack_results['labels'] + ['unpacked']
-            return [ (outfile_rel, outlabels) ]
-        else:
-            return []
+        return []
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         extensions = [ x.body for x in self.data.blocks

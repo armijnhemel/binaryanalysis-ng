@@ -12,12 +12,13 @@ class TestMbrPartitionTableUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = MbrPartitionTableUnpackParser()
-        # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
-        self.assertTrue(r['status'], r.get('error'))
+        p = MbrPartitionTableUnpackParser(fileresult, self.scan_environment,
+                data_unpack_dir, 0)
+        p.open()
+        r = p.parse_and_unpack()
+        p.close()
+        self.assertTrue(r['status'])
         self.assertEqual(r['length'], filesize)
         self.assertEqual(len(r['filesandlabels']), 4)
 
@@ -27,12 +28,13 @@ class TestMbrPartitionTableUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = MbrPartitionTableUnpackParser()
-        # dummy data unpack dir
         data_unpack_dir = rel_testfile.parent / 'some_dir'
+        p = MbrPartitionTableUnpackParser(fileresult, self.scan_environment,
+                data_unpack_dir, 0)
+        p.open()
         with self.assertRaisesRegex(UnpackParserException, r"no partitions") as cm:
-            r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                    data_unpack_dir)
+            r = p.parse_and_unpack()
+        p.close()
 
 
 if __name__ == '__main__':

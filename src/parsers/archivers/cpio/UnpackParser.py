@@ -33,24 +33,23 @@ class CpioBaseUnpackParser(UnpackParser):
     signatures = []
     pretty_name = 'cpio'
 
-    def calculate_unpacked_size(self, offset):
-        self.unpacked_size = self.infile.tell() - offset
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.infile.tell() - self.offset
         # the cpio(5) man page is unclear about the padding at the end of
         # the file. It looks like the file is padded to make the total
         # file size a multiple of 16, but more research is needed. For
         # now, we ignore the padding and accept a wrong size.
-    def unpack_directory(self, scan_environment, filename):
-        outfile_full = scan_environment.unpack_path(filename)
+    def unpack_directory(self, filename):
+        outfile_full = self.scan_environment.unpack_path(filename)
         os.makedirs(outfile_full, exist_ok=True)
 
-    def unpack_regular(self, scan_environment, filename, start, length):
-        self.extract_to_file(scan_environment, filename, start, length)
+    def unpack_regular(self, filename, start, length):
+        self.extract_to_file(filename, start, length)
 
-    def unpack_device(self, scan_environment, filename):
+    def unpack_device(self, filename):
         pass
 
-    def unpack_link(self, scan_environment, rel_unpack_dir, filename, target,
-            rewrite=False):
+    def unpack_link(self, filename, target, rewrite=False):
         """we assume filename is normalized. If rewrite is True, symlinks are
         rewritten to point to other extracted files."""
         file_path = pathlib.Path(filename)
@@ -60,12 +59,12 @@ class CpioBaseUnpackParser(UnpackParser):
         else:
             link_path = target_path
 
-        outfile_rel = rel_unpack_dir / file_path
-        outfile_full = scan_environment.unpack_path(outfile_rel)
+        outfile_rel = self.rel_unpack_dir / file_path
+        outfile_full = self.scan_environment.unpack_path(outfile_rel)
         os.makedirs(outfile_full.parent, exist_ok=True)
         outfile_full.symlink_to(link_path)
 
-    def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
+    def unpack(self):
         files_and_labels = []
         pos = 0
         for e in self.data.entries:
@@ -75,23 +74,22 @@ class CpioBaseUnpackParser(UnpackParser):
                 if file_path.is_absolute():
                     file_path = file_path.relative_to('/')
                 mode = e.header.cpio_mode
-                outfile_rel = rel_unpack_dir / file_path
+                outfile_rel = self.rel_unpack_dir / file_path
                 if stat.S_ISDIR(mode):
-                    self.unpack_directory(scan_environment, outfile_rel)
+                    self.unpack_directory(outfile_rel)
                 elif stat.S_ISLNK(mode):
-                    self.unpack_link(scan_environment, rel_unpack_dir,
-                            file_path, e.filedata.decode())
+                    self.unpack_link(file_path, e.filedata.decode())
                     out_labels.append('symbolic link')
                 elif stat.S_ISCHR(mode) or stat.S_ISBLK(mode):
-                    self.unpack_device(scan_environment, outfile_rel)
+                    self.unpack_device(outfile_rel)
                     continue
                 elif stat.S_ISREG(mode):
                     filedata_start = e.header.hsize + e.header.nsize + e.header.npaddingsize
-                    self.unpack_regular(scan_environment, outfile_rel,
+                    self.unpack_regular(outfile_rel,
                             pos + filedata_start, e.header.fsize)
 
                 out_labels.append('unpacked')
-                files_and_labels.append( (str(rel_unpack_dir / file_path), out_labels) )
+                files_and_labels.append( (str(self.rel_unpack_dir / file_path), out_labels) )
             pos += e.header.bsize
         return files_and_labels
     def set_metadata_and_labels(self):

@@ -118,8 +118,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
                 self.data = mbr_partition_table.MbrPartitionTable.from_io(self.infile)
         except Exception as e:
             raise UnpackParserException(e.args)
-    def calculate_unpacked_size(self, offset):
-        # self.unpacked_size = self.infile.tell() - offset
+    def calculate_unpacked_size(self):
         self.unpacked_size = 0
         for p in self.data.partitions:
             self.unpacked_size = max( self.unpacked_size,
@@ -128,7 +127,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
                 "partition bigger than file")
         check_condition(self.unpacked_size >= 0x1be,
                 "invalid partition table: no partitions")
-    def unpack(self, fileresult, scan_environment, offset, rel_unpack_dir):
+    def unpack(self):
         """extract any files from the input file"""
         files_and_labels = []
         partition_number = 0
@@ -136,9 +135,9 @@ class MbrPartitionTableUnpackParser(UnpackParser):
             partition_ext = "part"
             partition_start = p.lba_start * 512
             partition_length = p.num_sectors * 512
-            outfile_rel = rel_unpack_dir / ("unpacked.mbr-partition%d.%s" %
+            outfile_rel = self.rel_unpack_dir / ("unpacked.mbr-partition%d.%s" %
                 (partition_number, partition_ext))
-            self.extract_to_file(scan_environment, outfile_rel, 
+            self.extract_to_file(outfile_rel, 
                     partition_start, partition_length)
             partition_name = partition_types.get(p.partition_type)
             # TODO: add partition name to labels

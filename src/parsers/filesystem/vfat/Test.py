@@ -13,11 +13,13 @@ class TestVfatUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = VfatUnpackParser()
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
-        self.assertTrue(r['status'], r.get('error'))
+        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                0)
+        p.open()
+        r = p.parse_and_unpack()
+        p.close()
+        self.assertTrue(r['status'])
         self.assertEqual(r['length'], filesize)
         self.assertEqual(len(r['filesandlabels']), 1)
         unpacked_path_rel = data_unpack_dir / 'hellofat.txt'
@@ -34,11 +36,13 @@ class TestVfatUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = VfatUnpackParser()
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
-        self.assertTrue(r['status'], r.get('error'))
+        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                0)
+        p.open()
+        r = p.parse_and_unpack()
+        p.close()
+        self.assertTrue(r['status'])
         unpacked_path_rel = data_unpack_dir / 'copying'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel
         self.assertUnpackedPathExists(unpacked_path_rel)
@@ -55,11 +59,13 @@ class TestVfatUnpackParser(TestBase):
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
                 set())
         filesize = fileresult.filesize
-        p = VfatUnpackParser()
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        r = p.parse_and_unpack(fileresult, self.scan_environment, 0,
-                data_unpack_dir)
-        self.assertTrue(r['status'], r.get('error'))
+        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
+                0)
+        p.open()
+        r = p.parse_and_unpack()
+        p.close()
+        self.assertTrue(r['status'])
         self.assertEqual(len(r['filesandlabels']), 4)
 
         unpacked_path_rel = data_unpack_dir / 'subdir1.dir'
