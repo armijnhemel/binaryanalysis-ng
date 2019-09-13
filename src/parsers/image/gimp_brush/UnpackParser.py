@@ -25,7 +25,7 @@ class GimpBrushUnpackParser(UnpackParser):
     ]
     pretty_name = 'gimpbrush'
 
-    def calculate_unpacked_size(self, offset):
+    def calculate_unpacked_size(self):
         try:
             self.unpacked_size = self.data.header_size + self.data.body_size
         except Exception as e:
