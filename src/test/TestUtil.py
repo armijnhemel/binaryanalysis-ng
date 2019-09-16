@@ -13,7 +13,7 @@ import bangfilescans
 from FileResult import *
 from ScanEnvironment import *
 
-def create_fileresult_for_path(unpackdir, path, labels, calculate_size=True):
+def create_fileresult_for_path(unpackdir, path, labels, calculate_size=False):
     parentlabels = set()
     fr = FileResult(path, str(path.parent), parentlabels, labels)
     if calculate_size:

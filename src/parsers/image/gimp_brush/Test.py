@@ -10,7 +10,7 @@ class TestGifUnpackParser(TestBase):
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         p = GimpBrushUnpackParser(fileresult, self.scan_environment,
@@ -28,7 +28,7 @@ class TestGifUnpackParser(TestBase):
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         offset = 128

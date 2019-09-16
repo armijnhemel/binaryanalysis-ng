@@ -8,31 +8,22 @@ class TestGifUnpackParser(TestBase):
     def test_load_standard_gif_file(self):
         rel_testfile = pathlib.Path('unpackers') / 'gif' / 'test.gif'
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
-        filesize = fileresult.filesize
-        data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
-                0)
+        print('fn',filename, rel_testfile)
+        p = self.create_unpackparser_for_path(rel_testfile, GifUnpackParser, 0)
         p.open()
         r = p.parse_and_unpack()
         p.close()
         self.assertTrue(r['status'])
-        self.assertEqual(r['length'], filesize)
+        self.assertEqual(r['length'], self.get_testfile_size(rel_testfile))
         self.assertEqual(r['filesandlabels'], [])
         self.assertEqual(r['metadata']['width'], 3024)
 
     def test_extracted_gif_file_is_correct(self):
         rel_testfile = pathlib.Path('unpackers') / 'gif' / 'test-prepend-random-data.gif'
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
-        filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
-                128)
+        p = self.create_unpackparser_for_path(rel_testfile, GifUnpackParser,
+                128, data_unpack_dir = data_unpack_dir)
         p.open()
         r = p.parse_and_unpack()
         p.carve()
@@ -52,12 +43,7 @@ class TestGifUnpackParser(TestBase):
     def test_load_png_file(self):
         rel_testfile = pathlib.Path('unpackers') / 'png' / 'test.png'
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
-        data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
-                0)
+        p = self.create_unpackparser_for_path(rel_testfile, GifUnpackParser, 0)
         p.open()
         with self.assertRaisesRegex(UnpackParserException, r".*") as cm:
             r = p.parse_and_unpack()

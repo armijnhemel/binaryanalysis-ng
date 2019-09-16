@@ -11,7 +11,7 @@ class TestVfatUnpackParser(TestBase):
         # rel_testfile = pathlib.Path('a') / 'unpacked.mbr-partition0.part'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
@@ -34,7 +34,7 @@ class TestVfatUnpackParser(TestBase):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
@@ -57,7 +57,7 @@ class TestVfatUnpackParser(TestBase):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,

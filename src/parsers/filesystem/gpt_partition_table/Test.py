@@ -8,7 +8,7 @@ class TestGptPartitionTableUnpackParser(TestBase):
         rel_testfile = pathlib.Path('a') / 'OPNsense-18.1.6-OpenSSL-vga-amd64.img'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         p = GptPartitionTableUnpackParser(fileresult, self.scan_environment,

@@ -10,7 +10,7 @@ class TestCpioUnpackParser(TestBase):
         rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-new.cpio'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
         p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment,
@@ -28,7 +28,7 @@ class TestCpioUnpackParser(TestBase):
         rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-old.cpio'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-2")
         p = CpioPortableAsciiUnpackParser(fileresult, self.scan_environment,
@@ -47,7 +47,7 @@ class TestCpioUnpackParser(TestBase):
         rel_testfile = pathlib.Path('a') / 'initramfs.cpio'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-3")
         p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment,
@@ -87,7 +87,7 @@ class TestCpioUnpackParser(TestBase):
         rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-absolute-path.cpio'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-4")
         p = CpioNewAsciiUnpackParser(fileresult, self.scan_environment,

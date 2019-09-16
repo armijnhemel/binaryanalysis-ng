@@ -38,7 +38,7 @@ class TestUnpackParser(TestBase):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         p = SqliteUnpackParser(fileresult, self.scan_environment,
                 data_unpack_dir, 0)
@@ -51,7 +51,7 @@ class TestUnpackParser(TestBase):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
                 0)
@@ -64,7 +64,7 @@ class TestUnpackParser(TestBase):
         rel_testfile = pathlib.Path('unpackers') / 'empty'
         self._copy_file_from_testdata(rel_testfile)
         fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
+                set(), calculate_size=True)
         data_unpack_dir = rel_testfile.parent / 'some_dir'
         for unpackparser in get_unpackers():
             up = unpackparser(fileresult, self.scan_environment,

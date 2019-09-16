@@ -70,7 +70,7 @@ class TestUnpackResult(TestBase):
             self._copy_file_from_testdata(fn)
             unpacker.make_data_unpack_directory(fn, unpackparser.__name__, 0)
             fileresult = create_fileresult_for_path(self.unpackdir,
-                    pathlib.Path(fn), set())
+                    pathlib.Path(fn), set(), calculate_size=True)
             up = unpackparser(fileresult, self.scan_environment,
                     unpacker.get_data_unpack_directory(), 0)
             unpackresult = up.parse_and_unpack()
@@ -111,7 +111,7 @@ class TestUnpackResult(TestBase):
         name = "null"
         self._copy_file_from_testdata(fn, name)
         fileresult = create_fileresult_for_path(self.unpackdir,
-                pathlib.Path(name), set())
+                pathlib.Path(name), set(), calculate_size=True)
         self.assertEqual(str(fileresult.filename), name)
         for unpackername in sorted(unpackers.keys()):
             unpackparser = unpackers[unpackername]
