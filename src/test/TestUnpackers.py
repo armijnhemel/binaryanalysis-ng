@@ -74,6 +74,8 @@ class TestGeneric(TestBase):
         for unpacked_file, unpacked_label in r['filesandlabels']:
             self.assertTrue((self.unpackdir / unpacked_file).exists())
             unpacked_total_size += (self.unpackdir / unpacked_file).stat().st_size
+        # TODO: in compressed archives, the unpacked length can be more than
+        # the file itself. Test invalid!
         self.assertLessEqual(unpacked_total_size, r['length'],
             'Length of unpacked files more than file itself')
 
