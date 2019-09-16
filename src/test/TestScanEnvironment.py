@@ -6,6 +6,7 @@ import pathlib
 
 from ScanEnvironment import ScanEnvironment
 from UnpackParser import UnpackParser
+from FileResult import FileResult
 
 def parse_and_unpack_success(self):
     return {
@@ -48,6 +49,30 @@ class TestScanEnvironment(unittest.TestCase):
                 logging, paddingname, unpackdirectory, temporarydirectory,
                  resultsdirectory, scanfilequeue, resultqueue, processlock,
                  checksumdict)
+
+    # test get_unpack_path from fileresult
+    # 1. from root fileresult, return path as is
+    # 2. if fileresult has a parent, path must be in unpack directory
+    def test_unpack_path_for_relative_root_fileresult_is_path(self):
+        se = self.create_scan_environment(unpackdirectory =
+                pathlib.Path('/test'))
+        path = pathlib.Path('a') / 'b'
+        fr = FileResult(path, None, set(), set())
+        self.assertEqual(se.get_unpack_path_for_fileresult(fr), path)
+    def test_unpack_path_for_absolute_root_fileresult_is_path(self):
+        se = self.create_scan_environment(unpackdirectory =
+                pathlib.Path('/test'))
+        path = pathlib.Path('/a') / 'b'
+        fr = FileResult(path, None, set(), set())
+        self.assertEqual(se.get_unpack_path_for_fileresult(fr), path)
+    def test_unpack_path_for_child_fileresult_is_in_unpack_directory(self):
+        se = self.create_scan_environment(unpackdirectory =
+                pathlib.Path('/test'))
+        path = pathlib.Path('a') / 'b'
+        fr = FileResult(path, path.parent, set(), set())
+        self.assertEqual(se.get_unpack_path_for_fileresult(fr),
+                pathlib.Path('/test') / path)
+
     def test_scanenvironment_get_unpack_path(self):
         se = self.create_scan_environment(unpackdirectory =
                 pathlib.Path('/test'))
