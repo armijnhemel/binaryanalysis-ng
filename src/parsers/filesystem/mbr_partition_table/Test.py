@@ -26,6 +26,17 @@ class TestMbrPartitionTableUnpackParser(TestBase):
             r = p.parse_and_unpack()
         p.close()
 
+    def test_load_gpt_partition_table(self):
+        rel_testfile = pathlib.Path('a') / 'OPNsense-18.1.6-OpenSSL-vga-amd64.img'
+        p = self.create_unpackparser_for_path(rel_testfile,
+                MbrPartitionTableUnpackParser, 0)
+        p.open()
+        with self.assertRaisesRegex(UnpackParserException,
+                r"partition bigger than file") as cm:
+            r = p.parse_and_unpack()
+        p.close()
+
+
 if __name__ == '__main__':
     unittest.main()
 
