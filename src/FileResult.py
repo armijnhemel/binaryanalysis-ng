@@ -24,8 +24,16 @@ import pathlib
 
 class FileResult:
     """stores all the information about the file that has been discovered
-    so far."""
+    so far.
+    """
     def __init__(self, rel_filename, rel_parentfilename, parentlabels, labels):
+        """Constructor.
+        rel_filename: path relative to the unpack directory root, unless
+        rel_parentfilename is None, i.e. the file does not have a parent. In
+        that case, rel_filename is the pathname specified, i.e. absolute or
+        relative to the current working directory.
+        rel_parentfilename: rel_filename of the parent.
+        """
         self.hash = {}
         self.filename = rel_filename
         self.parent = rel_parentfilename
