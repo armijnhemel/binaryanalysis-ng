@@ -12,7 +12,6 @@ class TestGifUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertTrue(r['status'])
         self.assertEqual(r['length'], self.get_testfile_size(rel_testfile))
         self.assertEqual(r['filesandlabels'], [])
         self.assertEqual(r['metadata']['width'], 3024)
@@ -27,7 +26,6 @@ class TestGifUnpackParser(TestBase):
         r = p.parse_and_unpack()
         p.carve()
         p.close()
-        self.assertTrue(r['status'])
         self.assertEqual(r['length'], 7073713)
         unpacked_file = r['filesandlabels'][0][0]
         unpacked_labels = r['filesandlabels'][0][1]

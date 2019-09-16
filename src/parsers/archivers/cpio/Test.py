@@ -14,7 +14,6 @@ class TestCpioUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertTrue(r['status'])
         self.assertLessEqual(r['length'], self.get_testfile_size(rel_testfile))
         extracted_fn = data_unpack_dir / 'test.sgi'
         self.assertEqual(r['filesandlabels'], [(str(extracted_fn), ['unpacked'])])
@@ -28,7 +27,6 @@ class TestCpioUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertTrue(r['status'])
         self.assertLessEqual(r['length'], self.get_testfile_size(rel_testfile))
         extracted_fn = data_unpack_dir / 'test.sgi'
         self.assertEqual(r['filesandlabels'], [(str(extracted_fn), ['unpacked'])])
@@ -43,7 +41,6 @@ class TestCpioUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertTrue(r['status'])
         self.assertLessEqual(r['length'], self.get_testfile_size(rel_testfile))
 
         # check if etc is a directory
@@ -78,7 +75,6 @@ class TestCpioUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertTrue(r['status'])
         self.assertLessEqual(r['length'], self.get_testfile_size(rel_testfile))
 
         extracted_fn = data_unpack_dir / 'e' / 't.sgi'
