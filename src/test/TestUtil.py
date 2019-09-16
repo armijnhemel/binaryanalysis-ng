@@ -112,6 +112,21 @@ class TestBase(unittest.TestCase):
             pass
         shutil.copy(self.testdata_dir / path, unpacked_path)
 
+    def get_testfile_size(self, rel_testfile):
+        abs_testfile = self.testdata_dir / rel_testfile
+        return abs_testfile.stat().st_size
+
+    def create_unpackparser_for_path(self, rel_testfile, unpackparser, offset,
+            data_unpack_dir = None):
+        self._copy_file_from_testdata(rel_testfile)
+        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
+                set(), calculate_size=True)
+        if data_unpack_dir is None:
+            data_unpack_dir = rel_testfile.parent / 'some_dir'
+        p = unpackparser(fileresult, self.scan_environment, data_unpack_dir,
+                offset)
+        return p
+
     def assertUnpackedPathExists(self, extracted_fn, message=None):
         extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
         self.assertTrue(extracted_fn_abs.exists(), message)
