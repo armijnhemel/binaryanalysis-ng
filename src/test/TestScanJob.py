@@ -25,7 +25,7 @@ class TestScanJob(TestBase):
         self.parent_dir = pathlib.Path('a')
         self._make_directory_in_unpackdir(self.parent_dir)
         self.padding_file = self.parent_dir / 'PADDING-0x00-0x01'
-        f = open(os.path.join(self.unpackdir, self.padding_file), 'wb')
+        f = (self.unpackdir / self.padding_file).open('wb')
         f.write(b'\0' * 20)
         f.close()
 
@@ -34,8 +34,9 @@ class TestScanJob(TestBase):
 
     def test_carved_padding_file_has_correct_labels(self):
         self._create_padding_file_in_directory()
-        fileresult = create_fileresult_for_path(self.unpackdir,
-                self.padding_file, set(), calculate_size=True)
+        fileresult = FileResult(self.padding_file, None, set(), set())
+        fileresult.set_filesize(
+                (self.unpackdir / self.padding_file).stat().st_size)
         scanjob = ScanJob(fileresult)
         scanjob.set_scanenvironment(self.scan_environment)
         scanjob.initialize()
@@ -49,8 +50,9 @@ class TestScanJob(TestBase):
 
     def test_process_paddingfile_has_correct_labels(self):
         self._create_padding_file_in_directory()
-        fileresult = create_fileresult_for_path(self.unpackdir,
-                self.padding_file, set(['padding']), calculate_size=True)
+        fileresult = FileResult(self.padding_file, None, set(), set(['padding']))
+        fileresult.set_filesize(
+                (self.unpackdir / self.padding_file).stat().st_size)
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
@@ -217,9 +219,9 @@ class TestScanJob(TestBase):
 
     def test_carved_data_is_extracted_from_file(self):
         fn = pathlib.Path("unpackers") / "gif" / "test-prepend-random-data.gif"
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         scanjob.set_scanenvironment(self.scan_environment)
@@ -231,7 +233,7 @@ class TestScanJob(TestBase):
         j = self.scanfile_queue.get()
         scanjob.carve_file_data(unpacker)
         j = self.scanfile_queue.get()
-        synthesized_name = fn.parent / \
+        synthesized_name = pathlib.Path('.') / \
                 ("%s-0x%08x-synthesized-1" % (fn.name,0)) / \
                 ("unpacked-0x%x-0x%x" % (0,127))
         self.assertEqual(j.fileresult.filename, synthesized_name)
@@ -239,9 +241,9 @@ class TestScanJob(TestBase):
 
     def test_featureless_file_is_unpacked(self):
         fn = pathlib.Path("unpackers") / "ihex" / "example.txt"
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         scanjob.set_scanenvironment(self.scan_environment)
@@ -259,7 +261,7 @@ class TestScanJob(TestBase):
         scanjob.check_entire_file(unpacker)
         self.assertEqual(len(fileresult.unpackedfiles), 1)
         j = self.scanfile_queue.get()
-        expected_extracted_fn = fn.parent / \
+        expected_extracted_fn = pathlib.Path('.') / \
                 ("%s-0x%08x-ihex-1" % (fn.name, 0)) / "unpacked-from-ihex"
         self.assertEqual(j.fileresult.filename, expected_extracted_fn)
         self.assertUnpackedPathExists(j.fileresult.filename)

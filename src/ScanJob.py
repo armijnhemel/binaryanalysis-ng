@@ -561,7 +561,8 @@ class ScanJob:
             for unpack_parser in \
                     bangsignatures.unpackers_for_featureless_files:
                 namecounter = unpacker.make_data_unpack_directory(
-                        self.fileresult.filename, unpack_parser.pretty_name, 0, 1)
+                        self.fileresult.get_unpack_directory_parent(),
+                        unpack_parser.pretty_name, 0, 1)
 
                 log(logging.DEBUG, "TRYING %s %s at offset: 0" %
                         (self.fileresult.filename, unpack_parser.pretty_name))
