@@ -1,4 +1,5 @@
 
+from parameterized import parameterized
 from .TestUtil import *
 from UnpackParserException import UnpackParserException
 from UnpackParser import UnpackParser
@@ -36,12 +37,9 @@ class TestUnpackParser(TestBase):
 
     def test_wrapped_unpackparser_raises_exception(self):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set(), calculate_size=True)
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = SqliteUnpackParser(fileresult, self.scan_environment,
-                data_unpack_dir, 0)
+        p = self.create_unpackparser_for_path(rel_testfile, SqliteUnpackParser,
+                0, data_unpack_dir = data_unpack_dir)
         p.open()
         with self.assertRaisesRegex(UnpackParserException, r".*") as cm:
             r = p.parse_and_unpack()
@@ -49,31 +47,26 @@ class TestUnpackParser(TestBase):
 
     def test_unpackparser_raises_exception(self):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set(), calculate_size=True)
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
-                0)
+        p = self.create_unpackparser_for_path(rel_testfile, GifUnpackParser,
+                0, data_unpack_dir = data_unpack_dir)
         p.open()
         with self.assertRaisesRegex(UnpackParserException, r".*") as cm:
             r = p.parse_and_unpack()
         p.close()
 
-    def test_all_unpack_parsers_raise_exception_on_empty_file(self):
+    @parameterized.expand([ (u,) for u in get_unpackers() ])
+    def test_all_unpack_parsers_raise_exception_on_empty_file(self, unpackparser):
         rel_testfile = pathlib.Path('unpackers') / 'empty'
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set(), calculate_size=True)
+        # for unpackparser in get_unpackers():
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        for unpackparser in get_unpackers():
-            up = unpackparser(fileresult, self.scan_environment,
-                    data_unpack_dir, 0)
-            up.open()
-            with self.assertRaisesRegex(UnpackParserException, r".*",
-                    msg=unpackparser.__name__) as cm:
-                r = up.parse_and_unpack()
-            up.close()
+        up = self.create_unpackparser_for_path(rel_testfile,
+                unpackparser, 0, data_unpack_dir = data_unpack_dir)
+        up.open()
+        with self.assertRaisesRegex(UnpackParserException, r".*",
+                msg=unpackparser.__name__) as cm:
+            r = up.parse_and_unpack()
+        up.close()
 
  
 

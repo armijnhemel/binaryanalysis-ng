@@ -75,7 +75,8 @@ class Unpacker:
 
     def make_data_unpack_directory(self, relpath, filetype, offset, seqnr=1):
         '''Makes a data unpack directory.
-        relpath is the relative path to the file that is unpacked.
+        relpath is the relative path to the file that is unpacked. For files
+            that do not have an unpack parent, this path is absolute.
         filetype is the type of the file.
         offset is the offset in the file from which we extract (used in the
         data unpack directory name)
@@ -84,11 +85,11 @@ class Unpacker:
         returns the sequence number of the directory
         '''
         while True:
-            dirname = "%s-%#010x-%s-%d" % (relpath, offset, filetype, seqnr)
+            dirname = "%s-%#010x-%s-%d" % (relpath.name, offset, filetype, seqnr)
+            dirpath = relpath.parent / dirname
             try:
-                
-                os.mkdir(os.path.join(self.unpackroot, dirname))
-                self.dataunpackdirectory = pathlib.Path(dirname)
+                os.makedirs(self.unpackroot / dirpath, exist_ok=True)
+                self.dataunpackdirectory = dirpath
                 break
             except FileExistsError:
                 seqnr += 1
@@ -129,8 +130,11 @@ class Unpacker:
         return self.dataunpackdirectory
 
     def try_unpack_file_for_extension(self, fileresult, scanenvironment,
-            relpath, extension, unpackparser):
-        self.make_data_unpack_directory(relpath, unpackparser.pretty_name, 0)
+            extension, unpackparser):
+        """tries to unpack the file in fileresult with unpackparser after
+        it matched by extension.
+        """
+        self.make_data_unpack_directory(fileresult.get_unpack_directory_parent(), unpackparser.pretty_name, 0)
         up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory,
                 0)
         up.open()

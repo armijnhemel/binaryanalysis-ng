@@ -193,7 +193,7 @@ class ScanJob:
                     try:
                         unpackresult = unpacker.try_unpack_file_for_extension(
                             self.fileresult, self.scanenvironment,
-                            self.fileresult.filename, extension, unpackparser)
+                            extension, unpackparser)
                     except UnpackParserException as e:
                         # No data could be unpacked for some reason
                         log(logging.DEBUG, "FAIL %s known extension %s: %s" %
@@ -283,7 +283,8 @@ class ScanJob:
                     # name and a counter for the signature.
                     # pretty_signature = bangsignatures.signatureprettyprint.get(signature, signature)
                     namecounter = counterspersignature.get(unpackparser.pretty_name, 0) + 1
-                    namecounter = unpacker.make_data_unpack_directory(self.fileresult.filename,
+                    namecounter = unpacker.make_data_unpack_directory(
+                            self.fileresult.get_unpack_directory_parent(),
                             unpackparser.pretty_name, offset, namecounter)
 
                     # run the scan for the offset that was found
@@ -472,9 +473,13 @@ class ScanJob:
                         #if u_low - carve_index < scanenvironment.get_synthesizedminimum():
                         #        carve_index = u_high
                         #        continue
-                        synthesizedcounter = unpacker.make_data_unpack_directory(self.fileresult.filename, "synthesized", carve_index, synthesizedcounter)
+                        synthesizedcounter = \
+                                unpacker.make_data_unpack_directory(
+                                self.fileresult.get_unpack_directory_parent(),
+                                "synthesized", carve_index, synthesizedcounter)
 
-                        outfile_rel = os.path.join(unpacker.get_data_unpack_directory(), "unpacked-%s-%s" % (hex(carve_index), hex(u_low-1)))
+                        outfile_rel = unpacker.get_data_unpack_directory() / \
+                                ("unpacked-0x%x-0x%x" % (carve_index, u_low-1))
                         outfile_full = self.scanenvironment.unpack_path(outfile_rel)
 
                         # create the unpacking directory and write the file

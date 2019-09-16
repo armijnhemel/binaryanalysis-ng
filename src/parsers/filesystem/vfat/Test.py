@@ -9,18 +9,14 @@ class TestVfatUnpackParser(TestBase):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test.fat'
         # rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-b24.fat'
         # rel_testfile = pathlib.Path('a') / 'unpacked.mbr-partition0.part'
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set(), calculate_size=True)
-        filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
-                0)
+        p = self.create_unpackparser_for_path(rel_testfile, VfatUnpackParser,
+                0, data_unpack_dir = data_unpack_dir)
         p.open()
         r = p.parse_and_unpack()
         p.close()
         self.assertTrue(r['status'])
-        self.assertEqual(r['length'], filesize)
+        self.assertEqual(r['length'], self.get_testfile_size(rel_testfile))
         self.assertEqual(len(r['filesandlabels']), 1)
         unpacked_path_rel = data_unpack_dir / 'hellofat.txt'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel
@@ -32,13 +28,9 @@ class TestVfatUnpackParser(TestBase):
     # test if extraction of file of multiple blocks went ok
     def test_fat12_multiple_blocks_unpacked_correctly(self):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set(), calculate_size=True)
-        filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
-                0)
+        p = self.create_unpackparser_for_path(rel_testfile, VfatUnpackParser,
+                0, data_unpack_dir = data_unpack_dir)
         p.open()
         r = p.parse_and_unpack()
         p.close()
@@ -55,13 +47,9 @@ class TestVfatUnpackParser(TestBase):
     # test if extraction of (nested) subdirectories went ok
     def test_fat12_subdirectories_unpacked_correctly(self):
         rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set(), calculate_size=True)
-        filesize = fileresult.filesize
         data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = VfatUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
-                0)
+        p = self.create_unpackparser_for_path(rel_testfile, VfatUnpackParser,
+                0, data_unpack_dir = data_unpack_dir)
         p.open()
         r = p.parse_and_unpack()
         p.close()

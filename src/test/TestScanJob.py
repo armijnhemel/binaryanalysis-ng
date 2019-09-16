@@ -66,9 +66,9 @@ class TestScanJob(TestBase):
     def test_process_css_file_has_correct_labels(self):
         # /home/tim/bang-test-scrap/bang-scan-jucli3nm/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/www/luci-static/bootstrap/cascade.css
         fn = pathlib.Path("a/cascade.css")
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
@@ -84,10 +84,10 @@ class TestScanJob(TestBase):
     def test_openwrt_version_has_correct_labels(self):
         # openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/openwrt_version
         fn = pathlib.Path("a/openwrt_version")
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
-        # fileresult = self._create_fileresult_for_file(fn, os.path.dirname(fn), set())
+        fn_abs = self.testdata_dir / fn
+        # self._copy_file_from_testdata(fn)
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -104,10 +104,9 @@ class TestScanJob(TestBase):
     def test_dhcpv6sh_has_correct_labels(self):
         # /home/tim/bang-test-scrap/bang-scan-wd8il1i5/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/lib/netifd/proto/dhcpv6.sh
         fn = pathlib.Path("a/dhcpv6.sh")
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
-
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
@@ -122,9 +121,9 @@ class TestScanJob(TestBase):
 
     def test_kernelconfig_is_processed(self):
         rel_testfile = pathlib.Path('unpackers') / 'kernelconfig' / 'kernelconfig'
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set(), calculate_size=True)
+        abs_testfile = self.testdata_dir / rel_testfile
+        fileresult = FileResult(abs_testfile, None, set(), set())
+        fileresult.set_filesize(abs_testfile.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -137,14 +136,14 @@ class TestScanJob(TestBase):
                 raise e
         result = self.result_queue.get()
 
-        self.assertEqual(result.filename, rel_testfile)
+        self.assertEqual(result.filename, abs_testfile)
         self.assertSetEqual(result.labels, set(['text', 'kernel configuration']))
 
     def test_gzip_unpacks_to_right_directory(self):
-        fn = pathlib.Path("a/hello.gz")
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
+        fn = pathlib.Path("a") / "hello.gz"
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -157,13 +156,14 @@ class TestScanJob(TestBase):
                 raise e
         result1 = self.result_queue.get()
         result2 = self.result_queue.get()
-        self.assertEqual(str(result2.filename), str(fn)+'-0x00000000-gzip-1/hello')
+        fn_expected = pathlib.Path(fn.name+'-0x00000000-gzip-1') / 'hello'
+        self.assertEqual(result2.filename, fn_expected)
 
     def test_report_has_correct_path(self):
-        fn = pathlib.Path("a/hello.gz")
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
+        fn = pathlib.Path("a") / "hello.gz"
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -177,16 +177,17 @@ class TestScanJob(TestBase):
         result1 = self.result_queue.get()
         result2 = self.result_queue.get()
         unpack_report = result1.unpackedfiles[0]
+        fn_expected = pathlib.Path(fn.name+'-0x00000000-gzip-1') / 'hello'
+
         self.assertEqual(unpack_report['unpackdirectory'],
-                str(fn)+'-0x00000000-gzip-1')
-        self.assertEqual(unpack_report['files'],
-                [ str(fn)+'-0x00000000-gzip-1/hello' ])
+                str(fn_expected.parent))
+        self.assertEqual(unpack_report['files'], [ str(fn_expected) ])
 
     def test_file_is_unpacked_by_extension(self):
         fn = pathlib.Path("unpackers") / "gif" / "test.gif"
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         scanjob.set_scanenvironment(self.scan_environment)
@@ -194,14 +195,13 @@ class TestScanJob(TestBase):
         unpacker = Unpacker(self.unpackdir)
         scanjob.prepare_for_unpacking()
         scanjob.check_for_valid_extension(unpacker)
-        # j = self.scanfile_queue.get()
         self.assertIn('gif', fileresult.labels)
 
     def test_file_is_unpacked_by_signature(self):
         fn = pathlib.Path("unpackers") / "gif" / "test-prepend-random-data.gif"
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         scanjob.set_scanenvironment(self.scan_environment)
@@ -277,9 +277,9 @@ class TestScanJob(TestBase):
     #    ex: 2 .gbr files concatenated with extension .gbr
     def test_file_with_extension_match_is_carved(self):
         fn = pathlib.Path("unpackers") / "combined" / "double-gimpbrush.gbr"
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -294,16 +294,18 @@ class TestScanJob(TestBase):
         result1 = self.result_queue.get()
         result2 = self.result_queue.get()
         result3 = self.result_queue.get()
-        self.assertEqual(result1.filename, fn)
-        self.assertEqual(result2.filename.name, 'unpacked.gimpbrush')
-        self.assertEqual(result3.filename.name, 'unpacked.gimpbrush')
+        self.assertEqual(result1.filename, fn_abs) # parent file is absolute
+        self.assertEqual(result2.filename.name, 'unpacked.gimpbrush') # relative
+        self.assertEqual(result2.filename.parent.parent, pathlib.Path('.'))
+        self.assertEqual(result3.filename.name, 'unpacked.gimpbrush') # relative
+        self.assertEqual(result3.filename.parent.parent, pathlib.Path('.'))
 
     # 2. ex: 2 .gbr files concatenated with extension .bla
     def test_file_with_signature_match_is_carved(self):
         fn = pathlib.Path("unpackers") / "combined" / "double-gimpbrush.bla"
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -318,17 +320,20 @@ class TestScanJob(TestBase):
         result1 = self.result_queue.get()
         result2 = self.result_queue.get()
         result3 = self.result_queue.get()
-        self.assertEqual(result1.filename, fn)
+        # unpack file at root has absolute path
+        self.assertEqual(result1.filename, fn_abs)
         self.assertEqual(result2.filename.name, 'unpacked.gimpbrush')
+        self.assertEqual(result2.filename.parent.parent, pathlib.Path('.'))
         self.assertEqual(result3.filename.name, 'unpacked.gimpbrush')
+        self.assertEqual(result3.filename.parent.parent, pathlib.Path('.'))
 
     # 3. ex: kernelconfig (featureless file) concatenated with .gbr
     def test_file_without_features_is_carved(self):
         # TODO: review if this test does what we want it to do
         fn = pathlib.Path("unpackers") / "combined" / "kernelconfig-gif.bla"
-        self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set(),
-                calculate_size=True)
+        fn_abs = self.testdata_dir / fn
+        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -343,8 +348,10 @@ class TestScanJob(TestBase):
         result1 = self.result_queue.get()
         result2 = self.result_queue.get()
         result3 = self.result_queue.get()
-        self.assertEqual(result1.filename, fn)
+        # unpack file at root has absolute path
+        self.assertEqual(result1.filename, fn_abs)
         self.assertEqual(result2.filename.name, 'unpacked.gif')
+        self.assertEqual(result2.filename.parent.parent, pathlib.Path('.'))
         # gif_offset = 202554
         gif_offset = result1.unpackedfiles[0]['offset']
         self.assertEqual(result3.filename.name,

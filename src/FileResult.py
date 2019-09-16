@@ -91,3 +91,9 @@ class FileResult:
 
     def get_hash(self, algorithm='sha256'):
         return self.hash[algorithm]
+
+    def get_unpack_directory_parent(self):
+        if self.parent is None:
+            return pathlib.Path(pathlib.Path(self.filename).name)
+        return pathlib.Path(self.filename)
+        pass
