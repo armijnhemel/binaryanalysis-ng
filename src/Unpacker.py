@@ -140,7 +140,7 @@ class Unpacker:
         up.open()
         try:
             unpackresult = up.parse_and_unpack()
-            if unpackresult['length'] != fileresult.filesize:
+            if unpackresult.get_length() != fileresult.filesize:
                 up.carve()
         except UnpackParserException as e:
             raise e
@@ -224,7 +224,7 @@ class Unpacker:
         up.open()
         try:
             unpackresult = up.parse_and_unpack()
-            if unpackresult['length'] != fileresult.filesize:
+            if unpackresult.get_length() != fileresult.filesize:
                 up.carve()
         except UnpackParserException as e:
             raise e
@@ -238,7 +238,7 @@ class Unpacker:
         up.open()
         try:
             unpackresult = up.parse_and_unpack()
-            if unpackresult['length'] != fileresult.filesize:
+            if unpackresult.get_length() != fileresult.filesize:
                 # TODO: let up generate name
                 up.carve()
         except UnpackParserException as e:
@@ -250,19 +250,19 @@ class Unpacker:
     def file_unpacked(self, unpackresult, filesize):
         # store the location of where the successfully
         # unpacked file ends (the offset is always 0  here).
-        self.lastunpackedoffset = unpackresult['length']
+        self.lastunpackedoffset = unpackresult.get_length()
 
         # store the range of the unpacked data
-        self.unpackedrange.append((0, unpackresult['length']))
+        self.unpackedrange.append((0, unpackresult.get_length()))
 
         # if unpackedfilesandlabels is empty, then no files
         # were unpacked likely because the whole file was the
         # result and didn't contain any files (it was not a
         # container or compresed file)
-        if unpackresult['filesandlabels'] == []:
+        if unpackresult.get_unpacked_files() == []:
             self.remove_data_unpack_directory()
 
         # whole file has already been unpacked, so no need for
         # further scanning.
-        if unpackresult['length'] == filesize:
+        if unpackresult.get_length() == filesize:
             self.needsunpacking = False

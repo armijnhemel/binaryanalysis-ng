@@ -13,9 +13,9 @@ class TestGimpBrushUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertEqual(r['length'], self.get_testfile_size(rel_testfile))
-        self.assertEqual(r['filesandlabels'], [])
-        self.assertEqual(r['metadata']['width'], 64)
+        self.assertEqual(r.get_length(), self.get_testfile_size(rel_testfile))
+        self.assertEqual(r.get_unpacked_files(), [])
+        self.assertEqual(r.get_metadata()['width'], 64)
 
     def test_load_offset_gbr_file(self):
         rel_testfile = pathlib.Path('unpackers') / 'gimpbrush' / 'test-prepend-random-data.gbr'
@@ -27,9 +27,9 @@ class TestGimpBrushUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertEqual(r['length'], self.get_testfile_size(rel_testfile) - offset)
-        self.assertEqual(r['filesandlabels'], [])
-        self.assertEqual(r['metadata']['width'], 64)
+        self.assertEqual(r.get_length(), self.get_testfile_size(rel_testfile) - offset)
+        self.assertEqual(r.get_unpacked_files(), [])
+        self.assertEqual(r.get_metadata()['width'], 64)
 
 if __name__ == '__main__':
     unittest.main()

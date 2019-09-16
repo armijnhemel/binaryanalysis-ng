@@ -12,8 +12,8 @@ class TestRarUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertEqual(r['length'], self.get_testfile_size(rel_testfile))
-        self.assertEqual(len(r['filesandlabels']), 0)
+        self.assertEqual(r.get_length(), self.get_testfile_size(rel_testfile))
+        self.assertEqual(len(r.get_unpacked_files()), 0)
 
 if __name__ == '__main__':
     unittest.main()

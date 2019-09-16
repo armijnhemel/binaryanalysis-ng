@@ -12,8 +12,8 @@ class TestIcoUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertEqual(r['length'], self.get_testfile_size(rel_testfile))
-        self.assertEqual(r['filesandlabels'], [])
+        self.assertEqual(r.get_length(), self.get_testfile_size(rel_testfile))
+        self.assertEqual(r.get_unpacked_files(), [])
 
 if __name__ == '__main__':
     unittest.main()

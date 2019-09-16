@@ -148,7 +148,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        self.unpack_results['labels'] = ['filesystem','mbr']
-        self.unpack_results['metadata'] = {}
+        self.unpack_results.set_labels(['filesystem','mbr'])
+        self.unpack_results.set_metadata({})
 
 

@@ -15,11 +15,11 @@ class TestVfatUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertEqual(r['length'], self.get_testfile_size(rel_testfile))
-        self.assertEqual(len(r['filesandlabels']), 1)
+        self.assertEqual(r.get_length(), self.get_testfile_size(rel_testfile))
+        self.assertEqual(len(r.get_unpacked_files()), 1)
         unpacked_path_rel = data_unpack_dir / 'hellofat.txt'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel
-        self.assertEqual(r['filesandlabels'][0][0], unpacked_path_rel)
+        self.assertEqual(r.get_unpacked_files()[0][0], unpacked_path_rel)
         self.assertUnpackedPathExists(unpacked_path_rel)
         with open(unpacked_path_abs,"rb") as f:
             self.assertEqual(f.read(), b'hello fat\n')
@@ -51,7 +51,7 @@ class TestVfatUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertEqual(len(r['filesandlabels']), 4)
+        self.assertEqual(len(r.get_unpacked_files()), 4)
 
         unpacked_path_rel = data_unpack_dir / 'subdir1.dir'
         unpacked_path_abs = self.unpackdir / unpacked_path_rel

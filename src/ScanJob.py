@@ -210,27 +210,28 @@ class ScanJob:
                     # so log it as such.
                     log(logging.INFO, "SUCCESS %s %s at offset: 0, length: %d" %
                         (self.fileresult.filename, extension,
-                         unpackresult['length']))
+                         unpackresult.get_length()))
 
                     unpacker.file_unpacked(unpackresult, self.fileresult.filesize)
 
                     # store any labels that were passed as a result and
                     # add them to the current list of labels
-                    self.fileresult.labels.update(unpackresult['labels'])
+                    self.fileresult.labels.update(unpackresult.get_labels())
 
                     # store lot of information about the unpacked files
                     report = {
                         'offset': 0,
                         'extension': extension,
                         'type': unpackparser.pretty_name,
-                        'size': unpackresult['length'],
+                        'size': unpackresult.get_length(),
                         'files': [],
                     }
 
-                    if 'metadata' in unpackresult:
-                        self.fileresult.set_metadata(unpackresult['metadata'])
+                    if unpackresult.get_metadata != {}:
+                        self.fileresult.set_metadata(unpackresult.get_metadata())
 
-                    for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
+                    for unpackedfile, unpackedlabel in \
+                        unpackresult.get_unpacked_files():
                         fr = FileResult(
                             pathlib.Path(unpackedfile),
                             self.fileresult.filename,
@@ -323,31 +324,33 @@ class ScanJob:
 
                     # first rewrite the offset, if needed
                     # (example: coreboot file system)
-                    offset = unpackresult.get('offset', offset)
+                    offset = unpackresult.get_offset(default=offset)
 
                     # the file could be unpacked successfully,
                     # so log it as such.
                     log(logging.INFO, "SUCCESS %s %s at offset: %d, length: %d" %
-                        (self.fileresult.filename, unpackparser.pretty_name, offset, unpackresult['length']))
+                        (self.fileresult.filename, unpackparser.pretty_name,
+                            offset, unpackresult.get_length()))
 
                     # store the name counter
                     counterspersignature[unpackparser.pretty_name] = namecounter
 
                     # store the labels for files that could be
                     # unpacked/verified completely.
-                    if offset == 0 and unpackresult['length'] == self.fileresult.filesize:
-                        self.fileresult.labels.update(unpackresult['labels'])
+                    if offset == 0 and unpackresult.get_length() == self.fileresult.filesize:
+                        self.fileresult.labels.update(unpackresult.get_labels())
                         # self.labels = list(set(self.labels))
                         # if unpackedfilesandlabels is empty, then no
                         # files were unpacked, likely because the whole
                         # file was the result and didn't contain any
                         # files (i.e. it was not a container file or
                         # compressed file).
-                        if unpackresult['filesandlabels'] == []:
+                        if unpackresult.get_unpacked_files() == []:
                             unpacker.remove_data_unpack_directory()
 
                     # store the range of the unpacked data
-                    unpacker.append_unpacked_range(offset, offset + unpackresult['length'])
+                    unpacker.append_unpacked_range(offset, offset +
+                        unpackresult.get_length())
 
                     # store lot of information about the unpacked files
                     report = {
@@ -355,21 +358,22 @@ class ScanJob:
                         # TODO: signature text or index?
                         'signature': unpackparser.pretty_name,
                         'type': unpackparser.pretty_name,
-                        'size': unpackresult['length'],
+                        'size': unpackresult.get_length(),
                         'files': [],
                     }
 
-                    if 'metadata' in unpackresult:
-                        self.fileresult.set_metadata(unpackresult['metadata'])
+                    if unpackresult.get_metadata != {}:
+                        self.fileresult.set_metadata(unpackresult.get_metadata())
 
                     # set unpackdirectory, but only if needed: if the entire
                     # file is a file that was verified (example: GIF or PNG)
                     # then there will not be an unpacking directory.
-                    if unpackresult['filesandlabels'] != []:
+                    if unpackresult.get_unpacked_files() != []:
                         report['unpackdirectory'] = \
                             str(unpacker.get_data_unpack_directory())
 
-                    for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
+                    for unpackedfile, unpackedlabel in \
+                        unpackresult.get_unpacked_files():
                         # TODO: make relative wrt unpackdir?
                         report['files'].append(str(unpackedfile))
                         # add the data, plus possibly any label
@@ -385,7 +389,8 @@ class ScanJob:
 
                     # skip over all of the indexes that are now known
                     # to be false positives
-                    unpacker.set_last_unpacked_offset(offset + unpackresult['length'])
+                    unpacker.set_last_unpacked_offset(offset + \
+                            unpackresult.get_length())
 
                     # something was unpacked, so record it as such
                     unpacker.set_needs_unpacking(False)
@@ -593,19 +598,20 @@ class ScanJob:
                     continue
 
                 log(logging.INFO, "SUCCESS %s %s at offset: %d, length: %d" %
-                    (self.fileresult.filename, unpack_parser.pretty_name, 0, unpackresult['length']))
+                    (self.fileresult.filename, unpack_parser.pretty_name, 0,
+                    unpackresult.get_length()))
 
                 # store the labels for files that could be
                 # unpacked/verified completely.
-                if unpackresult['length'] == self.fileresult.filesize:
-                    self.fileresult.labels.update(unpackresult['labels'])
+                if unpackresult.get_length() == self.fileresult.filesize:
+                    self.fileresult.labels.update(unpackresult.get_labels())
                     # if unpackedfilesandlabels is empty, then no
                     # files were unpacked, likely because the whole
                     # file was the result and didn't contain any
                     # files (i.e. it was not a container file or
                     # compresed file).
                     #if len(unpackresult['filesandlabels']) == 0:
-                    if unpackresult['filesandlabels'] == []:
+                    if unpackresult.get_unpacked_files() == []:
                         unpacker.remove_data_unpack_directory()
 
                 # store lot of information about the unpacked files
@@ -613,17 +619,18 @@ class ScanJob:
                     'offset': 0,
                     'signature': unpack_parser.pretty_name,
                     'type': unpack_parser.pretty_name,
-                    'size': unpackresult['length'],
+                    'size': unpackresult.get_length(),
                     'files': [],
                 }
 
-                if 'metadata' in unpackresult:
-                    self.fileresult.set_metadata(unpackresult['metadata'])
+                if unpackresult.get_metadata != {}:
+                    self.fileresult.set_metadata(unpackresult.get_metadata())
 
-                unpacker.set_last_unpacked_offset(unpackresult['length'])
-                unpacker.append_unpacked_range(0, unpackresult['length'])
+                unpacker.set_last_unpacked_offset(unpackresult.get_length())
+                unpacker.append_unpacked_range(0, unpackresult.get_length())
 
-                for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
+                for unpackedfile, unpackedlabel in \
+                    unpackresult.get_unpacked_files():
                     # TODO: make relative wrt unpackdir
                     report['files'].append(str(unpackedfile))
 

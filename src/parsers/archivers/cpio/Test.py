@@ -14,9 +14,9 @@ class TestCpioUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertLessEqual(r['length'], self.get_testfile_size(rel_testfile))
+        self.assertLessEqual(r.get_length(), self.get_testfile_size(rel_testfile))
         extracted_fn = data_unpack_dir / 'test.sgi'
-        self.assertEqual(r['filesandlabels'], [(str(extracted_fn), ['unpacked'])])
+        self.assertEqual(r.get_unpacked_files(), [(str(extracted_fn), ['unpacked'])])
         self.assertUnpackedPathExists(extracted_fn)
 
     def test_load_cpio_file_portable_ascii(self):
@@ -27,9 +27,9 @@ class TestCpioUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertLessEqual(r['length'], self.get_testfile_size(rel_testfile))
+        self.assertLessEqual(r.get_length(), self.get_testfile_size(rel_testfile))
         extracted_fn = data_unpack_dir / 'test.sgi'
-        self.assertEqual(r['filesandlabels'], [(str(extracted_fn), ['unpacked'])])
+        self.assertEqual(r.get_unpacked_files(), [(str(extracted_fn), ['unpacked'])])
         self.assertUnpackedPathExists(extracted_fn)
 
     def test_unpack_different_filetypes(self):
@@ -41,13 +41,13 @@ class TestCpioUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertLessEqual(r['length'], self.get_testfile_size(rel_testfile))
+        self.assertLessEqual(r.get_length(), self.get_testfile_size(rel_testfile))
 
         # check if etc is a directory
         extracted_fn = data_unpack_dir / 'etc'
         extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
         self.assertTrue(extracted_fn_abs.is_dir())
-        extracted_labels = [ i for i in r['filesandlabels'] if i[0] ==
+        extracted_labels = [ i for i in r.get_unpacked_files() if i[0] ==
                 str(extracted_fn)][0][1]
         self.assertEqual(extracted_labels, ['unpacked'])
 
@@ -56,14 +56,14 @@ class TestCpioUnpackParser(TestBase):
         extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
         self.assertTrue(extracted_fn_abs.is_symlink())
         self.assertEqual(extracted_fn_abs.resolve().name, 'dropbearmulti')
-        extracted_labels = [ i for i in r['filesandlabels'] if i[0] ==
+        extracted_labels = [ i for i in r.get_unpacked_files() if i[0] ==
                 str(extracted_fn)][0][1]
         self.assertIn('symbolic link', extracted_labels)
 
         # check if device /dev/zero is skipped
         extracted_fn = data_unpack_dir / 'dev' / 'zero'
         self.assertUnpackedPathDoesNotExist(extracted_fn)
-        extracted_files_and_labels = [ i for i in r['filesandlabels'] if i[0] ==
+        extracted_files_and_labels = [ i for i in r.get_unpacked_files() if i[0] ==
                 str(extracted_fn)]
         self.assertEqual(extracted_files_and_labels, [])
 
@@ -75,11 +75,11 @@ class TestCpioUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertLessEqual(r['length'], self.get_testfile_size(rel_testfile))
+        self.assertLessEqual(r.get_length(), self.get_testfile_size(rel_testfile))
 
         extracted_fn = data_unpack_dir / 'e' / 't.sgi'
         self.assertUnpackedPathExists(extracted_fn)
-        extracted_labels = [ i for i in r['filesandlabels'] if i[0] ==
+        extracted_labels = [ i for i in r.get_unpacked_files() if i[0] ==
                 str(extracted_fn)][0][1]
         self.assertEqual(extracted_labels, ['unpacked'])
 

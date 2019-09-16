@@ -12,9 +12,9 @@ class TestGifUnpackParser(TestBase):
         p.open()
         r = p.parse_and_unpack()
         p.close()
-        self.assertEqual(r['length'], self.get_testfile_size(rel_testfile))
-        self.assertEqual(r['filesandlabels'], [])
-        self.assertEqual(r['metadata']['width'], 3024)
+        self.assertEqual(r.get_length(), self.get_testfile_size(rel_testfile))
+        self.assertEqual(r.get_unpacked_files(), [])
+        self.assertEqual(r.get_metadata()['width'], 3024)
 
     def test_extracted_gif_file_is_correct(self):
         rel_testfile = pathlib.Path('unpackers') / 'gif' / 'test-prepend-random-data.gif'
@@ -26,16 +26,16 @@ class TestGifUnpackParser(TestBase):
         r = p.parse_and_unpack()
         p.carve()
         p.close()
-        self.assertEqual(r['length'], 7073713)
-        unpacked_file = r['filesandlabels'][0][0]
-        unpacked_labels = r['filesandlabels'][0][1]
+        self.assertEqual(r.get_length(), 7073713)
+        unpacked_file = r.get_unpacked_files()[0][0]
+        unpacked_labels = r.get_unpacked_files()[0][1]
         self.assertEqual(pathlib.Path(unpacked_file),
                 pathlib.Path(data_unpack_dir) / 'unpacked.gif')
         self.assertUnpackedPathExists(unpacked_file)
-        self.assertEqual((self.unpackdir / unpacked_file).stat().st_size, r['length'])
-        self.assertEqual(r['metadata']['width'], 3024)
+        self.assertEqual((self.unpackdir / unpacked_file).stat().st_size, r.get_length())
+        self.assertEqual(r.get_metadata()['width'], 3024)
         self.assertSetEqual(set(unpacked_labels),
-                set(r['labels'] + ['unpacked']))
+                set(r.get_labels() + ['unpacked']))
 
     def test_load_png_file(self):
         rel_testfile = pathlib.Path('unpackers') / 'png' / 'test.png'

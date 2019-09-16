@@ -51,8 +51,9 @@ class GimpBrushUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):
-        self.unpack_results['labels'] = ['gimp brush', 'graphics']
-        self.unpack_results['metadata'] = {'width': self.data.width,
+        self.unpack_results.set_labels(['gimp brush', 'graphics'])
+        self.unpack_results.set_metadata({'width': self.data.width,
                                            'height': self.data.height,
-                                           'color_depth': self.data.color_depth}
+                                           'color_depth': self.data.color_depth
+                                        })
 

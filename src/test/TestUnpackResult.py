@@ -78,7 +78,8 @@ class TestUnpackResult(TestBase):
 
             try:
                 # all paths in unpackresults are relative to unpackdir
-                for unpackedfile, unpackedlabel in unpackresult['filesandlabels']:
+                for unpackedfile, unpackedlabel in \
+                        unpackresult.get_unpacked_files():
                     self.assertFalse(
                         is_prefix(str(self.unpackdir), unpackedfile)
                         , f"absolute path in unpackresults: {unpackedfile}")
