@@ -57,7 +57,8 @@ class UnpackParser:
         self.parse()
         self.calculate_unpacked_size()
     def open(self):
-        filename_full = self.scan_environment.unpack_path(self.fileresult.filename)
+        filename_full = self.scan_environment.get_unpack_path_for_fileresult(
+                    self.fileresult)
         self.infile = filename_full.open('rb')
     def close(self):
         self.infile.close()

@@ -117,12 +117,27 @@ class TestBase(unittest.TestCase):
         return abs_testfile.stat().st_size
 
     def create_unpackparser_for_path(self, rel_testfile, unpackparser, offset,
-            data_unpack_dir = None):
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set(), calculate_size=True)
-        if data_unpack_dir is None:
-            data_unpack_dir = rel_testfile.parent / 'some_dir'
+            data_unpack_dir = pathlib.Path('.'), has_unpack_parent = False,
+            calculate_size = True):
+        """Creates an unpackparser of type unpackparser to unpack the file
+        rel_testfile, starting at offset.
+        data_unpack_dir is the path of the directory to which any files are
+            extracted. The path is relative to the unpack root directory.
+        has_unpack_parent indicates if this file is unpacked from another file.
+            if True, rel_testfile is relative to the unpack root directory,
+            if False, rel_testfile is relative to the testdata directory.
+        calculate_size will calculate the size of the file. If the file does not
+            exist for some reason, this flag can be set to False. Default is
+            True.
+        """
+        # self._copy_file_from_testdata(rel_testfile)
+        if has_unpack_parent:
+            fileresult = FileResult(rel_testfile, rel_testfile.parent, set(), set())
+        else:
+            fileresult = FileResult(self.testdata_dir / rel_testfile, None, set(), set())
+        if calculate_size:
+            path = self.scan_environment.get_unpack_path_for_fileresult(fileresult)
+            fileresult.set_filesize(path.stat().st_size)
         p = unpackparser(fileresult, self.scan_environment, data_unpack_dir,
                 offset)
         return p

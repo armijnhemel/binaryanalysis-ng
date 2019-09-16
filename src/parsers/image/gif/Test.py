@@ -8,7 +8,6 @@ class TestGifUnpackParser(TestBase):
     def test_load_standard_gif_file(self):
         rel_testfile = pathlib.Path('unpackers') / 'gif' / 'test.gif'
         filename = pathlib.Path(self.testdata_dir) / rel_testfile
-        print('fn',filename, rel_testfile)
         p = self.create_unpackparser_for_path(rel_testfile, GifUnpackParser, 0)
         p.open()
         r = p.parse_and_unpack()
