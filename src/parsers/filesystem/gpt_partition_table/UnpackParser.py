@@ -37,8 +37,7 @@ class GptPartitionTableUnpackParser(UnpackParser):
             # TODO: add partition GUID to labels
             # print(e.guid)
             outlabels = ['partition']
-            fr = FileResult(outfile_rel, self.fileresult.filename,
-                    self.fileresult.labels, set(outlabels))
+            fr = FileResult(self.fileresult, outfile_rel, set(outlabels))
             unpacked_files.append( fr )
             partition_number += 1
         return unpacked_files

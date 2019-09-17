@@ -111,7 +111,7 @@ class TestUnpackResult(TestBase):
         # feed a zero length file
         fn = "/dev/null"
         name = "null"
-        fileresult = FileResult(fn, None, set(), set())
+        fileresult = FileResult(None, fn, set())
         fileresult.set_filesize(0)
         self.assertEqual(str(fileresult.filename), name)
         for unpackername in sorted(unpackers.keys()):

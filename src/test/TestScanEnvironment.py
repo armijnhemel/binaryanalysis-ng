@@ -56,20 +56,21 @@ class TestScanEnvironment(unittest.TestCase):
         se = self.create_scan_environment(unpackdirectory =
                 pathlib.Path('/test'))
         path = pathlib.Path('a') / 'b'
-        fr = FileResult(path, None, set(), set())
+        fr = FileResult(None, path, set())
         self.assertEqual(se.get_unpack_path_for_fileresult(fr), path)
     def test_unpack_path_for_absolute_root_fileresult_is_path(self):
         se = self.create_scan_environment(unpackdirectory =
                 pathlib.Path('/test'))
         path = pathlib.Path('/a') / 'b'
-        fr = FileResult(path, None, set(), set())
+        fr = FileResult(None, path, set())
         self.assertEqual(se.get_unpack_path_for_fileresult(fr), path)
     # 2. if fileresult has a parent, path must be in unpack directory
     def test_unpack_path_for_child_fileresult_is_in_unpack_directory(self):
         se = self.create_scan_environment(unpackdirectory =
                 pathlib.Path('/test'))
         path = pathlib.Path('a') / 'b'
-        fr = FileResult(path, path.parent, set(), set())
+        frparent = FileResult(None, path.parent, set())
+        fr = FileResult(frparent, path, set())
         self.assertEqual(se.get_unpack_path_for_fileresult(fr),
                 pathlib.Path('/test') / path)
 

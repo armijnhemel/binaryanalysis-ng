@@ -26,19 +26,22 @@ class FileResult:
     """stores all the information about the file that has been discovered
     so far.
     """
-    def __init__(self, rel_filename, rel_parentfilename, parentlabels, labels):
+    def __init__(self, parent, rel_filename, labels):
         """Constructor.
+        parent: parent fileresult, None if file is the top file to unpack.
         rel_filename: path relative to the unpack directory root, unless
-        rel_parentfilename is None, i.e. the file does not have a parent. In
-        that case, rel_filename is the pathname specified, i.e. absolute or
-        relative to the current working directory.
-        rel_parentfilename: rel_filename of the parent.
+        labels: labels associated with the file.
         """
         self.hash = {}
         self.filename = rel_filename
-        self.parent = rel_parentfilename
+        # TODO: self.parent must be the fileresult
+        if parent:
+            self.parent = parent.filename
+            self.parentlabels = parent.labels
+        else:
+            self.parent = None
+            self.parentlabels = set()
         self.labels = labels
-        self.parentlabels = parentlabels
         self.unpackedfiles = None
         self.metadata = None
         self.filesize = None

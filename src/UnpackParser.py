@@ -111,8 +111,7 @@ class UnpackParser:
         outfile.close()
         self.unpack_results.add_label('unpacked')
         out_labels = self.unpack_results.get_labels() + ['unpacked']
-        fr = FileResult(rel_output_path, self.fileresult.filename,
-                self.fileresult.labels, set(out_labels))
+        fr = FileResult(self.fileresult, rel_output_path, set(out_labels))
         self.unpack_results.add_unpacked_file( fr )
     def set_metadata_and_labels(self):
         """Override this method to set metadata and labels."""
@@ -176,11 +175,8 @@ class WrappedUnpackParser(UnpackParser):
     def get_unpack_results_from_dictionary(self,r):
         unpack_results = UnpackResults()
         unpack_results.set_length(r['length'])
-        frs = [ FileResult(
-            pathlib.Path(x[0]),
-            self.fileresult.filename,
-            self.fileresult.labels,
-            set(x[1])) for x in r['filesandlabels'] ]
+        frs = [ FileResult(self.fileresult, pathlib.Path(x[0]), set(x[1]))
+                for x in r['filesandlabels'] ]
         unpack_results.set_unpacked_files(frs)
         unpack_results.set_offset(r.get('offset'))
         unpack_results.set_labels(r.get('labels', []))

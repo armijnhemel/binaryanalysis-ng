@@ -491,10 +491,8 @@ class ScanJob:
                                 outfile_rel = newoutfile_rel
 
                         # add the data, plus labels, to the queue
-                        fr = FileResult(
+                        fr = FileResult(self.fileresult,
                             pathlib.Path(outfile_rel),
-                            self.fileresult.filename,
-                            self.fileresult.labels,
                             set(unpackedlabel))
                         j = ScanJob(fr)
                         self.scanenvironment.scanfilequeue.put(j)

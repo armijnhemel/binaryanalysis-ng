@@ -34,7 +34,7 @@ class TestScanJob(TestBase):
 
     def test_carved_padding_file_has_correct_labels(self):
         self._create_padding_file_in_directory()
-        fileresult = FileResult(self.padding_file, None, set(), set())
+        fileresult = FileResult(None, self.padding_file, set())
         fileresult.set_filesize(
                 (self.unpackdir / self.padding_file).stat().st_size)
         scanjob = ScanJob(fileresult)
@@ -50,7 +50,7 @@ class TestScanJob(TestBase):
 
     def test_process_paddingfile_has_correct_labels(self):
         self._create_padding_file_in_directory()
-        fileresult = FileResult(self.padding_file, None, set(), set(['padding']))
+        fileresult = FileResult(None, self.padding_file, set(['padding']))
         fileresult.set_filesize(
                 (self.unpackdir / self.padding_file).stat().st_size)
         scanjob = ScanJob(fileresult)
@@ -69,7 +69,7 @@ class TestScanJob(TestBase):
         # /home/tim/bang-test-scrap/bang-scan-jucli3nm/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/www/luci-static/bootstrap/cascade.css
         fn = pathlib.Path("a/cascade.css")
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -88,7 +88,7 @@ class TestScanJob(TestBase):
         fn = pathlib.Path("a/openwrt_version")
         fn_abs = self.testdata_dir / fn
         # self._copy_file_from_testdata(fn)
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
@@ -107,7 +107,7 @@ class TestScanJob(TestBase):
         # /home/tim/bang-test-scrap/bang-scan-wd8il1i5/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/lib/netifd/proto/dhcpv6.sh
         fn = pathlib.Path("a/dhcpv6.sh")
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
@@ -124,7 +124,7 @@ class TestScanJob(TestBase):
     def test_kernelconfig_is_processed(self):
         rel_testfile = pathlib.Path('unpackers') / 'kernelconfig' / 'kernelconfig'
         abs_testfile = self.testdata_dir / rel_testfile
-        fileresult = FileResult(abs_testfile, None, set(), set())
+        fileresult = FileResult(None, abs_testfile, set())
         fileresult.set_filesize(abs_testfile.stat().st_size)
 
         scanjob = ScanJob(fileresult)
@@ -144,7 +144,7 @@ class TestScanJob(TestBase):
     def test_gzip_unpacks_to_right_directory(self):
         fn = pathlib.Path("a") / "hello.gz"
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
@@ -164,7 +164,7 @@ class TestScanJob(TestBase):
     def test_report_has_correct_path(self):
         fn = pathlib.Path("a") / "hello.gz"
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
@@ -188,7 +188,7 @@ class TestScanJob(TestBase):
     def test_file_is_unpacked_by_extension(self):
         fn = pathlib.Path("unpackers") / "gif" / "test.gif"
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
@@ -202,7 +202,7 @@ class TestScanJob(TestBase):
     def test_file_is_unpacked_by_signature(self):
         fn = pathlib.Path("unpackers") / "gif" / "test-prepend-random-data.gif"
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
@@ -220,7 +220,7 @@ class TestScanJob(TestBase):
     def test_carved_data_is_extracted_from_file(self):
         fn = pathlib.Path("unpackers") / "gif" / "test-prepend-random-data.gif"
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
@@ -242,7 +242,7 @@ class TestScanJob(TestBase):
     def test_featureless_file_is_unpacked(self):
         fn = pathlib.Path("unpackers") / "ihex" / "example.txt"
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
@@ -280,7 +280,7 @@ class TestScanJob(TestBase):
     def test_file_with_extension_match_is_carved(self):
         fn = pathlib.Path("unpackers") / "combined" / "double-gimpbrush.gbr"
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
@@ -306,7 +306,7 @@ class TestScanJob(TestBase):
     def test_file_with_signature_match_is_carved(self):
         fn = pathlib.Path("unpackers") / "combined" / "double-gimpbrush.bla"
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)
@@ -334,7 +334,7 @@ class TestScanJob(TestBase):
         # TODO: review if this test does what we want it to do
         fn = pathlib.Path("unpackers") / "combined" / "kernelconfig-gif.bla"
         fn_abs = self.testdata_dir / fn
-        fileresult = FileResult(fn_abs, None, set(), set())
+        fileresult = FileResult(None, fn_abs, set())
         fileresult.set_filesize(fn_abs.stat().st_size)
 
         scanjob = ScanJob(fileresult)

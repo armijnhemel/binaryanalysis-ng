@@ -15,7 +15,8 @@ from ScanEnvironment import *
 
 def create_fileresult_for_path(unpackdir, path, labels, calculate_size=False):
     parentlabels = set()
-    fr = FileResult(path, str(path.parent), parentlabels, labels)
+    parent = FileResult(None, path.parent, parentlabels)
+    fr = FileResult(parent, path, labels)
     if calculate_size:
         fp = pathlib.Path(unpackdir) / path
         fr.set_filesize(fp.stat().st_size)
@@ -132,9 +133,10 @@ class TestBase(unittest.TestCase):
         """
         # self._copy_file_from_testdata(rel_testfile)
         if has_unpack_parent:
-            fileresult = FileResult(rel_testfile, rel_testfile.parent, set(), set())
+            parent = FileResult(None, rel_testfile.parent, set())
+            fileresult = FileResult(parent, rel_testfile, set())
         else:
-            fileresult = FileResult(self.testdata_dir / rel_testfile, None, set(), set())
+            fileresult = FileResult(None, self.testdata_dir / rel_testfile, set())
         if calculate_size:
             path = self.scan_environment.get_unpack_path_for_fileresult(fileresult)
             fileresult.set_filesize(path.stat().st_size)

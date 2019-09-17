@@ -153,8 +153,7 @@ class VfatUnpackParser(UnpackParser):
             size_read += bytes_to_read
         outfile.close()
         outlabels = []
-        return FileResult(rel_outfile, self.fileresult.filename,
-                self.fileresult.labels, set(outlabels))
+        return FileResult(self.fileresult, rel_outfile, set(outlabels))
 
     def is_end_cluster(self, cluster):
         # TODO: handle bad clusters and other exceptions
