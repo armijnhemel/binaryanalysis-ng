@@ -45,39 +45,6 @@ from parsers.image.ico.UnpackParser import IcoUnpackParser
 from .TestUtil import *
 
 
-class TestGeneric(TestBase):
-    """Test class based parsers/unpackers."""
-    testcases = [
-            [GifUnpackParser, 'unpackers/gif/test.gif', 0, 7073713],
-            [GifUnpackParser, 'unpackers/gif/test-prepend-random-data.gif', 128,
-                7073713],
-            [IcoUnpackParser, 'unpackers/ico/test.ico', 0, 2686],
-            [IcoUnpackParser, 'unpackers/ico/test-png.ico', 0, 327],
-            [IcoUnpackParser, 'unpackers/ico/test-prepend-random-data.ico', 128, 2686],
-        ]
-
-    @parameterized.expand(testcases)
-    def test_unpack_files(self, parser, rel_testfile, offset, filesize):
-        filename = pathlib.Path(self.testdata_dir) / rel_testfile
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir,
-                pathlib.Path(rel_testfile), set(), calculate_size=True)
-        data_unpack_dir = (self.unpackdir / rel_testfile).parent
-        p = parser(fileresult, self.scan_environment, data_unpack_dir, offset)
-        p.open()
-        r = p.parse_and_unpack()
-        p.close()
-        self.assertEqual(r.get_length(), filesize)
-        unpacked_total_size = 0
-        for unpacked_file, unpacked_label in r.get_unpacked_files():
-            self.assertTrue((self.unpackdir / unpacked_file).exists())
-            unpacked_total_size += (self.unpackdir / unpacked_file).stat().st_size
-        # TODO: in compressed archives, the unpacked length can be more than
-        # the file itself. Test invalid!
-        self.assertLessEqual(unpacked_total_size, r.get_length(),
-            'Length of unpacked files more than file itself')
-
-
 # a test class for testing GIFs
 class TestGIF(TestBase):
     '''Test class for GIF image files'''
