@@ -96,4 +96,3 @@ class FileResult:
         if self.parent is None:
             return pathlib.Path(pathlib.Path(self.filename).name)
         return pathlib.Path(self.filename)
-        pass
