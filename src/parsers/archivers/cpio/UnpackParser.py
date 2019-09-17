@@ -8,6 +8,7 @@ from . import cpio_portable_ascii
 from . import cpio_old_binary
 from UnpackParser import UnpackParser
 from UnpackParserException import UnpackParserException
+from FileResult import FileResult
 
 def rewrite_symlink(file_path, target_path):
     """rewrites a symlink of target_path, relative to file_path.
@@ -65,7 +66,7 @@ class CpioBaseUnpackParser(UnpackParser):
         outfile_full.symlink_to(link_path)
 
     def unpack(self):
-        files_and_labels = []
+        unpacked_files = []
         pos = 0
         for e in self.data.entries:
             out_labels = []
@@ -89,9 +90,13 @@ class CpioBaseUnpackParser(UnpackParser):
                             pos + filedata_start, e.header.fsize)
 
                 out_labels.append('unpacked')
-                files_and_labels.append( (str(self.rel_unpack_dir / file_path), out_labels) )
+                fr = FileResult(self.rel_unpack_dir / file_path,
+                        self.fileresult.filename,
+                        self.fileresult.labels,
+                        out_labels)
+                unpacked_files.append( fr )
             pos += e.header.bsize
-        return files_and_labels
+        return unpacked_files
     def set_metadata_and_labels(self):
         return
 

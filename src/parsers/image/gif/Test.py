@@ -27,12 +27,12 @@ class TestGifUnpackParser(TestBase):
         p.carve()
         p.close()
         self.assertEqual(r.get_length(), 7073713)
-        unpacked_file = r.get_unpacked_files()[0][0]
-        unpacked_labels = r.get_unpacked_files()[0][1]
-        self.assertEqual(pathlib.Path(unpacked_file),
+        unpacked_file = r.get_unpacked_files()[0]
+        unpacked_labels = r.get_unpacked_files()[0].labels
+        self.assertEqual(unpacked_file.filename,
                 pathlib.Path(data_unpack_dir) / 'unpacked.gif')
-        self.assertUnpackedPathExists(unpacked_file)
-        self.assertEqual((self.unpackdir / unpacked_file).stat().st_size, r.get_length())
+        self.assertUnpackedPathExists(unpacked_file.filename)
+        self.assertEqual((self.unpackdir / unpacked_file.filename).stat().st_size, r.get_length())
         self.assertEqual(r.get_metadata()['width'], 3024)
         self.assertSetEqual(set(unpacked_labels),
                 set(r.get_labels() + ['unpacked']))

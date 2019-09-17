@@ -230,14 +230,8 @@ class ScanJob:
                     if unpackresult.get_metadata != {}:
                         self.fileresult.set_metadata(unpackresult.get_metadata())
 
-                    for unpackedfile, unpackedlabel in \
-                        unpackresult.get_unpacked_files():
-                        fr = FileResult(
-                            pathlib.Path(unpackedfile),
-                            self.fileresult.filename,
-                            self.fileresult.labels,
-                            set(unpackedlabel))
-                        j = ScanJob(fr)
+                    for unpackedfile in unpackresult.get_unpacked_files():
+                        j = ScanJob(unpackedfile)
                         self.scanenvironment.scanfilequeue.put(j)
                         report['files'].append(str(unpackedfile))
                     self.fileresult.add_unpackedfile(report)
@@ -372,17 +366,9 @@ class ScanJob:
                         report['unpackdirectory'] = \
                             str(unpacker.get_data_unpack_directory())
 
-                    for unpackedfile, unpackedlabel in \
-                        unpackresult.get_unpacked_files():
-                        # TODO: make relative wrt unpackdir?
-                        report['files'].append(str(unpackedfile))
-                        # add the data, plus possibly any label
-                        fr = FileResult(
-                            pathlib.Path(unpackedfile),
-                            self.fileresult.filename,
-                            self.fileresult.labels,
-                            set(unpackedlabel))
-                        j = ScanJob(fr)
+                    for unpackedfile in unpackresult.get_unpacked_files():
+                        report['files'].append(str(unpackedfile.filename))
+                        j = ScanJob(unpackedfile)
                         self.scanenvironment.scanfilequeue.put(j)
 
                     self.fileresult.add_unpackedfile(report)
@@ -629,18 +615,9 @@ class ScanJob:
                 unpacker.set_last_unpacked_offset(unpackresult.get_length())
                 unpacker.append_unpacked_range(0, unpackresult.get_length())
 
-                for unpackedfile, unpackedlabel in \
-                    unpackresult.get_unpacked_files():
-                    # TODO: make relative wrt unpackdir
-                    report['files'].append(str(unpackedfile))
-
-                    # add the data, plus possibly any label
-                    fr = FileResult(
-                        pathlib.Path(unpackedfile),
-                        self.fileresult.filename,
-                        self.fileresult.labels,
-                        set(unpackedlabel))
-                    j = ScanJob(fr)
+                for unpackedfile in unpackresult.get_unpacked_files():
+                    report['files'].append(str(unpackedfile.filename))
+                    j = ScanJob(unpackedfile)
                     self.scanenvironment.scanfilequeue.put(j)
 
                 self.fileresult.add_unpackedfile(report)

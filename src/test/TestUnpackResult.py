@@ -78,27 +78,27 @@ class TestUnpackResult(TestBase):
 
             try:
                 # all paths in unpackresults are relative to unpackdir
-                for unpackedfile, unpackedlabel in \
+                for unpackedfile in \
                         unpackresult.get_unpacked_files():
                     self.assertFalse(
-                        is_prefix(str(self.unpackdir), unpackedfile)
-                        , f"absolute path in unpackresults: {unpackedfile}")
+                        is_prefix(str(self.unpackdir), unpackedfile.filename)
+                        , f"absolute path in unpackresults: {unpackedfile.filename}")
 
                     self.assertTrue(
                         is_prefix(
                             unpacker.get_data_unpack_directory(),
-                            unpackedfile),
-                        f"unpackedfile {unpackedfile} not in dataunpackdirectory {unpacker.get_data_unpack_directory()}"
+                            unpackedfile.filename),
+                        f"unpackedfile {unpackedfile.filename} not in dataunpackdirectory {unpacker.get_data_unpack_directory()}"
                         )
 
                     self.assertTrue(
                         is_prefix(
                             unpacker.get_data_unpack_directory(),
-                            os.path.normpath(unpackedfile)),
-                        f"unpackedfile {os.path.normpath(unpackedfile)} not in dataunpackdirectory {unpacker.get_data_unpack_directory()}"
+                            os.path.normpath(unpackedfile.filename)),
+                        f"unpackedfile {os.path.normpath(unpackedfile.filename)} not in dataunpackdirectory {unpacker.get_data_unpack_directory()}"
                         )
 
-                    unpackedfile_full = self.scan_environment.unpack_path(unpackedfile)
+                    unpackedfile_full = self.scan_environment.get_unpack_path_for_fileresult(unpackedfile)
                     self.assertTrue(os.path.exists(unpackedfile_full), f"path {unpackedfile_full} does not exist!")
 
             except KeyError as e:

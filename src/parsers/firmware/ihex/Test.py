@@ -15,7 +15,7 @@ class TestIhexUnpackParser(TestBase):
         p.close()
         self.assertEqual(r.get_length(), self.get_testfile_size(rel_testfile))
         self.assertEqual(len(r.get_unpacked_files()), 1)
-        extracted_fn = r.get_unpacked_files()[0][0]
+        extracted_fn = r.get_unpacked_files()[0].filename
         self.assertEqual(str(extracted_fn), str(data_unpack_dir / 'example'))
         self.assertUnpackedPathExists(data_unpack_dir / 'example')
 
@@ -29,7 +29,7 @@ class TestIhexUnpackParser(TestBase):
         p.close()
         self.assertEqual(r.get_length(), self.get_testfile_size(rel_testfile))
         self.assertEqual(len(r.get_unpacked_files()), 1)
-        extracted_fn = r.get_unpacked_files()[0][0]
+        extracted_fn = r.get_unpacked_files()[0].filename
         self.assertEqual(str(extracted_fn),
                 str(data_unpack_dir / 'unpacked-from-ihex'))
         self.assertUnpackedPathExists(data_unpack_dir / 'unpacked-from-ihex')

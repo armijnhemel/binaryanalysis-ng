@@ -1,7 +1,9 @@
 from UnpackParserException import UnpackParserException
 from UnpackResults import UnpackResults
+from FileResult import FileResult
 
 import os
+import pathlib
 
 class UnpackParser:
     """The UnpackParser class can parse input according to a certain format,
@@ -114,7 +116,9 @@ class UnpackParser:
         outfile.close()
         self.unpack_results.add_label('unpacked')
         out_labels = self.unpack_results.get_labels() + ['unpacked']
-        self.unpack_results.add_unpacked_file( (rel_output_path, out_labels) )
+        fr = FileResult(rel_output_path, self.fileresult.filename,
+                self.fileresult.labels, set(out_labels))
+        self.unpack_results.add_unpacked_file( fr )
     def set_metadata_and_labels(self):
         """Override this method to set metadata and labels."""
         self.unpack_results.set_labels([])
@@ -148,15 +152,6 @@ class UnpackParser:
         os.sendfile(outfile.fileno(), self.infile.fileno(), start, length)
         outfile.close()
 
-def get_unpack_results_from_dictionary(r):
-    unpack_results = UnpackResults()
-    unpack_results.set_length(r['length'])
-    unpack_results.set_unpacked_files(r['filesandlabels'])
-    unpack_results.set_offset(r.get('offset'))
-    unpack_results.set_labels(r.get('labels', []))
-    unpack_results.set_metadata(r.get('metadata', {}))
-    return unpack_results
-
 class WrappedUnpackParser(UnpackParser):
     """Wrapper class for unpack functions. 
     To wrap an unpack function, derive a class from WrappedUnpackParser and
@@ -176,13 +171,27 @@ class WrappedUnpackParser(UnpackParser):
                 self.offset, self.rel_unpack_dir)
         if r['status'] is False:
             raise UnpackParserException(r.get('error'))
-        return get_unpack_results_from_dictionary(r)
+        return self.get_unpack_results_from_dictionary(r)
     def open(self):
         pass
     def close(self):
         pass
     def carve(self):
         pass
+    def get_unpack_results_from_dictionary(self,r):
+        unpack_results = UnpackResults()
+        unpack_results.set_length(r['length'])
+        frs = [ FileResult(
+            pathlib.Path(x[0]),
+            self.fileresult.filename,
+            self.fileresult.labels,
+            set(x[1])) for x in r['filesandlabels'] ]
+        unpack_results.set_unpacked_files(frs)
+        unpack_results.set_offset(r.get('offset'))
+        unpack_results.set_labels(r.get('labels', []))
+        unpack_results.set_metadata(r.get('metadata', {}))
+        return unpack_results
+
 
 def check_condition(condition, message):
     """semantic check function to see if condition is True.
