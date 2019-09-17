@@ -89,7 +89,6 @@ class CpioBaseUnpackParser(UnpackParser):
                     self.unpack_regular(outfile_rel,
                             pos + filedata_start, e.header.fsize)
 
-                out_labels.append('unpacked')
                 fr = FileResult(self.fileresult,
                         self.rel_unpack_dir / file_path,
                         set(out_labels))

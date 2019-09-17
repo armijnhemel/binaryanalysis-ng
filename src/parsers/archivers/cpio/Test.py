@@ -17,7 +17,7 @@ class TestCpioUnpackParser(TestBase):
         self.assertLessEqual(r.get_length(), self.get_testfile_size(rel_testfile))
         extracted_fn = data_unpack_dir / 'test.sgi'
         self.assertEqual(r.get_unpacked_files()[0].filename, extracted_fn)
-        self.assertSetEqual(r.get_unpacked_files()[0].labels, set(['unpacked']))
+        self.assertSetEqual(r.get_unpacked_files()[0].labels, set())
         self.assertUnpackedPathExists(extracted_fn)
 
     def test_load_cpio_file_portable_ascii(self):
@@ -31,7 +31,7 @@ class TestCpioUnpackParser(TestBase):
         self.assertLessEqual(r.get_length(), self.get_testfile_size(rel_testfile))
         extracted_fn = data_unpack_dir / 'test.sgi'
         self.assertEqual(r.get_unpacked_files()[0].filename, extracted_fn)
-        self.assertSetEqual(r.get_unpacked_files()[0].labels, set(['unpacked']))
+        self.assertSetEqual(r.get_unpacked_files()[0].labels, set())
         self.assertUnpackedPathExists(extracted_fn)
 
     def test_unpack_different_filetypes(self):
@@ -51,7 +51,7 @@ class TestCpioUnpackParser(TestBase):
         self.assertTrue(extracted_fn_abs.is_dir())
         extracted_labels = [ i for i in r.get_unpacked_files() if i.filename ==
                 extracted_fn][0].labels
-        self.assertSetEqual(extracted_labels, set(['unpacked']))
+        self.assertSetEqual(extracted_labels, set())
 
         # check if bin/dhclient is a symlink
         extracted_fn = data_unpack_dir / 'bin' / 'dbclient'
@@ -83,7 +83,7 @@ class TestCpioUnpackParser(TestBase):
         self.assertUnpackedPathExists(extracted_fn)
         extracted_labels = [ i for i in r.get_unpacked_files() if i.filename ==
                 extracted_fn][0].labels
-        self.assertSetEqual(extracted_labels, set(['unpacked']))
+        self.assertSetEqual(extracted_labels, set())
 
     def test_rewrite_symlink(self):
         p = CpioNewAsciiUnpackParser(None, None, None, 0)
