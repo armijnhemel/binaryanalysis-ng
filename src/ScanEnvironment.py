@@ -106,10 +106,10 @@ class ScanEnvironment:
 
     def get_unpack_path_for_fileresult(self, fr):
         """Returns the absolute path of the file in fileresult fr."""
-        if fr.is_unpacking_root():
-            return fr.filename
-        else:
+        if fr.has_parent():
             return self.unpackdirectory / fr.filename
+        else:
+            return fr.filename
 
     def rel_unpack_path(self, fn):
         # TODO: check if fn starts with unpackdirectory to catch path traversal

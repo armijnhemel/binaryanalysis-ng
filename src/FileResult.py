@@ -45,8 +45,8 @@ class FileResult:
     def set_filesize(self, size):
         self.filesize = size
 
-    def is_unpacking_root(self):
-        return self.parent is None
+    def has_parent(self):
+        return self.parent is not None
 
     def get_hashresult(self):
         return self.hash
@@ -78,7 +78,7 @@ class FileResult:
             d['filesize'] = self.filesize
         if self.unpackedfiles is not None:
             d['unpackedfiles'] = self.unpackedfiles
-        if not self.is_unpacking_root():
+        if self.has_parent():
             d['parent'] = str(self.parent.filename)
         if self.mimetype is not None:
             d['mimetype'] = self.mimetype
