@@ -85,14 +85,9 @@ class UnpackParser:
 
         self.parse_from_offset()
         self.unpack_results.set_length(self.unpacked_size)
-        #self.unpack_results = {
-        #        'status': True,
-        #        'length': self.unpacked_size
-        #    }
         self.set_metadata_and_labels()
-        files_and_labels = self.unpack()
-        self.unpack_results.set_unpacked_files(files_and_labels)
-        #self.unpack_results['filesandlabels'] = files_and_labels
+        unpacked_files = self.unpack()
+        self.unpack_results.set_unpacked_files(unpacked_files)
         return self.unpack_results
 
     @classmethod

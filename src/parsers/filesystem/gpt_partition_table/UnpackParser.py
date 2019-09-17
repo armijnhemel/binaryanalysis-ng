@@ -2,6 +2,7 @@ import os
 from . import gpt_partition_table
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
+from FileResult import FileResult
 
 class GptPartitionTableUnpackParser(UnpackParser):
     pretty_name = 'gpt'
@@ -23,7 +24,7 @@ class GptPartitionTableUnpackParser(UnpackParser):
         check_condition(self.unpacked_size <= self.fileresult.filesize,
                 "partition bigger than file")
     def unpack(self):
-        files_and_labels = []
+        unpacked_files = []
         partition_number = 0
         for e in self.data.primary.entries:
             partition_start = e.first_lba * self.data.sector_size
@@ -36,9 +37,11 @@ class GptPartitionTableUnpackParser(UnpackParser):
             # TODO: add partition GUID to labels
             # print(e.guid)
             outlabels = ['partition']
-            files_and_labels.append( (outfile_rel, outlabels) )
+            fr = FileResult(outfile_rel, self.fileresult.filename,
+                    self.fileresult.labels, set(outlabels))
+            unpacked_files.append( fr )
             partition_number += 1
-        return files_and_labels
+        return unpacked_files
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""

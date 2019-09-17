@@ -2,6 +2,7 @@ import os
 from . import mbr_partition_table
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
+from FileResult import FileResult
 
 # table from
 # https://git.kernel.org/pub/scm/utils/util-linux/util-linux.git/plain/include/pt-mbr-partnames.h
@@ -129,7 +130,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
                 "invalid partition table: no partitions")
     def unpack(self):
         """extract any files from the input file"""
-        files_and_labels = []
+        unpacked_files = []
         partition_number = 0
         for p in self.data.partitions:
             partition_ext = "part"
@@ -142,9 +143,11 @@ class MbrPartitionTableUnpackParser(UnpackParser):
             partition_name = partition_types.get(p.partition_type)
             # TODO: add partition name to labels
             outlabels = ['partition']
-            files_and_labels.append( (outfile_rel, outlabels) )
+            fr = FileResult(outfile_rel, self.fileresult.filename,
+                    self.fileresult.labels, set(outlabels))
+            unpacked_files.append( fr )
             partition_number += 1
-        return files_and_labels
+        return unpacked_files
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""

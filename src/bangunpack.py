@@ -7273,7 +7273,7 @@ def unpack_rpm(fileresult, scanenvironment, offset, unpackdir):
                 payloaddir / os.path.basename(payloadfile),
                 (payloaddir / os.path.basename(payloadfile)).parent,
                 set(),
-                [])
+                set([]))
             fr.set_filesize(payloadsize)
             unpackresult = unpack_cpio(fr, scanenvironment, 0, unpackdir)
             # cleanup
