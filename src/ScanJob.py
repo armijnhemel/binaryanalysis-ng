@@ -186,7 +186,8 @@ class ScanJob:
     def check_for_valid_extension(self, unpacker):
         # TODO: this method will try to unpack multiple extensions
         # if they match. Is this the intention?
-        for extension, unpackparsers in bangsignatures.extension_to_unpackparser.items():
+        for extension, unpackparsers in \
+                self.scanenvironment.get_unpackparsers_for_extensions().items():
             for unpackparser in unpackparsers:
                 if bangsignatures.matches_file_pattern(self.fileresult.filename, extension):
                     log(logging.INFO, "TRYING extension match %s %s" % (self.fileresult.filename, extension))
@@ -253,7 +254,6 @@ class ScanJob:
                 candidateoffsetsfound = set()
                 for s, unpackparsers in \
                     self.scanenvironment.get_unpackparsers_for_signatures().items():
-                    # bangsignatures.signature_to_unpackparser.items():
                     offsets = unpacker.find_offsets_for_signature(s,
                             unpackparsers, self.fileresult.filesize)
                     candidateoffsetsfound.update(offsets)
@@ -277,7 +277,6 @@ class ScanJob:
                     # then create an unpacking directory specifically
                     # for the signature including the pretty printed signature
                     # name and a counter for the signature.
-                    # pretty_signature = bangsignatures.signatureprettyprint.get(signature, signature)
                     namecounter = counterspersignature.get(unpackparser.pretty_name, 0) + 1
                     namecounter = unpacker.make_data_unpack_directory(
                             self.fileresult.get_unpack_directory_parent(),
@@ -549,7 +548,7 @@ class ScanJob:
         # text based.
         if 'text' in self.fileresult.labels and unpacker.unpacked_range() == []:
             for unpack_parser in \
-                    bangsignatures.unpackers_for_featureless_files:
+                    self.scanenvironment.get_unpackparsers_for_featureless_files():
                 namecounter = unpacker.make_data_unpack_directory(
                         self.fileresult.get_unpack_directory_parent(),
                         unpack_parser.pretty_name, 0, 1)
