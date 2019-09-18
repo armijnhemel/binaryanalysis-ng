@@ -120,7 +120,7 @@ class TestBase(unittest.TestCase):
             processlock = self.process_lock,
             checksumdict = self.checksum_dict,
             )
-        scan_environment.set_unpackparsers(bangsignatures.get_unpackers())
+        self.scan_environment.set_unpackparsers(bangsignatures.get_unpackers())
 
     def _create_clean_directory(self, dirname):
         try:
