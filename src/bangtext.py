@@ -1032,7 +1032,7 @@ def unpack_base64(fileresult, scanenvironment, offset, unpackdir):
     unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
     # false positives: base64 files in Chrome PAK files
-    if fileresult.parent and 'pak' in fileresult.parent.labels:
+    if 'pak' in fileresult.parentlabels:
         unpackingerror = {'offset': offset, 'fatal': False,
                           'reason': 'parent file PAK'}
         return {'status': False, 'error': unpackingerror}

@@ -34,7 +34,13 @@ class FileResult:
         """
         self.hash = {}
         self.filename = rel_filename
-        self.parent = parent
+        # TODO: self.parent must be the fileresult
+        if parent:
+            self.parent = parent.filename
+            self.parentlabels = parent.labels
+        else:
+            self.parent = None
+            self.parentlabels = set()
         self.labels = labels
         self.unpackedfiles = None
         self.metadata = None
@@ -79,7 +85,7 @@ class FileResult:
         if self.unpackedfiles is not None:
             d['unpackedfiles'] = self.unpackedfiles
         if self.has_parent():
-            d['parent'] = str(self.parent.filename)
+            d['parent'] = str(self.parent)
         if self.mimetype is not None:
             d['mimetype'] = self.mimetype
             if self.mimetype_encoding is not None:
