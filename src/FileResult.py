@@ -24,7 +24,7 @@ import pathlib
 
 class FileResult:
     """stores all the information about the file that has been discovered
-    so far.
+    so far. FileResult also contains all the information to start a scan job.
     """
     def __init__(self, parent, rel_filename, labels):
         """Constructor.
