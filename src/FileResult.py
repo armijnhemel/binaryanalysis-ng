@@ -34,12 +34,11 @@ class FileResult:
         """
         self.hash = {}
         self.filename = rel_filename
-        # TODO: self.parent must be the fileresult
         if parent:
-            self.parent = parent.filename
+            self.parent_path = parent.filename
             self.parentlabels = parent.labels
         else:
-            self.parent = None
+            self.parent_path = None
             self.parentlabels = set()
         self.labels = labels
         self.unpackedfiles = None
@@ -52,7 +51,7 @@ class FileResult:
         self.filesize = size
 
     def has_parent(self):
-        return self.parent is not None
+        return self.parent_path is not None
 
     def get_hashresult(self):
         return self.hash
@@ -85,7 +84,7 @@ class FileResult:
         if self.unpackedfiles is not None:
             d['unpackedfiles'] = self.unpackedfiles
         if self.has_parent():
-            d['parent'] = str(self.parent)
+            d['parent'] = str(self.parent_path)
         if self.mimetype is not None:
             d['mimetype'] = self.mimetype
             if self.mimetype_encoding is not None:
@@ -96,6 +95,6 @@ class FileResult:
         return self.hash[algorithm]
 
     def get_unpack_directory_parent(self):
-        if self.parent is None:
+        if self.parent_path is None:
             return pathlib.Path(pathlib.Path(self.filename).name)
         return pathlib.Path(self.filename)
