@@ -8,10 +8,13 @@ import collections
 _scriptdir = os.path.dirname(__file__)
 
 from bangsignatures import maxsignaturesoffset
+import bangsignatures
 import bangfilescans
 
 from FileResult import *
 from ScanEnvironment import *
+from UnpackParser import UnpackParser
+from UnpackResults import UnpackResults
 
 def create_fileresult_for_path(unpackdir, path, labels, calculate_size=False):
     parentlabels = set()
@@ -21,6 +24,35 @@ def create_fileresult_for_path(unpackdir, path, labels, calculate_size=False):
         fp = pathlib.Path(unpackdir) / path
         fr.set_filesize(fp.stat().st_size)
     return fr
+
+def parse_and_unpack_success(self):
+    r = UnpackResults()
+    fr = FileResult(self.fileresult, self.get_carved_filename(), set())
+    r.set_unpacked_files([fr])
+    r.set_length(self.length)
+    return r
+    
+def parse_and_unpack_fail(self):
+    raise UnpackParserException("failing unpackparser")
+
+def create_unpackparser(name, fail = False,
+        extensions = [], signatures = [], length = 0,
+        pretty_name = '', scan_if_featureless = False): 
+    if fail:
+        parse_and_unpack_method = parse_and_unpack_fail
+    else:
+        parse_and_unpack_method = parse_and_unpack_success
+    c = type(name, (UnpackParser,), {
+                'extensions': extensions,
+                'signatures': signatures,
+                'scan_if_featureless': scan_if_featureless,
+                'parse_and_unpack': parse_and_unpack_method,
+                'pretty_name': pretty_name,
+                'length': length
+            })
+    return c
+
+
 
 class QueueEmptyError(Exception):
     pass
@@ -88,6 +120,7 @@ class TestBase(unittest.TestCase):
             processlock = self.process_lock,
             checksumdict = self.checksum_dict,
             )
+        scan_environment.set_unpackparsers(bangsignatures.get_unpackers())
 
     def _create_clean_directory(self, dirname):
         try:

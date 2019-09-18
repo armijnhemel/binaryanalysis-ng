@@ -124,6 +124,17 @@ class ScanEnvironment:
     def rel_tmp_path(self, fn):
         return os.path.relpath(fn, self.temporarydirectory)
 
+    def clear_unpackparsers(self):
+        self.unpackparsers = []
+        self.unpackparsers_for_extensions = {}
+        self.unpackparsers_for_signatures = {}
+        self.unpackparsers_for_featureless_files = []
+
+    def set_unpackparsers(self, iterable):
+        self.clear_unpackparsers()
+        for up in iterable:
+            self.add_unpackparser(up)
+
     def add_unpackparser(self, unpackparser):
         self.unpackparsers.append(unpackparser)
         for ext in unpackparser.extensions:

@@ -252,7 +252,8 @@ class ScanJob:
             while True:
                 candidateoffsetsfound = set()
                 for s, unpackparsers in \
-                    bangsignatures.signature_to_unpackparser.items():
+                    self.scanenvironment.get_unpackparsers_for_signatures().items():
+                    # bangsignatures.signature_to_unpackparser.items():
                     offsets = unpacker.find_offsets_for_signature(s,
                             unpackparsers, self.fileresult.filesize)
                     candidateoffsetsfound.update(offsets)

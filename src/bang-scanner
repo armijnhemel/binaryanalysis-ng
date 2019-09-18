@@ -265,6 +265,7 @@ def main(argv):
             processlock = processlock,
             checksumdict = checksumdict,
             )
+        scanenvironment.set_unpackparsers(bangsignatures.get_unpackers())
 
         # create processes for unpacking archives
         for i in range(0, options.bangthreads):
