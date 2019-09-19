@@ -266,37 +266,56 @@ class TestScanJob(TestBase):
         self.assertEqual(j.fileresult.filename, expected_extracted_fn)
         self.assertUnpackedPathExists(j.fileresult.filename)
 
-    def create_test_file_with_content(self, path, content):
-        with open(path, 'wb') as f:
+    def create_tmp_fileresult(self, path, content):
+        path_abs = self.tmpdir / path
+        with open(path_abs, 'wb') as f:
             f.write(content)
+        fileresult = FileResult(None, path_abs, set())
+        fileresult.set_filesize(path_abs.stat().st_size)
+        return fileresult
+
+    parser_pass_AA_1_5 = create_unpackparser('ParserPassAA_1_5',
+            signatures = [(1,b'AA')],
+            length = 5,
+            pretty_name = 'pass-AA-1-5')
+    parser_pass_BB_1_5 = create_unpackparser('ParserPassBB_1_5',
+            signatures = [(1,b'BB')],
+            length = 5,
+            pretty_name = 'pass-BB-1-5')
+    parser_fail_AA_1 = create_unpackparser('ParserFailAA_1',
+            signatures = [(1,b'AA')],
+            fail = True,
+            pretty_name = 'fail-AA-1')
+    parser_fail_BB_1 = create_unpackparser('ParserFailBB_1',
+            signatures = [(1,b'BB')],
+            fail = True,
+            pretty_name = 'fail-BB-1')
+    parser_pass_BB_1_7 = create_unpackparser('ParserPassBB_1_7',
+            signatures = [(1,b'BB')],
+            length = 7,
+            pretty_name = 'pass-BB-1-7')
+
+
+    def initialize_scanjob_and_unpacker(self, fileresult):
+        scanjob = ScanJob(fileresult)
+        scanjob.set_scanenvironment(self.scan_environment)
+        scanjob.initialize()
+        unpacker = Unpacker(self.unpackdir)
+        scanjob.prepare_for_unpacking()
+        return scanjob, unpacker
 
     # test to verify how signatures are matched
     # 1. non-overlapping files with unpackers that unpack
     def test_unpack_twice_non_overlapping_both_successful(self):
         s = b'xAAxxxxxxxxxxxxyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack1.data')
-        fn_abs = self.tmpdir / fn
-        self.create_test_file_with_content(fn_abs, s)
-        fileresult = FileResult(None, fn_abs, set())
-        fileresult.set_filesize(fn_abs.stat().st_size)
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_pass_AA_1_5, self.parser_pass_BB_1_5])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
 
-        p1 = create_unpackparser('Parser1',
-                signatures = [(1,b'AA')],
-                length = 5,
-                pretty_name = 'p1')
-        p2 = create_unpackparser('Parser2',
-                signatures = [(1,b'BB')],
-                length = 5,
-                pretty_name = 'p2')
-        self.scan_environment.set_unpackparsers([p1,p2])
-
-        scanjob = ScanJob(fileresult)
-        scanjob.set_scanenvironment(self.scan_environment)
-        scanjob.initialize()
-        unpacker = Unpacker(self.unpackdir)
-        scanjob.prepare_for_unpacking()
         scanjob.check_for_signatures(unpacker)
         self.assertEqual(fileresult.labels, set())
+        # TODO: check if this is what we want
         self.assertEqual(len(fileresult.unpackedfiles), 2)
         upf0 = fileresult.unpackedfiles[0]
         upf1 = fileresult.unpackedfiles[1]
@@ -307,26 +326,10 @@ class TestScanJob(TestBase):
     def test_unpack_twice_overlapping_both_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
-        fn_abs = self.tmpdir / fn
-        self.create_test_file_with_content(fn_abs, s)
-        fileresult = FileResult(None, fn_abs, set())
-        fileresult.set_filesize(fn_abs.stat().st_size)
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_pass_AA_1_5, self.parser_pass_BB_1_5])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
 
-        p1 = create_unpackparser('Parser1',
-                signatures = [(1,b'AA')],
-                length = 5,
-                pretty_name = 'p1')
-        p2 = create_unpackparser('Parser2',
-                signatures = [(1,b'BB')],
-                length = 5,
-                pretty_name = 'p2')
-        self.scan_environment.set_unpackparsers([p1,p2])
-
-        scanjob = ScanJob(fileresult)
-        scanjob.set_scanenvironment(self.scan_environment)
-        scanjob.initialize()
-        unpacker = Unpacker(self.unpackdir)
-        scanjob.prepare_for_unpacking()
         scanjob.check_for_signatures(unpacker)
         self.assertEqual(fileresult.labels, set())
         # TODO: check if this is what we want
@@ -336,9 +339,102 @@ class TestScanJob(TestBase):
         self.assertEqual(upf0['offset'], 0)
         self.assertEqual(upf1['offset'], 3)
 
+    def test_unpack_twice_overlapping_first_successful(self):
+        s = b'xAAyBBxxxxxxxxxxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_pass_AA_1_5, self.parser_fail_BB_1])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        self.assertEqual(len(fileresult.unpackedfiles), 1)
+        upf0 = fileresult.unpackedfiles[0]
+        self.assertEqual(upf0['offset'], 0)
+
+    def test_unpack_twice_overlapping_second_successful(self):
+        s = b'xAAyBBxxxxxxxxxxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_fail_AA_1, self.parser_pass_BB_1_5])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        self.assertEqual(len(fileresult.unpackedfiles), 1)
+        upf0 = fileresult.unpackedfiles[0]
+        self.assertEqual(upf0['offset'], 3)
+
     # 3. same offset, different unpackers: one unpacks, the other does not
-    # 4. same offset, different unpackers that both unpack
+    def test_unpack_twice_same_offset_first_successful(self):
+        s = b'xAAyBBxxxxxxxxxxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_pass_BB_1_5, self.parser_fail_BB_1])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        self.assertEqual(len(fileresult.unpackedfiles), 1)
+        upf0 = fileresult.unpackedfiles[0]
+        self.assertEqual(upf0['offset'], 3)
+
+    def test_unpack_twice_same_offset_second_successful(self):
+        s = b'xAAyBBxxxxxxxxxxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_fail_BB_1, self.parser_pass_BB_1_5])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        self.assertEqual(len(fileresult.unpackedfiles), 1)
+        upf0 = fileresult.unpackedfiles[0]
+        self.assertEqual(upf0['offset'], 3)
+
+    # 4. same offset, different unpackers that both unpack (polyglot)
+    def test_unpack_twice_same_offset_both_successful(self):
+        s = b'xAAyBBxxxxxxxxxxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_pass_BB_1_5, self.parser_pass_BB_1_7])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        # TODO: check if this is what we want
+        self.assertEqual(len(fileresult.unpackedfiles), 2)
+        upf0 = fileresult.unpackedfiles[0]
+        self.assertEqual(upf0['offset'], 3)
+        upf1 = fileresult.unpackedfiles[1]
+        self.assertEqual(upf1['offset'], 3)
+
     # 5. files with unpackers that do not unpack
+    def test_unpack_twice_overlapping_none_successful(self):
+        s = b'xAAyBBxxxxxxxxxxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_fail_AA_1, self.parser_fail_BB_1])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        self.assertEqual(len(fileresult.unpackedfiles), 0)
+
+    def test_carving_one_unpack_successful(self):
+        s = b'xAAyBBxxxxxxxxxxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_fail_BB_1,
+            self.parser_pass_BB_1_5])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        scanjob.carve_file_data(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        self.assertEqual(len(fileresult.unpackedfiles), 3)
+
+
     # test carving:
 
     # 1. file that unpacks by extension but filesize is not the entire file

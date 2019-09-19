@@ -14,6 +14,7 @@ import bangfilescans
 from FileResult import *
 from ScanEnvironment import *
 from UnpackParser import UnpackParser
+from UnpackParserException import UnpackParserException
 from UnpackResults import UnpackResults
 
 def create_fileresult_for_path(unpackdir, path, labels, calculate_size=False):
