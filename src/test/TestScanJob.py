@@ -422,7 +422,7 @@ class TestScanJob(TestBase):
         self.assertEqual(len(fileresult.unpackedfiles), 0)
 
     def test_carving_one_unpack_successful(self):
-        s = b'xAAyBBxxxxxxxxxxx'
+        s = b'xAAyBBbbxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
         fileresult = self.create_tmp_fileresult(fn, s)
         self.scan_environment.set_unpackparsers([self.parser_fail_BB_1,
@@ -432,7 +432,14 @@ class TestScanJob(TestBase):
         scanjob.check_for_signatures(unpacker)
         scanjob.carve_file_data(unpacker)
         self.assertEqual(fileresult.labels, set())
-        self.assertEqual(len(fileresult.unpackedfiles), 3)
+        upfiles = fileresult.unpackedfiles
+        self.assertEqual(len(upfiles), 3)
+        self.assertEqual(upfiles[0]['offset'], 3)
+        self.assertEqual(upfiles[0]['size'], 5)
+        self.assertEqual(upfiles[1]['offset'], 0)
+        self.assertEqual(upfiles[1]['size'], 3)
+        self.assertEqual(upfiles[2]['offset'], 8)
+        self.assertEqual(upfiles[2]['size'], len(s) - 8)
 
 
     # test carving:

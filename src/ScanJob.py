@@ -476,6 +476,7 @@ class ScanJob:
                         # create the unpacking directory and write the file
                         os.makedirs(outfile_full.parent, exist_ok=True)
 
+                        # write the file
                         outfile = open(outfile_full, 'wb')
                         os.sendfile(outfile.fileno(), scanfile.fileno(), carve_index, u_low - carve_index)
                         outfile.close()
@@ -490,9 +491,17 @@ class ScanJob:
                                 shutil.move(outfile_full, newoutfile_full)
                                 outfile_rel = newoutfile_rel
 
+                        report = {
+                            'offset': carve_index,
+                            'type': 'carved',
+                            'size': u_low - carve_index,
+                            'files': [ str(outfile_rel) ],
+                        }
+                        self.fileresult.add_unpackedfile(report)
+
                         # add the data, plus labels, to the queue
                         fr = FileResult(self.fileresult,
-                            pathlib.Path(outfile_rel),
+                            outfile_rel,
                             set(unpackedlabel))
                         j = ScanJob(fr)
                         self.scanenvironment.scanfilequeue.put(j)
