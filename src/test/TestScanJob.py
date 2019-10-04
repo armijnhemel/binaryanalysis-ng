@@ -419,7 +419,11 @@ class TestScanJob(TestBase):
         upf0 = fileresult.unpackedfiles[0]
         self.assertEqual(upf0['offset'], 3)
 
+    # TODO: AABB with (0,'AA') and (2,'BB')
+
     # 4. same offset, different unpackers that both unpack (polyglot)
+    # e.g. iso image containing an image in the first block
+    # TODO: how to handle parsers that do not allow_overlaps
     def test_unpack_twice_same_offset_both_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
@@ -467,6 +471,30 @@ class TestScanJob(TestBase):
         self.assertEqual(upfiles[1]['size'], 3)
         self.assertEqual(upfiles[2]['offset'], 8)
         self.assertEqual(upfiles[2]['size'], len(s) - 8)
+
+    def test_carving_overlapping_unpacks_successful(self):
+        s = b'--xAAyBBbCCxxxxxxxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_pass_AA_1_5,
+            self.parser_pass_BB_1_5, self.parser_pass_CC_0_5])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        scanjob.carve_file_data(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        upfiles = fileresult.unpackedfiles
+        self.assertEqual(len(upfiles), 5)
+        self.assertEqual(upfiles[0]['offset'], 2)
+        self.assertEqual(upfiles[0]['size'], 5)
+        self.assertEqual(upfiles[1]['offset'], 5)
+        self.assertEqual(upfiles[1]['size'], 5)
+        self.assertEqual(upfiles[2]['offset'], 9)
+        self.assertEqual(upfiles[2]['size'], 5)
+        self.assertEqual(upfiles[3]['offset'], 0)
+        self.assertEqual(upfiles[3]['size'], 2)
+        self.assertEqual(upfiles[4]['offset'], 9+5)
+        self.assertEqual(upfiles[4]['size'], len(s) - (9+5))
 
 
     # test carving:
