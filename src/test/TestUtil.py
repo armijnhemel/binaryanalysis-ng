@@ -38,7 +38,7 @@ def parse_and_unpack_fail(self):
 
 def create_unpackparser(name, fail = False,
         extensions = [], signatures = [], length = 0,
-        pretty_name = '', scan_if_featureless = False): 
+        pretty_name = '', allow_overlaps = True, scan_if_featureless = False): 
     if fail:
         parse_and_unpack_method = parse_and_unpack_fail
     else:
