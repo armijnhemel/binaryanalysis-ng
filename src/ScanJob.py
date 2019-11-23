@@ -454,9 +454,8 @@ class ScanJob:
 
                 # then try to see if the any useful data can be uncarved.
                 # Add an artifical entry for the end of the file
-                # TODO: why self.fileresult.filesize + 1 ?
                 # unpack ranges are [u_low:u_high)
-                for u_low, u_high in unpacked_range + [(self.fileresult.filesize+1, self.fileresult.filesize+1)]:
+                for u_low, u_high in unpacked_range + [(self.fileresult.filesize, self.fileresult.filesize)]:
                     if carve_index == self.fileresult.filesize:
                         break
                     # get the bytes from range [carve_index:u_low)

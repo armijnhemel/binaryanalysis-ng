@@ -472,6 +472,24 @@ class TestScanJob(TestBase):
         self.assertEqual(upfiles[2]['offset'], 8)
         self.assertEqual(upfiles[2]['size'], len(s) - 8)
 
+    def test_carving_one_unpack_successful_at_end(self):
+        s = b'xAAyBBbb'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_fail_BB_1,
+            self.parser_pass_BB_1_5])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        scanjob.carve_file_data(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        upfiles = fileresult.unpackedfiles
+        self.assertEqual(len(upfiles), 2)
+        self.assertEqual(upfiles[0]['offset'], 3)
+        self.assertEqual(upfiles[0]['size'], 5)
+        self.assertEqual(upfiles[1]['offset'], 0)
+        self.assertEqual(upfiles[1]['size'], 3)
+
     def test_carving_overlapping_unpacks_successful(self):
         s = b'--xAAyBBbCCxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
