@@ -441,7 +441,7 @@ class TestScanJob(TestBase):
 
     # 4. same offset, different unpackers that both unpack (polyglot)
     # e.g. iso image containing an image in the first block
-    # TODO: how to handle parsers that do not allow_overlaps
+    # -> first parser wins
     def test_unpack_same_offset_both_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
@@ -452,11 +452,12 @@ class TestScanJob(TestBase):
         scanjob.check_for_signatures(unpacker)
         self.assertEqual(fileresult.labels, set())
         # TODO: check if this is what we want
-        self.assertEqual(len(fileresult.unpackedfiles), 2)
+        self.assertEqual(len(fileresult.unpackedfiles), 1)
         upf0 = fileresult.unpackedfiles[0]
         self.assertEqual(upf0['offset'], 3)
-        upf1 = fileresult.unpackedfiles[1]
-        self.assertEqual(upf1['offset'], 3)
+        # unpackparser order is undeterministic,
+        # we can't tell which parser parsed
+        # self.assertEqual(upf0['size'], 5)
 
     # 5. files with unpackers that do not unpack
     def test_unpack_overlapping_none_successful(self):
