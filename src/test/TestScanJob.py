@@ -286,11 +286,6 @@ class TestScanJob(TestBase):
             signatures = [(8,b'BB')],
             length = 5,
             pretty_name = 'pass-BB-8-5')
-    parser_pass_BB_1_5_no = create_unpackparser('ParserPassBB_1_5_no',
-            signatures = [(1,b'BB')],
-            length = 5,
-            allow_overlaps = False,
-            pretty_name = 'pass-BB-1-5-no')
     parser_pass_CC_0_5 = create_unpackparser('ParserPassCC_0_5',
             signatures = [(0,b'CC')],
             length = 5,
@@ -351,24 +346,6 @@ class TestScanJob(TestBase):
         upf1 = fileresult.unpackedfiles[1]
         self.assertEqual(upf0['offset'], 0)
         self.assertEqual(upf1['offset'], 3)
-
-    def test_unpack_overlapping_not_allowed(self):
-        s = b'xAAyBBxCCxxxxxxxx'
-        fn = pathlib.Path('test_unpack2.data')
-        fileresult = self.create_tmp_fileresult(fn, s)
-        self.scan_environment.set_unpackparsers([self.parser_pass_AA_1_5,
-            self.parser_pass_BB_1_5_no, self.parser_pass_CC_0_5])
-        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
-
-        scanjob.check_for_signatures(unpacker)
-        self.assertEqual(fileresult.labels, set())
-        # TODO: check if this is what we want
-        self.assertEqual(len(fileresult.unpackedfiles), 2)
-        upf0 = fileresult.unpackedfiles[0]
-        upf1 = fileresult.unpackedfiles[1]
-        self.assertEqual(upf0['offset'], 0)
-        self.assertEqual(upf1['offset'], 3)
-
 
     def test_unpack_overlapping_first_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
