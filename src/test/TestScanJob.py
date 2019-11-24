@@ -341,11 +341,9 @@ class TestScanJob(TestBase):
         scanjob.check_for_signatures(unpacker)
         self.assertEqual(fileresult.labels, set())
         # TODO: check if this is what we want
-        self.assertEqual(len(fileresult.unpackedfiles), 2)
+        self.assertEqual(len(fileresult.unpackedfiles), 1)
         upf0 = fileresult.unpackedfiles[0]
-        upf1 = fileresult.unpackedfiles[1]
         self.assertEqual(upf0['offset'], 0)
-        self.assertEqual(upf1['offset'], 3)
 
     def test_unpack_overlapping_first_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
