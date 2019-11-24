@@ -282,6 +282,10 @@ class TestScanJob(TestBase):
             signatures = [(1,b'BB')],
             length = 5,
             pretty_name = 'pass-BB-1-5')
+    parser_pass_BB_8_5 = create_unpackparser('ParserPassBB_8_5',
+            signatures = [(8,b'BB')],
+            length = 5,
+            pretty_name = 'pass-BB-8-5')
     parser_pass_BB_1_5_no = create_unpackparser('ParserPassBB_1_5_no',
             signatures = [(1,b'BB')],
             length = 5,
@@ -315,7 +319,7 @@ class TestScanJob(TestBase):
 
     # test to verify how signatures are matched
     # 1. non-overlapping files with unpackers that unpack
-    def test_unpack_twice_non_overlapping_both_successful(self):
+    def test_unpack_non_overlapping_both_successful(self):
         s = b'xAAxxxxxxxxxxxxyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack1.data')
         fileresult = self.create_tmp_fileresult(fn, s)
@@ -332,7 +336,7 @@ class TestScanJob(TestBase):
         self.assertEqual(upf1['offset'], 15)
 
     # 2. overlapping files with unpackers that unpack
-    def test_unpack_twice_overlapping_both_successful(self):
+    def test_unpack_overlapping_both_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
         fileresult = self.create_tmp_fileresult(fn, s)
@@ -348,7 +352,7 @@ class TestScanJob(TestBase):
         self.assertEqual(upf0['offset'], 0)
         self.assertEqual(upf1['offset'], 3)
 
-    def test_unpack_twice_overlapping_not_allowed(self):
+    def test_unpack_overlapping_not_allowed(self):
         s = b'xAAyBBxCCxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
         fileresult = self.create_tmp_fileresult(fn, s)
@@ -366,7 +370,7 @@ class TestScanJob(TestBase):
         self.assertEqual(upf1['offset'], 3)
 
 
-    def test_unpack_twice_overlapping_first_successful(self):
+    def test_unpack_overlapping_first_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
         fileresult = self.create_tmp_fileresult(fn, s)
@@ -379,7 +383,8 @@ class TestScanJob(TestBase):
         upf0 = fileresult.unpackedfiles[0]
         self.assertEqual(upf0['offset'], 0)
 
-    def test_unpack_twice_overlapping_second_successful(self):
+
+    def test_unpack_overlapping_second_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
         fileresult = self.create_tmp_fileresult(fn, s)
@@ -393,7 +398,7 @@ class TestScanJob(TestBase):
         self.assertEqual(upf0['offset'], 3)
 
     # 3. same offset, different unpackers: one unpacks, the other does not
-    def test_unpack_twice_same_offset_first_successful(self):
+    def test_unpack_same_offset_first_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
         fileresult = self.create_tmp_fileresult(fn, s)
@@ -406,7 +411,7 @@ class TestScanJob(TestBase):
         upf0 = fileresult.unpackedfiles[0]
         self.assertEqual(upf0['offset'], 3)
 
-    def test_unpack_twice_same_offset_second_successful(self):
+    def test_unpack_same_offset_second_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
         fileresult = self.create_tmp_fileresult(fn, s)
@@ -419,12 +424,25 @@ class TestScanJob(TestBase):
         upf0 = fileresult.unpackedfiles[0]
         self.assertEqual(upf0['offset'], 3)
 
-    # TODO: AABB with (0,'AA') and (2,'BB')
+    def test_unpack_overlapping_different_offset_both_successful(self):
+        s = b'xAAyyyyyyBBxxxxxxxxxxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_pass_AA_1_5,
+            self.parser_pass_BB_8_5])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        self.assertEqual(len(fileresult.unpackedfiles), 1)
+        upf0 = fileresult.unpackedfiles[0]
+        self.assertEqual(upf0['offset'], 0)
+
 
     # 4. same offset, different unpackers that both unpack (polyglot)
     # e.g. iso image containing an image in the first block
     # TODO: how to handle parsers that do not allow_overlaps
-    def test_unpack_twice_same_offset_both_successful(self):
+    def test_unpack_same_offset_both_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
         fileresult = self.create_tmp_fileresult(fn, s)
@@ -441,7 +459,7 @@ class TestScanJob(TestBase):
         self.assertEqual(upf1['offset'], 3)
 
     # 5. files with unpackers that do not unpack
-    def test_unpack_twice_overlapping_none_successful(self):
+    def test_unpack_overlapping_none_successful(self):
         s = b'xAAyBBxxxxxxxxxxx'
         fn = pathlib.Path('test_unpack2.data')
         fileresult = self.create_tmp_fileresult(fn, s)
