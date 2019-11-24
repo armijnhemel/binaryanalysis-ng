@@ -627,8 +627,9 @@ class TestScanJob(TestBase):
         gif_offset = result1.unpackedfiles[0]['offset']
         self.assertEqual(result3.filename.name,
                 'unpacked-0x%x-0x%x' % (0,gif_offset-1))
+        self.assertIn('kernel configuration', result3.labels)
         # fourth result is a kernel config identified by featureless scan
-        # featureless scans do not work yet
+        # featureless scan result is not extracted see TODO in ScanJob
         # self.assertEqual(result4.filename.name, 'kernelconfig')
 
     # 4. Polyglot files

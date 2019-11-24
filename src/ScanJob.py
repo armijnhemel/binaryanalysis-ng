@@ -549,6 +549,8 @@ class ScanJob:
     def check_entire_file(self, unpacker):
         # TODO: this is making an assumption that all featureless files are
         # text based.
+        # TODO: this is assuming that only one featureless file can be extracted
+        # and not more
         if 'text' in self.fileresult.labels and unpacker.unpacked_range() == []:
             for unpack_parser in \
                     self.scanenvironment.get_unpackparsers_for_featureless_files():
@@ -562,25 +564,9 @@ class ScanJob:
                     unpackresult = unpacker.try_unpack_without_features(
                         self.fileresult, self.scanenvironment, unpack_parser, 0)
                 except UnpackParserException as e:
-                    # No data could be unpacked for some reason,
-                    # so check the status first
                     log(logging.DEBUG, "FAIL %s %s at offset: %d: %s" %
                         (self.fileresult.filename, unpack_parser.pretty_name, 0,
                             e.args))
-                    # unpackerror contains:
-                    # * offset in the file where the error occured
-                    #   (integer)
-                    # * reason of the error (human readable)
-                    # * flag to indicate if it is a fatal error
-                    #   (boolean)
-                    #
-                    # Fatal errors should stop execution of the
-                    # program and remove the unpacking directory,
-                    # so first change the permissions of
-                    # all the files so they can be safely removed.
-                    # if unpackresult['error']['fatal']:
-                    #    pass
-
                     unpacker.remove_data_unpack_directory_tree()
                     continue
 
@@ -590,16 +576,10 @@ class ScanJob:
 
                 # store the labels for files that could be
                 # unpacked/verified completely.
+                # TODO: what about files that we could not unpack completely?
                 if unpackresult.get_length() == self.fileresult.filesize:
                     self.fileresult.labels.update(unpackresult.get_labels())
-                    # if unpackedfilesandlabels is empty, then no
-                    # files were unpacked, likely because the whole
-                    # file was the result and didn't contain any
-                    # files (i.e. it was not a container file or
-                    # compresed file).
-                    #if len(unpackresult['filesandlabels']) == 0:
-                    if unpackresult.get_unpacked_files() == []:
-                        unpacker.remove_data_unpack_directory()
+
 
                 # store lot of information about the unpacked files
                 report = {
@@ -622,6 +602,10 @@ class ScanJob:
                     self.scanenvironment.scanfilequeue.put(j)
 
                 self.fileresult.add_unpackedfile(report)
+
+                if unpackresult.get_unpacked_files() == []:
+                    unpacker.remove_data_unpack_directory()
+
                 break
 
     def run_scans_on_file(self, bangfilefunctions, dbconn, dbcursor):
