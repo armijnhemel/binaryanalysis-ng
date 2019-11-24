@@ -436,8 +436,6 @@ class ScanJob:
         #
         # This also makes it easier for doing a "post mortem".
         #
-        # TODO: this assumes that only one file was unpacked, as there can
-        # only be one unpacked_range?
         unpacked_range = unpacker.unpacked_range()
         if unpacked_range != []:
             # first check if the first entry covers the entire file
