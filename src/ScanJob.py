@@ -428,6 +428,40 @@ class ScanJob:
             ispadding = False
         outfile.close()
 
+    def synthesize_file(self, unpacker, scanfile, index_from, index_to):
+        self.synthesizedcounter = \
+                unpacker.make_data_unpack_directory(
+                self.fileresult.get_unpack_directory_parent(),
+                "synthesized", index_from, self.synthesizedcounter)
+
+        outfile_rel = unpacker.get_data_unpack_directory() / \
+                ("unpacked-0x%x-0x%x" % (index_from, index_to-1))
+        outfile_full = self.scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory and write the file
+        os.makedirs(outfile_full.parent, exist_ok=True)
+
+        # write the file
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), scanfile.fileno(), index_from, index_to -
+                index_from)
+        outfile.close()
+
+        unpackedlabel = ['synthesized']
+
+        if self.is_padding(outfile_full):
+            unpackedlabel.append('padding')
+            if self.scanenvironment.get_paddingname() is not None:
+                newoutfile_rel = unpacker.get_data_unpack_directory() / \
+                    ( "%s-%s-%s" % (self.scanenvironment.get_paddingname(),
+                            hex(index_from), hex(index_to-1)))
+                newoutfile_full = self.scanenvironment.unpack_path(newoutfile_rel)
+                shutil.move(outfile_full, newoutfile_full)
+
+                outfile_rel = newoutfile_rel
+        return outfile_rel, unpackedlabel
+
+
     def carve_file_data(self, unpacker):
         # Now carve any data that was not unpacked from the file and
         # put it back into the scanning queue to see if something
@@ -439,56 +473,20 @@ class ScanJob:
         unpacked_range = unpacker.unpacked_range()
         if unpacked_range == []:
             return
-        # first check if the first entry covers the entire file
-        # because if so there is nothing to do
-        if unpacked_range[0] == (0, self.fileresult.filesize):
-            return
-        synthesizedcounter = 1
+
+
 
         # Invariant: everything up to carve_index has been inspected
+        # unpack ranges are [u_low:u_high)
+        self.synthesizedcounter = 1
         carve_index = 0
-
         filename_full = self.scanenvironment.unpack_path(self.fileresult.filename)
         scanfile = open(filename_full, 'rb')
         scanfile.seek(carve_index)
-
-        # then try to see if the any useful data can be uncarved.
-        # Add an artifical entry for the end of the file
-        # unpack ranges are [u_low:u_high)
         for u_low, u_high in unpacked_range + [(self.fileresult.filesize, self.fileresult.filesize)]:
-            if carve_index == self.fileresult.filesize:
-                break
-            # get the bytes from range [carve_index:u_low)
-            if u_low > carve_index:
-                #if u_low - carve_index < scanenvironment.get_synthesizedminimum():
-                #        carve_index = u_high
-                #        continue
-                synthesizedcounter = \
-                        unpacker.make_data_unpack_directory(
-                        self.fileresult.get_unpack_directory_parent(),
-                        "synthesized", carve_index, synthesizedcounter)
-
-                outfile_rel = unpacker.get_data_unpack_directory() / \
-                        ("unpacked-0x%x-0x%x" % (carve_index, u_low-1))
-                outfile_full = self.scanenvironment.unpack_path(outfile_rel)
-
-                # create the unpacking directory and write the file
-                os.makedirs(outfile_full.parent, exist_ok=True)
-
-                # write the file
-                outfile = open(outfile_full, 'wb')
-                os.sendfile(outfile.fileno(), scanfile.fileno(), carve_index, u_low - carve_index)
-                outfile.close()
-
-                unpackedlabel = ['synthesized']
-
-                if self.is_padding(outfile_full):
-                    unpackedlabel.append('padding')
-                    if self.scanenvironment.get_paddingname() is not None:
-                        newoutfile_rel = os.path.join(unpacker.get_data_unpack_directory(), "%s-%s-%s" % (self.scanenvironment.get_paddingname(), hex(carve_index), hex(u_low-1)))
-                        newoutfile_full = self.scanenvironment.unpack_path(newoutfile_rel)
-                        shutil.move(outfile_full, newoutfile_full)
-                        outfile_rel = newoutfile_rel
+            if carve_index < u_low:
+                outfile_rel, unpackedlabel = self.synthesize_file(unpacker,
+                        scanfile, carve_index, u_low)
 
                 report = {
                     'offset': carve_index,
@@ -504,11 +502,8 @@ class ScanJob:
                     set(unpackedlabel))
                 j = ScanJob(fr)
                 self.scanenvironment.scanfilequeue.put(j)
-
-                # ugly hack to work around default behaviour of make_data_unpack_directory
-                synthesizedcounter += 1
+                self.synthesizedcounter += 1
             carve_index = u_high
-
         scanfile.close()
 
     def do_content_computations(self):
