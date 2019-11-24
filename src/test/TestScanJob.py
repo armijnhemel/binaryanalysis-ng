@@ -508,6 +508,35 @@ class TestScanJob(TestBase):
         self.assertEqual(upfiles[4]['offset'], 9+5)
         self.assertEqual(upfiles[4]['size'], len(s) - (9+5))
 
+    def test_carving_nothing_unpacks(self):
+        s = b'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_fail_BB_1,
+            self.parser_pass_BB_1_5])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        scanjob.carve_file_data(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        upfiles = fileresult.unpackedfiles
+        self.assertEqual(len(upfiles), 0)
+
+    def test_carving_all_unpacked(self):
+        s = b'xBBxx'
+        fn = pathlib.Path('test_unpack2.data')
+        fileresult = self.create_tmp_fileresult(fn, s)
+        self.scan_environment.set_unpackparsers([self.parser_fail_BB_1,
+            self.parser_pass_BB_1_5])
+        scanjob, unpacker = self.initialize_scanjob_and_unpacker(fileresult)
+
+        scanjob.check_for_signatures(unpacker)
+        scanjob.carve_file_data(unpacker)
+        self.assertEqual(fileresult.labels, set())
+        upfiles = fileresult.unpackedfiles
+        self.assertEqual(len(upfiles), 1)
+
+
 
     # test carving:
 

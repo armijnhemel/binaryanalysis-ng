@@ -437,77 +437,79 @@ class ScanJob:
         # This also makes it easier for doing a "post mortem".
         #
         unpacked_range = unpacker.unpacked_range()
-        if unpacked_range != []:
-            # first check if the first entry covers the entire file
-            # because if so there is nothing to do
-            if unpacked_range[0] != (0, self.fileresult.filesize):
-                synthesizedcounter = 1
+        if unpacked_range == []:
+            return
+        # first check if the first entry covers the entire file
+        # because if so there is nothing to do
+        if unpacked_range[0] == (0, self.fileresult.filesize):
+            return
+        synthesizedcounter = 1
 
-                # Invariant: everything up to carve_index has been inspected
-                carve_index = 0
+        # Invariant: everything up to carve_index has been inspected
+        carve_index = 0
 
-                filename_full = self.scanenvironment.unpack_path(self.fileresult.filename)
-                scanfile = open(filename_full, 'rb')
-                scanfile.seek(carve_index)
+        filename_full = self.scanenvironment.unpack_path(self.fileresult.filename)
+        scanfile = open(filename_full, 'rb')
+        scanfile.seek(carve_index)
 
-                # then try to see if the any useful data can be uncarved.
-                # Add an artifical entry for the end of the file
-                # unpack ranges are [u_low:u_high)
-                for u_low, u_high in unpacked_range + [(self.fileresult.filesize, self.fileresult.filesize)]:
-                    if carve_index == self.fileresult.filesize:
-                        break
-                    # get the bytes from range [carve_index:u_low)
-                    if u_low > carve_index:
-                        #if u_low - carve_index < scanenvironment.get_synthesizedminimum():
-                        #        carve_index = u_high
-                        #        continue
-                        synthesizedcounter = \
-                                unpacker.make_data_unpack_directory(
-                                self.fileresult.get_unpack_directory_parent(),
-                                "synthesized", carve_index, synthesizedcounter)
+        # then try to see if the any useful data can be uncarved.
+        # Add an artifical entry for the end of the file
+        # unpack ranges are [u_low:u_high)
+        for u_low, u_high in unpacked_range + [(self.fileresult.filesize, self.fileresult.filesize)]:
+            if carve_index == self.fileresult.filesize:
+                break
+            # get the bytes from range [carve_index:u_low)
+            if u_low > carve_index:
+                #if u_low - carve_index < scanenvironment.get_synthesizedminimum():
+                #        carve_index = u_high
+                #        continue
+                synthesizedcounter = \
+                        unpacker.make_data_unpack_directory(
+                        self.fileresult.get_unpack_directory_parent(),
+                        "synthesized", carve_index, synthesizedcounter)
 
-                        outfile_rel = unpacker.get_data_unpack_directory() / \
-                                ("unpacked-0x%x-0x%x" % (carve_index, u_low-1))
-                        outfile_full = self.scanenvironment.unpack_path(outfile_rel)
+                outfile_rel = unpacker.get_data_unpack_directory() / \
+                        ("unpacked-0x%x-0x%x" % (carve_index, u_low-1))
+                outfile_full = self.scanenvironment.unpack_path(outfile_rel)
 
-                        # create the unpacking directory and write the file
-                        os.makedirs(outfile_full.parent, exist_ok=True)
+                # create the unpacking directory and write the file
+                os.makedirs(outfile_full.parent, exist_ok=True)
 
-                        # write the file
-                        outfile = open(outfile_full, 'wb')
-                        os.sendfile(outfile.fileno(), scanfile.fileno(), carve_index, u_low - carve_index)
-                        outfile.close()
+                # write the file
+                outfile = open(outfile_full, 'wb')
+                os.sendfile(outfile.fileno(), scanfile.fileno(), carve_index, u_low - carve_index)
+                outfile.close()
 
-                        unpackedlabel = ['synthesized']
+                unpackedlabel = ['synthesized']
 
-                        if self.is_padding(outfile_full):
-                            unpackedlabel.append('padding')
-                            if self.scanenvironment.get_paddingname() is not None:
-                                newoutfile_rel = os.path.join(unpacker.get_data_unpack_directory(), "%s-%s-%s" % (self.scanenvironment.get_paddingname(), hex(carve_index), hex(u_low-1)))
-                                newoutfile_full = self.scanenvironment.unpack_path(newoutfile_rel)
-                                shutil.move(outfile_full, newoutfile_full)
-                                outfile_rel = newoutfile_rel
+                if self.is_padding(outfile_full):
+                    unpackedlabel.append('padding')
+                    if self.scanenvironment.get_paddingname() is not None:
+                        newoutfile_rel = os.path.join(unpacker.get_data_unpack_directory(), "%s-%s-%s" % (self.scanenvironment.get_paddingname(), hex(carve_index), hex(u_low-1)))
+                        newoutfile_full = self.scanenvironment.unpack_path(newoutfile_rel)
+                        shutil.move(outfile_full, newoutfile_full)
+                        outfile_rel = newoutfile_rel
 
-                        report = {
-                            'offset': carve_index,
-                            'type': 'carved',
-                            'size': u_low - carve_index,
-                            'files': [ str(outfile_rel) ],
-                        }
-                        self.fileresult.add_unpackedfile(report)
+                report = {
+                    'offset': carve_index,
+                    'type': 'carved',
+                    'size': u_low - carve_index,
+                    'files': [ str(outfile_rel) ],
+                }
+                self.fileresult.add_unpackedfile(report)
 
-                        # add the data, plus labels, to the queue
-                        fr = FileResult(self.fileresult,
-                            outfile_rel,
-                            set(unpackedlabel))
-                        j = ScanJob(fr)
-                        self.scanenvironment.scanfilequeue.put(j)
+                # add the data, plus labels, to the queue
+                fr = FileResult(self.fileresult,
+                    outfile_rel,
+                    set(unpackedlabel))
+                j = ScanJob(fr)
+                self.scanenvironment.scanfilequeue.put(j)
 
-                        # ugly hack to work around default behaviour of make_data_unpack_directory
-                        synthesizedcounter += 1
-                    carve_index = u_high
+                # ugly hack to work around default behaviour of make_data_unpack_directory
+                synthesizedcounter += 1
+            carve_index = u_high
 
-                scanfile.close()
+        scanfile.close()
 
     def do_content_computations(self):
         fc = FileContentsComputer(self.scanenvironment.get_readsize())
