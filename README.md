@@ -50,6 +50,14 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 * Fedora 28 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
+## Docker container
+
+```
+docker image build -t bang .
+docker container run --rm -it bang
+```
+
+
 ## Supported file types
 
 The following files can be unpacked, or verified, including carving from a

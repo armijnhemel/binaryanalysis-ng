@@ -1,8 +1,5 @@
 FROM fedora:29
 
-COPY . /usr/src/bang
-WORKDIR /usr/src/bang/src
-
 RUN dnf update -y && \
     dnf install -y binutils \
                    cabextract \
@@ -33,5 +30,12 @@ RUN dnf update -y && \
                    squashfs-tools \
                    util-linux \
                    zstd
+
+COPY . /usr/src/bang
+WORKDIR /usr/src/bang/src
+
+# CMD ["mkdir", "/data"]
+# CMD ["mkdir", "/bang-unpack"]
+# CMD ["mkdir", "/bang-tmp"]
 
 CMD ["python3","bangshell"]
