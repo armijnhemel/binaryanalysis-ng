@@ -31,11 +31,10 @@ RUN dnf update -y && \
                    util-linux \
                    zstd
 
+RUN dnf install -y python3-pip
+RUN pip3 install deepdiff
+RUN pip3 install pprint
 COPY . /usr/src/bang
 WORKDIR /usr/src/bang/src
-
-# CMD ["mkdir", "/data"]
-# CMD ["mkdir", "/bang-unpack"]
-# CMD ["mkdir", "/bang-tmp"]
 
 CMD ["python3","bangshell"]
