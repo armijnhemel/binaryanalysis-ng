@@ -1,0 +1,4 @@
+
+class UnpackParserException(Exception):
+    pass
+

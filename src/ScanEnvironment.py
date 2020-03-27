@@ -34,8 +34,8 @@ class ScanEnvironment:
                  resultsdirectory, scanfilequeue, resultqueue,
                  processlock, checksumdict,
                 ):
-        """unpackdirectory: a Path object
-           temporarydirectory: a Path object
+        """unpackdirectory: a Path object, absolute
+           temporarydirectory: a Path object, absolute
            scanfilequeue: a Queue where files to scan will be fetched from
            resultqueue: a Queue where results will be written to
            processlock: a Lock object that guards access to shared objects
@@ -89,9 +89,9 @@ class ScanEnvironment:
     def get_maxbytes(self):
         return self.maxbytes
 
-    def get_relative_path(self, fn):
+    def get_relative_path(self, p):
         """Gets the path relative to the unpackdirectory."""
-        return fn[self.lenunpackdirectory:]
+        return p.relative_to(self.unpackdirectory)
 
     def unpack_path(self, fn):
         """Returns a path object containing the absolute path of the file in

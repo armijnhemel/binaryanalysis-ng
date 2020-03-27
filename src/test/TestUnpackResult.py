@@ -1,6 +1,8 @@
 import inspect
+import pkgutil
+from operator import itemgetter
 
-from TestUtil import *
+from .TestUtil import *
 
 from Unpacker import *
 
@@ -9,72 +11,42 @@ import bangandroid
 import bangmedia
 import bangfilesystems
 import bangunpack
+import importlib
 
+import parsers
+from UnpackParser import UnpackParser
 
-def get_unpackers():
-    functions = []
-    for m in bangandroid, bangfilesystems, bangmedia, bangunpack:
-        functions += [(name, func) for name, func in
-                      inspect.getmembers(m, inspect.isfunction)
-                      if name.startswith('unpack')]
-    return dict(functions)
+def get_unpackers_for_extension(ext):
+    return bangsignatures.extension_to_unpackparser.get(ext, [])
 
 def get_unpackers_for_file(unpackername, f):
-    ext = os.path.splitext(f)[1]
-    try:
-        yield bangsignatures.extensiontofunction[ext]
-    except KeyError:
-        pass
+    ext = pathlib.Path(f).suffix
 
-    try:
-        yield bangsignatures.signaturetofunction[unpackername]
-    except KeyError:
-        pass
+    unpackers = { u for u in bangsignatures.get_unpackers()
+            if u.is_valid_extension(ext)
+            or u.pretty_name == unpackername }
 
-    for signature, prettyname in bangsignatures.signatureprettyprint.items():
-        if prettyname == unpackername:
-            try:
-                yield bangsignatures.signaturetofunction[signature]
-            except KeyError:
-                pass
-            try:
-                yield bangsignatures.textonlyfunctions[prettyname]
-            except KeyError:
-                pass
-    try:
-        prettyname = bangsignatures.extensionprettyprint[ext]
-        yield bangsignatures.textonlyfunctions[prettyname]
-    except KeyError:
-        pass
-
-    try:
-        yield bangsignatures.textonlyfunctions[unpackername]
-    except KeyError:
-        pass
-
+    for u in unpackers: yield u
+    
 def is_prefix(pref, full):
     cp = os.path.commonprefix((pref, full))
     return cp == pref
 
 class TestUnpackResult(TestBase):
     def test_unpackdata_for_all_unpackers(self):
-        unpackers = get_unpackers()
-        for f, u in self.walk_available_files_with_unpackers():
-            try:
-                del unpackers[u.__name__]
-            except KeyError as e:
-                pass
+        unpackers = set(bangsignatures.get_unpackers())
+        tested_unpackers = { u for f, u
+                in self.walk_available_files_with_unpackers() }
+        untested_unpackers = unpackers.difference(tested_unpackers)
         print("no tests for:")
-        print("\n".join([u for u in unpackers]))
-        # for all testdatafiles
-        self.assertEqual(unpackers, {})
+        print("\n".join([u.__name__ for u in untested_unpackers]))
+        self.assertEqual(untested_unpackers, set([]))
 
     def walk_available_files_with_unpackers(self):
         testfilesdir = self.testdata_dir / 'unpackers'
         for dirpath, dirnames, filenames in os.walk(testfilesdir):
             unpackername = os.path.basename(dirpath)
             for f in filenames:
-                # relativename = os.path.join(dirpath,f)[len(self.testdata_dir)+1:]
                 relativename = pathlib.Path(dirpath).relative_to(self.testdata_dir) / f
                 for unpacker in get_unpackers_for_file(unpackername, f):
                     yield str(relativename), unpacker
@@ -90,16 +62,18 @@ class TestUnpackResult(TestBase):
             # 'unpackers/squashfs/test-cut-data-from-end.sqsh',
             # 'unpackers/squashfs/test-data-replaced-in-middle.sqsh',
             ]
-        for fn, unpackfunc in sorted(set(self.walk_available_files_with_unpackers())):
+        for fn, unpackparser in \
+            sorted(set(self.walk_available_files_with_unpackers()),
+                key=itemgetter(0)):
             if fn in skipfiles:
-                # print('skip file', fn)
                 continue
-            # print('TestUnpackResult::before', os.getcwd())
             self._copy_file_from_testdata(fn)
-            unpacker.make_data_unpack_directory(fn, unpackfunc.__name__)
-            fileresult = create_fileresult_for_path(self.unpackdir, pathlib.Path(fn))
-            unpackresult = unpackfunc(fileresult, self.scan_environment, 0, unpacker.get_data_unpack_directory())
-            # print('TestUnpackResult::after', os.getcwd())
+            unpacker.make_data_unpack_directory(fn, unpackparser.__name__, 0)
+            fileresult = create_fileresult_for_path(self.unpackdir,
+                    pathlib.Path(fn), set())
+            up = unpackparser(fileresult, self.scan_environment,
+                    unpacker.get_data_unpack_directory(), 0)
+            unpackresult = up.parse_and_unpack()
 
             try:
                 # all paths in unpackresults are relative to unpackdir
@@ -128,7 +102,6 @@ class TestUnpackResult(TestBase):
             except KeyError as e:
                 pass
             finally:
-                # print("TestUnpackResult::remove data unpack directory")
                 unpacker.remove_data_unpack_directory_tree()
 
     def todo_test_unpackers_throw_exceptions(self):
@@ -137,12 +110,14 @@ class TestUnpackResult(TestBase):
         fn = "/dev/null"
         name = "null"
         self._copy_file_from_testdata(fn, name)
-        fileresult = create_fileresult_for_path(self.unpackdir, pathlib.Path(name))
+        fileresult = create_fileresult_for_path(self.unpackdir,
+                pathlib.Path(name), set())
         self.assertEqual(str(fileresult.filename), name)
-        # unpackresult = unpacker(fileresult, self.scan_environment, 0, self.unpackdir)
         for unpackername in sorted(unpackers.keys()):
-            unpacker = unpackers[unpackername]
-            unpackresult = unpacker(fileresult, self.scan_environment, 0, self.unpackdir)
+            unpackparser = unpackers[unpackername]
+            up = unpackparser(fileresult, self.scan_environment, self.unpackdir,
+                    0)
+            unpackresult = up.parse_and_unpack()
 
 if __name__ == "__main__":
     unittest.main()

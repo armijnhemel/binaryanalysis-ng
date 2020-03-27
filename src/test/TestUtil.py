@@ -6,7 +6,6 @@ import unittest
 import collections
 
 _scriptdir = os.path.dirname(__file__)
-sys.path.insert(0, os.path.join(_scriptdir, '..'))
 
 from bangsignatures import maxsignaturesoffset
 import bangfilescans
@@ -14,12 +13,11 @@ import bangfilescans
 from FileResult import *
 from ScanEnvironment import *
 
-def create_fileresult_for_path(unpackdir, path, labels=set(),
-        calculate_size=True):
+def create_fileresult_for_path(unpackdir, path, labels, calculate_size=True):
     parentlabels = set()
-    fp = pathlib.Path(unpackdir) / path
     fr = FileResult(path, str(path.parent), parentlabels, labels)
     if calculate_size:
+        fp = pathlib.Path(unpackdir) / path
         fr.set_filesize(fp.stat().st_size)
     return fr
 
@@ -58,10 +56,10 @@ class TestBase(unittest.TestCase):
     # create a temporary directory and copy
     # the test file to the temporary directory
     def setUp(self):
-        self.testdata_dir = pathlib.Path(_scriptdir) / 'testdata'
-        self.unpackdir = pathlib.Path(_scriptdir) / 'unpack'
-        self.tmpdir = pathlib.Path(_scriptdir) / 'tmp'
-        self.resultsdir = pathlib.Path(_scriptdir) / 'results'
+        self.testdata_dir = pathlib.Path(_scriptdir).resolve() / 'testdata'
+        self.unpackdir = pathlib.Path(_scriptdir).resolve() / 'unpack'
+        self.tmpdir = pathlib.Path(_scriptdir).resolve() / 'tmp'
+        self.resultsdir = pathlib.Path(_scriptdir).resolve() / 'results'
         self._create_clean_directory(self.unpackdir)
         self._create_clean_directory(self.tmpdir)
         self._create_clean_directory(self.resultsdir)
@@ -76,6 +74,7 @@ class TestBase(unittest.TestCase):
             readsize = 10240,
             createbytecounter = False,
             createjson = True,
+            runfilescans = True, # TODO: is this the correct value?
             tlshmaximum = sys.maxsize,
             synthesizedminimum = 10,
             logging = False,
@@ -112,3 +111,12 @@ class TestBase(unittest.TestCase):
         except FileExistsError:
             pass
         shutil.copy(self.testdata_dir / path, unpacked_path)
+
+    def assertUnpackedPathExists(self, extracted_fn, message=None):
+        extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
+        self.assertTrue(extracted_fn_abs.exists(), message)
+
+    def assertUnpackedPathDoesNotExist(self, extracted_fn, message=None):
+        extracted_fn_abs = pathlib.Path(self.unpackdir) / extracted_fn
+        self.assertFalse(extracted_fn_abs.exists(), message)
+

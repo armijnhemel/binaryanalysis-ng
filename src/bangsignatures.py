@@ -441,6 +441,66 @@ extensiontofunction = {
     'wcprops': bangtext.unpack_subversion_hash,
 }
 
+import os
+import pkgutil
+import importlib
+import inspect
+import parsers
+import pathlib
+from UnpackParser import UnpackParser, WrappedUnpackParser
+
+def _get_unpackers_recursive(unpackers_root, parent_module_path):
+    unpackers = []
+    abs_module_path = unpackers_root / parent_module_path
+    for m in pkgutil.iter_modules([abs_module_path]):
+        full_module_path = parent_module_path / m.name
+        if (unpackers_root / full_module_path).is_dir():
+            try:
+                full_module_name = ".".join(full_module_path.parts)
+                module_name = 'parsers.{}.UnpackParser'.format(full_module_name)
+                module = importlib.import_module(module_name)
+                for name, member in inspect.getmembers(module):
+                    if inspect.isclass(member) and issubclass(member, UnpackParser) \
+                        and member != UnpackParser \
+                        and member != WrappedUnpackParser:
+                        unpackers.append(member)
+            except ModuleNotFoundError as e:
+                pass
+            unpackers.extend(_get_unpackers_recursive(
+                unpackers_root, full_module_path ))
+    return unpackers
+
+
+def get_unpackers():
+    unpackers = _get_unpackers_recursive(
+            pathlib.Path(os.path.dirname(parsers.__file__)), pathlib.Path('.'))
+    return unpackers
+
+def get_unpackers_for_extensions():
+    d = {}
+    for u in get_unpackers():
+        for e in u.extensions:
+            d.setdefault(e,[])
+            d[e].append(u)
+    return d
+
+extension_to_unpackparser = get_unpackers_for_extensions()
+
+def get_unpackers_for_signatures():
+    d = {}
+    for u in get_unpackers():
+        for s in u.signatures:
+            d.setdefault(s,[])
+            d[s].append(u)
+    return d
+
+signature_to_unpackparser = get_unpackers_for_signatures()
+
+def get_unpackers_for_featureless_files():
+    return [u for u in get_unpackers() if u.scan_if_featureless ]
+
+unpackers_for_featureless_files = get_unpackers_for_featureless_files()
+
 # a lookup table to map extensions to a name
 # for pretty printing.
 extensionprettyprint = {
@@ -512,8 +572,8 @@ textonlyfunctions = {
 # * error message (human readable)
 # * flag to indicate if it is a fatal error
 #   (boolean)
-def unpack_file_with_extension(fileresult, scanenvironment, extension, unpack_directory):
-    return extensiontofunction[extension](fileresult, scanenvironment, 0, unpack_directory)
+def unpack_file_with_extension(fileresult, scanenvironment, unpackparser, unpack_directory):
+    return unpackparser().parse_and_unpack(fileresult, scanenvironment, 0, unpack_directory)
 
 # Prescan functions:
 #
@@ -982,5 +1042,8 @@ forgereferences['sourceware.org'] = ["sourceware.org/git/"]
 
 # store the maximum look ahead window. This is unlikely to matter, but
 # just in case.
-maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
-maxsignaturesoffset = max(signaturesoffset.values()) + maxsignaturelength
+# maxsignaturelength = max(map(lambda x: len(x), signatures.values()))
+maxsignaturelength = max([0] + [ len(x[1]) for x in signature_to_unpackparser.keys() ])
+maxsignaturesoffset = max([0] + [ x[0] for x in signature_to_unpackparser.keys() ]) + maxsignaturelength
+
+# maxsignaturesoffset = max(signaturesoffset.values()) + maxsignaturelength

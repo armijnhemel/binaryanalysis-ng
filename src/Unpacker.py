@@ -24,13 +24,20 @@ import re
 import os
 import shutil
 import stat
+import pathlib
 
 import bangsignatures
 from bangsignatures import maxsignaturesoffset
 
+from UnpackParserException import UnpackParserException
 
 class Unpacker:
+    """The Unpacker manages the unpacking (analysis and extraction) of a
+    file."""
     def __init__(self, unpackroot):
+        """Create unpacker object, relative to unpackroot.
+        unpackroot is an absolute path object.
+        """
         # Invariant: lastunpackedoffset ==
         # last known position in file with successfully unpacked data
         # everything before this offset is unpacked and identified.
@@ -67,17 +74,21 @@ class Unpacker:
         self.unpackedrange.append((low, high))
 
     def make_data_unpack_directory(self, relpath, filetype, offset, seqnr=1):
-        '''Makes a data unpack directory.'''
-        # relpath is the relative path to the file that is unpacked.
-        # filetype is the type of the file
-        # seqnr is a sequence number that will be increased
-        # if the directory with that nr already exists.
-        # returns the sequence number of the directory
+        '''Makes a data unpack directory.
+        relpath is the relative path to the file that is unpacked.
+        filetype is the type of the file.
+        offset is the offset in the file from which we extract (used in the
+        data unpack directory name)
+        seqnr is a sequence number that will be increased
+        if the directory with that nr already exists.
+        returns the sequence number of the directory
+        '''
         while True:
             dirname = "%s-%#010x-%s-%d" % (relpath, offset, filetype, seqnr)
             try:
+                
                 os.mkdir(os.path.join(self.unpackroot, dirname))
-                self.dataunpackdirectory = dirname
+                self.dataunpackdirectory = pathlib.Path(dirname)
                 break
             except FileExistsError:
                 seqnr += 1
@@ -92,9 +103,11 @@ class Unpacker:
     def remove_data_unpack_directory_tree(self):
         '''Remove the unpacking directory, including any
         data that might accidentily have been left behind.'''
+        # TODO: use exception
         if not (self.unpackroot / self.dataunpackdirectory).exists():
             return
-        dirwalk = os.walk(os.path.join(self.unpackroot, self.dataunpackdirectory))
+        # dirwalk = os.walk(os.path.join(self.unpackroot, self.dataunpackdirectory))
+        dirwalk = os.walk(self.unpackroot / self.dataunpackdirectory)
         for direntries in dirwalk:
             # make sure all subdirectories and files can
             # be accessed and then removed by first changing the
@@ -115,13 +128,22 @@ class Unpacker:
         '''Return the location of the data unpack directory'''
         return self.dataunpackdirectory
 
-    def try_unpack_file_for_extension(self, fileresult, scanenvironment, relpath, extension):
+    def try_unpack_file_for_extension(self, fileresult, scanenvironment,
+            relpath, extension, unpackparser):
+        self.make_data_unpack_directory(relpath, unpackparser.pretty_name, 0)
+        up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory,
+                0)
+        up.open()
         try:
-            self.make_data_unpack_directory(relpath, bangsignatures.extensionprettyprint[extension], 0)
-            return bangsignatures.unpack_file_with_extension(fileresult, scanenvironment, extension, self.dataunpackdirectory)
-        except AttributeError:
-            self.remove_data_unpack_directory()
-            return None
+            unpackresult = up.parse_and_unpack()
+            if unpackresult['length'] != fileresult.filesize:
+                up.carve()
+        except UnpackParserException as e:
+            raise e
+        finally:
+            up.close()
+
+        return unpackresult
 
     def open_scanfile(self, filename):
         '''Open the file read-only in raw mode'''
@@ -166,50 +188,60 @@ class Unpacker:
             # use an overlap, i.e. go back
             self.scanfile.seek(-maxsignaturesoffset, 1)
 
-    def find_offsets_for_signature(self, sig, filesize):
+    def find_offsets_for_signature(self, sig, unpackparsers, filesize):
         offsets = set()
+        s_offset, s_text = sig
         # TODO: precompile regexp patterns in bangsignatures
-        res = re.finditer(re.escape(bangsignatures.signatures[sig]), self.scanbytes[:self.bytesread])
+        res = re.finditer(re.escape(s_text), self.scanbytes[:self.bytesread])
         if res is not None:
             for r in res:
-                if sig in bangsignatures.signaturesoffset:
-                    # skip files that aren't big enough if the
-                    # signature is not at the start of the data
-                    # to be carved (example: ISO9660).
-                    if r.start() + self.offsetinfile - bangsignatures.signaturesoffset[sig] < 0:
-                        continue
+                # skip files that aren't big enough if the
+                # signature is not at the start of the data
+                # to be carved (example: ISO9660).
+                if r.start() + self.offsetinfile - s_offset < 0:
+                    continue
 
                 offset = r.start()
-                if not bangsignatures.prescan(sig, self.scanbytes, self.bytesread, filesize, offset, self.offsetinfile):
+                if not bangsignatures.prescan(s_text, self.scanbytes, self.bytesread, filesize, offset, self.offsetinfile):
                     continue
 
                 # default: store a tuple (offset, signature name)
-                if sig in bangsignatures.signaturesoffset:
-                    offsets.add((offset + self.offsetinfile - bangsignatures.signaturesoffset[sig], sig))
-                else:
-                    offsets.add((offset + self.offsetinfile, sig))
+                offsets.update({ (offset + self.offsetinfile - s_offset, u) for
+                    u in unpackparsers })
         return offsets
 
     def offset_overlaps_with_unpacked_data(self, offset):
         return offset < self.lastunpackedoffset
 
-    def try_unpack_file_for_signatures(self, fileresult, scanenvironment, signature, offset):
+    def try_unpack_file_for_signatures(self, fileresult, scanenvironment,
+            unpackparser, offset):
+        up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory,
+                offset)
+        up.open()
         try:
-            return bangsignatures.signaturetofunction[signature](fileresult, scanenvironment, offset, self.dataunpackdirectory)
-        except AttributeError as ex:
-            print(ex)
-            self.remove_data_unpack_directory()
-            return None
+            unpackresult = up.parse_and_unpack()
+            if unpackresult['length'] != fileresult.filesize:
+                up.carve()
+        except UnpackParserException as e:
+            raise e
+        finally:
+            up.close()
+        return unpackresult
 
-    def try_textonlyfunctions(self, fileresult, scanenvironment, filetype, offset):
+    def try_unpack_without_features(self, fileresult, scanenvironment, unpackparser,  offset):
+        up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory,
+                0)
+        up.open()
         try:
-            return bangsignatures.textonlyfunctions[filetype](fileresult, scanenvironment, 0, self.dataunpackdirectory)
-        except Exception as ex:
-            # TODO: make exception more specific, it is too general
-            print(ex)
-            self.remove_data_unpack_directory()
-            return None
-
+            unpackresult = up.parse_and_unpack()
+            if unpackresult['length'] != fileresult.filesize:
+                # TODO: let up generate name
+                up.carve()
+        except UnpackParserException as e:
+            raise e
+        finally:
+            up.close()
+        return unpackresult
 
     def file_unpacked(self, unpackresult, filesize):
         # store the location of where the successfully
