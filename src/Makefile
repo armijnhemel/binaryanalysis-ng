@@ -6,7 +6,8 @@ SPACE:=$(EMPTY) $(EMPTY)
 KAITAI_NAMES = $(notdir $(basename $(SOURCES)))
 KAITAI_PATTERN = $(subst $(SPACE),\|,$(KAITAI_NAMES))
 
-KAITAISTRUCT_COMPILER= $(HOME)/kaitai-struct-compiler-0.9-SNAPSHOT/bin/kaitai-struct-compiler 
+# Assume kaitai-struct-compiler is in $PATH
+KAITAISTRUCT_COMPILER= kaitai-struct-compiler 
 
 all: $(KAITAI_PARSERS)
 

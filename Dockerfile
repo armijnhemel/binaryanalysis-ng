@@ -1,3 +1,10 @@
+FROM blacktop/kaitai as builder
+RUN apt-get update && apt-get install make
+
+COPY . /usr/src/bang
+WORKDIR /usr/src/bang/src
+RUN make
+
 FROM fedora:29
 
 RUN dnf update -y && \
@@ -34,7 +41,7 @@ RUN dnf update -y && \
 RUN dnf install -y python3-pip
 RUN pip3 install deepdiff
 RUN pip3 install pprint
-COPY . /usr/src/bang
+COPY --from=builder /usr/src/bang /usr/src/bang
 WORKDIR /usr/src/bang/src
 
 CMD ["python3","bangshell"]
