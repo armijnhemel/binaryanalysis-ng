@@ -1,8 +1,5 @@
 FROM fedora:29
 
-COPY . /usr/src/bang
-WORKDIR /usr/src/bang/src
-
 RUN dnf update -y && \
     dnf install -y binutils \
                    cabextract \
@@ -33,5 +30,11 @@ RUN dnf update -y && \
                    squashfs-tools \
                    util-linux \
                    zstd
+
+RUN dnf install -y python3-pip
+RUN pip3 install deepdiff
+RUN pip3 install pprint
+COPY . /usr/src/bang
+WORKDIR /usr/src/bang/src
 
 CMD ["python3","bangshell"]
