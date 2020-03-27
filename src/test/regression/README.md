@@ -1,7 +1,8 @@
 # Regression tests
 
 This script runs bang-scanner on a set of test cases and compares the result
-to a reference value.
+to a reference value. The script requires a docker container installation of
+bang.
 
 Every test case has the following layout:
 
