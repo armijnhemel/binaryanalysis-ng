@@ -40,7 +40,6 @@ RUN dnf update -y && \
 
 RUN dnf install -y python3-pip
 RUN pip3 install deepdiff
-RUN pip3 install pprint
 COPY --from=builder /usr/src/bang /usr/src/bang
 WORKDIR /usr/src/bang/src
 
