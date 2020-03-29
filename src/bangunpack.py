@@ -13397,6 +13397,8 @@ def unpack_pcapng(fileresult, scanenvironment, offset, unpackdir):
         # and the two "block total length" blocks
         checkbytes = checkfile.read(4)
         block_length = int.from_bytes(checkbytes, byteorder=byteorder)
+        if block_length == 0:
+            break
         if filesize - checkfile.tell() < block_length-12:
             break
 
