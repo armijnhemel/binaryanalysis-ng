@@ -2,10 +2,12 @@
 
 ## Introduction
 
-kaitai-struct is ....
+kaitai-struct is "a declarative language used to describe various binary data structures, laid out in files or in memory".
 
 https://github.com/kaitai-io/kaitai_struct
 http://kaitai.io/
+
+Basically it is a language to describe binary formats using a description file, which can then be used to generate parsers for various languages.
 
 ## Installing the kaitai-struct compiler
 
@@ -75,9 +77,9 @@ python3 -m http.server
 ```
 
 * Point your browser to http://localhost:8000/
-* Klik the upload icon on the bottom left area (a cloud with an upwards arrow)
+* clock the upload icon on the bottom left area (a cloud with an upwards arrow)
 * upload a test file
-* selecteer the kaitai parser from the list
+* select the kaitai parser from the list
 * check if the parser handles the file correctly
 
 ### Using the kaitai-struct-visualizer tools
