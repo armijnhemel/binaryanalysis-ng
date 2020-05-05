@@ -77,7 +77,7 @@ python3 -m http.server
 ```
 
 * Point your browser to http://localhost:8000/
-* clock the upload icon on the bottom left area (a cloud with an upwards arrow)
+* click the upload icon on the bottom left area (a cloud with an upwards arrow)
 * upload a test file
 * select the kaitai parser from the list
 * check if the parser handles the file correctly
