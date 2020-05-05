@@ -1,0 +1,11 @@
+FROM blacktop/kaitai as builder
+
+RUN apt-get update
+RUN apt-get install -y rubygems
+
+RUN gem install kaitai-struct-visualizer
+
+ENTRYPOINT []
+
+CMD ["ksv"]
+
