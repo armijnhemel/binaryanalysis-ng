@@ -54,7 +54,6 @@ class ScanEnvironment:
         self.unpackdirectory = unpackdirectory
         self.temporarydirectory = temporarydirectory
         self.resultsdirectory = resultsdirectory
-        self.lenunpackdirectory = len(str(unpackdirectory))+1
         self.scanfilequeue = scanfilequeue
         self.resultqueue = resultqueue
         self.processlock = processlock
@@ -88,10 +87,6 @@ class ScanEnvironment:
 
     def get_maxbytes(self):
         return self.maxbytes
-
-    def get_relative_path(self, p):
-        """Gets the path relative to the unpackdirectory."""
-        return p.relative_to(self.unpackdirectory)
 
     def unpack_path(self, fn):
         """Returns a path object containing the absolute path of the file in
