@@ -2,3 +2,13 @@ deepdiff
 pytest
 kaitaistruct==0.8
 parameterized
+tlsh
+tinycss2
+python-snappy
+psycopg2-binary
+Pillow
+lz4
+icalendar
+elasticsearch
+dockerfile-parse
+defusedxml
