@@ -57,6 +57,13 @@ docker image build -t bang .
 docker container run --rm -it bang
 ```
 
+or from the `src` directory, type
+
+```
+make dockerbuild
+```
+
+
 
 ## Supported file types
 

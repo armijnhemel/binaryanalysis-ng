@@ -1,7 +1,7 @@
 FROM blacktop/kaitai as builder
 RUN apt-get update && apt-get install make
 
-COPY . /usr/src/bang
+COPY . /usr/src/bang/src
 WORKDIR /usr/src/bang/src
 RUN make
 
