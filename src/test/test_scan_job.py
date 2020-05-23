@@ -39,7 +39,7 @@ class TestScanJob(TestBase):
         scanjob = ScanJob(fileresult)
         scanjob.set_scanenvironment(self.scan_environment)
         scanjob.initialize()
-        unpacker = Unpacker(self.unpackdir)
+        unpacker = UnpackManager(self.unpackdir)
         scanjob.prepare_for_unpacking()
         scanjob.check_unscannable_file()
         unpacker.append_unpacked_range(0, 5) # bytes [0:5) are unpacked

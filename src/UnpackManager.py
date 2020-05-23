@@ -31,11 +31,11 @@ from bangsignatures import maxsignaturesoffset
 
 from UnpackParserException import UnpackParserException
 
-class Unpacker:
-    """The Unpacker manages the unpacking (analysis and extraction) of a
+class UnpackManager:
+    """The UnpackManager manages the unpacking (analysis and extraction) of a
     file."""
     def __init__(self, unpackroot):
-        """Create unpacker object, relative to unpackroot.
+        """Create UnpackManager object, relative to unpackroot.
         unpackroot is an absolute path object.
         """
         # Invariant: lastunpackedoffset ==

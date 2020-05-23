@@ -673,7 +673,7 @@ def processfile(dbconn, dbcursor, scanenvironment):
                 scanfilequeue.task_done()
                 continue
 
-            unpacker = Unpacker(scanenvironment.unpackdirectory)
+            unpacker = UnpackManager(scanenvironment.unpackdirectory)
             scanjob.prepare_for_unpacking()
             scanjob.check_for_padding_file(unpacker)
             scanjob.check_for_unpacked_file(unpacker)

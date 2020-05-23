@@ -52,7 +52,7 @@ class TestUnpackResult(TestBase):
                     yield str(relativename), unpacker
 
     def test_unpackresult_has_correct_filenames(self):
-        unpacker = Unpacker(self.unpackdir)
+        unpacker = UnpackManager(self.unpackdir)
         skipfiles = [
             'unpackers/zip/test-add-random-data.zip',
             'unpackers/zip/test-data-replaced-in-middle.zip',
