@@ -2,7 +2,7 @@ deepdiff
 pytest
 kaitaistruct==0.8
 parameterized
-tlsh
+python-tlsh
 tinycss2
 python-snappy
 psycopg2-binary
