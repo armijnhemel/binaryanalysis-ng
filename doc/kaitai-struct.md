@@ -145,6 +145,14 @@ The compilation of the kaitai-struct parser in the `Makefile` contains an extra 
 ```
 import vfat_directory_rec
 ```
+for kaitai 0.9,  or:
+
+```
+from .vfat_directory_rec import VfatDirectoryRec
+```
+
+for 0.8.
 
 Note that this may break absolute kaitai imports.
+
 

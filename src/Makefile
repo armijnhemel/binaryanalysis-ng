@@ -17,9 +17,10 @@ all: $(KAITAI_PARSERS)
 
 %.py : %.ksy
 	$(KAITAISTRUCT_COMPILER) -t python --outdir `dirname "$<"` $<
+	sed -i 's/^from \($(KAITAI_PATTERN)\) import /from .\1 import /' "$@"
 	sed -i 's/^import \($(KAITAI_PATTERN)\)$$/from . &/' "$@"
 
-.PHONY: test parsertests
+.PHONY: test parsertests clean
 
 ifdef DOCKER
 PYTEST=docker container run -it --rm -v "$(PWD)":/src:z -w /src bang py.test
@@ -34,4 +35,7 @@ test:
 parsertests:
 	# python3 -m unittest discover parsers -v -p 'Test.py'
 	$(PYTEST)
+
+clean:
+	rm $(KAITAI_PARSERS)
 
