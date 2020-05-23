@@ -7,7 +7,11 @@ KAITAI_NAMES = $(notdir $(basename $(SOURCES)))
 KAITAI_PATTERN = $(subst $(SPACE),\|,$(KAITAI_NAMES))
 
 # Assume kaitai-struct-compiler is in $PATH
+ifdef DOCKER
+KAITAISTRUCT_COMPILER= docker container run -it --rm -v "$(PWD)":/src:z -w /src blacktop/kaitai
+else
 KAITAISTRUCT_COMPILER= kaitai-struct-compiler 
+endif
 
 all: $(KAITAI_PARSERS)
 
@@ -17,9 +21,17 @@ all: $(KAITAI_PARSERS)
 
 .PHONY: test parsertests
 
+ifdef DOCKER
+PYTEST=docker container run -it --rm -v "$(PWD)":/src:z -w /src bang py.test
+else
+PYTEST=py.test
+endif
+
 test:
-	python3 -m unittest discover -v -p 'Test*'
+	# python3 -m unittest discover -v -p 'Test*'
+	$(PYTEST)
 
 parsertests:
-	python3 -m unittest discover parsers -v -p 'Test.py'
+	# python3 -m unittest discover parsers -v -p 'Test.py'
+	$(PYTEST)
 

@@ -1,0 +1,4 @@
+deepdiff
+pytest
+kaitaistruct==0.8
+parameterized

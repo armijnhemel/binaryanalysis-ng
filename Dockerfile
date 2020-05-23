@@ -39,8 +39,9 @@ RUN dnf update -y && \
                    zstd
 
 RUN dnf install -y python3-pip
-RUN pip3 install deepdiff
 COPY --from=builder /usr/src/bang /usr/src/bang
 WORKDIR /usr/src/bang/src
+# RUN pip3 install deepdiff
+RUN pip3 install -r requirements.txt
 
 CMD ["python3","bangshell"]
