@@ -20,7 +20,7 @@ all: $(KAITAI_PARSERS)
 	sed -i 's/^from \($(KAITAI_PATTERN)\) import /from .\1 import /' "$@"
 	sed -i 's/^import \($(KAITAI_PATTERN)\)$$/from . &/' "$@"
 
-.PHONY: test parsertests clean
+.PHONY: test parsertests clean dockershell
 
 ifdef DOCKER
 PYTEST=docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -w /src bang py.test
@@ -33,6 +33,9 @@ test:
 
 parsertests:
 	$(PYTEST) parsers
+
+dockershell:
+	docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -w /src bang bash
 
 clean:
 	rm $(KAITAI_PARSERS)
