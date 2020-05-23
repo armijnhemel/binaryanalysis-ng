@@ -65,7 +65,7 @@ from reporter.elasticsearchreport import *
 from FileContentsComputer import *
 from FileResult import FileResult
 from ScanEnvironment import *
-from Unpacker import *
+from UnpackManager import *
 from ScanJob import *
 
 def connect_to_bang_database(options):

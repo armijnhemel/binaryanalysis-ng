@@ -4,7 +4,7 @@ from operator import itemgetter
 
 from .TestUtil import *
 
-from Unpacker import *
+from UnpackManager import *
 
 import bangsignatures
 import bangandroid
