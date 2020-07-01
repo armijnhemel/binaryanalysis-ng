@@ -52,4 +52,11 @@ def copy_testfile_to_environment(basedir, rel_path, scan_environment):
         pass
     shutil.copy(basedir / rel_path, unpacked_path)
 
+def assertUnpackedPathExists(scan_environment, extracted_fn, message=None):
+    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
+    assert extracted_fn_abs.exists(), message
+
+def assertUnpackedPathDoesNotExist(scan_environment, extracted_fn, message=None):
+    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
+    assert extracted_fn_abs.exists(), message
 
