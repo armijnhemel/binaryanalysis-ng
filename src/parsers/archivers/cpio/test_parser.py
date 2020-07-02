@@ -15,10 +15,10 @@ def test_load_cpio_file_new_ascii(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
-    assert r['length'] <= filesize
+    assert r.get_length() <= filesize
     extracted_fn = data_unpack_dir / 'test.sgi'
-    assert r['filesandlabels'] == [(str(extracted_fn), ['unpacked'])]
+    assert r.get_unpacked_files()[0].filename == extracted_fn
+    assert r.get_unpacked_files()[0].labels == set()
     assertUnpackedPathExists(scan_environment, extracted_fn)
 
 def test_load_cpio_file_portable_ascii(scan_environment):
@@ -31,10 +31,10 @@ def test_load_cpio_file_portable_ascii(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
-    assert r['length'] <= filesize
+    assert r.get_length() <= filesize
     extracted_fn = data_unpack_dir / 'test.sgi'
-    assert r['filesandlabels'] == [(str(extracted_fn), ['unpacked'])]
+    assert r.get_unpacked_files()[0].filename == extracted_fn
+    assert r.get_unpacked_files()[0].labels == set()
     assertUnpackedPathExists(scan_environment, extracted_fn)
 
 def test_unpack_different_filetypes(scan_environment):
@@ -48,30 +48,28 @@ def test_unpack_different_filetypes(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
-    assert r['length'] <= filesize
+    assert r.get_length() <= filesize
 
     # check if etc is a directory
     extracted_fn = data_unpack_dir / 'etc'
     extracted_fn_abs = pathlib.Path(scanenvironment.unpackdirectory) / extracted_fn
     assert extracted_fn_abs.is_dir()
-    extracted_labels = [ i for i in r['filesandlabels'] if i[0] == str(extracted_fn)][0][1]
-    assert extracted_labels == ['unpacked']
+    extracted_labels = [ i for i in r.get_unpacked_files() if i.filename == extracted_fn][0].labels
+    assert extracted_labels == set()
 
     # check if bin/dbclient is a symlink
     extracted_fn = data_unpack_dir / 'bin' / 'dbclient'
     extracted_fn_abs = pathlib.Path(scanenvironment.unpackdirectory) / extracted_fn
     assert extracted_fn_abs.is_symlink()
     assert extracted_fn_abs.resolve().name == 'dropbearmulti'
-    extracted_labels = [ i for i in r['filesandlabels'] if i[0] == str(extracted_fn)][0][1]
-    # print('fl',r['filesandlabels'])
+    extracted_labels = [ i for i in r.get_unpacked_files() if i.filename == extracted_fn][0].labels
     assert 'symbolic link' in extracted_labels
 
     # check if device /dev/zero is skipped
     extracted_fn = data_unpack_dir / 'dev' / 'zero'
     assertUnpackedPathDoesNotExist(scan_environment, extracted_fn)
-    extracted_files_and_labels = [ i for i in r['filesandlabels'] if i[0] == str(extracted_fn)]
-    assert extracted_files_and_labels == []
+    extracted_files = [ i for i in r.get_unpacked_files() if i.filename == extracted_fn]
+    assert extracted_files == []
 
 
 def test_cpio_with_absolute_path(scan_environment):
@@ -84,13 +82,12 @@ def test_cpio_with_absolute_path(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
-    assert r['length'] <= filesize
+    assert r.get_length() <= filesize
 
     extracted_fn = data_unpack_dir / 'e' / 't.sgi'
     assertUnpackedPathExists(scan_environment, extracted_fn)
-    extracted_labels = [ i for i in r['filesandlabels'] if i[0] == str(extracted_fn)][0][1]
-    assert extracted_labels, ['unpacked']
+    extracted_labels = [ i for i in r.get_unpacked_files() if i.filename == extracted_fn][0].labels
+    assert extracted_labels == set()
 
 
 # TODO: is this test relevant if we change the unpacking strategy?

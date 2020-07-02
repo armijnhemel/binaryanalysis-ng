@@ -4,6 +4,7 @@ from . import vfat
 from . import vfat_directory
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
+from FileResult import FileResult
 
 def get_lfn_part(record):
     # note: because python lacks a ucs-2 decoder, we use utf-16. In almost all
@@ -78,13 +79,13 @@ class VfatUnpackParser(UnpackParser):
 
     def unpack(self):
         try:
-            files_and_labels = [
+            unpacked_files = [
                 x for x in self.unpack_directory(
                     self.data.root_dir.records, self.rel_unpack_dir)
             ]
         except Exception as e:
             raise UnpackParserException(e.args)
-        return files_and_labels
+        return unpacked_files
 
     def unpack_directory(self, directory_records, rel_unpack_dir):
         lfn = False
@@ -113,9 +114,9 @@ class VfatUnpackParser(UnpackParser):
                                 record.start_clus, rel_outfile)
                         # parse dir_entries and process
                         subdir = vfat_directory.VfatDirectory.from_bytes(dir_entries)
-                        for file_and_label in self.unpack_directory(
+                        for unpacked_file in self.unpack_directory(
                                 subdir.records, rel_outfile):
-                            yield file_and_label
+                            yield unpacked_file
                      
                 else:
                     # TODO: if normal_file
@@ -152,7 +153,7 @@ class VfatUnpackParser(UnpackParser):
             size_read += bytes_to_read
         outfile.close()
         outlabels = []
-        return (rel_outfile, outlabels)
+        return FileResult(self.fileresult, rel_outfile, set(outlabels))
 
     def is_end_cluster(self, cluster):
         # TODO: handle bad clusters and other exceptions

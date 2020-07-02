@@ -44,3 +44,7 @@ dockerbuild:
 clean:
 	rm $(KAITAI_PARSERS)
 
+coverage:
+	coverage3 run --omit "*/__init__.py","*/site-packages/*","test/*.py","parsers/*/Test.py" -m unittest discover -v -p 'Test*.py' || true
+	coverage3 html -d test/coverage
+	@echo Coverage report available in test/coverage/index.html

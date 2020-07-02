@@ -3,6 +3,7 @@ import os
 import pathlib
 from UnpackParser import UnpackParser, WrappedUnpackParser
 from UnpackParserException import UnpackParserException
+from FileResult import FileResult
 from bangunpack import unpack_tar
 import tarfile
 
@@ -40,7 +41,7 @@ class TarUnpackParser(UnpackParser):
             outfile.close()
 
     def unpack(self):
-        files_and_labels = []
+        unpacked_files = []
         for tarinfo in self.tarinfos:
             file_path = pathlib.Path(tarinfo.name)
             outfile_rel = self.rel_unpack_dir / file_path
@@ -55,8 +56,9 @@ class TarUnpackParser(UnpackParser):
                 pass
 
             out_labels = []
-            files_and_labels.append( (str(self.rel_unpack_dir / file_path), out_labels) )
-        return files_and_labels
+            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
+            unpacked_files.append(fr)
+        return unpacked_files
 
     def parse(self):
         try:

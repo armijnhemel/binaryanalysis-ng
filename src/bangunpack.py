@@ -7269,11 +7269,9 @@ def unpack_rpm(fileresult, scanenvironment, offset, unpackdir):
             shutil.move(str(payloadfile_full), payloaddir)
 
             # create a file result object and pass it to the CPIO unpacker
-            fr = FileResult(
-                payloaddir / os.path.basename(payloadfile),
-                (payloaddir / os.path.basename(payloadfile)).parent,
-                set(),
-                [])
+            fr = FileResult(fileresult,
+                    payloaddir / os.path.basename(payloadfile),
+                    set([]))
             fr.set_filesize(payloadsize)
             unpackresult = unpack_cpio(fr, scanenvironment, 0, unpackdir)
             # cleanup

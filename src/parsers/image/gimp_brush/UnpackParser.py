@@ -4,7 +4,7 @@ from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from . import gimp_brush
 
-import PIL.Image
+from PIL.GbrImagePlugin import GbrImageFile
 
 '''
 class GimpBrushUnpackParserOld(WrappedUnpackParser):
@@ -45,14 +45,15 @@ class GimpBrushUnpackParser(UnpackParser):
         check_condition(unpacked_size <= self.fileresult.filesize, "Not enough data")
         try:
             self.infile.seek(self.offset)
-            testimg = PIL.Image.open(self.infile)
+            testimg = GbrImageFile(self.infile)
             testimg.load()
         except Exception as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):
-        self.unpack_results['labels'] = ['gimp brush', 'graphics']
-        self.unpack_results['metadata'] = {'width': self.data.width,
+        self.unpack_results.set_labels(['gimp brush', 'graphics'])
+        self.unpack_results.set_metadata({'width': self.data.width,
                                            'height': self.data.height,
-                                           'color_depth': self.data.color_depth}
+                                           'color_depth': self.data.color_depth
+                                        })
 

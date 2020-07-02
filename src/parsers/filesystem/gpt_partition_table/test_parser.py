@@ -13,8 +13,19 @@ def test_load_standard_file(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
-    assert r['length'] == filesize
-    assert len(r['filesandlabels']) == 4
+    assert r.get_length() == filesize
+    assert len(r.get_unpacked_files()) == 4
+
+def test_load_mbr_partition_table(scan_environment):
+    rel_testfile = pathlib.Path('a') / \
+        'openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img'
+    data_unpack_dir = rel_testfile.parent / 'some_dir'
+    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
+    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
+    p = GptPartitionTableUnpackParser(fr, scan_environment, data_unpack_dir, 0)
+    p.open()
+    with pytest.raises(UnpackParserException, match = r".*") as cm:
+        r = p.parse_and_unpack()
+    p.close()
 
 

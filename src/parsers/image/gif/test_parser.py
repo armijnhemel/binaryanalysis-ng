@@ -14,10 +14,9 @@ def test_load_standard_gif_file(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
-    assert r['length'] == filesize
-    assert r['filesandlabels'] == []
-    assert r['metadata']['width'] == 3024
+    assert r.get_length() == filesize
+    assert r.get_unpacked_files() == []
+    assert r.get_metadata()['width'] == 3024
 
 def test_extracted_gif_file_is_correct(scan_environment):
     rel_testfile = pathlib.Path('unpackers') / 'gif' / 'test-prepend-random-data.gif'
@@ -30,15 +29,14 @@ def test_extracted_gif_file_is_correct(scan_environment):
     r = p.parse_and_unpack()
     p.carve()
     p.close()
-    assert r['status']
-    assert r['length'] == 7073713
-    unpacked_file = r['filesandlabels'][0][0]
-    unpacked_labels = r['filesandlabels'][0][1]
+    assert r.get_length() == 7073713
+    unpacked_file = r.get_unpacked_files()[0].filename
+    unpacked_labels = r.get_unpacked_files()[0].labels
     assert pathlib.Path(unpacked_file) == pathlib.Path(data_unpack_dir) / 'unpacked.gif'
     assertUnpackedPathExists(scan_environment, unpacked_file)
-    assert (scan_environment.unpackdirectory / unpacked_file).stat().st_size == r['length']
-    assert r['metadata']['width'] == 3024
-    assert set(unpacked_labels) == set(r['labels'] + ['unpacked'])
+    assert (scan_environment.unpackdirectory / unpacked_file).stat().st_size == r.get_length()
+    assert r.get_metadata()['width'] == 3024
+    assert set(unpacked_labels) == set(r.get_labels() + ['unpacked'])
 
 def test_load_png_file(scan_environment):
     rel_testfile = pathlib.Path('unpackers') / 'png' / 'test.png'
@@ -51,6 +49,4 @@ def test_load_png_file(scan_environment):
         r = p.parse_and_unpack()
     p.close()
 
-if __name__ == '__main__':
-    unittest.main()
 

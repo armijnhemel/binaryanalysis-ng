@@ -16,12 +16,11 @@ def test_fat12_single_file_unpacked_correctly(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
-    assert r['length'] == filesize
-    assert len(r['filesandlabels']) == 1
+    assert r.get_length() == filesize
+    assert len(r.get_unpacked_files()) == 1
     unpacked_path_rel = data_unpack_dir / 'hellofat.txt'
     unpacked_path_abs = scan_environment.unpackdirectory / unpacked_path_rel
-    assert r['filesandlabels'][0][0] ==  unpacked_path_rel
+    assert r.get_unpacked_files()[0].filename == unpacked_path_rel
     assertUnpackedPathExists(scan_environment, unpacked_path_rel)
     with open(unpacked_path_abs,"rb") as f:
         assert f.read() == b'hello fat\n'
@@ -37,7 +36,6 @@ def test_fat12_multiple_blocks_unpacked_correctly(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
     unpacked_path_rel = data_unpack_dir / 'copying'
     unpacked_path_abs = scan_environment.unpackdirectory / unpacked_path_rel
     assertUnpackedPathExists(scan_environment, unpacked_path_rel)
@@ -58,8 +56,7 @@ def test_fat12_subdirectories_unpacked_correctly(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
-    assert len(r['filesandlabels']) == 4
+    assert len(r.get_unpacked_files()) == 4
 
     unpacked_path_rel = data_unpack_dir / 'subdir1.dir'
     unpacked_path_abs = scan_environment.unpackdirectory / unpacked_path_rel

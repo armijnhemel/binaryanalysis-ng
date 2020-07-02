@@ -14,8 +14,7 @@ def test_load_standard_ico_file(scan_environment):
     # dummy data unpack dir
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
-    assert r['length'] == filesize
-    assert r['filesandlabels'] == []
+    assert r.get_length() == filesize
+    assert r.get_unpacked_files() == []
 
 

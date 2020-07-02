@@ -14,9 +14,9 @@ def test_load_tar_file(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
     extracted_fn = data_unpack_dir / 'test.sgi'
-    assert r['filesandlabels'] ==  [ (str(extracted_fn), []) ]
+    assert r.get_unpacked_files()[0].filename == extracted_fn
+    assert r.get_unpacked_files()[0].labels == set()
 
 
 def test_load_absolute_tar_file(scan_environment):
@@ -28,9 +28,9 @@ def test_load_absolute_tar_file(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
     extracted_fn = "/tmp/test.sgi"
-    assert r['filesandlabels'][0] == (str(extracted_fn), [])
+    assert r.get_unpacked_files()[0].filename == extracted_fn
+    assert r.get_unpacked_files()[0].labels == set()
     # TODO: check where file is extracted
 
 

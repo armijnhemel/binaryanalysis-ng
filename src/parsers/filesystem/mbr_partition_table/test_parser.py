@@ -15,9 +15,8 @@ def test_load_standard_file(scan_environment):
     p.open()
     r = p.parse_and_unpack()
     p.close()
-    assert r['status']
-    assert r['length'] == filesize
-    assert len(r['filesandlabels']) == 4
+    assert r.get_length() == filesize
+    assert len(r.get_unpacked_files()) == 4
 
 def test_load_fat_partition(scan_environment):
     rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test.fat'
@@ -30,4 +29,15 @@ def test_load_fat_partition(scan_environment):
     with pytest.raises(UnpackParserException, match=r"no partitions") as cm:
         r = p.parse_and_unpack()
     p.close()
+
+def test_load_gpt_partition_table(scan_environment):
+    rel_testfile = pathlib.Path('a') / 'OPNsense-18.1.6-OpenSSL-vga-amd64.img'
+    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
+    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
+    p = MbrPartitionTableUnpackParser(fr, scan_environment, data_unpack_dir, 0)
+    p.open()
+    with pytest.raises(UnpackParserException, match = r"partition bigger than file") as cm:
+        r = p.parse_and_unpack()
+    p.close()
+
 

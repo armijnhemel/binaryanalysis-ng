@@ -24,13 +24,23 @@ import pathlib
 
 class FileResult:
     """stores all the information about the file that has been discovered
-    so far."""
-    def __init__(self, rel_filename, rel_parentfilename, parentlabels, labels):
+    so far. FileResult also contains all the information to start a scan job.
+    """
+    def __init__(self, parent, rel_filename, labels):
+        """Constructor.
+        parent: parent fileresult, None if file is the top file to unpack.
+        rel_filename: path relative to the unpack directory root, unless
+        labels: labels associated with the file.
+        """
         self.hash = {}
         self.filename = rel_filename
-        self.parent = rel_parentfilename
+        if parent:
+            self.parent_path = parent.filename
+            self.parentlabels = parent.labels
+        else:
+            self.parent_path = None
+            self.parentlabels = set()
         self.labels = labels
-        self.parentlabels = parentlabels
         self.unpackedfiles = None
         self.metadata = None
         self.filesize = None
@@ -40,8 +50,8 @@ class FileResult:
     def set_filesize(self, size):
         self.filesize = size
 
-    def is_unpacking_root(self):
-        return self.parent is None
+    def has_parent(self):
+        return self.parent_path is not None
 
     def get_hashresult(self):
         return self.hash
@@ -73,8 +83,8 @@ class FileResult:
             d['filesize'] = self.filesize
         if self.unpackedfiles is not None:
             d['unpackedfiles'] = self.unpackedfiles
-        if not self.is_unpacking_root():
-            d['parent'] = str(self.parent)
+        if self.has_parent():
+            d['parent'] = str(self.parent_path)
         if self.mimetype is not None:
             d['mimetype'] = self.mimetype
             if self.mimetype_encoding is not None:
@@ -83,3 +93,8 @@ class FileResult:
 
     def get_hash(self, algorithm='sha256'):
         return self.hash[algorithm]
+
+    def get_unpack_directory_parent(self):
+        if self.parent_path is None:
+            return pathlib.Path(pathlib.Path(self.filename).name)
+        return pathlib.Path(self.filename)

@@ -32,13 +32,13 @@ class GifUnpackParser(UnpackParser):
             if x.label == self.data.ExtensionLabel.comment ]
         # TODO: deal with duplicate comments
         comments = [b''.join([ y.bytes for y in x ]) for x in subblocks]
-        self.unpack_results['metadata'] = {
+        self.unpack_results.set_metadata({
                 'width': self.data.logical_screen_descriptor.screen_width,
                 'height': self.data.logical_screen_descriptor.screen_height,
                 'comments': comments,
                 # 'xmp': xmps
-            }
-        self.unpack_results['labels'] = [ 'gif', 'graphics' ]
+            })
+        self.unpack_results.set_labels([ 'gif', 'graphics' ])
         # TODO: animated
 
 
