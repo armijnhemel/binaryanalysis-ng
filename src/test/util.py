@@ -120,5 +120,5 @@ def assertUnpackedPathExists(scan_environment, extracted_fn, message=None):
 
 def assertUnpackedPathDoesNotExist(scan_environment, extracted_fn, message=None):
     extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
-    assert extracted_fn_abs.exists(), message
+    assert not extracted_fn_abs.exists(), message
 
