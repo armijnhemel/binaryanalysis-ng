@@ -38,8 +38,7 @@ def test_load_cpio_file_portable_ascii(scan_environment):
     assertUnpackedPathExists(scan_environment, extracted_fn)
 
 def test_unpack_different_filetypes(scan_environment):
-    # test file from kr105_ps4kerneltest.zip
-    rel_testfile = pathlib.Path('a') / 'initramfs.cpio'
+    rel_testfile = pathlib.Path('download') / 'archivers' / 'cpio' / 'initramfs.cpio'
     copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
     fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
     filesize = fr.filesize
@@ -52,16 +51,18 @@ def test_unpack_different_filetypes(scan_environment):
 
     # check if etc is a directory
     extracted_fn = data_unpack_dir / 'etc'
-    extracted_fn_abs = pathlib.Path(scanenvironment.unpackdirectory) / extracted_fn
+    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
     assert extracted_fn_abs.is_dir()
     extracted_labels = [ i for i in r.get_unpacked_files() if i.filename == extracted_fn][0].labels
     assert extracted_labels == set()
 
-    # check if bin/dbclient is a symlink
-    extracted_fn = data_unpack_dir / 'bin' / 'dbclient'
-    extracted_fn_abs = pathlib.Path(scanenvironment.unpackdirectory) / extracted_fn
+    # check if /linuxrc is a symlink to bin/busybox
+    # extracted_fn = data_unpack_dir / 'bin' / 'dbclient'
+    extracted_fn = data_unpack_dir / 'linuxrc'
+    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
     assert extracted_fn_abs.is_symlink()
-    assert extracted_fn_abs.resolve().name == 'dropbearmulti'
+    assert extracted_fn_abs.resolve().name == 'busybox'
+    assert extracted_fn_abs.resolve().parent.name == 'bin'
     extracted_labels = [ i for i in r.get_unpacked_files() if i.filename == extracted_fn][0].labels
     assert 'symbolic link' in extracted_labels
 
