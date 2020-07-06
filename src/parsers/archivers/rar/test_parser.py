@@ -5,7 +5,7 @@ from test.util import *
 from .UnpackParser import RarUnpackParser
 
 def test_load_standard_file(scan_environment):
-    rel_testfile = pathlib.Path('a') / 'hachoir-core.rar'
+    rel_testfile = pathlib.Path('download') / 'archivers' / 'rar' / 'hachoir-core.rar'
     copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
     fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
     filesize = fr.filesize
