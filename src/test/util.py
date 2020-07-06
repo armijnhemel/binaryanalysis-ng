@@ -10,6 +10,9 @@ from bangsignatures import maxsignaturesoffset
 from .mock_queue import *
 from .mock_db import *
 
+from UnpackParser import UnpackParser
+from UnpackParserException import UnpackParserException
+
 _scriptdir = os.path.dirname(__file__)
 testdir_base = pathlib.Path(_scriptdir).resolve()
 
@@ -52,6 +55,35 @@ def copy_testfile_to_environment(basedir, rel_path, scan_environment):
     except FileExistsError:
         pass
     shutil.copy(basedir / rel_path, unpacked_path)
+
+def parse_and_unpack_success(self):
+    r = UnpackResults()
+    fr = FileResult(self.fileresult, self.get_carved_filename(), set())
+    r.set_unpacked_files([fr])
+    r.set_length(self.length)
+    return r
+    
+def parse_and_unpack_fail(self):
+    raise UnpackParserException("failing unpackparser")
+
+
+def create_unpackparser(name, fail = False,
+        extensions = [], signatures = [], length = 0,
+        pretty_name = '', scan_if_featureless = False): 
+    if fail:
+        parse_and_unpack_method = parse_and_unpack_fail
+    else:
+        parse_and_unpack_method = parse_and_unpack_success
+    c = type(name, (UnpackParser,), {
+                'extensions': extensions,
+                'signatures': signatures,
+                'scan_if_featureless': scan_if_featureless,
+                'parse_and_unpack': parse_and_unpack_method,
+                'pretty_name': pretty_name,
+                'length': length
+            })
+    return c
+
 
 def create_unpackparser_for_path(scan_environment, testdata_dir, rel_testfile, unpackparser, offset,
         data_unpack_dir = pathlib.Path('.'), has_unpack_parent = False,
