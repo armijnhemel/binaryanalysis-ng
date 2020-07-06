@@ -8,7 +8,8 @@ KAITAI_PATTERN = $(subst $(SPACE),\|,$(KAITAI_NAMES))
 DOCKER_IMAGE=bang
 
 ifdef DOCKER
-KAITAISTRUCT_COMPILER= docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -w /src blacktop/kaitai
+# KAITAISTRUCT_COMPILER= docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -w /src blacktop/kaitai
+KAITAISTRUCT_COMPILER= docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -w /src kaitai
 else
 # Assume kaitai-struct-compiler is in $PATH
 KAITAISTRUCT_COMPILER= kaitai-struct-compiler 

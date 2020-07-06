@@ -1,6 +1,6 @@
 deepdiff
 pytest
-kaitaistruct==0.8
+#kaitaistruct==0.8
 parameterized
 python-tlsh
 tinycss2

@@ -1,4 +1,4 @@
-FROM blacktop/kaitai as builder
+FROM kaitai as builder
 RUN apt-get update && apt-get install make
 
 COPY . /usr/src/bang/src
@@ -6,6 +6,7 @@ WORKDIR /usr/src/bang/src
 RUN make
 
 FROM fedora:29
+
 
 RUN dnf update -y
 RUN dnf install -y binutils \
@@ -37,5 +38,10 @@ RUN dnf install -y python3-pip
 COPY --from=builder /usr/src/bang /usr/src/bang
 WORKDIR /usr/src/bang/src
 RUN pip3 install -r requirements.txt
+
+COPY --from=builder /kaitai_struct /kaitai_struct
+WORKDIR /kaitai_struct/runtime/python
+RUN python3 setup.py install --user
+
 
 CMD ["python3","bangshell"]
