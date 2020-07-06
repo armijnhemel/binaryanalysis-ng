@@ -2,3 +2,4 @@
 *.pyc
 
 src/test/coverage
+src/test/testdata/download
