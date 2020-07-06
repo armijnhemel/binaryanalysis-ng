@@ -12,14 +12,15 @@ class GptPartitionTableUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = gpt_partition_table.GptPartitionTable.from_io(self.infile)
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
     def calculate_unpacked_size(self):
         # According to https://web.archive.org/web/20080321063028/http://technet2.microsoft.com/windowsserver/en/library/bdeda920-1f08-4683-9ffb-7b4b50df0b5a1033.mspx?mfr=true
         # the backup GPT header is at the last sector of the disk
         try:
             self.unpacked_size = (self.data.primary.backup_lba+1)*self.data.sector_size
-        except Exception as e:
+        except BaseException as e:
+            print("EXC")
             raise UnpackParserException(e.args)
         check_condition(self.unpacked_size <= self.fileresult.filesize,
                 "partition bigger than file")

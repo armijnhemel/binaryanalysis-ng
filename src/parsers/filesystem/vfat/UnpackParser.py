@@ -33,7 +33,7 @@ class VfatUnpackParser(UnpackParser):
     def parse(self):
         try:
                 self.data = vfat.Vfat.from_io(self.infile)
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
         bpb = self.data.boot_sector.bpb
         check_condition(bpb.ls_per_clus > 0, "invalid bpb value: ls_per_clus")
@@ -83,7 +83,7 @@ class VfatUnpackParser(UnpackParser):
                 x for x in self.unpack_directory(
                     self.data.root_dir.records, self.rel_unpack_dir)
             ]
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
         return unpacked_files
 

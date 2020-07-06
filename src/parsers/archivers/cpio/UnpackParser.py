@@ -105,7 +105,7 @@ class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
                 self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
 
 class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
@@ -116,7 +116,7 @@ class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
             self.data = cpio_new_crc.CpioNewCrc.from_io(self.infile)
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
 
 class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
@@ -127,7 +127,7 @@ class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
             self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
 
 class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
@@ -138,7 +138,7 @@ class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
             self.data = cpio_old_binary.CpioOldBinary.from_io(self.infile)
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
 
 

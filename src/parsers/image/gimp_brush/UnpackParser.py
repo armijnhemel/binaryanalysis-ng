@@ -28,13 +28,13 @@ class GimpBrushUnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         try:
             self.unpacked_size = self.data.header_size + self.data.body_size
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
 
     def parse(self):
         try:
             self.data = gimp_brush.GimpBrush.from_io(self.infile)
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.width > 0, "Invalid width")
         check_condition(self.data.height > 0, "Invalid height")
@@ -47,7 +47,7 @@ class GimpBrushUnpackParser(UnpackParser):
             self.infile.seek(self.offset)
             testimg = GbrImageFile(self.infile)
             testimg.load()
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

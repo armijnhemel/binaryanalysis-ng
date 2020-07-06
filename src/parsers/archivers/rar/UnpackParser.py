@@ -12,7 +12,7 @@ class RarUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = rar.Rar.from_io(self.infile)
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
     def unpack(self):
         return []

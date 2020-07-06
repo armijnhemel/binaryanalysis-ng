@@ -15,7 +15,7 @@ class GifUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = gif.Gif.from_io(self.infile)
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.logical_screen_descriptor.screen_width > 0,
                 "invalid width")

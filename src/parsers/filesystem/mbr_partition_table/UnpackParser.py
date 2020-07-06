@@ -117,13 +117,16 @@ class MbrPartitionTableUnpackParser(UnpackParser):
     def parse(self):
         try:
                 self.data = mbr_partition_table.MbrPartitionTable.from_io(self.infile)
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
-        for p in self.data.partitions:
-            self.unpacked_size = max( self.unpacked_size,
-                    (p.lba_start + p.num_sectors) * 512 )
+        try:
+            for p in self.data.partitions:
+                self.unpacked_size = max( self.unpacked_size,
+                        (p.lba_start + p.num_sectors) * 512 )
+        except BaseException as e:
+            raise UnpackParserException(e.args)
         check_condition(self.unpacked_size <= self.fileresult.filesize,
                 "partition bigger than file")
         check_condition(self.unpacked_size >= 0x1be,
