@@ -122,7 +122,8 @@ class TestScanJob(TestBase):
         self.assertSetEqual(result.labels, set(['text', 'script', 'shell']))
 
     def test_kernelconfig_is_processed(self):
-        rel_testfile = pathlib.Path('unpackers') / 'kernelconfig' / 'kernelconfig'
+        # rel_testfile = pathlib.Path('unpackers') / 'kernelconfig' / 'kernelconfig'
+        rel_testfile = pathlib.Path('download') / 'system'/ 'kernelconfig' / 'tiny.config'
         abs_testfile = self.testdata_dir / rel_testfile
         fileresult = FileResult(None, abs_testfile, set())
         fileresult.set_filesize(abs_testfile.stat().st_size)
