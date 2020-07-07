@@ -11,5 +11,5 @@ fi
 IMAGE=$(realpath "$1")
 FORMAT=$(realpath "$2")
 
-docker container run -u $(id -u):$(id -g) -v "$IMAGE":/image:z -v "$FORMAT":/format:z -it --rm "$DOCKER_KSV" ksv /image /format
+docker container run -u $(id -u):$(id -g) -v "$IMAGE":/image:z -v "$FORMAT":/format.ksy:z -it --rm "$DOCKER_KSV" ksv /image /format.ksy
 
