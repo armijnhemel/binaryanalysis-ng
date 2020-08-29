@@ -41,7 +41,7 @@ RUN pip3 install -r requirements.txt
 
 COPY --from=builder /kaitai_struct /kaitai_struct
 WORKDIR /kaitai_struct/runtime/python
-RUN python3 setup.py install --user
+RUN python3 setup.py install
 
 
 CMD ["python3","bangshell"]

@@ -25,7 +25,7 @@ all: $(KAITAI_PARSERS)
 .PHONY: test parsertests clean dockershell dockerbuild
 
 ifdef DOCKER
-PYTEST=docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -w /src $(DOCKER_IMAGE) py.test
+PYTEST=docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -v /tmp:/tmp:z -w /src $(DOCKER_IMAGE) py.test
 else
 PYTEST=py.test
 endif
@@ -37,7 +37,7 @@ parsertests:
 	$(PYTEST) parsers
 
 dockershell:
-	docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -w /src $(DOCKER_IMAGE) bash
+	docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -v /tmp:/tmp:z -w /src $(DOCKER_IMAGE) bash
 
 dockerbuild:
 	docker image build -t $(DOCKER_IMAGE) .
