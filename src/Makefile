@@ -24,16 +24,21 @@ all: $(KAITAI_PARSERS)
 
 .PHONY: test parsertests clean dockershell dockerbuild
 
+TEST_TMP_DIR=$(PWD)/tmp/bangtest
 ifdef DOCKER
-PYTEST=docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -v /tmp:/tmp:z -w /src $(DOCKER_IMAGE) py.test
+PYTEST=docker container run -it --rm -u $$(id -u):$$(id -g) -v "$(PWD)":/src:z -v $(TEST_TMP_DIR):/bangtmp:z -w /src $(DOCKER_IMAGE) py.test --basetemp=/bangtmp/t
 else
-PYTEST=py.test
+PYTEST=py.test --basetemp=$(TEST_TMP_DIR)/t
 endif
 
 test:
+	rm -rf $(TEST_TMP_DIR)/*
+	mkdir -p $(TEST_TMP_DIR)
 	$(PYTEST)
 
 parsertests:
+	rm -rf $(TEST_TMP_DIR)/*
+	mkdir -p $(TEST_TMP_DIR)
 	$(PYTEST) parsers
 
 dockershell:
