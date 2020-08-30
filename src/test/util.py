@@ -7,20 +7,34 @@ import shutil
 from FileResult import *
 from ScanEnvironment import *
 from bangsignatures import maxsignaturesoffset
+import bangsignatures
+
 from .mock_queue import *
 from .mock_db import *
 
 from UnpackParser import UnpackParser
 from UnpackParserException import UnpackParserException
+from UnpackResults import UnpackResults
 
 _scriptdir = os.path.dirname(__file__)
 testdir_base = pathlib.Path(_scriptdir).resolve()
 
+def _create_clean_directory(dirpath):
+    try:
+        shutil.rmtree(dirpath)
+    except FileNotFoundError:
+        pass
+    dirpath.mkdir()
 
-@pytest.fixture(scope='module')
+# TODO: function scope
+@pytest.fixture(scope='function')
 def scan_environment(tmp_path_factory):
     tmp_dir = tmp_path_factory.mktemp("bang")
-    return ScanEnvironment(
+    print("DEBUG: tmp_dir=", tmp_dir)
+    _create_clean_directory(tmp_dir / 'unpack')
+    _create_clean_directory(tmp_dir / 'tmp')
+    _create_clean_directory(tmp_dir / 'results')
+    se = ScanEnvironment(
         maxbytes = max(200000, maxsignaturesoffset+1),
         readsize = 10240,
         createbytecounter = False,
@@ -38,6 +52,8 @@ def scan_environment(tmp_path_factory):
         processlock = MockLock(),
         checksumdict = {},
     )
+    se.set_unpackparsers(bangsignatures.get_unpackers())
+    return se
 
 def fileresult(basedir, rel_path, labels, calculate_size = True):
     parentlabels = set()
