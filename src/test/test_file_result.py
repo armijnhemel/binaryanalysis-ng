@@ -12,3 +12,15 @@ def test_fileresult_has_correct_filenames(scan_environment):
     assert d['filename'] == str(relative_path)
     assert d['parent'] == str(relative_path.parent)
 
+def test_fileresult_unpack_directory_parent(scan_environment):
+    relative_path = pathlib.Path("a/b/c.txt")
+    fr = fileresult(scan_environment.unpackdirectory, relative_path, set(), calculate_size=False)
+    assert fr.get_unpack_directory_parent() == relative_path
+    assert 'TODO' == None
+
+def test_fileresult_unpack_directory_parent_top(scan_environment):
+    relative_path = pathlib.Path("a/b/c.txt")
+    fr = fileresult(None, relative_path, set(), calculate_size=False)
+    assert fr.get_unpack_directory_parent() == relative_path
+    assert 'TODO' == None
+

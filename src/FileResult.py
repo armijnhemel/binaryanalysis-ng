@@ -23,17 +23,17 @@
 import pathlib
 
 class FileResult:
-    """stores all the information about the file that has been discovered
-    so far. FileResult also contains all the information to start a scan job.
+    """Stores discovered information about a file.
+    FileResult also contains all the information to start a scan job.
     """
-    def __init__(self, parent, rel_filename, labels):
+    def __init__(self, parent, rel_path, labels):
         """Constructor.
         parent: parent fileresult, None if file is the top file to unpack.
-        rel_filename: path relative to the unpack directory root, unless
+        rel_path: path relative to the unpack directory root (not needed for the top file).
         labels: labels associated with the file.
         """
         self.hash = {}
-        self.filename = rel_filename
+        self.filename = rel_path
         if parent:
             self.parent_path = parent.filename
             self.parentlabels = parent.labels
