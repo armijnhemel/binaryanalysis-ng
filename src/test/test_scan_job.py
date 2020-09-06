@@ -70,6 +70,8 @@ parser_pass_BB_1_7 = create_unpackparser('ParserPassBB_1_7',
         pretty_name = 'pass-BB-1-7')
 
 
+# TODO: test unpacking for extension that has multiple unpackparsers
+
 def test_carved_padding_file_has_correct_labels(scan_environment):
     padding_file = _create_padding_file_in_unpack_directory(scan_environment)
     fileresult = FileResult(None, padding_file, set())
