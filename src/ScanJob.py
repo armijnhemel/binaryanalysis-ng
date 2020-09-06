@@ -234,7 +234,7 @@ class ScanJob:
                     for unpackedfile in unpackresult.get_unpacked_files():
                         j = ScanJob(unpackedfile)
                         self.scanenvironment.scanfilequeue.put(j)
-                        report['files'].append(str(unpackedfile))
+                        report['files'].append(unpackedfile.filename)
                     self.fileresult.add_unpackedfile(report)
 
     def check_for_signatures(self, unpacker):

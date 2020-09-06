@@ -245,6 +245,68 @@ def test_file_is_unpacked_by_extension(scan_environment):
     scanjob.check_for_valid_extension(unpacker)
     assert 'gif' in fileresult.labels
 
+def test_file_unpack_extension_success(scan_environment):
+    fn = pathlib.Path("test.ex1")
+    fileresult = create_tmp_fileresult(scan_environment.temporarydirectory / fn, b"A"*70)
+    scan_environment.set_unpackparsers([UnpackParserExtractEx1])
+    scanjob = ScanJob(fileresult)
+    scanjob.set_scanenvironment(scan_environment)
+    scanjob.initialize()
+    unpack_manager = UnpackManager(scan_environment.unpackdirectory)
+    scanjob.prepare_for_unpacking()
+    scanjob.check_for_valid_extension(unpack_manager)
+
+    unpack_report = fileresult.unpackedfiles[0]
+    assert len(unpack_report['files']) == 2
+    fn1 = unpack_manager.get_data_unpack_directory() / "ex1_first"
+    fn2 = unpack_manager.get_data_unpack_directory() / "ex1_second"
+    assert unpack_report['files'][0] == fn1
+    assert unpack_report['files'][1] == fn2
+    assertUnpackedPathExists(scan_environment, unpack_report['files'][0])
+    assertUnpackedPathExists(scan_environment, unpack_report['files'][1])
+
+def test_file_unpack_extension_carve(scan_environment):
+    fn = pathlib.Path("test.ex1")
+    fileresult = create_tmp_fileresult(scan_environment.temporarydirectory / fn, b"A"*70)
+    scan_environment.set_unpackparsers([UnpackParserExtractEx1Carve])
+    scanjob = ScanJob(fileresult)
+    scanjob.set_scanenvironment(scan_environment)
+    scanjob.initialize()
+    unpack_manager = UnpackManager(scan_environment.unpackdirectory)
+    scanjob.prepare_for_unpacking()
+    scanjob.check_for_valid_extension(unpack_manager)
+
+    unpack_report = fileresult.unpackedfiles[0]
+    assert len(unpack_report['files']) == 3
+    fn1 = unpack_manager.get_data_unpack_directory() / "ex1_first"
+    fn2 = unpack_manager.get_data_unpack_directory() / "ex1_second"
+    fn3 = unpack_manager.get_data_unpack_directory() / "unpacked.ex1_extract_carve"
+    assert unpack_report['files'][0] == fn1
+    assert unpack_report['files'][1] == fn2
+    assert unpack_report['files'][2] == fn3
+    assertUnpackedPathExists(scan_environment, unpack_report['files'][0])
+    assertUnpackedPathExists(scan_environment, unpack_report['files'][1])
+    assertUnpackedPathExists(scan_environment, unpack_report['files'][2])
+
+def test_file_unpack_extension_fail(scan_environment):
+    fn = pathlib.Path("test.ex1")
+    fileresult = create_tmp_fileresult(scan_environment.temporarydirectory / fn, b"A"*70)
+    scan_environment.set_unpackparsers([UnpackParserExtractEx1Fail])
+    scanjob = ScanJob(fileresult)
+    scanjob.set_scanenvironment(scan_environment)
+    scanjob.initialize()
+    unpack_manager = UnpackManager(scan_environment.unpackdirectory)
+    scanjob.prepare_for_unpacking()
+    scanjob.check_for_valid_extension(unpack_manager)
+
+    assertUnpackedPathDoesNotExist(scan_environment, unpack_manager.get_data_unpack_directory())
+
+    assert fileresult.unpackedfiles == []
+
+
+
+
+
 def test_file_is_unpacked_by_signature(scan_environment):
     fn = pathlib.Path("unpackers") / "gif" / "test-prepend-random-data.gif"
     fn_abs = testdata_dir / fn
