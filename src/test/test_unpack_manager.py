@@ -94,9 +94,10 @@ def test_try_unpack_for_extension_fail(scan_environment):
     unpack_manager = UnpackManager(scan_environment.unpackdirectory)
     with pytest.raises(UnpackParserException):
         unpack_result = unpack_manager.try_unpack_file_for_extension(fileresult, scan_environment, '.ex1', unpack_parser)
-    assert not (scan_environment.unpackdirectory / unpack_manager.dataunpackdirectory).exists()
-    # TODO: or if we ignore errors while unpacking:
-    # assert os.listdir(scan_environment.unpackdirectory / unpack_manager.dataunpackdirectory) == []
+
+    # TODO: currently scanjob takes care of removing the unpack directory, but unpackmanager should perhaps do this
+    # assert not (scan_environment.unpackdirectory / unpack_manager.dataunpackdirectory).exists()
+    assert os.listdir(scan_environment.unpackdirectory / unpack_manager.dataunpackdirectory) == []
 
 
 
