@@ -123,9 +123,7 @@ class UnpackParser:
         """Override this method to unpack any data into subfiles.
         The filenames are relative to the unpack directory root that the
         scan_environment points to (usually this is a file under unpack_dir).
-        Must return a list of tuples containing filename and labels.
-        In this list, filename can be a Path object or a string.
-        (TODO: decide which one to use.)
+        Must return a list of FileResult objects.
         For (non-fatal) errors, you should raise a UnpackParserException.
         """
         return []
