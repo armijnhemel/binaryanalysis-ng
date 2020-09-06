@@ -128,6 +128,35 @@ def create_unpackparser_for_path(scan_environment, testdata_dir, rel_testfile, u
     return p
 
 
+class UnpackParserExtractEx1(UnpackParser):
+    pretty_name = "ex1_extract"
+    extensions = ['.ex1']
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.fileresult.filesize
+    def parse(self):
+        pass
+    def _write_unpacked_file(self, fn):
+        outfile_full = self.scan_environment.unpack_path(self.rel_unpack_dir / pathlib.Path(fn))
+        with open(outfile_full,"wb") as f:
+            f.write(b"A"*40)
+    def unpack(self):
+        fns = ["ex1_first", "ex1_second" ]
+        for fn in fns:
+            self._write_unpacked_file(fn)
+        return [ FileResult(self.fileresult, self.rel_unpack_dir / pathlib.Path(fn), []) for fn in fns ]
+
+class UnpackParserExtractEx1Carve(UnpackParserExtractEx1):
+    extensions = ['.ex1']
+    pretty_name = "ex1_extract_carve"
+    def calculate_unpacked_size(self):
+        self.unpacked_size = max(self.fileresult.filesize - 5, 0)
+
+class UnpackParserExtractEx1Fail(UnpackParser):
+    pretty_name = "ex1_extract_fail"
+    extensions = ['.ex1']
+    pass
+
+
 
 
 def assertUnpackedPathExists(scan_environment, extracted_fn, message=None):
