@@ -136,7 +136,8 @@ def main(argv):
         sys.exit(1)
 
     if not os.path.isdir(storedirectory):
-        print("Store directory %s is not a directory, exiting" % storedirectory, file=sys.stderr)
+        print("Store directory %s is not a directory, exiting" % storedirectory,
+              file=sys.stderr)
         sys.exit(1)
 
     # Check if the base unpack directory can be written to
@@ -144,7 +145,8 @@ def main(argv):
         testfile = tempfile.mkstemp(dir=storedirectory)
         os.unlink(testfile[1])
     except Exception:
-        print("Base unpack directory %s cannot be written to, exiting" % storedirectory, file=sys.stderr)
+        print("Base unpack directory %s cannot be written to, exiting" % storedirectory,
+              file=sys.stderr)
         sys.exit(1)
 
     # now create a directory structure inside the scandirectory:
@@ -167,7 +169,8 @@ def main(argv):
     xmloutname = os.path.join(xmldirectory, "index.xml-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
 
     if os.path.exists(xmloutname):
-        print("XML file %s already exists, please retry later. Exiting." % xmloutname, file=sys.stderr)
+        print("XML file %s already exists, please retry later. Exiting." % xmloutname,
+              file=sys.stderr)
         sys.exit(1)
 
     # first download the XML and see if it needs to be processed by
@@ -179,7 +182,8 @@ def main(argv):
         sys.exit(1)
 
     if req.status_code != 200:
-        print("Could not get F-Droid XML file, got code %d, exiting." % req.status_code, file=sys.stderr)
+        print("Could not get F-Droid XML file, got code %d, exiting." % req.status_code,
+              file=sys.stderr)
         sys.exit(1)
 
     # now store the XML file for future reference
