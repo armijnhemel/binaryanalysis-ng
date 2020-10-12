@@ -180,9 +180,9 @@ def main(argv):
     if not sourcedirectory.exists():
         sourcedirectory.mkdir()
 
-    metadatadirectory = pathlib.Path(storedirectory, "meta")
-    if not metadatadirectory.exists():
-        metadatadirectory.mkdir()
+    meta_data_dir = pathlib.Path(storedirectory, "meta")
+    if not meta_data_dir.exists():
+        meta_data_dir.mkdir()
 
     dscdirectory = pathlib.Path(storedirectory, "dsc")
     if not dscdirectory.exists():
@@ -208,10 +208,11 @@ def main(argv):
             pathlib.Path(patchesdirectory, i).mkdir()
 
     downloaddate = datetime.datetime.utcnow()
-    metadataoutname = pathlib.Path(metadatadirectory, "ls-lR.gz-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
+    meta_outname = pathlib.Path(meta_data_dir,
+                                "ls-lR.gz-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
 
-    if metadataoutname.exists():
-        print("metadata file %s already exists, please retry later. Exiting." % metadataoutname,
+    if meta_outname.exists():
+        print("metadata file %s already exists, please retry later. Exiting." % meta_outname,
               file=sys.stderr)
         sys.exit(1)
 
@@ -230,8 +231,9 @@ def main(argv):
         sys.exit(1)
 
     # now store the ls-lR.gz file for future reference
-    metadataoutname = pathlib.Path(metadatadirectory, "ls-lR.gz-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
-    metadata = metadataoutname.open(mode='wb')
+    meta_outname = pathlib.Path(meta_data_dir,
+                                "ls-lR.gz-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
+    metadata = meta_outname.open(mode='wb')
     metadata.write(req.content)
     metadata.close()
 
@@ -248,7 +250,7 @@ def main(argv):
         hashfile.close()
         if oldhashdata == filehash:
             print("Metadata has not changed, exiting.")
-            os.unlink(metadataoutname)
+            os.unlink(meta_outname)
             sys.exit(0)
 
     # write the hash of the current data to the hash file
@@ -270,7 +272,7 @@ def main(argv):
     debianarchitectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
 
     # Process the ls-lR.gz and put all the tasks into a queue for downloading.
-    lslr = gzip.open(metadataoutname)
+    lslr = gzip.open(meta_outname)
     inpool = False
     curdir = ''
 
@@ -315,7 +317,8 @@ def main(argv):
 
     # create processes for unpacking archives
     for i in range(0, threads):
-        p = multiprocessing.Process(target=downloadfile, args=(downloadqueue, failqueue, debianmirror))
+        p = multiprocessing.Process(target=downloadfile,
+                                    args=(downloadqueue, failqueue, debianmirror))
         processes.append(p)
 
     # start all the processes
@@ -342,7 +345,8 @@ def main(argv):
         p.terminate()
 
     if verbose:
-        print("Successfully downloaded: %d files" % ((debcounter + srccounter + dsccounter + diffcounter) - len(failedfiles)))
+        downloaded_files = (debcounter + srccounter + dsccounter + diffcounter) - len(failedfiles)
+        print("Successfully downloaded: %d files" % downloaded_files)
         print("Failed to download: %d files" % len(failedfiles))
 
 if __name__ == "__main__":
