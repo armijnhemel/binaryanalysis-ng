@@ -31,6 +31,7 @@ import requests
 # use if you are on a slow line with a bandwidth cap and it might
 # actually be beneficial to use just a single thread.
 def downloadfile(downloadqueue, failqueue, debianmirror):
+    '''Download files from a Debian mirror'''
     while True:
         (debiandir, debianfile, debiansize, basestoredirectory) = downloadqueue.get()
 
@@ -108,11 +109,11 @@ def main(argv):
         if section == 'debian':
             try:
                 storedirectory = pathlib.Path(config.get(section, 'storedirectory'))
-            except Exception:
+            except configparser.Error:
                 break
             try:
                 debianmirror = config.get(section, 'debianmirror')
-            except Exception:
+            except configparser.Error:
                 break
 
         elif section == 'general':
@@ -125,28 +126,32 @@ def main(argv):
                 # then use all available threads
                 if threads < 1:
                     threads = multiprocessing.cpu_count()
-            except Exception:
+            except configparser.Error:
                 # use all available threads by default
                 threads = multiprocessing.cpu_count()
     configfile.close()
 
     # Check if the Debian mirror was declared.
     if debianmirror == '':
-        print("Debian mirror not declared in configuration file, exiting", file=sys.stderr)
+        print("Debian mirror not declared in configuration file, exiting",
+              file=sys.stderr)
         sys.exit(1)
 
     # Check if the base unpack directory was declared.
     if storedirectory == '':
-        print("Store directory not declared in configuration file, exiting", file=sys.stderr)
+        print("Store directory not declared in configuration file, exiting",
+              file=sys.stderr)
         sys.exit(1)
 
     # Check if the base unpack directory exists
     if not storedirectory.exists():
-        print("Store directory %s does not exist, exiting" % storedirectory, file=sys.stderr)
+        print("Store directory %s does not exist, exiting" % storedirectory,
+              file=sys.stderr)
         sys.exit(1)
 
     if not storedirectory.is_dir():
-        print("Store directory %s is not a directory, exiting" % storedirectory, file=sys.stderr)
+        print("Store directory %s is not a directory, exiting" % storedirectory,
+              file=sys.stderr)
         sys.exit(1)
 
     # Check if the base unpack directory can be written to
@@ -154,7 +159,8 @@ def main(argv):
         testfile = tempfile.mkstemp(dir=storedirectory)
         os.unlink(testfile[1])
     except Exception:
-        print("Base unpack directory %s cannot be written to, exiting" % storedirectory, file=sys.stderr)
+        print("Base unpack directory %s cannot be written to, exiting" % storedirectory,
+              file=sys.stderr)
         sys.exit(1)
 
     # now create a directory structure inside the scandirectory:
@@ -205,7 +211,8 @@ def main(argv):
     metadataoutname = pathlib.Path(metadatadirectory, "ls-lR.gz-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
 
     if metadataoutname.exists():
-        print("metadata file %s already exists, please retry later. Exiting." % metadataoutname, file=sys.stderr)
+        print("metadata file %s already exists, please retry later. Exiting." % metadataoutname,
+              file=sys.stderr)
         sys.exit(1)
 
     # first download the ls-lR.gz file and see if it needs to be
@@ -218,7 +225,8 @@ def main(argv):
         sys.exit(1)
 
     if req.status_code != 200:
-        print("Could not get Debian ls-lR.gz file, got code %d, exiting." % req.status_code, file=sys.stderr)
+        print("Could not get Debian ls-lR.gz file, got code %d, exiting." % req.status_code,
+              file=sys.stderr)
         sys.exit(1)
 
     # now store the ls-lR.gz file for future reference
@@ -228,9 +236,9 @@ def main(argv):
     metadata.close()
 
     # compute the SHA256 of the file to see if it is already known
-    h = hashlib.new('sha256')
-    h.update(req.content)
-    filehash = h.hexdigest()
+    debian_hash = hashlib.new('sha256')
+    debian_hash.update(req.content)
+    filehash = debian_hash.hexdigest()
 
     # the hash of the latest file should always be stored in a file called HASH
     hashfilename = os.path.join(storedirectory, "HASH")
