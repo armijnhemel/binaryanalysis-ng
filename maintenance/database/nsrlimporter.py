@@ -9,18 +9,16 @@
 #
 # https://www.nist.gov/software-quality-group/national-software-reference-library-nsrl
 #
-# Copyright 2018 - Armijn Hemel
-# Licensed under the terms of the GNU General Public License version 3
-# SPDX-License-Identifier: GPL-3.0-only
+# Copyright 2018 - 2020 - Armijn Hemel
+# Licensed under the terms of the GNU Affero General Public License version 3
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import sys
 import os
-import json
 import argparse
 import stat
 import configparser
 import csv
-import io
 
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
@@ -152,7 +150,7 @@ def main(argv):
                 checkbytes = checkfile.read(readsize)
                 buffs = checkbytes.rsplit(b'\r\n')
                 lastoffset = checkbytes.rfind(b'\r\n')
-                if len(checkbytes) == 0:
+                if checkbytes == b'':
                     break
                 if len(checkbytes) < readsize:
                     for b in buffs:
