@@ -50,7 +50,7 @@ def downloadfile(downloadqueue, failqueue, debianmirror):
 
         try:
             req = requests.get(downloadurl)
-        except:
+        except requests.exceptions.RequestException:
             failqueue.put(debianfile)
             downloadqueue.task_done()
             continue
@@ -71,7 +71,7 @@ def downloadfile(downloadqueue, failqueue, debianmirror):
         downloadqueue.task_done()
 
 
-def main(argv):
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", action="store", dest="cfg",
                         help="path to configuration file", metavar="FILE")
@@ -221,7 +221,7 @@ def main(argv):
     # downloaded file.
     try:
         req = requests.get('%s/ls-lR.gz' % debianmirror)
-    except:
+    except requests.exceptions.RequestException:
         print("Could not connect to Debian mirror, exiting.", file=sys.stderr)
         sys.exit(1)
 
@@ -296,8 +296,8 @@ def main(argv):
                 downloadqueue.put((curdir, downloadpath, filesize, dscdirectory))
                 dsccounter += 1
             if downloadpath.endswith('.deb'):
-                for d in debianarchitectures:
-                    if downloadpath.endswith('_%s.deb' % d):
+                for arch in debianarchitectures:
+                    if downloadpath.endswith('_%s.deb' % arch):
                         downloadqueue.put((curdir, downloadpath, filesize, binarydirectory))
                         debcounter += 1
                         break
@@ -317,13 +317,13 @@ def main(argv):
 
     # create processes for unpacking archives
     for i in range(0, threads):
-        p = multiprocessing.Process(target=downloadfile,
-                                    args=(downloadqueue, failqueue, debianmirror))
-        processes.append(p)
+        process = multiprocessing.Process(target=downloadfile,
+                                          args=(downloadqueue, failqueue, debianmirror))
+        processes.append(process)
 
     # start all the processes
-    for p in processes:
-        p.start()
+    for process in processes:
+        process.start()
 
     downloadqueue.join()
 
@@ -341,8 +341,8 @@ def main(argv):
     failqueue.join()
 
     # Done processing, terminate processes
-    for p in processes:
-        p.terminate()
+    for process in processes:
+        process.terminate()
 
     if verbose:
         downloaded_files = (debcounter + srccounter + dsccounter + diffcounter) - len(failedfiles)
@@ -350,4 +350,4 @@ def main(argv):
         print("Failed to download: %d files" % len(failedfiles))
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
