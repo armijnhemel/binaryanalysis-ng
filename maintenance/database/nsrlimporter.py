@@ -24,14 +24,14 @@ import csv
 import psycopg2
 import psycopg2.extras
 
-encodingstotranslate = ['utf-8', 'latin-1', 'euc_jp', 'euc_jis_2004',
-                        'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
-                        'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
-                        'iso2022_jp_ext', 'iso2022_kr', 'shift_jis',
-                        'shift_jis_2004', 'shift_jisx0213']
+encodings_translate = ['utf-8', 'latin-1', 'euc_jp', 'euc_jis_2004',
+                       'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
+                       'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
+                       'iso2022_jp_ext', 'iso2022_kr', 'shift_jis',
+                       'shift_jis_2004', 'shift_jisx0213']
 
 
-def main(argv):
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", action="store", dest="cfg",
                         help="path to configuration file", metavar="FILE")
@@ -93,7 +93,8 @@ def main(argv):
                 postgresql_password = config.get(section, 'postgresql_password')
                 postgresql_db = config.get(section, 'postgresql_db')
             except:
-                print("Configuration file malformed: missing database information", file=sys.stderr)
+                print("Configuration file malformed: missing database information",
+                      file=sys.stderr)
                 configfile.close()
                 sys.exit(1)
             try:
@@ -114,7 +115,8 @@ def main(argv):
                              port=postgresql_port, host=postgresql_host)
         c.close()
     except Exception as e:
-        print("Database server not running or malconfigured, exiting.", file=sys.stderr)
+        print("Database server not running or malconfigured, exiting.",
+              file=sys.stderr)
         sys.exit(1)
 
     sha1seen = set()
@@ -153,24 +155,24 @@ def main(argv):
                 if checkbytes == b'':
                     break
                 if len(checkbytes) < readsize:
-                    for b in buffs:
-                        if b == b'':
+                    for buff in buffs:
+                        if buff == b'':
                             continue
-                        for encoding in encodingstotranslate:
+                        for encoding in encodings_translate:
                             try:
-                                decodedfile.write(b.decode(encoding))
+                                decodedfile.write(buff.decode(encoding))
                                 decodedfile.write('\n')
                                 break
                             except Exception as e:
                                 pass
                     break
                 else:
-                    for b in buffs[:-1]:
-                        if b == b'':
+                    for buff in buffs[:-1]:
+                        if buff == b'':
                             continue
-                        for encoding in encodingstotranslate:
+                        for encoding in encodings_translate:
                             try:
-                                decodedfile.write(b.decode(encoding))
+                                decodedfile.write(buff.decode(encoding))
                                 decodedfile.write('\n')
                                 break
                             except:
@@ -258,7 +260,8 @@ def main(argv):
             sys.stdout.flush()
         if counter % 100000 == 0:
             # now insert the files in bulk
-            psycopg2.extras.execute_batch(dbcursor, "execute os_insert(%s, %s, %s, %s)", bulkinserts)
+            psycopg2.extras.execute_batch(dbcursor, "execute os_insert(%s, %s, %s, %s)",
+                                          bulkinserts)
             dbconnection.commit()
 
             # clear the lists
@@ -267,7 +270,8 @@ def main(argv):
 
     # now insert the remaining files in bulk
     if bulkinserts != []:
-        psycopg2.extras.execute_batch(dbcursor, "execute os_insert(%s, %s, %s, %s)", bulkinserts)
+        psycopg2.extras.execute_batch(dbcursor, "execute os_insert(%s, %s, %s, %s)",
+                                      bulkinserts)
     print("Entries for OS processed:", counter)
     dbconnection.commit()
     nsrfile.close()
@@ -299,7 +303,8 @@ def main(argv):
             sys.stdout.flush()
         if counter % 100000 == 0:
             # now insert the files in bulk
-            psycopg2.extras.execute_batch(dbcursor, "execute product_insert(%s, %s, %s, %s, %s)", bulkinserts)
+            psycopg2.extras.execute_batch(dbcursor, "execute product_insert(%s, %s, %s, %s, %s)",
+                                          bulkinserts)
             dbconnection.commit()
 
             # clear the lists
@@ -308,7 +313,8 @@ def main(argv):
 
     # now insert the remaining files in bulk
     if bulkinserts != []:
-        psycopg2.extras.execute_batch(dbcursor, "execute product_insert(%s, %s, %s, %s, %s)", bulkinserts)
+        psycopg2.extras.execute_batch(dbcursor, "execute product_insert(%s, %s, %s, %s, %s)",
+                                      bulkinserts)
     print("Entries for products processed:", counter)
     dbconnection.commit()
     nsrfile.close()
@@ -352,8 +358,10 @@ def main(argv):
             sys.stdout.flush()
         if counter % 100000 == 0:
             # now insert the files in bulk
-            psycopg2.extras.execute_batch(dbcursor, "execute hash_insert(%s, %s, %s)", bulkhash)
-            psycopg2.extras.execute_batch(dbcursor, "execute entry_insert(%s, %s)", bulkinserts)
+            psycopg2.extras.execute_batch(dbcursor, "execute hash_insert(%s, %s, %s)",
+                                          bulkhash)
+            psycopg2.extras.execute_batch(dbcursor, "execute entry_insert(%s, %s)",
+                                          bulkinserts)
             dbconnection.commit()
 
             # clear the lists
@@ -363,9 +371,11 @@ def main(argv):
 
     # now insert the remaining files in bulk
     if bulkhash != []:
-        psycopg2.extras.execute_batch(dbcursor, "execute hash_insert(%s, %s, %s)", bulkhash)
+        psycopg2.extras.execute_batch(dbcursor, "execute hash_insert(%s, %s, %s)",
+                                      bulkhash)
     if bulkinserts != []:
-        psycopg2.extras.execute_batch(dbcursor, "execute entry_insert(%s, %s)", bulkinserts)
+        psycopg2.extras.execute_batch(dbcursor, "execute entry_insert(%s, %s)",
+                                      bulkinserts)
     print("Entries for files processed:", counter)
 
     # cleanup
@@ -376,4 +386,4 @@ def main(argv):
     dbconnection.close()
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
