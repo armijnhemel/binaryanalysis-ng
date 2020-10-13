@@ -41,7 +41,7 @@ def downloadfile(downloadqueue, failqueue):
         (fdroidfile, storedirectory, filehash) = downloadqueue.get()
         try:
             req = requests.get('https://f-droid.org/repo/%s' % fdroidfile)
-        except:
+        except requests.exceptions.RequestException:
             failqueue.put(fdroidfile)
             downloadqueue.task_done()
             continue
@@ -58,9 +58,9 @@ def downloadfile(downloadqueue, failqueue):
         resultfile.close()
 
         if filehash is not None:
-            h = hashlib.new('sha256')
-            h.update(req.content)
-            if filehash != h.hexdigest():
+            fdroid_hash = hashlib.new('sha256')
+            fdroid_hash.update(req.content)
+            if filehash != fdroid_hash.hexdigest():
                 os.unlink(resultfilename)
                 failqueue.put(fdroidfile)
                 downloadqueue.task_done()
@@ -68,7 +68,7 @@ def downloadfile(downloadqueue, failqueue):
         downloadqueue.task_done()
 
 
-def main(argv):
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", action="store", dest="cfg",
                         help="path to configuration file", metavar="FILE")
@@ -105,7 +105,7 @@ def main(argv):
         if section == 'fdroid':
             try:
                 storedirectory = config.get(section, 'storedirectory')
-            except Exception:
+            except configparser.Error:
                 break
 
         elif section == 'general':
@@ -118,7 +118,7 @@ def main(argv):
                 # then use all available threads
                 if threads < 1:
                     threads = multiprocessing.cpu_count()
-            except Exception:
+            except configparser.Error:
                 # use all available threads by default
                 threads = multiprocessing.cpu_count()
     configfile.close()
@@ -177,7 +177,7 @@ def main(argv):
     # comparing it to the hash of the previous downloaded XML.
     try:
         req = requests.get('https://f-droid.org/repo/index.xml')
-    except:
+    except requests.exceptions.RequestException:
         print("Could not connect to F-Droid, exiting.", file=sys.stderr)
         sys.exit(1)
 
@@ -202,9 +202,9 @@ def main(argv):
         sys.exit(1)
 
     # compute the SHA256 of the file to see if it is already known
-    h = hashlib.new('sha256')
-    h.update(req.content)
-    filehash = h.hexdigest()
+    fdroid_hash = hashlib.new('sha256')
+    fdroid_hash.update(req.content)
+    filehash = fdroid_hash.hexdigest()
 
     # the hash of the latest file should always be stored in a file called HASH
     hashfilename = os.path.join(storedirectory, "HASH")
@@ -237,18 +237,18 @@ def main(argv):
     for i in fdroidxml.getElementsByTagName('package'):
         apkname = ''
         apkhash = ''
-        for ch in i.childNodes:
-            if ch.nodeName == 'srcname':
-                fdroidfile = ch.childNodes[0].data
+        for childnode in i.childNodes:
+            if childnode.nodeName == 'srcname':
+                fdroidfile = childnode.childNodes[0].data
                 if os.path.exists(os.path.join(sourcedirectory, fdroidfile)):
                     continue
 
                 downloadqueue.put((fdroidfile, sourcedirectory, None))
                 srccounter += 1
-            elif ch.nodeName == 'hash':
-                apkhash = ch.childNodes[0].data
-            elif ch.nodeName == 'apkname':
-                apkname = ch.childNodes[0].data
+            elif childnode.nodeName == 'hash':
+                apkhash = childnode.childNodes[0].data
+            elif childnode.nodeName == 'apkname':
+                apkname = childnode.childNodes[0].data
                 if os.path.exists(os.path.join(binarydirectory, apkname)):
                     continue
 
@@ -261,12 +261,12 @@ def main(argv):
 
     # create processes for unpacking archives
     for i in range(0, threads):
-        p = multiprocessing.Process(target=downloadfile, args=(downloadqueue, failqueue))
-        processes.append(p)
+        process = multiprocessing.Process(target=downloadfile, args=(downloadqueue, failqueue))
+        processes.append(process)
 
     # start all the processes
-    for p in processes:
-        p.start()
+    for process in processes:
+        process.start()
 
     downloadqueue.join()
 
@@ -284,12 +284,12 @@ def main(argv):
     failqueue.join()
 
     # Done processing, terminate processes
-    for p in processes:
-        p.terminate()
+    for process in processes:
+        process.terminate()
 
     if verbose:
         print("Successfully downloaded: %d files" % ((apkcounter + srccounter) - len(failedfiles)))
         print("Failed to download: %d files" % len(failedfiles))
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
