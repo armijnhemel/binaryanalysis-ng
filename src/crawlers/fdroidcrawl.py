@@ -27,7 +27,7 @@ import hashlib
 import tempfile
 import multiprocessing
 import queue
-import xml.dom.minidom
+import defusedxml.minidom
 
 # import the requests module for downloading the XML
 import requests
@@ -195,7 +195,7 @@ def main(argv):
     # first parse the XML data to see if it is valid XML data, else
     # remove the XML file and exit.
     try:
-        fdroidxml = xml.dom.minidom.parseString(req.content)
+        fdroidxml = defusedxml.minidom.parseString(req.content)
     except:
         os.unlink(xmloutname)
         print("Could not parse F-Droid XML, exiting.", file=sys.stderr)
