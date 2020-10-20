@@ -30,20 +30,20 @@ import requests
 # use several threads to download the Debian data. This is of no
 # use if you are on a slow line with a bandwidth cap and it might
 # actually be beneficial to use just a single thread.
-def downloadfile(downloadqueue, failqueue, debianmirror):
+def downloadfile(download_queue, fail_queue, debian_mirror):
     '''Download files from a Debian mirror'''
     while True:
-        (debiandir, debianfile, debiansize, basestoredirectory) = downloadqueue.get()
+        (debiandir, debianfile, debiansize, basestoredirectory) = download_queue.get()
 
         storeparts = debiandir.parts
         resultfilename = pathlib.Path(basestoredirectory, storeparts[1], debianfile)
-        downloadurl = '%s/%s/%s' % (debianmirror, debiandir, debianfile)
+        downloadurl = '%s/%s/%s' % (debian_mirror, debiandir, debianfile)
 
         # first check if the file already exists and is the right size
         if resultfilename.exists():
             if resultfilename.stat().st_size == debiansize:
                 logging.info('ALREADY DOWNLOADED: %s' % downloadurl)
-                downloadqueue.task_done()
+                download_queue.task_done()
                 continue
             # else remove the file as it is likely a failed download
             os.unlink(resultfilename)
@@ -51,13 +51,13 @@ def downloadfile(downloadqueue, failqueue, debianmirror):
         try:
             req = requests.get(downloadurl)
         except requests.exceptions.RequestException:
-            failqueue.put(debianfile)
-            downloadqueue.task_done()
+            fail_queue.put(debianfile)
+            download_queue.task_done()
             continue
 
         if req.status_code != 200:
-            failqueue.put(debianfile)
-            downloadqueue.task_done()
+            fail_queue.put(debianfile)
+            download_queue.task_done()
             logging.info('FAIL: %s' % downloadurl)
             continue
 
@@ -68,7 +68,7 @@ def downloadfile(downloadqueue, failqueue, debianmirror):
 
         logging.info('SUCCESS: %s' % downloadurl)
 
-        downloadqueue.task_done()
+        download_queue.task_done()
 
 
 def main():
@@ -101,7 +101,7 @@ def main():
 
     # set a few default values)
     storedirectory = ''
-    debianmirror = ''
+    debian_mirror = ''
     verbose = False
 
     # then process each individual section and extract configuration options
@@ -112,7 +112,7 @@ def main():
             except configparser.Error:
                 break
             try:
-                debianmirror = config.get(section, 'debianmirror')
+                debian_mirror = config.get(section, 'debian_mirror')
             except configparser.Error:
                 break
 
@@ -132,7 +132,7 @@ def main():
     configfile.close()
 
     # Check if the Debian mirror was declared.
-    if debianmirror == '':
+    if debian_mirror == '':
         print("Debian mirror not declared in configuration file, exiting",
               file=sys.stderr)
         sys.exit(1)
@@ -207,9 +207,9 @@ def main():
         if not pathlib.Path(patchesdirectory, i).exists():
             pathlib.Path(patchesdirectory, i).mkdir()
 
-    downloaddate = datetime.datetime.utcnow()
+    download_date = datetime.datetime.utcnow()
     meta_outname = pathlib.Path(meta_data_dir,
-                                "ls-lR.gz-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
+                                "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
 
     if meta_outname.exists():
         print("metadata file %s already exists, please retry later. Exiting." % meta_outname,
@@ -220,7 +220,7 @@ def main():
     # processed by comparing it to the hash of the previously
     # downloaded file.
     try:
-        req = requests.get('%s/ls-lR.gz' % debianmirror)
+        req = requests.get('%s/ls-lR.gz' % debian_mirror)
     except requests.exceptions.RequestException:
         print("Could not connect to Debian mirror, exiting.", file=sys.stderr)
         sys.exit(1)
@@ -232,7 +232,7 @@ def main():
 
     # now store the ls-lR.gz file for future reference
     meta_outname = pathlib.Path(meta_data_dir,
-                                "ls-lR.gz-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
+                                "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
     metadata = meta_outname.open(mode='wb')
     metadata.write(req.content)
     metadata.close()
@@ -265,21 +265,21 @@ def main():
     processmanager = multiprocessing.Manager()
 
     # create a queue for scanning files
-    downloadqueue = processmanager.JoinableQueue(maxsize=0)
-    failqueue = processmanager.JoinableQueue(maxsize=0)
+    download_queue = processmanager.JoinableQueue(maxsize=0)
+    fail_queue = processmanager.JoinableQueue(maxsize=0)
     processes = []
 
-    debianarchitectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
+    debian_architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
 
     # Process the ls-lR.gz and put all the tasks into a queue for downloading.
     lslr = gzip.open(meta_outname)
     inpool = False
     curdir = ''
 
-    debcounter = 0
-    srccounter = 0
-    diffcounter = 0
-    dsccounter = 0
+    deb_counter = 0
+    src_counter = 0
+    diff_counter = 0
+    dsc_counter = 0
     for i in lslr:
         if i.decode().startswith('./pool'):
             inpool = True
@@ -293,61 +293,62 @@ def main():
             downloadpath = i.decode().strip().rsplit(' ', 1)[1]
             filesize = int(re.sub(r'  +', ' ', i.decode().strip()).split(' ')[4])
             if downloadpath.endswith('.dsc'):
-                downloadqueue.put((curdir, downloadpath, filesize, dscdirectory))
-                dsccounter += 1
+                download_queue.put((curdir, downloadpath, filesize, dscdirectory))
+                dsc_counter += 1
             if downloadpath.endswith('.deb'):
-                for arch in debianarchitectures:
+                for arch in debian_architectures:
                     if downloadpath.endswith('_%s.deb' % arch):
-                        downloadqueue.put((curdir, downloadpath, filesize, binarydirectory))
-                        debcounter += 1
+                        download_queue.put((curdir, downloadpath, filesize, binarydirectory))
+                        deb_counter += 1
                         break
             if downloadpath.endswith('.diff.gz'):
-                downloadqueue.put((curdir, downloadpath, filesize, patchesdirectory))
-                diffcounter += 1
+                download_queue.put((curdir, downloadpath, filesize, patchesdirectory))
+                diff_counter += 1
             if downloadpath.endswith('.orig.tar.bz2'):
-                downloadqueue.put((curdir, downloadpath, filesize, sourcedirectory))
-                srccounter += 1
+                download_queue.put((curdir, downloadpath, filesize, sourcedirectory))
+                src_counter += 1
             if downloadpath.endswith('.orig.tar.gz'):
-                downloadqueue.put((curdir, downloadpath, filesize, sourcedirectory))
-                srccounter += 1
+                download_queue.put((curdir, downloadpath, filesize, sourcedirectory))
+                src_counter += 1
             if downloadpath.endswith('.orig.tar.xz'):
-                downloadqueue.put((curdir, downloadpath, filesize, sourcedirectory))
-                srccounter += 1
+                download_queue.put((curdir, downloadpath, filesize, sourcedirectory))
+                src_counter += 1
     lslr.close()
 
     # create processes for unpacking archives
     for i in range(0, threads):
         process = multiprocessing.Process(target=downloadfile,
-                                          args=(downloadqueue, failqueue, debianmirror))
+                                          args=(download_queue, fail_queue, debian_mirror))
         processes.append(process)
 
     # start all the processes
     for process in processes:
         process.start()
 
-    downloadqueue.join()
+    download_queue.join()
 
-    failedfiles = []
+    failed_files = []
 
     while True:
         try:
-            failedfiles.append(failqueue.get_nowait())
-            failqueue.task_done()
+            failed_files.append(fail_queue.get_nowait())
+            fail_queue.task_done()
         except queue.Empty:
             # Queue is empty
             break
 
-    # block here until the failqueue is empty
-    failqueue.join()
+    # block here until the fail_queue is empty
+    fail_queue.join()
 
     # Done processing, terminate processes
     for process in processes:
         process.terminate()
 
     if verbose:
-        downloaded_files = (debcounter + srccounter + dsccounter + diffcounter) - len(failedfiles)
+        len_failed = len(failed_files)
+        downloaded_files = (deb_counter + src_counter + dsc_counter + diff_counter) - len_failed
         print("Successfully downloaded: %d files" % downloaded_files)
-        print("Failed to download: %d files" % len(failedfiles))
+        print("Failed to download: %d files" % len_failed)
 
 if __name__ == "__main__":
     main()
