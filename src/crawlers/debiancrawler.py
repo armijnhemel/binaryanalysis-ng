@@ -103,6 +103,7 @@ def main():
     storedirectory = ''
     debian_mirror = ''
     verbose = False
+    debian_architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
 
     # then process each individual section and extract configuration options
     for section in config.sections():
@@ -113,6 +114,10 @@ def main():
                 break
             try:
                 debian_mirror = config.get(section, 'debian_mirror')
+            except configparser.Error:
+                break
+            try:
+                debian_architectures = config.get(section, 'architectures').split(',')
             except configparser.Error:
                 break
 
@@ -268,8 +273,6 @@ def main():
     download_queue = processmanager.JoinableQueue(maxsize=0)
     fail_queue = processmanager.JoinableQueue(maxsize=0)
     processes = []
-
-    debian_architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
 
     # Process the ls-lR.gz and put all the tasks into a queue for downloading.
     lslr = gzip.open(meta_outname)
