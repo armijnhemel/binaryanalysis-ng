@@ -177,40 +177,40 @@ def main():
     # patches/ -- this is where the Debian specific patches (diff.gz)
     #          files will be stored
     # logs/ -- download logs will be stored here
-    binarydirectory = pathlib.Path(storedirectory, "binary")
-    if not binarydirectory.exists():
-        binarydirectory.mkdir()
+    binary_directory = pathlib.Path(storedirectory, "binary")
+    if not binary_directory.exists():
+        binary_directory.mkdir()
 
-    sourcedirectory = pathlib.Path(storedirectory, "source")
-    if not sourcedirectory.exists():
-        sourcedirectory.mkdir()
+    source_directory = pathlib.Path(storedirectory, "source")
+    if not source_directory.exists():
+        source_directory.mkdir()
 
     meta_data_dir = pathlib.Path(storedirectory, "meta")
     if not meta_data_dir.exists():
         meta_data_dir.mkdir()
 
-    dscdirectory = pathlib.Path(storedirectory, "dsc")
-    if not dscdirectory.exists():
-        dscdirectory.mkdir()
+    dsc_directory = pathlib.Path(storedirectory, "dsc")
+    if not dsc_directory.exists():
+        dsc_directory.mkdir()
 
-    patchesdirectory = pathlib.Path(storedirectory, "patches")
-    if not patchesdirectory.exists():
-        patchesdirectory.mkdir()
+    patches_directory = pathlib.Path(storedirectory, "patches")
+    if not patches_directory.exists():
+        patches_directory.mkdir()
 
-    logdirectory = pathlib.Path(storedirectory, "logs")
-    if not logdirectory.exists():
-        logdirectory.mkdir()
+    log_directory = pathlib.Path(storedirectory, "logs")
+    if not log_directory.exists():
+        log_directory.mkdir()
 
     # recreate the Debian contrib/main/non-free data structure
     for i in ['contrib', 'main', 'non-free']:
-        if not pathlib.Path(binarydirectory, i).exists():
-            pathlib.Path(binarydirectory, i).mkdir()
-        if not pathlib.Path(sourcedirectory, i).exists():
-            pathlib.Path(sourcedirectory, i).mkdir()
-        if not pathlib.Path(dscdirectory, i).exists():
-            pathlib.Path(dscdirectory, i).mkdir()
-        if not pathlib.Path(patchesdirectory, i).exists():
-            pathlib.Path(patchesdirectory, i).mkdir()
+        if not pathlib.Path(binary_directory, i).exists():
+            pathlib.Path(binary_directory, i).mkdir()
+        if not pathlib.Path(source_directory, i).exists():
+            pathlib.Path(source_directory, i).mkdir()
+        if not pathlib.Path(dsc_directory, i).exists():
+            pathlib.Path(dsc_directory, i).mkdir()
+        if not pathlib.Path(patches_directory, i).exists():
+            pathlib.Path(patches_directory, i).mkdir()
 
     download_date = datetime.datetime.utcnow()
     meta_outname = pathlib.Path(meta_data_dir,
@@ -263,7 +263,7 @@ def main():
     hashfile.write(filehash)
     hashfile.close()
 
-    logging.basicConfig(filename=pathlib.Path(logdirectory, 'download.log'),
+    logging.basicConfig(filename=pathlib.Path(log_directory, 'download.log'),
                         level=logging.INFO, format='%(asctime)s %(message)s')
 
     # now walk the ls-lR file and grab all the files in parallel
@@ -296,25 +296,25 @@ def main():
             downloadpath = i.decode().strip().rsplit(' ', 1)[1]
             filesize = int(re.sub(r'  +', ' ', i.decode().strip()).split(' ')[4])
             if downloadpath.endswith('.dsc'):
-                download_queue.put((curdir, downloadpath, filesize, dscdirectory))
+                download_queue.put((curdir, downloadpath, filesize, dsc_directory))
                 dsc_counter += 1
             if downloadpath.endswith('.deb'):
                 for arch in debian_architectures:
                     if downloadpath.endswith('_%s.deb' % arch):
-                        download_queue.put((curdir, downloadpath, filesize, binarydirectory))
+                        download_queue.put((curdir, downloadpath, filesize, binary_directory))
                         deb_counter += 1
                         break
             if downloadpath.endswith('.diff.gz'):
-                download_queue.put((curdir, downloadpath, filesize, patchesdirectory))
+                download_queue.put((curdir, downloadpath, filesize, patches_directory))
                 diff_counter += 1
             if downloadpath.endswith('.orig.tar.bz2'):
-                download_queue.put((curdir, downloadpath, filesize, sourcedirectory))
+                download_queue.put((curdir, downloadpath, filesize, source_directory))
                 src_counter += 1
             if downloadpath.endswith('.orig.tar.gz'):
-                download_queue.put((curdir, downloadpath, filesize, sourcedirectory))
+                download_queue.put((curdir, downloadpath, filesize, source_directory))
                 src_counter += 1
             if downloadpath.endswith('.orig.tar.xz'):
-                download_queue.put((curdir, downloadpath, filesize, sourcedirectory))
+                download_queue.put((curdir, downloadpath, filesize, source_directory))
                 src_counter += 1
     lslr.close()
 
