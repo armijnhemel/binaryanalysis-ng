@@ -48,7 +48,7 @@ def downloadfile(download_queue, fail_queue, debian_mirror):
         # first check if the file already exists and is the right size
         if resultfilename.exists():
             if resultfilename.stat().st_size == debiansize:
-                logging.info('ALREADY DOWNLOADED: %s' % downloadurl)
+                logging.info('ALREADY DOWNLOADED: %s', downloadurl)
                 download_queue.task_done()
                 continue
             # else remove the file as it is likely a failed download
@@ -64,7 +64,7 @@ def downloadfile(download_queue, fail_queue, debian_mirror):
         if req.status_code != 200:
             fail_queue.put(debianfile)
             download_queue.task_done()
-            logging.info('FAIL: %s' % downloadurl)
+            logging.info('FAIL: %s', downloadurl)
             continue
 
         # write the data to the output file
@@ -72,7 +72,7 @@ def downloadfile(download_queue, fail_queue, debian_mirror):
         resultfile.write(req.content)
         resultfile.close()
 
-        logging.info('SUCCESS: %s' % downloadurl)
+        logging.info('SUCCESS: %s', downloadurl)
 
         download_queue.task_done()
 
