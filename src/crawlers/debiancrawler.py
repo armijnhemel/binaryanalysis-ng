@@ -105,6 +105,7 @@ def main():
     verbose = False
     debian_architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
     debian_categories = ['dsc', 'source', 'patch', 'binary']
+    debian_directories = ['contrib', 'main', 'non-free']
 
     # then process each individual section and extract configuration options
     for section in config.sections():
@@ -123,6 +124,15 @@ def main():
                 break
             try:
                 debian_categories = config.get(section, 'categories').split(',')
+            except configparser.Error:
+                break
+            try:
+                debian_directories = []
+                debian_directories_tmp = config.get(section, 'directories').split(',')
+
+                # simple sanity check to remove spaces
+                for debian_directory in debian_directories_tmp:
+                    debian_directories.append(debian_directory.strip())
             except configparser.Error:
                 break
 
@@ -206,8 +216,8 @@ def main():
     if not log_directory.exists():
         log_directory.mkdir()
 
-    # recreate the Debian contrib/main/non-free data structure
-    for i in ['contrib', 'main', 'non-free']:
+    # recreate the download site data structure
+    for i in debian_directories:
         if not pathlib.Path(binary_directory, i).exists():
             pathlib.Path(binary_directory, i).mkdir()
         if not pathlib.Path(source_directory, i).exists():
