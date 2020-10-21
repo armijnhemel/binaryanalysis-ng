@@ -38,7 +38,7 @@ import requests
 # actually be beneficial to use just a single thread.
 def downloadfile(downloadqueue, failqueue):
     while True:
-        (fdroidfile, storedirectory, filehash) = downloadqueue.get()
+        (fdroidfile, store_directory, filehash) = downloadqueue.get()
         try:
             req = requests.get('https://f-droid.org/repo/%s' % fdroidfile)
         except requests.exceptions.RequestException:
@@ -52,7 +52,7 @@ def downloadfile(downloadqueue, failqueue):
             continue
 
         # write the downloaded data to a file
-        resultfilename = os.path.join(storedirectory, fdroidfile)
+        resultfilename = os.path.join(store_directory, fdroidfile)
         resultfile = open(resultfilename, 'wb')
         resultfile.write(req.content)
         resultfile.close()
@@ -97,16 +97,22 @@ def main():
         sys.exit(1)
 
     # set a few default values)
-    storedirectory = ''
+    store_directory = ''
     verbose = False
+    fdroid_categories = ['binary', 'source']
 
     # then process each individual section and extract configuration options
     for section in config.sections():
         if section == 'fdroid':
             try:
-                storedirectory = config.get(section, 'storedirectory')
+                store_directory = config.get(section, 'storedirectory')
             except configparser.Error:
                 break
+            try:
+                fdroid_categories = config.get(section, 'categories').split(',')
+            except configparser.Error:
+                break
+
 
         elif section == 'general':
             # The number of threads to be created to download the files,
@@ -124,28 +130,28 @@ def main():
     configfile.close()
 
     # Check if the base unpack directory was declared.
-    if storedirectory == '':
+    if store_directory == '':
         print("Store directory not declared in configuration file, exiting",
               file=sys.stderr)
         sys.exit(1)
 
     # Check if the base unpack directory exists
-    if not os.path.exists(storedirectory):
-        print("Store directory %s does not exist, exiting" % storedirectory,
+    if not os.path.exists(store_directory):
+        print("Store directory %s does not exist, exiting" % store_directory,
               file=sys.stderr)
         sys.exit(1)
 
-    if not os.path.isdir(storedirectory):
-        print("Store directory %s is not a directory, exiting" % storedirectory,
+    if not os.path.isdir(store_directory):
+        print("Store directory %s is not a directory, exiting" % store_directory,
               file=sys.stderr)
         sys.exit(1)
 
     # Check if the base unpack directory can be written to
     try:
-        testfile = tempfile.mkstemp(dir=storedirectory)
+        testfile = tempfile.mkstemp(dir=store_directory)
         os.unlink(testfile[1])
     except Exception:
-        print("Base unpack directory %s cannot be written to, exiting" % storedirectory,
+        print("Base unpack directory %s cannot be written to, exiting" % store_directory,
               file=sys.stderr)
         sys.exit(1)
 
@@ -153,15 +159,15 @@ def main():
     # binary/ -- this is where all the binary data will be stored
     # source/ -- this is where all source files will be stored
     # xml/ -- this is where the XML file from F-Droid will be stored
-    binarydirectory = os.path.join(storedirectory, "binary")
-    if not os.path.exists(binarydirectory):
-        os.mkdir(binarydirectory)
+    binary_directory = os.path.join(store_directory, "binary")
+    if not os.path.exists(binary_directory):
+        os.mkdir(binary_directory)
 
-    sourcedirectory = os.path.join(storedirectory, "source")
-    if not os.path.exists(sourcedirectory):
-        os.mkdir(sourcedirectory)
+    source_directory = os.path.join(store_directory, "source")
+    if not os.path.exists(source_directory):
+        os.mkdir(source_directory)
 
-    xmldirectory = os.path.join(storedirectory, "xml")
+    xmldirectory = os.path.join(store_directory, "xml")
     if not os.path.exists(xmldirectory):
         os.mkdir(xmldirectory)
 
@@ -207,7 +213,7 @@ def main():
     filehash = fdroid_hash.hexdigest()
 
     # the hash of the latest file should always be stored in a file called HASH
-    hashfilename = os.path.join(storedirectory, "HASH")
+    hashfilename = os.path.join(store_directory, "HASH")
     if os.path.exists(hashfilename):
         hashfile = open(hashfilename, 'r')
         oldhashdata = hashfile.read()
@@ -230,6 +236,14 @@ def main():
     failqueue = processmanager.JoinableQueue(maxsize=0)
     processes = []
 
+    download_binary = False
+    if 'binary' in fdroid_categories:
+        download_binary = True
+
+    download_source = False
+    if 'source' in fdroid_categories:
+        download_source = True
+
     # Process the XML and put all the tasks into a queue for downloading.
     # If there is a SHA256 hash in the XML, then it is for the APK.
     apkcounter = 0
@@ -238,25 +252,25 @@ def main():
         apkname = ''
         apkhash = ''
         for childnode in i.childNodes:
-            if childnode.nodeName == 'srcname':
+            if download_source and childnode.nodeName == 'srcname':
                 fdroidfile = childnode.childNodes[0].data
-                if os.path.exists(os.path.join(sourcedirectory, fdroidfile)):
+                if os.path.exists(os.path.join(source_directory, fdroidfile)):
                     continue
 
-                downloadqueue.put((fdroidfile, sourcedirectory, None))
+                downloadqueue.put((fdroidfile, source_directory, None))
                 srccounter += 1
             elif childnode.nodeName == 'hash':
                 apkhash = childnode.childNodes[0].data
             elif childnode.nodeName == 'apkname':
                 apkname = childnode.childNodes[0].data
-                if os.path.exists(os.path.join(binarydirectory, apkname)):
+                if os.path.exists(os.path.join(binary_directory, apkname)):
                     continue
 
-        if apkname != '':
+        if download_binary and apkname != '':
             if apkhash != '':
-                downloadqueue.put((apkname, binarydirectory, apkhash))
+                downloadqueue.put((apkname, binary_directory, apkhash))
             else:
-                downloadqueue.put((apkname, binarydirectory, apkhash))
+                downloadqueue.put((apkname, binary_directory, apkhash))
             apkcounter += 1
 
     # create processes for unpacking archives
