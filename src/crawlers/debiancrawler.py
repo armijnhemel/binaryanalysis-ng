@@ -6,7 +6,13 @@
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 #
-# Crawls the release ls-lR.gz from Debian and stores files and metadata
+
+'''
+Script to crawl the release ls-lR.gz from Debian (or derivates) and store
+files and metadata.
+
+Run manually, or from a cronjob.
+'''
 
 import sys
 import os
@@ -107,7 +113,8 @@ def main():
     debian_categories = ['dsc', 'source', 'patch', 'binary']
     debian_directories = ['contrib', 'main', 'non-free']
 
-    # then process each individual section and extract configuration options
+    # then process each individual section, extract configuration options
+    # and change the default values if needed
     for section in config.sections():
         if section == 'debian':
             try:
@@ -310,10 +317,12 @@ def main():
     if 'source' in debian_categories:
         download_source = True
 
+    # add some counters for statistics
     deb_counter = 0
     src_counter = 0
     diff_counter = 0
     dsc_counter = 0
+
     for i in lslr:
         if i.decode().startswith('./pool'):
             inpool = True
@@ -339,15 +348,11 @@ def main():
                 download_queue.put((curdir, downloadpath, filesize, patches_directory))
                 diff_counter += 1
             if download_source:
-                if downloadpath.endswith('.orig.tar.bz2'):
-                    download_queue.put((curdir, downloadpath, filesize, source_directory))
-                    src_counter += 1
-                if downloadpath.endswith('.orig.tar.gz'):
-                    download_queue.put((curdir, downloadpath, filesize, source_directory))
-                    src_counter += 1
-                if downloadpath.endswith('.orig.tar.xz'):
-                    download_queue.put((curdir, downloadpath, filesize, source_directory))
-                    src_counter += 1
+                for ext in ['.orig.tar.bz2', '.orig.tar.gz', '.orig.tar.xz']:
+                    if downloadpath.endswith(ext):
+                        download_queue.put((curdir, downloadpath, filesize, source_directory))
+                        src_counter += 1
+                        break
     lslr.close()
 
     # create processes for unpacking archives
