@@ -104,6 +104,7 @@ def main():
     debian_mirror = ''
     verbose = False
     debian_architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
+    debian_categories = ['dsc', 'source', 'patch', 'binary']
 
     # then process each individual section and extract configuration options
     for section in config.sections():
@@ -118,6 +119,10 @@ def main():
                 break
             try:
                 debian_architectures = config.get(section, 'architectures').split(',')
+            except configparser.Error:
+                break
+            try:
+                debian_categories = config.get(section, 'categories').split(',')
             except configparser.Error:
                 break
 
@@ -279,6 +284,22 @@ def main():
     inpool = False
     curdir = ''
 
+    download_dsc = False
+    if 'dsc' in debian_categories:
+        download_dsc = True
+
+    download_binary = False
+    if 'binary' in debian_categories:
+        download_binary = True
+
+    download_patch = False
+    if 'patch' in debian_categories:
+        download_patch = True
+
+    download_source = False
+    if 'source' in debian_categories:
+        download_source = True
+
     deb_counter = 0
     src_counter = 0
     diff_counter = 0
@@ -295,27 +316,28 @@ def main():
         if i.decode().startswith('-'):
             downloadpath = i.decode().strip().rsplit(' ', 1)[1]
             filesize = int(re.sub(r'  +', ' ', i.decode().strip()).split(' ')[4])
-            if downloadpath.endswith('.dsc'):
+            if download_dsc and downloadpath.endswith('.dsc'):
                 download_queue.put((curdir, downloadpath, filesize, dsc_directory))
                 dsc_counter += 1
-            if downloadpath.endswith('.deb'):
+            if download_binary and downloadpath.endswith('.deb'):
                 for arch in debian_architectures:
                     if downloadpath.endswith('_%s.deb' % arch):
                         download_queue.put((curdir, downloadpath, filesize, binary_directory))
                         deb_counter += 1
                         break
-            if downloadpath.endswith('.diff.gz'):
+            if download_patch and downloadpath.endswith('.diff.gz'):
                 download_queue.put((curdir, downloadpath, filesize, patches_directory))
                 diff_counter += 1
-            if downloadpath.endswith('.orig.tar.bz2'):
-                download_queue.put((curdir, downloadpath, filesize, source_directory))
-                src_counter += 1
-            if downloadpath.endswith('.orig.tar.gz'):
-                download_queue.put((curdir, downloadpath, filesize, source_directory))
-                src_counter += 1
-            if downloadpath.endswith('.orig.tar.xz'):
-                download_queue.put((curdir, downloadpath, filesize, source_directory))
-                src_counter += 1
+            if download_source:
+                if downloadpath.endswith('.orig.tar.bz2'):
+                    download_queue.put((curdir, downloadpath, filesize, source_directory))
+                    src_counter += 1
+                if downloadpath.endswith('.orig.tar.gz'):
+                    download_queue.put((curdir, downloadpath, filesize, source_directory))
+                    src_counter += 1
+                if downloadpath.endswith('.orig.tar.xz'):
+                    download_queue.put((curdir, downloadpath, filesize, source_directory))
+                    src_counter += 1
     lslr.close()
 
     # create processes for unpacking archives
