@@ -114,7 +114,7 @@ def main():
             except configparser.Error:
                 break
             try:
-                debian_mirror = config.get(section, 'debian_mirror')
+                debian_mirror = config.get(section, 'mirror')
             except configparser.Error:
                 break
             try:
