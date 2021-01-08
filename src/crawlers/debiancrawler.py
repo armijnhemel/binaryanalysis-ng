@@ -331,6 +331,15 @@ def main():
             curdir = pathlib.Path(i.decode().rsplit(':', 1)[0][2:])
         if not inpool:
             continue
+
+        download_file = False
+        for d in debian_directories:
+            if d in curdir.parts:
+                download_file = True
+                break
+        if not download_file:
+            continue
+
         # end of the pool reached
         if i.decode().startswith('./project'):
             break
