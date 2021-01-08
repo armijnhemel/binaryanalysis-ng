@@ -81,6 +81,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", action="store", dest="cfg",
                         help="path to configuration file", metavar="FILE")
+    parser.add_argument("-f", "--force", action="store_true", dest="force",
+                        help="run if metadata hasn't changed")
     args = parser.parse_args()
 
     # sanity checks for the configuration file
@@ -105,7 +107,7 @@ def main():
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
 
-    # set a few default values)
+    # set a few default values for data in the configuration file
     storedirectory = ''
     debian_mirror = ''
     verbose = False
@@ -275,7 +277,7 @@ def main():
         hashfile = open(hashfilename, 'r')
         oldhashdata = hashfile.read()
         hashfile.close()
-        if oldhashdata == filehash:
+        if oldhashdata == filehash and not args.force:
             print("Metadata has not changed, exiting.")
             os.unlink(meta_outname)
             sys.exit(0)
