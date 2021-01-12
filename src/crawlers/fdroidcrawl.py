@@ -36,7 +36,7 @@ import requests
 # use several threads to download the F-Droid data. This is of no
 # use if you are on a slow line with a bandwidth cap and it might
 # actually be beneficial to use just a single thread.
-def downloadfile(downloadqueue, failqueue):
+def downloadfile(downloadqueue, failqueue, verbose):
     while True:
         (fdroidfile, store_directory, filehash) = downloadqueue.get()
         try:
@@ -126,6 +126,12 @@ def main():
             except configparser.Error:
                 # use all available threads by default
                 threads = multiprocessing.cpu_count()
+            try:
+                verbose_setting = config.get(section, 'verbose')
+                if verbose_setting == 'yes':
+                    verbose = True
+            except configparser.Error:
+                pass
     configfile.close()
 
     # Check if the base unpack directory was declared.
@@ -274,7 +280,8 @@ def main():
 
     # create processes for unpacking archives
     for i in range(0, threads):
-        process = multiprocessing.Process(target=downloadfile, args=(downloadqueue, failqueue))
+        process = multiprocessing.Process(target=downloadfile,
+                                          args=(downloadqueue, failqueue, verbose))
         processes.append(process)
 
     # start all the processes
