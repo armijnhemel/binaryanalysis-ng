@@ -181,6 +181,12 @@ def main():
             except configparser.Error:
                 # use all available threads by default
                 threads = multiprocessing.cpu_count()
+            try:
+                verbose_setting = config.get(section, 'verbose')
+                if verbose_setting == 'yes':
+                    verbose = True
+            except configparser.Error:
+                pass
     configfile.close()
 
     # Check if the Debian mirror was declared.
