@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2018-2020 - Armijn Hemel
+# Copyright 2018-2021 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 #
@@ -112,7 +112,6 @@ def main():
                 fdroid_categories = config.get(section, 'categories').split(',')
             except configparser.Error:
                 break
-
 
         elif section == 'general':
             # The number of threads to be created to download the files,
@@ -291,7 +290,7 @@ def main():
             failedfiles.append(failqueue.get_nowait())
             failqueue.task_done()
         except queue.Empty:
-            ## Queue is empty
+            # Queue is empty
             break
 
     # block here until the failqueue is empty
@@ -304,6 +303,7 @@ def main():
     if verbose:
         print("Successfully downloaded: %d files" % ((apkcounter + srccounter) - len(failedfiles)))
         print("Failed to download: %d files" % len(failedfiles))
+
 
 if __name__ == "__main__":
     main()
