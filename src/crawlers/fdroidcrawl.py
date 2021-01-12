@@ -37,6 +37,7 @@ import requests
 # use if you are on a slow line with a bandwidth cap and it might
 # actually be beneficial to use just a single thread.
 def downloadfile(downloadqueue, failqueue, verbose):
+    '''Download a single file from the F-Droid repository'''
     while True:
         (fdroidfile, store_directory, filehash) = downloadqueue.get()
         try:
@@ -47,6 +48,8 @@ def downloadfile(downloadqueue, failqueue, verbose):
             continue
 
         if req.status_code != 200:
+            # HTTP status code is not 'OK',
+            # so continue with the next file
             failqueue.put(fdroidfile)
             downloadqueue.task_done()
             continue
