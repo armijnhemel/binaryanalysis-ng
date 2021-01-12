@@ -397,7 +397,7 @@ def main():
             if downloadpath.endswith('.deb'):
                 for arch in debian_architectures:
                     if downloadpath.endswith('_%s.deb' % arch):
-                        download_queue.put((curdir, downloadpath, filesize, binary_directory))
+                        download_queue.put((curdir, downloadpath, 0, binary_directory))
                         deb_counter += 1
                         break
             download_queue.put((pathlib.Path(p).parent, pathlib.Path(p).name, 0, binary_directory))
