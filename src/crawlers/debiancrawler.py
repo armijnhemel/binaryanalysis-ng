@@ -47,7 +47,7 @@ def downloadfile(download_queue, fail_queue, debian_mirror):
 
         # first check if the file already exists and is the right size
         if resultfilename.exists():
-            if resultfilename.stat().st_size == debiansize:
+            if resultfilename.stat().st_size == debiansize and debiansize != 0:
                 logging.info('ALREADY DOWNLOADED: %s', downloadurl)
                 download_queue.task_done()
                 continue
@@ -83,7 +83,28 @@ def main():
                         help="path to configuration file", metavar="FILE")
     parser.add_argument("-f", "--force", action="store_true", dest="force",
                         help="run if metadata hasn't changed")
+    parser.add_argument("-p", "--packagelist", action="store", dest="packagelist",
+                        help="file with packages", metavar="FILE")
     args = parser.parse_args()
+
+
+    packagelist = []
+
+    # check if there is a file with packages to download. This overrides
+    # the option of downloading packages in the ls-lR.gz file
+    if args.packagelist is not None:
+        if not os.path.exists(args.packagelist):
+            parser.error("No configuration file provided, exiting")
+        if not stat.S_ISREG(os.stat(args.packagelist).st_mode):
+            parser.error("%s is not a regular file, exiting." % args.packagelist)
+        try:
+            packages = open(args.packagelist, 'r').readlines()
+            for p in packages:
+                if not p.startswith('Filename: '):
+                    continue
+                packagelist.append(p.strip().split(': ', 1)[1])
+        except:
+            pass
 
     # sanity checks for the configuration file
     if args.cfg is None:
@@ -245,47 +266,48 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
-    # first download the ls-lR.gz file and see if it needs to be
-    # processed by comparing it to the hash of the previously
-    # downloaded file.
-    try:
-        req = requests.get('%s/ls-lR.gz' % debian_mirror)
-    except requests.exceptions.RequestException:
-        print("Could not connect to Debian mirror, exiting.", file=sys.stderr)
-        sys.exit(1)
+    if packagelist == []:
+        # first download the ls-lR.gz file and see if it needs to be
+        # processed by comparing it to the hash of the previously
+        # downloaded file.
+        try:
+            req = requests.get('%s/ls-lR.gz' % debian_mirror)
+        except requests.exceptions.RequestException:
+            print("Could not connect to Debian mirror, exiting.", file=sys.stderr)
+            sys.exit(1)
 
-    if req.status_code != 200:
-        print("Could not get Debian ls-lR.gz file, got code %d, exiting." % req.status_code,
-              file=sys.stderr)
-        sys.exit(1)
+        if req.status_code != 200:
+            print("Could not get Debian ls-lR.gz file, got code %d, exiting." % req.status_code,
+                  file=sys.stderr)
+            sys.exit(1)
 
-    # now store the ls-lR.gz file for future reference
-    meta_outname = pathlib.Path(meta_data_dir,
-                                "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
-    metadata = meta_outname.open(mode='wb')
-    metadata.write(req.content)
-    metadata.close()
+        # now store the ls-lR.gz file for future reference
+        meta_outname = pathlib.Path(meta_data_dir,
+                                    "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
+        metadata = meta_outname.open(mode='wb')
+        metadata.write(req.content)
+        metadata.close()
 
-    # compute the SHA256 of the file to see if it is already known
-    debian_hash = hashlib.new('sha256')
-    debian_hash.update(req.content)
-    filehash = debian_hash.hexdigest()
+        # compute the SHA256 of the file to see if it is already known
+        debian_hash = hashlib.new('sha256')
+        debian_hash.update(req.content)
+        filehash = debian_hash.hexdigest()
 
-    # the hash of the latest file should always be stored in a file called HASH
-    hashfilename = os.path.join(storedirectory, "HASH")
-    if os.path.exists(hashfilename):
-        hashfile = open(hashfilename, 'r')
-        oldhashdata = hashfile.read()
+        # the hash of the latest file should always be stored in a file called HASH
+        hashfilename = os.path.join(storedirectory, "HASH")
+        if os.path.exists(hashfilename):
+            hashfile = open(hashfilename, 'r')
+            oldhashdata = hashfile.read()
+            hashfile.close()
+            if oldhashdata == filehash and not args.force:
+                print("Metadata has not changed, exiting.")
+                os.unlink(meta_outname)
+                sys.exit(0)
+
+        # write the hash of the current data to the hash file
+        hashfile = open(hashfilename, 'w')
+        hashfile.write(filehash)
         hashfile.close()
-        if oldhashdata == filehash and not args.force:
-            print("Metadata has not changed, exiting.")
-            os.unlink(meta_outname)
-            sys.exit(0)
-
-    # write the hash of the current data to the hash file
-    hashfile = open(hashfilename, 'w')
-    hashfile.write(filehash)
-    hashfile.close()
 
     logging.basicConfig(filename=pathlib.Path(log_directory, 'download.log'),
                         level=logging.INFO, format='%(asctime)s %(message)s')
@@ -297,11 +319,6 @@ def main():
     download_queue = processmanager.JoinableQueue(maxsize=0)
     fail_queue = processmanager.JoinableQueue(maxsize=0)
     processes = []
-
-    # Process the ls-lR.gz and put all the tasks into a queue for downloading.
-    lslr = gzip.open(meta_outname)
-    inpool = False
-    curdir = ''
 
     download_dsc = False
     if 'dsc' in debian_categories:
@@ -325,46 +342,62 @@ def main():
     diff_counter = 0
     dsc_counter = 0
 
-    for i in lslr:
-        if i.decode().startswith('./pool'):
-            inpool = True
-            curdir = pathlib.Path(i.decode().rsplit(':', 1)[0][2:])
-        if not inpool:
-            continue
+    if packagelist == []:
+        # Process the ls-lR.gz and put all the tasks into a queue for downloading.
+        lslr = gzip.open(meta_outname)
+        inpool = False
+        curdir = ''
 
-        download_file = False
-        for d in debian_directories:
-            if d in curdir.parts:
-                download_file = True
+        for i in lslr:
+            if i.decode().startswith('./pool'):
+                inpool = True
+                curdir = pathlib.Path(i.decode().rsplit(':', 1)[0][2:])
+            if not inpool:
+                continue
+
+            download_file = False
+            for d in debian_directories:
+                if d in curdir.parts:
+                    download_file = True
+                    break
+            if not download_file:
+                continue
+
+            # end of the pool reached
+            if i.decode().startswith('./project'):
                 break
-        if not download_file:
-            continue
-
-        # end of the pool reached
-        if i.decode().startswith('./project'):
-            break
-        if i.decode().startswith('-'):
-            downloadpath = i.decode().strip().rsplit(' ', 1)[1]
-            filesize = int(re.sub(r'  +', ' ', i.decode().strip()).split(' ')[4])
-            if download_dsc and downloadpath.endswith('.dsc'):
-                download_queue.put((curdir, downloadpath, filesize, dsc_directory))
-                dsc_counter += 1
-            if download_binary and downloadpath.endswith('.deb'):
+            if i.decode().startswith('-'):
+                downloadpath = i.decode().strip().rsplit(' ', 1)[1]
+                filesize = int(re.sub(r'  +', ' ', i.decode().strip()).split(' ')[4])
+                if download_dsc and downloadpath.endswith('.dsc'):
+                    download_queue.put((curdir, downloadpath, filesize, dsc_directory))
+                    dsc_counter += 1
+                if download_binary and downloadpath.endswith('.deb'):
+                    for arch in debian_architectures:
+                        if downloadpath.endswith('_%s.deb' % arch):
+                            download_queue.put((curdir, downloadpath, filesize, binary_directory))
+                            deb_counter += 1
+                            break
+                if download_patch and downloadpath.endswith('.diff.gz'):
+                    download_queue.put((curdir, downloadpath, filesize, patches_directory))
+                    diff_counter += 1
+                if download_source:
+                    for ext in ['.orig.tar.bz2', '.orig.tar.gz', '.orig.tar.xz']:
+                        if downloadpath.endswith(ext):
+                            download_queue.put((curdir, downloadpath, filesize, source_directory))
+                            src_counter += 1
+                            break
+        lslr.close()
+    else:
+        for p in packagelist:
+            curdir = pathlib.Path(p).parent
+            downloadpath = pathlib.Path(p).name
+            if downloadpath.endswith('.deb'):
                 for arch in debian_architectures:
                     if downloadpath.endswith('_%s.deb' % arch):
                         download_queue.put((curdir, downloadpath, filesize, binary_directory))
                         deb_counter += 1
                         break
-            if download_patch and downloadpath.endswith('.diff.gz'):
-                download_queue.put((curdir, downloadpath, filesize, patches_directory))
-                diff_counter += 1
-            if download_source:
-                for ext in ['.orig.tar.bz2', '.orig.tar.gz', '.orig.tar.xz']:
-                    if downloadpath.endswith(ext):
-                        download_queue.put((curdir, downloadpath, filesize, source_directory))
-                        src_counter += 1
-                        break
-    lslr.close()
 
     # create processes for unpacking archives
     for i in range(0, threads):
