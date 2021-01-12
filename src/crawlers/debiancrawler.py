@@ -89,7 +89,6 @@ def main():
                         help="file with packages", metavar="FILE")
     args = parser.parse_args()
 
-
     packagelist = []
 
     # check if there is a file with packages to download. This overrides
@@ -101,10 +100,10 @@ def main():
             parser.error("%s is not a regular file, exiting." % args.packagelist)
         try:
             packages = open(args.packagelist, 'r').readlines()
-            for p in packages:
-                if not p.startswith('Filename: '):
+            for pkg in packages:
+                if not pkg.startswith('Filename: '):
                     continue
-                packagelist.append(p.strip().split(': ', 1)[1])
+                packagelist.append(pkg.strip().split(': ', 1)[1])
         except:
             pass
 
@@ -368,8 +367,8 @@ def main():
                 continue
 
             download_file = False
-            for d in debian_directories:
-                if d in curdir.parts:
+            for debian_dir in debian_directories:
+                if debian_dir in curdir.parts:
                     download_file = True
                     break
             if not download_file:
@@ -403,9 +402,9 @@ def main():
                             break
         lslr.close()
     else:
-        for p in packagelist:
-            curdir = pathlib.Path(p).parent
-            downloadpath = pathlib.Path(p).name
+        for pkg in packagelist:
+            curdir = pathlib.Path(pkg).parent
+            downloadpath = pathlib.Path(pkg).name
             if downloadpath.endswith('.deb'):
                 if '-dev_' in downloadpath and not download_dev:
                     continue
@@ -414,7 +413,7 @@ def main():
                         download_queue.put((curdir, downloadpath, 0, binary_directory))
                         deb_counter += 1
                         break
-            download_queue.put((pathlib.Path(p).parent, pathlib.Path(p).name, 0, binary_directory))
+            download_queue.put((curdir, downloadpath, 0, binary_directory))
 
     # create processes for unpacking archives
     for i in range(0, threads):
@@ -450,6 +449,7 @@ def main():
         downloaded_files = (deb_counter + src_counter + dsc_counter + diff_counter) - len_failed
         print("Successfully downloaded: %d files" % downloaded_files)
         print("Failed to download: %d files" % len_failed)
+
 
 if __name__ == "__main__":
     main()
