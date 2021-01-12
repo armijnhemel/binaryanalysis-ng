@@ -135,7 +135,7 @@ def main():
     debian_mirror = ''
     verbose = False
     debian_architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
-    debian_categories = ['dsc', 'source', 'patch', 'binary']
+    debian_categories = ['dsc', 'source', 'patch', 'binary', 'dev']
     debian_directories = ['contrib', 'main', 'non-free']
 
     # then process each individual section, extract configuration options
@@ -338,6 +338,10 @@ def main():
     if 'source' in debian_categories:
         download_source = True
 
+    download_dev = False
+    if 'dev' in debian_categories:
+        download_dev = True
+
     # add some counters for statistics
     deb_counter = 0
     src_counter = 0
@@ -375,6 +379,8 @@ def main():
                     download_queue.put((curdir, downloadpath, filesize, dsc_directory))
                     dsc_counter += 1
                 if download_binary and downloadpath.endswith('.deb'):
+                    if '-dev_' in downloadpath and not download_dev:
+                        continue
                     for arch in debian_architectures:
                         if downloadpath.endswith('_%s.deb' % arch):
                             download_queue.put((curdir, downloadpath, filesize, binary_directory))
@@ -395,6 +401,8 @@ def main():
             curdir = pathlib.Path(p).parent
             downloadpath = pathlib.Path(p).name
             if downloadpath.endswith('.deb'):
+                if '-dev_' in downloadpath and not download_dev:
+                    continue
                 for arch in debian_architectures:
                     if downloadpath.endswith('_%s.deb' % arch):
                         download_queue.put((curdir, downloadpath, 0, binary_directory))
