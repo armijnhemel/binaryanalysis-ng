@@ -36,7 +36,7 @@ import requests
 # use several threads to download the Debian data. This is of no
 # use if you are on a slow line with a bandwidth cap and it might
 # actually be beneficial to use just a single thread.
-def downloadfile(download_queue, fail_queue, debian_mirror):
+def downloadfile(download_queue, fail_queue, debian_mirror, verbose):
     '''Download files from a Debian mirror'''
     while True:
         (debiandir, debianfile, debiansize, basestoredirectory) = download_queue.get()
@@ -54,6 +54,8 @@ def downloadfile(download_queue, fail_queue, debian_mirror):
             # else remove the file as it is likely a failed download
             os.unlink(resultfilename)
 
+        if verbose:
+            logging.info('DOWNLOADING: %s', downloadurl)
         try:
             req = requests.get(downloadurl)
         except requests.exceptions.RequestException:
@@ -398,11 +400,12 @@ def main():
                         download_queue.put((curdir, downloadpath, filesize, binary_directory))
                         deb_counter += 1
                         break
+            download_queue.put((pathlib.Path(p).parent, pathlib.Path(p).name, 0, binary_directory))
 
     # create processes for unpacking archives
     for i in range(0, threads):
         process = multiprocessing.Process(target=downloadfile,
-                                          args=(download_queue, fail_queue, debian_mirror))
+                                          args=(download_queue, fail_queue, debian_mirror, verbose))
         processes.append(process)
 
     # start all the processes
