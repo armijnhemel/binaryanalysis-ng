@@ -137,15 +137,15 @@ def main():
         sys.exit(1)
 
     # some sanity checks:
-    if not 'config' in config:
+    if 'config' not in config:
         print("Invalid configuration file, exiting", file=sys.stderr)
         sys.exit(1)
 
-    if not 'general' in config['config']:
+    if 'general' not in config['config']:
         print("Invalid configuration file, exiting", file=sys.stderr)
         sys.exit(1)
 
-    if not 'repositories' in config['config']:
+    if 'repositories' not in config['config']:
         print("Invalid configuration file (no repositories defined), exiting", file=sys.stderr)
         sys.exit(1)
 
@@ -218,7 +218,7 @@ def main():
         # crawling this should be configured properly in the configuration file
         debian_directories = ['contrib', 'main', 'non-free']
 
-        if not 'mirror' in repo_entry:
+        if 'mirror' not in repo_entry:
             continue
 
         repository = {'name': repo}
@@ -329,11 +329,13 @@ def main():
         try:
             mirror_parts = urllib.parse.urlparse(repository['mirror'])
             if mirror_parts.scheme not in ['http', 'https', 'ftp', 'ftps']:
-                print("Invalid URL '%s' for '%s', skipping entry" % (repository['mirror'], repository['name']),
+                print("Invalid URL '%s' for '%s', skipping entry" % (repository['mirror'],
+                                                                     repository['name']),
                       file=sys.stderr)
                 continue
             if mirror_parts.netloc == '':
-                print("Invalid URL '%s' for '%s', skipping entry" % (repository['mirror'], repository['name']),
+                print("Invalid URL '%s' for '%s', skipping entry" % (repository['mirror'],
+                                                                     repository['name']),
                       file=sys.stderr)
                 continue
         except Exception:
@@ -520,6 +522,7 @@ def main():
                         break
             download_queue.put((curdir, downloadpath, 0, binary_directory))
         '''
+
 
 if __name__ == "__main__":
     main()
