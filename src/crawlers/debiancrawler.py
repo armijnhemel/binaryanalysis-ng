@@ -17,7 +17,6 @@ Run manually, or from a cronjob.
 import sys
 import os
 import argparse
-import configparser
 import datetime
 import stat
 import hashlib
@@ -28,9 +27,17 @@ import gzip
 import pathlib
 import logging
 import re
+import urllib
 
 # import the requests module for downloading the XML
 import requests
+
+# import YAML module
+from yaml import load
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
 
 
 # use several threads to download the Debian data. This is of no
@@ -85,10 +92,11 @@ def main():
                         help="path to configuration file", metavar="FILE")
     parser.add_argument("-f", "--force", action="store_true", dest="force",
                         help="run if metadata hasn't changed")
-    parser.add_argument("-p", "--packagelist", action="store", dest="packagelist",
-                        help="file with packages", metavar="FILE")
+    #parser.add_argument("-p", "--packagelist", action="store", dest="packagelist",
+    #                    help="file with packages", metavar="FILE")
     args = parser.parse_args()
 
+    '''
     packagelist = []
 
     # check if there is a file with packages to download. This overrides
@@ -106,6 +114,7 @@ def main():
                 packagelist.append(pkg.strip().split(': ', 1)[1])
         except:
             pass
+    '''
 
     # sanity checks for the configuration file
     if args.cfg is None:
@@ -119,86 +128,54 @@ def main():
     if not stat.S_ISREG(os.stat(args.cfg).st_mode):
         parser.error("%s is not a regular file, exiting." % args.cfg)
 
-    # read the configuration file. This is in Windows INI format.
-    config = configparser.ConfigParser()
-
+    # read the configuration file. This is in YAML format
     try:
         configfile = open(args.cfg, 'r')
-        config.read_file(configfile)
+        config = load(configfile, Loader=Loader)
     except:
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
 
-    # set a few default values for data in the configuration file
+    # some sanity checks:
+    if not 'config' in config:
+        print("Invalid configuration file, exiting", file=sys.stderr)
+        sys.exit(1)
+
+    if not 'general' in config['config']:
+        print("Invalid configuration file, exiting", file=sys.stderr)
+        sys.exit(1)
+
+    if not 'repositories' in config['config']:
+        print("Invalid configuration file (no repositories defined), exiting", file=sys.stderr)
+        sys.exit(1)
+
+    # Set a few default values for general configuration options.
+    # These can be overridden in the configuration file.
     storedirectory = ''
-    debian_mirror = ''
     verbose = False
-    debian_architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
-    debian_categories = ['dsc', 'source', 'patch', 'binary', 'dev']
-    debian_directories = ['contrib', 'main', 'non-free']
+    threads = multiprocessing.cpu_count()
 
-    # then process each individual section, extract configuration options
-    # and change the default values if needed
-    for section in config.sections():
-        if section == 'debian':
-            try:
-                storedirectory = pathlib.Path(config.get(section, 'storedirectory'))
-            except configparser.Error:
-                break
-            try:
-                debian_mirror = config.get(section, 'mirror')
-            except configparser.Error:
-                break
-            try:
-                debian_architectures = config.get(section, 'architectures').split(',')
-            except configparser.Error:
-                break
-            try:
-                debian_categories = config.get(section, 'categories').split(',')
-            except configparser.Error:
-                break
-            try:
-                debian_directories = []
-                debian_directories_tmp = config.get(section, 'directories').split(',')
+    # check configuration options and change the default values if needed
+    if 'verbose' in config['config']['general']:
+        if isinstance(config['config']['general']['verbose'], bool):
+            verbose = config['config']['general']['verbose']
 
-                # simple sanity check to remove spaces
-                for debian_directory in debian_directories_tmp:
-                    debian_directories.append(debian_directory.strip())
-            except configparser.Error:
-                break
+    if 'storedirectory' not in config['config']['general']:
+        print("no store directory defined in configuration file", file=sys.stderr)
+        sys.exit(1)
 
-        elif section == 'general':
-            # The number of threads to be created to download the files,
-            # next to the main thread. Defaults to "all availabe threads".
-            # WARNING: this might not always be faster!
-            try:
-                threads = min(int(config.get(section, 'threads')), multiprocessing.cpu_count())
-                # if 0 or a negative number was configured,
-                # then use all available threads
-                if threads < 1:
-                    threads = multiprocessing.cpu_count()
-            except configparser.Error:
-                # use all available threads by default
+    storedirectory = pathlib.Path(config['config']['general']['storedirectory'])
+
+    # The number of threads to be created to download the files,
+    # next to the main thread. Defaults to "all availabe threads".
+    # WARNING: this might not always be faster!
+    if 'threads' in config['config']['general']:
+        if isinstance(config['config']['general']['threads'], int):
+            threads = config['config']['general']['threads']
+            # if 0 or a negative number was configured,
+            # then use all available threads
+            if threads < 1:
                 threads = multiprocessing.cpu_count()
-            try:
-                verbose_setting = config.get(section, 'verbose')
-                if verbose_setting == 'yes':
-                    verbose = True
-            except configparser.Error:
-                pass
-    configfile.close()
-
-    # Check if the Debian mirror was declared.
-    if debian_mirror == '':
-        print("Debian mirror not declared in configuration file, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    # Check if the base unpack directory was declared.
-    if storedirectory == '':
-        print("Store directory not declared in configuration file, exiting",
-              file=sys.stderr)
-        sys.exit(1)
 
     # Check if the base unpack directory exists
     if not storedirectory.exists():
@@ -220,65 +197,155 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
-    # now create a directory structure inside the scandirectory:
-    # binary/ -- this is where all the binary data will be stored
-    # source/ -- this is where all source files will be stored
-    # meta/ -- this is where the ls-lR.gz file will be stored
-    # dsc/  -- this is where the Debian package file descriptions
-    #          will be stored
-    # patches/ -- this is where the Debian specific patches (diff.gz)
-    #          files will be stored
-    # logs/ -- download logs will be stored here
-    binary_directory = pathlib.Path(storedirectory, "binary")
-    if not binary_directory.exists():
-        binary_directory.mkdir()
+    repositories = []
 
-    source_directory = pathlib.Path(storedirectory, "source")
-    if not source_directory.exists():
-        source_directory.mkdir()
+    # create the repository configuration information based on
+    # the configuration file and default values
+    for repo in config['config']['repositories']:
+        repo_entry = config['config']['repositories'][repo]
 
-    meta_data_dir = pathlib.Path(storedirectory, "meta")
-    if not meta_data_dir.exists():
-        meta_data_dir.mkdir()
+        # check to see if the repository is disabled
+        if 'enabled' in repo_entry:
+            if isinstance(repo_entry['enabled'], bool):
+                if not repo_entry['enabled']:
+                    continue
 
-    dsc_directory = pathlib.Path(storedirectory, "dsc")
-    if not dsc_directory.exists():
-        dsc_directory.mkdir()
+        # set a few default values
+        debian_architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
+        debian_categories = ['dsc', 'source', 'patch', 'binary', 'dev']
 
-    patches_directory = pathlib.Path(storedirectory, "patches")
-    if not patches_directory.exists():
-        patches_directory.mkdir()
+        # this is a default value for Debian, not for Ubuntu. For Ubuntu
+        # crawling this should be configured properly in the configuration file
+        debian_directories = ['contrib', 'main', 'non-free']
 
-    log_directory = pathlib.Path(storedirectory, "logs")
-    if not log_directory.exists():
-        log_directory.mkdir()
+        if not 'mirror' in repo_entry:
+            continue
 
-    # recreate the download site data structure
-    for i in debian_directories:
-        if not pathlib.Path(binary_directory, i).exists():
-            pathlib.Path(binary_directory, i).mkdir()
-        if not pathlib.Path(source_directory, i).exists():
-            pathlib.Path(source_directory, i).mkdir()
-        if not pathlib.Path(dsc_directory, i).exists():
-            pathlib.Path(dsc_directory, i).mkdir()
-        if not pathlib.Path(patches_directory, i).exists():
-            pathlib.Path(patches_directory, i).mkdir()
+        repository = {'name': repo}
+        repository['mirror'] = repo_entry['mirror']
 
-    download_date = datetime.datetime.utcnow()
-    meta_outname = pathlib.Path(meta_data_dir,
-                                "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
+        # extract architectures from configuration file
+        if 'architectures' in repo_entry:
+            if isinstance(repo_entry['architectures'], list):
+                if repo_entry['architectures'] != []:
+                    repository['architectures'] = repo_entry['architectures']
+                else:
+                    repository['architectures'] = debian_architectures
+            else:
+                repository['architectures'] = debian_architectures
+        else:
+            repository['architectures'] = debian_architectures
 
-    if meta_outname.exists():
-        print("metadata file %s already exists, please retry later. Exiting." % meta_outname,
-              file=sys.stderr)
-        sys.exit(1)
+        # extract categories from configuration file
+        if 'categories' in repo_entry:
+            if isinstance(repo_entry['categories'], list):
+                if repo_entry['categories'] != []:
+                    repository['categories'] = repo_entry['categories']
+                else:
+                    repository['categories'] = debian_categories
+            else:
+                repository['categories'] = debian_categories
+        else:
+            repository['categories'] = debian_categories
 
-    if packagelist == []:
+        # extract directories from configuration file
+        if 'directories' in repo_entry:
+            if isinstance(repo_entry['directories'], list):
+                if repo_entry['directories'] != []:
+                    repository['directories'] = repo_entry['directories']
+                else:
+                    repository['directories'] = debian_directories
+            else:
+                repository['directories'] = debian_directories
+        else:
+            repository['directories'] = debian_directories
+        repositories.append(repository)
+
+    # download data for every repository that has been declared
+    for repository in repositories:
+        # create directory for the repository (by name)
+        repo_directory = pathlib.Path(storedirectory, repository['name'])
+        if not repo_directory.exists():
+            repo_directory.mkdir()
+
+        # now create a directory structure inside the scandirectory:
+        # binary/ -- this is where all the binary data will be stored
+        # source/ -- this is where all source files will be stored
+        # meta/ -- this is where the ls-lR.gz file will be stored
+        # dsc/  -- this is where the Debian package file descriptions
+        #          will be stored
+        # patches/ -- this is where the Debian specific patches (diff.gz)
+        #          files will be stored
+        # logs/ -- download logs will be stored here
+        binary_directory = pathlib.Path(repo_directory, "binary")
+        if not binary_directory.exists():
+            binary_directory.mkdir()
+
+        source_directory = pathlib.Path(repo_directory, "source")
+        if not source_directory.exists():
+            source_directory.mkdir()
+
+        meta_data_dir = pathlib.Path(repo_directory, "meta")
+        if not meta_data_dir.exists():
+            meta_data_dir.mkdir()
+
+        dsc_directory = pathlib.Path(repo_directory, "dsc")
+        if not dsc_directory.exists():
+            dsc_directory.mkdir()
+
+        patches_directory = pathlib.Path(repo_directory, "patches")
+        if not patches_directory.exists():
+            patches_directory.mkdir()
+
+        log_directory = pathlib.Path(repo_directory, "logs")
+        if not log_directory.exists():
+            log_directory.mkdir()
+
+        download_date = datetime.datetime.utcnow()
+        meta_outname = pathlib.Path(meta_data_dir,
+                                    "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
+
+        if meta_outname.exists():
+            print("metadata file %s already exists. Skipping entry." % meta_outname,
+                  file=sys.stderr)
+            continue
+
+        # recreate the download site data structure
+        for i in repository['directories']:
+            if not pathlib.Path(binary_directory, i).exists():
+                pathlib.Path(binary_directory, i).mkdir()
+            if not pathlib.Path(source_directory, i).exists():
+                pathlib.Path(source_directory, i).mkdir()
+            if not pathlib.Path(dsc_directory, i).exists():
+                pathlib.Path(dsc_directory, i).mkdir()
+            if not pathlib.Path(patches_directory, i).exists():
+                pathlib.Path(patches_directory, i).mkdir()
+
+        # Check if the Debian mirror was declared.
+        if repository['mirror'] == '':
+            print("Debian mirror not declared in configuration file, skipping entry",
+                  file=sys.stderr)
+            continue
+        try:
+            mirror_parts = urllib.parse.urlparse(repository['mirror'])
+            if mirror_parts.scheme not in ['http', 'https', 'ftp', 'ftps']:
+                print("Invalid URL '%s' for '%s', skipping entry" % (repository['mirror'], repository['name']),
+                      file=sys.stderr)
+                continue
+            if mirror_parts.netloc == '':
+                print("Invalid URL '%s' for '%s', skipping entry" % (repository['mirror'], repository['name']),
+                      file=sys.stderr)
+                continue
+        except Exception:
+            print("Debian mirror not a valid URL, skipping entry",
+                  file=sys.stderr)
+            continue
+
         # first download the ls-lR.gz file and see if it needs to be
         # processed by comparing it to the hash of the previously
         # downloaded file.
         try:
-            req = requests.get('%s/ls-lR.gz' % debian_mirror)
+            req = requests.get('%s/ls-lR.gz' % repository['mirror'])
         except requests.exceptions.RequestException:
             print("Could not connect to Debian mirror, exiting.", file=sys.stderr)
             sys.exit(1)
@@ -301,59 +368,58 @@ def main():
         filehash = debian_hash.hexdigest()
 
         # the hash of the latest file should always be stored in a file called HASH
-        hashfilename = os.path.join(storedirectory, "HASH")
+        hashfilename = os.path.join(repo_directory, "HASH")
         if os.path.exists(hashfilename):
             hashfile = open(hashfilename, 'r')
             oldhashdata = hashfile.read()
             hashfile.close()
             if oldhashdata == filehash and not args.force:
-                print("Metadata has not changed, exiting.")
+                print("Metadata for '%s' has not changed, skipping entry." % repository['name'])
                 os.unlink(meta_outname)
-                sys.exit(0)
+                continue
 
         # write the hash of the current data to the hash file
         hashfile = open(hashfilename, 'w')
         hashfile.write(filehash)
         hashfile.close()
 
-    logging.basicConfig(filename=pathlib.Path(log_directory, 'download.log'),
-                        level=logging.INFO, format='%(asctime)s %(message)s')
+        logging.basicConfig(filename=pathlib.Path(log_directory, 'download.log'),
+                            level=logging.INFO, format='%(asctime)s %(message)s')
 
-    # now walk the ls-lR file and grab all the files in parallel
-    processmanager = multiprocessing.Manager()
+        # now walk the ls-lR file and grab all the files in parallel
+        processmanager = multiprocessing.Manager()
 
-    # create a queue for scanning files
-    download_queue = processmanager.JoinableQueue(maxsize=0)
-    fail_queue = processmanager.JoinableQueue(maxsize=0)
-    processes = []
+        # create a queue for scanning files
+        download_queue = processmanager.JoinableQueue(maxsize=0)
+        fail_queue = processmanager.JoinableQueue(maxsize=0)
+        processes = []
 
-    download_dsc = False
-    if 'dsc' in debian_categories:
-        download_dsc = True
+        download_dsc = False
+        if 'dsc' in repository['categories']:
+            download_dsc = True
 
-    download_binary = False
-    if 'binary' in debian_categories:
-        download_binary = True
+        download_binary = False
+        if 'binary' in repository['categories']:
+            download_binary = True
 
-    download_patch = False
-    if 'patch' in debian_categories:
-        download_patch = True
+        download_patch = False
+        if 'patch' in repository['categories']:
+            download_patch = True
 
-    download_source = False
-    if 'source' in debian_categories:
-        download_source = True
+        download_source = False
+        if 'source' in repository['categories']:
+            download_source = True
 
-    download_dev = False
-    if 'dev' in debian_categories:
-        download_dev = True
+        download_dev = False
+        if 'dev' in repository['categories']:
+            download_dev = True
 
-    # add some counters for statistics
-    deb_counter = 0
-    src_counter = 0
-    diff_counter = 0
-    dsc_counter = 0
+        # add some counters for statistics
+        deb_counter = 0
+        src_counter = 0
+        diff_counter = 0
+        dsc_counter = 0
 
-    if packagelist == []:
         # Process the ls-lR.gz and put all the tasks into a queue for downloading.
         lslr = gzip.open(meta_outname)
         inpool = False
@@ -367,7 +433,7 @@ def main():
                 continue
 
             download_file = False
-            for debian_dir in debian_directories:
+            for debian_dir in repository['directories']:
                 if debian_dir in curdir.parts:
                     download_file = True
                     break
@@ -383,14 +449,17 @@ def main():
                 if download_dsc and downloadpath.endswith('.dsc'):
                     download_queue.put((curdir, downloadpath, filesize, dsc_directory))
                     dsc_counter += 1
-                if download_binary and downloadpath.endswith('.deb'):
-                    if '-dev_' in downloadpath and not download_dev:
-                        continue
-                    for arch in debian_architectures:
-                        if downloadpath.endswith('_%s.deb' % arch):
-                            download_queue.put((curdir, downloadpath, filesize, binary_directory))
-                            deb_counter += 1
-                            break
+                if download_binary:
+                    for ext in ['.deb', '.udeb']:
+                        if downloadpath.endswith(ext):
+                            if '-dev_' in downloadpath and not download_dev:
+                                continue
+                            for arch in repository['architectures']:
+                                arch_ext = '_%s%s' % (arch, ext)
+                                if downloadpath.endswith(arch_ext):
+                                    download_queue.put((curdir, downloadpath, filesize, binary_directory))
+                                    deb_counter += 1
+                                    break
                 if download_patch and downloadpath.endswith('.diff.gz'):
                     download_queue.put((curdir, downloadpath, filesize, patches_directory))
                     diff_counter += 1
@@ -401,7 +470,43 @@ def main():
                             src_counter += 1
                             break
         lslr.close()
-    else:
+
+        # create processes for unpacking archives
+        for i in range(0, threads):
+            process = multiprocessing.Process(target=downloadfile,
+                                              args=(download_queue, fail_queue, repository['mirror'], verbose))
+            processes.append(process)
+
+        # start all the processes
+        for process in processes:
+            process.start()
+
+        download_queue.join()
+
+        failed_files = []
+
+        while True:
+            try:
+                failed_files.append(fail_queue.get_nowait())
+                fail_queue.task_done()
+            except queue.Empty:
+                # Queue is empty
+                break
+
+        # block here until the fail_queue is empty
+        fail_queue.join()
+
+        # Done processing, terminate processes
+        for process in processes:
+            process.terminate()
+
+        if verbose:
+            len_failed = len(failed_files)
+            downloaded_files = (deb_counter + src_counter + dsc_counter + diff_counter) - len_failed
+            print("Successfully downloaded: %d files" % downloaded_files)
+            print("Failed to download: %d files" % len_failed)
+
+        '''
         for pkg in packagelist:
             curdir = pathlib.Path(pkg).parent
             downloadpath = pathlib.Path(pkg).name
@@ -414,42 +519,7 @@ def main():
                         deb_counter += 1
                         break
             download_queue.put((curdir, downloadpath, 0, binary_directory))
-
-    # create processes for unpacking archives
-    for i in range(0, threads):
-        process = multiprocessing.Process(target=downloadfile,
-                                          args=(download_queue, fail_queue, debian_mirror, verbose))
-        processes.append(process)
-
-    # start all the processes
-    for process in processes:
-        process.start()
-
-    download_queue.join()
-
-    failed_files = []
-
-    while True:
-        try:
-            failed_files.append(fail_queue.get_nowait())
-            fail_queue.task_done()
-        except queue.Empty:
-            # Queue is empty
-            break
-
-    # block here until the fail_queue is empty
-    fail_queue.join()
-
-    # Done processing, terminate processes
-    for process in processes:
-        process.terminate()
-
-    if verbose:
-        len_failed = len(failed_files)
-        downloaded_files = (deb_counter + src_counter + dsc_counter + diff_counter) - len_failed
-        print("Successfully downloaded: %d files" % downloaded_files)
-        print("Failed to download: %d files" % len_failed)
-
+        '''
 
 if __name__ == "__main__":
     main()
