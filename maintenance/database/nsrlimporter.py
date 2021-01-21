@@ -76,7 +76,7 @@ def main():
 
     try:
         configfile = open(args.cfg, 'r')
-        config.readfp(configfile)
+        config.read_file(configfile)
     except:
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
@@ -166,17 +166,16 @@ def main():
                             except Exception as e:
                                 pass
                     break
-                else:
-                    for buff in buffs[:-1]:
-                        if buff == b'':
-                            continue
-                        for encoding in encodings_translate:
-                            try:
-                                decodedfile.write(buff.decode(encoding))
-                                decodedfile.write('\n')
-                                break
-                            except:
-                                pass
+                for buff in buffs[:-1]:
+                    if buff == b'':
+                        continue
+                    for encoding in encodings_translate:
+                        try:
+                            decodedfile.write(buff.decode(encoding))
+                            decodedfile.write('\n')
+                            break
+                        except:
+                            pass
                 offset += lastoffset
             decodedfile.close()
 
