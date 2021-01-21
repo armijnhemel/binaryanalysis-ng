@@ -21,3 +21,5 @@ config:
     # The default is:
     # source,binary
     categories: source,binary
+    # mirror site of F-Droid. This should contain the scheme (http or https)
+    mirror: https://f-droid.org/

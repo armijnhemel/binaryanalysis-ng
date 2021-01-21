@@ -27,6 +27,7 @@ import tempfile
 import multiprocessing
 import queue
 import pathlib
+import urllib
 
 # import defusedxml module to guard against XML attacks
 import defusedxml.minidom
@@ -45,12 +46,14 @@ except ImportError:
 # use several threads to download the F-Droid data. This is of no
 # use if you are on a slow line with a bandwidth cap and it might
 # actually be beneficial to use just a single thread.
-def downloadfile(downloadqueue, failqueue, verbose):
+def downloadfile(downloadqueue, failqueue, mirror, verbose):
     '''Download a single file from the F-Droid repository'''
+    mirror_url = "%s/repo" % mirror
     while True:
         (fdroidfile, store_directory, filehash) = downloadqueue.get()
         try:
-            req = requests.get('https://f-droid.org/repo/%s' % fdroidfile)
+            #req = requests.get('https://f-droid.org/repo/%s' % fdroidfile)
+            req = requests.get('%s/%s' % (mirror_url, fdroidfile))
         except requests.exceptions.RequestException:
             failqueue.put(fdroidfile)
             downloadqueue.task_done()
@@ -117,6 +120,7 @@ def main():
     verbose = False
     threads = multiprocessing.cpu_count()
     fdroid_categories = ['binary', 'source']
+    mirror = 'https://f-droid.org/'
 
     # check configuration options and change the default values if needed
     if 'verbose' in config['config']:
@@ -164,6 +168,14 @@ def main():
         if isinstance(config['config']['categories'], list):
             if config['config']['categories'] != []:
                 fdroid_categories = config['config']['categories']
+
+    if 'mirror' in config['config']:
+        try:
+            mirror_parts = urllib.parse.urlparse(config['config']['mirror'])
+            if mirror_parts.scheme in ['http', 'https']:
+                mirror = config['config']['mirror']
+        except:
+            pass
 
     # now create a directory structure inside the scandirectory:
     # binary/ -- this is where all the binary data will be stored
@@ -286,7 +298,7 @@ def main():
     # create processes for unpacking archives
     for i in range(0, threads):
         process = multiprocessing.Process(target=downloadfile,
-                                          args=(downloadqueue, failqueue, verbose))
+                                          args=(downloadqueue, failqueue, mirror, verbose))
         processes.append(process)
 
     # start all the processes
