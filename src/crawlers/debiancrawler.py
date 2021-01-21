@@ -160,12 +160,6 @@ def main():
         if isinstance(config['config']['general']['verbose'], bool):
             verbose = config['config']['general']['verbose']
 
-    if 'storedirectory' not in config['config']['general']:
-        print("no store directory defined in configuration file", file=sys.stderr)
-        sys.exit(1)
-
-    storedirectory = pathlib.Path(config['config']['general']['storedirectory'])
-
     # The number of threads to be created to download the files,
     # next to the main thread. Defaults to "all availabe threads".
     # WARNING: this might not always be faster!
@@ -176,6 +170,12 @@ def main():
             # then use all available threads
             if threads < 1:
                 threads = multiprocessing.cpu_count()
+
+    if 'storedirectory' not in config['config']['general']:
+        print("no store directory defined in configuration file", file=sys.stderr)
+        sys.exit(1)
+
+    storedirectory = pathlib.Path(config['config']['general']['storedirectory'])
 
     # Check if the base unpack directory exists
     if not storedirectory.exists():
