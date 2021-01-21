@@ -1,4 +1,4 @@
-# Package list for Fedora 30
+# Package list for Fedora 33
 
 * binutils
 * cabextract
@@ -19,6 +19,7 @@
 * python3-lz4
 * python3-pillow
 * python3-psycopg2
+* python3-pyyaml
 * python3-snappy
 * python3-tinycss2
 * python3-tlsh

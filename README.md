@@ -5,7 +5,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 
 ## Requirements
 
-* a recent Linux distribution (Fedora 29 or higher, or equivalent)
+* a recent Linux distribution (Fedora 32 or higher, or equivalent)
 * Python 3.6.x or higher (as some Python 3.6 specific features are used)
 * pillow (possibly named python3-pillow), a drop in replacement for PIL ( http://python-pillow.github.io/ )
 * GNU binutils (for 'ar')
@@ -29,6 +29,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * OpenJDK (for 'unpack200')
 * defusedxml (possibly named python3-defusedxml)
 * icalendar (possibly named python3-icalendar)
+* pyyaml (possibly named python3-pyyaml)
 * ncompress
 * util-linux (for 'fsck.cramfs')
 * lz4 (for 'lz4c')
@@ -282,6 +283,6 @@ The recommended coding style is described in PEP 8:
 https://www.python.org/dev/peps/pep-0008/
 
 It is recommended to run PEP 8 verification tools, for example
-python3-pep8 (on Fedora).
+python3-flake8 (on Fedora).
 
-Another tool that is recommended is pylint.
+Another tool that is highly recommended is pylint.
