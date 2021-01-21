@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # Binary Analysis Next Generation (BANG!)
 #
@@ -9,7 +9,7 @@
 #
 # https://www.nist.gov/software-quality-group/national-software-reference-library-nsrl
 #
-# Copyright 2018 - 2020 - Armijn Hemel
+# Copyright 2018 - 2021 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
