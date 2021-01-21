@@ -14,9 +14,27 @@ When no database server exists, issue the following command:
 
 This will initialize the database.
 
+## Creating the BANG database
+
+After installing the PostgreSQL server you need to create a user called
+'bang'. To do this first start the PostgreSQL server, change to the user
+that the database server runs under (for example 'postgres'), start the
+'psql' interface and issue the following commands:
+
+    create database bang;
+    create user bang with password 'bang';
+    grant all privileges on database bang to bang;
+
+Of course, if you don't want to use 'bang' as the password you can change
+it to something else.
+
 ## Authentication
 
 BANG uses password authentication. This is not the default used by PostgreSQL.
+
+PostgreSQL's "password" authentication is vulnerable to sniffing attacks, as
+it is sent in plain text. This will be changed soon. Because of this older
+versions of PostgreSQL (version 9 and earlier) are not supported.
 
 Authentication is configured in the file pg_hba.conf. Usually you can find
 this file in the top level PostgreSQL directory (for example /var/lib/pgsql/data/
@@ -38,6 +56,12 @@ To prompt for the password (recommended) this should be changed in:
 
     local   all      all       password
 
+To not enable the password authentication for the user the database server
+runs under (for example 'postgres') change it to:
+
+    local   all      postgres  peer
+    local   all      all       password
+
 For local IPv4 connections you might find:
 
     host    all      all       127.0.0.1/32      trust
@@ -50,7 +74,5 @@ and should be changed to:
 
     host    all      all       127.0.0.1/32      password
 
-For access from other machines this should be changed here as well.
+To allow access from other machines this should be changed here as well.
 
-NOTE: PostgreSQL's "password" authentication is vulnerable to sniffing attacks, as
-it is sent in plain text. This will be changed soon.
