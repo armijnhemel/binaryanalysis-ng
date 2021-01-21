@@ -1,4 +1,4 @@
-create table if not exists nsrl_hash(sha1 text, md5 text, filename text, primary key(sha1));
+create table if not exists nsrl_hash(sha1 text, md5 text, crc32 text, filename text, primary key(sha1));
 create table if not exists nsrl_entry(sha1 text, productcode int);
 create table if not exists nsrl_manufacturer(manufacturercode int, manufacturername text, primary key(manufacturercode));
 create table if not exists nsrl_os(oscode int, osname text, osversion text, manufacturercode int, primary key(oscode));
