@@ -331,14 +331,14 @@ def main():
     csvreader = csv.reader(nsrfile)
 
     # create a few prepared statements
-    preparedhash = "PREPARE hash_insert as INSERT INTO nsrl_hash (sha1, md5, filename) values ($1, $2, $3) ON CONFLICT DO NOTHING"
+    preparedhash = "PREPARE hash_insert as INSERT INTO nsrl_hash (sha1, md5, crc32, filename) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedhash)
 
     preparedentry = "PREPARE entry_insert as INSERT INTO nsrl_entry (sha1, productcode) values ($1, $2) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedentry)
 
     # "SHA-1","MD5","CRC32","FileName","FileSize","ProductCode","OpSystemCode","SpecialCode"
-    # only store: sha1, md5, filename, product code, opsystem code
+    # only store: sha1, md5, crc32, filename, product code, opsystem code
     # and special code
     # These are in different tables
     counter = 1
@@ -350,7 +350,7 @@ def main():
         md5 = md5.lower()
         productcode = int(productcode)
         if sha1 not in sha1seen:
-            bulkhash.append((sha1, md5, filename))
+            bulkhash.append((sha1, md5, crc32, filename))
             sha1seen.add(sha1)
         bulkinserts.append((sha1, productcode))
         if counter % 10000 == 0:
@@ -358,7 +358,7 @@ def main():
             sys.stdout.flush()
         if counter % 100000 == 0:
             # now insert the files in bulk
-            psycopg2.extras.execute_batch(dbcursor, "execute hash_insert(%s, %s, %s)",
+            psycopg2.extras.execute_batch(dbcursor, "execute hash_insert(%s, %s, %s, %s)",
                                           bulkhash)
             psycopg2.extras.execute_batch(dbcursor, "execute entry_insert(%s, %s)",
                                           bulkinserts)
