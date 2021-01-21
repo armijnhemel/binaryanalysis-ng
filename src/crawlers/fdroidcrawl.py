@@ -20,17 +20,26 @@
 import sys
 import os
 import argparse
-import configparser
 import datetime
 import stat
 import hashlib
 import tempfile
 import multiprocessing
 import queue
+import pathlib
+
+# import defusedxml module to guard against XML attacks
 import defusedxml.minidom
 
 # import the requests module for downloading the XML
 import requests
+
+# import YAML module
+from yaml import load
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
 
 
 # use several threads to download the F-Droid data. This is of no
@@ -89,67 +98,55 @@ def main():
     if not stat.S_ISREG(os.stat(args.cfg).st_mode):
         parser.error("%s is not a regular file, exiting." % args.cfg)
 
-    # read the configuration file. This is in Windows INI format.
-    config = configparser.ConfigParser()
-
+    # read the configuration file. This is in YAML format
     try:
         configfile = open(args.cfg, 'r')
-        config.read_file(configfile)
+        config = load(configfile, Loader=Loader)
     except:
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
 
-    # set a few default values)
-    store_directory = ''
-    verbose = False
-    fdroid_categories = ['binary', 'source']
-
-    # then process each individual section and extract configuration options
-    for section in config.sections():
-        if section == 'fdroid':
-            try:
-                store_directory = config.get(section, 'storedirectory')
-            except configparser.Error:
-                break
-            try:
-                fdroid_categories = config.get(section, 'categories').split(',')
-            except configparser.Error:
-                break
-
-        elif section == 'general':
-            # The number of threads to be created to download the files,
-            # next to the main thread. Defaults to "all availabe threads".
-            # WARNING: this might not always be faster!
-            try:
-                threads = min(int(config.get(section, 'threads')), multiprocessing.cpu_count())
-                # if 0 or a negative number was configured,
-                # then use all available threads
-                if threads < 1:
-                    threads = multiprocessing.cpu_count()
-            except configparser.Error:
-                # use all available threads by default
-                threads = multiprocessing.cpu_count()
-            try:
-                verbose_setting = config.get(section, 'verbose')
-                if verbose_setting == 'yes':
-                    verbose = True
-            except configparser.Error:
-                pass
-    configfile.close()
-
-    # Check if the base unpack directory was declared.
-    if store_directory == '':
-        print("Store directory not declared in configuration file, exiting",
-              file=sys.stderr)
+    # some sanity checks:
+    if 'config' not in config:
+        print("Invalid configuration file, exiting", file=sys.stderr)
         sys.exit(1)
 
+    # Set a few default values for general configuration options.
+    # These can be overridden in the configuration file.
+    store_directory = ''
+    verbose = False
+    threads = multiprocessing.cpu_count()
+    fdroid_categories = ['binary', 'source']
+
+    # check configuration options and change the default values if needed
+    if 'verbose' in config['config']:
+        if isinstance(config['config']['verbose'], bool):
+            verbose = config['config']['verbose']
+
+    # The number of threads to be created to download the files,
+    # next to the main thread. Defaults to "all availabe threads".
+    # WARNING: this might not always be faster!
+    if 'threads' in config['config']:
+        if isinstance(config['config']['threads'], int):
+            threads = config['config']['threads']
+            # if 0 or a negative number was configured,
+            # then use all available threads
+            if threads < 1:
+                threads = multiprocessing.cpu_count()
+
+    if 'storedirectory' not in config['config']:
+        print("no store directory defined in configuration file", file=sys.stderr)
+        sys.exit(1)
+
+    store_directory = pathlib.Path(config['config']['storedirectory'])
+
     # Check if the base unpack directory exists
-    if not os.path.exists(store_directory):
+    if not store_directory.exists():
         print("Store directory %s does not exist, exiting" % store_directory,
               file=sys.stderr)
         sys.exit(1)
 
-    if not os.path.isdir(store_directory):
+    if not store_directory.is_dir():
         print("Store directory %s is not a directory, exiting" % store_directory,
               file=sys.stderr)
         sys.exit(1)
@@ -162,6 +159,11 @@ def main():
         print("Base unpack directory %s cannot be written to, exiting" % store_directory,
               file=sys.stderr)
         sys.exit(1)
+
+    if 'categories' in config['config']:
+        if isinstance(config['config']['categories'], list):
+            if config['config']['categories'] != []:
+                fdroid_categories = config['config']['categories']
 
     # now create a directory structure inside the scandirectory:
     # binary/ -- this is where all the binary data will be stored
