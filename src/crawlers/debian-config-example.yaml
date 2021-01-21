@@ -1,0 +1,81 @@
+---
+config:
+    general:
+        # The number of threads that are created for scanning, next to
+        # the main thread. Maximum: amount of CPUs available on a system.
+        # Has to be positive, 0 means "use all threads"
+        threads: 1
+        # Setting for verbosity. By default the program does not run in
+        # verbose mode. Change to 'true' to enable more verbose logging
+        # and reporting.
+        verbose: false
+        # A directory to store the files downloaded from the various
+        # Debian(-based) repositories.
+        #
+        # Inside this directory has the following structure for each
+        # of the repositories:
+        # - binary/   -- DEBs
+        # - dsc/      -- .dsc files
+        # - meta/     -- snapshots of the ls-lR.gz file used for download
+        # - patches / -- Debian patches
+        # - source/   -- source code tarballs
+        storedirectory: /home/debian/debian
+    repositories:
+        debian:
+            # a full HTTP address to the top level directory of a Debian mirror
+            # where the ls-lR.gz file can be found
+            # mirror: http://ftp.gnome.org/pub/debian/
+            mirror: http://ftp.nluug.nl/pub/os/Linux/distr/debian/
+
+            # list of categories to download:
+            # - dsc -- Debian dsc files
+            # - source -- original source packages
+            # - patch -- debian specific configuration files and patches
+            # - binary -- .deb packages
+            # - dev -- development packages (subcategory of 'binary')
+            #
+            # The default is:
+            # dsc,source,patch,binary,dev
+            categories: [dsc,source,patch,binary,dev]
+
+            # directories which should be crawled.
+            # For standard Debian these are:
+            #
+            # - main
+            # - non-free
+            # - contrib
+            #
+            # but can be different for Debian derivates
+            directories: [main,non-free,contrib]
+
+            # comma separated list of architectures for which files should
+            # be downloaded.
+            #
+            # Currently Debian offers packages for the following architectures:
+            #
+            # - amd64
+            # - arm64
+            # - armel
+            # - armhf
+            # - i386
+            # - mips
+            # - mips64el
+            # - mipsel
+            # - ppc64el
+            # - s390x
+            # - all
+            #
+            # It should be noted that in the past more architectures were
+            # available but these are largely irrelevant these days and only
+            # serve nice interests. The default is:
+            # all,i386,amd64,arm64,armhf
+            architectures: [all, i386, amd64, arm64, armhf]
+
+            # check whether or not the repository has been disabled
+            enabled: True
+        ubuntu:
+            mirror: http://ftp.nluug.nl/pub/os/Linux/distr/ubuntu/
+            categories: [binary]
+            directories: [main, universe]
+            architectures: [amd64]
+            enabled: False

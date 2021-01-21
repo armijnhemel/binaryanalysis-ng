@@ -1,10 +1,11 @@
 # Using the Debian crawler
 
 The Debian crawler can be used to download software as packaged by the
-Debian project. There are two ways the crawler can be used:
+Debian project or from Debian derivatives. There are two ways the crawler
+can be used:
 
 1. automatically downloading software based on the content available on the Debian mirror (and as described in the ls-lR.gz files)
-2. using a list extracted from the Packages.gz file for a single Debian distribution
+2. using a list extracted from the Packages.gz file for a single Debian distribution (CURRENTLY UNSUPPORTED)
 
 # Prerequisites
 
@@ -12,9 +13,16 @@ The script requires Python 3 and the "requests" module (external module).
 
 # Configuration
 
-The script uses a configuration file in Windows INI format (although this might
-change in the future). The various options are documented in the example
-configuration file. Copy the example configuration file and adapt accordingly.
+The script uses a configuration file in YAML format. The various options are
+documented in the example configuration file. Copy the example configuration
+file and adapt accordingly.
+
+It is possible to configure various repositories (for example: Debian and
+Ubuntu). The script will download from all the repositories that are
+configured in the configuration file and that are enabled.
+
+Although the crawler performs various sanity checks it is advised to ensure
+that the information in the configuration file is accurate.
 
 # Automatically downloading
 
@@ -28,6 +36,8 @@ download all packages and architectures that are mentioned in the configuration
 file.
 
 # Using a list of packages
+
+CURRENTLY UNSUPPORTED
 
 To download just a subset of packages from a distribution download the
 Packages.gz list, extract the packages you want to extract (optionally edit

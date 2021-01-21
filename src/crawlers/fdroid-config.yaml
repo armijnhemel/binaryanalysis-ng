@@ -1,0 +1,7 @@
+---
+config:
+    threads: 1
+    verbose: false
+    storedirectory: /home/armijn/fdroid
+    # categories: source,binary
+    categories: source,binary
