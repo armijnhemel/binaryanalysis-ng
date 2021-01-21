@@ -87,6 +87,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", action="store", dest="cfg",
                         help="path to configuration file", metavar="FILE")
+    parser.add_argument("-f", "--force", action="store_true", dest="force",
+                        help="run if metadata hasn't changed")
     args = parser.parse_args()
 
     # sanity checks for the configuration file
@@ -240,7 +242,7 @@ def main():
         hashfile = open(hashfilename, 'r')
         oldhashdata = hashfile.read()
         hashfile.close()
-        if oldhashdata == filehash:
+        if oldhashdata == filehash and not args.force:
             print("Metadata has not changed, exiting.")
             os.unlink(xmloutname)
             sys.exit(0)
