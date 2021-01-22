@@ -17,13 +17,22 @@ import sys
 import os
 import argparse
 import stat
-import configparser
 import csv
 
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
 import psycopg2.extras
 
+# import YAML module for the configuration
+from yaml import load
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
+
+# Add lots of encodings that the NSRL data can possibly be in. Use
+# these for decoding and translate into UTF-8. This is not guaranteed
+# to work, but it is better than nothing.
 encodings_translate = ['utf-8', 'latin-1', 'euc_jp', 'euc_jis_2004',
                        'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
                        'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
@@ -71,42 +80,36 @@ def main():
     if not stat.S_ISREG(os.stat(args.cfg).st_mode):
         parser.error("%s is not a regular file, exiting." % args.cfg)
 
-    # read the configuration file. This is in Windows INI format.
-    config = configparser.ConfigParser()
-
+    # read the configuration file. This is in YAML format
     try:
         configfile = open(args.cfg, 'r')
-        config.read_file(configfile)
+        config = load(configfile, Loader=Loader)
     except:
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
+
+    # some sanity checks:
+    if 'database' not in config:
+        print("Invalid configuration file, exiting", file=sys.stderr)
+        sys.exit(1)
+
+    for i in ['postgresql_user', 'postgresql_password', 'postgresql_db']:
+        if i not in config['database']:
+            print("Configuration file malformed: missing database information %s" % i,
+                  file=sys.stderr)
+            sys.exit(1)
+        postgresql_user = config['database']['postgresql_user']
+        postgresql_password = config['database']['postgresql_password']
+        postgresql_db = config['database']['postgresql_db']
 
     # default values
     postgresql_host = None
     postgresql_port = None
 
-    # then process each individual section and extract configuration options
-    for section in config.sections():
-        if section == 'database':
-            try:
-                postgresql_user = config.get(section, 'postgresql_user')
-                postgresql_password = config.get(section, 'postgresql_password')
-                postgresql_db = config.get(section, 'postgresql_db')
-            except:
-                print("Configuration file malformed: missing database information",
-                      file=sys.stderr)
-                configfile.close()
-                sys.exit(1)
-            try:
-                postgresql_host = config.get(section, 'postgresql_host')
-            except:
-                pass
-            try:
-                postgresql_port = config.get(section, 'postgresql_port')
-            except:
-                pass
-
-    configfile.close()
+    if 'postgresql_host' in config['database']:
+        postgresql_host = config['database']['postgresql_host']
+    if 'postgresql_port' in config['database']:
+        postgresql_port = config['database']['postgresql_port']
 
     # test the database connection
     try:
@@ -190,7 +193,7 @@ def main():
         nsrlprod = 'NSRLProd.txt'
         nsrlfile = 'NSRLFile.txt'
 
-    # then process all the translated files, start with NSRLMfg.txt
+    # then process all the (translated files), start with NSRLMfg
     decodedfilename = os.path.join(args.nsrldir, nsrlmfg)
     nsrfile = open(decodedfilename, 'r')
 
@@ -290,6 +293,7 @@ def main():
     preparedproduct = "PREPARE product_insert as INSERT INTO nsrl_product (productcode, productname, productversion, manufacturercode, applicationtype) values ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedproduct)
 
+    # process the lines in the CSV, and then bulk insert them into the database
     counter = 1
     bulkinserts = []
     for i in csvreader:
