@@ -124,8 +124,6 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
-    sha1seen = set()
-
     # open a connection to the database
     dbconnection = psycopg2.connect(database=postgresql_db,
                                     user=postgresql_user,
@@ -339,6 +337,12 @@ def main():
 
     preparedentry = "PREPARE entry_insert as INSERT INTO nsrl_entry (sha1, productcode) values ($1, $2) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedentry)
+
+    # temporary data structures
+    # keep track of which SHA1 values have been seen. NSRL files
+    # are typically sorted by hash so this could possibly be replaced
+    # by a simpler data structure.
+    sha1seen = set()
 
     # "SHA-1","MD5","CRC32","FileName","FileSize","ProductCode","OpSystemCode","SpecialCode"
     # only store: sha1, md5, crc32, filename, product code
