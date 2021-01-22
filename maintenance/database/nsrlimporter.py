@@ -374,7 +374,7 @@ def main():
 
     # now insert the remaining files in bulk
     if bulkhash != []:
-        psycopg2.extras.execute_batch(dbcursor, "execute hash_insert(%s, %s, %s)",
+        psycopg2.extras.execute_batch(dbcursor, "execute hash_insert(%s, %s, %s, %s)",
                                       bulkhash)
     if bulkinserts != []:
         psycopg2.extras.execute_batch(dbcursor, "execute entry_insert(%s, %s)",
