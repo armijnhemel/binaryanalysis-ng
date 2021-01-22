@@ -341,9 +341,10 @@ def main():
     dbcursor.execute(preparedentry)
 
     # "SHA-1","MD5","CRC32","FileName","FileSize","ProductCode","OpSystemCode","SpecialCode"
-    # only store: sha1, md5, crc32, filename, product code, opsystem code
-    # and special code
-    # These are in different tables
+    # only store: sha1, md5, crc32, filename, product code
+    # TODO: special code
+    # These are in different tables in the NSRL dataset. The entries in NSRLFile.txt
+    # contain a lot of duplication and can be stored more efficiently.
     counter = 1
     bulkinserts = []
     bulkhash = []
@@ -352,6 +353,12 @@ def main():
         sha1 = sha1.lower()
         md5 = md5.lower()
         productcode = int(productcode)
+
+        # Ignore hashes that have already been seen. This is not entirely
+        # correct as there are files with the same hashes but different names
+        # in the data. But: file names in NSRL are not accurate and sometimes
+        # truncated, or abbreviated in another form, so it is not the cleanest
+        # to start with.
         if sha1 not in sha1seen:
             bulkhash.append((sha1, md5, crc32, filename))
             sha1seen.add(sha1)
