@@ -349,6 +349,8 @@ def main():
     bulkinserts = []
     bulkhash = []
     for i in csvreader:
+        if i == []:
+            continue
         (sha1, md5, crc32, filename, filesize, productcode, opsystemcode, specialcode) = i
         sha1 = sha1.lower()
         md5 = md5.lower()
