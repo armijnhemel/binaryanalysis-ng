@@ -346,7 +346,7 @@ def main():
     # These are in different tables in the NSRL dataset. The entries in NSRLFile.txt
     # contain a lot of duplication and can be stored more efficiently.
     counter = 1
-    bulkinserts = []
+    bulkinserts = set()
     bulkhash = []
     for i in csvreader:
         if i == []:
@@ -364,7 +364,7 @@ def main():
         if sha1 not in sha1seen:
             bulkhash.append((sha1, md5, crc32, filename))
             sha1seen.add(sha1)
-        bulkinserts.append((sha1, productcode))
+        bulkinserts.add((sha1, productcode))
         if counter % 10000 == 0:
             print("Entries for files processed:", counter)
             sys.stdout.flush()
@@ -377,7 +377,7 @@ def main():
             dbconnection.commit()
 
             # clear the lists
-            bulkinserts = []
+            bulkinserts = set()
             bulkhash = []
         counter += 1
 
@@ -385,7 +385,7 @@ def main():
     if bulkhash != []:
         psycopg2.extras.execute_batch(dbcursor, "execute hash_insert(%s, %s, %s, %s)",
                                       bulkhash)
-    if bulkinserts != []:
+    if bulkinserts != set():
         psycopg2.extras.execute_batch(dbcursor, "execute entry_insert(%s, %s)",
                                       bulkinserts)
     print("Entries for files processed:", counter)
