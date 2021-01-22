@@ -14,6 +14,22 @@ When no database server exists, issue the following command:
 
 This will initialize the database.
 
+## Setting security
+
+PostgreSQL's 'password' authentication is vulnerable to sniffing attacks, as
+it is sent in plain text. It is highly recommended to change this to
+scram-sha-256 instead. Because of this (and other features) older versions
+of PostgreSQL (version 9 and earlier) are not supported.
+
+The security settings of which password schema to use can be found in the file
+postgresql.conf. Change the setting to use scram-sha-256 before adding the BANG
+user. Please note: if you are using an existing server and converting to
+scram-sha-256 then you will have to reset any passwords of older accounts to
+make sure that they are in the correct hash format. In the file postgresql.conf
+look for the setting 'password_encryption' and change it to:
+
+    password_encryption = scram-sha-256
+
 ## Creating the BANG database
 
 After installing the PostgreSQL server you need to create a user called
@@ -25,16 +41,12 @@ that the database server runs under (for example 'postgres'), start the
     create user bang with password 'bang';
     grant all privileges on database bang to bang;
 
-Of course, if you don't want to use 'bang' as the password you can change
-it to something else.
+It is recommended that you don't use 'bang' as the password but change it
+to something else.
 
 ## Authentication
 
 BANG uses password authentication. This is not the default used by PostgreSQL.
-
-PostgreSQL's "password" authentication is vulnerable to sniffing attacks, as
-it is sent in plain text. This will be changed soon. Because of this older
-versions of PostgreSQL (version 9 and earlier) are not supported.
 
 Authentication is configured in the file pg_hba.conf. Usually you can find
 this file in the top level PostgreSQL directory (for example /var/lib/pgsql/data/
@@ -54,13 +66,16 @@ or minimal checks by looking at the user name on the local system:
 
 To prompt for the password (recommended) this should be changed in:
 
-    local   all      all       password
+    local   all      all       scram-sha-256
+
+If you are not using scram-sha-256 but plain text or MD5 paswords change it
+to whatever you are using.
 
 To not enable the password authentication for the user the database server
 runs under (for example 'postgres') change it to:
 
     local   all      postgres  peer
-    local   all      all       password
+    local   all      all       scram-sha-256
 
 For local IPv4 connections you might find:
 
@@ -72,7 +87,6 @@ or
 
 and should be changed to:
 
-    host    all      all       127.0.0.1/32      password
+    host    all      all       127.0.0.1/32      scram-sha-256
 
-To allow access from other machines this should be changed here as well.
-
+Access from other machines on the network can also be set in this file.
