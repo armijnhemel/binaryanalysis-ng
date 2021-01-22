@@ -47,6 +47,8 @@ def main():
     parser.add_argument("-d", "--directory", action="store", dest="nsrldir",
                         help="path to directory with NSRL directory files",
                         metavar="DIR")
+    parser.add_argument("-t", "--no-decode", action="store_false", dest="decode",
+                        help="disable decoding files")
     args = parser.parse_args()
 
     # sanity checks for the directory
@@ -132,8 +134,6 @@ def main():
                                     host=postgresql_host)
     dbcursor = dbconnection.cursor()
 
-    decode = True
-
     # NSRL mixes different encodings in the CSV files, so gruesome hacks
     # are needed to work around that, namely:
     # 1. open the file in binary mode
@@ -141,7 +141,7 @@ def main():
     # 3. decode all the data to UTF-8
     # 4. write the decode data
 
-    if decode:
+    if args.decode:
         for i in ['NSRLFile.txt', 'NSRLMfg.txt', 'NSRLOS.txt', 'NSRLProd.txt']:
             checkfile = open(os.path.join(args.nsrldir, i), 'rb')
             decodedfilename = os.path.join(args.nsrldir, '%s-translated' % i)
@@ -182,7 +182,7 @@ def main():
                 offset += lastoffset
             decodedfile.close()
 
-    if decode:
+    if args.decode:
         nsrlmfg = 'NSRLMfg.txt-translated'
         nsrlos = 'NSRLOS.txt-translated'
         nsrlprod = 'NSRLProd.txt-translated'
