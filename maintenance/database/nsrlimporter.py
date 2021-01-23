@@ -210,7 +210,10 @@ def main():
     bulkinserts = []
     for i in csvreader:
         (manufacturercode, manufacturername) = i
-        manufacturercode = int(manufacturercode)
+        try:
+            manufacturercode = int(manufacturercode)
+        except ValueError:
+            continue
         bulkinserts.append((manufacturercode, manufacturername))
         if counter % 10000 == 0:
             print("Entries for manufacturer processed:", counter)
@@ -251,9 +254,12 @@ def main():
     bulkinserts = []
     for i in csvreader:
         (oscode, osname, osversion, manufacturercode) = i
-        oscode = int(oscode)
         osname = osname.strip()
-        manufacturercode = int(manufacturercode)
+        try:
+            oscode = int(oscode)
+            manufacturercode = int(manufacturercode)
+        except ValueError:
+            continue
         bulkinserts.append((oscode, osname, osversion, manufacturercode))
         if counter % 10000 == 0:
             print("Entries for OS processed:", counter)
@@ -296,8 +302,11 @@ def main():
     bulkinserts = []
     for i in csvreader:
         (productcode, productname, productversion, oscode, manufacturercode, language, applicationtype) = i
-        productcode = int(productcode)
-        manufacturercode = int(manufacturercode)
+        try:
+            productcode = int(productcode)
+            manufacturercode = int(manufacturercode)
+        except ValueError:
+            continue
         bulkinserts.append((productcode, productname, productversion, manufacturercode, applicationtype))
         if counter % 10000 == 0:
             print("Entries for products processed:", counter)
@@ -358,7 +367,10 @@ def main():
         (sha1, md5, crc32, filename, filesize, productcode, opsystemcode, specialcode) = i
         sha1 = sha1.lower()
         md5 = md5.lower()
-        productcode = int(productcode)
+        try:
+           productcode = int(productcode)
+        except ValueError:
+           continue
 
         # Ignore hashes that have already been seen. This is not entirely
         # correct as there are files with the same hashes but different names
