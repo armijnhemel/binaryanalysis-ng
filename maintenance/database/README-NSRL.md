@@ -73,6 +73,13 @@ for example:
 
     $ python3 nsrlimporter.py -c config.yaml -d /home/armijn/nsrl/modern/
 
+The data in the NSRL dumps is not guaranteed to be in a single encoding: in
+older versions of NSRL various encodings were found. By default the importer
+will try to convert the data to UTF-8, although this is not guaranteed to
+work. To disable this behaviour (NOT recommended) supply the '-t' flag:
+
+    $ python3 nsrlimporter.py -c /path/to/configuration/file -d /path/to/nsrl/directory -t
+
 4. After the first directory has been processed the indexes should be created to ensure data correctness:
 
     $ psql -U username < nsrl-index.sql
