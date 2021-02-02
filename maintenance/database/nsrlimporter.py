@@ -179,8 +179,6 @@ def main():
                             pass
                 offset += lastoffset
             decodedfile.close()
-
-    if args.decode:
         nsrlmfg = 'NSRLMfg.txt-translated'
         nsrlos = 'NSRLOS.txt-translated'
         nsrlprod = 'NSRLProd.txt-translated'
