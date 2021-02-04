@@ -13,7 +13,8 @@ let
     pillow
     psycopg2
     python-snappy
-    yaml
+    pyyaml
+    requests
     tinycss2
     tlsh
   ]);
