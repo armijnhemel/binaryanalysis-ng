@@ -36,6 +36,7 @@ pkgs.mkShell {
     qemu
     rzip
     squashfsTools
+    unshield
     utillinux
     zstd
   ];
