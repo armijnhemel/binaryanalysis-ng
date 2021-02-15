@@ -27,3 +27,8 @@ general:
     # directory where to find the data downloaded from
     # F-Droid by the F-Droid crawler
     storedirectory: /home/bang/fdroid
+
+    # temporary directory for unpacking APK files. By default
+    # this is /tmp or whatever is set as the default temporary
+    # directory on the system
+    #temporary_directory: /tmp
