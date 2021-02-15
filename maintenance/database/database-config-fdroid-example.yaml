@@ -21,8 +21,9 @@ database:
     # change this
     # postgresql_port: 5432
 general:
-    # directory for unpacking. By default this is /tmp
-    tempdir: /tmp
+    # directory for unpacking. By default this is /tmp or
+    # whatever the default set by the system is.
+    #tempdir: /tmp
 
     # directory where to find the data downloaded from
     # F-Droid by the F-Droid crawler
