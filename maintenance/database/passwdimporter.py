@@ -134,7 +134,7 @@ def main():
 
     for line in passwdfile:
         (hashed, plaintext) = line.strip().split(maxsplit=1)
-        dbcursor.execute("INSERT INTO password (hashed, plaintext) VALUES (%s, %s)", (hashed, plaintext))
+        dbcursor.execute("INSERT INTO password (hashed, plaintext) VALUES (%s, %s) ON CONFLICT DO NOTHING", (hashed, plaintext))
 
     # cleanup
     dbconnection.commit()
