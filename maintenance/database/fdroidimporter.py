@@ -196,6 +196,7 @@ def main():
     # information is identical for every package.
     application_counter = 0
     apk_counter = 0
+    total_files = 0
     for i in fdroidxml.getElementsByTagName('application'):
         application_id = ''
         application_license = ''
@@ -287,11 +288,21 @@ def main():
 
                 if apk_success:
                     apk_counter += 1
+                    total_files += len(apk_hashes)
                     if verbose:
                         print("Processing %d: %s" % (apk_counter, apkname))
                     # now add all hashes to the database
                     psycopg2.extras.execute_batch(dbcursor, "execute apk_insert(%s, %s, %s)", apk_hashes)
                     dbconnection.commit()
+
+    if verbose:
+        print()
+        if application_counter == 1:
+            print("Processed: 1 application")
+        else:
+            print("Processed: %d applications" % application_counter)
+        print("Processed: %d APK files" % apk_counter)
+        print("Processed: %d individual files" % total_files)
 
     # cleanup
     dbconnection.commit()
