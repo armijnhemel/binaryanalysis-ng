@@ -2,12 +2,14 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# This script processes data from the F-Droid project
-# and puts the relevant data in a database.
-#
 # Copyright 2021 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
+
+'''
+This script processes data crawled from the F-Droid repositories
+and puts the relevant data in a PostgreSQL database.
+'''
 
 import sys
 import os
@@ -29,6 +31,7 @@ import psycopg2.extras
 
 # import YAML module for the configuration
 from yaml import load
+from yaml import YAMLError
 try:
     from yaml import CLoader as Loader
 except ImportError:
@@ -57,7 +60,7 @@ def main():
     try:
         configfile = open(args.cfg, 'r')
         config = load(configfile, Loader=Loader)
-    except:
+    except (YAMLError, PermissionError):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
 
@@ -86,11 +89,11 @@ def main():
 
     # test the database connection
     try:
-        c = psycopg2.connect(database=postgresql_db, user=postgresql_user,
-                             password=postgresql_password,
-                             port=postgresql_port, host=postgresql_host)
-        c.close()
-    except Exception:
+        cursor = psycopg2.connect(database=postgresql_db, user=postgresql_user,
+                                  password=postgresql_password,
+                                  port=postgresql_port, host=postgresql_host)
+        cursor.close()
+    except psycopg2.Error:
         print("Database server not running or malconfigured, exiting.",
               file=sys.stderr)
         sys.exit(1)
@@ -129,7 +132,7 @@ def main():
                 try:
                     temp_name = tempfile.NamedTemporaryFile(dir=temporary_directory)
                     temp_name.close()
-                except Exception:
+                except:
                     temporary_directory = None
             else:
                 temporary_directory = None
@@ -213,7 +216,7 @@ def main():
                 if childnode.childNodes != []:
                     source_url = childnode.childNodes[0].data
             elif childnode.nodeName == 'license':
-                package_license = childnode.childNodes[0].data
+                application_license = childnode.childNodes[0].data
             elif childnode.nodeName == 'package':
                 # store files and hashes
                 apk_hashes = []
@@ -284,7 +287,8 @@ def main():
                                         continue
                                 apk_entry_hash = hashlib.new('sha256')
                                 apk_entry_hash.update(apk_entry.read_bytes())
-                                apk_hashes.append((apkname, str(apk_entry), apk_entry_hash.hexdigest()))
+                                apk_hashes.append((apkname, str(apk_entry),
+                                                   apk_entry_hash.hexdigest()))
                         os.chdir(old_dir)
 
                         # 4. clean up
