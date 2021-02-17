@@ -8,7 +8,9 @@ let
   my-python = pkgs.python3.withPackages (p: with p; [
     defusedxml
     dockerfile-parse
+    elasticsearch
     icalendar
+    kaitaistruct
     lz4
     pillow
     psycopg2
@@ -36,6 +38,7 @@ pkgs.mkShell {
     qemu
     rzip
     squashfsTools
+    unshield
     utillinux
     zstd
   ];
