@@ -179,7 +179,8 @@ def main():
                     'META-INF/com.google.android.material_material.version',
                     'META-INF/android.arch.*', 'META-INF/android.support.*',
                     'META-INF/buildserverid', 'META-INF/fdroidserverid',
-                    'META-INF/kotlinx-*.kotlin_module']
+                    'META-INF/kotlinx-*.kotlin_module',
+                    'META-INF/kotlin-*.kotlin_module']
 
     # filter for irrelevant directories that should not be stored in the
     # database as entries just eat space such as the various support
