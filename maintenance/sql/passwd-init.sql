@@ -1,1 +1,1 @@
-create table if not exists passwd(hashedpasswd text, plaintext text, primary key(hashedpasswd));
+create table if not exists password(hashed text, plaintext text, primary key(hashed));
