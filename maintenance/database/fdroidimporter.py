@@ -309,6 +309,11 @@ def main():
                     if verbose:
                         print("Processing %d: %s" % (apk_counter, apkname))
 
+        # insert meta information about the application
+        dbcursor.execute("INSERT INTO fdroid_application (identifier, source, license) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
+                         (application_id, source_url, application_license))
+        dbconnection.commit()
+
     if verbose:
         print()
         if application_counter == 1:
