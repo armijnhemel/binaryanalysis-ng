@@ -222,9 +222,9 @@ def main():
                     if packagenode.nodeName == 'srcname':
                         srcname = packagenode.childNodes[0].data
                     elif packagenode.nodeName == 'hash':
-                        apkhash = packagenode.childNodes[0].data
+                        apk_hash = packagenode.childNodes[0].data
                     elif packagenode.nodeName == 'version':
-                        apkversion = packagenode.childNodes[0].data
+                        apk_version = packagenode.childNodes[0].data
                     elif packagenode.nodeName == 'apkname':
                         apkname = packagenode.childNodes[0].data
                         apkfile = store_directory / 'binary' / apkname
@@ -291,13 +291,19 @@ def main():
                         shutil.rmtree(tempdir)
 
                 if apk_success:
+                    # insert meta information about the APK
+                    dbcursor.execute("INSERT INTO fdroid_package (identifier, version, apkname, sha256, srcpackage) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+                                     (application_id, apk_version, apkname, apk_hash, srcname))
+                    dbconnection.commit()
+
+                    # insert contents of all the files in the APK
+                    psycopg2.extras.execute_batch(dbcursor, "execute apk_insert(%s, %s, %s)", apk_hashes)
+                    dbconnection.commit()
+
                     apk_counter += 1
                     total_files += len(apk_hashes)
                     if verbose:
                         print("Processing %d: %s" % (apk_counter, apkname))
-                    # now add all hashes to the database
-                    psycopg2.extras.execute_batch(dbcursor, "execute apk_insert(%s, %s, %s)", apk_hashes)
-                    dbconnection.commit()
 
     if verbose:
         print()
