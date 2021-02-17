@@ -9,6 +9,7 @@ let
     defusedxml
     dockerfile-parse
     icalendar
+    kaitaistruct
     lz4
     pillow
     psycopg2
