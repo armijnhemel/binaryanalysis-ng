@@ -5,7 +5,6 @@
 # Copyright 2018-2020 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
-#
 
 '''
 Script to crawl the release ls-lR.gz from Debian (or derivates) and store
