@@ -28,3 +28,4 @@ general:
     # directory where to find the data downloaded from
     # F-Droid by the F-Droid crawler
     storedirectory: /home/armijn/fdroid
+    verbose: true
