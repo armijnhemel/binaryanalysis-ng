@@ -136,6 +136,26 @@ def main():
         else:
             temporary_directory = None
 
+    meta_files_filter = []
+    dir_filter = []
+
+    # filter for irrelevant files in META-INF that should not be stored
+    # in the database as entries just eat space such as the various
+    # support libraries, F-Droid support files, etc.
+    meta_files_filter = ['META-INF/androidx.*.version',
+                    'META-INF/com.android.support_*',
+                    'META-INF/com.google.android.material_material.version',
+                    'META-INF/android.arch.*', 'META-INF/android.support.*',
+                    'META-INF/buildserverid', 'META-INF/fdroidserverid',
+                    'META-INF/kotlinx-*.kotlin_module',
+                    'META-INF/kotlin-*.kotlin_module']
+
+    # filter for irrelevant directories that should not be stored in the
+    # database as entries just eat space such as the various support
+    # libraries, time zone files, F-Droid support files, etc.
+    dir_filter = ['zoneinfo/', 'zoneinfo-global/',
+                  'org/joda/time/', 'kotlin/', 'kotlinx/']
+
     # get the latest XML file that was downloaded and process it
     # format is index.xml-%Y%m%d-%H%M%S
     xml_files = store_directory.glob('xml/index.xml-*')
@@ -170,23 +190,6 @@ def main():
                                     port=postgresql_port,
                                     host=postgresql_host)
     dbcursor = dbconnection.cursor()
-
-    # filter for irrelevant files that should not be stored in the
-    # database as entries just eat space such as the various support
-    # libraries, F-Droid support files, etc.
-    meta_files_filter = ['META-INF/androidx.*.version',
-                    'META-INF/com.android.support_*',
-                    'META-INF/com.google.android.material_material.version',
-                    'META-INF/android.arch.*', 'META-INF/android.support.*',
-                    'META-INF/buildserverid', 'META-INF/fdroidserverid',
-                    'META-INF/kotlinx-*.kotlin_module',
-                    'META-INF/kotlin-*.kotlin_module']
-
-    # filter for irrelevant directories that should not be stored in the
-    # database as entries just eat space such as the various support
-    # libraries, time zone files, F-Droid support files, etc.
-    dir_filter = ['zoneinfo/', 'zoneinfo-global/',
-                  'org/joda/time/', 'kotlin/', 'kotlinx/']
 
     # create a prepared statement
     preparedmfg = "PREPARE apk_insert as INSERT INTO apk_contents (apkname, filename, sha256) values ($1, $2, $3) ON CONFLICT DO NOTHING"
