@@ -28,3 +28,6 @@ general:
     # directory where to find the data downloaded from
     # F-Droid by the F-Droid crawler
     storedirectory: /home/bang/fdroid
+
+    # setting for printing debugging output. By default: false
+    verbose: false
