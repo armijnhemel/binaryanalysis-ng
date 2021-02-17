@@ -8,6 +8,7 @@ let
   my-python = pkgs.python3.withPackages (p: with p; [
     defusedxml
     dockerfile-parse
+    elasticsearch
     icalendar
     kaitaistruct
     lz4
