@@ -95,6 +95,11 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
+    verbose = False
+    if 'verbose' in config['general']:
+        if isinstance(config['general']['verbose'], bool):
+            verbose = config['general']['verbose']
+
     if 'storedirectory' not in config['general']:
         print("F-Droid store directory not defined, exiting", file=sys.stderr)
         sys.exit(1)
@@ -182,16 +187,23 @@ def main():
     dir_filter = ['zoneinfo/', 'zoneinfo-global/',
                   'org/joda/time/', 'kotlin/', 'kotlinx/']
 
+    # create a prepared statement
+    preparedmfg = "PREPARE apk_insert as INSERT INTO apk_contents (apkname, filename, sha256) values ($1, $2, $3) ON CONFLICT DO NOTHING"
+    dbcursor.execute(preparedmfg)
+
     # Process the XML. Each application can have several
     # packages (versions) associated with it. The application
     # information is identical for every package.
+    application_counter = 0
+    apk_counter = 0
     for i in fdroidxml.getElementsByTagName('application'):
         application_id = ''
         application_license = ''
         source_url = ''
         for childnode in i.childNodes:
             if childnode.nodeName == 'id':
-                package_id = childnode.childNodes[0].data
+                application_id = childnode.childNodes[0].data
+                application_counter += 1
             elif childnode.nodeName == 'source':
                 if childnode.childNodes != []:
                     source_url = childnode.childNodes[0].data
@@ -200,20 +212,25 @@ def main():
             elif childnode.nodeName == 'package':
                 # store files and hashes
                 apk_hashes = []
+                apk_success = True
                 for packagenode in childnode.childNodes:
                     if packagenode.nodeName == 'srcname':
-                        pass
+                        srcname = packagenode.childNodes[0].data
                     elif packagenode.nodeName == 'hash':
                         apkhash = packagenode.childNodes[0].data
+                    elif packagenode.nodeName == 'version':
+                        apkversion = packagenode.childNodes[0].data
                     elif packagenode.nodeName == 'apkname':
                         apkname = packagenode.childNodes[0].data
                         apkfile = store_directory / 'binary' / apkname
                         # verify if the APK actually has been downloaded
                         if not apkfile.exists():
-                            continue
+                            apk_success = False
+                            break
                         # verify if the APK is a valid zip file
                         if not zipfile.is_zipfile(apkfile):
-                            continue
+                            apk_success = False
+                            break
 
                         apk_zip = zipfile.ZipFile(apkfile)
                         # scan the contents of the APK
@@ -225,7 +242,8 @@ def main():
                             apk_zip.extractall(path=tempdir)
                         except zipfile.BadZipFile:
                             shutil.rmtree(tempdir)
-                            continue
+                            apk_success = False
+                            break
 
                         # 3. hash the contents of each file
                         old_dir = os.getcwd()
@@ -245,27 +263,35 @@ def main():
 
                                 # filter irrelevant directories
                                 filter_matched = False
-                                for ff in dir_filter:
-                                    if apk_entry.is_relative_to(ff):
+                                for file_filter in dir_filter:
+                                    if apk_entry.is_relative_to(file_filter):
                                         filter_matched = True
                                         break
                                 if filter_matched:
                                     continue
                                 # filter irrelevant files
                                 if apk_entry.is_relative_to('META-INF'):
-                                    for ff in meta_files_filter:
-                                        if apk_entry.match(ff):
+                                    for file_filter in meta_files_filter:
+                                        if apk_entry.match(file_filter):
                                             filter_matched = True
                                             break
                                     if filter_matched:
                                         continue
                                 apk_entry_hash = hashlib.new('sha256')
                                 apk_entry_hash.update(apk_entry.read_bytes())
-                                apk_hashes.append((apk_entry, apk_entry_hash.hexdigest()))
+                                apk_hashes.append((apkname, str(apk_entry), apk_entry_hash.hexdigest()))
                         os.chdir(old_dir)
 
                         # 4. clean up
                         shutil.rmtree(tempdir)
+
+                if apk_success:
+                    apk_counter += 1
+                    if verbose:
+                        print("Processing %d: %s" % (apk_counter, apkname))
+                    # now add all hashes to the database
+                    psycopg2.extras.execute_batch(dbcursor, "execute apk_insert(%s, %s, %s)", apk_hashes)
+                    dbconnection.commit()
 
     # cleanup
     dbconnection.commit()
