@@ -5,17 +5,19 @@
 # Copyright 2018-2021 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
-#
-# Crawls the release XML from F-Droid and stores files and metadata
-# from the XML.
-#
-# The XML release format is described at:
-#
-# https://f-droid.org/en/docs/Build_Metadata_Reference/
-#
-# and in the XML file itself:
-#
-# https://f-droid.org/repo/index.xml
+
+'''
+Crawls the release XML from F-Droid and stores files and metadata
+from the XML on disk.
+
+The XML release format is described at:
+
+https://f-droid.org/en/docs/Build_Metadata_Reference/
+
+and in the XML file itself:
+
+https://f-droid.org/repo/index.xml
+'''
 
 import sys
 import os
