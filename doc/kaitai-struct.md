@@ -26,12 +26,15 @@ See http://doc.kaitai.io/developers.html for more details. In my case, I cloned 
 
 During the build, the Scala build tool caches information in `~/.sbt`. If you try to build kaitai-struct-compiler again with another version of sbt or scala, you may run into problems. By removing the `~/.sbt` directory and rebuilding, I managed to build the program.
 
+
 After installing sbt, move to the compiler repository and run sbt:
 
 ```
 cd ~/kaitai_struct/compiler
 sbt compilerJVM/universal:packageBin
 ```
+
+In case the version of sbt is different from the declared version in `project/build.properties` you might want to change the version in `project/build.properties` (for example: 1.4.3 vs 1.4.7).
 
 If the build succeeds, you can find a zip archive of the kaitai-struct compiler in `jvm/target/universal/`. In my case, this is `jvm/target/universal/kaitai-struct-compiler-0.9-SNAPSHOT.zip`.
 
