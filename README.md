@@ -51,7 +51,7 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 
 ## Unsupported distributions
 
-* Fedora 28 and earlier
+* Fedora 31 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
 ## Docker container
