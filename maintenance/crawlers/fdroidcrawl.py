@@ -56,6 +56,21 @@ def downloadfile(downloadqueue, failqueue, mirror, verbose):
     mirror_url = "%s/repo" % mirror
     while True:
         (fdroidfile, store_directory, filehash) = downloadqueue.get()
+
+        resultfilename = os.path.join(store_directory, fdroidfile)
+
+        # don't redownload if the file has already been
+        # downloaded and has the correct file hash
+        if os.path.exists(resultfilename):
+            apk_hash = hashlib.new('sha256')
+            resultfile = open(resultfilename, 'rb')
+            apk_hash.update(resultfile.read())
+            resultfile.close()
+            apk_hash = apk_hash.hexdigest()
+            if apk_hash == filehash:
+                downloadqueue.task_done()
+                continue
+
         try:
             req = requests.get('%s/%s' % (mirror_url, fdroidfile))
         except requests.exceptions.RequestException:
@@ -71,7 +86,6 @@ def downloadfile(downloadqueue, failqueue, mirror, verbose):
             continue
 
         # write the downloaded data to a file
-        resultfilename = os.path.join(store_directory, fdroidfile)
         resultfile = open(resultfilename, 'wb')
         resultfile.write(req.content)
         resultfile.close()
