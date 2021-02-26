@@ -54,7 +54,6 @@ def downloadfile(downloadqueue, failqueue, mirror, verbose):
     while True:
         (fdroidfile, store_directory, filehash) = downloadqueue.get()
         try:
-            #req = requests.get('https://f-droid.org/repo/%s' % fdroidfile)
             req = requests.get('%s/%s' % (mirror_url, fdroidfile))
         except requests.exceptions.RequestException:
             failqueue.put(fdroidfile)
