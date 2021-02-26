@@ -17,6 +17,9 @@ https://f-droid.org/en/docs/Build_Metadata_Reference/
 and in the XML file itself:
 
 https://f-droid.org/repo/index.xml
+
+Note: this script only crawls the "repo/" part of F-Droid, not the
+older "archive/" part!
 '''
 
 import sys
@@ -53,10 +56,28 @@ def downloadfile(downloadqueue, failqueue, mirror, verbose):
     mirror_url = "%s/repo" % mirror
     while True:
         (fdroidfile, store_directory, filehash) = downloadqueue.get()
+
+        resultfilename = os.path.join(store_directory, fdroidfile)
+
+        # don't redownload if the file has already been
+        # downloaded and has the correct file hash
+        if os.path.exists(resultfilename):
+            apk_hash = hashlib.new('sha256')
+            resultfile = open(resultfilename, 'rb')
+            apk_hash.update(resultfile.read())
+            resultfile.close()
+            apk_hash = apk_hash.hexdigest()
+            if apk_hash == filehash:
+                downloadqueue.task_done()
+                continue
+
         try:
-            #req = requests.get('https://f-droid.org/repo/%s' % fdroidfile)
+            if verbose:
+                print("Attempting to download %s" % fdroidfile)
             req = requests.get('%s/%s' % (mirror_url, fdroidfile))
         except requests.exceptions.RequestException:
+            if verbose:
+                print("Failed to download %s" % fdroidfile)
             failqueue.put(fdroidfile)
             downloadqueue.task_done()
             continue
@@ -64,12 +85,13 @@ def downloadfile(downloadqueue, failqueue, mirror, verbose):
         if req.status_code != 200:
             # HTTP status code is not 'OK',
             # so continue with the next file
+            if verbose:
+                print("Failed to download %s" % fdroidfile)
             failqueue.put(fdroidfile)
             downloadqueue.task_done()
             continue
 
         # write the downloaded data to a file
-        resultfilename = os.path.join(store_directory, fdroidfile)
         resultfile = open(resultfilename, 'wb')
         resultfile.write(req.content)
         resultfile.close()
@@ -78,6 +100,8 @@ def downloadfile(downloadqueue, failqueue, mirror, verbose):
             fdroid_hash = hashlib.new('sha256')
             fdroid_hash.update(req.content)
             if filehash != fdroid_hash.hexdigest():
+                if verbose:
+                    print("Failed to download %s" % fdroidfile)
                 os.unlink(resultfilename)
                 failqueue.put(fdroidfile)
                 downloadqueue.task_done()

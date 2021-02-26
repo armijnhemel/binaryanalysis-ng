@@ -6,8 +6,8 @@ config:
         # Has to be positive, 0 means "use all threads"
         threads: 1
         # Setting for verbosity. By default the program does not run in
-        # verbose mode. Change to 'true' to enable more verbose logging
-        # and reporting.
+        # verbose mode. Change to 'true' to enable more verbose reporting
+        # on stdout. This will NOT affect logging to the logfile.
         verbose: false
         # A directory to store the files downloaded from the various
         # Debian(-based) repositories.
