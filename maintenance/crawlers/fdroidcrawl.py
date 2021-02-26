@@ -17,6 +17,9 @@ https://f-droid.org/en/docs/Build_Metadata_Reference/
 and in the XML file itself:
 
 https://f-droid.org/repo/index.xml
+
+Note: this script only crawls the "repo/" part of F-Droid, not the
+older "archive/" part!
 '''
 
 import sys
