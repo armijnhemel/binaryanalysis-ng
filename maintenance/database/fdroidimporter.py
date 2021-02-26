@@ -195,7 +195,7 @@ def main():
     dbcursor = dbconnection.cursor()
 
     # create a prepared statement
-    preparedmfg = "PREPARE apk_insert as INSERT INTO apk_contents (apkname, filename, sha256) values ($1, $2, $3) ON CONFLICT DO NOTHING"
+    preparedmfg = "PREPARE apk_insert as INSERT INTO apk_contents (apkname, fullfilename, filename, sha256) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedmfg)
 
     # Process the XML. Each application can have several
@@ -287,7 +287,7 @@ def main():
                                         continue
                                 apk_entry_hash = hashlib.new('sha256')
                                 apk_entry_hash.update(apk_entry.read_bytes())
-                                apk_hashes.append((apkname, str(apk_entry),
+                                apk_hashes.append((apkname, str(apk_entry), apk_entry.name,
                                                    apk_entry_hash.hexdigest()))
                         os.chdir(old_dir)
 
@@ -301,7 +301,7 @@ def main():
                     dbconnection.commit()
 
                     # insert contents of all the files in the APK
-                    psycopg2.extras.execute_batch(dbcursor, "execute apk_insert(%s, %s, %s)", apk_hashes)
+                    psycopg2.extras.execute_batch(dbcursor, "execute apk_insert(%s, %s, %s, %s)", apk_hashes)
                     dbconnection.commit()
 
                     apk_counter += 1
