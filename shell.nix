@@ -12,6 +12,7 @@ let
     icalendar
     kaitaistruct
     lz4
+    pefile
     pillow
     psycopg2
     python-snappy
