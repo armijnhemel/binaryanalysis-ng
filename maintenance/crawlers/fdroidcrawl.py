@@ -72,8 +72,12 @@ def downloadfile(downloadqueue, failqueue, mirror, verbose):
                 continue
 
         try:
+            if verbose:
+                print("Attempting to download %s" % fdroidfile)
             req = requests.get('%s/%s' % (mirror_url, fdroidfile))
         except requests.exceptions.RequestException:
+            if verbose:
+                print("Failed to download %s" % fdroidfile)
             failqueue.put(fdroidfile)
             downloadqueue.task_done()
             continue
@@ -81,6 +85,8 @@ def downloadfile(downloadqueue, failqueue, mirror, verbose):
         if req.status_code != 200:
             # HTTP status code is not 'OK',
             # so continue with the next file
+            if verbose:
+                print("Failed to download %s" % fdroidfile)
             failqueue.put(fdroidfile)
             downloadqueue.task_done()
             continue
@@ -94,6 +100,8 @@ def downloadfile(downloadqueue, failqueue, mirror, verbose):
             fdroid_hash = hashlib.new('sha256')
             fdroid_hash.update(req.content)
             if filehash != fdroid_hash.hexdigest():
+                if verbose:
+                    print("Failed to download %s" % fdroidfile)
                 os.unlink(resultfilename)
                 failqueue.put(fdroidfile)
                 downloadqueue.task_done()
