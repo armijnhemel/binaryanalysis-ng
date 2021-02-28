@@ -726,7 +726,7 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
                                 if signatureword == b'ST':
                                     # terminator (IEEE P1281, 5.4)
                                     break
-                                elif signatureword == b'RR':
+                                if signatureword == b'RR':
                                     # this signature word is obsolete
                                     # but still frequently used to
                                     # indicate that RockRidge is used
