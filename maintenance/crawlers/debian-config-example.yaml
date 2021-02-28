@@ -22,6 +22,10 @@ config:
         storedirectory: /home/debian/debian
     repositories:
         debian:
+            # a human readable description. This is not used in the script
+            # itself, merely descriptive.
+            description: Official Debian
+
             # a full HTTP address to the top level directory of a Debian mirror
             # where the ls-lR.gz file can be found
             # mirror: http://ftp.gnome.org/pub/debian/
@@ -36,7 +40,7 @@ config:
             #
             # The default is:
             # dsc,source,patch,binary,dev
-            categories: [dsc,source,patch,binary,dev]
+            categories: [dsc, source, patch, binary, dev]
 
             # directories which should be crawled.
             # For standard Debian these are:
@@ -46,7 +50,7 @@ config:
             # - contrib
             #
             # but can be different for Debian derivates
-            directories: [main,non-free,contrib]
+            directories: [main, non-free, contrib]
 
             # comma separated list of architectures for which files should
             # be downloaded.
@@ -72,10 +76,11 @@ config:
             architectures: [all, i386, amd64, arm64, armhf]
 
             # check whether or not the repository has been disabled
-            enabled: True
+            enabled: true
         ubuntu:
+            description: Official Ubuntu
             mirror: http://ftp.nluug.nl/pub/os/Linux/distr/ubuntu/
             categories: [binary]
             directories: [main, universe]
             architectures: [amd64]
-            enabled: False
+            enabled: false
