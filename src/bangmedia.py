@@ -640,7 +640,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
             endoffilereached = True
             unpackedsize += 4
             break
-        elif chunktype == 'IDAT':
+        if chunktype == 'IDAT':
             # a valid PNG file has to have a IDAT section
             idatseen = True
         unpackedsize += 4
@@ -2151,9 +2151,8 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
                                           'fatal': False,
                                           'reason': 'invalid value for start of scan'}
                         return {'status': False, 'error': unpackingerror}
-                    else:
-                        eofseen = True
-                        continue
+                    eofseen = True
+                    continue
 
             # now read the image data in chunks to search for
             # JPEG markers (section B.1.1.2)

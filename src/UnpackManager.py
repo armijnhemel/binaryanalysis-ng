@@ -86,7 +86,6 @@ class UnpackManager:
         while True:
             dirname = "%s-%#010x-%s-%d" % (relpath, offset, filetype, seqnr)
             try:
-                
                 os.mkdir(os.path.join(self.unpackroot, dirname))
                 self.dataunpackdirectory = pathlib.Path(dirname)
                 break

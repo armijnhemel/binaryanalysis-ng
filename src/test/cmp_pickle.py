@@ -3,10 +3,11 @@
 # cmp_pickle.py file1.pickle file2.pickle
 #
 
-from deepdiff import DeepDiff
 import pickle
 import sys
 import re
+
+from deepdiff import DeepDiff
 
 def report(ddiff):
     for k,v in ddiff.items():
@@ -47,4 +48,3 @@ p2 = setify_labels(p2)
 ddiff = DeepDiff(p1.get('scantree'), p2.get('scantree'))
 
 report(ddiff)
-
