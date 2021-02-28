@@ -22,6 +22,10 @@ config:
         storedirectory: /home/debian/debian
     repositories:
         debian:
+            # a human readable description. This is not used in the script
+            # itself, merely descriptive.
+            description: Official Debian
+
             # a full HTTP address to the top level directory of a Debian mirror
             # where the ls-lR.gz file can be found
             # mirror: http://ftp.gnome.org/pub/debian/
@@ -74,6 +78,7 @@ config:
             # check whether or not the repository has been disabled
             enabled: true
         ubuntu:
+            description: Official Ubuntu
             mirror: http://ftp.nluug.nl/pub/os/Linux/distr/ubuntu/
             categories: [binary]
             directories: [main, universe]
