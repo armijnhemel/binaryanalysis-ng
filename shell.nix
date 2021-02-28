@@ -6,15 +6,18 @@ let
   pkgs = import sources.nixpkgs { config = {}; overlays = []; };
 
   my-python = pkgs.python3.withPackages (p: with p; [
+    deepdiff
     defusedxml
     dockerfile-parse
     elasticsearch
     icalendar
     kaitaistruct
     lz4
+    parameterized
     pefile
     pillow
     psycopg2
+    pytest
     python-snappy
     pyyaml
     requests
