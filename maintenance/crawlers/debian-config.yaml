@@ -7,13 +7,13 @@ config:
     repositories:
         debian:
             mirror: http://ftp.nluug.nl/pub/os/Linux/distr/debian/
-            # categories: [dsc,source,patch,binary,dev]
+            # categories: [dsc, source, patch, binary, dev]
             categories: [binary]
-            # directories: [main,non-free,contrib]
+            # directories: [main, non-free, contrib]
             directories: [main]
             # architectures: [all, i386, amd64, arm64, armhf]
             architectures: [amd64]
-            enabled: False
+            enabled: false
         ubuntu:
             mirror: http://ftp.nluug.nl/pub/os/Linux/distr/ubuntu/
             categories: [binary]

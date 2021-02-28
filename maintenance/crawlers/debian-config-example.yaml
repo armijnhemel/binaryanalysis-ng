@@ -36,7 +36,7 @@ config:
             #
             # The default is:
             # dsc,source,patch,binary,dev
-            categories: [dsc,source,patch,binary,dev]
+            categories: [dsc, source, patch, binary, dev]
 
             # directories which should be crawled.
             # For standard Debian these are:
@@ -46,7 +46,7 @@ config:
             # - contrib
             #
             # but can be different for Debian derivates
-            directories: [main,non-free,contrib]
+            directories: [main, non-free, contrib]
 
             # comma separated list of architectures for which files should
             # be downloaded.
@@ -72,10 +72,10 @@ config:
             architectures: [all, i386, amd64, arm64, armhf]
 
             # check whether or not the repository has been disabled
-            enabled: True
+            enabled: true
         ubuntu:
             mirror: http://ftp.nluug.nl/pub/os/Linux/distr/ubuntu/
             categories: [binary]
             directories: [main, universe]
             architectures: [amd64]
-            enabled: False
+            enabled: false
