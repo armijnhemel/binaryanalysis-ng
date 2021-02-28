@@ -23,7 +23,7 @@ database:
 general:
     # directory for unpacking. By default this is /tmp or
     # whatever the default set by the system is.
-    #tempdir: /tmp
+    # tempdir: /tmp
 
     # directory where to find the data downloaded from
     # F-Droid by the F-Droid crawler
