@@ -66,7 +66,7 @@ from reporter.jsonreport import *
 from reporter.humanreadablereport import *
 
 # ugly hack to work around import issues on Fedora 33
-if 'elasticsearch' not in sys.modules:
+if 'elasticsearch' in sys.modules:
     from reporter.elasticsearchreport import *
 
 from FileContentsComputer import *
