@@ -32,6 +32,7 @@ pkgs.mkShell {
     binutils
     cabextract
     e2tools
+    innoextract
     libxml2
     lz4
     lzop
