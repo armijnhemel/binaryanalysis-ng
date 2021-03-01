@@ -193,7 +193,13 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
                              cwd=squashfsunpackdirectory)
     (outputmsg, errormsg) = p.communicate()
 
-    if p.returncode != 0:
+    # check if there was an error and retry with another tool
+    # unless it is a non-fatal error because a character
+    # or block device could not be created. The exit code
+    # for this error was changed in squashfs-tools 4.4.
+    # This ugly hack should work.
+    # See: https://github.com/armijnhemel/binaryanalysis-ng/issues/61
+    if p.returncode != 0 and not b'because you\'re not superuser!' in errormsg:
         shutil.rmtree(squashfsunpackdirectory)
         if usesasquatch:
             # retry with sasquatch, using 1 thread
