@@ -2069,6 +2069,12 @@ def unpack_ext2(fileresult, scanenvironment, offset, unpackdir):
             return {'status': False, 'error': unpackingerror}
         dirlisting = outputmsg.rstrip().split(b'\n')
 
+        # socket, symbolic link, regular, block device, directory
+        # charactter device, FIFO/pipe
+        octals = [('s', 0o140000), ('l', 0o120000), ('-', 0o100000),
+                  ('b', 0o60000), ('d', 0o40000), ('c', 0o10000),
+                  ('p', 0o20000)]
+
         # create the unpacking directory
         os.makedirs(unpackdir_full, exist_ok=True)
         for d in dirlisting:
@@ -2081,7 +2087,26 @@ def unpack_ext2(fileresult, scanenvironment, offset, unpackdir):
                                   'reason': 'not enough data in directory entry'}
                 return {'status': False, 'error': unpackingerror}
             (inode, filemode, userid, groupid, size, filedate, filetime, ext2name) = re.split(b'\s+', d.strip(), 7)
-            filemode = int(filemode, base=8)
+            try:
+                filemode = int(filemode, base=8)
+            except ValueError:
+                # newer versions of e2tools (starting 0.1.0) pretty print
+                # the file mode instead of printing a number so recreate it
+                if len(filemode) != 10:
+                     unpackingerror = {'offset': offset, 'fatal': False,
+                                       'reason': 'e2ls error'}
+                     return {'status': False, 'error': unpackingerror}
+
+                # instantiate the file mode and look at the first character
+                # as that is the only one used during checks.
+                filemode = filemode.decode()
+                new_filemode = 0
+                for fm in octals:
+                    if filemode[0] == fm[0]:
+                        new_filemode = fm[1]
+                        break
+
+                filemode = new_filemode
 
             dataunpacked = True
 
