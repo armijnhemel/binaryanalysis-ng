@@ -4,6 +4,7 @@ from . import vfat
 from . import vfat_directory
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
+from kaitaistruct import ValidationNotEqualError
 
 def get_lfn_part(record):
     # note: because python lacks a ucs-2 decoder, we use utf-16. In almost all
@@ -31,8 +32,8 @@ class VfatUnpackParser(UnpackParser):
 
     def parse(self):
         try:
-                self.data = vfat.Vfat.from_io(self.infile)
-        except Exception as e:
+            self.data = vfat.Vfat.from_io(self.infile)
+        except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
         bpb = self.data.boot_sector.bpb
         check_condition(bpb.ls_per_clus > 0, "invalid bpb value: ls_per_clus")
