@@ -11,9 +11,9 @@ class IcoUnpackParser(UnpackParser):
     ]
     def parse(self):
         try:
-                self.data = ico.Ico.from_io(self.infile)
+            self.data = ico.Ico.from_io(self.infile)
         except Exception as e:
-                raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args)
         check_condition(self.data.num_images > 0,
                 "Invalid ico file: not enough images")
         for img in self.data.images:
@@ -43,4 +43,3 @@ class IcoUnpackParser(UnpackParser):
         """sets metadata and labels for the unpackresults"""
         self.unpack_results['labels'] = ['graphics','ico','resource']
         self.unpack_results['metadata'] = {}
-
