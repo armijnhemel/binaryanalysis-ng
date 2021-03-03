@@ -124,7 +124,12 @@ class BangScannerOptions:
 
     def _read_configuration_file(self):
         # read the configuration file. This is in Windows INI format.
-        self.config = configparser.ConfigParser(os.environ)
+        environ = os.environ
+        try:
+            del environ['SHELL']
+        except KeyError:
+            pass
+        self.config = configparser.ConfigParser(environ)
         try:
             configfile = open(self.args.cfg, 'r')
             self.config.read_file(configfile)
