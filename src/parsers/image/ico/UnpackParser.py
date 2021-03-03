@@ -2,6 +2,7 @@ import os
 from . import ico
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
+from kaitaistruct import ValidationNotEqualError
 
 class IcoUnpackParser(UnpackParser):
     pretty_name = 'ico'
@@ -12,7 +13,7 @@ class IcoUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = ico.Ico.from_io(self.infile)
-        except Exception as e:
+        except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.num_images > 0,
                 "Invalid ico file: not enough images")

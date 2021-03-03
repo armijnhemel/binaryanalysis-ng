@@ -1,8 +1,8 @@
-
 import os
 from . import gif
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
+from kaitaistruct import ValidationNotEqualError
 
 class GifUnpackParser(UnpackParser):
     extensions = ['.gif']
@@ -15,7 +15,7 @@ class GifUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = gif.Gif.from_io(self.infile)
-        except Exception as e:
+        except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.logical_screen_descriptor.screen_width > 0,
                 "invalid width")
@@ -40,5 +40,3 @@ class GifUnpackParser(UnpackParser):
             }
         self.unpack_results['labels'] = [ 'gif', 'graphics' ]
         # TODO: animated
-
-
