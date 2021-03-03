@@ -1,5 +1,9 @@
 meta:
   id: gimp_brush
+  title: GIMP (GNU Image Manipulation Program) brush version 2 file
+  license: CC0-1.0
+  doc-ref: https://gitlab.gnome.org/GNOME/gimp/-/blob/master/devel-docs/gbr.txt
+  endian: be
 seq:
   - id: header_size
     type: u4be
