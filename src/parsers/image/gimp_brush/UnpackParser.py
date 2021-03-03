@@ -2,6 +2,7 @@
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
+from kaitaistruct import ValidationNotEqualError
 from . import gimp_brush
 
 import PIL.Image
@@ -36,11 +37,12 @@ class GimpBrushUnpackParser(UnpackParser):
             self.data = gimp_brush.GimpBrush.from_io(self.infile)
         except Exception as e:
             raise UnpackParserException(e.args)
+        except ValidationNotEqualError as e:
+            raise UnpackParserException(e.args)
         check_condition(self.data.width > 0, "Invalid width")
         check_condition(self.data.height > 0, "Invalid height")
         check_condition(self.data.color_depth > 0, "Invalid color depth")
         check_condition(self.data.header_size > 0, "Invalid header_size")
-
         unpacked_size = self.data.header_size + self.data.body_size
         check_condition(unpacked_size <= self.fileresult.filesize, "Not enough data")
         try:
