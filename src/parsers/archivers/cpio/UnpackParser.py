@@ -92,8 +92,6 @@ class CpioBaseUnpackParser(UnpackParser):
                 files_and_labels.append( (str(self.rel_unpack_dir / file_path), out_labels) )
             pos += e.header.bsize
         return files_and_labels
-    def set_metadata_and_labels(self):
-        return
 
 class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
     extensions = []
