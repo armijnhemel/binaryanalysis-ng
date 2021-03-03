@@ -4,19 +4,6 @@ from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import gimp_brush
 
-import PIL.Image
-
-'''
-class GimpBrushUnpackParserOld(WrappedUnpackParser):
-    extensions = []
-    signatures = [
-        (20, b'GIMP')
-    ]
-    pretty_name = 'gimpbrush'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_gimp_brush(fileresult, scan_environment, offset, unpack_dir)
-'''
 
 class GimpBrushUnpackParser(UnpackParser):
     extensions = ['.gbr']
