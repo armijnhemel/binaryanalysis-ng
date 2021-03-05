@@ -214,6 +214,7 @@ larger file, unless stated otherwise.
 131. YAFFS2 (including inband tags)
 132. Qualcomm QCDT files
 133. Chrome extensions (.crx)
+134. Windows shell link file (.lnk)
 
 
 ## Invocation
