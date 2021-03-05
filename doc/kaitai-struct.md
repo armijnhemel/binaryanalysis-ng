@@ -11,7 +11,7 @@ Basically it is a language to describe binary formats using a description file, 
 
 ## Installing the kaitai-struct compiler
 
-The easiest way to install the kaitai-struct compiler is to download a released zip file, as explained by the web site http://kaitai.io/#download (select your prefered installation format, such as `.deb` or `.zip`).
+The easiest way to install the kaitai-struct compiler is to download a released zip file, as explained by the web site http://kaitai.io/#download (select your prefered installation format, such as `.deb` or `.zip`). If you do this make sure to download version 0.9.
 
 Alternatively, you can build the compiler from scratch. This requires Scala and the Scala build tool. Note that you may need a recent version of sbt and download it from the sbt repository. You can find instructions for that on https://www.scala-sbt.org/download.html.
 Also note that the versions of the kaitai Python run-time's and the compiler must match, you may also need to reinstall the Python runtime.
