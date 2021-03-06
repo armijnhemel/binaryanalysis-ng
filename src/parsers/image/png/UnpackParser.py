@@ -59,6 +59,15 @@ class PngUnpackParser(WrappedUnpackParser):
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'png', 'graphics' ]
+        pngtexts = []
+
+        # tEXt contains key/value pairs with metadata about the PNG file.
+        # Multiple tEXt chunks are allowed.
+        if 'tEXt' in self.chunknames:
+            # section 11.3.4.3
+            for i in self.data.chunks:
+                if i.type == 'tEXt':
+                    pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
 
         # check if the PNG is animated.
         # https://wiki.mozilla.org/APNG_Specification
@@ -118,6 +127,7 @@ class PngUnpackParser(WrappedUnpackParser):
                 'width': self.data.ihdr.width,
                 'height': self.data.ihdr.height,
                 'depth': self.data.ihdr.bit_depth,
+                'text': pngtexts
                 # 'xmp': xmps
             }
 
