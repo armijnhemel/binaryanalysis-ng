@@ -156,6 +156,29 @@ class UnpackParserExtractEx1Fail(UnpackParser):
     extensions = ['.ex1']
     pass
 
+class UnpackParserExtractSig1(UnpackParser):
+    pretty_name = "sig1_extract"
+    extensions = []
+    signatures = [(2,b'AA')]
+    
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.fileresult.filesize
+    def parse(self):
+        pass
+    def _write_unpacked_file(self, fn):
+        outfile_full = self.scan_environment.unpack_path(self.rel_unpack_dir / pathlib.Path(fn))
+        with open(outfile_full,"wb") as f:
+            f.write(b"A"*40)
+    def unpack(self):
+        fns = ["sig1_first", "sig1_second" ]
+        for fn in fns:
+            self._write_unpacked_file(fn)
+        return [ FileResult(self.fileresult, self.rel_unpack_dir / pathlib.Path(fn), []) for fn in fns ]
+
+class UnpackParserExtractSig1Fail(UnpackParser):
+    pretty_name = "sig1_extract_fail"
+    extensions = []
+    signatures = [(2,b'AA')]
 
 
 

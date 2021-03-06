@@ -363,11 +363,10 @@ class ScanJob:
                     # file is a file that was verified (example: GIF or PNG)
                     # then there will not be an unpacking directory.
                     if unpackresult.get_unpacked_files() != []:
-                        report['unpackdirectory'] = \
-                            str(unpacker.get_data_unpack_directory())
+                        report['unpackdirectory'] = unpacker.get_data_unpack_directory()
 
                     for unpackedfile in unpackresult.get_unpacked_files():
-                        report['files'].append(str(unpackedfile.filename))
+                        report['files'].append(unpackedfile.filename)
                         j = ScanJob(unpackedfile)
                         self.scanenvironment.scanfilequeue.put(j)
 
@@ -492,7 +491,7 @@ class ScanJob:
                     'offset': carve_index,
                     'type': 'carved',
                     'size': u_low - carve_index,
-                    'files': [ str(outfile_rel) ],
+                    'files': [ outfile_rel ],
                 }
                 self.fileresult.add_unpackedfile(report)
 
@@ -597,7 +596,7 @@ class ScanJob:
                 unpacker.append_unpacked_range(0, unpackresult.get_length())
 
                 for unpackedfile in unpackresult.get_unpacked_files():
-                    report['files'].append(str(unpackedfile.filename))
+                    report['files'].append(unpackedfile.filename)
                     j = ScanJob(unpackedfile)
                     self.scanenvironment.scanfilequeue.put(j)
 

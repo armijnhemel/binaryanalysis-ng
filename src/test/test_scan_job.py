@@ -227,8 +227,8 @@ def test_report_has_correct_path(scan_environment):
     unpack_report = result1.unpackedfiles[0]
     fn_expected = pathlib.Path(fn.name+'-0x00000000-gzip-1') / 'hello'
 
-    assert unpack_report['unpackdirectory'] == str(fn_expected.parent)
-    assert unpack_report['files'] == [ str(fn_expected) ]
+    assert unpack_report['unpackdirectory'] == fn_expected.parent
+    assert unpack_report['files'] == [ fn_expected ]
 
 def test_file_is_unpacked_by_extension(scan_environment):
     fn = pathlib.Path("unpackers") / "gif" / "test.gif"
@@ -265,6 +265,8 @@ def test_file_unpack_extension_success(scan_environment):
     assertUnpackedPathExists(scan_environment, unpack_report['files'][0])
     assertUnpackedPathExists(scan_environment, unpack_report['files'][1])
 
+# TODO: should the extension unpacking carve this, or shall we add any
+# remaining pieces as synthesized files?
 def test_file_unpack_extension_carve(scan_environment):
     fn = pathlib.Path("test.ex1")
     fileresult = create_tmp_fileresult(scan_environment.temporarydirectory / fn, b"A"*70)
@@ -325,6 +327,47 @@ def test_file_is_unpacked_by_signature(scan_environment):
     assert 'gif' not in fileresult.labels
     j = scan_environment.scanfilequeue.get()
     assert 'gif' in j.fileresult.labels
+
+
+def test_file_unpack_signature_success(scan_environment):
+    fn = pathlib.Path("test.sig1")
+    fileresult = create_tmp_fileresult(scan_environment.temporarydirectory / fn, b"A"*70)
+    scan_environment.set_unpackparsers([UnpackParserExtractSig1])
+    scanjob = ScanJob(fileresult)
+    scanjob.set_scanenvironment(scan_environment)
+    scanjob.initialize()
+    unpack_manager = UnpackManager(scan_environment.unpackdirectory)
+    scanjob.prepare_for_unpacking()
+    scanjob.check_for_signatures(unpack_manager)
+
+    unpack_report = fileresult.unpackedfiles[0]
+    assert len(unpack_report['files']) == 2
+    fn1 = unpack_manager.get_data_unpack_directory() / "sig1_first"
+    fn2 = unpack_manager.get_data_unpack_directory() / "sig1_second"
+    assert unpack_report['files'][0] == fn1
+    assert unpack_report['files'][1] == fn2
+    assertUnpackedPathExists(scan_environment, unpack_report['files'][0])
+    assertUnpackedPathExists(scan_environment, unpack_report['files'][1])
+
+
+def test_file_unpack_signature_fail(scan_environment):
+    fn = pathlib.Path("test.sig1")
+    fileresult = create_tmp_fileresult(scan_environment.temporarydirectory / fn, b"A"*70)
+    scan_environment.set_unpackparsers([UnpackParserExtractSig1Fail])
+    scanjob = ScanJob(fileresult)
+    scanjob.set_scanenvironment(scan_environment)
+    scanjob.initialize()
+    unpack_manager = UnpackManager(scan_environment.unpackdirectory)
+    scanjob.prepare_for_unpacking()
+    scanjob.check_for_signatures(unpack_manager)
+
+    assertUnpackedPathDoesNotExist(scan_environment, unpack_manager.get_data_unpack_directory())
+
+    assert fileresult.unpackedfiles == []
+
+
+
+
 
 def test_carved_data_is_extracted_from_file(scan_environment):
     fn = pathlib.Path("unpackers") / "gif" / "test-prepend-random-data.gif"

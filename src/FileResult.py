@@ -25,6 +25,8 @@ import pathlib
 class FileResult:
     """Stores discovered information about a file.
     FileResult also contains all the information to start a scan job.
+
+    filename: the file's path (Path object).
     """
     def __init__(self, parent, rel_path, labels):
         """Constructor.
