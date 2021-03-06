@@ -5,7 +5,7 @@ COPY . /usr/src/bang/src
 WORKDIR /usr/src/bang/src
 RUN make
 
-FROM fedora:29
+FROM fedora:33
 
 
 RUN dnf update -y
