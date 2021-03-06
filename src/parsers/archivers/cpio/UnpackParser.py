@@ -1,4 +1,3 @@
-
 import os
 import stat
 import pathlib
@@ -8,6 +7,7 @@ from . import cpio_portable_ascii
 from . import cpio_old_binary
 from UnpackParser import UnpackParser
 from UnpackParserException import UnpackParserException
+from kaitaistruct import ValidationNotEqualError
 
 def rewrite_symlink(file_path, target_path):
     """rewrites a symlink of target_path, relative to file_path.
@@ -92,8 +92,6 @@ class CpioBaseUnpackParser(UnpackParser):
                 files_and_labels.append( (str(self.rel_unpack_dir / file_path), out_labels) )
             pos += e.header.bsize
         return files_and_labels
-    def set_metadata_and_labels(self):
-        return
 
 class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
     extensions = []
@@ -102,7 +100,7 @@ class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
                 self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
-        except Exception as e:
+        except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
 class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
@@ -113,7 +111,7 @@ class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
             self.data = cpio_new_crc.CpioNewCrc.from_io(self.infile)
-        except Exception as e:
+        except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
 class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
@@ -124,7 +122,7 @@ class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
             self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
-        except Exception as e:
+        except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
 class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
@@ -135,7 +133,5 @@ class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
             self.data = cpio_old_binary.CpioOldBinary.from_io(self.infile)
-        except Exception as e:
+        except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
-
-

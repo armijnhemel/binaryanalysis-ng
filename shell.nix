@@ -6,13 +6,22 @@ let
   pkgs = import sources.nixpkgs { config = {}; overlays = []; };
 
   my-python = pkgs.python3.withPackages (p: with p; [
+    deepdiff
     defusedxml
     dockerfile-parse
+    elasticsearch
     icalendar
+    kaitaistruct
     lz4
+    parameterized
+    pdfminer
+    pefile
     pillow
     psycopg2
+    pytest
     python-snappy
+    pyyaml
+    requests
     tinycss2
     tlsh
   ]);
@@ -23,6 +32,7 @@ pkgs.mkShell {
     binutils
     cabextract
     e2tools
+    innoextract
     libxml2
     lz4
     lzop
@@ -33,7 +43,9 @@ pkgs.mkShell {
     my-python
     qemu
     rzip
+    sbt
     squashfsTools
+    unshield
     utillinux
     zstd
   ];
