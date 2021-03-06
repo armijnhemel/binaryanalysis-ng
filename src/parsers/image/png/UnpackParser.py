@@ -1,7 +1,7 @@
 import os
+import binascii
 from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_png
-
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
@@ -24,13 +24,30 @@ class PngUnpackParser(WrappedUnpackParser):
             self.data = png.Png.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
+        check_condition(self.data.ihdr.bit_depth in [1, 2, 4, 8, 16],
+                "invalid bit depth")
         check_condition(self.data.ihdr.width > 0,
                 "invalid width")
         check_condition(self.data.ihdr.height > 0,
                 "invalid height")
+        check_condition(self.data.ihdr.filter_method == 0,
+                "invalid filter method")
+        check_condition(self.data.ihdr.interlace_method in [0, 1],
+                "invalid interlace method")
 
         for i in self.data.chunks:
+            # compute CRC32
+            computed_crc = binascii.crc32(i.type.encode('utf-8'))
+
+            # hack for text chunks, where 'body' is text and not bytes
+            try:
+                computed_crc = binascii.crc32(i._raw_body, computed_crc)
+            except:
+                computed_crc = binascii.crc32(i.body, computed_crc)
+            check_condition(computed_crc == int.from_bytes(i.crc, byteorder='big'),
+                    "invalid CRC")
             self.chunknames.add(i.type)
+
         check_condition('IDAT' in self.chunknames,
                         "IDAT section missing")
         check_condition('IEND' in self.chunknames,
@@ -99,7 +116,8 @@ class PngUnpackParser(WrappedUnpackParser):
 
         self.unpack_results['metadata'] = {
                 'width': self.data.ihdr.width,
-                'height': self.data.ihdr.height
+                'height': self.data.ihdr.height,
+                'depth': self.data.ihdr.bit_depth,
                 # 'xmp': xmps
             }
 
