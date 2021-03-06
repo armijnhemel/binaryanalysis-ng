@@ -245,6 +245,32 @@ def test_file_is_unpacked_by_extension(scan_environment):
     scanjob.check_for_valid_extension(unpacker)
     assert 'gif' in fileresult.labels
 
+def test_double_gif_file_increases_name_counter(scan_environment):
+    fn = pathlib.Path("unpackers") / "gif" / "double.gif"
+    fn_abs = testdata_dir / fn
+    # TODO: FileResult asks for relative path
+    fileresult = FileResult(None, fn_abs, set())
+    fileresult.set_filesize(fn_abs.stat().st_size)
+
+    scanjob = ScanJob(fileresult)
+    scan_environment.scanfilequeue.put(scanjob)
+    scan_environment.createjson = False
+    try:
+        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+    except QueueEmptyError:
+        pass
+    except ScanJobError as e:
+        if e.e.__class__ != QueueEmptyError:
+            raise e
+    result1 = scan_environment.resultqueue.get()
+    result2 = scan_environment.resultqueue.get()
+    result3 = scan_environment.resultqueue.get()
+    result_dir_nr2 = str(result3.filename.parent).split('-')[-1]
+    result_dir_nr3 = str(result3.filename.parent).split('-')[-1]
+    assert int(result_dir_nr2) == 1
+    assert int(result_dir_nr3) == 2
+
+
 def test_file_unpack_extension_success(scan_environment):
     fn = pathlib.Path("test.ex1")
     fileresult = create_tmp_fileresult(scan_environment.temporarydirectory / fn, b"A"*70)
