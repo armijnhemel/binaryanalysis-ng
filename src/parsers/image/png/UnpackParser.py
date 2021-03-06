@@ -62,19 +62,14 @@ class PngUnpackParser(WrappedUnpackParser):
         pngtexts = []
 
         # tEXt contains key/value pairs with metadata about the PNG file.
-        # Multiple tEXt chunks are allowed.
-        if 'tEXt' in self.chunknames:
-            # section 11.3.4.3
+        # section 11.3.4.3
+        # zTXt contains key/value pairs with metadata about the PNG file,
+        # zlib compressed. (section 11.3.4.4)
+        # Multiple tEXt and zTXt chunks are allowed.
+        if 'tEXt' in self.chunknames or 'zTXt' in self.chunknames:
             for i in self.data.chunks:
                 if i.type == 'tEXt':
                     pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
-
-        # zTXt contains key/value pairs with metadata about the PNG file,
-        # zlib compressed.
-        # Multiple zTXt chunks are allowed.
-        if 'zTXt' in self.chunknames:
-            # section 11.3.4.4
-            for i in self.data.chunks:
                 if i.type == 'zTXt':
                     pngtexts.append({'key': i.body.keyword, 'value': i.body.text_datastream})
 
