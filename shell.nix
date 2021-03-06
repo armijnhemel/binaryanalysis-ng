@@ -18,6 +18,7 @@ let
     pefile
     pillow
     psycopg2
+    py3exiv2
     pytest
     python-snappy
     pyyaml
