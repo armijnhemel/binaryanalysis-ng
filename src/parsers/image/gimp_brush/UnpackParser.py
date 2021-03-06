@@ -44,7 +44,7 @@ class GimpBrushUnpackParser(UnpackParser):
         unpacked_size = self.data.header_size + self.data.body_size
         check_condition(unpacked_size <= self.fileresult.filesize, "Not enough data")
         try:
-            self.infile.seek(self.offset)
+            self.infile.seek(0)
             testimg = GbrImageFile(self.infile)
             testimg.load()
         except BaseException as e:
