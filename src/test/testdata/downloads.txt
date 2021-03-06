@@ -3,4 +3,4 @@ dlcurl_gunzip https://pulpstone.pw/wp-content/uploads/download/openwrt/18.06.1/s
 dlcurl_gunzip https://tinyhack.com/agestar/initramfs.cpio.gz archivers/cpio/initramfs.cpio
 dlcurl_bunzip https://mirror.sfo12.us.leaseweb.net/opnsense/releases/18.1/OPNsense-18.1.6-OpenSSL-vga-amd64.img.bz2 filesystem/gpt_partition_table/OPNsense-18.1.6-OpenSSL-vga-amd64.img
 dlcurl https://raw.githubusercontent.com/alibaba/alikernel/236dec051078a8691950f56949612b4b74107e48/kernel/configs/tiny.config system/kernelconfig/tiny.config
-dlcurl http://distro.ibiblio.org/pub/linux/distributions/slitaz/sources/packages/d/doom1.wad games/wad/doom1.wad
+dlcurl http://distro.ibiblio.org/pub/linux/distributions/slitaz/sources/packages/d/doom1.wad games/doom_wad/doom1.wad
