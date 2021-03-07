@@ -62,7 +62,7 @@ SHA256: %s
             bytesscanned += l['size']
             if len(l['files']) != 0:
                 s += "Data unpacked at offset %d from %s:\n%s\n" % (
-                    l['offset'], l['type'], " ".join(sorted(l['files']))
+                    l['offset'], l['type'], " ".join(map(lambda x: str(x), sorted(l['files'])))
                     )
         return "Bytes identified: %d (%f %%)\n" % (bytesscanned, bytesscanned/self.scantree[fn]['filesize'] * 100) + s + "\n"
 
