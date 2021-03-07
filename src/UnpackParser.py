@@ -138,8 +138,6 @@ class UnpackParser:
         """Override this method to set metadata and labels."""
         self.unpack_results.set_labels([])
         self.unpack_results.set_metadata({})
-        # self.unpack_results['labels'] = []
-        # self.unpack_results['metadata'] = {}
     def unpack(self):
         """Override this method to unpack any data into subfiles.
         The filenames are relative to the unpack directory root that the
