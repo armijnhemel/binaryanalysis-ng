@@ -1,5 +1,6 @@
 import os
 import binascii
+import datetime
 import PIL.Image
 from PIL.ExifTags import TAGS as EXIF_TAGS
 from UnpackParser import WrappedUnpackParser
@@ -61,7 +62,24 @@ class PngUnpackParser(WrappedUnpackParser):
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'png', 'graphics' ]
+        metadata = {}
         pngtexts = []
+
+        # PNG files can have a tIME chunk. Officially only
+        # one chunk is allowed, but ignore that.
+        if 'tIME' in self.chunknames:
+            for i in self.data.chunks:
+                if i.type == 'tIME':
+                    pngyear = i.body.year
+                    pngmonth = i.body.month
+                    pngday = i.body.day
+                    pnghour = i.body.hour
+                    pngminute = i.body.minute
+                    pngsecond = i.body.second
+                    pngdate = datetime.datetime(pngyear, pngmonth, pngday, pnghour, pngminute, pngsecond)
+                    if 'time' not in metadata:
+                        metadata['time'] = []
+                    metadata['time'].append({'time': pngdate.isoformat()})
 
         # tEXt contains key/value pairs with metadata about the PNG file.
         # section 11.3.4.3
