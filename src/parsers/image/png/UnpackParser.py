@@ -10,7 +10,8 @@ from kaitaistruct import ValidationNotEqualError
 from . import png
 
 class PngUnpackParser(UnpackParser):
-    extensions = ['png']
+    #extensions = ['.png']
+    extensions = []
     signatures = [
         (0, b'\x89PNG\x0d\x0a\x1a\x0a')
     ]
