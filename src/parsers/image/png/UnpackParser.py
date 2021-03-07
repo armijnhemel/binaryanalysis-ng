@@ -67,19 +67,7 @@ class PngUnpackParser(WrappedUnpackParser):
         pngtexts = []
 
         for i in self.data.chunks:
-            if i.type == 'tIME':
-               # tIMe chunk, should be only one
-                pngyear = i.body.year
-                pngmonth = i.body.month
-                pngday = i.body.day
-                pnghour = i.body.hour
-                pngminute = i.body.minute
-                pngsecond = i.body.second
-                pngdate = datetime.datetime(pngyear, pngmonth, pngday, pnghour, pngminute, pngsecond)
-                if 'time' not in metadata:
-                    metadata['time'] = []
-                metadata['time'].append({'time': pngdate.isoformat()})
-            elif i.type == 'iTXt':
+            if i.type == 'iTXt':
                 # internationalized text
                 # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
                 # section 4.2.3.3
@@ -109,6 +97,18 @@ class PngUnpackParser(WrappedUnpackParser):
                 # section 11.3.4.3
                 # Multiple tEXt chunks are allowed.
                 pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
+            elif i.type == 'tIME':
+               # tIMe chunk, should be only one
+                pngyear = i.body.year
+                pngmonth = i.body.month
+                pngday = i.body.day
+                pnghour = i.body.hour
+                pngminute = i.body.minute
+                pngsecond = i.body.second
+                pngdate = datetime.datetime(pngyear, pngmonth, pngday, pnghour, pngminute, pngsecond)
+                if 'time' not in metadata:
+                    metadata['time'] = []
+                metadata['time'].append({'time': pngdate.isoformat()})
             elif i.type == 'zTXt':
                 # zTXt contains key/value pairs with metadata about the PNG file,
                 # zlib compressed. (section 11.3.4.4)
