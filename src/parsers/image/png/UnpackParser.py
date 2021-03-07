@@ -208,6 +208,5 @@ class PngUnpackParser(UnpackParser):
         metadata['text'] = pngtexts
         # TODO: xmp, exif
 
-        self.unpack_results['metadata'] = metadata
-
-        self.unpack_results['labels'] = labels
+        self.unpack_results.set_metadata(metadata)
+        self.unpack_results.set_labels(labels)
