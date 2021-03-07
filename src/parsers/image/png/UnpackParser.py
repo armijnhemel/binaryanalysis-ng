@@ -1,6 +1,7 @@
 import os
 import binascii
 import datetime
+import defusedxml.minidom
 import PIL.Image
 from PIL.ExifTags import TAGS as EXIF_TAGS
 from UnpackParser import WrappedUnpackParser
@@ -78,6 +79,31 @@ class PngUnpackParser(WrappedUnpackParser):
                 if 'time' not in metadata:
                     metadata['time'] = []
                 metadata['time'].append({'time': pngdate.isoformat()})
+            elif i.type == 'iTXt':
+                # internationalized text
+                # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
+                # section 4.2.3.3
+                if i.body.keyword == 'XML:com.adobe.xmp':
+                    # the XMP specification (part 3) recommends
+                    # using the iTXt chunk (section 1.1.5)
+                    # https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart3.pdf
+                    try:
+                        # XMP should be valid XML
+                        xmpdom = defusedxml.minidom.parseString(i.body.text)
+                        hasxmp = True
+                        if 'xmp' not in metadata:
+                            metadata['xmp'] = []
+                        metadata['xmp'].append({'xmp': i.body.text})
+                    except:
+                        pngtexts.append({'key': i.body.keyword,
+                                         'languagetag': i.body.language_tag,
+                                         'translatedkey': i.body.translated_keyword,
+                                         'value': i.body.text})
+                else:
+                    pngtexts.append({'key': i.body.keyword,
+                                     'languagetag': i.body.language_tag,
+                                     'translatedkey': i.body.translated_keyword,
+                                     'value': i.body.text})
             elif i.type == 'tEXt':
                 # tEXt contains key/value pairs with metadata about the PNG file.
                 # section 11.3.4.3
