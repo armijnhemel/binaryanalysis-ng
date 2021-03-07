@@ -4,24 +4,18 @@ import datetime
 import defusedxml.minidom
 import PIL.Image
 from PIL.ExifTags import TAGS as EXIF_TAGS
-from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_png
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import png
 
-class PngUnpackParser(WrappedUnpackParser):
-#class PngUnpackParser(UnpackParser):
+class PngUnpackParser(UnpackParser):
     extensions = ['png']
     signatures = [
         (0, b'\x89PNG\x0d\x0a\x1a\x0a')
     ]
     pretty_name = 'png'
     chunknames = set()
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_png(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         try:
@@ -66,6 +60,7 @@ class PngUnpackParser(WrappedUnpackParser):
         metadata = {}
         pngtexts = []
 
+        # TODO: eXif, tXMP, meTa
         for i in self.data.chunks:
             if i.type == 'eXIf':
                 # eXIf is a recent extension to PNG. ImageMagick supports it but
@@ -207,12 +202,12 @@ class PngUnpackParser(WrappedUnpackParser):
                 labels.append('adobe fireworks')
                 break
 
-        self.unpack_results['metadata'] = {
-                'width': self.data.ihdr.width,
-                'height': self.data.ihdr.height,
-                'depth': self.data.ihdr.bit_depth,
-                'text': pngtexts
-                # 'xmp': xmps
-            }
+        metadata['width'] = self.data.ihdr.width
+        metadata['height'] = self.data.ihdr.height
+        metadata['depth'] = self.data.ihdr.bit_depth
+        metadata['text'] = pngtexts
+        # TODO: xmp, exif
+
+        self.unpack_results['metadata'] = metadata
 
         self.unpack_results['labels'] = labels
