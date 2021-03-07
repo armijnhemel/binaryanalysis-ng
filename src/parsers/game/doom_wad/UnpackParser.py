@@ -23,7 +23,10 @@ class DoomWadUnpackParser(WrappedUnpackParser):
     def parse(self):
         try:
             self.data = doom_wad.DoomWad.from_io(self.infile)
+        # TODO: decide what exceptions to catch
         except (Exception, ValidationNotEqualError) as e:
+            raise UnpackParserException(e.args)
+        except BaseException as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.num_index_entries > 0, "no lumps defined")
 
@@ -33,5 +36,6 @@ class DoomWadUnpackParser(WrappedUnpackParser):
             self.unpacked_size = max(self.unpacked_size, i.offset + i.size)
 
     def set_metadata_and_labels(self):
-        self.unpack_results['labels'] = ['doom', 'wad', 'resource']
-        self.unpack_results['metadata'] = {}
+        self.unpack_results.set_labels(['doom', 'wad', 'resource'])
+        self.unpack_results.set_metadata({})
+

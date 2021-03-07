@@ -1,6 +1,7 @@
 #!/bin/sh
 
-# docker end to end test
+# container for end to end test
+CTR_RUN=podman
 
 # map image directory to firmware data directory
 IMAGE_DIR=$(dirname "$1")
@@ -11,7 +12,7 @@ TMP_DIR=$HOME/bang-tmp
 userid=$(id -u)
 groupid=$(id -g)
 
-docker container run --rm -it \
+$CTR_RUN container run --rm -it \
  	-u $userid:$groupid \
 	-v "$IMAGE_DIR":/data \
 	-v "$UNPACK_DIR":/bang-unpack \

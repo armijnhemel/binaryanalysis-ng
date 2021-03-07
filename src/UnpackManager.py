@@ -75,7 +75,8 @@ class UnpackManager:
 
     def make_data_unpack_directory(self, relpath, filetype, offset, seqnr=1):
         '''Makes a data unpack directory.
-        relpath is the relative path to the file that is unpacked.
+        relpath is the relative path to the file that is unpacked. For files
+            that do not have an unpack parent, this path is absolute.
         filetype is the type of the file.
         offset is the offset in the file from which we extract (used in the
         data unpack directory name)
@@ -84,10 +85,11 @@ class UnpackManager:
         returns the sequence number of the directory
         '''
         while True:
-            dirname = "%s-%#010x-%s-%d" % (relpath, offset, filetype, seqnr)
+            dirname = "%s-%#010x-%s-%d" % (relpath.name, offset, filetype, seqnr)
+            dirpath = relpath.parent / dirname
             try:
-                os.mkdir(os.path.join(self.unpackroot, dirname))
-                self.dataunpackdirectory = pathlib.Path(dirname)
+                os.makedirs(self.unpackroot / dirpath, exist_ok=True)
+                self.dataunpackdirectory = dirpath
                 break
             except FileExistsError:
                 seqnr += 1
@@ -128,14 +130,17 @@ class UnpackManager:
         return self.dataunpackdirectory
 
     def try_unpack_file_for_extension(self, fileresult, scanenvironment,
-            relpath, extension, unpackparser):
-        self.make_data_unpack_directory(relpath, unpackparser.pretty_name, 0)
+            extension, unpackparser):
+        """tries to unpack the file in fileresult with unpackparser after
+        it matched by extension.
+        """
+        self.make_data_unpack_directory(fileresult.get_unpack_directory_parent(), unpackparser.pretty_name, 0)
         up = unpackparser(fileresult, scanenvironment, self.dataunpackdirectory,
                 0)
         up.open()
         try:
             unpackresult = up.parse_and_unpack()
-            if unpackresult['length'] != fileresult.filesize:
+            if unpackresult.get_length() != fileresult.filesize:
                 up.carve()
         except UnpackParserException as e:
             raise e
@@ -219,7 +224,7 @@ class UnpackManager:
         up.open()
         try:
             unpackresult = up.parse_and_unpack()
-            if unpackresult['length'] != fileresult.filesize:
+            if unpackresult.get_length() != fileresult.filesize:
                 up.carve()
         except UnpackParserException as e:
             raise e
@@ -233,7 +238,7 @@ class UnpackManager:
         up.open()
         try:
             unpackresult = up.parse_and_unpack()
-            if unpackresult['length'] != fileresult.filesize:
+            if unpackresult.get_length() != fileresult.filesize:
                 # TODO: let up generate name
                 up.carve()
         except UnpackParserException as e:
@@ -245,19 +250,19 @@ class UnpackManager:
     def file_unpacked(self, unpackresult, filesize):
         # store the location of where the successfully
         # unpacked file ends (the offset is always 0  here).
-        self.lastunpackedoffset = unpackresult['length']
+        self.lastunpackedoffset = unpackresult.get_length()
 
         # store the range of the unpacked data
-        self.unpackedrange.append((0, unpackresult['length']))
+        self.unpackedrange.append((0, unpackresult.get_length()))
 
         # if unpackedfilesandlabels is empty, then no files
         # were unpacked likely because the whole file was the
         # result and didn't contain any files (it was not a
         # container or compresed file)
-        if unpackresult['filesandlabels'] == []:
+        if unpackresult.get_unpacked_files() == []:
             self.remove_data_unpack_directory()
 
         # whole file has already been unpacked, so no need for
         # further scanning.
-        if unpackresult['length'] == filesize:
+        if unpackresult.get_length() == filesize:
             self.needsunpacking = False

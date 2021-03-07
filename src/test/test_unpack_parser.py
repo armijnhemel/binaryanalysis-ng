@@ -1,5 +1,6 @@
+import pytest
 
-from .TestUtil import *
+from .util import *
 from UnpackParserException import UnpackParserException
 from UnpackParser import UnpackParser
 from bangsignatures import get_unpackers
@@ -9,74 +10,66 @@ from parsers.image.gif.UnpackParser import GifUnpackParser
 class InvalidUnpackParser(UnpackParser):
     pass
 
-class TestUnpackParser(TestBase):
-    def test_unpack_parser_without_parse_method(self):
-        p = InvalidUnpackParser(None, None, None, 0)
-        with self.assertRaisesRegex(UnpackParserException, r"undefined parse method") as cm:
-            p.parse()
+@pytest.fixture(params = get_unpackers())
+def unpackparser(request):
+    return request.param
 
-    def test_unpackparser_list_has_derived_classes_only(self):
-        self.assertNotIn(UnpackParser, get_unpackers())
+def test_unpack_parser_without_parse_method():
+    p = InvalidUnpackParser(None, None, None, 0)
+    with pytest.raises(UnpackParserException, match = r"undefined parse method") as cm:
+        p.parse()
 
-    def test_all_unpack_parsers_have_attributes(self):
-        for unpackparser in get_unpackers():
-            self.assertIsNotNone(unpackparser.pretty_name)
-            self.assertIsNotNone(unpackparser.extensions)
-            self.assertIsNotNone(unpackparser.signatures)
-            # assert all signatures are bytestrings
-            i = 0
-            for s_offset, s_text in unpackparser.signatures:
-                self.assertEqual(type(s_text),type(b''))
+def test_unpackparser_list_has_derived_classes_only():
+    assert UnpackParser not in get_unpackers()
 
-    def test_unpackparsers_are_found(self):
-        unpacker_names = [ u.__name__ for u in get_unpackers() ]
-        self.assertIn('GifUnpackParser', unpacker_names)
-        self.assertIn('VfatUnpackParser', unpacker_names)
+def test_all_unpack_parsers_have_attributes(unpackparser):
+    assert unpackparser.pretty_name is not None
+    assert unpackparser.extensions is not None
+    assert unpackparser.signatures is not None
+    # assert all signatures are bytestrings
+    i = 0
+    for s_offset, s_text in unpackparser.signatures:
+        assert type(s_text) == type(b'')
+
+def test_unpackparsers_are_found():
+    unpacker_names = [ u.__name__ for u in get_unpackers() ]
+    assert 'GifUnpackParser' in unpacker_names
+    assert 'VfatUnpackParser' in unpacker_names
+
+def test_wrapped_unpackparser_raises_exception(scan_environment):
+    rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
+    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
+    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
+    data_unpack_dir = rel_testfile.parent / 'some_dir'
+    p = SqliteUnpackParser(fr, scan_environment, data_unpack_dir, 0)
+    p.open()
+    with pytest.raises(UnpackParserException, match = r".*") as cm:
+        r = p.parse_and_unpack()
+    p.close()
 
 
-    def test_wrapped_unpackparser_raises_exception(self):
-        rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
-        data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = SqliteUnpackParser(fileresult, self.scan_environment,
-                data_unpack_dir, 0)
-        p.open()
-        with self.assertRaisesRegex(UnpackParserException, r".*") as cm:
-            r = p.parse_and_unpack()
-        p.close()
+def test_unpackparser_raises_exception(scan_environment):
+    rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
+    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
+    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
+    data_unpack_dir = rel_testfile.parent / 'some_dir'
+    p = GifUnpackParser(fr, scan_environment, data_unpack_dir, 0)
+    p.open()
+    with pytest.raises(UnpackParserException, match = r".*") as cm:
+        r = p.parse_and_unpack()
+    p.close()
 
-    def test_unpackparser_raises_exception(self):
-        rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
-        data_unpack_dir = rel_testfile.parent / 'some_dir'
-        p = GifUnpackParser(fileresult, self.scan_environment, data_unpack_dir,
-                0)
-        p.open()
-        with self.assertRaisesRegex(UnpackParserException, r".*") as cm:
-            r = p.parse_and_unpack()
-        p.close()
 
-    def test_all_unpack_parsers_raise_exception_on_empty_file(self):
-        rel_testfile = pathlib.Path('unpackers') / 'empty'
-        self._copy_file_from_testdata(rel_testfile)
-        fileresult = create_fileresult_for_path(self.unpackdir, rel_testfile,
-                set())
-        data_unpack_dir = rel_testfile.parent / 'some_dir'
-        for unpackparser in get_unpackers():
-            up = unpackparser(fileresult, self.scan_environment,
-                    data_unpack_dir, 0)
-            up.open()
-            with self.assertRaisesRegex(UnpackParserException, r".*",
-                    msg=unpackparser.__name__) as cm:
-                r = up.parse_and_unpack()
-            up.close()
+def test_all_unpack_parsers_raise_exception_on_empty_file(scan_environment, unpackparser):
+    rel_testfile = pathlib.Path('unpackers') / 'empty'
+    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
+    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
+    data_unpack_dir = rel_testfile.parent / 'some_dir'
+    up = unpackparser(fr, scan_environment, data_unpack_dir, 0)
+    up.open()
+    # with pytest.raises(UnpackParserException, match = r".*", msg=unpackparser.__name__) as cm:
+    with pytest.raises(UnpackParserException, match = r".*") as cm:
+        r = up.parse_and_unpack()
+        pytest.fail("%s accepts empty file" % unpackparser.__name__)
+    up.close()
 
- 
-
- 
-if __name__ == "__main__":
-    unittest.main()

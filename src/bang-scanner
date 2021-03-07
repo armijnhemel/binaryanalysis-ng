@@ -241,10 +241,9 @@ def main(argv):
 
         # Create a scanjob for the first file to be scanned
         fileresult = FileResult(
-            pathlib.Path(os.path.basename(checkfile)),
-            None,
-            set(),
-            set(labels))
+                None,
+                pathlib.Path(os.path.basename(checkfile)),
+                set(labels))
         j = ScanJob(fileresult)
         scanfilequeue.put(j)
 
@@ -275,6 +274,7 @@ def main(argv):
             processlock = processlock,
             checksumdict = checksumdict,
             )
+        scanenvironment.set_unpackparsers(bangsignatures.get_unpackers())
 
         # create processes for unpacking archives
         for i in range(0, options.bangthreads):

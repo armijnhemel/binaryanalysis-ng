@@ -1,6 +1,11 @@
 import os
 
 from UnpackParserException import UnpackParserException
+from UnpackResults import UnpackResults
+from FileResult import FileResult
+
+import os
+import pathlib
 
 class OffsetInputFile:
     def __init__(self, infile, offset):
@@ -56,7 +61,7 @@ class UnpackParser:
         fields of the same name.
         """
         self.unpacked_size = 0
-        self.unpack_results = {}
+        self.unpack_results = UnpackResults()
         self.fileresult = fileresult
         self.scan_environment = scan_environment
         self.rel_unpack_dir = rel_unpack_dir
@@ -75,7 +80,8 @@ class UnpackParser:
         self.parse()
         self.calculate_unpacked_size()
     def open(self):
-        filename_full = self.scan_environment.unpack_path(self.fileresult.filename)
+        filename_full = self.scan_environment.get_unpack_path_for_fileresult(
+                    self.fileresult)
         f = filename_full.open('rb')
         self.infile = OffsetInputFile(f, self.offset)
     def close(self):
@@ -99,13 +105,10 @@ class UnpackParser:
         """
 
         self.parse_from_offset()
-        self.unpack_results = {
-                'status': True,
-                'length': self.unpacked_size
-            }
+        self.unpack_results.set_length(self.unpacked_size)
         self.set_metadata_and_labels()
-        files_and_labels = self.unpack()
-        self.unpack_results['filesandlabels'] = files_and_labels
+        unpacked_files = self.unpack()
+        self.unpack_results.set_unpacked_files(unpacked_files)
         return self.unpack_results
 
     @classmethod
@@ -129,19 +132,19 @@ class UnpackParser:
         # descriptor of the backing file. Therefore, we need to specify self.offset here
         os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset, self.unpacked_size)
         outfile.close()
-        out_labels = self.unpack_results['labels'] + ['unpacked']
-        self.unpack_results['filesandlabels'].append( (rel_output_path, out_labels) )
+        self.unpack_results.add_label('unpacked')
+        out_labels = self.unpack_results.get_labels() + ['unpacked']
+        fr = FileResult(self.fileresult, rel_output_path, set(out_labels))
+        self.unpack_results.add_unpacked_file( fr )
     def set_metadata_and_labels(self):
         """Override this method to set metadata and labels."""
-        self.unpack_results['labels'] = []
-        self.unpack_results['metadata'] = {}
+        self.unpack_results.set_labels([])
+        self.unpack_results.set_metadata({})
     def unpack(self):
         """Override this method to unpack any data into subfiles.
         The filenames are relative to the unpack directory root that the
         scan_environment points to (usually this is a file under unpack_dir).
-        Must return a list of tuples containing filename and labels.
-        In this list, filename can be a Path object or a string.
-        (TODO: decide which one to use.)
+        Must return a list of FileResult objects.
         For (non-fatal) errors, you should raise a UnpackParserException.
         """
         return []
@@ -181,13 +184,24 @@ class WrappedUnpackParser(UnpackParser):
                 self.offset, self.rel_unpack_dir)
         if r['status'] is False:
             raise UnpackParserException(r.get('error'))
-        return r
+        return self.get_unpack_results_from_dictionary(r)
     def open(self):
         pass
     def close(self):
         pass
     def carve(self):
         pass
+    def get_unpack_results_from_dictionary(self,r):
+        unpack_results = UnpackResults()
+        unpack_results.set_length(r['length'])
+        frs = [ FileResult(self.fileresult, pathlib.Path(x[0]), set(x[1]))
+                for x in r['filesandlabels'] ]
+        unpack_results.set_unpacked_files(frs)
+        unpack_results.set_offset(r.get('offset'))
+        unpack_results.set_labels(r.get('labels', []))
+        unpack_results.set_metadata(r.get('metadata', {}))
+        return unpack_results
+
 
 def check_condition(condition, message):
     """semantic check function to see if condition is True.

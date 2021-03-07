@@ -4,6 +4,7 @@ from . import vfat
 from . import vfat_directory
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
+from FileResult import FileResult
 from kaitaistruct import ValidationNotEqualError
 
 def get_lfn_part(record):
@@ -33,7 +34,10 @@ class VfatUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = vfat.Vfat.from_io(self.infile)
+        # TODO: decide what exceptions to catch
         except (Exception, ValidationNotEqualError) as e:
+            raise UnpackParserException(e.args)
+        except BaseException as e:
             raise UnpackParserException(e.args)
         bpb = self.data.boot_sector.bpb
         check_condition(bpb.ls_per_clus > 0, "invalid bpb value: ls_per_clus")
@@ -79,13 +83,13 @@ class VfatUnpackParser(UnpackParser):
 
     def unpack(self):
         try:
-            files_and_labels = [
+            unpacked_files = [
                 x for x in self.unpack_directory(
                     self.data.root_dir.records, self.rel_unpack_dir)
             ]
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
-        return files_and_labels
+        return unpacked_files
 
     def unpack_directory(self, directory_records, rel_unpack_dir):
         lfn = False
@@ -114,9 +118,9 @@ class VfatUnpackParser(UnpackParser):
                                 record.start_clus, rel_outfile)
                         # parse dir_entries and process
                         subdir = vfat_directory.VfatDirectory.from_bytes(dir_entries)
-                        for file_and_label in self.unpack_directory(
+                        for unpacked_file in self.unpack_directory(
                                 subdir.records, rel_outfile):
-                            yield file_and_label
+                            yield unpacked_file
                      
                 else:
                     # TODO: if normal_file
@@ -153,7 +157,7 @@ class VfatUnpackParser(UnpackParser):
             size_read += bytes_to_read
         outfile.close()
         outlabels = []
-        return (rel_outfile, outlabels)
+        return FileResult(self.fileresult, rel_outfile, set(outlabels))
 
     def is_end_cluster(self, cluster):
         # TODO: handle bad clusters and other exceptions

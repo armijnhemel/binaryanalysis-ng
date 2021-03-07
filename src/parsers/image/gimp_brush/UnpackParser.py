@@ -4,6 +4,19 @@ from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import gimp_brush
 
+from PIL.GbrImagePlugin import GbrImageFile
+
+'''
+class GimpBrushUnpackParserOld(WrappedUnpackParser):
+    extensions = []
+    signatures = [
+        (20, b'GIMP')
+    ]
+    pretty_name = 'gimpbrush'
+
+    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
+        return unpack_gimp_brush(fileresult, scan_environment, offset, unpack_dir)
+'''
 
 class GimpBrushUnpackParser(UnpackParser):
     extensions = ['.gbr']
@@ -15,13 +28,16 @@ class GimpBrushUnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         try:
             self.unpacked_size = self.data.header_size + self.data.body_size
-        except Exception as e:
+        except BaseException as e:
             raise UnpackParserException(e.args)
 
     def parse(self):
         try:
             self.data = gimp_brush.GimpBrush.from_io(self.infile)
+        # TODO: decide what exceptions to catch
         except (Exception, ValidationNotEqualError) as e:
+            raise UnpackParserException(e.args)
+        except BaseException as e:
             raise UnpackParserException(e.args)
 
         check_condition(self.data.header.version < 3, "Invalid version")
@@ -42,7 +58,9 @@ class GimpBrushUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):
-        self.unpack_results['labels'] = ['gimp brush', 'graphics']
-        self.unpack_results['metadata'] = {'width': self.data.header.width,
+        self.unpack_results.set_labels(['gimp brush', 'graphics'])
+        self.unpack_results.set_metadata({'width': self.data.header.width,
                                            'height': self.data.header.height,
-                                           'color_depth': self.data.header.color_depth}
+                                           'color_depth': self.data.header.color_depth
+                                        })
+
