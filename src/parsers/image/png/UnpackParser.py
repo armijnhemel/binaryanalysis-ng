@@ -106,6 +106,10 @@ class PngUnpackParser(UnpackParser):
                 # section 11.3.4.3
                 # Multiple tEXt chunks are allowed.
                 pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
+                # check to see if the file is a thumbnail.
+                # https://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html
+                if i.body.keyword.startswith('Thumb::'):
+                    labels.append('thumbnail')
             elif i.type == 'tIME':
                # tIMe chunk, should be only one
                 pngdate = datetime.datetime(i.body.year, i.body.month,
