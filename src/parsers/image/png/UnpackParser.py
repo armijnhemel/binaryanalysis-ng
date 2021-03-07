@@ -73,16 +73,25 @@ class PngUnpackParser(WrappedUnpackParser):
                 if i.type == 'tEXt':
                     pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
                 if i.type == 'zTXt':
-                    # before eXIf ImageMagick used the zTXt field to
-                    # store EXIF data. python-pillow allows reading
-                    # raw exif data using an Exif() object.
-                    # https://github.com/python-pillow/Pillow/issues/4460
                     if i.body.keyword == 'Raw profile type exif':
+                        # before eXIf ImageMagick used the zTXt field to
+                        # store EXIF data in hex form. python-pillow allows reading
+                        # raw exif data using an Exif() object.
+                        # https://github.com/python-pillow/Pillow/issues/4460
                         try:
                             exif_object = PIL.Image.Exif()
                             value = i.body.text_datastream.decode()
                             exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
                             exif_object.load(exifdata)
+                        except UnicodeError:
+                            # TODO: what to do here?
+                            pass
+                    elif i.body.keyword == 'Raw profile type icc':
+                        # ImageMagick used the zTXt field to store ICC data
+                        # in hex form.
+                        try:
+                           value = i.body.text_datastream.decode()
+                           iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
                         except UnicodeError:
                             # TODO: what to do here?
                             pass
