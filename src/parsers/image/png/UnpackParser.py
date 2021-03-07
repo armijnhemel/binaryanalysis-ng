@@ -87,8 +87,13 @@ class PngUnpackParser(WrappedUnpackParser):
                             # TODO: what to do here?
                             pass
                     else:
-                        pngtexts.append({'key': i.body.keyword,
-                                         'value': i.body.text_datastream})
+                        try:
+                            value = i.body.text_datastream.decode()
+                            pngtexts.append({'key': i.body.keyword,
+                                             'value': value})
+                        except UnicodeError:
+                            pngtexts.append({'key': i.body.keyword,
+                                             'value': i.body.text_datastream})
 
         # check if the PNG is animated.
         # https://wiki.mozilla.org/APNG_Specification
