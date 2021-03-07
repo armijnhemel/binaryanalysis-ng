@@ -112,13 +112,9 @@ class PngUnpackParser(WrappedUnpackParser):
                 pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
             elif i.type == 'tIME':
                # tIMe chunk, should be only one
-                pngyear = i.body.year
-                pngmonth = i.body.month
-                pngday = i.body.day
-                pnghour = i.body.hour
-                pngminute = i.body.minute
-                pngsecond = i.body.second
-                pngdate = datetime.datetime(pngyear, pngmonth, pngday, pnghour, pngminute, pngsecond)
+                pngdate = datetime.datetime(i.body.year, i.body.month,
+                                            i.body.day, i.body.hour,
+                                            i.body.minute, i.body.second)
                 if 'time' not in metadata:
                     metadata['time'] = []
                 metadata['time'].append({'time': pngdate.isoformat()})
