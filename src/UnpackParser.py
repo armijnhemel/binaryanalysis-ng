@@ -2,6 +2,24 @@ import os
 
 from UnpackParserException import UnpackParserException
 
+class OffsetInputFile:
+    def __init__(self, infile, offset):
+        self.infile = infile
+        self.offset = offset
+
+    def __getattr__(self, name):
+        return self.infile.__getattribute__(name)
+
+    def seek(self, offset, whence=os.SEEK_SET):
+        if whence == os.SEEK_SET:
+            return self.infile.seek(offset + self.offset, whence)
+        return self.infile.seek(offset, whence)
+
+    def tell(self):
+        return self.infile.tell() - self.offset
+
+
+
 class UnpackParser:
     """The UnpackParser class can parse input according to a certain format,
     and unpack any content from it if necessary.
@@ -53,12 +71,13 @@ class UnpackParser:
         """Parses the data from a file pointed to by fileresult, starting from
         offset. Normally you do not need to override this.
         """
-        self.infile.seek(self.offset)
+        self.infile.seek(0)
         self.parse()
         self.calculate_unpacked_size()
     def open(self):
         filename_full = self.scan_environment.unpack_path(self.fileresult.filename)
-        self.infile = filename_full.open('rb')
+        f = filename_full.open('rb')
+        self.infile = OffsetInputFile(f, self.offset)
     def close(self):
         self.infile.close()
     def calculate_unpacked_size(self):
@@ -68,7 +87,7 @@ class UnpackParser:
         not read the entire content and you need a custom length calculation.
         You must assign the length to self.unpacked_size.
         """
-        self.unpacked_size = self.infile.tell() - self.offset
+        self.unpacked_size = self.infile.tell()
     def parse_and_unpack(self):
         """Parses the file and unpacks any contents into other files. Files are
         stored in the filesandlabels field of the self.unpack_results
@@ -106,6 +125,8 @@ class UnpackParser:
         abs_output_path = self.scan_environment.unpack_path(rel_output_path)
         os.makedirs(abs_output_path.parent, exist_ok=True)
         outfile = open(abs_output_path, 'wb')
+        # Although self.infile is an OffsetInputFile, fileno() will give the file
+        # descriptor of the backing file. Therefore, we need to specify self.offset here
         os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset, self.unpacked_size)
         outfile.close()
         out_labels = self.unpack_results['labels'] + ['unpacked']

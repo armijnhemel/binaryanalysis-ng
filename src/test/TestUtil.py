@@ -3,15 +3,17 @@ import sys
 import shutil
 import pathlib
 import unittest
-import collections
 
 _scriptdir = os.path.dirname(__file__)
 
 from bangsignatures import maxsignaturesoffset
-import bangfilescans
+# import bangfilescans
 
 from FileResult import *
 from ScanEnvironment import *
+from .mock_queue import *
+from .mock_db import *
+
 
 def create_fileresult_for_path(unpackdir, path, labels, calculate_size=True):
     parentlabels = set()
@@ -20,37 +22,6 @@ def create_fileresult_for_path(unpackdir, path, labels, calculate_size=True):
         fp = pathlib.Path(unpackdir) / path
         fr.set_filesize(fp.stat().st_size)
     return fr
-
-class QueueEmptyError(Exception):
-    pass
-
-class MockQueue:
-    def __init__(self):
-        self.queue = collections.deque() #[]
-    def get(self, timeout=0):
-        try:
-            return self.queue.popleft()
-        except IndexError:
-            raise QueueEmptyError()
-    def put(self, job):
-        self.queue.append(job)
-    def task_done(self):
-        pass
-
-class MockLock:
-    def acquire(self): pass
-    def release(self): pass
-
-class MockDBConn:
-    def commit(self):
-        pass
-
-class MockDBCursor:
-    def execute(self, query, args):
-        pass
-    def fetchall(self):
-        return []
-
 
 class TestBase(unittest.TestCase):
     # create a temporary directory and copy

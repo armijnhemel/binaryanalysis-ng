@@ -34,6 +34,12 @@ class GimpBrushUnpackParser(UnpackParser):
         unpacked_size = self.data.header_size + self.data.body_size
 
         check_condition(unpacked_size <= self.fileresult.filesize, "Not enough data")
+        try:
+            self.infile.seek(0)
+            testimg = GbrImageFile(self.infile)
+            testimg.load()
+        except BaseException as e:
+            raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):
         self.unpack_results['labels'] = ['gimp brush', 'graphics']
