@@ -1,11 +1,14 @@
 # binaryanalysis-ng
 Binary Analysis Next Generation (BANG)
 
-BANG is a framework for unpacking files (like firmware) recursively and running checks on the unpacked files. Its intended use is to be able to find out the provenance of the unpacked files and classify/label files, making them available for further analysis.
+BANG is a framework for unpacking files (like firmware) recursively and running
+checks on the unpacked files. Its intended use is to be able to find out the
+provenance of the unpacked files and classify/label files, making them available
+for further analysis.
 
 ## Requirements
 
-* a recent Linux distribution (Fedora 29 or higher, or equivalent)
+* a recent Linux distribution (Fedora 32 or higher, or equivalent)
 * Python 3.6.x or higher (as some Python 3.6 specific features are used)
 * pillow (possibly named python3-pillow), a drop in replacement for PIL ( http://python-pillow.github.io/ )
 * GNU binutils (for 'ar')
@@ -29,6 +32,7 @@ BANG is a framework for unpacking files (like firmware) recursively and running 
 * OpenJDK (for 'unpack200')
 * defusedxml (possibly named python3-defusedxml)
 * icalendar (possibly named python3-icalendar)
+* pyyaml (possibly named python3-pyyaml)
 * ncompress
 * util-linux (for 'fsck.cramfs')
 * lz4 (for 'lz4c')
@@ -47,7 +51,7 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 
 ## Unsupported distributions
 
-* Fedora 28 and earlier
+* Fedora 31 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
 ## Docker container
@@ -210,6 +214,7 @@ larger file, unless stated otherwise.
 131. YAFFS2 (including inband tags)
 132. Qualcomm QCDT files
 133. Chrome extensions (.crx)
+134. Windows shell link file (.lnk)
 
 
 ## Invocation
@@ -282,6 +287,12 @@ The recommended coding style is described in PEP 8:
 https://www.python.org/dev/peps/pep-0008/
 
 It is recommended to run PEP 8 verification tools, for example
-python3-pep8 (on Fedora).
+python3-flake8 (on Fedora).
 
-Another tool that is recommended is pylint.
+Another tool that is highly recommended is pylint.
+
+# Acknowledgement
+
+This project has received funding from the European Union’s Horizon 2020
+research and innovation programme within the framework of the NGI-POINTER
+Project funded under grant agreement No. 871528.

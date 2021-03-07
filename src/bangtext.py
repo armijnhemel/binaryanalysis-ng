@@ -166,10 +166,10 @@ def unpack_ihex(fileresult, scanenvironment, offset, unpackdir):
                                       'reason': 'cannot convert to hex'}
                     return {'status': False, 'error': unpackingerror}
                 if not outfile_opened:
-                     # create the unpacking directory
-                     os.makedirs(unpackdir_full, exist_ok=True)
-                     outfile = open(outfile_full, 'wb')
-                     outfile_opened = True
+                    # create the unpacking directory
+                    os.makedirs(unpackdir_full, exist_ok=True)
+                    outfile = open(outfile_full, 'wb')
+                    outfile_opened = True
                 outfile.write(ihexdata)
             seenrecordtypes.add(recordtype)
 
@@ -586,7 +586,7 @@ def unpack_java_manifest(fileresult, scanenvironment, offset, unpackdir):
             # regular lines need to have : in them, unless they
             # are a continuation of a previous line
             if ':' not in i or i.startswith(' '):
-                if re.match('\s+[\"; \-\.,\w\d/=:]+$', i.rstrip()) is not None:
+                if re.match(r'\s+[\"; \-\.,\w\d/=:]+$', i.rstrip()) is not None:
                     continue
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
@@ -677,21 +677,21 @@ def unpack_kernel_config(fileresult, scanenvironment, offset, unpackdir):
 
     # first header line, was changed in Linux kernel commit
     # e54e692ba613c2170c66ce36a3791c009680af08
-    headerre = re.compile('# Automatically generated make config: don\'t edit$')
-    headerre_alt = re.compile('# Automatically generated file; DO NOT EDIT.$')
+    headerre = re.compile(r'# Automatically generated make config: don\'t edit$')
+    headerre_alt = re.compile(r'# Automatically generated file; DO NOT EDIT.$')
 
-    headerre2 = re.compile('# Linux kernel version: ([\d\.]+)$')
-    headerre2_alt = re.compile('# Linux/[\w\d\-_]+ ([\d\w\.\-_]+) Kernel Configuration$')
-    headerre3 = re.compile('# (\w{3} \w{3} [\d ]+ \d{2}:\d{2}:\d{2} \d{4})$')
-    headerre4 = re.compile('# Compiler: ([\w\d\.\-() ]+)$')
+    headerre2 = re.compile(r'# Linux kernel version: ([\d\.]+)$')
+    headerre2_alt = re.compile(r'# Linux/[\w\d\-_]+ ([\d\w\.\-_]+) Kernel Configuration$')
+    headerre3 = re.compile(r'# (\w{3} \w{3} [\d ]+ \d{2}:\d{2}:\d{2} \d{4})$')
+    headerre4 = re.compile(r'# Compiler: ([\w\d\.\-() ]+)$')
 
     # regular expression for the configuration header lines
-    configheaderre = re.compile('# [\w\d/\-;:\. ,()&+]+$')
+    configheaderre = re.compile(r'# [\w\d/\-;:\. ,()&+]+$')
 
     # regular expressions for the lines with configuration
-    configre = re.compile('# CONFIG_[\w\d_]+ is not set$')
-    configre2 = re.compile('(CONFIG_[\w\d_]+)=([ynm])$')
-    configre3 = re.compile('(CONFIG_[\w\d_]+)=([\w\d"\-/\.$()+]+$)')
+    configre = re.compile(r'# CONFIG_[\w\d_]+ is not set$')
+    configre2 = re.compile(r'(CONFIG_[\w\d_]+)=([ynm])$')
+    configre3 = re.compile(r'(CONFIG_[\w\d_]+)=([\w\d"\-/\.$()+]+$)')
 
     # open the file in text only mode
     checkfile = open(filename_full, 'r')
@@ -1850,7 +1850,7 @@ def unpack_pkg_config(fileresult, scanenvironment, offset, unpackdir):
                 if '=' not in line:
                     validpc = False
                     break
-                pcres = re.match('[\w\d_]+=', line)
+                pcres = re.match(r'[\w\d_]+=', line)
                 if pcres is None:
                     validpc = False
                     break
@@ -2170,14 +2170,14 @@ def unpack_subversion_hash(fileresult, scanenvironment, offset, unpackdir):
         for line in checkfile:
             localbytesread += len(line)
             if nextaction == 'filename':
-                lineres = re.match('[\w\d\!\./-]+$', line.rstrip())
-                if lineres != None:
+                lineres = re.match(r'[\w\d\!\./-]+$', line.rstrip())
+                if lineres is not None:
                     nextaction = 'new'
                     continue
                 nextaction = 'new'
             if nextaction == 'new':
-                lineres = re.match('K (\d+)$', line.rstrip())
-                if lineres == None:
+                lineres = re.match(r'K (\d+)$', line.rstrip())
+                if lineres is None:
                     break
                 linelength = int(lineres.groups()[0])
                 nextaction = 'data'
@@ -2192,8 +2192,8 @@ def unpack_subversion_hash(fileresult, scanenvironment, offset, unpackdir):
                     localbytesread = 0
                     nextaction = 'filename'
                 else:
-                    lineres = re.match('V (\d+)$', line.rstrip())
-                    if lineres == None:
+                    lineres = re.match(r'V (\d+)$', line.rstrip())
+                    if lineres is None:
                         break
                     linelength = int(lineres.groups()[0])
                     nextaction = 'data'

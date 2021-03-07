@@ -5,6 +5,7 @@ from . import vfat_directory
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from FileResult import FileResult
+from kaitaistruct import ValidationNotEqualError
 
 def get_lfn_part(record):
     # note: because python lacks a ucs-2 decoder, we use utf-16. In almost all
@@ -32,7 +33,10 @@ class VfatUnpackParser(UnpackParser):
 
     def parse(self):
         try:
-                self.data = vfat.Vfat.from_io(self.infile)
+            self.data = vfat.Vfat.from_io(self.infile)
+        # TODO: decide what exceptions to catch
+        except (Exception, ValidationNotEqualError) as e:
+            raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
         bpb = self.data.boot_sector.bpb

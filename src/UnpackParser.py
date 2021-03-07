@@ -1,3 +1,5 @@
+import os
+
 from UnpackParserException import UnpackParserException
 from UnpackResults import UnpackResults
 from FileResult import FileResult
@@ -37,7 +39,7 @@ class UnpackParser:
     signatures:
         a list of tuples of the form (offset, bytestring), e.g.
         (0x54, b'\\x00AB\\x0a'). Default is empty.
-        
+
     scan_if_featureless:
         a boolean that indicates that files for this UnpackParser do not
         always have an extension or a signature. Text-based formats often
@@ -164,7 +166,7 @@ class UnpackParser:
         outfile.close()
 
 class WrappedUnpackParser(UnpackParser):
-    """Wrapper class for unpack functions. 
+    """Wrapper class for unpack functions.
     To wrap an unpack function, derive a class from WrappedUnpackParser and
     override the method unpack_function.
     """
@@ -207,4 +209,3 @@ def check_condition(condition, message):
     """
     if not condition:
         raise UnpackParserException(message)
-

@@ -3703,7 +3703,6 @@ def unpack_woff(fileresult, scanenvironment, offset, unpackdir):
 
             # then try to decompress the bytes read with zlib
             zlibdecompressor = zlib.decompressobj()
-            uncompresseddata = zlibdecompressor.decompress(checkbytes)
             try:
                 uncompresseddata = zlibdecompressor.decompress(checkbytes)
                 if len(uncompresseddata) != tableuncompressedlength:

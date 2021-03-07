@@ -1,4 +1,3 @@
-
 import os
 import stat
 import pathlib
@@ -9,6 +8,7 @@ from . import cpio_old_binary
 from UnpackParser import UnpackParser
 from UnpackParserException import UnpackParserException
 from FileResult import FileResult
+from kaitaistruct import ValidationNotEqualError
 
 def rewrite_symlink(file_path, target_path):
     """rewrites a symlink of target_path, relative to file_path.
@@ -105,6 +105,9 @@ class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
                 self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
+        # TODO: decide what exceptions to catch
+        except (Exception, ValidationNotEqualError) as e:
+            raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
 
@@ -116,6 +119,9 @@ class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
             self.data = cpio_new_crc.CpioNewCrc.from_io(self.infile)
+        # TODO: decide what exceptions to catch
+        except (Exception, ValidationNotEqualError) as e:
+            raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
 
@@ -127,6 +133,9 @@ class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
             self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
+        # TODO: decide what exceptions to catch
+        except (Exception, ValidationNotEqualError) as e:
+            raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
 
@@ -138,7 +147,8 @@ class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
     def parse(self):
         try:
             self.data = cpio_old_binary.CpioOldBinary.from_io(self.infile)
+        # TODO: decide what exceptions to catch
+        except (Exception, ValidationNotEqualError) as e:
+            raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
-
-

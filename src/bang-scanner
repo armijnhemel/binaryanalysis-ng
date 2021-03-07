@@ -49,7 +49,11 @@ import getpass
 import psycopg2
 
 # import module for Elasticsearch
-import elasticsearch
+try:
+     # ugly hack to work around import issues on Fedora 33
+    import elasticsearch
+except:
+    pass
 
 # import other local files
 from bangsignatures import maxsignaturesoffset
@@ -60,7 +64,10 @@ import banglogging
 from reporter.picklereport import *
 from reporter.jsonreport import *
 from reporter.humanreadablereport import *
-from reporter.elasticsearchreport import *
+
+# ugly hack to work around import issues on Fedora 33
+if 'elasticsearch' in sys.modules:
+    from reporter.elasticsearchreport import *
 
 from FileContentsComputer import *
 from FileResult import FileResult
@@ -104,7 +111,9 @@ def main(argv):
 
     # test if Elasticsearch is running
     if options.elastic_enabled:
-        pass
+        # ugly hack to work around import issues on Fedora 33
+        if 'elasticsearch' not in sys.modules:
+            options.elastic_enabled = False
 
     # first determine how many bytes should be scanned for known
     # signatures using a sliding window. This should not be set too

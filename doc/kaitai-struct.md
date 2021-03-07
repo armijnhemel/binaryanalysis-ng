@@ -11,7 +11,7 @@ Basically it is a language to describe binary formats using a description file, 
 
 ## Installing the kaitai-struct compiler
 
-The easiest way to install the kaitai-struct compiler is to download a released zip file, as explained by the web site http://kaitai.io/#download (select your prefered installation format, such as `.deb` or `.zip`).
+The easiest way to install the kaitai-struct compiler is to download a released zip file, as explained by the web site http://kaitai.io/#download (select your prefered installation format, such as `.deb` or `.zip`). If you do this make sure to download version 0.9.
 
 Alternatively, you can build the compiler from scratch. This requires Scala and the Scala build tool. Note that you may need a recent version of sbt and download it from the sbt repository. You can find instructions for that on https://www.scala-sbt.org/download.html.
 Also note that the versions of the kaitai Python run-time's and the compiler must match, you may also need to reinstall the Python runtime.
@@ -26,12 +26,15 @@ See http://doc.kaitai.io/developers.html for more details. In my case, I cloned 
 
 During the build, the Scala build tool caches information in `~/.sbt`. If you try to build kaitai-struct-compiler again with another version of sbt or scala, you may run into problems. By removing the `~/.sbt` directory and rebuilding, I managed to build the program.
 
+
 After installing sbt, move to the compiler repository and run sbt:
 
 ```
 cd ~/kaitai_struct/compiler
 sbt compilerJVM/universal:packageBin
 ```
+
+In case the version of sbt is different from the declared version in `project/build.properties` you might want to change the version in `project/build.properties` (for example: 1.4.3 vs 1.4.7).
 
 If the build succeeds, you can find a zip archive of the kaitai-struct compiler in `jvm/target/universal/`. In my case, this is `jvm/target/universal/kaitai-struct-compiler-0.9-SNAPSHOT.zip`.
 

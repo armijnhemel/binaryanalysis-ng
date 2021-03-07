@@ -1,0 +1,25 @@
+---
+config:
+    # The number of threads that are created for scanning, next to
+    # the main thread. Maximum: amount of CPUs available on a system.
+    # Has to be positive, 0 means "use all threads"
+    threads: 1
+    # Setting for verbosity. By default the program does not run in
+    # verbose mode. Change to 'true' to enable more verbose logging
+    # and reporting.
+    verbose: false
+    # A directory to store the files downloaded from F-Droid
+    # Inside this directory has the following structure:
+    # - binary/ -- copies of the APKs are stored here
+    # - source/ -- copies of the source code are stored here
+    # - xml/    -- snapshots of the XML used for download are stored here
+    storedirectory: /home/fdroid/fdroid
+    # list of categories to download:
+    # - source -- original source packages
+    # - binary -- APK
+    #
+    # The default is:
+    # [source, binary]
+    categories: [source, binary]
+    # mirror site of F-Droid. This should contain the scheme (http or https)
+    mirror: https://f-droid.org/

@@ -44,3 +44,53 @@ contextual information from unpacking is made available to allow for more
 accurate unpacking and labeling of files.
 
 https://www.tdcommons.org/dpubs_series/1919/
+
+## Finding (partial) code clones at method level in Android programs without access to source code to detect copyright infringements or security issues
+
+Nearly all programs for Android devices are distributed without source code
+being made available. This means that it is a lot harder to do audits of these
+programs for for example copyright infringement detection or security issue
+detection. By examining individual methods inside an Android program and
+comparing these to a database of methods from known programs it is possible to
+make an educated guess of which programs or program fragments are used in the
+program, and possibly detect copyright infringements or trojaned versions
+of programs.
+
+https://www.tdcommons.org/dpubs_series/2479/
+
+## Finding (partial) code clones at method level in binary Java programs without access to source code to detect copyright infringements or security issues
+
+Many Java programs are distributed in binary form without source code being
+made available. This means that it is a lot harder to do audits of these
+programs for for example copyright infringement detection or security issue
+detection. By examining individual class files inside a Java program and
+comparing these to a database of class files from known programs it is possible
+to make an educated guess of which programs or program fragments are used in
+the program, and possibly detect copyright infringements or trojaned versions
+of programs.
+
+https://www.tdcommons.org/dpubs_series/3658/
+
+## Finding out how close source code files are to files in the Git version control system.
+
+A lot of popular software is developed using a version control system.
+Historically systems such as RCS, CVS and Subversion were used, but a lot of
+developers have moved to Git. These systems have a lot of information available
+about the history of a file. When software is distributed, it is often
+distributed without this history information. In some situations it is
+important to find out how close a certain piece of software is to any
+given version in a version control system, for example for assessing
+copyright, security research or other provenance issues.
+
+https://www.tdcommons.org/dpubs_series/3925/
+
+## Computing a distance between a source code directory and another source code directory
+
+Sometimes it is important to see how much a vendor's source code tree is
+deviating from an upstream open source project such as the Linux kernel,
+as big deviations potentially mean increased maintenance costs, as
+changes/fixes might need to be backported from the official version. In this
+document a method to compute a score to quantify possible maintenance costs
+is proposed.
+
+https://www.tdcommons.org/dpubs_series/3942/

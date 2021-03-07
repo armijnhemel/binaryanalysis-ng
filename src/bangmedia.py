@@ -640,7 +640,7 @@ def unpack_png(fileresult, scanenvironment, offset, unpackdir):
             endoffilereached = True
             unpackedsize += 4
             break
-        elif chunktype == 'IDAT':
+        if chunktype == 'IDAT':
             # a valid PNG file has to have a IDAT section
             idatseen = True
         unpackedsize += 4
@@ -2151,9 +2151,8 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
                                           'fatal': False,
                                           'reason': 'invalid value for start of scan'}
                         return {'status': False, 'error': unpackingerror}
-                    else:
-                        eofseen = True
-                        continue
+                    eofseen = True
+                    continue
 
             # now read the image data in chunks to search for
             # JPEG markers (section B.1.1.2)
@@ -4455,154 +4454,6 @@ def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
     return {'status': False, 'error': unpackingerror}
 
 unpack_pdf.signatures = {'pdf': b'%PDF-'}
-
-
-# https://github.com/GNOME/gimp/blob/master/devel-docs/gbr.txt
-def unpack_gimp_brush(fileresult, scanenvironment, offset, unpackdir):
-    '''Unpack/verify a GIMP brush file'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-    unpackdir_full = scanenvironment.unpack_path(unpackdir)
-
-    # open the file
-    checkfile = open(filename_full, 'rb')
-    checkfile.seek(offset)
-
-    # first the header size
-    checkbytes = checkfile.read(4)
-    headersize = int.from_bytes(checkbytes, byteorder='big')
-    if headersize < 28:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'invalid length for header'}
-        return {'status': False, 'error': unpackingerror}
-
-    if offset + headersize > filesize:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'not enough data for header'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 4
-
-    # then the version, skip
-    checkfile.seek(4, os.SEEK_CUR)
-    unpackedsize += 4
-
-    # width
-    checkbytes = checkfile.read(4)
-    width = int.from_bytes(checkbytes, byteorder='big')
-    if width == 0:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'invalid width'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 4
-
-    # height
-    checkbytes = checkfile.read(4)
-    height = int.from_bytes(checkbytes, byteorder='big')
-    if height == 0:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'invalid height'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 4
-
-    # number of bytes
-    checkbytes = checkfile.read(4)
-    depth = int.from_bytes(checkbytes, byteorder='big')
-    if depth == 0:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'invalid colour depth'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 4
-
-    # magic, skip
-    checkfile.seek(4, os.SEEK_CUR)
-    unpackedsize += 4
-
-    # spacing, skip
-    checkfile.seek(4, os.SEEK_CUR)
-    unpackedsize += 4
-
-    # then the name
-    namelength = headersize - 28
-    namebytes = checkfile.read(namelength)
-    try:
-        brushname = namebytes.split(b'\x00', 1)[0].decode()
-    except UnicodeDecodeError:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'invalid brush name'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += namelength
-
-    # then check the remaining bytes
-    remainingbytes = width * height * depth
-    if offset + unpackedsize + remainingbytes > filesize:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'not enough data for brush'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += remainingbytes
-
-    if offset == 0 and unpackedsize == filesize:
-        # now load the file into PIL as an extra sanity check
-        try:
-            testimg = PIL.Image.open(checkfile)
-            testimg.load()
-            testimg.close()
-        except OSError:
-            checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'invalid GIMP brush according to PIL'}
-            return {'status': False, 'error': unpackingerror}
-        checkfile.close()
-        labels.append('gimp brush')
-        labels.append('graphics')
-        return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
-
-    # else carve the file. It is anonymous, but the brush name can be used
-    outfile_rel = os.path.join(unpackdir, "%s.gbr" % brushname)
-    outfile_full = scanenvironment.unpack_path(outfile_rel)
-
-    # create the unpacking directory
-    os.makedirs(unpackdir_full, exist_ok=True)
-    outfile = open(outfile_full, 'wb')
-    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-    outfile.close()
-    checkfile.close()
-
-    # reopen as read only
-    outfile = open(outfile_full, 'rb')
-
-    # now load the file into PIL as an extra sanity check
-    try:
-        testimg = PIL.Image.open(outfile)
-        testimg.load()
-        testimg.close()
-        outfile.close()
-    except OSError:
-        outfile.close()
-        os.unlink(outfile_full)
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'invalid GIMP brush according to PIL'}
-        return {'status': False, 'error': unpackingerror}
-
-    unpackedfilesandlabels.append((outfile_rel, ['gimp brush', 'graphics', 'unpacked']))
-    return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_gimp_brush.signatures = {'gimpbrush': b'GIMP'}
-unpack_gimp_brush.offset = 20
-unpack_gimp_brush.minimum_size = 28
-
 
 # https://www.csie.ntu.edu.tw/~r92092/ref/midi/
 def unpack_midi(fileresult, scanenvironment, offset, unpackdir):

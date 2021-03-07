@@ -301,7 +301,6 @@ signaturetofunction = {
     'dlinkromfs': bangfilesystems.unpack_dlink_romfs,
     'pdf': bangmedia.unpack_pdf,
     'pack200': bangunpack.unpack_pack200,
-    'gimpbrush': bangmedia.unpack_gimp_brush,
     'zim': bangunpack.unpack_zim,
     'midi': bangmedia.unpack_midi,
     'javakeystore': bangunpack.unpack_java_keystore,

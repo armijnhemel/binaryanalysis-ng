@@ -23,7 +23,10 @@ class DoomWadUnpackParser(WrappedUnpackParser):
     def parse(self):
         try:
             self.data = doom_wad.DoomWad.from_io(self.infile)
+        # TODO: decide what exceptions to catch
         except (Exception, ValidationNotEqualError) as e:
+            raise UnpackParserException(e.args)
+        except BaseException as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.num_index_entries > 0, "no lumps defined")
 
