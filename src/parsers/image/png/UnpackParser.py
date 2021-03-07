@@ -65,62 +65,58 @@ class PngUnpackParser(WrappedUnpackParser):
         metadata = {}
         pngtexts = []
 
-        # PNG files can have a tIME chunk. Officially only
-        # one chunk is allowed, but ignore that.
-        if 'tIME' in self.chunknames:
-            for i in self.data.chunks:
-                if i.type == 'tIME':
-                    pngyear = i.body.year
-                    pngmonth = i.body.month
-                    pngday = i.body.day
-                    pnghour = i.body.hour
-                    pngminute = i.body.minute
-                    pngsecond = i.body.second
-                    pngdate = datetime.datetime(pngyear, pngmonth, pngday, pnghour, pngminute, pngsecond)
-                    if 'time' not in metadata:
-                        metadata['time'] = []
-                    metadata['time'].append({'time': pngdate.isoformat()})
-
-        # tEXt contains key/value pairs with metadata about the PNG file.
-        # section 11.3.4.3
-        # zTXt contains key/value pairs with metadata about the PNG file,
-        # zlib compressed. (section 11.3.4.4)
-        # Multiple tEXt and zTXt chunks are allowed.
-        if 'tEXt' in self.chunknames or 'zTXt' in self.chunknames:
-            for i in self.data.chunks:
-                if i.type == 'tEXt':
-                    pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
-                if i.type == 'zTXt':
-                    if i.body.keyword == 'Raw profile type exif':
-                        # before eXIf ImageMagick used the zTXt field to
-                        # store EXIF data in hex form. python-pillow allows reading
-                        # raw exif data using an Exif() object.
-                        # https://github.com/python-pillow/Pillow/issues/4460
-                        try:
-                            exif_object = PIL.Image.Exif()
-                            value = i.body.text_datastream.decode()
-                            exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
-                            exif_object.load(exifdata)
-                        except UnicodeError:
-                            # TODO: what to do here?
-                            pass
-                    elif i.body.keyword == 'Raw profile type icc':
-                        # ImageMagick used the zTXt field to store ICC data
-                        # in hex form.
-                        try:
-                           value = i.body.text_datastream.decode()
-                           iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
-                        except UnicodeError:
-                            # TODO: what to do here?
-                            pass
-                    else:
-                        try:
-                            value = i.body.text_datastream.decode()
-                            pngtexts.append({'key': i.body.keyword,
-                                             'value': value})
-                        except UnicodeError:
-                            pngtexts.append({'key': i.body.keyword,
-                                             'value': i.body.text_datastream})
+        for i in self.data.chunks:
+            if i.type == 'tIME':
+               # tIMe chunk, should be only one
+                pngyear = i.body.year
+                pngmonth = i.body.month
+                pngday = i.body.day
+                pnghour = i.body.hour
+                pngminute = i.body.minute
+                pngsecond = i.body.second
+                pngdate = datetime.datetime(pngyear, pngmonth, pngday, pnghour, pngminute, pngsecond)
+                if 'time' not in metadata:
+                    metadata['time'] = []
+                metadata['time'].append({'time': pngdate.isoformat()})
+            elif i.type == 'tEXt':
+                # tEXt contains key/value pairs with metadata about the PNG file.
+                # section 11.3.4.3
+                # Multiple tEXt chunks are allowed.
+                pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
+            elif i.type == 'zTXt':
+                # zTXt contains key/value pairs with metadata about the PNG file,
+                # zlib compressed. (section 11.3.4.4)
+                # Multiple zTXt chunks are allowed.
+                if i.body.keyword == 'Raw profile type exif':
+                    # before eXIf ImageMagick used the zTXt field to
+                    # store EXIF data in hex form. python-pillow allows reading
+                    # raw exif data using an Exif() object.
+                    # https://github.com/python-pillow/Pillow/issues/4460
+                    try:
+                        exif_object = PIL.Image.Exif()
+                        value = i.body.text_datastream.decode()
+                        exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
+                        exif_object.load(exifdata)
+                    except UnicodeError:
+                        # TODO: what to do here?
+                        pass
+                elif i.body.keyword == 'Raw profile type icc':
+                    # ImageMagick used the zTXt field to store ICC data
+                    # in hex form.
+                    try:
+                       value = i.body.text_datastream.decode()
+                       iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
+                    except UnicodeError:
+                        # TODO: what to do here?
+                        pass
+                else:
+                    try:
+                        value = i.body.text_datastream.decode()
+                        pngtexts.append({'key': i.body.keyword,
+                                         'value': value})
+                    except UnicodeError:
+                        pngtexts.append({'key': i.body.keyword,
+                                         'value': i.body.text_datastream})
 
         # check if the PNG is animated.
         # https://wiki.mozilla.org/APNG_Specification
