@@ -10,7 +10,7 @@ dlcurl ()
 	url=$1
 	fn=$2
 	mkdir -p $SCRIPT_DIR/../src/$TESTDATA_DIR/$(dirname "$fn") && \
-	curl $url -o $SCRIPT_DIR/../src/$TESTDATA_DIR/"$fn"
+	curl -L $url -o $SCRIPT_DIR/../src/$TESTDATA_DIR/"$fn"
 }
 
 dlcurl_gunzip ()
