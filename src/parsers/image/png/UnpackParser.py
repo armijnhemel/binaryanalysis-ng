@@ -67,7 +67,20 @@ class PngUnpackParser(WrappedUnpackParser):
         pngtexts = []
 
         for i in self.data.chunks:
-            if i.type == 'iTXt':
+            if i.type == 'eXIf':
+                # eXIf is a recent extension to PNG. ImageMagick supports it but
+                # there does not seem to be widespread adoption yet.
+                # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
+                # http://ftp-osl.osuosl.org/pub/libpng/documents/proposals/eXIf/png-proposed-eXIf-chunk-2017-06-15.html
+                # TODO: there are a few images out there with chunk eXif, which
+                # was used in test implementations.
+                if not (i.body.startswith(b'MM') or i.body.startswith(b'II')):
+                    # this should never happen
+                    pass
+                else:
+                    exif_object = PIL.Image.Exif()
+                    exif_object.load(i.body)
+            elif i.type == 'iTXt':
                 # internationalized text
                 # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
                 # section 4.2.3.3
