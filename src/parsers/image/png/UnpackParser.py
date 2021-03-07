@@ -1,6 +1,7 @@
 import os
 import binascii
 import PIL.Image
+from PIL.ExifTags import TAGS as EXIF_TAGS
 from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_png
 from UnpackParser import UnpackParser, check_condition
