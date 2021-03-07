@@ -1,5 +1,6 @@
 import os
 import binascii
+import PIL.Image
 from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_png
 from UnpackParser import UnpackParser, check_condition
@@ -7,8 +8,8 @@ from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import png
 
-#class PngUnpackParser(UnpackParser):
 class PngUnpackParser(WrappedUnpackParser):
+#class PngUnpackParser(UnpackParser):
     extensions = ['png']
     signatures = [
         (0, b'\x89PNG\x0d\x0a\x1a\x0a')
@@ -71,7 +72,22 @@ class PngUnpackParser(WrappedUnpackParser):
                 if i.type == 'tEXt':
                     pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
                 if i.type == 'zTXt':
-                    pngtexts.append({'key': i.body.keyword, 'value': i.body.text_datastream})
+                    # before eXIf ImageMagick used the zTXt field to
+                    # store EXIF data. python-pillow allows reading
+                    # raw exif data using an Exif() object.
+                    # https://github.com/python-pillow/Pillow/issues/4460
+                    if i.body.keyword == 'Raw profile type exif':
+                        try:
+                            exif_object = PIL.Image.Exif()
+                            value = i.body.text_datastream.decode()
+                            exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
+                            exif_object.load(exifdata)
+                        except UnicodeError:
+                            # TODO: what to do here?
+                            pass
+                    else:
+                        pngtexts.append({'key': i.body.keyword,
+                                         'value': i.body.text_datastream})
 
         # check if the PNG is animated.
         # https://wiki.mozilla.org/APNG_Specification
