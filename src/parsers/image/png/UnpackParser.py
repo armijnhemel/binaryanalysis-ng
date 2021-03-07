@@ -1,23 +1,21 @@
 import os
 import binascii
-from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_png
+import datetime
+import defusedxml.minidom
+import PIL.Image
+from PIL.ExifTags import TAGS as EXIF_TAGS
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import png
 
-#class PngUnpackParser(UnpackParser):
-class PngUnpackParser(WrappedUnpackParser):
+class PngUnpackParser(UnpackParser):
     extensions = ['png']
     signatures = [
         (0, b'\x89PNG\x0d\x0a\x1a\x0a')
     ]
     pretty_name = 'png'
     chunknames = set()
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_png(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         try:
@@ -59,24 +57,96 @@ class PngUnpackParser(WrappedUnpackParser):
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'png', 'graphics' ]
+        metadata = {}
         pngtexts = []
 
-        # tEXt contains key/value pairs with metadata about the PNG file.
-        # Multiple tEXt chunks are allowed.
-        if 'tEXt' in self.chunknames:
-            # section 11.3.4.3
-            for i in self.data.chunks:
-                if i.type == 'tEXt':
-                    pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
-
-        # zTXt contains key/value pairs with metadata about the PNG file,
-        # zlib compressed.
-        # Multiple zTXt chunks are allowed.
-        if 'zTXt' in self.chunknames:
-            # section 11.3.4.4
-            for i in self.data.chunks:
-                if i.type == 'zTXt':
-                    pngtexts.append({'key': i.body.keyword, 'value': i.body.text_datastream})
+        # TODO: eXif, tXMP, meTa
+        for i in self.data.chunks:
+            if i.type == 'eXIf':
+                # eXIf is a recent extension to PNG. ImageMagick supports it but
+                # there does not seem to be widespread adoption yet.
+                # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
+                # http://ftp-osl.osuosl.org/pub/libpng/documents/proposals/eXIf/png-proposed-eXIf-chunk-2017-06-15.html
+                # TODO: there are a few images out there with chunk eXif, which
+                # was used in test implementations.
+                if not (i.body.startswith(b'MM') or i.body.startswith(b'II')):
+                    # this should never happen
+                    pass
+                else:
+                    exif_object = PIL.Image.Exif()
+                    exif_object.load(i.body)
+            elif i.type == 'iTXt':
+                # internationalized text
+                # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
+                # section 4.2.3.3
+                if i.body.keyword == 'XML:com.adobe.xmp':
+                    # the XMP specification (part 3) recommends
+                    # using the iTXt chunk (section 1.1.5)
+                    # https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart3.pdf
+                    try:
+                        # XMP should be valid XML
+                        xmpdom = defusedxml.minidom.parseString(i.body.text)
+                        hasxmp = True
+                        if 'xmp' not in metadata:
+                            metadata['xmp'] = []
+                        metadata['xmp'].append({'xmp': i.body.text})
+                    except:
+                        pngtexts.append({'key': i.body.keyword,
+                                         'languagetag': i.body.language_tag,
+                                         'translatedkey': i.body.translated_keyword,
+                                         'value': i.body.text})
+                else:
+                    pngtexts.append({'key': i.body.keyword,
+                                     'languagetag': i.body.language_tag,
+                                     'translatedkey': i.body.translated_keyword,
+                                     'value': i.body.text})
+            elif i.type == 'tEXt':
+                # tEXt contains key/value pairs with metadata about the PNG file.
+                # section 11.3.4.3
+                # Multiple tEXt chunks are allowed.
+                pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
+            elif i.type == 'tIME':
+               # tIMe chunk, should be only one
+                pngdate = datetime.datetime(i.body.year, i.body.month,
+                                            i.body.day, i.body.hour,
+                                            i.body.minute, i.body.second)
+                if 'time' not in metadata:
+                    metadata['time'] = []
+                metadata['time'].append({'time': pngdate.isoformat()})
+            elif i.type == 'zTXt':
+                # zTXt contains key/value pairs with metadata about the PNG file,
+                # zlib compressed. (section 11.3.4.4)
+                # Multiple zTXt chunks are allowed.
+                if i.body.keyword == 'Raw profile type exif':
+                    # before eXIf ImageMagick used the zTXt field to
+                    # store EXIF data in hex form. python-pillow allows reading
+                    # raw exif data using an Exif() object.
+                    # https://github.com/python-pillow/Pillow/issues/4460
+                    try:
+                        exif_object = PIL.Image.Exif()
+                        value = i.body.text_datastream.decode()
+                        exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
+                        exif_object.load(exifdata)
+                    except UnicodeError:
+                        # TODO: what to do here?
+                        pass
+                elif i.body.keyword == 'Raw profile type icc':
+                    # ImageMagick used the zTXt field to store ICC data
+                    # in hex form.
+                    try:
+                       value = i.body.text_datastream.decode()
+                       iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
+                    except UnicodeError:
+                        # TODO: what to do here?
+                        pass
+                else:
+                    try:
+                        value = i.body.text_datastream.decode()
+                        pngtexts.append({'key': i.body.keyword,
+                                         'value': value})
+                    except UnicodeError:
+                        pngtexts.append({'key': i.body.keyword,
+                                         'value': i.body.text_datastream})
 
         # check if the PNG is animated.
         # https://wiki.mozilla.org/APNG_Specification
@@ -132,12 +202,12 @@ class PngUnpackParser(WrappedUnpackParser):
                 labels.append('adobe fireworks')
                 break
 
-        self.unpack_results['metadata'] = {
-                'width': self.data.ihdr.width,
-                'height': self.data.ihdr.height,
-                'depth': self.data.ihdr.bit_depth,
-                'text': pngtexts
-                # 'xmp': xmps
-            }
+        metadata['width'] = self.data.ihdr.width
+        metadata['height'] = self.data.ihdr.height
+        metadata['depth'] = self.data.ihdr.bit_depth
+        metadata['text'] = pngtexts
+        # TODO: xmp, exif
+
+        self.unpack_results['metadata'] = metadata
 
         self.unpack_results['labels'] = labels
