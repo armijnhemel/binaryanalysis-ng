@@ -26,21 +26,17 @@ import logging
 import mimetypes
 import pathlib
 import shutil
-import pickle
 import sys
 import traceback
-import json
 from operator import itemgetter
 
 import bangsignatures
-from bangfilescans import bangfilefunctions, bangwholecontextfunctions
 from banglogging import log
 import banglogging
 from FileResult import FileResult
 from FileContentsComputer import *
 from UnpackManager import *
 from UnpackParserException import UnpackParserException
-
 
 class ScanJobError(Exception):
     def __new__(cls, *args, **kwargs):
@@ -607,11 +603,6 @@ class ScanJob:
 
                 break
 
-    def run_scans_on_file(self, bangfilefunctions, dbconn, dbcursor):
-        for filefunc in bangfilefunctions:
-            if self.fileresult.labels.isdisjoint(set(filefunc.ignore)):
-                res = filefunc(self.fileresult, self.fileresult.get_hashresult(), dbconn, dbcursor, self.scanenvironment)
-
 # Process a single file.
 # This method has the following parameters:
 #
@@ -632,9 +623,6 @@ def processfile(dbconn, dbcursor, scanenvironment):
     resultqueue = scanenvironment.resultqueue
     processlock = scanenvironment.processlock
     checksumdict = scanenvironment.checksumdict
-
-    createbytecounter = scanenvironment.get_createbytecounter()
-    createjson = scanenvironment.get_createjson()
 
     carveunpacked = True
 
@@ -672,60 +660,25 @@ def processfile(dbconn, dbcursor, scanenvironment):
             if unpacker.needs_unpacking():
                 scanjob.check_entire_file(unpacker)
 
-            duplicate = False
             processlock.acquire()
 
             if scanjob.fileresult.get_hash() in checksumdict:
-                duplicate = True
+                scanjob.fileresult.set_duplicate(True)
             else:
+                scanjob.fileresult.set_duplicate(False)
                 checksumdict[scanjob.fileresult.get_hash()] = scanjob.fileresult.filename
             processlock.release()
 
-            if not duplicate:
-                if bangfilefunctions != [] and scanenvironment.runfilescans:
-                    scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
+            if not scanjob.fileresult.is_duplicate():
+                if scanenvironment.runfilescans:
+                    for sclass in scanenvironment.filescanners:
+                        s = sclass(dbconn, dbcursor, scanenvironment)
+                        if s.should_scan(scanjob.fileresult):
+                            s.scan(scanjob.fileresult)
 
-                # write a pickle with output data
-                # The pickle contains:
-                # * all available hashes
-                # * labels
-                # * byte count
-                # * any extra data that might have been passed around
-                resultout = {}
-
-                if createbytecounter and 'padding' not in scanjob.fileresult.labels:
-                    resultout['bytecount'] = sorted(scanjob.fileresult.byte_counter.get().items())
-                    # also write a file with the distribution of bytes in the scanned file
-                    bytescountfilename = scanenvironment.resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
-                    if not bytescountfilename.exists():
-                        bytesout = bytescountfilename.open('w')
-                        for by in resultout['bytecount']:
-                            bytesout.write("%d\t%d\n" % by)
-                        bytesout.close()
-
-                for a, h in scanjob.fileresult.get_hashresult().items():
-                    resultout[a] = h
-
-                resultout['labels'] = list(scanjob.fileresult.labels)
-                if scanjob.fileresult.metadata is not None:
-                    resultout['metadata'] = scanjob.fileresult.metadata
-
-                picklefilename = scanenvironment.resultsdirectory / ("%s.pickle" % scanjob.fileresult.get_hash('sha256'))
-                # TODO: this is vulnerable to a race condition, replace with EAFP pattern
-                if not picklefilename.exists():
-                    pickleout = picklefilename.open('wb')
-                    pickle.dump(resultout, pickleout)
-                    pickleout.close()
-
-                if createjson:
-                    jsonfilename = scanenvironment.resultsdirectory / ("%s.json" % scanjob.fileresult.get_hash('sha256'))
-                    # TODO: this is vulnerable to a race condition, replace with EAFP pattern
-                    if not jsonfilename.exists():
-                        jsonout = jsonfilename.open('w')
-                        json.dump(resultout, jsonout, indent=4)
-                        jsonout.close()
-            else:
-                scanjob.fileresult.labels.add('duplicate')
+                for rclass in scanenvironment.reporters:
+                    r = rclass(scanenvironment)
+                    r.report(scanjob.fileresult)
 
             # scanjob.fileresult.set_filesize(scanjob.filesize)
 

@@ -31,7 +31,7 @@ class FileResult:
     def __init__(self, parent, rel_path, labels):
         """Constructor.
         parent: parent fileresult, None if file is the top file to unpack.
-        rel_path: path relative to the unpack directory root (not needed for the top file).
+        rel_path: path relative to the unpack directory root (for the top file, use an absolute path).
         labels: labels associated with the file.
         """
         self.hash = {}
@@ -100,3 +100,10 @@ class FileResult:
         if self.parent_path is None:
             return pathlib.Path(pathlib.Path(self.filename).name)
         return pathlib.Path(self.filename)
+
+    def set_duplicate(self, duplicate=True):
+        self.duplicate = duplicate
+
+    def is_duplicate(self):
+        return self.duplicate
+

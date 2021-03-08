@@ -21,6 +21,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
+from NSRLHashScanner import *
+from LicenseIdentifierScanner import *
+from ByteCountReporter import *
+from PickleReporter import *
+from JsonReporter import *
 
 class ScanEnvironment:
     tlshlabelsignore = set([
@@ -59,10 +64,15 @@ class ScanEnvironment:
         self.processlock = processlock
         self.checksumdict = checksumdict
         self.runfilescans = runfilescans
+        self.filescanners = [ NSRLHashScanner, LicenseIdentifierScanner ]
         self.unpackparsers = []
         self.unpackparsers_for_extensions = {}
         self.unpackparsers_for_signatures = {}
         self.unpackparsers_for_featureless_files = []
+        self.reporters = []
+        if self.createbytecounter: self.reporters.append(ByteCountReporter)
+        self.reporters.append(PickleReporter)
+        if self.createjson: self.reporters.append(JsonReporter)
 
     def get_runfilescans(self):
         return self.runfilescans
