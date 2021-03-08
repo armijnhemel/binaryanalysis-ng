@@ -1,7 +1,5 @@
 import os
 import pathlib
-from UnpackParser import WrappedUnpackParser
-from banggames import unpack_quake_pak
 from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
@@ -17,33 +15,31 @@ a lookup table.
 https://quakewiki.org/wiki/.pak
 '''
 
-class QuakePakUnpackParser(WrappedUnpackParser):
-#class QuakePakUnpackParser(UnpackParser):
+class QuakePakUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'PACK')
     ]
     pretty_name = 'quakepak'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_quake_pak(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = quake_pak.QuakePak.from_io(self.infile)
+            # there has to be at least one file.
+            check_condition(self.data.len_index > 0, "at least one file needed")
+            # size of the file table has to be a multiple of 64. Possibly
+            # Kaitai already checks this.
+            check_condition(self.data.len_index%64 == 0, "file table not a multiple of 64")
+            check_condition(len(self.data.index.entries) == self.data.len_index//64,
+                           "not enough file entries")
         # TODO: decide what exceptions to catch
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
+        except EOFError as e:
+            raise UnpackParserException(e.args)
 
-        # there has to be at least one file.
-        check_condition(self.data.len_index > 0, "at least one file needed")
-        # size of the file table has to be a multiple of 64. Possibly
-        # Kaitai already checks this.
-        check_condition(self.data.len_index%64 == 0, "file table not a multiple of 64")
-        check_condition(len(self.data.index.entries) == self.data.len_index//64,
-                       "not enough file entries")
 
     # no need to carve the Quake PAK file itself from the file
     def carve(self):
