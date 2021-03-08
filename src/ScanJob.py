@@ -676,11 +676,13 @@ def processfile(dbconn, dbcursor, scanenvironment):
 
             if scanjob.fileresult.get_hash() in checksumdict:
                 duplicate = True
+                scanjob.fileresult.set_duplicate(True)
             else:
+                scanjob.fileresult.set_duplicate(False)
                 checksumdict[scanjob.fileresult.get_hash()] = scanjob.fileresult.filename
             processlock.release()
 
-            if not duplicate:
+            if not scanjob.fileresult.is_duplicate():
                 if bangfilefunctions != [] and scanenvironment.runfilescans:
                     scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
 
@@ -692,9 +694,6 @@ def processfile(dbconn, dbcursor, scanenvironment):
                 if scanenvironment.get_createjson():
                     reporter = JsonReporter(scanenvironment)
                     reporter.report(scanjob.fileresult)
-
-            else:
-                scanjob.fileresult.labels.add('duplicate')
 
             # scanjob.fileresult.set_filesize(scanjob.filesize)
 

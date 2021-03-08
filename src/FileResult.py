@@ -100,3 +100,10 @@ class FileResult:
         if self.parent_path is None:
             return pathlib.Path(pathlib.Path(self.filename).name)
         return pathlib.Path(self.filename)
+
+    def set_duplicate(self, duplicate=True):
+        self.duplicate = duplicate
+
+    def is_duplicate(self):
+        return self.duplicate
+
