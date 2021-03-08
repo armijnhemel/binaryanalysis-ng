@@ -660,11 +660,9 @@ def processfile(dbconn, dbcursor, scanenvironment):
             if unpacker.needs_unpacking():
                 scanjob.check_entire_file(unpacker)
 
-            duplicate = False
             processlock.acquire()
 
             if scanjob.fileresult.get_hash() in checksumdict:
-                duplicate = True
                 scanjob.fileresult.set_duplicate(True)
             else:
                 scanjob.fileresult.set_duplicate(False)
