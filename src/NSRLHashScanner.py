@@ -39,11 +39,11 @@ class NSRLHashScanner(BaseScanner):
         if self.dbconn is None:
             return results
 
-        hash = fileresult.get_hashresult()
+        hash_result = fileresult.get_hashresult()
         # first grab a *possible* filename from the NSRL database using
         # the SHA1 of the file. At the moment just one *possible* filename
         # is recorded in the database.
-        self.dbcursor.execute("SELECT filename FROM nsrl_hash WHERE sha1=%s", (hash,))
+        self.dbcursor.execute("SELECT filename FROM nsrl_hash WHERE sha1=%s", (hash_result['sha1'],))
         filenameres = self.dbcursor.fetchall()
         self.dbconn.commit()
 
@@ -53,7 +53,7 @@ class NSRLHashScanner(BaseScanner):
         manufacturercache = {}
 
         # get more results
-        self.dbcursor.execute("SELECT n.productname, n.productversion, n.applicationtype, n.manufacturercode FROM nsrl_product n, nsrl_entry m WHERE n.productcode = m.productcode AND m.sha1=%s;", (hash,))
+        self.dbcursor.execute("SELECT n.productname, n.productversion, n.applicationtype, n.manufacturercode FROM nsrl_product n, nsrl_entry m WHERE n.productcode = m.productcode AND m.sha1=%s;", (hash_result['sha1'],))
         productres = self.dbcursor.fetchall()
         self.dbconn.commit()
         for p in productres:
