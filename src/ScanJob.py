@@ -37,11 +37,6 @@ from FileResult import FileResult
 from FileContentsComputer import *
 from UnpackManager import *
 from UnpackParserException import UnpackParserException
-from NSRLHashScanner import *
-from LicenseIdentifierScanner import *
-from ByteCountReporter import *
-from PickleReporter import *
-from JsonReporter import *
 
 class ScanJobError(Exception):
     def __new__(cls, *args, **kwargs):
@@ -677,24 +672,15 @@ def processfile(dbconn, dbcursor, scanenvironment):
             processlock.release()
 
             if not scanjob.fileresult.is_duplicate():
-                # TODO: make visitor pattern
                 if scanenvironment.runfilescans:
-                    s = NSRLHashScanner(dbconn, dbcursor, scanenvironment)
-                    if s.should_scan(scanjob.fileresult):
-                        s.scan(scanjob.fileresult)
-                    s = LicenseIdentifierScanner(dbconn, dbcursor, scanenvironment)
-                    if s.should_scan(scanjob.fileresult):
-                        s.scan(scanjob.fileresult)
+                    for sclass in scanenvironment.filescanners:
+                        s = sclass(dbconn, dbcursor, scanenvironment)
+                        if s.should_scan(scanjob.fileresult):
+                            s.scan(scanjob.fileresult)
 
-                # TODO: make visitor pattern
-                if scanenvironment.get_createbytecounter():
-                    reporter = ByteCountReporter(scanenvironment)
-                    reporter.report(scanjob.fileresult)
-                reporter = PickleReporter(scanenvironment)
-                reporter.report(scanjob.fileresult)
-                if scanenvironment.get_createjson():
-                    reporter = JsonReporter(scanenvironment)
-                    reporter.report(scanjob.fileresult)
+                for rclass in scanenvironment.reporters:
+                    r = rclass(scanenvironment)
+                    r.report(scanjob.fileresult)
 
             # scanjob.fileresult.set_filesize(scanjob.filesize)
 
