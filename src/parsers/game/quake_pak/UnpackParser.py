@@ -66,7 +66,7 @@ class QuakePakUnpackParser(WrappedUnpackParser):
 
             # write the file
             quake_file = outfile_rel.open(mode='xb')
-            os.sendfile(quake_file.fileno(), self.infile.fileno(), quake_entry.ofs, quake_entry.size)
+            os.sendfile(quake_file.fileno(), self.infile.fileno(), self.infile.offset + quake_entry.ofs, quake_entry.size)
             quake_file.close()
 
             out_labels = []
