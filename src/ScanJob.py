@@ -26,10 +26,8 @@ import logging
 import mimetypes
 import pathlib
 import shutil
-import pickle
 import sys
 import traceback
-import json
 from operator import itemgetter
 
 import bangsignatures
@@ -40,7 +38,9 @@ from FileResult import FileResult
 from FileContentsComputer import *
 from UnpackManager import *
 from UnpackParserException import UnpackParserException
-
+from ByteCountReporter import *
+from PickleReporter import *
+from JsonReporter import *
 
 class ScanJobError(Exception):
     def __new__(cls, *args, **kwargs):
@@ -633,8 +633,7 @@ def processfile(dbconn, dbcursor, scanenvironment):
     processlock = scanenvironment.processlock
     checksumdict = scanenvironment.checksumdict
 
-    createbytecounter = scanenvironment.get_createbytecounter()
-    createjson = scanenvironment.get_createjson()
+    # createbytecounter = scanenvironment.get_createbytecounter()
 
     carveunpacked = True
 
@@ -685,45 +684,15 @@ def processfile(dbconn, dbcursor, scanenvironment):
                 if bangfilefunctions != [] and scanenvironment.runfilescans:
                     scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
 
-                # write a pickle with output data
-                # The pickle contains:
-                # * all available hashes
-                # * labels
-                # * byte count
-                # * any extra data that might have been passed around
-                resultout = {}
+                if scanenvironment.get_createbytecounter():
+                    reporter = ByteCountReporter(scanenvironment)
+                    reporter.report(scanjob.fileresult)
+                reporter = PickleReporter(scanenvironment)
+                reporter.report(scanjob.fileresult)
+                if scanenvironment.get_createjson():
+                    reporter = JsonReporter(scanenvironment)
+                    reporter.report(scanjob.fileresult)
 
-                if createbytecounter and 'padding' not in scanjob.fileresult.labels:
-                    resultout['bytecount'] = sorted(scanjob.fileresult.byte_counter.get().items())
-                    # also write a file with the distribution of bytes in the scanned file
-                    bytescountfilename = scanenvironment.resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
-                    if not bytescountfilename.exists():
-                        bytesout = bytescountfilename.open('w')
-                        for by in resultout['bytecount']:
-                            bytesout.write("%d\t%d\n" % by)
-                        bytesout.close()
-
-                for a, h in scanjob.fileresult.get_hashresult().items():
-                    resultout[a] = h
-
-                resultout['labels'] = list(scanjob.fileresult.labels)
-                if scanjob.fileresult.metadata is not None:
-                    resultout['metadata'] = scanjob.fileresult.metadata
-
-                picklefilename = scanenvironment.resultsdirectory / ("%s.pickle" % scanjob.fileresult.get_hash('sha256'))
-                # TODO: this is vulnerable to a race condition, replace with EAFP pattern
-                if not picklefilename.exists():
-                    pickleout = picklefilename.open('wb')
-                    pickle.dump(resultout, pickleout)
-                    pickleout.close()
-
-                if createjson:
-                    jsonfilename = scanenvironment.resultsdirectory / ("%s.json" % scanjob.fileresult.get_hash('sha256'))
-                    # TODO: this is vulnerable to a race condition, replace with EAFP pattern
-                    if not jsonfilename.exists():
-                        jsonout = jsonfilename.open('w')
-                        json.dump(resultout, jsonout, indent=4)
-                        jsonout.close()
             else:
                 scanjob.fileresult.labels.add('duplicate')
 
