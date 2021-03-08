@@ -27,6 +27,9 @@ class PickleReporter:
     def __init__(self, scanenvironment):
         self.scanenvironment = scanenvironment
 
+    def top_level_report(self, scanresult, picklefilename):
+        pickle.dump(scanresult, picklefilename)
+
     def report(self, fileresult):
 
         # write a pickle with output data

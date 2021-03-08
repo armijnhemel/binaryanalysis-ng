@@ -365,7 +365,7 @@ def main(argv):
 
         # write all results to a Python pickle
         picklefile = open(scandirectory / 'bang.pickle', 'wb')
-        PickleReporter(picklefile).report(scanresult)
+        PickleReporter(scanenvironment).top_level_report(scanresult, picklefile)
         picklefile.close()
 
         # optionally write the same data in JSON format
