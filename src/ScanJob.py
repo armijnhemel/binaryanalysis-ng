@@ -31,7 +31,6 @@ import traceback
 from operator import itemgetter
 
 import bangsignatures
-from bangfilescans import bangfilefunctions, bangwholecontextfunctions
 from banglogging import log
 import banglogging
 from FileResult import FileResult
