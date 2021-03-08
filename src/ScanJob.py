@@ -608,11 +608,6 @@ class ScanJob:
 
                 break
 
-    def run_scans_on_file(self, bangfilefunctions, dbconn, dbcursor):
-        for filefunc in bangfilefunctions:
-            if self.fileresult.labels.isdisjoint(set(filefunc.ignore)):
-                res = filefunc(self.fileresult, self.fileresult.get_hashresult(), dbconn, dbcursor, self.scanenvironment)
-
 # Process a single file.
 # This method has the following parameters:
 #
