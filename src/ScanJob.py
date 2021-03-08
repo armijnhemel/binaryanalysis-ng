@@ -38,6 +38,8 @@ from FileResult import FileResult
 from FileContentsComputer import *
 from UnpackManager import *
 from UnpackParserException import UnpackParserException
+from NSRLHashScanner import *
+from LicenseIdentifierScanner import *
 from ByteCountReporter import *
 from PickleReporter import *
 from JsonReporter import *
@@ -681,9 +683,16 @@ def processfile(dbconn, dbcursor, scanenvironment):
             processlock.release()
 
             if not scanjob.fileresult.is_duplicate():
-                if bangfilefunctions != [] and scanenvironment.runfilescans:
-                    scanjob.run_scans_on_file(bangfilefunctions, dbconn, dbcursor)
+                # TODO: make visitor pattern
+                if scanenvironment.runfilescans:
+                    s = NSRLHashScanner(dbconn, dbcursor, scanenvironment)
+                    if s.should_scan(scanjob.fileresult):
+                        s.scan(scanjob.fileresult)
+                    s = LicenseIdentifierScanner(dbconn, dbcursor, scanenvironment)
+                    if s.should_scan(scanjob.fileresult):
+                        s.scan(scanjob.fileresult)
 
+                # TODO: make visitor pattern
                 if scanenvironment.get_createbytecounter():
                     reporter = ByteCountReporter(scanenvironment)
                     reporter.report(scanjob.fileresult)

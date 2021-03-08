@@ -74,7 +74,7 @@ parser_pass_BB_1_7 = create_unpackparser('ParserPassBB_1_7',
 
 def test_carved_padding_file_has_correct_labels(scan_environment):
     padding_file = _create_padding_file_in_unpack_directory(scan_environment)
-    fileresult = FileResult(None, padding_file, set())
+    fileresult = FileResult(None, scan_environment.unpackdirectory / padding_file, set())
     fileresult.set_filesize(
             (scan_environment.unpackdirectory / padding_file).stat().st_size)
     scanjob = ScanJob(fileresult)
@@ -90,7 +90,7 @@ def test_carved_padding_file_has_correct_labels(scan_environment):
 
 def test_process_paddingfile_has_correct_labels(scan_environment):
     padding_file = _create_padding_file_in_unpack_directory(scan_environment)
-    fileresult = FileResult(None, padding_file, set(['padding']))
+    fileresult = FileResult(None, scan_environment.unpackdirectory / padding_file, set(['padding']))
     fileresult.set_filesize(
             (scan_environment.unpackdirectory / padding_file).stat().st_size)
     scanjob = ScanJob(fileresult)
