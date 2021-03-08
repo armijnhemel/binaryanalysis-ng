@@ -48,9 +48,6 @@ class LicenseIdentifierScanner(BaseScanner):
         forgeresults = {}
 
         seekbuf = bytearray(1000000)
-        print(1,fileresult.filename)
-        print(2,self.scanenvironment.unpackdirectory)
-        print(3,fileresult.has_parent())
         filename_full = self.scanenvironment.get_unpack_path_for_fileresult(fileresult)
         filesize = fileresult.filesize
 
