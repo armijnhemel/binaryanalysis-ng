@@ -633,8 +633,6 @@ def processfile(dbconn, dbcursor, scanenvironment):
     processlock = scanenvironment.processlock
     checksumdict = scanenvironment.checksumdict
 
-    # createbytecounter = scanenvironment.get_createbytecounter()
-
     carveunpacked = True
 
     while True:
