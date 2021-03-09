@@ -172,8 +172,8 @@ class PngUnpackParser(UnpackParser):
                     # ImageMagick used the zTXt field to store ICC data
                     # in hex form.
                     try:
-                       value = i.body.text_datastream.decode()
-                       iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
+                        value = i.body.text_datastream.decode()
+                        iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
                     except UnicodeError:
                         # TODO: what to do here?
                         pass
