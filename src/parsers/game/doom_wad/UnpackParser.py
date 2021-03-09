@@ -26,11 +26,7 @@ from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import doom_wad
 
-from UnpackParser import WrappedUnpackParser
-from banggames import unpack_doom_wad
-
-#class DoomWadUnpackParser(UnpackParser):
-class DoomWadUnpackParser(WrappedUnpackParser):
+class DoomWadUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'IWAD')
