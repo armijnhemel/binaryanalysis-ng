@@ -41,6 +41,17 @@ from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import png
 
+# a list of known chunks
+KNOWN_CHUNKS = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM',
+                    'gAMA', 'hIST', 'iCCP', 'pHYs', 'sBIT', 'sPLT',
+                    'sRGB', 'tEXt', 'tIME', 'tRNS', 'zTXt', 'iTXt',
+                    'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
+                    'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT',
+                    'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT',
+                    'sCAL', 'sTER', 'meTa', 'grAb', 'alPh', 'huBs',
+                    'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd', 'dSIG',
+                    'eXIf', 'eXif'])
+
 
 class PngUnpackParser(UnpackParser):
     #extensions = ['.png']
@@ -248,6 +259,10 @@ class PngUnpackParser(UnpackParser):
         metadata['height'] = self.data.ihdr.height
         metadata['depth'] = self.data.ihdr.bit_depth
         metadata['text'] = pngtexts
+
+        unknownchunks = list(self.chunknames.difference(KNOWN_CHUNKS))
+        metadata['unknownchunks'] = unknownchunks
+
         # TODO: xmp, exif
 
         self.unpack_results.set_metadata(metadata)
