@@ -221,7 +221,6 @@ signaturetofunction = {
     'webp': bangmedia.unpack_webp,
     'wav': bangmedia.unpack_wav,
     'ani': bangmedia.unpack_ani,
-    'png': bangmedia.unpack_png,
     'mng': bangmedia.unpack_mng,
     'gzip': bangunpack.unpack_gzip,
     'bmp': bangmedia.unpack_bmp,
