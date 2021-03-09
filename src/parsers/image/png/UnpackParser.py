@@ -1,13 +1,57 @@
+# Binary Analysis Next Generation (BANG!)
+#
+# This file is part of BANG.
+#
+# BANG is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License, version 3,
+# as published by the Free Software Foundation.
+#
+# BANG is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License, version 3, along with BANG.  If not, see
+# <http://www.gnu.org/licenses/>
+#
+# Copyright Armijn Hemel
+# Licensed under the terms of the GNU Affero General Public License
+# version 3
+# SPDX-License-Identifier: AGPL-3.0-only
+
+'''
+Parse and unpack PNG files. The specification of the PNG can be found at:
+
+https://www.w3.org/TR/PNG/
+
+Section 5 describes the structure of a PNG file
+'''
+
 import os
 import binascii
 import datetime
+
 import defusedxml.minidom
 import PIL.Image
 from PIL.ExifTags import TAGS as EXIF_TAGS
+
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import png
+
+# a list of known chunks
+KNOWN_CHUNKS = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM',
+                    'gAMA', 'hIST', 'iCCP', 'pHYs', 'sBIT', 'sPLT',
+                    'sRGB', 'tEXt', 'tIME', 'tRNS', 'zTXt', 'iTXt',
+                    'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
+                    'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT',
+                    'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT',
+                    'sCAL', 'sTER', 'meTa', 'grAb', 'alPh', 'huBs',
+                    'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd', 'dSIG',
+                    'eXIf', 'eXif'])
+
 
 class PngUnpackParser(UnpackParser):
     #extensions = ['.png']
@@ -139,8 +183,8 @@ class PngUnpackParser(UnpackParser):
                     # ImageMagick used the zTXt field to store ICC data
                     # in hex form.
                     try:
-                       value = i.body.text_datastream.decode()
-                       iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
+                        value = i.body.text_datastream.decode()
+                        iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
                     except UnicodeError:
                         # TODO: what to do here?
                         pass
@@ -177,6 +221,10 @@ class PngUnpackParser(UnpackParser):
         if 'iDOT' in self.chunknames:
             labels.append('apple')
 
+        # signed PDF
+        if 'dSIG' in self.chunknames:
+            labels.append('signed png')
+
         # check if the file is perhaps made by ImageMagick, which used a few
         # private chunks:
         # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
@@ -211,6 +259,10 @@ class PngUnpackParser(UnpackParser):
         metadata['height'] = self.data.ihdr.height
         metadata['depth'] = self.data.ihdr.bit_depth
         metadata['text'] = pngtexts
+
+        unknownchunks = list(self.chunknames.difference(KNOWN_CHUNKS))
+        metadata['unknownchunks'] = unknownchunks
+
         # TODO: xmp, exif
 
         self.unpack_results.set_metadata(metadata)
