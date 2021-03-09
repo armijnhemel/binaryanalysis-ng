@@ -210,6 +210,10 @@ class PngUnpackParser(UnpackParser):
         if 'iDOT' in self.chunknames:
             labels.append('apple')
 
+        # signed PDF
+        if 'dSIG' in self.chunknames:
+            labels.append('signed png')
+
         # check if the file is perhaps made by ImageMagick, which used a few
         # private chunks:
         # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
