@@ -313,7 +313,6 @@ signaturetofunction = {
     'dtb': bangunpack.unpack_device_tree,
     'trx': bangunpack.unpack_trx,
     'psd': bangmedia.unpack_psd,
-    'minidump': bangunpack.unpack_minidump,
     'ppm': bangmedia.unpack_pnm,
     'pgm': bangmedia.unpack_pnm,
     'pbm': bangmedia.unpack_pnm,

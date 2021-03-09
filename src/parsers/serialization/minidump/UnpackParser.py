@@ -27,15 +27,12 @@ https://chromium.googlesource.com/breakpad/breakpad/+/master/src/google_breakpad
 '''
 
 import os
-from UnpackParser import WrappedUnpackParser
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
-from bangunpack import unpack_minidump
 from . import windows_minidump
 
-#class MinidumpUnpackParser(UnpackParser):
-class MinidumpUnpackParser(WrappedUnpackParser):
+class MinidumpUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'MDMP')
@@ -48,13 +45,30 @@ class MinidumpUnpackParser(WrappedUnpackParser):
     def parse(self):
         try:
             self.data = windows_minidump.WindowsMinidump.from_io(self.infile)
+            # this is a bit of an ugly hack as the Kaitai parser is
+            # not entirely complete. Use this to detect if the file
+            # has been truncated.
+            for i in self.data.streams:
+                 a = type(i.data)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.data.ofs_streams
+        for i in self.data.streams:
+            self.unpacked_size = max(self.unpacked_size, i.ofs_data + i.len_data)
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = ['minidump']
         metadata = {}
+
+        '''
+        # TODO: extract interesting information, if any
+        for i in self.data.streams:
+             if type(i.data) == windows_minidump.WindowsMinidump.SystemInfo:
+                 pass
+        '''
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
