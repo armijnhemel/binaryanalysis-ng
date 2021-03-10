@@ -104,6 +104,7 @@ class PngUnpackParser(UnpackParser):
         labels = [ 'png', 'graphics' ]
         metadata = {}
         pngtexts = []
+        exiftags = []
 
         # TODO: eXif, tXMP, meTa
         for i in self.data.chunks:
@@ -120,6 +121,7 @@ class PngUnpackParser(UnpackParser):
                 else:
                     exif_object = PIL.Image.Exif()
                     exif_object.load(i.body)
+                    exiftags.append(dict(exif_object))
             elif i.type == 'iTXt':
                 # internationalized text
                 # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
@@ -176,6 +178,7 @@ class PngUnpackParser(UnpackParser):
                         value = i.body.text_datastream.decode()
                         exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
                         exif_object.load(exifdata)
+                        exiftags.append(dict(exif_object))
                     except UnicodeError:
                         # TODO: what to do here?
                         pass
@@ -259,11 +262,12 @@ class PngUnpackParser(UnpackParser):
         metadata['height'] = self.data.ihdr.height
         metadata['depth'] = self.data.ihdr.bit_depth
         metadata['text'] = pngtexts
+        metadata['exif'] = exiftags
 
         unknownchunks = list(self.chunknames.difference(KNOWN_CHUNKS))
         metadata['unknownchunks'] = unknownchunks
 
-        # TODO: xmp, exif
+        # TODO: xmp
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
