@@ -316,19 +316,23 @@ types:
         doc: Sequence number of the animation chunk
       - id: width
         type: u4
+        valid:
+          max: _root.ihdr.width
         doc: Width of the following frame
       - id: height
         type: u4
+        valid:
+          max: _root.ihdr.height
         doc: Height of the following frame
       - id: x_offset
         type: u4
         valid:
-          max: _root.ihdr.width
+          max: _root.ihdr.width - width
         doc: X position at which to render the following frame
       - id: y_offset
         type: u4
         valid:
-          max: _root.ihdr.height
+          max: _root.ihdr.height - height
         doc: Y position at which to render the following frame
       - id: delay_num
         type: u2
@@ -344,6 +348,10 @@ types:
         type: u1
         enum: blend_op_values
         doc: Type of frame area rendering for this frame
+    instances:
+      delay:
+        value: delay_num / (delay_den == 0 ? 100.0 : delay_den)
+        doc: delay in seconds
   frame_data_chunk:
     doc-ref: https://wiki.mozilla.org/APNG_Specification#.60fdAT.60:_The_Frame_Data_Chunk
     seq:
