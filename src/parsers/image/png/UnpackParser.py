@@ -31,6 +31,7 @@ Section 5 describes the structure of a PNG file
 import os
 import binascii
 import datetime
+from xml.parsers.expat import ExpatError
 
 import defusedxml.minidom
 import PIL.Image
@@ -104,6 +105,8 @@ class PngUnpackParser(UnpackParser):
         metadata = {}
         pngtexts = []
         exiftags = []
+        xmptags = []
+        timetags = []
 
         # TODO: eXif, tXMP, meTa
         for i in self.data.chunks:
@@ -132,11 +135,8 @@ class PngUnpackParser(UnpackParser):
                     try:
                         # XMP should be valid XML
                         xmpdom = defusedxml.minidom.parseString(i.body.text)
-                        hasxmp = True
-                        if 'xmp' not in metadata:
-                            metadata['xmp'] = []
-                        metadata['xmp'].append({'xmp': i.body.text})
-                    except:
+                        xmptags.append(i.body.text)
+                    except ExpatError:
                         pngtexts.append({'key': i.body.keyword,
                                          'languagetag': i.body.language_tag,
                                          'translatedkey': i.body.translated_keyword,
@@ -156,13 +156,15 @@ class PngUnpackParser(UnpackParser):
                 if i.body.keyword.startswith('Thumb::'):
                     labels.append('thumbnail')
             elif i.type == 'tIME':
-               # tIMe chunk, should be only one
-                pngdate = datetime.datetime(i.body.year, i.body.month,
-                                            i.body.day, i.body.hour,
-                                            i.body.minute, i.body.second)
-                if 'time' not in metadata:
-                    metadata['time'] = []
-                metadata['time'].append({'time': pngdate.isoformat()})
+                # tIMe chunk, should be only one but store
+                # as a list anyway
+                pngdate = {'year': i.body.year,
+                           'month': i.body.month,
+                           'day': i.body.day,
+                           'hour': i.body.hour,
+                           'minute': i.body.minute,
+                           'second': i.body.second}
+                timetags.append(pngdate)
             elif i.type == 'zTXt':
                 # zTXt contains key/value pairs with metadata about the PNG file,
                 # zlib compressed. (section 11.3.4.4)
@@ -262,11 +264,11 @@ class PngUnpackParser(UnpackParser):
         metadata['depth'] = self.data.ihdr.bit_depth
         metadata['text'] = pngtexts
         metadata['exif'] = exiftags
+        metadata['xmp'] = xmptags
+        metadata['time'] = timetags
 
         unknownchunks = list(self.chunknames.difference(KNOWN_CHUNKS))
         metadata['unknownchunks'] = unknownchunks
-
-        # TODO: xmp
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
