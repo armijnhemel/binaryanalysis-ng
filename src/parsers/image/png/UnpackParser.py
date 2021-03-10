@@ -198,6 +198,16 @@ class PngUnpackParser(UnpackParser):
                     except UnicodeError:
                         # TODO: what to do here?
                         pass
+                elif i.body.keyword == 'Raw profile type xmp':
+                    value = i.body.text_datastream.decode()
+                    xmpdata = bytes.fromhex("".join(value.split("\n")[3:])).decode()
+                    try:
+                        # XMP should be valid XML
+                        xmpdom = defusedxml.minidom.parseString(xmpdata)
+                        xmptags.append(xmpdata)
+                    except ExpatError:
+                        # TODO: what to do here?
+                        pass
                 else:
                     try:
                         value = i.body.text_datastream.decode()
