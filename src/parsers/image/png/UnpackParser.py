@@ -107,8 +107,9 @@ class PngUnpackParser(UnpackParser):
         exiftags = []
         xmptags = []
         timetags = []
+        metatags = []
 
-        # TODO: eXif, tXMP, meTa
+        # TODO: eXif, tXMP
         for i in self.data.chunks:
             if i.type == 'eXIf':
                 # eXIf is a recent extension to PNG. ImageMagick supports it but
@@ -146,6 +147,11 @@ class PngUnpackParser(UnpackParser):
                                      'languagetag': i.body.language_tag,
                                      'translatedkey': i.body.translated_keyword,
                                      'value': i.body.text})
+            elif i.type == 'meTa':
+                try:
+                    metatags.append(i.body.decode(encoding='utf-16'))
+                except:
+                    pass
             elif i.type == 'tEXt':
                 # tEXt contains key/value pairs with metadata about the PNG file.
                 # section 11.3.4.3
@@ -266,6 +272,7 @@ class PngUnpackParser(UnpackParser):
         metadata['exif'] = exiftags
         metadata['xmp'] = xmptags
         metadata['time'] = timetags
+        metadata['meta'] = metatags
 
         unknownchunks = list(self.chunknames.difference(KNOWN_CHUNKS))
         metadata['unknownchunks'] = unknownchunks
