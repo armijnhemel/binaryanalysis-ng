@@ -31,10 +31,10 @@ Section 5 describes the structure of a PNG file
 import os
 import binascii
 import datetime
+from xml.parsers.expat import ExpatError
 
 import defusedxml.minidom
 import PIL.Image
-from PIL.ExifTags import TAGS as EXIF_TAGS
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
@@ -104,8 +104,12 @@ class PngUnpackParser(UnpackParser):
         labels = [ 'png', 'graphics' ]
         metadata = {}
         pngtexts = []
+        exiftags = []
+        xmptags = []
+        timetags = []
+        metatags = []
 
-        # TODO: eXif, tXMP, meTa
+        # TODO: eXif, tXMP
         for i in self.data.chunks:
             if i.type == 'eXIf':
                 # eXIf is a recent extension to PNG. ImageMagick supports it but
@@ -120,6 +124,7 @@ class PngUnpackParser(UnpackParser):
                 else:
                     exif_object = PIL.Image.Exif()
                     exif_object.load(i.body)
+                    exiftags.append(dict(exif_object))
             elif i.type == 'iTXt':
                 # internationalized text
                 # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
@@ -131,11 +136,8 @@ class PngUnpackParser(UnpackParser):
                     try:
                         # XMP should be valid XML
                         xmpdom = defusedxml.minidom.parseString(i.body.text)
-                        hasxmp = True
-                        if 'xmp' not in metadata:
-                            metadata['xmp'] = []
-                        metadata['xmp'].append({'xmp': i.body.text})
-                    except:
+                        xmptags.append(i.body.text)
+                    except ExpatError:
                         pngtexts.append({'key': i.body.keyword,
                                          'languagetag': i.body.language_tag,
                                          'translatedkey': i.body.translated_keyword,
@@ -145,6 +147,11 @@ class PngUnpackParser(UnpackParser):
                                      'languagetag': i.body.language_tag,
                                      'translatedkey': i.body.translated_keyword,
                                      'value': i.body.text})
+            elif i.type == 'meTa':
+                try:
+                    metatags.append(i.body.decode(encoding='utf-16'))
+                except:
+                    pass
             elif i.type == 'tEXt':
                 # tEXt contains key/value pairs with metadata about the PNG file.
                 # section 11.3.4.3
@@ -155,13 +162,15 @@ class PngUnpackParser(UnpackParser):
                 if i.body.keyword.startswith('Thumb::'):
                     labels.append('thumbnail')
             elif i.type == 'tIME':
-               # tIMe chunk, should be only one
-                pngdate = datetime.datetime(i.body.year, i.body.month,
-                                            i.body.day, i.body.hour,
-                                            i.body.minute, i.body.second)
-                if 'time' not in metadata:
-                    metadata['time'] = []
-                metadata['time'].append({'time': pngdate.isoformat()})
+                # tIMe chunk, should be only one but store
+                # as a list anyway
+                pngdate = {'year': i.body.year,
+                           'month': i.body.month,
+                           'day': i.body.day,
+                           'hour': i.body.hour,
+                           'minute': i.body.minute,
+                           'second': i.body.second}
+                timetags.append(pngdate)
             elif i.type == 'zTXt':
                 # zTXt contains key/value pairs with metadata about the PNG file,
                 # zlib compressed. (section 11.3.4.4)
@@ -176,6 +185,7 @@ class PngUnpackParser(UnpackParser):
                         value = i.body.text_datastream.decode()
                         exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
                         exif_object.load(exifdata)
+                        exiftags.append(dict(exif_object))
                     except UnicodeError:
                         # TODO: what to do here?
                         pass
@@ -186,6 +196,16 @@ class PngUnpackParser(UnpackParser):
                         value = i.body.text_datastream.decode()
                         iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
                     except UnicodeError:
+                        # TODO: what to do here?
+                        pass
+                elif i.body.keyword == 'Raw profile type xmp':
+                    value = i.body.text_datastream.decode()
+                    xmpdata = bytes.fromhex("".join(value.split("\n")[3:])).decode()
+                    try:
+                        # XMP should be valid XML
+                        xmpdom = defusedxml.minidom.parseString(xmpdata)
+                        xmptags.append(xmpdata)
+                    except ExpatError:
                         # TODO: what to do here?
                         pass
                 else:
@@ -259,11 +279,13 @@ class PngUnpackParser(UnpackParser):
         metadata['height'] = self.data.ihdr.height
         metadata['depth'] = self.data.ihdr.bit_depth
         metadata['text'] = pngtexts
+        metadata['exif'] = exiftags
+        metadata['xmp'] = xmptags
+        metadata['time'] = timetags
+        metadata['meta'] = metatags
 
         unknownchunks = list(self.chunknames.difference(KNOWN_CHUNKS))
         metadata['unknownchunks'] = unknownchunks
-
-        # TODO: xmp, exif
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
