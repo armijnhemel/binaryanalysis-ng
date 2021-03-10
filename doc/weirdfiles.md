@@ -18,3 +18,5 @@ https://pmt.sourceforge.io/pngcrush/
 
 Image test suite for PNGs
 https://code.google.com/archive/p/imagetestsuite/downloads
+
+https://stackoverflow.com/questions/4242402/the-fireworks-png-format-any-insight-any-libs
