@@ -60,9 +60,9 @@ class PngUnpackParser(UnpackParser):
         (0, b'\x89PNG\x0d\x0a\x1a\x0a')
     ]
     pretty_name = 'png'
-    chunknames = set()
 
     def parse(self):
+        self.chunknames = set()
         try:
             self.data = png.Png.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
@@ -226,7 +226,7 @@ class PngUnpackParser(UnpackParser):
 
         # Check if the file is a stereo image
         if 'sTER' in self.chunknames:
-            labels.append('stereo')
+            labels.append('stereo png')
 
         # check if the file is possibly a "NinePatch" image
         # https://developer.android.com/reference/android/graphics/NinePatch
