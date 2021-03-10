@@ -20,3 +20,4 @@ Image test suite for PNGs
 https://code.google.com/archive/p/imagetestsuite/downloads
 
 https://stackoverflow.com/questions/4242402/the-fireworks-png-format-any-insight-any-libs
+https://commons.wikimedia.org/wiki/Category:Fireworks_PNG_files
