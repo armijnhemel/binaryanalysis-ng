@@ -34,7 +34,6 @@ import datetime
 
 import defusedxml.minidom
 import PIL.Image
-from PIL.ExifTags import TAGS as EXIF_TAGS
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
