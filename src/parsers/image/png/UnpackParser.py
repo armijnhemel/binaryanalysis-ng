@@ -226,7 +226,7 @@ class PngUnpackParser(UnpackParser):
 
         # Check if the file is a stereo image
         if 'sTER' in self.chunknames:
-            labels.append('stereo')
+            labels.append('stereo png')
 
         # check if the file is possibly a "NinePatch" image
         # https://developer.android.com/reference/android/graphics/NinePatch
