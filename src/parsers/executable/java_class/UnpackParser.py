@@ -30,6 +30,7 @@ from kaitaistruct import ValidationNotEqualError
 from . import java_class
 
 
+#class JavaClassUnpackParser(UnpackParser):
 class JavaClassUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
@@ -40,3 +41,16 @@ class JavaClassUnpackParser(WrappedUnpackParser):
     def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_java_class(fileresult, scan_environment, offset, unpack_dir)
 
+    def parse(self):
+        try:
+            self.data = java_class.JavaClass.from_io(self.infile)
+        except (Exception, ValidationNotEqualError) as e:
+            raise UnpackParserException(e.args)
+
+    def set_metadata_and_labels(self):
+        """sets metadata and labels for the unpackresults"""
+        labels = [ 'java class' ]
+        metadata = {}
+
+        self.unpack_results.set_metadata(metadata)
+        self.unpack_results.set_labels(labels)
