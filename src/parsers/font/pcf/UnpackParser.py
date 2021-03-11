@@ -20,6 +20,16 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+'''
+Unpacker for PCF font files. Specifications can be found at:
+
+https://fontforge.org/docs/techref/pcf-format.html
+
+Unfortunately there seem to be many files that do not follow the
+specification:
+
+https://github.com/kaitai-io/kaitai_struct_formats/issues/437
+'''
 
 import os
 from UnpackParser import UnpackParser, check_condition
@@ -40,13 +50,14 @@ class PcfUnpackParser(UnpackParser):
             self.data = pcf_font.PcfFont.from_io(self.infile)
             check_condition(self.data.num_tables > 0,
                             "invalid number of tables")
+            # this is a bit of an ugly hack to detect if the file
+            # has been truncated.
+            for i in self.data.tables:
+                 a = type(i.body)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-        for t in self.data.tables:
-           print(t.__dict__, t.len_body, t.ofs_body, t.len_body + t.ofs_body)
-
-    # no need to carve the Quake PAK file itself from the file
+    # no need to carve the PCF font from the file
     def carve(self):
         pass
 
@@ -54,7 +65,6 @@ class PcfUnpackParser(UnpackParser):
         self.unpacked_size = 0
         for t in self.data.tables:
             self.unpacked_size = max(self.unpacked_size, t.len_body + t.ofs_body)
-        print(self.unpacked_size)
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
@@ -63,4 +73,3 @@ class PcfUnpackParser(UnpackParser):
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
-
