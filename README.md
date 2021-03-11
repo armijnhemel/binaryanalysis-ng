@@ -215,6 +215,7 @@ larger file, unless stated otherwise.
 132. Qualcomm QCDT files
 133. Chrome extensions (.crx)
 134. Windows shell link file (.lnk)
+135. PCF fonts (that actually follow the specification)
 
 
 ## Invocation
