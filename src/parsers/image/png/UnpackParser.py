@@ -108,6 +108,7 @@ class PngUnpackParser(UnpackParser):
         xmptags = []
         timetags = []
         metatags = []
+        png_type_labels = []
 
         # TODO: eXif, tXMP
         for i in self.data.chunks:
@@ -160,7 +161,7 @@ class PngUnpackParser(UnpackParser):
                 # check to see if the file is a thumbnail.
                 # https://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html
                 if i.body.keyword.startswith('Thumb::'):
-                    labels.append('thumbnail')
+                    png_type_labels.append('thumbnail')
             elif i.type == 'tIME':
                 # tIMe chunk, should be only one but store
                 # as a list anyway
@@ -221,29 +222,29 @@ class PngUnpackParser(UnpackParser):
         # https://wiki.mozilla.org/APNG_Specification
         if 'acTL' in self.chunknames and 'fcTL' in self.chunknames \
             and 'fdAT' in self.chunknames:
-            labels.append('animated')
+            png_type_labels.append('animated')
             labels.append('apng')
 
         # Check if the file is a stereo image
         if 'sTER' in self.chunknames:
-            labels.append('stereo png')
+            png_type_labels.append('stereo png')
 
         # check if the file is possibly a "NinePatch" image
         # https://developer.android.com/reference/android/graphics/NinePatch
         for i in ['npTc', 'npLb', 'npOl']:
             if i in self.chunknames:
-                labels.append('ninepatch')
+                png_type_labels.append('ninepatch')
                 break
 
         # check if the file has an iDOT chunk, which is an undocumented
         # extension from Apple, not confirming to PNG specifications (it
         # is seen as a critical chunk by many decoders)
         if 'iDOT' in self.chunknames:
-            labels.append('apple')
+            png_type_labels.append('apple')
 
         # signed PDF
         if 'dSIG' in self.chunknames:
-            labels.append('signed png')
+            png_type_labels.append('signed png')
 
         # check if the file is perhaps made by ImageMagick, which used a few
         # private chunks:
@@ -252,27 +253,27 @@ class PngUnpackParser(UnpackParser):
         imagemagick = False
         for i in ['vpAg', 'caNv', 'orNT']:
             if i in self.chunknames:
-                labels.append('imagemagick')
+                png_type_labels.append('imagemagick')
                 break
 
         # https://zdoom.org/wiki/PNG
         for i in ['grAb', 'alPh', 'huBs', 'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd']:
             if i in self.chunknames:
-                labels.append('zdoom')
+                png_type_labels.append('zdoom')
                 break
 
         # https://zdoom.org/wiki/Savegame
         # This was changed in September 2016
         for i in ['huBs', 'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd']:
             if i in self.chunknames:
-                labels.append('zdoom')
-                labels.append('zdoom save game')
+                png_type_labels.append('zdoom')
+                png_type_labels.append('zdoom save game')
                 break
 
         # check if the file was made using Adobe Fireworks
         for i in ['prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF']:
             if i in self.chunknames:
-                labels.append('adobe fireworks')
+                png_type_labels.append('adobe fireworks')
                 break
 
         metadata['width'] = self.data.ihdr.width
@@ -283,6 +284,7 @@ class PngUnpackParser(UnpackParser):
         metadata['xmp'] = xmptags
         metadata['time'] = timetags
         metadata['meta'] = metatags
+        metadata['png_type'] = png_type_labels
 
         unknownchunks = list(self.chunknames.difference(KNOWN_CHUNKS))
         metadata['unknownchunks'] = unknownchunks
