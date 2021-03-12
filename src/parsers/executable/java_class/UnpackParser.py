@@ -52,5 +52,31 @@ class JavaClassUnpackParser(WrappedUnpackParser):
         labels = [ 'java class' ]
         metadata = {}
 
+        # store the results for Java:
+        # * methods
+        # * interfaces
+        # * fields
+        # * source file name
+        # * class name
+        # * strings
+        javaresults = {}
+
+        # walk and store the constant pool. This is used
+        # later to do lookups.
+        constant_pool = {}
+        constant_pool_index = 1
+
+        javaresults['interfaces'] = []
+        for i in self.data.interfaces:
+            javaresults['interfaces'].append(i.name_as_str)
+
+        javaresults['fields'] = []
+        for i in self.data.fields:
+            javaresults['fields'].append(i.name_as_str)
+
+        javaresults['methods'] = []
+        for i in self.data.methods:
+            javaresults['methods'].append(i.name_as_str)
+
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
