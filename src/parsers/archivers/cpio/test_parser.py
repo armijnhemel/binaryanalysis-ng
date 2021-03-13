@@ -21,6 +21,33 @@ def test_load_cpio_file_new_ascii(scan_environment):
     assert r.get_unpacked_files()[0].labels == set()
     assertUnpackedPathExists(scan_environment, extracted_fn)
 
+def test_load_cpio_file_new_ascii_with_offset(scan_environment):
+    padding_length = 5
+    rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-new-padded.cpio'
+    orig_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-new.cpio'
+    abs_orig_testfile = testdir_base / 'testdata' / orig_testfile
+    abs_testfile = testdir_base / 'testdata' / rel_testfile
+    with open(abs_testfile,"wb") as f:
+        f.write(b"A" * padding_length)
+        with open(abs_orig_testfile,"rb") as g:
+                f.write(g.read())
+        	# os.sendfile(f.fileno(), g.fileno(), 0, abs_orig_testfile.stat().st_size)
+    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
+    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
+    filesize = fr.filesize
+    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
+    p = CpioNewAsciiUnpackParser(fr, scan_environment, data_unpack_dir, 0)
+    p.open()
+    r = p.parse_and_unpack()
+    p.close()
+    assert r.get_length() <= filesize
+    extracted_fn = data_unpack_dir / 'test.sgi'
+    assert r.get_unpacked_files()[0].filename == extracted_fn
+    assert r.get_unpacked_files()[0].labels == set()
+    assertUnpackedPathExists(scan_environment, extracted_fn)
+
+
+
 def test_load_cpio_file_portable_ascii(scan_environment):
     rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-old.cpio'
     copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
