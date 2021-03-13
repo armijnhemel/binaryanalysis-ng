@@ -31,6 +31,7 @@ import sys
 import stat
 import collections
 import argparse
+import pathlib
 
 # import own modules
 import bangsignatures
@@ -67,9 +68,12 @@ def main():
     errorfiles = collections.Counter()
     totalerrors = 0
 
+    extensions = collections.Counter()
+
     # open the file, assume for now that everything is in UTF-8
     # (famous last words).
     logfile = open(args.checkfile, 'r')
+    extensions_tmp = []
     for i in logfile:
         if 'FAIL' not in i:
             continue
@@ -78,6 +82,9 @@ def main():
             continue
         bangfails = i[5:].strip().rsplit(':', 1)
         bangfail = bangfails[1].strip()
+        file_name = pathlib.Path(i[5:].strip().split(':', 1)[0].rsplit(' ', 3)[0])
+        extension = file_name.suffix
+        extensions_tmp.append(extension)
         for sig in bangsignatures.signatures:
             if " %s at offset" % sig in i.strip():
                 bangerrors.update([sig])
@@ -88,6 +95,7 @@ def main():
                 errorfiles.update([filename])
                 totalerrors += 1
                 break
+    extensions.update(extensions_tmp)
     logfile.close()
 
     print("Failures per signature")
@@ -105,6 +113,13 @@ def main():
     print("-----------------\n")
     for err in errorfiles.most_common():
         print("%s: %d failures\n" % err)
+
+    # print the extension with the most errors
+    print("Failures per extension")
+    print("-----------------\n")
+    for err in extensions.most_common():
+        print("%s: %d failures\n" % err)
+
 
 if __name__ == "__main__":
     main()
