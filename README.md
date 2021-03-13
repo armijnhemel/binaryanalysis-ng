@@ -216,6 +216,7 @@ larger file, unless stated otherwise.
 133. Chrome extensions (.crx)
 134. Windows shell link file (.lnk)
 135. PCF fonts (that actually follow the specification)
+136. DS_Store
 
 
 ## Invocation
