@@ -40,7 +40,7 @@ def test_extracted_wad_file_is_correct(scan_environment):
     assert r.get_length() == filesize - padding_length
     unpacked_file = r.get_unpacked_files()[0].filename
     unpacked_labels = r.get_unpacked_files()[0].labels
-    assert pathlib.Path(unpacked_file) == pathlib.Path(data_unpack_dir) / 'unpacked.wad'
+    assert pathlib.Path(unpacked_file) == pathlib.Path(data_unpack_dir) / 'unpacked.doomwad'
     assertUnpackedPathExists(scan_environment, unpacked_file)
     assert (scan_environment.unpackdirectory / unpacked_file).stat().st_size == r.get_length()
     # assert set(unpacked_labels) == set(r.get_labels() + ['unpacked'])
