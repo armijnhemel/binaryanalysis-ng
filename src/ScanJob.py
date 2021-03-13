@@ -268,6 +268,7 @@ class ScanJob:
 
                     signaturesfound.append(offset_with_unpackparser)
 
+                    # TODO: this chdir can probably go away
                     # always change to the declared unpacking directory
                     os.chdir(self.scanenvironment.unpackdirectory)
                     # then create an unpacking directory specifically
