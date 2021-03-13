@@ -54,8 +54,7 @@ KNOWN_CHUNKS = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM',
 
 
 class PngUnpackParser(UnpackParser):
-    #extensions = ['.png']
-    extensions = []
+    extensions = ['.png']
     signatures = [
         (0, b'\x89PNG\x0d\x0a\x1a\x0a')
     ]
