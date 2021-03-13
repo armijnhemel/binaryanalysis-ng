@@ -238,7 +238,6 @@ signaturetofunction = {
     'squashfs_var5': bangfilesystems.unpack_squashfs,
     'squashfs_var6': bangfilesystems.unpack_squashfs,
     'squashfs_var7': bangfilesystems.unpack_squashfs,
-    'appledouble': bangunpack.unpack_appledouble,
     'icc': bangunpack.unpack_icc,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
