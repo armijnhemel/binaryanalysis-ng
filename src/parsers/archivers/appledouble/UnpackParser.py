@@ -45,9 +45,6 @@ class AppledoubleUnpackParser(UnpackParser):
     ]
     pretty_name = 'appledouble'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_appledouble(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = apple_single_double.AppleSingleDouble.from_io(self.infile)
