@@ -162,7 +162,7 @@ class UnpackParser:
         outfile_full = self.scan_environment.unpack_path(filename)
         os.makedirs(outfile_full.parent, exist_ok=True)
         outfile = open(outfile_full, 'wb')
-        os.sendfile(outfile.fileno(), self.infile.fileno(), start, length)
+        os.sendfile(outfile.fileno(), self.infile.fileno(), self.infile.offset + start, length)
         outfile.close()
 
 class WrappedUnpackParser(UnpackParser):
