@@ -134,7 +134,7 @@ class VfatUnpackParser(UnpackParser):
         cluster_size = self.data.boot_sector.bpb.ls_per_clus * \
                 self.data.boot_sector.bpb.bytes_per_ls
         for cluster in self.cluster_chain(start_cluster):
-            start = self.offset + self.pos_data + (cluster-2) * cluster_size
+            start = self.pos_data + (cluster-2) * cluster_size
             check_condition(start+cluster_size <= self.fileresult.filesize,
                     "file data outside file")
             self.infile.seek(start)
@@ -150,10 +150,10 @@ class VfatUnpackParser(UnpackParser):
                 self.data.boot_sector.bpb.bytes_per_ls
         for cluster in self.cluster_chain(start_cluster):
             bytes_to_read = min(cluster_size, file_size - size_read)
-            start = self.offset + self.pos_data + (cluster-2) * cluster_size
+            start = self.pos_data + (cluster-2) * cluster_size
             check_condition(start+bytes_to_read <= self.fileresult.filesize,
                     "file data outside file")
-            os.sendfile(outfile.fileno(), self.infile.fileno(), start, bytes_to_read)
+            os.sendfile(outfile.fileno(), self.infile.fileno(), start + self.infile.offset, bytes_to_read)
             size_read += bytes_to_read
         outfile.close()
         outlabels = []
