@@ -20,6 +20,9 @@ def test_load_cpio_file_new_ascii(scan_environment):
     assert r.get_unpacked_files()[0].filename == extracted_fn
     assert r.get_unpacked_files()[0].labels == set()
     assertUnpackedPathExists(scan_environment, extracted_fn)
+    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
+    with open(extracted_fn_abs,"rb") as f:
+        assert f.read(2) == b'\x01\xda'
 
 def test_load_cpio_file_new_ascii_with_offset(scan_environment):
     padding_length = 5
@@ -36,7 +39,7 @@ def test_load_cpio_file_new_ascii_with_offset(scan_environment):
     fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
     filesize = fr.filesize
     data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
-    p = CpioNewAsciiUnpackParser(fr, scan_environment, data_unpack_dir, 0)
+    p = CpioNewAsciiUnpackParser(fr, scan_environment, data_unpack_dir, padding_length)
     p.open()
     r = p.parse_and_unpack()
     p.close()
@@ -45,6 +48,9 @@ def test_load_cpio_file_new_ascii_with_offset(scan_environment):
     assert r.get_unpacked_files()[0].filename == extracted_fn
     assert r.get_unpacked_files()[0].labels == set()
     assertUnpackedPathExists(scan_environment, extracted_fn)
+    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
+    with open(extracted_fn_abs,"rb") as f:
+        assert f.read(2) == b'\x01\xda'
 
 
 
