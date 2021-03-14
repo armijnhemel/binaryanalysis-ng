@@ -21,9 +21,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
+Unpacker for DTBO images. This does not include the AVB signature
+at the end.
 '''
 
 import os
+import pathlib
+from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
@@ -51,6 +55,23 @@ class AndroidDtoUnpacker(UnpackParser):
         self.unpacked_size = 0
         for i in self.data.entries:
             self.unpacked_size = max(self.unpacked_size, i.dt_offset + i.dt_size)
+
+    # no need to carve the DTBO from the file
+    def carve(self):
+        pass
+
+    def unpack(self):
+        unpacked_files = []
+        dtb_counter = 1
+        out_labels = []
+        for i in self.data.entries:
+            file_path = pathlib.Path("unpacked-%d.dtb" % dtb_counter)
+            self.extract_to_file(self.rel_unpack_dir / file_path, i.dt_offset, i.dt_size)
+            dtb_counter += 1
+            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
+            unpacked_files.append(fr)
+        return unpacked_files
+
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
