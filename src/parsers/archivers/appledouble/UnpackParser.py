@@ -55,6 +55,7 @@ class AppledoubleUnpackParser(UnpackParser):
                 a = type(i.body)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
+        check_condition(self.data.num_entries > 1, "no apple double entries")
 
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
