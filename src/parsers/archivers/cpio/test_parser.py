@@ -34,7 +34,6 @@ def test_load_cpio_file_new_ascii_with_offset(scan_environment):
         f.write(b"A" * padding_length)
         with open(abs_orig_testfile,"rb") as g:
                 f.write(g.read())
-        	# os.sendfile(f.fileno(), g.fileno(), 0, abs_orig_testfile.stat().st_size)
     copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
     fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
     filesize = fr.filesize
