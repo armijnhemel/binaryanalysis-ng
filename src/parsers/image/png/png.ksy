@@ -88,6 +88,11 @@ types:
             '"acTL"': animation_control_chunk
             '"fcTL"': frame_control_chunk
             '"fdAT"': frame_data_chunk
+
+            # Adobe Fireworks chunks
+            '"mkBS"': adobe_fireworks_chunk
+            '"mkTS"': adobe_fireworks_chunk
+            '"prVW"': adobe_fireworks_chunk
       - id: crc
         size: 4
   ihdr_chunk:
@@ -381,6 +386,12 @@ types:
           Frame data for the frame. At least one fdAT chunk is required for
           each frame. The compressed datastream is the concatenation of the
           contents of the data fields of all the fdAT chunks within a frame.
+  adobe_fireworks_chunk:
+    doc-ref: https://stackoverflow.com/questions/4242402/the-fireworks-png-format-any-insight-any-libs/51683285#51683285
+    seq:
+      - id: preview_data
+        process: zlib
+        size-eos: true
 enums:
   color_type:
     0: greyscale
