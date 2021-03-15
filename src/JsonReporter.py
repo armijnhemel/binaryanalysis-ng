@@ -22,6 +22,12 @@
 
 import json
 
+class ByteStringEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return obj.decode('ascii')
+        return json.JSONEncodeer.default(self, obj)
+
 class JsonReporter:
 
     def __init__(self, scanenvironment):
@@ -44,6 +50,6 @@ class JsonReporter:
         jsonfilename = self.scanenvironment.resultsdirectory / ("%s.json" % fileresult.get_hash('sha256'))
         if not jsonfilename.exists():
             jsonout = jsonfilename.open('w')
-            json.dump(resultout, jsonout, indent=4)
+            json.dump(resultout, jsonout, indent=4, cls=ByteStringEncoder)
             jsonout.close()
 
