@@ -1,24 +1,34 @@
 meta:
   id: png
   title: PNG (Portable Network Graphics) file
-  file-extension: png
+  file-extension:
+    - png
+    - apng
   xref:
     forensicswiki: Portable_Network_Graphics_(PNG)
     iso: 15948:2004
-    justsolve: PNG
+    justsolve:
+      - PNG
+      - APNG
     loc: fdd000153
     mime:
       - image/png
       - image/apng
+      - image/vnd.mozilla.apng
     pronom:
       - fmt/11 # PNG 1.0
       - fmt/12 # PNG 1.1
       - fmt/13 # PNG 1.2
+      - fmt/935 # APNG
     rfc: 2083
     wikidata: Q178051
   license: CC0-1.0
   ks-version: 0.9
   endian: be
+doc: |
+  Test files for APNG can be found at the following locations:
+  https://philip.html5.org/tests/apng/tests.html
+  http://littlesvr.ca/apng/
 seq:
   # https://www.w3.org/TR/PNG/#5PNG-file-signature
   - id: magic
@@ -78,6 +88,11 @@ types:
             '"acTL"': animation_control_chunk
             '"fcTL"': frame_control_chunk
             '"fdAT"': frame_data_chunk
+
+            # Adobe Fireworks chunks
+            '"mkBS"': adobe_fireworks_chunk
+            '"mkTS"': adobe_fireworks_chunk
+            '"prVW"': adobe_fireworks_chunk
       - id: crc
         size: 4
   ihdr_chunk:
@@ -304,7 +319,7 @@ types:
     seq:
       - id: num_frames
         type: u4
-        doc: Number of frames
+        doc: Number of frames, must be equal to the number of `frame_control_chunk`s
       - id: num_plays
         type: u4
         doc: Number of times to loop, 0 indicates infinite looping.
@@ -317,11 +332,13 @@ types:
       - id: width
         type: u4
         valid:
+          min: 1
           max: _root.ihdr.width
         doc: Width of the following frame
       - id: height
         type: u4
         valid:
+          min: 1
           max: _root.ihdr.height
         doc: Height of the following frame
       - id: x_offset
@@ -351,16 +368,30 @@ types:
     instances:
       delay:
         value: 'delay_num / (delay_den == 0 ? 100.0 : delay_den)'
-        doc: delay in seconds
+        doc: Time to display this frame, in seconds
   frame_data_chunk:
     doc-ref: https://wiki.mozilla.org/APNG_Specification#.60fdAT.60:_The_Frame_Data_Chunk
     seq:
       - id: sequence_number
         type: u4
-        doc: Sequence number of the animation chunk
+        doc: |
+          Sequence number of the animation chunk. The fcTL and fdAT chunks
+          have a 4 byte sequence number. Both chunk types share the sequence.
+          The first fcTL chunk must contain sequence number 0, and the sequence
+          numbers in the remaining fcTL and fdAT chunks must be in order, with
+          no gaps or duplicates.
       - id: frame_data
         size-eos: true
-        doc: Frame data for the frame
+        doc: |
+          Frame data for the frame. At least one fdAT chunk is required for
+          each frame. The compressed datastream is the concatenation of the
+          contents of the data fields of all the fdAT chunks within a frame.
+  adobe_fireworks_chunk:
+    doc-ref: https://stackoverflow.com/questions/4242402/the-fireworks-png-format-any-insight-any-libs/51683285#51683285
+    seq:
+      - id: preview_data
+        process: zlib
+        size-eos: true
 enums:
   color_type:
     0: greyscale
