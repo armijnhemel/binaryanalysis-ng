@@ -9197,17 +9197,22 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
     if symbols != []:
         elfresult['symbols'] = symbols
 
+    if '__ksymtab_strings' in sectionnames or '.modinfo' in sectionnames:
+        elflabels.append('linuxkernelmodule')
+    elif 'oat_patches' in sectionnames or '.text.oat_patches' in sectionnames:
+        elflabels.append('oat')
+        elflabels.append('android')
+    for i in dynamicsymbols:
+        if i['name'] == 'oatdata':
+            elflabels.append('oat')
+            elflabels.append('android')
+            break
+
     # entire file is ELF
     if offset == 0 and maxoffset == filesize:
         checkfile.close()
-        labels = elflabels
-        labels.append('elf')
-        if '__ksymtab_strings' in sectionnames or '.modinfo' in sectionnames:
-            labels.append('linuxkernelmodule')
-        elif 'oat_patches' in sectionnames or '.text.oat_patches' in sectionnames:
-            labels.append('oat')
-            labels.append('android')
-        return {'status': True, 'length': maxoffset, 'labels': labels,
+        elflabels.append('elf')
+        return {'status': True, 'length': maxoffset, 'labels': elflabels,
                 'filesandlabels': unpackedfilesandlabels, 'metadata': elfresult}
 
     # it could be that the file is a Linux kernel module that has a signature
