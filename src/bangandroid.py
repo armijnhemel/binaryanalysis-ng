@@ -1177,11 +1177,17 @@ def unpack_dex(
                               'reason': 'wrong Adler32'}
             return {'status': False, 'error': unpackingerror}
 
+        # this happens quite a lot, also with Dex files coming
+        # from Google. Treat this as a non-fatal warning if configured.
+        strict_sha1 = False
         if dexsha1.digest() != signature:
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                              'reason': 'wrong SHA1'}
-            return {'status': False, 'error': unpackingerror}
+            if strict_sha1:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'wrong SHA1'}
+                return {'status': False, 'error': unpackingerror}
+            else:
+                labels.append('wrong SHA-1')
 
     # There are two ways to access the data: the first is to use the
     # so called "map list" (the easiest). The second is to walk all the
