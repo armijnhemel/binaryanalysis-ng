@@ -8833,6 +8833,10 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
             elif len(buildid) == 32:
                 elfresult['build-id hash'] = 'md5'
 
+    # Go binaries all should have a build id note
+    if '.note.go.buildid' in sectionnames:
+        elflabels.append('go')
+
     # store the libraries declared as NEEDED
     # These are stored in a list, as the order in which they appear matters
     dynamicneeded = []
