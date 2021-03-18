@@ -8834,6 +8834,7 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                 elfresult['build-id hash'] = 'md5'
 
     # Go binaries all should have a build id note
+    # http://web.archive.org/web/20210113145647/https://utcc.utoronto.ca/~cks/space/blog/programming/GoBinaryStructureNotes
     if '.note.go.buildid' in sectionnames:
         elflabels.append('go')
 
