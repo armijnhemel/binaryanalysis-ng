@@ -53,5 +53,22 @@ class ElfUnpackParser(WrappedUnpackParser):
         labels = [ 'elf' ]
         metadata = {'security': []}
 
+        # keep track of whether or not GNU_RELRO has been set
+        seen_relro = False
+
+        for header in self.data.header.program_headers:
+            if header.type == elf.Elf.PhType.gnu_relro:
+                metadata['security'].append('relro')
+                seen_relro = True
+            elif header.type == elf.Elf.PhType.gnu_stack:
+                # check to see if NX is set
+                if not header.flags_obj.execute:
+                    metadata['security'].append('nx')
+
+        is_dynamic_elf = False
+        for header in self.data.header.section_headers:
+            if header.type == elf.Elf.ShType.dynamic:
+                is_dynamic_elf = True
+
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
