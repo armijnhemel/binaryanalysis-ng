@@ -64,11 +64,28 @@ class ElfUnpackParser(WrappedUnpackParser):
                 # check to see if NX is set
                 if not header.flags_obj.execute:
                     metadata['security'].append('nx')
+            elif header.type == elf.Elf.PhType.pax_flags:
+                metadata['security'].append('pax')
 
         is_dynamic_elf = False
         for header in self.data.header.section_headers:
+            if header.name in ['.modinfo', '__ksymtab_strings']:
+                labels.append('linuxkernelmodule')
+            elif header.name in ['oat_patches', '.text.oat_patches']:
+                labels.append('oat')
+                labels.append('android')
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
+            elif header.type == elf.Elf.ShType.note:
+                for h in header.body.entries:
+                    pass
+                if header.name == '.note.go.buildid':
+                    labels.append('go')
+
+        if is_dynamic_elf:
+            labels.append('dynamic')
+        else:
+            labels.append('static')
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
