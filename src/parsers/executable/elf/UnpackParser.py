@@ -156,9 +156,24 @@ class ElfUnpackParser(WrappedUnpackParser):
                             data_strings.append(s.decode())
                         except:
                             pass
+                elif header.name == '.gopclntab':
+                    # https://medium.com/walmartglobaltech/de-ofuscating-golang-functions-93f610f4fb76
+                    pass
+                elif header.name == '.gosymtab':
+                    # Go symbol table
+                    pass
+                elif header.name.startswith('.gresource.'):
+                    # GNOME/glib GVariant database
+                    pass
                 elif header.name == '.interp':
                     # store the location of the dynamic linker
                     metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
+                elif header.name == '.itablink':
+                    # Go
+                    pass
+                elif header.name == '.noptrdata':
+                    # Go pointer free data
+                    pass
                 elif header.name == '.qml_compile_hash':
                     pass
                 elif header.name == '.qtmetadata':
@@ -171,6 +186,9 @@ class ElfUnpackParser(WrappedUnpackParser):
                 elif header.name == '.tm_clone_table':
                     # something related to transactional memory
                     # http://gcc.gnu.org/wiki/TransactionalMemory
+                    pass
+                elif header.name == '.typelink':
+                    # Go
                     pass
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
