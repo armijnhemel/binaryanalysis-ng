@@ -41,6 +41,10 @@ class DoomWadUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = doom_wad.DoomWad.from_io(self.infile)
+            # this is a bit of an ugly hack to detect if the file
+            # has been truncated or corrupted
+            for i in self.data.index:
+                pass
         # TODO: decide what exceptions to catch
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
