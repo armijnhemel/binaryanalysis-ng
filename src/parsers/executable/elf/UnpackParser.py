@@ -121,7 +121,8 @@ class ElfUnpackParser(WrappedUnpackParser):
 
             if header.type == elf.Elf.ShType.progbits:
                 # process the various progbits sections here
-                pass
+                if header.name == '.interp':
+                    metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
                 for entry in header.body.entries:
