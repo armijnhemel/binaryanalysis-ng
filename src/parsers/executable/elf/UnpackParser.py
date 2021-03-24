@@ -126,6 +126,10 @@ class ElfUnpackParser(WrappedUnpackParser):
             elif header.name in ['oat_patches', '.text.oat_patches']:
                 labels.append('oat')
                 labels.append('android')
+            elif header.name in ['.guile.procprops', '.guile.frame-maps',
+                                 '.guile.arities.strtab', '.guile.arities',
+                                 '.guile.docstrs.strtab', '.guile.docstrs']:
+                labels.append('guile')
 
             if header.type == elf.Elf.ShType.progbits:
                 # process the various progbits sections here
