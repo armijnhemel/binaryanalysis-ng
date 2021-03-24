@@ -119,6 +119,9 @@ class ElfUnpackParser(WrappedUnpackParser):
                 labels.append('oat')
                 labels.append('android')
 
+            if header.type == elf.Elf.ShType.progbits:
+                # process the various progbits sections here
+                pass
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
                 for entry in header.body.entries:
@@ -153,6 +156,9 @@ class ElfUnpackParser(WrappedUnpackParser):
                             metadata['build-id hash'] = 'sha1'
                         elif len(buildid) == 32:
                             metadata['build-id hash'] = 'md5'
+                    elif entry.note_name == b'GNU\x00' and entry.note_type == 4:
+                        # normally in .note.gnu.gold-version
+                        metadata['gold-version'] = entry.note_description.rsplit(b'\x00')[0].decode()
                     elif entry.note_name == b'GNU\x00' and entry.note_type == 5:
                         # normally in .note.gnu.property
                         pass
@@ -160,6 +166,9 @@ class ElfUnpackParser(WrappedUnpackParser):
                         # normally in .note.go.buildid
                         # there are four hashes concatenated
                         # https://golang.org/pkg/cmd/internal/buildid/#FindAndHash
+                        pass
+                    elif entry.note_name == b'Crashpad\x00\x00\x00\x00' and entry.note_type == 0x4f464e49:
+                        # https://chromium.googlesource.com/crashpad/crashpad/+/refs/heads/master/util/misc/elf_note_types.h
                         pass
                     else:
                         pass
