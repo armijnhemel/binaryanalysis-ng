@@ -110,6 +110,14 @@ class ElfUnpackParser(WrappedUnpackParser):
             elif header.type == elf.Elf.PhType.pax_flags:
                 metadata['security'].append('pax')
 
+        # store the data normally extracted using for example 'strings'
+        data_strings = []
+
+        # only look at a few interesting sections. This should be expanded.
+        rodata_sections = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
+                           '.rodata.str1.8', '.rodata.cst4', '.rodata.cst8',
+                           '.rodata.cst16']
+
         # process the various section headers
         is_dynamic_elf = False
         for header in self.data.header.section_headers:
@@ -121,8 +129,49 @@ class ElfUnpackParser(WrappedUnpackParser):
 
             if header.type == elf.Elf.ShType.progbits:
                 # process the various progbits sections here
-                if header.name == '.interp':
+                if header.name == '.comment':
+                    # comment, typically in binaries that have
+                    # not been stripped.
+                    try:
+                        comment = list(filter(lambda x: x != b'', header.body.split(b'\x00')))[0].decode()
+                        metadata['comment'] = comment
+                    except:
+                        pass
+                elif header.name == '.gcc_except_table':
+                    # debug information from GCC
+                    pass
+                elif header.name == '.gnu_debugdata':
+                    # debug data, often compressed
+                    pass
+                elif header.name == '.gnu_debuglink':
+                    # https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
+                    link_name = header.body.split(b'\x00', 1)[0].decode()
+                    link_crc = header.body[-4:]
+                    metadata['gnu debuglink'] = link_name
+                elif header.name in rodata_sections:
+                    for s in header.body.split(b'\x00'):
+                        if len(s) < 2:
+                            continue
+                        try:
+                            data_strings.append(s.decode())
+                        except:
+                            pass
+                elif header.name == '.interp':
+                    # store the location of the dynamic linker
                     metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
+                elif header.name == '.qml_compile_hash':
+                    pass
+                elif header.name == '.qtmetadata':
+                    pass
+                elif header.name == '.qtmimedatabase':
+                    # data, in some cases gzip compressed
+                    pass
+                elif header.name == '.qtversion':
+                    pass
+                elif header.name == '.tm_clone_table':
+                    # something related to transactional memory
+                    # http://gcc.gnu.org/wiki/TransactionalMemory
+                    pass
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
                 for entry in header.body.entries:
@@ -173,6 +222,8 @@ class ElfUnpackParser(WrappedUnpackParser):
                         pass
                     else:
                         pass
+
+        metadata['strings'] = data_strings
 
         if is_dynamic_elf:
             labels.append('dynamic')
