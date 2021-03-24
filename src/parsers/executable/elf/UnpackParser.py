@@ -159,7 +159,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                             metadata['build-id hash'] = 'md5'
                     elif entry.note_name == b'GNU\x00' and entry.note_type == 4:
                         # normally in .note.gnu.gold-version
-                        metadata['gold-version'] = entry.note_description.rsplit(b'\x00')[0].decode()
+                        metadata['gold-version'] = entry.note_description.split(b'\x00', 1)[0].decode()
                     elif entry.note_name == b'GNU\x00' and entry.note_type == 5:
                         # normally in .note.gnu.property
                         pass
