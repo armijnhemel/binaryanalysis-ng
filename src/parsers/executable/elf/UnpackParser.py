@@ -199,6 +199,12 @@ class ElfUnpackParser(WrappedUnpackParser):
                 elif header.name == '.typelink':
                     # Go
                     pass
+                elif header.name == '.VTGData':
+                    # VirtualBox tracepoint generated data
+                    # https://www.virtualbox.org/browser/vbox/trunk/include/VBox/VBoxTpG.h
+                    pass
+                elif header.name == '.VTGPrLc':
+                    pass
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
                 for entry in header.body.entries:
