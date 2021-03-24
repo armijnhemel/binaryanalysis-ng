@@ -156,6 +156,11 @@ class ElfUnpackParser(WrappedUnpackParser):
                             data_strings.append(s.decode())
                         except:
                             pass
+                    # some Qt binaries use the Qt resource system,
+                    # containing images, text, etc.
+                    # Sometimes these end up in an ELF section.
+                    if b'qrc:/' in header.body:
+                        pass
                 elif header.name == '.gopclntab':
                     # https://medium.com/walmartglobaltech/de-ofuscating-golang-functions-93f610f4fb76
                     pass
