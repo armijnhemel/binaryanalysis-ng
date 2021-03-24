@@ -46,6 +46,14 @@ class DoomWadUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
+        # this is a bit of an ugly hack to detect if the file has been
+        # truncated or corrupted. In certain cases (like when scanning the
+        # 'magic' database) it could be that the offset would be bigger
+        # than the file itself and there would be hundreds of millions of
+        # index entries for which the generated code would first try to create
+        # an IndexEntry() object leading to an out of memory issue.
+        filesize = self.fileresult.filename.stat().st_size
+        check_condition(self.data.index_offset <= filesize, "index offset outside of file")
         check_condition(self.data.num_index_entries > 0, "no lumps defined")
 
     def calculate_unpacked_size(self):
