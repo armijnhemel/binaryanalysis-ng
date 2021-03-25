@@ -44,11 +44,18 @@ class GnuMessageCatalogUnpackParser(UnpackParser):
     pretty_name = 'gnu_message_catalog'
 
     def parse(self):
+        file_size = self.fileresult.filename.stat().st_size
         try:
             self.data = gettext_mo.GettextMo.from_io(self.infile)
             # this is a bit of an ugly hack as the Kaitai parser is
             # not entirely complete. Use this to detect if the file
             # has been truncated.
+            check_condition(self.data.mo.ofs_originals <= file_size,
+                            "invalid offset")
+            check_condition(self.data.mo.ofs_translations <= file_size,
+                            "invalid offset")
+            check_condition(self.data.mo.ofs_hashtable_items <= file_size,
+                            "invalid offset")
             for i in self.data.mo.originals:
                 a = type(i.str)
             for i in self.data.mo.translations:
