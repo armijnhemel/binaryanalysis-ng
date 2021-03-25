@@ -28,6 +28,7 @@ from bangunpack import unpack_elf
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import UndecidedEndiannessError
 from . import elf
 
 
@@ -48,7 +49,7 @@ class ElfUnpackParser(WrappedUnpackParser):
             self.data = elf.Elf.from_io(self.infile)
             for header in self.data.header.program_headers:
                 pass
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationNotEqualError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):
