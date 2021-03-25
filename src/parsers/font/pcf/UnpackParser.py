@@ -45,7 +45,6 @@ class PcfUnpackParser(UnpackParser):
     pretty_name = 'pcf'
 
     def parse(self):
-        self.chunknames = set()
         try:
             self.data = pcf_font.PcfFont.from_io(self.infile)
             check_condition(self.data.num_tables > 0,
