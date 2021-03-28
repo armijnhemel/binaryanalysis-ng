@@ -13184,6 +13184,8 @@ unpack_serialized_java.minimum_size = 5
 # Specification:
 #
 # http://web.archive.org/web/20160402060151if_/https://developer.qualcomm.com/qfile/28821/lm80-p0436-1_little_kernel_boot_loader_overview.pdf
+#
+# https://salsa.debian.org/debian/skales/-/blob/master/dtbTool (search for QCDT)
 def unpack_qcdt(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Qualcomm QCDT file'''
     filesize = fileresult.filesize
