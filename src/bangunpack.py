@@ -13266,14 +13266,15 @@ def unpack_qcdt(fileresult, scanenvironment, offset, unpackdir):
 
         # write the file. The format actually allows for entries
         # to point to the same offset.
-        outfile_rel = os.path.join(unpackdir, "qcdt-%d" % i)
-        outfile_full = scanenvironment.unpack_path(outfile_rel)
+        if not (offset == 0 and maxsize == filesize):
+            outfile_rel = os.path.join(unpackdir, "qcdt-%d" % i)
+            outfile_full = scanenvironment.unpack_path(outfile_rel)
 
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset + entry_offset, entry_size)
-        outfile.close()
-        unpackedfilesandlabels.append((outfile_rel, []))
+            os.makedirs(outfile_full.parent, exist_ok=True)
+            outfile = open(outfile_full, 'wb')
+            os.sendfile(outfile.fileno(), checkfile.fileno(), offset + entry_offset, entry_size)
+            outfile.close()
+            unpackedfilesandlabels.append((outfile_rel, []))
         dataunpacked = True
 
     checkfile.close()
