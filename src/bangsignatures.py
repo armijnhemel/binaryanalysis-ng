@@ -312,7 +312,6 @@ signaturetofunction = {
     'pbm': bangmedia.unpack_pnm,
     'androidbootmsm': bangandroid.unpack_android_boot_msm,
     'androidbootimg': bangandroid.unpack_android_boot_img,
-    'androidboothuawei': bangandroid.unpack_android_boot_huawei,
     'fat': bangfilesystems.unpack_fat,
     'cbfs': bangfilesystems.unpack_cbfs,
     'minix_1l': bangfilesystems.unpack_minix1l,
