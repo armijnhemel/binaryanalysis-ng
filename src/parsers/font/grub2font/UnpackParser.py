@@ -21,22 +21,17 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-Parse GRUB2 font files
+Parse GRUB2 font files.
 '''
 
 import os
-
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import grub2font
 
 
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_grub2font
-
-#class Grub2fontUnpackParser(UnpackParser):
-class Grub2fontUnpackParser(WrappedUnpackParser):
+class Grub2fontUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'FILE\x00\x00\x00\x04PFF2')
@@ -47,10 +42,25 @@ class Grub2fontUnpackParser(WrappedUnpackParser):
         return unpack_grub2font(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
+        self.file_size = self.fileresult.filename.stat().st_size
         try:
             self.data = grub2font.Grub2font.from_io(self.infile)
+            for i in self.data.font_sections:
+                if i.section_name == 'CHIX':
+                    for e in i.body.entries:
+                        self.unpacked_size = max(self.unpacked_size,
+                                                 e.offset + 10 + len(e.bitmap.bitmap_data))
         except (Exception, ValidationNotEqualError) as e:
-            print(e)
             raise UnpackParserException(e.args)
-        check_condition(self.data.ihdr.bit_depth in [1, 2, 4, 8, 16],
-                "invalid bit depth")
+
+    # make sure that self.unpacked_size is not overwritten
+    def calculate_unpacked_size(self):
+        pass
+
+    def set_metadata_and_labels(self):
+        """sets metadata and labels for the unpackresults"""
+        labels = ['font', 'resource', 'grub2']
+        metadata = {}
+
+        self.unpack_results.set_labels(labels)
+        self.unpack_results.set_metadata(metadata)

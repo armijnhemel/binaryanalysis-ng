@@ -323,7 +323,6 @@ signaturetofunction = {
     'romfs_ambarella': bangunpack.unpack_romfs_ambarella,
     'bflt': bangunpack.unpack_bflt,
     'ubi': bangfilesystems.unpack_ubi,
-    'grub2font': bangunpack.unpack_grub2font,
     'bittorrent': bangunpack.unpack_bittorrent,
     'pcapng': bangunpack.unpack_pcapng,
     'pcap_le': bangunpack.unpack_pcap,
