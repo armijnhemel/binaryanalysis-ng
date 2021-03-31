@@ -52,18 +52,20 @@ class AuUnpackParser(UnpackParser):
             self.data = au.Au.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.data_size != 0xffffffff,
+        check_condition(self.data.header.data_size != 0xffffffff,
                         "files with unknown data size not supported")
-        check_condition(self.file_size >= self.data.header_size + self.data.data_size,
+        check_condition(self.file_size >= self.data.header.header_size + self.data.header.data_size,
                         "not enough data")
 
     def calculate_unpacked_size(self):
-        self.unpacked_size = self.data.header_size + self.data.data_size
+        self.unpacked_size = self.data.header.header_size + self.data.header.data_size
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'au', 'audio' ]
         metadata = {}
+        if self.data.description != '':
+            metadata['description'] = self.data.description
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
