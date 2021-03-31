@@ -259,7 +259,6 @@ signaturetofunction = {
     'aiff': bangmedia.unpack_aiff,
     'terminfo': bangunpack.unpack_terminfo,
     'rzip': bangunpack.unpack_rzip,
-    'au': bangmedia.unpack_au,
     'jffs2_little_endian': bangfilesystems.unpack_jffs2,
     'jffs2_big_endian': bangfilesystems.unpack_jffs2,
     'cpio_old': bangunpack.unpack_cpio,
