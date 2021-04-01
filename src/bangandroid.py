@@ -632,7 +632,7 @@ def unpack_chrome_pak(fileresult, scanenvironment, offset, unpackdir):
                 # create the unpacking directory
                 os.makedirs(unpackdir_full, exist_ok=True)
                 outfile = open(outfile_full, 'wb')
-                outfile.write(checkfile.read(lenbytes))
+                outfile.write(outbytes)
                 outfile.flush()
                 outfile.close()
                 unpackedfilesandlabels.append((outfile_rel, []))
