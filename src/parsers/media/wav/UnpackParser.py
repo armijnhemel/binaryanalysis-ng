@@ -44,8 +44,18 @@ class WavUnpackParser(WrappedUnpackParser):
         return unpack_wav(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
-        self.chunknames = set()
         try:
             self.data = wav.Wav.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
+
+    def unpack(self):
+        """extract any files from the input file"""
+        return []
+    def set_metadata_and_labels(self):
+        """sets metadata and labels for the unpackresults"""
+        labels = [ 'wav', 'audio' ]
+        metadata = {}
+
+        self.unpack_results.set_metadata(metadata)
+        self.unpack_results.set_labels(labels)
