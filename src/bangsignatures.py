@@ -273,7 +273,6 @@ signaturetofunction = {
     'rpm': bangunpack.unpack_rpm,
     'zstd_08': bangunpack.unpack_zstd,
     'apple_icon': bangmedia.unpack_apple_icon,
-    'androidsparse': bangandroid.unpack_android_sparse,
     'lz4': bangunpack.unpack_lz4,
     'lz4_legacy': bangunpack.unpack_lz4legacy,
     'vmdk': bangfilesystems.unpack_vmdk,
