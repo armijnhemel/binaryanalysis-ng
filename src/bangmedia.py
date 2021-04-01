@@ -103,7 +103,8 @@ def unpack_wav(fileresult, scanenvironment, offset, unpackdir):
     # https://www.wavosaur.com/forum/click-at-end-of-sounds-t315.html
     validchunkfourcc = set([b'LGWV', b'bext', b'cue ', b'data', b'fact',
                             b'fmt ', b'inst', b'labl', b'list', b'ltxt',
-                            b'note', b'plst', b'smpl', b'CDif', b'SAUR'])
+                            b'note', b'plst', b'smpl', b'CDif', b'SAUR',
+                            b'chna', b'junk', b'axml', b'iXML'])
     unpackres = unpack_riff(fileresult, scanenvironment, offset, unpackdir, validchunkfourcc, 'WAV', b'WAVE')
     if unpackres['status']:
         # see if any data chunks were found at all
