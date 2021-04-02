@@ -123,6 +123,32 @@ def test_cpio_with_absolute_path(scan_environment):
     assert extracted_labels == set()
 
 
+def test_load_cpio_with_multiple_files(scan_environment):
+    rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-new-multiple-files.cpio'
+    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
+    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
+    filesize = fr.filesize
+    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
+    p = CpioNewAsciiUnpackParser(fr, scan_environment, data_unpack_dir, 0)
+    p.open()
+    r = p.parse_and_unpack()
+    p.close()
+    assert r.get_length() <= filesize
+    assert len(r.get_unpacked_files()) == 2
+    assert r.get_unpacked_files()[0].filename == data_unpack_dir / 'cpio' / 'example.hex'
+    assert r.get_unpacked_files()[1].filename == data_unpack_dir / 'cpio' / 'example.txt'
+    assertUnpackedPathExists(scan_environment, data_unpack_dir / 'cpio' / 'example.hex')
+    assertUnpackedPathExists(scan_environment, data_unpack_dir / 'cpio' / 'example.txt')
+    extracted_fn_abs_1 = pathlib.Path(scan_environment.unpackdirectory) / data_unpack_dir / 'cpio' / 'example.hex'
+    extracted_fn_abs_2 = pathlib.Path(scan_environment.unpackdirectory) / data_unpack_dir / 'cpio' / 'example.txt'
+    s1 = open(extracted_fn_abs_1,"rb").read()
+    s2 = open(extracted_fn_abs_2,"rb").read()
+    assert s1 == s2
+    # with open(extracted_fn_abs,"rb") as f:
+    #    assert f.read(2) == b'\x01\xda'
+
+
+
 # TODO: is this test relevant if we change the unpacking strategy?
 def test_rewrite_symlink():
     p = CpioNewAsciiUnpackParser(None, None, None, 0)
