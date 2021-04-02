@@ -180,6 +180,17 @@ class UnpackParserExtractSig1Fail(UnpackParser):
     extensions = []
     signatures = [(2,b'AA')]
 
+class UnpackParserZeroLength(UnpackParser):
+
+    pretty_name = "zero_length"
+    extensions = []
+    signatures = [(1,b'BB')]
+
+    def parse(self):
+        return
+    def calculate_unpacked_size(self):
+        return 0
+
 
 
 def assertUnpackedPathExists(scan_environment, extracted_fn, message=None):

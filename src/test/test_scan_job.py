@@ -68,6 +68,11 @@ parser_pass_BB_1_7 = create_unpackparser('ParserPassBB_1_7',
         signatures = [(1,b'BB')],
         length = 7,
         pretty_name = 'pass-BB-1-7')
+parser_pass_BB_0_5 = create_unpackparser('ParserPassBB_0_5',
+        signatures = [(0,b'BB')],
+        length = 5,
+        pretty_name = 'pass-BB-0-5')
+
 
 
 # TODO: test unpacking for extension that has multiple unpackparsers
@@ -665,6 +670,20 @@ def test_carving_all_unpacked(scan_environment):
     assert fileresult.labels == set()
     upfiles = fileresult.unpackedfiles
     assert len(upfiles) == 1
+
+def test_carving_unpack_length_zero(scan_environment):
+    s = b'xBBxx12345'
+    fn = pathlib.Path('test_unpack2.data')
+    fileresult = create_tmp_fileresult(scan_environment.temporarydirectory / fn, s)
+    scan_environment.set_unpackparsers([UnpackParserZeroLength, parser_pass_BB_0_5])
+    scanjob, unpacker = initialize_scanjob_and_unpacker(scan_environment, fileresult)
+
+    scanjob.check_for_signatures(unpacker)
+    scanjob.carve_file_data(unpacker)
+    upfiles = fileresult.unpackedfiles
+    # we expect UnpackParserZeroLength to fail, parser_pass_BB_0_5 to
+    # succeed, have one unpacked file extracted and the rest carved
+    assert len(upfiles) == 3
 
 
 
