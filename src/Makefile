@@ -24,7 +24,7 @@ all: $(KAITAI_PARSERS)
 %.py : %.ksy
 	$(KAITAISTRUCT_COMPILER) -t python --outdir `dirname "$<"` $<
 	sed -i 's/^from \($(KAITAI_PATTERN)\) import /from .\1 import /' "$@"
-	sed -i 's/^import \($(KAITAI_PATTERN)\)$$/from . &/' "$@"
+	sed -i 's/^import \($(KAITAI_PATTERN)\)$$/from . &\nfrom .\1 import \*/' "$@"
 
 .PHONY: test parsertests clean ctrshell ctrbuild
 
