@@ -36,7 +36,7 @@ meta:
     - windows
   license: BSD-3-Clause-Attribution
   imports:
-    - /common/riff
+    - riff
   encoding: ASCII
   endian: le
 doc: |
