@@ -84,6 +84,10 @@ instances:
     repeat: eos
     if: is_form_type_wave
 types:
+  dummy:
+    seq:
+      - id: dummy_id
+        type: riff
   chunk_type:
     seq:
       - id: chunk
