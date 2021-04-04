@@ -21,9 +21,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_device_tree
-
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
