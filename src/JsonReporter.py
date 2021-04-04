@@ -26,7 +26,7 @@ class ByteStringEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, bytes):
             return obj.decode('ascii')
-        return json.JSONEncodeer.default(self, obj)
+        return json.JSONEncoder.default(self, obj)
 
 class JsonReporter:
 
