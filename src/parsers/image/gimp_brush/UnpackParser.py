@@ -49,5 +49,5 @@ class GimpBrushUnpackParser(UnpackParser):
         self.unpack_results.set_labels(['gimp brush', 'graphics'])
         self.unpack_results.set_metadata({'width': self.data.header.width,
                                            'height': self.data.header.height,
-                                           'color_depth': self.data.header.bytes_per_pixel
+                                           'color_depth': self.data.header.bytes_per_pixel.value
                                         })
