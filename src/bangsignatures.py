@@ -302,7 +302,6 @@ signaturetofunction = {
     'ktx11': bangmedia.unpack_ktx11,
     'avb': bangandroid.unpack_avb,
     'sqlite3': bangunpack.unpack_sqlite,
-    'dtb': bangunpack.unpack_device_tree,
     'trx': bangunpack.unpack_trx,
     'psd': bangmedia.unpack_psd,
     'ppm': bangmedia.unpack_pnm,
