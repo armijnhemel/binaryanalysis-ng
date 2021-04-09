@@ -82,9 +82,10 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'bootloader', 'huawei']
+        labels = ['android', 'bootloader']
         metadata = {}
 
+        metadata['chipset'] = 'snapdragon'
         metadata['partitions'] = []
         cur_offset = self.data.ofs_start
         for entry in self.data.img_info:
