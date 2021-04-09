@@ -74,7 +74,23 @@ def main():
     # (famous last words).
     logfile = open(args.checkfile, 'r')
     extensions_tmp = []
+    openfiles = set()
     for i in logfile:
+        valid_line = False
+        for j in ['FAIL', 'TRYING', 'SUCCESS']:
+            if j in i:
+                valid_line = True
+                break
+        if not valid_line:
+            continue
+        file_name = pathlib.Path(i[len(j):].strip().split(':', 1)[0].rsplit(' ', 3)[0])
+        if j == 'TRYING':
+            openfiles.add(file_name)
+        else:
+            try:
+                openfiles.remove(file_name)
+            except:
+                pass
         if 'FAIL' not in i:
             continue
         # ignore the 'known extension' entries
@@ -82,7 +98,6 @@ def main():
             continue
         bangfails = i[5:].strip().rsplit(':', 1)
         bangfail = bangfails[1].strip()
-        file_name = pathlib.Path(i[5:].strip().split(':', 1)[0].rsplit(' ', 3)[0])
         extension = file_name.suffix
         extensions_tmp.append(extension)
         for sig in bangsignatures.signatures:
@@ -120,6 +135,11 @@ def main():
     for err in extensions.most_common():
         print("%s: %d failures\n" % err)
 
+
+    print("Opened but not closed files")
+    print("---------------------------\n")
+    for o in openfiles:
+        print(o)
 
 if __name__ == "__main__":
     main()
