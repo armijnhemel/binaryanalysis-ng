@@ -148,7 +148,7 @@ types:
   ext_application:
     seq:
       - id: application_id
-        type: subblock
+        type: application_id
       - id: subblocks
         type: subblock
         repeat: until
@@ -183,6 +183,17 @@ types:
         type: u1
       - id: bytes
         size: len_bytes
+  application_id:
+    seq:
+      - id: len_bytes
+        type: u1
+        valid: 11
+      - id: application_identifier
+        type: str
+        encoding: ASCII
+        size: 8
+      - id: application_auth_code
+        size: 3
 enums:
   block_type:
     0x21: extension
