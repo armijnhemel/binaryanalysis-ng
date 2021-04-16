@@ -97,6 +97,28 @@ class GifUnpackParser(UnpackParser):
                 elif app_identifier == 'MGKIPTC0' and auth_code == b'000':
                     # extension specific to ImageMagick
                     pass
+                elif app_identifier == 'AUDIOGIF' and auth_code == b'0.1':
+                    # https://github.com/RancidBacon/audiogif
+                    pass
+                elif app_identifier == 'MIDICTRL' and auth_code == b'Jon':
+                    # http://www.midiox.com/txt/mmginf.txt
+                    # https://exiftool.org/forum/index.php?topic=8315.0
+                    pass
+                elif app_identifier == 'MIDISONG' and auth_code == b'Dm7':
+                    # http://www.midiox.com/txt/mmginf.txt
+                    pass
+                elif app_identifier == 'PCM-CTRL' and auth_code == b'dem':
+                    # http://www.midiox.com/txt/mmginf.txt
+                    pass
+                elif app_identifier == 'PCM-FRMT' and auth_code == b'tel':
+                    # http://www.midiox.com/txt/mmginf.txt
+                    pass
+                elif app_identifier == 'PCM-DATA' and auth_code == b'jwo':
+                    # http://www.midiox.com/txt/mmginf.txt
+                    pass
+                elif app_identifier == 'TALKRAPP' and auth_code == b'COM':
+                    # https://github.com/talkr-app/gif-talkr
+                    pass
 
         metadata['xmp'] = xmps
         metadata['iccprofiles'] = iccprofiles
@@ -106,5 +128,6 @@ class GifUnpackParser(UnpackParser):
         # TODO: deal with duplicate comments
         comments = [b''.join([ y.bytes for y in x ]) for x in subblocks]
         metadata['comments'] = comments
+        metadata['applications'] = applications
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels([ 'gif', 'graphics' ])
