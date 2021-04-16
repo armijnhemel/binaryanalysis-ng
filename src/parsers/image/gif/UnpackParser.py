@@ -1,4 +1,5 @@
 import os
+import defusedxml.minidom
 from . import gif
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
@@ -31,15 +32,102 @@ class GifUnpackParser(UnpackParser):
         """sets metadata and labels for the unpackresults"""
         extensions = [ x.body for x in self.data.blocks
                 if x.block_type == self.data.BlockType.extension ]
+
+        metadata = { 'width': self.data.logical_screen_descriptor.screen_width,
+                     'height': self.data.logical_screen_descriptor.screen_height}
+
+        applications = []
+
+        iccprofiles = []
+        xmps = []
+
+        # process "applications" and "comments"
+        for extension in extensions:
+            if extension.label == gif.Gif.ExtensionLabel.application:
+                app_identifier = extension.body.application_id.application_identifier
+                auth_code = extension.body.application_id.application_auth_code
+                applications.append((app_identifier, auth_code))
+                if app_identifier == "NETSCAPE" and auth_code == b'2.0':
+                    # http://fileformats.archiveteam.org/wiki/GIF#Known_application_extensions
+                    # http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html#application_extension_block
+                    # The Netscape extension is for animations.
+                    metadata['animated'] = True
+                elif app_identifier == "ANIMEXTS" and auth_code == b'1.0':
+                    metadata['animated'] = True
+                elif app_identifier == "XMP Data" and auth_code == b'XMP':
+                    # https://github.com/adobe/xmp-docs/blob/master/XMPSpecifications/XMPSpecificationPart3.pdf
+                    xmp = b''
+                    for subblock in extension.body.subblocks:
+                        xmp += subblock.len_bytes.to_bytes(1, byteorder='little')
+                        xmp += subblock.bytes
+                    try:
+                        # cut off the 258 magic footer
+                        xmp = xmp[:-258]
+
+                        # UTF-8 encoded
+                        xmp = xmp.decode()
+
+                        # and valid XML
+                        xmpdom = defusedxml.minidom.parseString(xmp)
+                        xmps.append(xmp)
+                    except:
+                        pass
+                elif app_identifier == "ICCRGBG1" and auth_code == b'012':
+                    # ICC profiles, http://www.color.org/icc1V42.pdf,
+                    # section B.6
+                    iccprofile = b''
+                    for subblock in extension.body.subblocks:
+                        iccprofile += subblock.bytes
+                    iccprofiles.append(iccprofile)
+                elif app_identifier == "ADOBE:IR" and auth_code == b'1.0':
+                    # extension specific to Adobe Image Ready(?)
+                    pass
+                elif app_identifier == "STARDIV " and auth_code == b'5.0':
+                    # extension specific to old versions of StarOffice
+                    pass
+                elif app_identifier == 'ImageMag' and auth_code == b'ick':
+                    # extension specific to ImageMagick
+                    pass
+                elif app_identifier == 'ImageMag' and auth_code == b'ick':
+                    # extension specific to ImageMagick
+                    pass
+                elif app_identifier == 'MGK8BIM0' and auth_code == b'000':
+                    # extension specific to ImageMagick
+                    pass
+                elif app_identifier == 'MGKIPTC0' and auth_code == b'000':
+                    # extension specific to ImageMagick
+                    pass
+                elif app_identifier == 'AUDIOGIF' and auth_code == b'0.1':
+                    # https://github.com/RancidBacon/audiogif
+                    pass
+                elif app_identifier == 'MIDICTRL' and auth_code == b'Jon':
+                    # http://www.midiox.com/txt/mmginf.txt
+                    # https://exiftool.org/forum/index.php?topic=8315.0
+                    pass
+                elif app_identifier == 'MIDISONG' and auth_code == b'Dm7':
+                    # http://www.midiox.com/txt/mmginf.txt
+                    pass
+                elif app_identifier == 'PCM-CTRL' and auth_code == b'dem':
+                    # http://www.midiox.com/txt/mmginf.txt
+                    pass
+                elif app_identifier == 'PCM-FRMT' and auth_code == b'tel':
+                    # http://www.midiox.com/txt/mmginf.txt
+                    pass
+                elif app_identifier == 'PCM-DATA' and auth_code == b'jwo':
+                    # http://www.midiox.com/txt/mmginf.txt
+                    pass
+                elif app_identifier == 'TALKRAPP' and auth_code == b'COM':
+                    # https://github.com/talkr-app/gif-talkr
+                    pass
+
+        metadata['xmp'] = xmps
+        metadata['iccprofiles'] = iccprofiles
+
         subblocks = [ x.body.entries for x in extensions
             if x.label == self.data.ExtensionLabel.comment ]
         # TODO: deal with duplicate comments
         comments = [b''.join([ y.bytes for y in x ]) for x in subblocks]
-        self.unpack_results.set_metadata({
-                'width': self.data.logical_screen_descriptor.screen_width,
-                'height': self.data.logical_screen_descriptor.screen_height,
-                'comments': comments,
-                # 'xmp': xmps
-            })
+        metadata['comments'] = comments
+        metadata['applications'] = applications
+        self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels([ 'gif', 'graphics' ])
-        # TODO: animated
