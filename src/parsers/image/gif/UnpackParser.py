@@ -1,4 +1,5 @@
 import os
+import defusedxml.minidom
 from . import gif
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
@@ -35,8 +36,10 @@ class GifUnpackParser(UnpackParser):
         metadata = { 'width': self.data.logical_screen_descriptor.screen_width,
                      'height': self.data.logical_screen_descriptor.screen_height}
 
-        iccprofiles = []
         applications = []
+
+        iccprofiles = []
+        xmps = []
 
         # process "applications" and "comments"
         for extension in extensions:
@@ -51,6 +54,24 @@ class GifUnpackParser(UnpackParser):
                     metadata['animated'] = True
                 elif app_identifier == "ANIMEXTS" and auth_code == b'1.0':
                     metadata['animated'] = True
+                elif app_identifier == "XMP Data" and auth_code == b'XMP':
+                    # https://github.com/adobe/xmp-docs/blob/master/XMPSpecifications/XMPSpecificationPart3.pdf
+                    xmp = b''
+                    for subblock in extension.body.subblocks:
+                        xmp += subblock.len_bytes.to_bytes(1, byteorder='little')
+                        xmp += subblock.bytes
+                    try:
+                        # cut off the 258 magic footer
+                        xmp = xmp[:-258]
+
+                        # UTF-8 encoded
+                        xmp = xmp.decode()
+
+                        # and valid XML
+                        xmpdom = defusedxml.minidom.parseString(xmp)
+                        xmps.append(xmp)
+                    except:
+                        pass
                 elif app_identifier == "ICCRGBG1" and auth_code == b'012':
                     # ICC profiles, http://www.color.org/icc1V42.pdf,
                     # section B.6
@@ -67,6 +88,9 @@ class GifUnpackParser(UnpackParser):
                 elif app_identifier == 'ImageMag' and auth_code == b'ick':
                     # extension specific to ImageMagick
                     pass
+                elif app_identifier == 'ImageMag' and auth_code == b'ick':
+                    # extension specific to ImageMagick
+                    pass
                 elif app_identifier == 'MGK8BIM0' and auth_code == b'000':
                     # extension specific to ImageMagick
                     pass
@@ -74,8 +98,8 @@ class GifUnpackParser(UnpackParser):
                     # extension specific to ImageMagick
                     pass
 
-        if iccprofiles != []:
-            metadata['iccprofiles'] = iccprofiles
+        metadata['xmp'] = xmps
+        metadata['iccprofiles'] = iccprofiles
 
         subblocks = [ x.body.entries for x in extensions
             if x.label == self.data.ExtensionLabel.comment ]
