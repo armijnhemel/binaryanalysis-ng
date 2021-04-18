@@ -32,7 +32,7 @@ from kaitaistruct import ValidationNotEqualError
 from . import mozilla_mar
 
 
-class DS_Store(UnpackParser):
+class MozillaMar(UnpackParser):
     extensions = []
     signatures = [
         (0, b'MAR1')
