@@ -218,6 +218,7 @@ larger file, unless stated otherwise.
 135. PCF fonts (that actually follow the specification)
 136. DS_Store
 137. Qualcomm Snapdragon MSM bootloader files
+138. Mozilla ARchive (.mar)
 
 
 ## Invocation

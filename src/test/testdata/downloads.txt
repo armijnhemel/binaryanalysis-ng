@@ -6,3 +6,4 @@ dlcurl https://raw.githubusercontent.com/alibaba/alikernel/236dec051078a8691950f
 dlcurl http://distro.ibiblio.org/pub/linux/distributions/slitaz/sources/packages/d/doom1.wad game/doom_wad/doom1.wad
 dlcurl https://gitlab.gnome.org/GNOME/gimp/-/raw/0ef5d67/data/brushes/Basic/pixel.gbr image/gimp_brush/pixel.gbr
 dlcurl https://github.com/qemu/qemu/raw/master/pc-bios/bamboo.dtb system/device_tree/bamboo.dtb
+dlcurl https://github.com/mozilla/build-mar/raw/master/tests/test-xz.mar archivers/mozilla_mar/test-xz.mar
