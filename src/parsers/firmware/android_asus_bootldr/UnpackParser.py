@@ -31,7 +31,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationNotEqualError, ValidationLessThanError
 from . import android_asus_bootldr
 
 
@@ -45,9 +45,8 @@ class AndroidAsusBootUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = android_asus_bootldr.AndroidAsusBootldr.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationNotEqualError, ValidationLessThanError) as e:
             raise UnpackParserException(e.args)
-
 
     # no need to carve from the file
     def carve(self):
