@@ -40,6 +40,21 @@ try:
 except ImportError:
     from yaml import Loader
 
+class Repository:
+    '''Represents a Debian(-derived) repository'''
+    def __init__(self, name, mirror):
+        self.name = name
+        self.mirror = mirror
+
+        # set a few default values
+        self.architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
+        self.categories = ['dsc', 'source', 'patch', 'binary', 'dev']
+    def set_architectures(self, architectures):
+        self.architectures = architectures
+    def set_categories(self, categories):
+        self.categories = categories
+    def set_directories(self, directories):
+        self.directories = directories
 
 # use several threads to download the Debian data. This is of no
 # use if you are on a slow line with a bandwidth cap and it might
@@ -115,7 +130,7 @@ def download_from_packagelist(packagelist):
 
 def create_debian_directories(storedirectory, repository, download_date):
     # create directory for the repository (by name)
-    repo_directory = pathlib.Path(storedirectory, repository['name'])
+    repo_directory = pathlib.Path(storedirectory, repository.name)
     if not repo_directory.exists():
         repo_directory.mkdir()
 
@@ -161,7 +176,7 @@ def create_debian_directories(storedirectory, repository, download_date):
         return {}
 
     # recreate the download site data structure
-    for i in repository['directories']:
+    for i in repository.directories:
         if not pathlib.Path(binary_directory, i).exists():
             pathlib.Path(binary_directory, i).mkdir()
         if not pathlib.Path(source_directory, i).exists():
@@ -273,55 +288,34 @@ def main(config, force):
                 if not repo_entry['enabled']:
                     continue
 
-        # set a few default values
-        debian_architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
-        debian_categories = ['dsc', 'source', 'patch', 'binary', 'dev']
-
-        # this is a default value for Debian, not for Ubuntu. For Ubuntu
-        # crawling this should be configured properly in the configuration file
-        debian_directories = ['contrib', 'main', 'non-free']
-
         if 'mirror' not in repo_entry:
             continue
 
-        repository = {'name': repo}
-        repository['mirror'] = repo_entry['mirror']
+        # create a repository object for this repository
+        repository = Repository(repo, repo_entry['mirror'])
 
         # extract architectures from configuration file
         if 'architectures' in repo_entry:
             if isinstance(repo_entry['architectures'], list):
                 if repo_entry['architectures'] != []:
-                    repository['architectures'] = repo_entry['architectures']
-                else:
-                    repository['architectures'] = debian_architectures
-            else:
-                repository['architectures'] = debian_architectures
-        else:
-            repository['architectures'] = debian_architectures
+                    repository.set_architectures(repo_entry['architectures'])
 
         # extract categories from configuration file
         if 'categories' in repo_entry:
             if isinstance(repo_entry['categories'], list):
                 if repo_entry['categories'] != []:
-                    repository['categories'] = repo_entry['categories']
-                else:
-                    repository['categories'] = debian_categories
-            else:
-                repository['categories'] = debian_categories
-        else:
-            repository['categories'] = debian_categories
+                    repository.set_categories(repo_entry['categories'])
+
+        # this is a default value for Debian, not for Ubuntu. For Ubuntu
+        # crawling this should be configured properly in the configuration file
+        debian_directories = ['contrib', 'main', 'non-free']
+        repository.set_directories(debian_directories)
 
         # extract directories from configuration file
         if 'directories' in repo_entry:
             if isinstance(repo_entry['directories'], list):
                 if repo_entry['directories'] != []:
-                    repository['directories'] = repo_entry['directories']
-                else:
-                    repository['directories'] = debian_directories
-            else:
-                repository['directories'] = debian_directories
-        else:
-            repository['directories'] = debian_directories
+                    repository.set_directories(repo_entry['directories'])
         repositories.append(repository)
 
     # download data for every repository that has been declared
@@ -332,20 +326,20 @@ def main(config, force):
             continue
 
         # Check if the Debian mirror was declared.
-        if repository['mirror'] == '':
+        if repository.mirror == '':
             print("Debian mirror not declared in configuration file, skipping entry",
                   file=sys.stderr)
             continue
         try:
-            mirror_parts = urllib.parse.urlparse(repository['mirror'])
+            mirror_parts = urllib.parse.urlparse(repository.mirror)
             if mirror_parts.scheme not in ['http', 'https', 'ftp', 'ftps']:
-                print("Invalid URL '%s' for '%s', skipping entry" % (repository['mirror'],
-                                                                     repository['name']),
+                print("Invalid URL '%s' for '%s', skipping entry" % (repository.mirror,
+                                                                     repository.name),
                       file=sys.stderr)
                 continue
             if mirror_parts.netloc == '':
-                print("Invalid URL '%s' for '%s', skipping entry" % (repository['mirror'],
-                                                                     repository['name']),
+                print("Invalid URL '%s' for '%s', skipping entry" % (repository.mirror,
+                                                                     repository.name),
                       file=sys.stderr)
                 continue
         except Exception:
@@ -357,7 +351,7 @@ def main(config, force):
         # processed by comparing it to the hash of the previously
         # downloaded file.
         try:
-            req = requests.get('%s/ls-lR.gz' % repository['mirror'])
+            req = requests.get('%s/ls-lR.gz' % repository.mirror)
         except requests.exceptions.RequestException:
             print("Could not connect to Debian mirror, exiting.", file=sys.stderr)
             sys.exit(1)
@@ -386,7 +380,7 @@ def main(config, force):
             oldhashdata = hashfile.read()
             hashfile.close()
             if oldhashdata == filehash and not force:
-                print("Metadata for '%s' has not changed, skipping entry." % repository['name'])
+                print("Metadata for '%s' has not changed, skipping entry." % repository.name)
                 os.unlink(meta_outname)
                 continue
 
@@ -410,23 +404,23 @@ def main(config, force):
         processes = []
 
         download_dsc = False
-        if 'dsc' in repository['categories']:
+        if 'dsc' in repository.categories:
             download_dsc = True
 
         download_binary = False
-        if 'binary' in repository['categories']:
+        if 'binary' in repository.categories:
             download_binary = True
 
         download_patch = False
-        if 'patch' in repository['categories']:
+        if 'patch' in repository.categories:
             download_patch = True
 
         download_source = False
-        if 'source' in repository['categories']:
+        if 'source' in repository.categories:
             download_source = True
 
         download_dev = False
-        if 'dev' in repository['categories']:
+        if 'dev' in repository.categories:
             download_dev = True
 
         # add some counters for statistics
@@ -448,7 +442,7 @@ def main(config, force):
                 continue
 
             download_file = False
-            for debian_dir in repository['directories']:
+            for debian_dir in repository.directories:
                 if debian_dir in curdir.parts:
                     download_file = True
                     break
@@ -469,7 +463,7 @@ def main(config, force):
                         if downloadpath.endswith(ext):
                             if '-dev_' in downloadpath and not download_dev:
                                 continue
-                            for arch in repository['architectures']:
+                            for arch in repository.architectures:
                                 arch_ext = '_%s%s' % (arch, ext)
                                 if downloadpath.endswith(arch_ext):
                                     download_queue.put((curdir, downloadpath, filesize, debian_dirs['binary_directory']))
@@ -489,7 +483,7 @@ def main(config, force):
         # create processes for unpacking archives
         for i in range(0, threads):
             process = multiprocessing.Process(target=downloadfile,
-                                              args=(download_queue, fail_queue, repository['mirror']))
+                                              args=(download_queue, fail_queue, repository.mirror))
             processes.append(process)
 
         # start all the processes
