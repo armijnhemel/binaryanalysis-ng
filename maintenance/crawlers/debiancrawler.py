@@ -15,7 +15,6 @@ Run manually, or from a cronjob.
 
 import sys
 import os
-import argparse
 import datetime
 import stat
 import hashlib
@@ -49,12 +48,14 @@ class Repository:
         # set a few default values
         self.architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
         self.categories = ['dsc', 'source', 'patch', 'binary', 'dev']
+        self.directories = []
     def set_architectures(self, architectures):
         self.architectures = architectures
     def set_categories(self, categories):
         self.categories = categories
     def set_directories(self, directories):
         self.directories = directories
+
 
 # use several threads to download the Debian data. This is of no
 # use if you are on a slow line with a bandwidth cap and it might
@@ -200,11 +201,13 @@ def create_debian_directories(storedirectory, repository, download_date):
 def main(config, force):
     # the configuration file should exist ...
     if not os.path.exists(config):
-        parser.error("File %s does not exist, exiting." % config)
+        print("File %s does not exist, exiting." % config, file=sys.stderr)
+        sys.exit(1)
 
     # ... and should be a real file
     if not stat.S_ISREG(os.stat(config).st_mode):
-        parser.error("%s is not a regular file, exiting." % config)
+        print("%s is not a regular file, exiting." % config, file=sys.stderr)
+        sys.exit(1)
 
     # read the configuration file. This is in YAML format
     try:
