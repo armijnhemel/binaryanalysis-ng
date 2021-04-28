@@ -288,7 +288,7 @@ def download_from_packagelist(packagelist):
     pass
 
 
-def create_debian_directories(storedirectory, repository, download_date):
+def create_debian_directories(storedirectory, repository):
     # create directory for the repository (by name)
     repo_directory = pathlib.Path(storedirectory, repository.name)
     if not repo_directory.exists():
@@ -326,14 +326,6 @@ def create_debian_directories(storedirectory, repository, download_date):
     log_directory = pathlib.Path(repo_directory, "logs")
     if not log_directory.exists():
         log_directory.mkdir()
-
-    meta_outname = pathlib.Path(meta_data_directory,
-                                "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
-
-    if meta_outname.exists():
-        print("metadata file %s already exists. Skipping entry." % meta_outname,
-              file=sys.stderr)
-        return {}
 
     # recreate the download site data structure
     for i in repository.directories:
@@ -397,16 +389,15 @@ def main(config, force):
                   file=sys.stderr)
             continue
 
+        # Sanity checks for the Debian mirrors, only support certain protocols
         try:
             mirror_parts = urllib.parse.urlparse(mirror)
             if mirror_parts.scheme not in ['http', 'https', 'ftp', 'ftps']:
-                print("Invalid URL '%s' for '%s', skipping entry" % (mirror,
-                                                                     repo_entry),
+                print("Invalid URL '%s' for '%s', skipping entry" % (mirror, repo_entry),
                       file=sys.stderr)
                 continue
             if mirror_parts.netloc == '':
-                print("Invalid URL '%s' for '%s', skipping entry" % (mirror,
-                                                                     repo_entry),
+                print("Invalid URL '%s' for '%s', skipping entry" % (mirror, repo_entry),
                       file=sys.stderr)
                 continue
         except Exception:
@@ -417,13 +408,13 @@ def main(config, force):
         # create a repository object for this repository
         repository = Repository(repo, mirror)
 
-        # extract architectures from configuration file
+        # extract architectures from configuration file and store
         if 'architectures' in repo_entry:
             if isinstance(repo_entry['architectures'], list):
                 if repo_entry['architectures'] != []:
                     repository.set_architectures(repo_entry['architectures'])
 
-        # extract categories from configuration file
+        # extract categories from configuration file and store
         if 'categories' in repo_entry:
             if isinstance(repo_entry['categories'], list):
                 if repo_entry['categories'] != []:
@@ -434,7 +425,7 @@ def main(config, force):
         debian_directories = ['contrib', 'main', 'non-free']
         repository.set_directories(debian_directories)
 
-        # extract directories from configuration file
+        # extract directories from configuration file and store
         if 'directories' in repo_entry:
             if isinstance(repo_entry['directories'], list):
                 if repo_entry['directories'] != []:
@@ -443,10 +434,21 @@ def main(config, force):
 
     # download data for every repository that has been declared
     for repository in repositories:
+        debian_dirs = create_debian_directories(crawler_config.storedirectory, repository)
+
+        # write logging output to a separate log file. This file can
+        # get large, so it might be useful periodically truncate with
+        # for example logrotate
+        logging.basicConfig(filename=pathlib.Path(debian_dirs['log_directory'], 'download.log'),
+                            level=logging.INFO, format='%(asctime)s %(message)s')
+
         download_date = datetime.datetime.utcnow()
-        debian_dirs = create_debian_directories(crawler_config.storedirectory, repository, download_date)
-        if debian_dirs == {}:
-            continue
+        meta_outname = pathlib.Path(debian_dirs['meta_data_directory'],
+                                    "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
+
+        if meta_outname.exists():
+             print("metadata file %s already exists. Skipping entry." % meta_outname,
+                   file=sys.stderr)
 
         # first download the ls-lR.gz file and see if it needs to be
         # processed by comparing it to the hash of the previously
@@ -463,8 +465,6 @@ def main(config, force):
             continue
 
         # now store the ls-lR.gz file for future reference
-        meta_outname = pathlib.Path(debian_dirs['meta_data_directory'],
-                                    "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
         metadata = meta_outname.open(mode='wb')
         metadata.write(req.content)
         metadata.close()
@@ -490,11 +490,8 @@ def main(config, force):
         hashfile.write(filehash)
         hashfile.close()
 
-        # write logging output to a separate log file. This file can
-        # get large, so it might be useful periodically truncate with
-        # for example logrotate
-        logging.basicConfig(filename=pathlib.Path(debian_dirs['log_directory'], 'download.log'),
-                            level=logging.INFO, format='%(asctime)s %(message)s')
+        # Parse the ls-lR.gz file
+        lslr = Lslr(meta_outname, repository)
 
         # now walk the ls-lR file and grab all the files in parallel
         processmanager = multiprocessing.Manager()
@@ -503,9 +500,6 @@ def main(config, force):
         download_queue = processmanager.JoinableQueue(maxsize=0)
         fail_queue = processmanager.JoinableQueue(maxsize=0)
         processes = []
-
-        # Parse the ls-lR.gz file
-        lslr = Lslr(meta_outname, repository)
 
         # put all the tasks into the download queue for downloading.
         for d in lslr.dscs:
