@@ -31,6 +31,8 @@ import urllib
 # import the requests module for downloading the XML
 import requests
 
+import click
+
 # import YAML module
 from yaml import load
 try:
@@ -83,16 +85,11 @@ def downloadfile(download_queue, fail_queue, debian_mirror):
 
         download_queue.task_done()
 
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    parser.add_argument("-f", "--force", action="store_true", dest="force",
-                        help="run if metadata hasn't changed")
+@click.command()
+@click.option('--packagelist', required=True, help='file with packages')
+def download_from_packagelist(packagelist):
     #parser.add_argument("-p", "--packagelist", action="store", dest="packagelist",
     #                    help="file with packages", metavar="FILE")
-    args = parser.parse_args()
 
     '''
     packagelist = []
@@ -114,21 +111,89 @@ def main():
             pass
     '''
 
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
+    pass
 
+def create_debian_directories(storedirectory, repository, download_date):
+    # create directory for the repository (by name)
+    repo_directory = pathlib.Path(storedirectory, repository['name'])
+    if not repo_directory.exists():
+        repo_directory.mkdir()
+
+    # now create a directory structure inside the scandirectory:
+    # binary/ -- this is where all the binary data will be stored
+    # source/ -- this is where all source files will be stored
+    # meta/ -- this is where the ls-lR.gz file will be stored
+    # dsc/  -- this is where the Debian package file descriptions
+    #          will be stored
+    # patches/ -- this is where the Debian specific patches (diff.gz)
+    #          files will be stored
+    # logs/ -- download logs will be stored here
+    binary_directory = pathlib.Path(repo_directory, "binary")
+    if not binary_directory.exists():
+        binary_directory.mkdir()
+
+    source_directory = pathlib.Path(repo_directory, "source")
+    if not source_directory.exists():
+        source_directory.mkdir()
+
+    meta_data_directory = pathlib.Path(repo_directory, "meta")
+    if not meta_data_directory.exists():
+        meta_data_directory.mkdir()
+
+    dsc_directory = pathlib.Path(repo_directory, "dsc")
+    if not dsc_directory.exists():
+        dsc_directory.mkdir()
+
+    patches_directory = pathlib.Path(repo_directory, "patches")
+    if not patches_directory.exists():
+        patches_directory.mkdir()
+
+    log_directory = pathlib.Path(repo_directory, "logs")
+    if not log_directory.exists():
+        log_directory.mkdir()
+
+    meta_outname = pathlib.Path(meta_data_directory,
+                                "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
+
+    if meta_outname.exists():
+        print("metadata file %s already exists. Skipping entry." % meta_outname,
+              file=sys.stderr)
+        return {}
+
+    # recreate the download site data structure
+    for i in repository['directories']:
+        if not pathlib.Path(binary_directory, i).exists():
+            pathlib.Path(binary_directory, i).mkdir()
+        if not pathlib.Path(source_directory, i).exists():
+            pathlib.Path(source_directory, i).mkdir()
+        if not pathlib.Path(dsc_directory, i).exists():
+            pathlib.Path(dsc_directory, i).mkdir()
+        if not pathlib.Path(patches_directory, i).exists():
+            pathlib.Path(patches_directory, i).mkdir()
+    return {'binary_directory': binary_directory,
+            'source_directory': source_directory,
+            'meta_data_directory': meta_data_directory,
+            'dsc_directory': dsc_directory,
+            'patches_directory': patches_directory,
+            'repo_directory': repo_directory,
+            'log_directory': log_directory}
+
+
+@click.command()
+@click.option('--config', required=True, help='path to configuration file')
+@click.option('--force', help='run if metadata hasn\'t changed', type=bool)
+def main(config, force):
     # the configuration file should exist ...
-    if not os.path.exists(args.cfg):
-        parser.error("File %s does not exist, exiting." % args.cfg)
+    if not os.path.exists(config):
+        parser.error("File %s does not exist, exiting." % config)
 
     # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.cfg).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.cfg)
+    if not stat.S_ISREG(os.stat(config).st_mode):
+        parser.error("%s is not a regular file, exiting." % config)
 
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(args.cfg, 'r')
+        configfile = open(config, 'r')
         config = load(configfile, Loader=Loader)
     except:
         print("Cannot open configuration file, exiting", file=sys.stderr)
@@ -261,63 +326,10 @@ def main():
 
     # download data for every repository that has been declared
     for repository in repositories:
-        # create directory for the repository (by name)
-        repo_directory = pathlib.Path(storedirectory, repository['name'])
-        if not repo_directory.exists():
-            repo_directory.mkdir()
-
-        # now create a directory structure inside the scandirectory:
-        # binary/ -- this is where all the binary data will be stored
-        # source/ -- this is where all source files will be stored
-        # meta/ -- this is where the ls-lR.gz file will be stored
-        # dsc/  -- this is where the Debian package file descriptions
-        #          will be stored
-        # patches/ -- this is where the Debian specific patches (diff.gz)
-        #          files will be stored
-        # logs/ -- download logs will be stored here
-        binary_directory = pathlib.Path(repo_directory, "binary")
-        if not binary_directory.exists():
-            binary_directory.mkdir()
-
-        source_directory = pathlib.Path(repo_directory, "source")
-        if not source_directory.exists():
-            source_directory.mkdir()
-
-        meta_data_dir = pathlib.Path(repo_directory, "meta")
-        if not meta_data_dir.exists():
-            meta_data_dir.mkdir()
-
-        dsc_directory = pathlib.Path(repo_directory, "dsc")
-        if not dsc_directory.exists():
-            dsc_directory.mkdir()
-
-        patches_directory = pathlib.Path(repo_directory, "patches")
-        if not patches_directory.exists():
-            patches_directory.mkdir()
-
-        log_directory = pathlib.Path(repo_directory, "logs")
-        if not log_directory.exists():
-            log_directory.mkdir()
-
         download_date = datetime.datetime.utcnow()
-        meta_outname = pathlib.Path(meta_data_dir,
-                                    "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
-
-        if meta_outname.exists():
-            print("metadata file %s already exists. Skipping entry." % meta_outname,
-                  file=sys.stderr)
+        debian_dirs = create_debian_directories(storedirectory, repository, download_date)
+        if debian_dirs == {}:
             continue
-
-        # recreate the download site data structure
-        for i in repository['directories']:
-            if not pathlib.Path(binary_directory, i).exists():
-                pathlib.Path(binary_directory, i).mkdir()
-            if not pathlib.Path(source_directory, i).exists():
-                pathlib.Path(source_directory, i).mkdir()
-            if not pathlib.Path(dsc_directory, i).exists():
-                pathlib.Path(dsc_directory, i).mkdir()
-            if not pathlib.Path(patches_directory, i).exists():
-                pathlib.Path(patches_directory, i).mkdir()
 
         # Check if the Debian mirror was declared.
         if repository['mirror'] == '':
@@ -356,7 +368,7 @@ def main():
             sys.exit(1)
 
         # now store the ls-lR.gz file for future reference
-        meta_outname = pathlib.Path(meta_data_dir,
+        meta_outname = pathlib.Path(debian_dirs['meta_data_directory'],
                                     "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
         metadata = meta_outname.open(mode='wb')
         metadata.write(req.content)
@@ -368,12 +380,12 @@ def main():
         filehash = debian_hash.hexdigest()
 
         # the hash of the latest file should always be stored in a file called HASH
-        hashfilename = os.path.join(repo_directory, "HASH")
+        hashfilename = os.path.join(debian_dirs['repo_directory'], "HASH")
         if os.path.exists(hashfilename):
             hashfile = open(hashfilename, 'r')
             oldhashdata = hashfile.read()
             hashfile.close()
-            if oldhashdata == filehash and not args.force:
+            if oldhashdata == filehash and not force:
                 print("Metadata for '%s' has not changed, skipping entry." % repository['name'])
                 os.unlink(meta_outname)
                 continue
@@ -386,7 +398,7 @@ def main():
         # write logging output to a separate log file. This file can
         # get large, so it might be useful periodically truncate with
         # for example logrotate
-        logging.basicConfig(filename=pathlib.Path(log_directory, 'download.log'),
+        logging.basicConfig(filename=pathlib.Path(debian_dirs['log_directory'], 'download.log'),
                             level=logging.INFO, format='%(asctime)s %(message)s')
 
         # now walk the ls-lR file and grab all the files in parallel
@@ -450,7 +462,7 @@ def main():
                 downloadpath = i.decode().strip().rsplit(' ', 1)[1]
                 filesize = int(re.sub(r'  +', ' ', i.decode().strip()).split(' ')[4])
                 if download_dsc and downloadpath.endswith('.dsc'):
-                    download_queue.put((curdir, downloadpath, filesize, dsc_directory))
+                    download_queue.put((curdir, downloadpath, filesize, debian_dirs['dsc_directory']))
                     dsc_counter += 1
                 if download_binary:
                     for ext in ['.deb', '.udeb']:
@@ -460,16 +472,16 @@ def main():
                             for arch in repository['architectures']:
                                 arch_ext = '_%s%s' % (arch, ext)
                                 if downloadpath.endswith(arch_ext):
-                                    download_queue.put((curdir, downloadpath, filesize, binary_directory))
+                                    download_queue.put((curdir, downloadpath, filesize, debian_dirs['binary_directory']))
                                     deb_counter += 1
                                     break
                 if download_patch and downloadpath.endswith('.diff.gz'):
-                    download_queue.put((curdir, downloadpath, filesize, patches_directory))
+                    download_queue.put((curdir, downloadpath, filesize, debian_dirs['patches_directory']))
                     diff_counter += 1
                 if download_source:
                     for ext in ['.orig.tar.bz2', '.orig.tar.gz', '.orig.tar.xz']:
                         if downloadpath.endswith(ext):
-                            download_queue.put((curdir, downloadpath, filesize, source_directory))
+                            download_queue.put((curdir, downloadpath, filesize, debian_dirs['source_directory']))
                             src_counter += 1
                             break
         lslr.close()
