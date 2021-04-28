@@ -355,13 +355,13 @@ def main(config, force):
         try:
             req = requests.get('%s/ls-lR.gz' % repository.mirror)
         except requests.exceptions.RequestException:
-            print("Could not connect to Debian mirror, exiting.", file=sys.stderr)
-            sys.exit(1)
+            print("Could not connect to Debian mirror, continuing.", file=sys.stderr)
+            continue
 
         if req.status_code != 200:
-            print("Could not get Debian ls-lR.gz file, got code %d, exiting." % req.status_code,
+            print("Could not get Debian ls-lR.gz file, got code %d, continuing." % req.status_code,
                   file=sys.stderr)
-            sys.exit(1)
+            continue
 
         # now store the ls-lR.gz file for future reference
         meta_outname = pathlib.Path(debian_dirs['meta_data_directory'],
