@@ -39,6 +39,73 @@ try:
 except ImportError:
     from yaml import Loader
 
+
+class ConfigError(Exception):
+    pass
+
+
+class Config:
+    '''Crawler configuration class'''
+    def __init__(self, config):
+        # read the configuration file. This is in YAML format
+        configfile = open(config, 'r')
+        config = load(configfile, Loader=Loader)
+
+        # some sanity checks:
+        if 'config' not in config:
+            raise ConfigError("'config' not in configuration")
+
+        if 'general' not in config['config']:
+            raise ConfigError("'general' not in configuration")
+
+        if 'repositories' not in config['config']:
+            raise ConfigError("'repositories' not in configuration")
+
+        if 'storedirectory' not in config['config']['general']:
+            raise ConfigError("'storedirectory' not in configuration")
+
+        # Set a few default values for general configuration options.
+        # These can be overridden in the configuration file.
+        self.storedirectory = ''
+        self.verbose = False
+        self.threads = multiprocessing.cpu_count()
+
+        # check configuration options and change the default values if needed
+        if 'verbose' in config['config']['general']:
+            if isinstance(config['config']['general']['verbose'], bool):
+                self.verbose = config['config']['general']['verbose']
+
+        # The number of threads to be created to download the files,
+        # next to the main thread. Defaults to "all availabe threads".
+        # WARNING: this might not always be faster!
+        if 'threads' in config['config']['general']:
+            if isinstance(config['config']['general']['threads'], int):
+                threads = config['config']['general']['threads']
+                # if 0 or a negative number was configured,
+                # then use the default value, otherwise use
+                # the value from the configuration file
+                if threads > 0:
+                    self.threads = threads
+
+        self.storedirectory = pathlib.Path(config['config']['general']['storedirectory'])
+
+        # Check if the base unpack directory exists
+        if not self.storedirectory.exists():
+            raise ConfigError("Store directory %s does not exist" % self.storedirectory)
+
+        if not self.storedirectory.is_dir():
+            raise ConfigError("Store directory %s is not a directory" % self.storedirectory)
+
+        # Check if the base unpack directory can be written to
+        try:
+            testfile = tempfile.mkstemp(dir=self.storedirectory)
+            os.unlink(testfile[1])
+        except Exception as e:
+            raise ConfigError("Base unpack directory %s: %s" % (self.storedirectory, e))
+
+        self.repositories = config['config']['repositories']
+
+
 class Repository:
     '''Represents a Debian(-derived) repository'''
     def __init__(self, name, mirror):
@@ -49,10 +116,13 @@ class Repository:
         self.architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
         self.categories = ['dsc', 'source', 'patch', 'binary', 'dev']
         self.directories = []
+
     def set_architectures(self, architectures):
         self.architectures = architectures
+
     def set_categories(self, categories):
         self.categories = categories
+
     def set_directories(self, directories):
         self.directories = directories
 
@@ -101,6 +171,7 @@ def downloadfile(download_queue, fail_queue, debian_mirror):
 
         download_queue.task_done()
 
+
 @click.command()
 @click.option('--packagelist', required=True, help='file with packages')
 def download_from_packagelist(packagelist):
@@ -128,6 +199,7 @@ def download_from_packagelist(packagelist):
     '''
 
     pass
+
 
 def create_debian_directories(storedirectory, repository, download_date):
     # create directory for the repository (by name)
@@ -209,81 +281,18 @@ def main(config, force):
         print("%s is not a regular file, exiting." % config, file=sys.stderr)
         sys.exit(1)
 
-    # read the configuration file. This is in YAML format
     try:
-        configfile = open(config, 'r')
-        config = load(configfile, Loader=Loader)
-    except:
-        print("Cannot open configuration file, exiting", file=sys.stderr)
-        sys.exit(1)
-
-    # some sanity checks:
-    if 'config' not in config:
-        print("Invalid configuration file, exiting", file=sys.stderr)
-        sys.exit(1)
-
-    if 'general' not in config['config']:
-        print("Invalid configuration file, exiting", file=sys.stderr)
-        sys.exit(1)
-
-    if 'repositories' not in config['config']:
-        print("Invalid configuration file (no repositories defined), exiting", file=sys.stderr)
-        sys.exit(1)
-
-    # Set a few default values for general configuration options.
-    # These can be overridden in the configuration file.
-    storedirectory = ''
-    verbose = False
-    threads = multiprocessing.cpu_count()
-
-    # check configuration options and change the default values if needed
-    if 'verbose' in config['config']['general']:
-        if isinstance(config['config']['general']['verbose'], bool):
-            verbose = config['config']['general']['verbose']
-
-    # The number of threads to be created to download the files,
-    # next to the main thread. Defaults to "all availabe threads".
-    # WARNING: this might not always be faster!
-    if 'threads' in config['config']['general']:
-        if isinstance(config['config']['general']['threads'], int):
-            threads = config['config']['general']['threads']
-            # if 0 or a negative number was configured,
-            # then use all available threads
-            if threads < 1:
-                threads = multiprocessing.cpu_count()
-
-    if 'storedirectory' not in config['config']['general']:
-        print("no store directory defined in configuration file", file=sys.stderr)
-        sys.exit(1)
-
-    storedirectory = pathlib.Path(config['config']['general']['storedirectory'])
-
-    # Check if the base unpack directory exists
-    if not storedirectory.exists():
-        print("Store directory %s does not exist, exiting" % storedirectory,
-              file=sys.stderr)
-        sys.exit(1)
-
-    if not storedirectory.is_dir():
-        print("Store directory %s is not a directory, exiting" % storedirectory,
-              file=sys.stderr)
-        sys.exit(1)
-
-    # Check if the base unpack directory can be written to
-    try:
-        testfile = tempfile.mkstemp(dir=storedirectory)
-        os.unlink(testfile[1])
-    except Exception:
-        print("Base unpack directory %s cannot be written to, exiting" % storedirectory,
-              file=sys.stderr)
+        crawler_config = Config(config)
+    except Exception as e:
+        print("Cannot open or process configuration file: %s. Exiting." % e, file=sys.stderr)
         sys.exit(1)
 
     repositories = []
 
     # create the repository configuration information based on
     # the configuration file and default values
-    for repo in config['config']['repositories']:
-        repo_entry = config['config']['repositories'][repo]
+    for repo in crawler_config.repositories:
+        repo_entry = crawler_config.repositories[repo]
 
         # check to see if the repository is disabled
         if 'enabled' in repo_entry:
@@ -348,7 +357,7 @@ def main(config, force):
     # download data for every repository that has been declared
     for repository in repositories:
         download_date = datetime.datetime.utcnow()
-        debian_dirs = create_debian_directories(storedirectory, repository, download_date)
+        debian_dirs = create_debian_directories(crawler_config.storedirectory, repository, download_date)
         if debian_dirs == {}:
             continue
 
@@ -486,7 +495,7 @@ def main(config, force):
         lslr.close()
 
         # create processes for unpacking archives
-        for i in range(0, threads):
+        for i in range(0, crawler_config.threads):
             process = multiprocessing.Process(target=downloadfile,
                                               args=(download_queue, fail_queue, repository.mirror))
             processes.append(process)
@@ -514,7 +523,7 @@ def main(config, force):
         for process in processes:
             process.terminate()
 
-        if verbose:
+        if crawler_config.verbose:
             len_failed = len(failed_files)
             downloaded_files = (deb_counter + src_counter + dsc_counter + diff_counter) - len_failed
             print("Successfully downloaded: %d files" % downloaded_files)
