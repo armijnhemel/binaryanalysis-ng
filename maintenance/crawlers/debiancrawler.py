@@ -290,9 +290,33 @@ def main(config, force):
 
         if 'mirror' not in repo_entry:
             continue
+        mirror = repo_entry['mirror']
+
+        # Check if the Debian mirror was declared.
+        if mirror == '':
+            print("Debian mirror not declared in configuration file, skipping entry",
+                  file=sys.stderr)
+            continue
+
+        try:
+            mirror_parts = urllib.parse.urlparse(mirror)
+            if mirror_parts.scheme not in ['http', 'https', 'ftp', 'ftps']:
+                print("Invalid URL '%s' for '%s', skipping entry" % (mirror,
+                                                                     repo_entry),
+                      file=sys.stderr)
+                continue
+            if mirror_parts.netloc == '':
+                print("Invalid URL '%s' for '%s', skipping entry" % (mirror,
+                                                                     repo_entry),
+                      file=sys.stderr)
+                continue
+        except Exception:
+            print("Debian mirror not a valid URL, skipping entry",
+                  file=sys.stderr)
+            continue
 
         # create a repository object for this repository
-        repository = Repository(repo, repo_entry['mirror'])
+        repository = Repository(repo, mirror)
 
         # extract architectures from configuration file
         if 'architectures' in repo_entry:
@@ -323,28 +347,6 @@ def main(config, force):
         download_date = datetime.datetime.utcnow()
         debian_dirs = create_debian_directories(storedirectory, repository, download_date)
         if debian_dirs == {}:
-            continue
-
-        # Check if the Debian mirror was declared.
-        if repository.mirror == '':
-            print("Debian mirror not declared in configuration file, skipping entry",
-                  file=sys.stderr)
-            continue
-        try:
-            mirror_parts = urllib.parse.urlparse(repository.mirror)
-            if mirror_parts.scheme not in ['http', 'https', 'ftp', 'ftps']:
-                print("Invalid URL '%s' for '%s', skipping entry" % (repository.mirror,
-                                                                     repository.name),
-                      file=sys.stderr)
-                continue
-            if mirror_parts.netloc == '':
-                print("Invalid URL '%s' for '%s', skipping entry" % (repository.mirror,
-                                                                     repository.name),
-                      file=sys.stderr)
-                continue
-        except Exception:
-            print("Debian mirror not a valid URL, skipping entry",
-                  file=sys.stderr)
             continue
 
         # first download the ls-lR.gz file and see if it needs to be
