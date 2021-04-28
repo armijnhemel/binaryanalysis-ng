@@ -196,7 +196,7 @@ def create_debian_directories(storedirectory, repository, download_date):
 
 @click.command()
 @click.option('--config', required=True, help='path to configuration file')
-@click.option('--force', help='run if metadata hasn\'t changed', type=bool)
+@click.option('--force', help='run if metadata hasn\'t changed', is_flag=True)
 def main(config, force):
     # the configuration file should exist ...
     if not os.path.exists(config):
