@@ -106,6 +106,77 @@ class Config:
         self.repositories = config['config']['repositories']
 
 
+class Lslr:
+    '''ls-lr.gz object'''
+    def __init__(self, lslrfile, repository):
+        self.lslrfile = lslrfile
+        self.repository = repository
+
+        # add some counters for statistics
+        self.deb_counter = 0
+        self.src_counter = 0
+        self.diff_counter = 0
+        self.dsc_counter = 0
+
+        self.dscs = []
+        self.debs = []
+        self.srcs = []
+        self.diffs = []
+
+        self.parse()
+
+    def parse(self):
+        lslr = gzip.open(self.lslrfile)
+        inpool = False
+        curdir = ''
+
+        for i in lslr:
+            if i.decode().startswith('./pool'):
+                inpool = True
+                curdir = pathlib.Path(i.decode().rsplit(':', 1)[0][2:])
+            if not inpool:
+                continue
+
+            download_file = False
+            for debian_dir in self.repository.directories:
+                if debian_dir in curdir.parts:
+                    download_file = True
+                    break
+            if not download_file:
+                continue
+
+            # end of the pool reached
+            if i.decode().startswith('./project'):
+                break
+            if i.decode().startswith('-'):
+                downloadpath = i.decode().strip().rsplit(' ', 1)[1]
+                filesize = int(re.sub(r'  +', ' ', i.decode().strip()).split(' ')[4])
+                if self.repository.download_dsc and downloadpath.endswith('.dsc'):
+                    self.dscs.append((curdir, downloadpath, filesize))
+                    self.dsc_counter += 1
+                if self.repository.download_binary:
+                    for ext in ['.deb', '.udeb']:
+                        if downloadpath.endswith(ext):
+                            if '-dev_' in downloadpath and not self.repository.download_dev:
+                                continue
+                            for arch in self.repository.architectures:
+                                arch_ext = '_%s%s' % (arch, ext)
+                                if downloadpath.endswith(arch_ext):
+                                    self.debs.append((curdir, downloadpath, filesize))
+                                    self.deb_counter += 1
+                                    break
+                if self.repository.download_patch and downloadpath.endswith('.diff.gz'):
+                    self.diffs.append((curdir, downloadpath, filesize))
+                    self.diff_counter += 1
+                if self.repository.download_source:
+                    for ext in ['.orig.tar.bz2', '.orig.tar.gz', '.orig.tar.xz']:
+                        if downloadpath.endswith(ext):
+                            self.srcs.append((curdir, downloadpath, filesize))
+                            self.src_counter += 1
+                            break
+        lslr.close()
+
+
 class Repository:
     '''Represents a Debian(-derived) repository'''
     def __init__(self, name, mirror):
@@ -117,11 +188,27 @@ class Repository:
         self.categories = ['dsc', 'source', 'patch', 'binary', 'dev']
         self.directories = []
 
+        self.download_dsc = False
+        self.download_binary = False
+        self.download_patch = False
+        self.download_source = False
+        self.download_dev = False
+
     def set_architectures(self, architectures):
         self.architectures = architectures
 
     def set_categories(self, categories):
         self.categories = categories
+        if 'dsc' in categories:
+            self.download_dsc = True
+        if 'binary' in categories:
+            self.download_binary = True
+        if 'patch' in categories:
+            self.download_patch = True
+        if 'source' in categories:
+            self.download_source = True
+        if 'dev' in categories:
+            self.download_dev = True
 
     def set_directories(self, directories):
         self.directories = directories
@@ -417,82 +504,18 @@ def main(config, force):
         fail_queue = processmanager.JoinableQueue(maxsize=0)
         processes = []
 
-        download_dsc = False
-        if 'dsc' in repository.categories:
-            download_dsc = True
+        # Parse the ls-lR.gz file
+        lslr = Lslr(meta_outname, repository)
 
-        download_binary = False
-        if 'binary' in repository.categories:
-            download_binary = True
-
-        download_patch = False
-        if 'patch' in repository.categories:
-            download_patch = True
-
-        download_source = False
-        if 'source' in repository.categories:
-            download_source = True
-
-        download_dev = False
-        if 'dev' in repository.categories:
-            download_dev = True
-
-        # add some counters for statistics
-        deb_counter = 0
-        src_counter = 0
-        diff_counter = 0
-        dsc_counter = 0
-
-        # Process the ls-lR.gz and put all the tasks into a queue for downloading.
-        lslr = gzip.open(meta_outname)
-        inpool = False
-        curdir = ''
-
-        for i in lslr:
-            if i.decode().startswith('./pool'):
-                inpool = True
-                curdir = pathlib.Path(i.decode().rsplit(':', 1)[0][2:])
-            if not inpool:
-                continue
-
-            download_file = False
-            for debian_dir in repository.directories:
-                if debian_dir in curdir.parts:
-                    download_file = True
-                    break
-            if not download_file:
-                continue
-
-            # end of the pool reached
-            if i.decode().startswith('./project'):
-                break
-            if i.decode().startswith('-'):
-                downloadpath = i.decode().strip().rsplit(' ', 1)[1]
-                filesize = int(re.sub(r'  +', ' ', i.decode().strip()).split(' ')[4])
-                if download_dsc and downloadpath.endswith('.dsc'):
-                    download_queue.put((curdir, downloadpath, filesize, debian_dirs['dsc_directory']))
-                    dsc_counter += 1
-                if download_binary:
-                    for ext in ['.deb', '.udeb']:
-                        if downloadpath.endswith(ext):
-                            if '-dev_' in downloadpath and not download_dev:
-                                continue
-                            for arch in repository.architectures:
-                                arch_ext = '_%s%s' % (arch, ext)
-                                if downloadpath.endswith(arch_ext):
-                                    download_queue.put((curdir, downloadpath, filesize, debian_dirs['binary_directory']))
-                                    deb_counter += 1
-                                    break
-                if download_patch and downloadpath.endswith('.diff.gz'):
-                    download_queue.put((curdir, downloadpath, filesize, debian_dirs['patches_directory']))
-                    diff_counter += 1
-                if download_source:
-                    for ext in ['.orig.tar.bz2', '.orig.tar.gz', '.orig.tar.xz']:
-                        if downloadpath.endswith(ext):
-                            download_queue.put((curdir, downloadpath, filesize, debian_dirs['source_directory']))
-                            src_counter += 1
-                            break
-        lslr.close()
+        # put all the tasks into the download queue for downloading.
+        for d in lslr.dscs:
+            download_queue.put(d + (debian_dirs['dsc_directory'],))
+        for d in lslr.debs:
+            download_queue.put(d + (debian_dirs['binary_directory'],))
+        for d in lslr.diffs:
+            download_queue.put(d + (debian_dirs['patches_directory'],))
+        for d in lslr.srcs:
+            download_queue.put(d + (debian_dirs['source_directory'],))
 
         # create processes for unpacking archives
         for i in range(0, crawler_config.threads):
@@ -525,7 +548,7 @@ def main(config, force):
 
         if crawler_config.verbose:
             len_failed = len(failed_files)
-            downloaded_files = (deb_counter + src_counter + dsc_counter + diff_counter) - len_failed
+            downloaded_files = (lslr.deb_counter + lslr.src_counter + lslr.dsc_counter + lslr.diff_counter) - len_failed
             print("Successfully downloaded: %d files" % downloaded_files)
             print("Failed to download: %d files" % len_failed)
 
