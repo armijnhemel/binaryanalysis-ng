@@ -139,7 +139,6 @@ def main():
         else:
             temporary_directory = None
 
-    meta_files_filter = []
     dir_filter = []
 
     # filter for irrelevant files in META-INF that should not be stored
