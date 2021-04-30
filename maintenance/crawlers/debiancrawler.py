@@ -462,8 +462,8 @@ def main(config, force):
                                     "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
 
         if meta_outname.exists():
-             print("metadata file %s already exists. Skipping entry." % meta_outname,
-                   file=sys.stderr)
+            print("metadata file %s already exists. Skipping entry." % meta_outname,
+                  file=sys.stderr)
 
         # first download the ls-lR.gz file and see if it needs to be
         # processed by comparing it to the hash of the previously
