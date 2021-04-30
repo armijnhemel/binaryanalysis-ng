@@ -184,9 +184,9 @@ class Repository:
         self.mirror = mirror
 
         # set a few default values
-        self.architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
-        self.categories = ['dsc', 'source', 'patch', 'binary', 'dev']
-        self.directories = []
+        self._architectures = ['all', 'i386', 'amd64', 'arm64', 'armhf']
+        self._categories = ['dsc', 'source', 'patch', 'binary', 'dev']
+        self._directories = []
 
         self.download_dsc = False
         self.download_binary = False
@@ -194,11 +194,21 @@ class Repository:
         self.download_source = False
         self.download_dev = False
 
-    def set_architectures(self, architectures):
-        self.architectures = architectures
+    @property
+    def architectures(self):
+        return self._architectures
 
-    def set_categories(self, categories):
-        self.categories = categories
+    @architectures.setter
+    def architectures(self, architectures):
+        self._architectures = architectures
+
+    @property
+    def categories(self):
+        return self._categories
+
+    @categories.setter
+    def categories(self, categories):
+        self._categories = categories
         if 'dsc' in categories:
             self.download_dsc = True
         if 'binary' in categories:
@@ -210,8 +220,13 @@ class Repository:
         if 'dev' in categories:
             self.download_dev = True
 
-    def set_directories(self, directories):
-        self.directories = directories
+    @property
+    def directories(self):
+        return self._directories
+
+    @directories.setter
+    def directories(self, directories):
+        self._directories = directories
 
 
 # use several threads to download the Debian data. This is of no
@@ -412,24 +427,24 @@ def main(config, force):
         if 'architectures' in repo_entry:
             if isinstance(repo_entry['architectures'], list):
                 if repo_entry['architectures'] != []:
-                    repository.set_architectures(repo_entry['architectures'])
+                    repository.architectures = repo_entry['architectures']
 
         # extract categories from configuration file and store
         if 'categories' in repo_entry:
             if isinstance(repo_entry['categories'], list):
                 if repo_entry['categories'] != []:
-                    repository.set_categories(repo_entry['categories'])
+                    repository.categories = repo_entry['categories']
 
         # this is a default value for Debian, not for Ubuntu. For Ubuntu
         # crawling this should be configured properly in the configuration file
         debian_directories = ['contrib', 'main', 'non-free']
-        repository.set_directories(debian_directories)
+        repository.directories = debian_directories
 
         # extract directories from configuration file and store
         if 'directories' in repo_entry:
             if isinstance(repo_entry['directories'], list):
                 if repo_entry['directories'] != []:
-                    repository.set_directories(repo_entry['directories'])
+                    repository.directories = repo_entry['directories']
         repositories.append(repository)
 
     # download data for every repository that has been declared
