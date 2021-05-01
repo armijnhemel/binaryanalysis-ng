@@ -92,7 +92,7 @@ types:
               nsize:
                       value: namesize.to_i(16)
               npaddingsize:
-                      value: '4 - (( nsize + hsize ) % 4)'
+                      value: '(-( nsize + hsize ) % 4)'
               fpaddingsize:
                       value: (-fsize % 4)
               bsize:
