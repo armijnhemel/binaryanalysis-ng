@@ -14,6 +14,9 @@ doc-ref:
 seq:
   - id: version
     type: u4
+    valid:
+      min: 4
+      max: 5
     doc: Support versions are 4 and 5
   - id: header
     type:
