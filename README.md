@@ -8,8 +8,9 @@ for further analysis.
 
 ## Requirements
 
-* a recent Linux distribution (Fedora 32 or higher, or equivalent)
-* Python 3.6.x or higher (as some Python 3.6 specific features are used)
+* a recent Linux distribution (Fedora 33 or higher, or equivalent), or NixOS
+* Python 3.8.x or higher
+* for maintenance scripts: Python 3.9.x or higher (as some Python 3.9 specific features are used in the maintenance scripts)
 * pillow (possibly named python3-pillow), a drop in replacement for PIL ( http://python-pillow.github.io/ )
 * GNU binutils (for 'ar')
 * squashfs-tools (for 'unsquashfs')
@@ -49,9 +50,9 @@ https://github.com/devttys0/sasquatch
 
 It is assumed that BANG is run on little endian hardware (such as x86 or x86-64).
 
-## Unsupported distributions
+## Verified unsupported distributions
 
-* Fedora 31 and earlier
+* Fedora 32 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
 ## Docker container
