@@ -86,8 +86,11 @@ class CpioBaseUnpackParser(UnpackParser):
                     continue
                 elif stat.S_ISREG(mode):
                     filedata_start = e.header.hsize + e.header.nsize + e.header.npaddingsize
-                    self.unpack_regular(outfile_rel,
-                            pos + filedata_start, e.header.fsize)
+                    outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                    os.makedirs(outfile_full.parent, exist_ok=True)
+                    outfile = open(outfile_full, 'wb')
+                    outfile.write(e.filedata)
+                    outfile.close()
 
                 fr = FileResult(self.fileresult,
                         self.rel_unpack_dir / file_path,
