@@ -13,6 +13,7 @@ let
     pytest
     pyyaml
     requests
+    woodblock
   ]);
     
 in
