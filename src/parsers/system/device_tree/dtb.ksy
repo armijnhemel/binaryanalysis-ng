@@ -2,82 +2,112 @@ meta:
   id: dtb
   title: Flattened Devicetree Format
   file-extension: dtb
+  application:
+    - Linux
+    - Das U-Boot
   xref:
-    - wikidata: Q16960371
+    wikidata: Q16960371
+  tags:
+    - linux
   license: CC0-1.0
+  ks-version: 0.9
+  encoding: ASCII
   endian: be
 doc: |
   Also referred to as Devicetree Blob (DTB). It is a flat
   binary encoding of data (primarily devicetree data, although
   other data is possible as well).
 
-  The encoding of strings used in the specification is actually a subset of ASCII:
+  On Linux systems that support this the blobs can be accessed in
+  `/sys/firmware/fdt`:
 
-  https://github.com/devicetree-org/devicetree-specification/blob/master/source/chapter2-devicetree-basics.rst
+  - <https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-firmware-ofw>
+
+  The encoding of strings used in the strings block and struct block is
+  actually a subset of ASCII:
+
+  <https://github.com/devicetree-org/devicetree-specification/blob/v0.3/source/devicetree-basics.rst>
+
+  Example files:
+
+  - <https://github.com/qemu/qemu/tree/master/pc-bios>
 doc-ref:
   - https://github.com/devicetree-org/devicetree-specification/releases/tag/v0.3
-  - https://github.com/devicetree-org/devicetree-specification/blob/ba2aa679679fc4fedf67130f18a6f0ecc4cf0382/source/flattened-format.rst
+  - https://github.com/devicetree-org/devicetree-specification/blob/ba2aa67/source/flattened-format.rst
   - https://elinux.org/images/f/f4/Elc2013_Fernandes.pdf
 seq:
   - id: magic
-    contents: [0xd0, 0x0d, 0xfe, 0xed]
     -orig-id: magic
+    contents: [0xd0, 0x0d, 0xfe, 0xed]
   - id: total_size
-    type: u4
     -orig-id: totalsize
-  - id: structure_block_offset
     type: u4
+  - id: ofs_structure_block
     -orig-id: off_dt_struct
-  - id: strings_block_offset
     type: u4
+  - id: ofs_strings_block
     -orig-id: off_dt_strings
-  - id: memory_reservation_block_offset
     type: u4
+  - id: ofs_memory_reservation_block
     -orig-id: off_mem_rsvmap
+    type: u4
   - id: version
     type: u4
-    -orig-id: version
   - id: last_compatible_version
+    -orig-id: last_comp_version
     type: u4
     valid:
       max: version
-    -orig-id: last_comp_version
   - id: boot_cpuid_phys
-    type: u4
     -orig-id: boot_cpuid_phys
-  - id: strings_block_size
     type: u4
+  - id: len_strings_block
     -orig-id: size_dt_strings
-  - id: structure_block_size
     type: u4
+  - id: len_structure_block
     -orig-id: size_dt_struct
+    type: u4
 instances:
   memory_reservation_block:
-    pos: memory_reservation_block_offset
-    size: structure_block_offset - memory_reservation_block_offset
+    pos: ofs_memory_reservation_block
+    size: ofs_structure_block - ofs_memory_reservation_block
+    type: memory_block
   structure_block:
-    pos: structure_block_offset
-    size: strings_block_offset - structure_block_offset
+    pos: ofs_structure_block
+    size: len_structure_block
     type: fdt_block
   strings_block:
-    pos: strings_block_offset
-    size: strings_block_size
+    pos: ofs_strings_block
+    size: len_strings_block
     type: strings
 types:
+  memory_block:
+    seq:
+      - id: memory_block_entries
+        type: memory_block_entry
+        repeat: eos
+  memory_block_entry:
+    seq:
+      - id: address
+        type: u8
+        doc: physical address of a reserved memory region
+      - id: size
+        type: u8
+        doc: size of a reserved memory region
   strings:
     seq:
       - id: strings
         type: strz
-        encoding: ASCII
         repeat: eos
   fdt_node:
+    -webide-representation: '{type} {body}'
     seq:
-      - id: token_type
+      - id: type
         type: u4
         enum: fdt
-      - id: fdt_node_body
+      - id: body
         type:
-          switch-on: token_type
+          switch-on: type
           cases:
             fdt::begin_node: fdt_begin_node
             fdt::prop: fdt_prop
@@ -86,26 +116,32 @@ types:
       - id: fdt_nodes
         type: fdt_node
         repeat: until
-        repeat-until: _.token_type == fdt::end
+        repeat-until: _.type == fdt::end
   fdt_begin_node:
     seq:
       - id: name
         type: strz
-        encoding: ASCII
       - id: boundary_padding
         size: (- _io.pos) % 4
   fdt_prop:
+    -webide-representation: '{name}'
     seq:
-      - id: length
-        type: u4
+      - id: len_property
         -orig-id: len
-      - id: name_offset
         type: u4
+      - id: ofs_name
         -orig-id: nameoff
+        type: u4
       - id: property
-        size: length
+        size: len_property
       - id: boundary_padding
         size: (- _io.pos) % 4
+    instances:
+      name:
+        io: _root.strings_block._io
+        pos: ofs_name
+        type: strz
+        -webide-parse-mode: eager
 enums:
   fdt:
     0x00000001: begin_node
