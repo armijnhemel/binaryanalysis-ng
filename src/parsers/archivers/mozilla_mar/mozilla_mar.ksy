@@ -3,12 +3,13 @@ meta:
   title: Mozilla ARchive
   file-extension: mar
   license: CC0-1.0
+  encoding: UTF-8
   endian: be
 doc: |
   Mozilla ARchive file is Mozilla's own archive format to distribute software updates.
   Test files can be found on Mozilla's FTP site, for example:
 
-  <http://ftp.mozilla.org/pub/firefox/nightly/partials/>
+  <https://ftp.mozilla.org/pub/firefox/nightly/partials/>
 doc-ref: https://wiki.mozilla.org/Software_Update:MAR
 seq:
   - id: magic
@@ -19,20 +20,22 @@ seq:
   - id: file_size
     -orig-id: FileSize
     type: u8
-  - id: len_signatures
+  - id: num_signatures
     -orig-id: NumSignatures
     type: u4
+    valid:
+       max: 8
   - id: signatures
     type: signature
     repeat: expr
-    repeat-expr: len_signatures
-  - id: len_additional_sections
+    repeat-expr: num_signatures
+  - id: num_additional_sections
     -orig-id: NumAdditionalSections
     type: u4
   - id: additional_sections
     type: additional_section
     repeat: expr
-    repeat-expr: len_additional_sections
+    repeat-expr: num_additional_sections
 instances:
   index:
     pos: ofs_index
@@ -47,6 +50,8 @@ types:
       - id: len_signature
         -orig-id: SignatureSize
         type: u4
+        valid:
+          max: 2048
       - id: signature
         size: len_signature
   additional_section:
@@ -57,7 +62,7 @@ types:
         -orig-id: BlockIdentifier
         type: u4
         enum: block_identifiers
-      - id: bytes
+      - id: body
         size: len_block - len_block._sizeof - block_identifier._sizeof
         type:
           switch-on: block_identifier
@@ -65,12 +70,12 @@ types:
             block_identifiers::product_information: product_information_block
   mar_index:
     seq:
-      - id: len_index
+      - id: len_index_entries
         -orig-id: IndexSize
         type: u4
       - id: index_entries
         type: index_entries
-        size: len_index
+        size: len_index_entries
   index_entries:
     seq:
       - id: index_entry
@@ -90,11 +95,10 @@ types:
       - id: file_name
         -orig-id: FileName
         type: strz
-        encoding: UTF-8
     instances:
-      body:
-        pos: ofs_content
+      content:
         io: _root._io
+        pos: ofs_content
         size: len_content
   product_information_block:
     seq:
@@ -102,12 +106,10 @@ types:
         -orig-id: MARChannelName
         size: 64
         type: strz
-        encoding: UTF-8
       - id: product_version
         -orig-id: ProductVersion
         size: 32
         type: strz
-        encoding: UTF-8
 enums:
   signature_algorithms:
     1: rsa_pkcs1_sha1

@@ -28,7 +28,7 @@ import os
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError
 from . import mozilla_mar
 
 
@@ -43,12 +43,12 @@ class MozillaMar(UnpackParser):
         file_size = self.fileresult.filesize
         try:
             self.data = mozilla_mar.MozillaMar.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
             raise UnpackParserException(e.args)
         except EOFError as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.file_size == self.data.ofs_index + 4 +
-                        self.data.index.len_index, "Wrong file size")
+                        self.data.index.len_index_entries, "Wrong file size")
         check_condition(self.data.file_size <= file_size, "Not enough data")
 
     def calculate_unpacked_size(self):
@@ -65,7 +65,7 @@ class MozillaMar(UnpackParser):
             outfile_full = self.scan_environment.unpack_path(outfile_rel)
             os.makedirs(outfile_full.parent, exist_ok=True)
             outfile = open(outfile_full, 'wb')
-            outfile.write(entry.body)
+            outfile.write(entry.content)
             outfile.close()
 
             fr = FileResult(self.fileresult, outfile_rel, set(out_labels))
