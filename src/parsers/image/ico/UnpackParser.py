@@ -25,8 +25,8 @@ class IcoUnpackParser(UnpackParser):
                     "Invalid ico file: zero or negative width")
             check_condition(img.height > 0,
                     "Invalid ico file: zero or negative height")
-            check_condition(img.num_colors > 0,
-                    "Invalid ico file: zero or negative num_colors")
+            #check_condition(img.num_colors > 0,
+                    #"Invalid ico file: zero or negative num_colors")
             check_condition(img.num_planes > 0,
                     "Invalid ico file: zero or negative num_planes")
             check_condition(img.bpp > 0,
