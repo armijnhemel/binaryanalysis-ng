@@ -48,6 +48,17 @@ class DeviceTreeUnpackParser(UnpackParser):
         check_condition(self.data.strings_block_offset + self.data.strings_block_size <= self.data.total_size,
                         "invalid offset/size for strings block")
 
+        # sanity check: the fdt nodes are actually a tree, not a list
+        property_level = 0
+        for node in self.data.structure_block.fdt_nodes:
+            if node.token_type == dtb.Dtb.Fdt.begin_node:
+                property_level += 1
+            elif node.token_type == dtb.Dtb.Fdt.end_node:
+                check_condition(property_level > 0, "invalid fdt tree")
+                property_level -= 1
+            elif node.token_type == dtb.Dtb.Fdt.end:
+                check_condition(property_level == 0, "invalid fdt tree")
+
     # TODO: there might be systems that have kernels embedded in DTB
     # structures as described here:
     # https://elinux.org/images/f/f4/Elc2013_Fernandes.pdf
