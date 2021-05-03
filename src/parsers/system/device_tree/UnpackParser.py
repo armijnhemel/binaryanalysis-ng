@@ -44,6 +44,12 @@ class DeviceTreeUnpackParser(UnpackParser):
         if self.data.version > 16:
             check_condition(self.data.last_compatible_version, "invalid compatible version")
         # check some offsets
+        check_condition(self.data.ofs_memory_reservation_block > 36,
+                        "invalid offset for memory reservation block")
+        check_condition(self.data.ofs_structure_block > self.data.ofs_memory_reservation_block,
+                        "invalid offset for structure block")
+        check_condition(self.data.ofs_strings_block > self.data.ofs_structure_block,
+                        "invalid offset for strings block")
         check_condition(self.data.ofs_structure_block + self.data.len_structure_block <= self.data.total_size,
                         "invalid offset/size for structure block")
         check_condition(self.data.ofs_strings_block + self.data.len_strings_block <= self.data.total_size,
