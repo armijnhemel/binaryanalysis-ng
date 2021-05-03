@@ -21,6 +21,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
+from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
@@ -43,14 +44,68 @@ class DeviceTreeUnpackParser(UnpackParser):
         if self.data.version > 16:
             check_condition(self.data.last_compatible_version, "invalid compatible version")
         # check some offsets
-        check_condition(self.data.structure_block_offset + self.data.structure_block_size <= self.data.total_size,
+        check_condition(self.data.ofs_structure_block + self.data.len_structure_block <= self.data.total_size,
                         "invalid offset/size for structure block")
-        check_condition(self.data.strings_block_offset + self.data.strings_block_size <= self.data.total_size,
+        check_condition(self.data.ofs_strings_block + self.data.len_strings_block <= self.data.total_size,
                         "invalid offset/size for strings block")
 
-    # TODO: there might be systems that have kernels embedded in DTB
-    # structures as described here:
+        # sanity check: the fdt nodes are actually a tree, not a list
+        property_level = 0
+        for node in self.data.structure_block.fdt_nodes:
+            if node.type == dtb.Dtb.Fdt.begin_node:
+                property_level += 1
+            elif node.type == dtb.Dtb.Fdt.end_node:
+                check_condition(property_level > 0, "invalid fdt tree")
+                property_level -= 1
+            elif node.type == dtb.Dtb.Fdt.end:
+                check_condition(property_level == 0, "invalid fdt tree")
+
+    # check if there are any file image tree images as described
+    # here
     # https://elinux.org/images/f/f4/Elc2013_Fernandes.pdf
+    def unpack(self):
+        unpacked_files = []
+        property_level = 0
+        in_kernel = False
+        in_fdt = False
+        is_dtb = False
+        for node in self.data.structure_block.fdt_nodes:
+            if node.type == dtb.Dtb.Fdt.begin_node:
+                property_level += 1
+                if is_dtb and node.body.name.startswith('kernel@'):
+                    in_kernel = True
+                    in_fdt = False
+                    kernel_name = node.body.name
+                elif is_dtb and node.body.name.startswith('fdt@'):
+                    in_fdt = True
+                    in_kernel = False
+                    fdt_name = node.body.name
+                if node.body.name == 'images':
+                    is_dtb = True
+            elif node.type == dtb.Dtb.Fdt.end_node:
+                property_level -= 1
+            elif node.type == dtb.Dtb.Fdt.prop:
+                if in_kernel:
+                    if node.body.name == 'data':
+                        outfile_rel = self.rel_unpack_dir / kernel_name
+                        outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                        os.makedirs(outfile_full.parent, exist_ok=True)
+                        outfile = open(outfile_full, 'wb')
+                        outfile.write(node.body.property)
+                        outfile.close()
+                        fr = FileResult(self.fileresult, outfile_rel, set([]))
+                        unpacked_files.append(fr)
+                elif in_fdt:
+                    if node.body.name == 'data':
+                        outfile_rel = self.rel_unpack_dir / fdt_name
+                        outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                        os.makedirs(outfile_full.parent, exist_ok=True)
+                        outfile = open(outfile_full, 'wb')
+                        outfile.write(node.body.property)
+                        outfile.close()
+                        fr = FileResult(self.fileresult, outfile_rel, set([]))
+                        unpacked_files.append(fr)
+        return unpacked_files
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.total_size
