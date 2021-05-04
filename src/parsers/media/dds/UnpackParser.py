@@ -6,7 +6,7 @@ from bangmedia import unpack_dds
 class DdsUnpackParser(WrappedUnpackParser):
     extensions = []
     signatures = [
-        (0, b'DDS')
+        (0, b'DDS ')
     ]
     pretty_name = 'dds'
 
