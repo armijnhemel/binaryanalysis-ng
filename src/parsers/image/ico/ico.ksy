@@ -2,6 +2,7 @@ meta:
   id: ico
   title: Microsoft Windows icon file
   file-extension: ico
+  ks-version: 0.9
   endian: le
   license: CC0-1.0
 doc: |
@@ -16,6 +17,8 @@ seq:
   - id: num_images
     -orig-id: idCount
     type: u2
+    valid:
+      min: 1
     doc: Number of images contained in this file
   - id: images
     -orig-id: idEntries
@@ -29,10 +32,14 @@ types:
       - id: width
         -orig-id: bWidth
         type: u1
+        valid:
+          min: 1
         doc: Width of image, px
       - id: height
         -orig-id: bHeight
         type: u1
+        valid:
+          min: 1
         doc: Height of image, px
       - id: num_colors
         -orig-id: bColorCount

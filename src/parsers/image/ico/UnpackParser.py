@@ -18,15 +18,9 @@ class IcoUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.num_images > 0,
-                "Invalid ico file: not enough images")
         for img in self.data.images:
-            check_condition(img.width > 0,
-                    "Invalid ico file: zero or negative width")
-            check_condition(img.height > 0,
-                    "Invalid ico file: zero or negative height")
-            check_condition(img.num_colors > 0,
-                    "Invalid ico file: zero or negative num_colors")
+            #check_condition(img.num_colors > 0,
+                    #"Invalid ico file: zero or negative num_colors")
             check_condition(img.num_planes > 0,
                     "Invalid ico file: zero or negative num_planes")
             check_condition(img.bpp > 0,
