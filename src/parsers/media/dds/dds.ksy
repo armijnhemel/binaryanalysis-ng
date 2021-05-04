@@ -66,7 +66,7 @@ types:
         type: u4
       - id: reserved2
         -orig-id: dwReserved2
-        type: u4
+        contents: [0, 0, 0, 0]
   pixel_format:
     seq:
       - id: size
