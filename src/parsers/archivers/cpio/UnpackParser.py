@@ -79,7 +79,7 @@ class CpioBaseUnpackParser(UnpackParser):
                 if stat.S_ISDIR(mode):
                     self.unpack_directory(outfile_rel)
                 elif stat.S_ISLNK(mode):
-                    self.unpack_link(file_path, e.filedata.decode())
+                    self.unpack_link(file_path, e.filedata.split(b'\x00')[0].decode())
                     out_labels.append('symbolic link')
                 elif stat.S_ISCHR(mode) or stat.S_ISBLK(mode):
                     self.unpack_device(outfile_rel)
