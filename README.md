@@ -220,6 +220,7 @@ larger file, unless stated otherwise.
 136. DS_Store
 137. Qualcomm Snapdragon MSM bootloader files
 138. Mozilla ARchive (.mar)
+139. OpenFst (subset, identification only)
 
 
 ## Invocation
