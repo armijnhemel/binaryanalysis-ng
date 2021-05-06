@@ -83,6 +83,7 @@ class CpioBaseUnpackParser(UnpackParser):
                     out_labels.append('symbolic link')
                 elif stat.S_ISCHR(mode) or stat.S_ISBLK(mode):
                     self.unpack_device(outfile_rel)
+                    pos += e.header.bsize
                     continue
                 elif stat.S_ISREG(mode):
                     filedata_start = e.header.hsize + e.header.nsize + e.header.npaddingsize
