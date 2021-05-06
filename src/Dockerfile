@@ -44,4 +44,4 @@ WORKDIR /kaitai_struct/runtime/python
 RUN python3 setup.py install
 
 
-CMD ["python3","bangshell"]
+CMD ["python3","/usr/src/bang/src/bangshell"]
