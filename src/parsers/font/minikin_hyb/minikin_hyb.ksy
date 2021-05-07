@@ -88,7 +88,6 @@ types:
         type: u4
         repeat: expr
         repeat-expr: num_entries
-
   pattern:
     seq:
       - id: version
