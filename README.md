@@ -221,6 +221,7 @@ larger file, unless stated otherwise.
 137. Qualcomm Snapdragon MSM bootloader files
 138. Mozilla ARchive (.mar)
 139. OpenFst (subset, identification only)
+140. SELinux file context
 
 
 ## Invocation
