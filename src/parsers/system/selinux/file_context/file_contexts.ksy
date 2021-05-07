@@ -63,10 +63,8 @@ types:
       - id: len_pcre_regex_data
         type: u4
       - id: pcre_regex_data
-        type: strz
         size: len_pcre_regex_data
       - id: len_pcre_regex_study_data
         type: u4
       - id: pcre_regex_study_data
-        type: strz
         size: len_pcre_regex_study_data
