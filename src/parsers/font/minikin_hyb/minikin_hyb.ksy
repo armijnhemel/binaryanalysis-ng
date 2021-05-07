@@ -59,6 +59,9 @@ types:
         size: max_codepoint - min_codepoint
       - id: padding
         size: (-(max_codepoint - min_codepoint) % 4)
+    instances:
+      size:
+        value: 8 + (max_codepoint - min_codepoint)
   alphabet_general:
     seq:
       - id: num_entries
@@ -68,6 +71,9 @@ types:
         type: u4
         repeat: expr
         repeat-expr: num_entries
+    instances:
+      size:
+        value: 4 + num_entries * 4
   trie:
     seq:
       - id: version
@@ -88,6 +94,9 @@ types:
         type: u4
         repeat: expr
         repeat-expr: num_entries
+    instances:
+      size:
+        value: num_entries * 4 + 6*4
   pattern:
     seq:
       - id: version
@@ -108,3 +117,6 @@ types:
         repeat-expr: num_entries
       - id: pattern_buf
         size: len_pattern
+    instances:
+      size:
+        value: len_pattern + num_entries * 4 + 4*4
