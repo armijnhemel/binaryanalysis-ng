@@ -61,6 +61,8 @@ types:
       - id: len_img
         -orig-id: dwBytesInRes
         type: u4
+        valid:
+          min: 1
         doc: Size of the image data
       - id: ofs_img
         -orig-id: dwImageOffset
