@@ -36,6 +36,13 @@ seq:
     # size: ??
     # doc: if signature has a SIZE value, then it is:
     # signature[SIZE][0] - sizeof<header>
+instances:
+  lead_size:
+    value: lead._sizeof
+  header_size:
+    value: header.header_size
+  payload_offset:
+    value: header._io.pos
 types:
   dummy: {}
   lead:
@@ -179,6 +186,9 @@ types:
       - id: storage_section
         type: dummy
         size: header_record.index_storage_size
+    instances:
+      header_size:
+        value: header_record._sizeof + header_record.index_record_count * index_records.first._sizeof + header_record.index_storage_size
   header_index_record:
     -webide-representation: '{tag}'
     seq:
