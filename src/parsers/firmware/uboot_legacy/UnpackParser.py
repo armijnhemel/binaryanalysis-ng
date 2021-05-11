@@ -33,9 +33,13 @@ from kaitaistruct import ValidationNotEqualError
 from . import uimage
 
 
-class UbootLegacyUnpackParser(UnpackParser):
-#class UbootLegacyUnpackParser(WrappedUnpackParser):
+#class UbootLegacyUnpackParser(UnpackParser):
+class UbootLegacyUnpackParser(WrappedUnpackParser):
     extensions = []
+
+    # There are different U-Boot files with different magic:
+    # - regular U-Boot
+    # - .bix as apparently used by ZyXEL and Cisco in some devices
     signatures = [
         (0, b'\x27\x05\x19\x56'),
         (0, b'\x83\x80\x00\x00')
