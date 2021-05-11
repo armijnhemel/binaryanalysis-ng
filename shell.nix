@@ -42,6 +42,7 @@ pkgs.mkShell {
     my-python
     qemu
     rzip
+    sasquatch
     squashfsTools
     unrar
     unshield
