@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_css
+from bangfilescans import unpack_css
 
 class CssUnpackParser(WrappedUnpackParser):
     extensions = [ '.css' ]

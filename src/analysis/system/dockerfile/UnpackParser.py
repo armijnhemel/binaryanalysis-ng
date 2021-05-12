@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_dockerfile
+from bangfilescans import unpack_dockerfile
 
 class DockerfileUnpackParser(WrappedUnpackParser):
     extensions = ['dockerfile', '.dockerfile']

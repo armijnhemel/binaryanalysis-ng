@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_ics
+from bangfilescans import unpack_ics
 
 class IcsUnpackParser(WrappedUnpackParser):
     extensions = ['.ics']

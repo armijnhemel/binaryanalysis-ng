@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_group
+from bangfilescans import unpack_group
 
 class GroupUnpackParser(WrappedUnpackParser):
     extensions = ['group']

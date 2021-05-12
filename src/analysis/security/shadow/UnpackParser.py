@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_shadow
+from bangfilescans import unpack_shadow
 
 class ShadowUnpackParser(WrappedUnpackParser):
     extensions = ['shadow']

@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_subversion_hash
+from bangfilescans import unpack_subversion_hash
 
 class SubversionHashUnpackParser(WrappedUnpackParser):
     extensions = ['wcprops']

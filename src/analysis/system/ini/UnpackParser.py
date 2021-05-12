@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_ini
+from bangfilescans import unpack_ini
 
 class IniUnpackParser(WrappedUnpackParser):
     extensions = ['.ini']

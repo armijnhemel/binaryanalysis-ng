@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_pkg_config
+from bangfilescans import unpack_pkg_config
 
 class PkgConfigUnpackParser(WrappedUnpackParser):
     extensions = ['.pc']

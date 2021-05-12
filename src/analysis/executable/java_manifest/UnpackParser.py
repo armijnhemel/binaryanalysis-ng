@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_java_manifest
+from bangfilescans import unpack_java_manifest
 
 class JavaManifestUnpackParser(WrappedUnpackParser):
     extensions = ['manifest.mf', '.sf']
