@@ -8,8 +8,6 @@ let
   my-python = pkgs.python3.withPackages (p: with p; [
     deepdiff
     defusedxml
-    dockerfile-parse
-    icalendar
     kaitaistruct
     lz4
     parameterized
@@ -19,7 +17,6 @@ let
     pytest
     python-snappy
     pyyaml
-    tinycss2
     tlsh
   ]);
     
