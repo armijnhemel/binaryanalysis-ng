@@ -21,8 +21,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
-from NSRLHashScanner import *
-from LicenseIdentifierScanner import *
 from ByteCountReporter import *
 from PickleReporter import *
 from JsonReporter import *
@@ -64,7 +62,6 @@ class ScanEnvironment:
         self.processlock = processlock
         self.checksumdict = checksumdict
         self.runfilescans = runfilescans
-        self.filescanners = [ NSRLHashScanner, LicenseIdentifierScanner ]
         self.unpackparsers = []
         self.unpackparsers_for_extensions = {}
         self.unpackparsers_for_signatures = {}

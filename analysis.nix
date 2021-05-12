@@ -5,19 +5,18 @@ let
 
   pkgs = import sources.nixpkgs { config.allowUnfree = true; overlays = []; };
 
-  my-python = pkgs.python3.withPackages (p: with p; [
+  my-python = pkgs.python39.withPackages (p: with p; [
+    cve-bin-tool
     deepdiff
     defusedxml
     dockerfile-parse
+    elasticsearch
     icalendar
     kaitaistruct
-    lz4
     parameterized
     pdfminer
-    pefile
-    pillow
+    psycopg2
     pytest
-    python-snappy
     pyyaml
     tinycss2
     tlsh
@@ -27,24 +26,11 @@ in
 pkgs.mkShell {
   buildInputs = with pkgs; [
     binutils
-    cabextract
-    e2tools
-    innoextract
     libxml2
-    lz4
-    lzop
-    mailcap
-    ncompress
     openjdk8
     openssl
     my-python
     qemu
-    rzip
-    sasquatch
-    squashfsTools
-    unrar
-    unshield
     utillinux
-    zstd
   ];
 }
