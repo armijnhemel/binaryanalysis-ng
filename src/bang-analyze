@@ -42,8 +42,6 @@ import queue
 # import some module for collecting statistics and information about
 # the run time environment of the tool, plus of runs.
 import logging
-import platform
-import getpass
 
 # import module for database
 import psycopg2
@@ -70,8 +68,9 @@ if 'elasticsearch' in sys.modules:
 
 from FileContentsComputer import *
 from FileResult import FileResult
-from ScanEnvironment import *
-from ScanJob import *
+from AnalysisEnvironment import *
+from AnalysisJob import *
+from PickleReader import *
 
 def connect_to_bang_database(options):
     return psycopg2.connect(database=options.postgresql_db,
@@ -84,6 +83,37 @@ def connect_to_bang_database(options):
 def main(argv):
     options = BangScannerOptions().get()
 
+    if not os.path.isdir(options.checkpath):
+        print("Error: path should be a BANG scan results directory",
+              file=sys.stderr)
+        sys.exit(1)
+
+    scandirectory = pathlib.Path(options.checkpath)
+    # The directory structure inside the scandirectory:
+    # unpack/ -- this is where all the unpacked data have been stored
+    # results/ -- this is where files describing the unpacked data
+    #             have been stored
+    unpackdirectory = scandirectory / "unpack"
+
+    resultsdirectory = scandirectory / "results"
+
+    resultspickle = scandirectory / 'bang.pickle'
+
+    # check if the directory is a valid BANG scan results directory
+    if not resultspickle.exists():
+        print("Error: path should be a BANG scan results directory",
+              file=sys.stderr)
+        sys.exit(1)
+
+    if not unpackdirectory.exists():
+        print("Error: path should be a BANG scan results directory",
+              file=sys.stderr)
+        sys.exit(1)
+    if not resultsdirectory.exists():
+        print("Error: path should be a BANG scan results directory",
+              file=sys.stderr)
+        sys.exit(1)
+
     # test the database. If the connection fails it depends on whether
     # or not it should be treated as a fatal error. If not, then
     # continue without using any of the database functionality.
@@ -93,7 +123,8 @@ def main(argv):
             conn.close()
         except Exception as ex:
             if options.postgresql_error_fatal:
-                print("Database error: missing/wrong configuration or database not running", file=sys.stderr)
+                print("Database error: missing/wrong configuration or database not running",
+                      file=sys.stderr)
                 sys.exit(1)
             options.usedatabase = False
 
@@ -113,39 +144,6 @@ def main(argv):
         if 'elasticsearch' not in sys.modules:
             options.elastic_enabled = False
 
-    # first determine how many bytes should be scanned for known
-    # signatures using a sliding window. This should not be set too
-    # large for performance reasons and not too low (to avoid a
-    # silly window). Ideally this is a few times the value of
-    # 'maxsignaturesoffset'
-    maxbytes = max(200000, maxsignaturesoffset+1)
-
-    # create a list of all the files that should be scanned
-    checkfiles = []
-    if os.path.isdir(options.checkpath):
-        dirwalk = os.walk(options.checkpath)
-        for i in dirwalk:
-            for j in i[2]:
-                scanfilename = os.path.join(i[0], j)
-                if not os.path.exists(scanfilename):
-                    continue
-
-                # ... and should be a real file
-                if not stat.S_ISREG(os.stat(scanfilename).st_mode):
-                    continue
-
-                filesize = os.stat(scanfilename).st_size
-                # Don't scan an empty file
-                if filesize == 0:
-                    continue
-                checkfiles.append(scanfilename)
-    else:
-        checkfiles.append(options.checkpath)
-
-    if not checkfiles:
-        print("No files to scan found, exiting", file=sys.stderr)
-        sys.exit(1)
-
     if options.uselogging:
         banglogging.uselogging = True
         # set up logging
@@ -157,243 +155,89 @@ def main(argv):
         for i in banglogger.handlers:
             banglogger.removeHandler(i)
 
-    # scan each individual file that needs to be scanned in
-    # alphabetical sort order (Python default)
-    for checkfile in sorted(checkfiles):
-        # store a UTC time stamp
-        scandate = datetime.datetime.utcnow()
+    # store a UTC time stamp
+    analysis_date = datetime.datetime.utcnow()
 
-        # create a unique identifier for the scan
-        scanuuid = uuid.uuid4()
+    # create a unique identifier for the analysis
+    analysis_uuid = uuid.uuid4()
 
-        # create a directory for the scan
-        scandirectory = pathlib.Path(tempfile.mkdtemp(prefix='bang-scan-',
-                                                      dir=options.baseunpackdirectory))
+    # create a process manager for managing the threads
+    processmanager = multiprocessing.Manager()
 
-        # create an empty file "STARTED" to easily identify
-        # active (or crashed) scans.
-        startedfile = open(scandirectory / "STARTED", 'wb')
-        startedfile.close()
+    # first create a queues for analyzing files
+    scanfilequeue = processmanager.JoinableQueue(maxsize=0)
+    processes = []
 
-        # now create a directory structure inside the scandirectory:
-        # unpack/ -- this is where all the unpacked data will be stored
-        # results/ -- this is where files describing the unpacked data
-        #             will be stored
-        # logs/ -- this is where logs from the scan will be stored
-        unpackdirectory = scandirectory / "unpack"
-        unpackdirectory.mkdir()
+    # create a lock to control access to any shared data structures
+    processlock = multiprocessing.Lock()
 
-        resultsdirectory = scandirectory / "results"
-        resultsdirectory.mkdir()
+    # create a shared dictionary
+    checksumdict = processmanager.dict()
 
-        if banglogging.uselogging:
-            logdirectory = scandirectory / "logs"
-            logdirectory.mkdir()
+    # create an analysis environment for the new analysis
+    scanenvironment = AnalysisEnvironment(
+        createbytecounter = options.createbytecounter,
+        runfilescans = options.runfilescans,
+        logging = banglogging.uselogging,
+        scanfilequeue = scanfilequeue,
+        processlock = processlock,
+        checksumdict = checksumdict,
+        )
+    #scanenvironment.set_unpackparsers(bangsignatures.get_unpackers())
 
-            # create a log file inside the log directory and
-            # add it to the BANG logger
-            # This is done for each file.
-            # TODO: use a system wide logger if configured
-            bangloghandler = logging.FileHandler(filename=logdirectory / 'unpack.log')
-            banglogger.addHandler(bangloghandler)
-        log(logging.INFO, "Scan %s" % scanuuid)
-        log(logging.INFO, "Started scanning %s" % checkfile)
+    # read results from a Python pickle
+    picklefile = open(scandirectory / 'bang.pickle', 'rb')
+    scanresult = PickleReader(scanenvironment).top_level_read(picklefile)
+    picklefile.close()
 
-        # create a process manager for managing the threads
-        processmanager = multiprocessing.Manager()
+    # create processes for analyzing files
+    for i in range(0, options.bangthreads):
+        if not options.usedatabase:
+            dbconn0 = None
+            dbconn1 = None
+        else:
+            dbconn0 = bangdbconns[i][0]
+            dbconn1 = bangdbconns[i][1]
+        process = multiprocessing.Process(
+            target=processfile,
+            args=(dbconn0, dbconn1, scanenvironment))
+        processes.append(process)
 
-        # first create two queues: one for scanning files, the other one
-        # for reporting results.
-        scanfilequeue = processmanager.JoinableQueue(maxsize=0)
-        resultqueue = processmanager.JoinableQueue(maxsize=0)
-        processes = []
+    # Create a jobs for all files to be scanned and put
+    # them into the queue
+    for fileresult in scanresult['scantree']:
+        print(fileresult)
+    fileresult = FileResult(
+            None,
+            pathlib.Path(os.path.abspath(checkfile)),
+            set(labels))
+    j = AnalysisJob(fileresult)
+    scanfilequeue.put(j)
 
-        # copy the file that needs to be scanned to the temporary
-        # directory.
-        try:
-            shutil.copy(checkfile, unpackdirectory)
-        except:
-            print("Could not copy %s to scanning directory %s" % (checkfile, unpackdirectory), file=sys.stderr)
-            log(logging.WARNING, "Could not copy %s to scanning directory" % checkfile)
-            log(logging.INFO, "Finished scanning %s" % checkfile)
-            # move the file "STARTED" to "FINISHED" to easily identify
-            # active (or crashed) scans
-            shutil.move(scandirectory / "STARTED",
-                        scandirectory / "FINISHED")
-            os.utime(scandirectory / "FINISHED")
+    # then start all the processes
+    for process in processes:
+        process.start()
 
-            if options.removescandirectory:
-                shutil.rmtree(scandirectory)
-            continue
+    # wait for the queues to be empty.
+    scanfilequeue.join()
 
-        # The scan queue will be used to put files into that need to be
-        # scanned and processes. New files wil keep being added to it
-        # while results are being unpacked recursively.
-        # Initially one file will be in this queue, namely the first file.
-        # After files are unpacked they will be added to the queue, as they
-        # can be scanned in a trivially parallel way.
+    # Done processing, terminate processes that were created
+    for process in processes:
+        process.terminate()
 
-        # Create a list of labels to pass around. The first element is
-        # tagged as 'root', as it is the root of the unpacking tree.
-        labels = ['root']
+    # optionally store the data in Elasticsearch
+    if options.elastic_enabled:
+        ElasticsearchReporter(options).report(scanresult)
 
-        # Create a scanjob for the first file to be scanned
-        fileresult = FileResult(
-                None,
-                pathlib.Path(os.path.abspath(checkfile)),
-                set(labels))
-        j = ScanJob(fileresult)
-        scanfilequeue.put(j)
+    log(logging.INFO, "Finished scanning %s" % checkfile)
 
-        # create a lock to control access to any shared data structures
-        processlock = multiprocessing.Lock()
+    if options.uselogging:
+        # flush any remaining data to the log file
+        bangloghandler.flush()
 
-        # create a shared dictionary
-        checksumdict = processmanager.dict()
-
-        # create a scan environment for the new scan
-        scanenvironment = ScanEnvironment(
-            # set the maximum size for the amount of bytes to be read
-            maxbytes = maxbytes,
-            # set the size of bytes to be read during scanning hashes
-            readsize = 10240,
-            createbytecounter = options.createbytecounter,
-            createjson = options.createjson,
-            runfilescans = options.runfilescans,
-            tlshmaximum = options.tlshmaximum,
-            synthesizedminimum = 10,
-            logging = banglogging.uselogging,
-            unpackdirectory = unpackdirectory,
-            temporarydirectory = options.temporarydirectory,
-            resultsdirectory = resultsdirectory,
-            scanfilequeue = scanfilequeue,
-            resultqueue = resultqueue,
-            processlock = processlock,
-            checksumdict = checksumdict,
-            )
-        scanenvironment.set_unpackparsers(bangsignatures.get_unpackers())
-
-        # create processes for unpacking archives
-        for i in range(0, options.bangthreads):
-            if not options.usedatabase:
-                dbconn0 = None
-                dbconn1 = None
-            else:
-                dbconn0 = bangdbconns[i][0]
-                dbconn1 = bangdbconns[i][1]
-            process = multiprocessing.Process(
-                target=processfile,
-                args=(dbconn0, dbconn1, scanenvironment))
-            processes.append(process)
-
-        # then start all the processes
-        for process in processes:
-            process.start()
-
-        # wait for the queues to be empty.
-        scanfilequeue.join()
-
-        # There is one result for each file in the result
-        # queue, which need to be merged into a structure
-        # matching the directory tree that was unpacked. The name
-        # of each file that is unpacked serves as key into
-        # the structure.
-        scantree = {}
-
-        while True:
-            try:
-                fileresult = resultqueue.get_nowait()
-                try:
-                    scantree[str(fileresult.filename)] = fileresult.get()
-                    resultqueue.task_done()
-                except KeyError:
-                    # TODO: this is never the case, is it?
-                    pass
-
-            except queue.Empty:
-                # Queue is empty
-                break
-
-        resultqueue.join()
-
-        # Done processing, terminate processes that were created
-        for process in processes:
-            process.terminate()
-
-        scandatefinished = datetime.datetime.utcnow()
-
-        # move the file "STARTED" to "FINISHED" to easily identify
-        # active (or crashed) scans
-        shutil.move(scandirectory / "STARTED",
-                    scandirectory / "FINISHED")
-        os.utime(scandirectory / "FINISHED")
-
-        # information about the platform
-        platform_info = {'machine': platform.machine(),
-                         'architecture': platform.architecture()[0],
-                         'processor': platform.processor(),
-                         'node': platform.node(),
-                         'system': platform.system(),
-                         'release': platform.release(),
-                         'libc': platform.libc_ver()[0],
-                         'libcversion': platform.libc_ver()[1],
-                        }
-
-        # some information about the used Python version
-        python_info = {'version': platform.python_version(),
-                       'implementation': platform.python_implementation(),
-                      }
-
-        # now store the scan tree results with other data
-        scanresult = {
-            'scantree': scantree,
-            # statistics about this particular session
-            'session': {'start': scandate,
-                        'stop': scandatefinished,
-                        'duration': (scandatefinished - scandate).total_seconds(),
-                        # 'user': getpass.getuser(),
-                        'uid': os.getuid(),
-                        'checkfile': checkfile,
-                        'uuid': scanuuid,
-                        'platform': platform_info,
-                        'python': python_info,
-                       }
-        }
-
-        # write all results to a Python pickle
-        picklefile = open(scandirectory / 'bang.pickle', 'wb')
-        PickleReporter(scanenvironment).top_level_report(scanresult, picklefile)
-        picklefile.close()
-
-        # optionally write the same data in JSON format
-        if options.createjson:
-            jsonfile = open(scandirectory / 'bang.json', 'w')
-            JsonReporter(jsonfile).report(scanresult)
-            jsonfile.close()
-
-        # optionally create a human readable report of the scan results
-        if options.writereport:
-            reportfile = open(scandirectory / 'report.txt', 'w')
-            HumanReadableReporter(reportfile).report(scanresult)
-            reportfile.close()
-
-        # optionally store the data in Elasticsearch
-        if options.elastic_enabled:
-            ElasticsearchReporter(options).report(scanresult)
-
-        log(logging.INFO, "Finished scanning %s" % checkfile)
-
-        if options.uselogging:
-            # flush any remaining data to the log file
-            bangloghandler.flush()
-
-            # remove the log file from the system logger
-            banglogger.removeHandler(bangloghandler)
-            bangloghandler.close()
-
-        # optionally remove the entire scan directory
-        if options.removescandirectory:
-            shutil.rmtree(scandirectory)
+        # remove the log file from the system logger
+        banglogger.removeHandler(bangloghandler)
+        bangloghandler.close()
 
     # clean up the database cursors and
     # close all connections to the database
