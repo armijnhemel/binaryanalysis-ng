@@ -22,14 +22,22 @@
 
 import pickle
 
+
+class PickleReaderException(Exception):
+    pass
+
+
 class PickleReader:
 
     def __init__(self, scanenvironment):
         self.scanenvironment = scanenvironment
 
     def top_level_read(self, picklefilename):
-        scanresult = pickle.load(picklefilename)
-        return scanresult
+        try:
+            scanresult = pickle.load(picklefilename)
+            return scanresult
+        except Exception as e:
+            raise PickleReaderException()
 
     def read(self, fileresult):
 
@@ -43,8 +51,14 @@ class PickleReader:
         picklefilename = self.scanenvironment.resultsdirectory / ("%s.pickle" % fileresult.get_hash('sha256'))
         # TODO: this is vulnerable to a race condition, replace with EAFP pattern
         if picklefilename.exists():
-            pickleout = picklefilename.open('rb')
-            fileresult = pickle.load(pickleout)
-            pickleout.close()
+            try:
+                pickleout = picklefilename.open('rb')
+                fileresult = pickle.load(pickleout)
+            except:
+                raise PickleReaderException()
+            finally:
+                pickleout.close()
             return fileresult
+        else:
+            raise PickleReaderException()
 
