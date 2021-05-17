@@ -21,7 +21,7 @@ let
     tinycss2
     tlsh
   ]);
-    
+
 in
 pkgs.mkShell {
   buildInputs = with pkgs; [
