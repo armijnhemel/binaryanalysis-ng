@@ -192,7 +192,7 @@ def main(argv):
         # Create a scanjob for the first file to be scanned
         fileresult = FileResult(
                 None,
-                pathlib.Path(os.path.abspath(checkfile)),
+                pathlib.Path(os.path.basename(checkfile)),
                 set(labels))
         j = ScanJob(fileresult)
         scanfilequeue.put(j)
