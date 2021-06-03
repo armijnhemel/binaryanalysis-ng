@@ -229,6 +229,10 @@ larger file, unless stated otherwise.
 
     $ python3 bang-scanner -c bang.config -f /path/to/binary
 
+Depending on the `baseunpackdirectory` defined in your `bang.config`, the results
+will be found in `~/tmp/report.txt`, for instance.  You may also enable an additional
+JSON output, PostgrSQL or ElasticSearch server to write results to.
+
 ## License
 
 GNU Affero General Public License, version 3 (AGPL-3.0)
