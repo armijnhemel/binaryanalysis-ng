@@ -54,7 +54,6 @@ class BangScannerOptions:
             'removescandirectory': False,
             'createbytecounter': False,
             'createjson': True,
-            'runfilescans': True,
             'tlshmaximum': sys.maxsize,
             'writereport': True,
             'uselogging': True,
@@ -180,8 +179,6 @@ class BangScannerOptions:
                 section='configuration', option='bytecounter')
         self._set_boolean_option_from_config('createjson',
                 section='configuration', option='json')
-        self._set_boolean_option_from_config('runfilescans',
-                section='configuration', option='runfilescans')
         self._set_integer_option_from_config('tlshmaximum',
                 section='configuration')
         self._set_boolean_option_from_config('writereport',
