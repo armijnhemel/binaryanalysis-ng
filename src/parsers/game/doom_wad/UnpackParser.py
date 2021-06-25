@@ -56,6 +56,14 @@ class DoomWadUnpackParser(UnpackParser):
         check_condition(self.data.index_offset <= filesize, "index offset outside of file")
         check_condition(self.data.num_index_entries > 0, "no lumps defined")
 
+        # another ugly hack to prevent ASCII decoding errors
+        # (example: when scanning mime.cache)
+        try:
+            for i in self.data.index:
+                pass
+        except Exception as e:
+            raise UnpackParserException(e.args)
+
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.index_offset + self.data.num_index_entries * 16
         for i in self.data.index:
