@@ -33,9 +33,6 @@ class DoomWadUnpackParser(UnpackParser):
     ]
     pretty_name = 'doomwad'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_doom_wad(fileresult, scan_environment, offset, unpack_dir)
-
     # http://web.archive.org/web/20090530112359/http://www.gamers.org/dhs/helpdocs/dmsp1666.html
     # chapter 2
     def parse(self):
