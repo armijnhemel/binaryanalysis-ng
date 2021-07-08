@@ -5705,6 +5705,7 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
         # store the last open file for an object
         last_open = None
         last_open_name = None
+        last_open_size = 0
         previous_objectid = 0
 
         # store how many bytes need to be read for an open file
@@ -5812,9 +5813,10 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
                     # file size sanity check (TODO)
                     last_open.close()
                     if objectid_to_latest_chunk[previous_objectid] == 0:
-                        os.unlink(last_open.name)
-                        last_open = None
-                        break
+                        if last_open_size != 0:
+                            os.unlink(last_open.name)
+                            last_open = None
+                            break
                     unpackedfilesandlabels.append((last_open_name, []))
 
                 objectid_to_latest_chunk[objectid] = chunkid
@@ -5946,6 +5948,7 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
 
                     last_open = open(outfile_full, 'wb')
                     last_open_name = outfile_rel
+                    last_open_size = object_size
                     previous_objectid = objectid
                 elif chunk_object_type == YAFFS_OBJECT_TYPE_SYMLINK:
                     try:
