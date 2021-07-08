@@ -105,7 +105,7 @@ class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
 
     def parse(self):
         try:
-                self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
+            self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
         # TODO: decide what exceptions to catch
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
