@@ -27,10 +27,18 @@ import stat
 import configparser
 import tempfile
 
-from bangoptions import BangOptions, ObjectDict
+import bangoptions
 
 
-class BangAnalyzerOptions(BangOptions):
+class ObjectDict(dict):
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def __getattr__(self, name):
+        return self[name]
+
+
+class BangOptions():
     def __init__(self):
         self._set_default_options()
         self._parse_arguments()
@@ -69,19 +77,30 @@ class BangAnalyzerOptions(BangOptions):
         }
         self.options = ObjectDict(dict(self.defaults))
 
+    def get(self):
+        return self.options
+
+    def _error(self, msg):
+        print(msg, file=sys.stderr)
+        sys.exit(1)
+
     def _parse_arguments(self):
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument("-f", "--file",
                                 action="store", dest="checkpath",
                                 help="path to file/directory to check", metavar="FILE")
+        self.parser.add_argument("-d", "--directory",
+                                action="store", dest="checkpath",
+                                help="path to file/directory to check",
+                                metavar="DIR")
         self.parser.add_argument("-c", "--config",
                                 action="store", dest="cfg",
                                 help="path to configuration file",
                                 metavar="FILE",
                                 default=self.defaults['cfg'])
-        self.parser.add_argument("-o", "--output-directory",
+        self.parser.add_argument("-u", "--unpack-directory",
                                 action="store", dest="baseunpackdirectory",
-                                help="path to output directory",
+                                help="path to unpack directory",
                                 metavar="FILE")
         self.parser.add_argument("-t", "--temporary-directory",
                                 action="store", dest="temporarydirectory",
@@ -89,6 +108,78 @@ class BangAnalyzerOptions(BangOptions):
                                 metavar="FILE")
         self.args = self.parser.parse_args()
         self._check_configuration_file()
+
+    def _check_configuration_file(self):
+        if self.args.cfg is None:
+            self.parser.error("No configuration file provided, exiting")
+        # the configuration file should exist ...
+        if not os.path.exists(self.args.cfg):
+            self.parser.error("File %s does not exist, exiting." %
+                                self.args.cfg)
+        # ... and should be a real file
+        if not stat.S_ISREG(os.stat(self.args.cfg).st_mode):
+            self.parser.error("%s is not a regular file, exiting." %
+                                self.args.cfg)
+
+    def _read_configuration_file(self):
+        # read the configuration file. This is in Windows INI format.
+        environ = os.environ
+        try:
+            del environ['SHELL']
+        except KeyError:
+            pass
+        self.config = configparser.ConfigParser(environ)
+        try:
+            configfile = open(self.args.cfg, 'r')
+            self.config.read_file(configfile)
+        except:
+            self._error("Cannot open configuration file, exiting")
+
+    def _set_string_option_from_config(self, option_name, section=None,
+            option=None):
+        if option is None:
+            option = option_name
+        try:
+            v = self.config.get(section, option)
+        except configparser.NoOptionError:
+            return
+        except configparser.NoSectionError:
+            return
+        except KeyError:
+            return
+        self.options[option_name] = v
+
+    def _set_integer_option_from_config(self, option_name, section=None,
+            option=None):
+        if option is None:
+            option = option_name
+        try:
+            v = int(self.config.get(section, option))
+        except configparser.NoOptionError:
+            return
+        except KeyError:
+            return
+        except configparser.NoSectionError:
+            return
+        except ValueError:
+            return
+        self.options[option_name] = v
+
+    def _set_boolean_option_from_config(self, option_name, section=None,
+            option=None):
+        if option is None:
+            option = option_name
+        try:
+            v = self.config.get(section, option) == 'yes'
+        except configparser.NoOptionError:
+            return
+        except configparser.NoSectionError:
+            return
+        except KeyError:
+            return
+        except ValueError:
+            return
+        self.options[option_name] = v
 
     def _set_options_from_configuration_file(self):
         self._set_string_option_from_config('baseunpackdirectory',
@@ -200,3 +291,11 @@ class BangAnalyzerOptions(BangOptions):
             if os.stat(self.options.checkpath).st_size == 0:
                 self._error("%s is an empty file, exiting"
                         % self.options.checkpath)
+
+    def check_if_directory_is_writable(self, dirname):
+        try:
+            testfile = tempfile.mkstemp(dir=dirname)
+            os.unlink(testfile[1])
+            return True
+        except:
+            return False
