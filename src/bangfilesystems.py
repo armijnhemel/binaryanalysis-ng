@@ -5986,7 +5986,10 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
         if last_open is not None:
             last_open.close()
             if objectid_to_latest_chunk[previous_objectid] == 0:
-                os.unlink(last_open.name)
+                if last_open_size != 0:
+                    os.unlink(last_open.name)
+                else:
+                    unpackedfilesandlabels.append((last_open_name, []))
             else:
                 unpackedfilesandlabels.append((last_open_name, []))
         if unpackedfilesandlabels == []:
