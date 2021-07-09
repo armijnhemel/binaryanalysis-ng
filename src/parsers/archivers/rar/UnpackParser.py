@@ -13,6 +13,7 @@ class RarUnpackParser(UnpackParser):
             (0, b'Rar!\x1a\x07'),
     ]
     def parse(self):
+        raise UnpackParserException("Rar not supported")
         try:
             self.data = rar.Rar.from_io(self.infile)
         except (BaseException, ValidationNotEqualError) as e:
