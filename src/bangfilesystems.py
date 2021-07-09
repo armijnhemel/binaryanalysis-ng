@@ -5818,6 +5818,7 @@ def unpack_yaffs2(fileresult, scanenvironment, offset, unpackdir):
                             last_open = None
                             break
                     unpackedfilesandlabels.append((last_open_name, []))
+                last_open = None
 
                 objectid_to_latest_chunk[objectid] = chunkid
 
