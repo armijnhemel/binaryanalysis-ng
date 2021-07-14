@@ -1,5 +1,5 @@
 meta:
-  id: android_img_allwinner
+  id: allwinner_img
   title: Allwinner image format
   file-extension: img
   tags:
@@ -81,7 +81,7 @@ types:
     seq:
       - id: common
         type: file_header_common
-      - id: file_header_version
+      - id: file_header_data
         type:
           switch-on: _root.img_header.header_version
           cases:
