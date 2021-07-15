@@ -224,6 +224,7 @@ larger file, unless stated otherwise.
 140. SELinux file context
 141. Ogg
 142. Allwinner images
+143. DFU (Device Firmware Upgrade)
 
 
 ## Invocation
