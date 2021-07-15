@@ -47,7 +47,7 @@ class AuUnpackParser(UnpackParser):
         return unpack_au(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
-        self.file_size = self.fileresult.filename.stat().st_size
+        self.file_size = self.fileresult.filesize
         try:
             self.data = au.Au.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:

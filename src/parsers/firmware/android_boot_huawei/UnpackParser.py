@@ -37,11 +37,8 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
     ]
     pretty_name = 'androidboothuawei'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_android_boot_huawei(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
-        file_size = self.fileresult.filename.stat().st_size
+        file_size = self.fileresult.filesize
         try:
             self.data = android_img_huawei.AndroidImgHuawei.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:

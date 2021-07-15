@@ -48,7 +48,7 @@ class AndroidImgUnpacker(WrappedUnpackParser):
         return unpack_android_boot_img(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
-        file_size = self.fileresult.filename.stat().st_size
+        file_size = self.fileresult.filesize
         try:
             self.data = android_img.AndroidImg.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:

@@ -38,7 +38,7 @@ class FileContext(UnpackParser):
     pretty_name = 'file_contexts.bin'
 
     def parse(self):
-        file_size = self.fileresult.filename.stat().st_size
+        file_size = self.fileresult.filesize
         try:
             self.data = file_contexts.FileContexts.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:

@@ -39,7 +39,7 @@ class PeClassUnpackParser(UnpackParser):
     pretty_name = 'pe'
 
     def parse(self):
-        self.file_size = self.fileresult.filename.stat().st_size
+        self.file_size = self.fileresult.filesize
         self.chunknames = set()
         try:
             self.data = microsoft_pe.MicrosoftPe.from_io(self.infile)

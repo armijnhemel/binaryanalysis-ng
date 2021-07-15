@@ -37,7 +37,7 @@ class OpenFst(UnpackParser):
     pretty_name = 'openfst'
 
     def parse(self):
-        file_size = self.fileresult.filename.stat().st_size
+        file_size = self.fileresult.filesize
         try:
             self.data = openfst.Openfst.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:

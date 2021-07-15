@@ -52,7 +52,7 @@ class AndroidSparseUnpackParser(UnpackParser):
         return unpack_android_sparse(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
-        self.file_size = self.fileresult.filename.stat().st_size
+        self.file_size = self.fileresult.filesize
         try:
             self.data = android_sparse.AndroidSparse.from_io(self.infile)
             self.unpacked_size = self.data.img_header.file_header_size

@@ -37,7 +37,7 @@ class MinikinHybUnpackParser(UnpackParser):
     pretty_name = 'minikin_hyb'
 
     def parse(self):
-        file_size = self.fileresult.filename.stat().st_size
+        file_size = self.fileresult.filesize
         try:
             self.data = minikin_hyb.MinikinHyb.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:

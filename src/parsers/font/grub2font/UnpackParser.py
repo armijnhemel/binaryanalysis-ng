@@ -42,7 +42,7 @@ class Grub2fontUnpackParser(UnpackParser):
         return unpack_grub2font(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
-        self.file_size = self.fileresult.filename.stat().st_size
+        self.file_size = self.fileresult.filesize
         try:
             self.data = grub2font.Grub2font.from_io(self.infile)
             for i in self.data.font_sections:
