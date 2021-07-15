@@ -75,12 +75,17 @@ class AllwinnerUnpackParser(UnpackParser):
         """sets metadata and labels for the unpackresults"""
         labels = ['allwinner']
         metadata = {}
+        metadata['hardware'] = {}
+        metadata['hardware']['usb_product_id'] = self.data.img_header.usb_pid
+        metadata['hardware']['usb_vendor_id'] = self.data.img_header.usb_vid
+        metadata['hardware']['hardware_id'] = self.data.img_header.hardware_id
+        metadata['hardware']['firmware_id'] = self.data.img_header.firmware_id
 
         metadata['partitions'] = []
         for entry in self.data.file_headers:
             metadata['partitions'].append({'name': entry.file_header_data.name,
-                                           'offset': entry.offset,
-                                           'size': entry.size})
+                                           'offset': entry.file_header_data.offset,
+                                           'size': entry.file_header_data.original_length})
 
         self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)
