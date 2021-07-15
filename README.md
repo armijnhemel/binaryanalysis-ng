@@ -225,6 +225,7 @@ larger file, unless stated otherwise.
 141. Ogg
 142. Allwinner images
 143. DFU (Device Firmware Upgrade)
+144. Key Character Map binary files
 
 
 ## Invocation
