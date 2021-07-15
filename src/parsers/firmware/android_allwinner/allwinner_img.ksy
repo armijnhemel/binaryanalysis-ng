@@ -116,7 +116,8 @@ types:
         type: u4
       - id: unknown_2
         type: u4
-      - id: filename
+      - id: name
+        -orig-id: filename
         type: strz
         encoding: ASCII
         size: 256
@@ -125,7 +126,8 @@ types:
       - id: unknown_0
         type: u4
         valid: 0
-      - id: filename
+      - id: name
+        -orig-id: filename
         type: strz
         encoding: ASCII
         size: 256
