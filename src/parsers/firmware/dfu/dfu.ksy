@@ -4,6 +4,10 @@ meta:
   file-extension: dfu
   license: CC0-1.0
   endian: le
+doc: |
+  Device Firmware Upgrade files
+
+  Test files: <https://micropython.org/download/espruino_pico/>
 doc-ref: https://raw.githubusercontent.com/micropython/micropython/247d7e2/tools/pydfu.py
 seq:
   - id: magic
