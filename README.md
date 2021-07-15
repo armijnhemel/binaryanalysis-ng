@@ -223,6 +223,7 @@ larger file, unless stated otherwise.
 139. OpenFst (subset, identification only)
 140. SELinux file context
 141. Ogg
+142. Allwinner images
 
 
 ## Invocation
