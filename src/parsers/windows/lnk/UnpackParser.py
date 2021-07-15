@@ -23,5 +23,8 @@ class WindowsLinkUnpackParser(UnpackParser):
         return []
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        self.unpack_results['metadata'] = {}
-        self.unpack_results['labels'] = [ 'lnk', 'resource', 'windows' ]
+        metadata = {}
+        labels = [ 'lnk', 'resource', 'windows' ]
+
+        self.unpack_results.set_labels(labels)
+        self.unpack_results.set_metadata(metadata)
