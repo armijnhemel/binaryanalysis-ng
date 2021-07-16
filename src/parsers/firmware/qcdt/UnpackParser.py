@@ -29,19 +29,14 @@ from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import qcdt
-from bangunpack import unpack_qcdt
 
 
-class QcdtUnpackParser(WrappedUnpackParser):
-#class QcdtUnpackParser(UnpackParser):
+class QcdtUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'QCDT')
     ]
     pretty_name = 'qcdt'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_qcdt(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         try:
@@ -85,11 +80,21 @@ class QcdtUnpackParser(WrappedUnpackParser):
         """sets metadata and labels for the unpackresults"""
         labels = ['android', 'qcdt']
         metadata = {}
-        #metadata['hardware'] = {}
-        #metadata['hardware']['usb_product_id'] = self.data.img_header.usb_pid
-        #metadata['hardware']['usb_vendor_id'] = self.data.img_header.usb_vid
-        #metadata['hardware']['hardware_id'] = self.data.img_header.hardware_id
-        #metadata['hardware']['firmware_id'] = self.data.img_header.firmware_id
+        metadata['device'] = {}
+        ctr = 1
+        for entry in self.data.device_entries:
+            metadata['device'][ctr] = {}
+            metadata['device'][ctr]['platform_id'] = entry.platform_id.name
+            metadata['device'][ctr]['variant_id'] = entry.variant_id
+            metadata['device'][ctr]['soc_revision'] = entry.soc_revision
+            if self.data.version > 1:
+                metadata['device'][ctr]['subtype_id'] = entry.subtype_id
+            if self.data.version > 2:
+                metadata['device'][ctr]['pmic0'] = entry.pmic0
+                metadata['device'][ctr]['pmic1'] = entry.pmic1
+                metadata['device'][ctr]['pmic2'] = entry.pmic2
+                metadata['device'][ctr]['pmic3'] = entry.pmic3
+            ctr += 1
 
         self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)
