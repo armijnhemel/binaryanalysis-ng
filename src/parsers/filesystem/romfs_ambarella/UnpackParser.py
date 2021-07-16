@@ -37,9 +37,6 @@ class RomfsAmbarellaUnpackParser(UnpackParser):
     ]
     pretty_name = 'romfs_ambarella'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_romfs_ambarella(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = romfs_ambarella.RomfsAmbarella.from_io(self.infile)
@@ -50,7 +47,6 @@ class RomfsAmbarellaUnpackParser(UnpackParser):
         for entry in self.data.file_headers:
             self.unpacked_size = max(self.unpacked_size, entry.ofs_data + entry.len_data)
         check_condition(self.fileresult.filesize >= self.unpacked_size, "not enough data")
-
 
     # no need to carve from the file
     def carve(self):
