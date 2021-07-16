@@ -3,6 +3,8 @@ meta:
   title: Ambarella ROMFS format
   license: CC0-1.0
   endian: le
+doc: |
+  Test files: <http://dc.p-mc.eu/0803/firmware>
 doc-ref: http://web.archive.org/web/20190402224117/https://courses.cs.ut.ee/MTAT.07.022/2015_spring/uploads/Main/karl-report-s15.pdf (section 4.1)
 seq:
   - id: num_files
