@@ -312,7 +312,6 @@ signaturetofunction = {
     'cramfs_le': bangfilesystems.unpack_cramfs,
     'cramfs_be': bangfilesystems.unpack_cramfs,
     'ambarella': bangunpack.unpack_ambarella,
-    'romfs_ambarella': bangunpack.unpack_romfs_ambarella,
     'bflt': bangunpack.unpack_bflt,
     'ubi': bangfilesystems.unpack_ubi,
     'bittorrent': bangunpack.unpack_bittorrent,
