@@ -20,6 +20,18 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# A description of the CPIO format can be found in section 5 of the
+# cpio manpage on Linux:
+# man 5 cpio
+#
+# This unpacker does not allow partial unpacking of (corrupt) cpio archives
+#
+# Some CPIO files, such as made on Solaris, that pack special
+# device files such as doors and event ports, might fail to
+# unpack on Linux.
+# See https://bugs.python.org/issue11016 for background information
+# about event ports, doors and whiteout files.
+
 import os
 import stat
 import pathlib
