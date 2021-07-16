@@ -12,7 +12,7 @@ doc: |
 
 doc-ref:
   - https://gitlab.com/Codeaurora/platform_system_core/-/raw/83b5d524c5/dtbtool/dtbtool.txt (v1)
-  - https://github.com/omnirom/android_device_lge_g4-common/blob/android-6.0/dtbtool/dtbtool.txt (v2)
+  - https://raw.githubusercontent.com/omnirom/android_device_lge_g4-common/android-6.0/dtbtool/dtbtool.txt (v2)
   - https://raw.githubusercontent.com/CyanogenMod/android_device_qcom_common/cm-14.1/dtbtool/dtbtool.txt (v3)
   - https://source.codeaurora.org/quic/kernel/skales/plain/dtbTool?id=1.6.0
 seq:
