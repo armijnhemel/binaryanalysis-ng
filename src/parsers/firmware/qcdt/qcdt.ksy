@@ -15,6 +15,7 @@ doc-ref:
   - https://raw.githubusercontent.com/omnirom/android_device_lge_g4-common/android-6.0/dtbtool/dtbtool.txt (v2)
   - https://raw.githubusercontent.com/CyanogenMod/android_device_qcom_common/cm-14.1/dtbtool/dtbtool.txt (v3)
   - https://source.codeaurora.org/quic/kernel/skales/plain/dtbTool?id=1.6.0
+  - web.archive.org/web/20160402060151if_/https://developer.qualcomm.com/qfile/28821/lm80-p0436-1_little_kernel_boot_loader_overview.pdf (section 2.4.1)
 seq:
   - id: magic
     contents: "QCDT"
