@@ -3,7 +3,7 @@ meta:
   title: Ambarella ROMFS format
   license: CC0-1.0
   endian: le
-doc-ref: http://web.archive.org/web/20190402224117/https://courses.cs.ut.ee/MTAT.07.022/2015_spring/uploads/Main/karl-report-s15.pdf (section 4.2)
+doc-ref: http://web.archive.org/web/20190402224117/https://courses.cs.ut.ee/MTAT.07.022/2015_spring/uploads/Main/karl-report-s15.pdf (section 4.1)
 seq:
   - id: num_files
     type: u4
@@ -16,10 +16,11 @@ seq:
     type: file_header
     repeat: expr
     repeat-expr: num_files
+    # TODO: padding
 types:
   file_header:
     seq:
-      - id: file_name
+      - id: name
         type: strz
         encoding: ASCII
         size: 116
