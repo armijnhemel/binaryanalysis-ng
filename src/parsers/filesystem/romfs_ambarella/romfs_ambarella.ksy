@@ -10,7 +10,6 @@ seq:
   - id: num_files
     type: u4
   - id: magic
-    size: 4
     contents: [0x8a, 0x32, 0xfc, 0x66]
   - id: padding
     size: 2040
@@ -31,7 +30,6 @@ types:
       - id: len_data
         type: u4
       - id: magic
-        size: 4
         contents: [0x76, 0xab, 0x87, 0x23]
     instances:
       data:
