@@ -18,10 +18,29 @@ instances:
     size: boot_sector.size_root_dir
     type: root_directory
 types:
+  jmp_instruction:
+    seq:
+      - id: jmp_1
+        type: u1
+        valid: 0xEB
+      - id: jmp_2
+        type: u1
+      - id: jmp_3
+        type: u1
+        valid: 0x90
+  jmp_instruction_v2:
+    seq:
+      - id: jmp_1
+        type: u1
+        valid: 0xE9
+      - id: jmp_2
+        type: u1
+      - id: jmp_3
+        type: u1
   boot_sector:
     seq:
       - id: jmp_instruction
-        size: 3
+        type: jmp_instruction
       - id: oem_name
         type: str
         encoding: ASCII
