@@ -226,6 +226,7 @@ larger file, unless stated otherwise.
 142. Allwinner images
 143. DFU (Device Firmware Upgrade)
 144. Key Character Map binary files
+145. USB Flashing Format (UF2)
 
 
 ## Invocation
