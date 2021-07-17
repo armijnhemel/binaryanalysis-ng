@@ -243,8 +243,6 @@ signaturetofunction = {
     'dahua': bangunpack.unpack_dahua,
     'bzip2': bangunpack.unpack_bzip2,
     'xar': bangunpack.unpack_xar,
-    'gif87': bangmedia.unpack_gif,
-    'gif89': bangmedia.unpack_gif,
     'iso9660': bangfilesystems.unpack_iso9660,
     'lzip': bangunpack.unpack_lzip,
     'jpeg': bangmedia.unpack_jpeg,
