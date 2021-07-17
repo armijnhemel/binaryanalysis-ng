@@ -251,7 +251,6 @@ signaturetofunction = {
     'ttc': bangunpack.unpack_opentype_font_collection,
     'truetype': bangunpack.unpack_truetype_font,
     'android_backup': bangandroid.unpack_android_backup,
-    'ico': bangmedia.unpack_ico,
     'cab': bangunpack.unpack_cab,
     'sgi': bangmedia.unpack_sgi,
     'aiff': bangmedia.unpack_aiff,
