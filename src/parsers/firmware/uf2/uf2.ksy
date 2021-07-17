@@ -22,12 +22,12 @@ doc: |
 
 doc-ref: https://github.com/microsoft/uf2/blob/b05acf5/README.md
 seq:
-  - id: first_uf2_block
+  - id: uf2_block_start
     type: uf2_block
   - id: uf2_blocks
     type: uf2_block
     repeat: expr
-    repeat-expr: first_uf2_block.num_blocks - 1
+    repeat-expr: uf2_block_start.num_blocks - 1
 types:
   uf2_block:
     seq:
