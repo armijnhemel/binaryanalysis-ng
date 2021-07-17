@@ -60,8 +60,12 @@ types:
     seq:
       - id: screen_width
         type: u2
+        valid:
+          min: 1
       - id: screen_height
         type: u2
+        valid:
+          min: 1
       - id: flags
         type: u1
       - id: bg_color_index
