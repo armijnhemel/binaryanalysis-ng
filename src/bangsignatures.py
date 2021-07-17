@@ -222,7 +222,6 @@ signaturetofunction = {
     'ani': bangmedia.unpack_ani,
     'mng': bangmedia.unpack_mng,
     'gzip': bangunpack.unpack_gzip,
-    'bmp': bangmedia.unpack_bmp,
     'xz': bangunpack.unpack_xz,
     'lzma_var1': bangunpack.unpack_lzma,
     'lzma_var2': bangunpack.unpack_lzma,

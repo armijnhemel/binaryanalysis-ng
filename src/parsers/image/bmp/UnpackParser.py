@@ -20,27 +20,20 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-
 import os
-from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_bmp
-
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import bmp
 
 
-#class BmpUnpackParser(UnpackParser):
-class BmpUnpackParser(WrappedUnpackParser):
+class BmpUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'BM')
     ]
     pretty_name = 'bmp'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_bmp(fileresult, scan_environment, offset, unpack_dir)
+    # https://en.wikipedia.org/wiki/BMP_file_format
 
     def parse(self):
         self.chunknames = set()
