@@ -52,7 +52,7 @@ seq:
     repeat: until
     repeat-until: _.len_decompressed == 0
 instances:
-  lzop_version: 
+  lzop_version:
     value: version & 0xf0
 types:
   block:
