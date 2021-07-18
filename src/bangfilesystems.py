@@ -214,7 +214,7 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
                                      cwd=squashfsunpackdirectory)
             (outputmsg, errormsg) = p.communicate()
 
-            if p.returncode != 0:
+            if p.returncode != 0 and not b'because you\'re not superuser!' in errormsg:
                 # remove old data
                 if offset != 0:
                     os.unlink(temporaryfile[1])
