@@ -8997,10 +8997,6 @@ def unpack_lzop(fileresult, scanenvironment, offset, unpackdir):
             break
         unpackedsize += 4
 
-        # skip over the data
-        checkfile.seek(compressed_len, os.SEEK_CUR)
-        unpackedsize += compressed_len
-
         # adler32 uncompressed or crc32 uncompressed
         if lzopflags & 0x01 != 0 or lzopflags & 0x100 != 0:
             checkbytes = checkfile.read(4)
@@ -9013,6 +9009,10 @@ def unpack_lzop(fileresult, scanenvironment, offset, unpackdir):
             if len(checkbytes) != 4:
                 break
             unpackedsize += 4
+
+        # skip over the data
+        checkfile.seek(compressed_len, os.SEEK_CUR)
+        unpackedsize += compressed_len
 
         haslzodata = True
 
