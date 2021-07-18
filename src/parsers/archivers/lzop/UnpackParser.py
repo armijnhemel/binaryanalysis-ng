@@ -92,12 +92,18 @@ class LzopUnpackParser(WrappedUnpackParser):
                 # then the data needs to be written directly it seems.
                 outfile.write(block.block_type.data)
             else:
-                if self.data.method == 0:
-                    outfile.write(block.block_type.data)
-                elif self.data.method == 1:
+                # various methods are allowed according to conf.h in lzop code
+                # 1, 2, 3 are LZO related
+                # 0x1a, 0x1b, 0x2a, 0x2b, 0x2d are NRV related (discontinued library)
+                # 128 is zlib related
+                # In practice LZO ones will be used the most
+                if self.data.method in [1, 2, 3]:
+                    # TODO: catch errors
                     magic = b'\xf0' + int.to_bytes(block.len_decompressed, 4, 'big')
                     outfile.write(lzo.decompress(magic + block.block_type.data))
-                elif self.data.method == 2:
+                elif self.data.method == 128:
+                    # currently not supported in the Kaitai Struct grammar
+                    # and also not used in practice
                     outfile.write(zlib.decompress(block.block_type.data))
             counter += 1
         outfile.close()

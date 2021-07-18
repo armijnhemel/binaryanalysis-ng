@@ -25,6 +25,7 @@ seq:
     valid:
       min: 1
       max: 3
+    # other values are possible as well, but are not used in practice
   - id: level
     type: u1
     valid:
