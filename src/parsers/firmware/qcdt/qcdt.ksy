@@ -21,6 +21,8 @@ seq:
     contents: "QCDT"
   - id: version
     type: u4
+    valid:
+      any-of: [1, 2, 3]
   - id: num_dtbs
     type: u4
   - id: device_entries
