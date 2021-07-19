@@ -126,11 +126,13 @@ types:
       - id: reserved1
         -orig-id: bfReserved1
         type: u2
-        valid: 0
+        # valid: 0
+        doc: Specifications say "have to be zero" but wikipedia disagrees
       - id: reserved2
         -orig-id: bfReserved2
         type: u2
-        valid: 0
+        # valid: 0
+        doc: Specifications say "have to be zero" but wikipedia disagrees
       - id: ofs_bitmap
         -orig-id: bfOffBits
         type: u4
@@ -141,6 +143,8 @@ types:
     seq:
       - id: len_header
         type: u4
+        valid:
+          any-of: [12, 64, 16, 40, 52, 56, 108, 124]
       - id: header
         -orig-id: bmciHeader
         size: len_header - len_header._sizeof
