@@ -23,7 +23,7 @@
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
+from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError, ValidationGreaterThanError
 from . import bmp
 
 
@@ -39,7 +39,7 @@ class BmpUnpackParser(UnpackParser):
         self.chunknames = set()
         try:
             self.data = bmp.Bmp.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
+        except (Exception, ValidationNotEqualError, ValidationNotAnyOfError, ValidationGreaterThanError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):
