@@ -126,12 +126,14 @@ types:
       - id: reserved1
         -orig-id: bfReserved1
         type: u2
+        valid: 0
       - id: reserved2
         -orig-id: bfReserved2
         type: u2
+        valid: 0
       - id: ofs_bitmap
         -orig-id: bfOffBits
-        type: s4
+        type: u4
         doc: Offset to actual raw pixel data of the image
   bitmap_info:
     -orig-id: BITMAPINFO
