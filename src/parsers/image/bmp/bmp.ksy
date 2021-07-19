@@ -127,12 +127,12 @@ types:
         -orig-id: bfReserved1
         type: u2
         # valid: 0
-        doc: Specifications say "have to be zero" but wikipedia disagrees
+        doc: Specifications say "has to be zero" but wikipedia disagrees
       - id: reserved2
         -orig-id: bfReserved2
         type: u2
         # valid: 0
-        doc: Specifications say "have to be zero" but wikipedia disagrees
+        doc: Specifications say "has to be zero" but wikipedia disagrees
       - id: ofs_bitmap
         -orig-id: bfOffBits
         type: u4
