@@ -20,7 +20,7 @@ seq:
       switch-on: version
       cases:
         '"010"': header_010
-        # '"019"': header_019
+        '"019"': header_019
         #'"021"': header_021
         #'"027"': header_027
 types:
@@ -45,16 +45,37 @@ types:
         size: len_verifier_deps
       - id: quickening_info
         size: len_quickening_info
-  # header_019:
-    # seq:
-     # - id: dex_section_version
-     #   type: strz
-     #   size: 4
-     # - id: num_dex_files
-     #   type: u4
-     # - id: verifier_deps_size
-     #   type: u4
-    # doc-ref: https://android.googlesource.com/platform/art/+/c17b7d80652765750fa7f2baf236061014b23f93/runtime/vdex_file.h
+  header_019:
+    seq:
+     - id: dex_section_version
+       type: strz
+       size: 4
+     - id: num_dex
+       type: u4
+     - id: len_verifier_deps
+       type: u4
+     - id: dex_checksums
+       type: u4
+       repeat: expr
+       repeat-expr: num_dex
+     - id: dex_section_header
+       type: dex_section_header_019
+       if: dex_section_version != '000'
+     - id: verifier_deps
+       size: len_verifier_deps
+     - id: quickening_info
+       size: dex_section_header.len_quickening_info
+       if: dex_section_version != '000'
+  dex_section_header_019:
+    seq:
+      - id: len_dex
+        type: u4
+      - id: len_dex_shared_data
+        type: u4
+      - id: len_quickening_info
+        type: u4
+      - id: quicken_and_dex
+        size: len_dex + len_dex_shared_data
   # header_021:
   # header_027:
     # seq:
