@@ -20,7 +20,8 @@ class wTarUnpackParser(WrappedUnpackParser):
 
 
 class TarUnpackParser(UnpackParser):
-    extensions = ['.tar']
+    #extensions = ['.tar']
+    extensions = []
     signatures = [
         (0x101, b'ustar\x00'),
         (0x101, b'ustar\x20\x20\x00')
@@ -29,7 +30,7 @@ class TarUnpackParser(UnpackParser):
 
     def tar_unpack_regular(self, outfile_rel, tarinfo):
         # TODO: absolute paths
-        print(outfile_rel)
+        #print(outfile_rel)
         if outfile_rel.is_absolute():
             raise UnpackParserException("trying to extract to absolute path")
         else:
