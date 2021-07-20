@@ -10,6 +10,7 @@ doc: |
   Verified Dex
 
   version 006: Android 8 (verified: walleye-opd1.170816.010-factory-63083164.zip )
+  version 010: Android 8.1 (verified: walleye-opm1.171019.011-factory-f74dd4fd.zip )
   version 019: Android 9 (verified: walleye-ppr1.180610.009-factory-4149f7e5.zip )
   version 021: Android 10 & 11
 doc-ref: https://android.googlesource.com/platform/art/+/master/runtime/vdex_file.h
@@ -89,30 +90,68 @@ types:
         type: u4
       - id: quicken_and_dex
         size: len_dex + len_dex_shared_data
-  header_021:
+  cdex_header:
     seq:
-     - id: dex_section_version
-       type: strz
-       size: 4
-     - id: num_dex
-       type: u4
-     - id: len_verifier_deps
-       type: u4
-     - id: dex_checksums
-       type: u4
-       repeat: expr
-       repeat-expr: num_dex
-     - id: dex_section_header
-       type: dex_section_header_019_021
-       if: dex_section_version != '000'
-  section_header:
-    seq:
-      - id: section_kind
+      - id: magic
+        contents: "cdex"
+      - id: version
+        type: strz
+        size: 4
+      - id: checksum
         type: u4
-        enum: vdex_section
-      - id: ofs_section
+      - id: sha1
+        size: 20
+      - id: len_file
         type: u4
-      - id: len_section
+      - id: len_header
+        type: u4
+      - id: endian_tag
+        type: u4
+      - id: len_link
+        type: u4
+      - id: ofs_link
+        type: u4
+      - id: ofs_map
+        type: u4
+      - id: len_string_ids
+        type: u4
+      - id: ofs_string_ids
+        type: u4
+      - id: len_type_ids
+        type: u4
+      - id: ofs_type_ids
+        type: u4
+      - id: len_proto_ids
+        type: u4
+      - id: ofs_proto_ids
+        type: u4
+      - id: len_field_ids
+        type: u4
+      - id: ofs_field_ids
+        type: u4
+      - id: len_method_ids
+        type: u4
+      - id: ofs_method_ids
+        type: u4
+      - id: len_class_defs
+        type: u4
+      - id: ofs_class_defs
+        type: u4
+      - id: len_data
+        type: u4
+      - id: ofs_data
+        type: u4
+      - id: feature_flags
+        type: u4
+      - id: ofs_debug_info_offsets
+        type: u4
+      - id: ofs_debug_info_offsets_table
+        type: u4
+      - id: debug_info_base
+        type: u4
+      - id: owned_data_begin
+        type: u4
+      - id: owned_data_end
         type: u4
 enums:
   vdex_section:
