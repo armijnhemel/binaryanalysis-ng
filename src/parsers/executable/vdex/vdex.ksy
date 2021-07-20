@@ -20,9 +20,8 @@ seq:
       switch-on: version
       cases:
         '"010"': header_010
-        '"019"': header_019
-        #'"021"': header_021
-        #'"027"': header_027
+        '"019"': header_019_021(version)
+        '"021"': header_019_021(version)
 types:
   header_010:
     seq:
@@ -45,7 +44,47 @@ types:
         size: len_verifier_deps
       - id: quickening_info
         size: len_quickening_info
-  header_019:
+  header_019_021:
+    params:
+      - id: version
+        type: str
+    seq:
+     - id: dex_section_version
+       type: strz
+       size: 4
+     - id: num_dex
+       type: u4
+     - id: len_verifier_deps
+       type: u4
+     - id: len_bootclasspath_checksum
+       type: u4
+       if: version == '021'
+     - id: len_classloader_context
+       type: u4
+       if: version == '021'
+     - id: dex_checksums
+       type: u4
+       repeat: expr
+       repeat-expr: num_dex
+     - id: dex_section_header
+       type: dex_section_header_019_021
+       if: dex_section_version != '000'
+     - id: verifier_deps
+       size: len_verifier_deps
+     - id: quickening_info
+       size: dex_section_header.len_quickening_info
+       if: dex_section_version != '000'
+  dex_section_header_019_021:
+    seq:
+      - id: len_dex
+        type: u4
+      - id: len_dex_shared_data
+        type: u4
+      - id: len_quickening_info
+        type: u4
+      - id: quicken_and_dex
+        size: len_dex + len_dex_shared_data
+  header_021:
     seq:
      - id: dex_section_version
        type: strz
@@ -59,28 +98,8 @@ types:
        repeat: expr
        repeat-expr: num_dex
      - id: dex_section_header
-       type: dex_section_header_019
+       type: dex_section_header_019_021
        if: dex_section_version != '000'
-     - id: verifier_deps
-       size: len_verifier_deps
-     - id: quickening_info
-       size: dex_section_header.len_quickening_info
-       if: dex_section_version != '000'
-  dex_section_header_019:
-    seq:
-      - id: len_dex
-        type: u4
-      - id: len_dex_shared_data
-        type: u4
-      - id: len_quickening_info
-        type: u4
-      - id: quicken_and_dex
-        size: len_dex + len_dex_shared_data
-  # header_021:
-  # header_027:
-    # seq:
-      # - id: num_sections
-        # type: u4
   section_header:
     seq:
       - id: section_kind
