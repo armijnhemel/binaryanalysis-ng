@@ -23,8 +23,7 @@ seq:
   - id: method
     type: u1
     valid:
-      min: 1
-      max: 3
+      any-of: [1, 2, 3, 128]
     # other values are possible as well, but are not used in practice
   - id: level
     type: u1
