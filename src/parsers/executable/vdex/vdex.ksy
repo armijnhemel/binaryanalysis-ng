@@ -2,12 +2,16 @@ meta:
   id: vdex
   title: VDex
   file-extension: vdex
-  license: CC0-1.0
+  license: Apache-2.0
   ks-version: 0.9
   endian: le
   encoding: UTF-8
 doc: |
   Verified Dex
+
+  version 006: Android 8 (verified: walleye-opd1.170816.010-factory-63083164.zip )
+  version 019: Android 9 (verified: walleye-ppr1.180610.009-factory-4149f7e5.zip )
+  version 021: Android 10 & 11
 doc-ref: https://android.googlesource.com/platform/art/+/master/runtime/vdex_file.h
 seq:
   - id: magic
@@ -19,11 +23,12 @@ seq:
     type:
       switch-on: version
       cases:
-        '"010"': header_010
+        '"006"': header_006_010
+        '"010"': header_006_010
         '"019"': header_019_021(version)
         '"021"': header_019_021(version)
 types:
-  header_010:
+  header_006_010:
     seq:
       - id: num_dex
         type: u4
