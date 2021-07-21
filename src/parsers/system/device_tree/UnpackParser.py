@@ -75,39 +75,29 @@ class DeviceTreeUnpackParser(UnpackParser):
         in_kernel = False
         in_fdt = False
         in_ramdisk = False
-        is_dtb = False
+        has_images = False
+        level_to_name = ['']
+        is_fit = False
         for node in self.data.structure_block.fdt_nodes:
             if node.type == dtb.Dtb.Fdt.begin_node:
                 property_level += 1
-                if is_dtb:
+                if has_images:
+                    # TODO: perhaps use "description"?
+                    level_to_name.append(node.body.name)
                     if node.body.name.startswith('kernel@'):
-                        in_kernel = True
-                        in_fdt = False
-                        in_ramdisk = False
-                        kernel_name = node.body.name
+                        is_fit = True
                     elif node.body.name.startswith('fdt@'):
-                        in_fdt = True
-                        in_kernel = False
-                        in_ramdisk = False
-                        fdt_name = node.body.name
+                        is_fit = True
                     elif node.body.name.startswith('ramdisk@'):
-                        in_ramdisk = True
-                        in_fdt = False
-                        in_kernel = False
-                        ramdisk_name = node.body.name
+                        is_fit = True
                 if node.body.name == 'images':
-                    is_dtb = True
+                    has_images = True
             elif node.type == dtb.Dtb.Fdt.end_node:
                 property_level -= 1
             elif node.type == dtb.Dtb.Fdt.prop:
-                if is_dtb:
+                if has_images:
                     if node.body.name == 'data':
-                        if in_kernel:
-                            outfile_rel = self.rel_unpack_dir / kernel_name
-                        elif in_fdt:
-                            outfile_rel = self.rel_unpack_dir / fdt_name
-                        elif in_ramdisk:
-                            outfile_rel = self.rel_unpack_dir / ramdisk_name
+                        outfile_rel = self.rel_unpack_dir / level_to_name.pop()
                         outfile_full = self.scan_environment.unpack_path(outfile_rel)
                         os.makedirs(outfile_full.parent, exist_ok=True)
                         outfile = open(outfile_full, 'wb')
