@@ -10,6 +10,7 @@ let
     defusedxml
     kaitaistruct
     lz4
+    python-lzo
     parameterized
     pdfminer
     pefile
