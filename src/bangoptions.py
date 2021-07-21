@@ -27,8 +27,6 @@ import stat
 import configparser
 import tempfile
 
-import bangoptions
-
 
 class ObjectDict(dict):
     def __setattr__(self, name, value):
