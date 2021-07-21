@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_passwd
+from bangfilescans import unpack_passwd
 
 class PasswdUnpackParser(WrappedUnpackParser):
     extensions = ['passwd']

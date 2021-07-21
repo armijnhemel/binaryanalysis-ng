@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_script
+from bangfilescans import unpack_script
 
 class ScriptUnpackParser(WrappedUnpackParser):
     extensions = []

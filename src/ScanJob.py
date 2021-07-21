@@ -607,8 +607,6 @@ class ScanJob:
 # Process a single file.
 # This method has the following parameters:
 #
-# * dbconn :: a PostgreSQL database connection
-# * dbcursor :: a PostgreSQL database cursor
 # * scanenvironment :: a ScanEnvironment object, describing
 #   the environment for the scan
 #
@@ -618,7 +616,7 @@ class ScanJob:
 # 'graphics') will be stored. These labels can be used to feed extra
 # information to the unpacking process, such as preventing scans from
 # running.
-def processfile(dbconn, dbcursor, scanenvironment):
+def processfile(scanenvironment):
 
     scanfilequeue = scanenvironment.scanfilequeue
     resultqueue = scanenvironment.resultqueue
@@ -671,12 +669,6 @@ def processfile(dbconn, dbcursor, scanenvironment):
             processlock.release()
 
             if not scanjob.fileresult.is_duplicate():
-                if scanenvironment.runfilescans:
-                    for sclass in scanenvironment.filescanners:
-                        s = sclass(dbconn, dbcursor, scanenvironment)
-                        if s.should_scan(scanjob.fileresult):
-                            s.scan(scanjob.fileresult)
-
                 for rclass in scanenvironment.reporters:
                     r = rclass(scanenvironment)
                     r.report(scanjob.fileresult)

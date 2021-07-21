@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_lsm
+from bangfilescans import unpack_lsm
 
 class LsmUnpackParser(WrappedUnpackParser):
     extensions = ['.lsm']

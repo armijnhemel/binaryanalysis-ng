@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_python_pkginfo
+from bangfilescans import unpack_python_pkginfo
 
 class PythonPkginfoUnpackParser(WrappedUnpackParser):
     extensions = ['.pkginfo']

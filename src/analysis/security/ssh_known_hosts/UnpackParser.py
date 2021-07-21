@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_ssh_known_hosts
+from bangfilescans import unpack_ssh_known_hosts
 
 class SshKnownHostsUnpackParser(WrappedUnpackParser):
     extensions = ['ssh_known_hosts', 'known_hosts']

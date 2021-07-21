@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_fstab
+from bangfilescans import unpack_fstab
 
 class FstabUnpackParser(WrappedUnpackParser):
     extensions = ['fstab']

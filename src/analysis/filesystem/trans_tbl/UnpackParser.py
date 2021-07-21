@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_trans_tbl
+from bangfilescans import unpack_trans_tbl
 
 class TransTblUnpackParser(WrappedUnpackParser):
     extensions = ['trans.tbl']

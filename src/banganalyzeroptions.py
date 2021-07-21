@@ -27,16 +27,10 @@ import stat
 import configparser
 import tempfile
 
-
-class ObjectDict(dict):
-    def __setattr__(self, name, value):
-        self[name] = value
-
-    def __getattr__(self, name):
-        return self[name]
+from bangoptions import BangOptions, ObjectDict
 
 
-class BangScannerOptions:
+class BangAnalyzerOptions(BangOptions):
     def __init__(self):
         self._set_default_options()
         self._parse_arguments()
@@ -51,10 +45,23 @@ class BangScannerOptions:
                 os.path.join(os.path.dirname(sys.argv[0]), 'bang.config'),
             'baseunpackdirectory': '',
             'temporarydirectory': None,
-            'removescandirectory': False,
-            'createbytecounter': False,
-            'createjson': True,
+            'runfilescans': True,
             'tlshmaximum': sys.maxsize,
+            'postgresql_enabled': True,
+            'postgresql_host': None,
+            'postgresql_port': None,
+            'postgresql_user': None,
+            'postgresql_password': None,
+            'postgresql_db': None,
+            'usedatabase': True,
+            'postgresql_error_fatal': False,
+            'elastic_enabled': False,
+            'elastic_user': None,
+            'elastic_password': None,
+            'elastic_index': None,
+            'elastic_connectionerrorfatal': False,
+            'elastic_port': None,
+            'elastic_host': None,
             'writereport': True,
             'uselogging': True,
             'bangthreads': multiprocessing.cpu_count(),
@@ -62,30 +69,19 @@ class BangScannerOptions:
         }
         self.options = ObjectDict(dict(self.defaults))
 
-    def get(self):
-        return self.options
-
-    def _error(self, msg):
-        print(msg, file=sys.stderr)
-        sys.exit(1)
-
     def _parse_arguments(self):
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument("-f", "--file",
                                 action="store", dest="checkpath",
                                 help="path to file/directory to check", metavar="FILE")
-        self.parser.add_argument("-d", "--directory",
-                                action="store", dest="checkpath",
-                                help="path to file/directory to check",
-                                metavar="DIR")
         self.parser.add_argument("-c", "--config",
                                 action="store", dest="cfg",
                                 help="path to configuration file",
                                 metavar="FILE",
                                 default=self.defaults['cfg'])
-        self.parser.add_argument("-u", "--unpack-directory",
+        self.parser.add_argument("-o", "--output-directory",
                                 action="store", dest="baseunpackdirectory",
-                                help="path to unpack directory",
+                                help="path to output directory",
                                 metavar="FILE")
         self.parser.add_argument("-t", "--temporary-directory",
                                 action="store", dest="temporarydirectory",
@@ -93,78 +89,6 @@ class BangScannerOptions:
                                 metavar="FILE")
         self.args = self.parser.parse_args()
         self._check_configuration_file()
-
-    def _check_configuration_file(self):
-        if self.args.cfg is None:
-            self.parser.error("No configuration file provided, exiting")
-        # the configuration file should exist ...
-        if not os.path.exists(self.args.cfg):
-            self.parser.error("File %s does not exist, exiting." %
-                                self.args.cfg)
-        # ... and should be a real file
-        if not stat.S_ISREG(os.stat(self.args.cfg).st_mode):
-            self.parser.error("%s is not a regular file, exiting." %
-                                self.args.cfg)
-
-    def _read_configuration_file(self):
-        # read the configuration file. This is in Windows INI format.
-        environ = os.environ
-        try:
-            del environ['SHELL']
-        except KeyError:
-            pass
-        self.config = configparser.ConfigParser(environ)
-        try:
-            configfile = open(self.args.cfg, 'r')
-            self.config.read_file(configfile)
-        except:
-            self._error("Cannot open configuration file, exiting")
-
-    def _set_string_option_from_config(self, option_name, section=None,
-            option=None):
-        if option is None:
-            option = option_name
-        try:
-            v = self.config.get(section, option)
-        except configparser.NoOptionError:
-            return
-        except configparser.NoSectionError:
-            return
-        except KeyError:
-            return
-        self.options[option_name] = v
-
-    def _set_integer_option_from_config(self, option_name, section=None,
-            option=None):
-        if option is None:
-            option = option_name
-        try:
-            v = int(self.config.get(section, option))
-        except configparser.NoOptionError:
-            return
-        except KeyError:
-            return
-        except configparser.NoSectionError:
-            return
-        except ValueError:
-            return
-        self.options[option_name] = v
-
-    def _set_boolean_option_from_config(self, option_name, section=None,
-            option=None):
-        if option is None:
-            option = option_name
-        try:
-            v = self.config.get(section, option) == 'yes'
-        except configparser.NoOptionError:
-            return
-        except configparser.NoSectionError:
-            return
-        except KeyError:
-            return
-        except ValueError:
-            return
-        self.options[option_name] = v
 
     def _set_options_from_configuration_file(self):
         self._set_string_option_from_config('baseunpackdirectory',
@@ -175,16 +99,35 @@ class BangScannerOptions:
                 section='configuration', option='threads')
         self._set_boolean_option_from_config('removescandirectory',
                 section='configuration')
-        self._set_boolean_option_from_config('createbytecounter',
-                section='configuration', option='bytecounter')
         self._set_boolean_option_from_config('createjson',
                 section='configuration', option='json')
+        self._set_boolean_option_from_config('runfilescans',
+                section='configuration', option='runfilescans')
         self._set_integer_option_from_config('tlshmaximum',
                 section='configuration')
         self._set_boolean_option_from_config('writereport',
                 section='configuration', option='report')
         self._set_boolean_option_from_config('uselogging',
                 section='configuration', option='logging')
+        self._set_boolean_option_from_config('postgresql_error_fatal',
+                section='database')
+        self._set_boolean_option_from_config('postgresql_enabled',
+                section='database')
+        self._set_string_option_from_config('postgresql_user', section='database')
+        self._set_string_option_from_config('postgresql_password',
+                section='database')
+        self._set_string_option_from_config('postgresql_db', section='database')
+        self._set_string_option_from_config('postgresql_host', section='database')
+        self._set_integer_option_from_config('postgresql_port', section='database')
+        self._set_boolean_option_from_config('elastic_enabled',
+                section='elasticsearch', option='elastic_enabled')
+        self._set_string_option_from_config('elastic_user', section='elasticsearch')
+        self._set_string_option_from_config('elastic_password', section='elasticsearch')
+        self._set_string_option_from_config('elastic_index', section='elasticsearch')
+        self._set_boolean_option_from_config('elastic_connectionerrorfatal',
+                section='elasticsearch')
+        self._set_string_option_from_config('elastic_host', section='elasticsearch')
+        self._set_integer_option_from_config('elastic_port', section='elasticsearchs')
 
     def _set_options_from_arguments(self):
         self.options.checkpath = self.args.checkpath
@@ -197,6 +140,15 @@ class BangScannerOptions:
         # bangthreads >= 1
         if self.options.bangthreads < 1:
             self.options.bangthreads = self.defaults['bangthreads']
+        # option usedatabase true if db parameters set
+        self.options.usedatabase = self.options.postgresql_enabled and \
+            self.options.postgresql_db and \
+            self.options.postgresql_user and \
+            self.options.postgresql_password
+        # if postgresql_error_fatal, db parameters must be set
+        if self.options.postgresql_error_fatal and \
+                self.options.usedatabase is False:
+            self._error('Missing or invalid database information')
 
         # baseunpackdirectory must be declared
         if not self.options.baseunpackdirectory:
@@ -248,11 +200,3 @@ class BangScannerOptions:
             if os.stat(self.options.checkpath).st_size == 0:
                 self._error("%s is an empty file, exiting"
                         % self.options.checkpath)
-
-    def check_if_directory_is_writable(self, dirname):
-        try:
-            testfile = tempfile.mkstemp(dir=dirname)
-            os.unlink(testfile[1])
-            return True
-        except:
-            return False

@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangtext import unpack_smbpasswd
+from bangfilescans import unpack_smbpasswd
 
 class SmbpasswdUnpackParser(WrappedUnpackParser):
     extensions = ['smbpasswd']

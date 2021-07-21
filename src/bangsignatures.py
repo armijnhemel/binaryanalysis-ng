@@ -387,30 +387,11 @@ extensiontofunction = {
     '.svg': bangunpack.unpack_xml,
     '.tar': bangunpack.unpack_tar,
     'resources.arsc': bangandroid.unpack_android_resource,
-    'manifest.mf': bangtext.unpack_java_manifest,
-    '.sf': bangtext.unpack_java_manifest,
-    'dockerfile': bangtext.unpack_dockerfile,
-    '.dockerfile': bangtext.unpack_dockerfile,
-    'pkg-info': bangtext.unpack_python_pkginfo,
-    'known_hosts': bangtext.unpack_ssh_known_hosts,
-    'ssh_known_hosts': bangtext.unpack_ssh_known_hosts,
     '.rsa': bangunpack.unpack_certificate,
     '.pem': bangunpack.unpack_certificate,
-    '.lsm': bangtext.unpack_lsm,
     '.json': bangunpack.unpack_json,
-    'passwd': bangtext.unpack_passwd,
-    'shadow': bangtext.unpack_shadow,
-    'group': bangtext.unpack_group,
-    '.css': bangtext.unpack_css,
     'tzdata': bangandroid.unpack_android_tzdata,
-    'fstab': bangtext.unpack_fstab,
-    '.pc': bangtext.unpack_pkg_config,
-    '.ics': bangtext.unpack_ics,
-    'trans.tbl': bangtext.unpack_trans_tbl,
     '.nb0': bangandroid.unpack_nb0,
-    'smbpasswd': bangtext.unpack_smbpasswd,
-    '.ini': bangtext.unpack_ini,
-    'wcprops': bangtext.unpack_subversion_hash,
 }
 
 import os
@@ -522,10 +503,7 @@ def matches_file_pattern(filename, extension):
 textonlyfunctions = {
     'ihex': bangtext.unpack_ihex,
     'srec': bangtext.unpack_srec,
-    'kernelconfig': bangtext.unpack_kernel_config,
-    #'dockerfile': bangtext.unpack_dockerfile,
     'base64': bangtext.unpack_base64,
-    'script': bangtext.unpack_script,
 }
 
 # The result of the scan is a dictionary with the
