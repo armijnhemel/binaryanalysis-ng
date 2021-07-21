@@ -11,6 +11,7 @@ let
     kaitaistruct
     lz4
     parameterized
+    pdfminer
     pefile
     pillow
     pytest
