@@ -241,7 +241,7 @@ class PngUnpackParser(UnpackParser):
         if 'iDOT' in self.chunknames:
             png_type_labels.append('apple')
 
-        # signed PDF
+        # signed PNG
         if 'dSIG' in self.chunknames:
             png_type_labels.append('signed png')
 
