@@ -10,7 +10,9 @@ meta:
     - /serialization/google_protobuf
   endian: be
 doc: |
-  Format of payload.bin OTA update files.
+  Format of payload.bin OTA update files. The payload is in Google Protobuf
+  format. The structure of the payload data depend on the contents of the
+  manifest. Parsing currently has to be done outside of Kaitai Struct.
 
 doc-ref:
   - https://android.googlesource.com/platform/system/update_engine/+/refs/heads/master/README.md#Update-Payload-File-Specification
