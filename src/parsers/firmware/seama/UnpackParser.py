@@ -66,6 +66,17 @@ class SeamaUnpackParser(UnpackParser):
         """sets metadata and labels for the unpackresults"""
         labels = ['seama']
         metadata = {}
+        metadata_strings = []
+        try:
+            metas = self.data.metadata.split(b'\x00')
+            for i in metas:
+                meta_string = i.decode()
+                if meta_string != '':
+                    metadata_strings.append(meta_string)
+        except:
+            pass
+        if metadata_strings != []:
+            metadata['metadata'] = metadata_strings
 
         self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)
