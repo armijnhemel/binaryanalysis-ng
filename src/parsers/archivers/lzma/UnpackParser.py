@@ -8,7 +8,8 @@ class LzmaUnpackParser(WrappedUnpackParser):
     signatures = [
         (0, b'\x5d\x00\x00'),
         (0, b'\x6d\x00\x00'),
-        (0, b'\x6c\x00\x00')
+        (0, b'\x6c\x00\x00'),
+        (0, b'\x6e\x00\x00')
     ]
     pretty_name = 'lzma'
 
