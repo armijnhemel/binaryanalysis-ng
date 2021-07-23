@@ -228,6 +228,7 @@ larger file, unless stated otherwise.
 144. Key Character Map binary files
 145. USB Flashing Format (UF2)
 146. Android VDEX (identification only)
+147. SEAMA firmware files
 
 
 ## Invocation

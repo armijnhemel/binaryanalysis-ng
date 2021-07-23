@@ -23,7 +23,7 @@ seq:
   - id: md5_digest
     size: 16
     if: len_image != 0
-  - id: meta
+  - id: metadata
     size: len_meta
   - id: image
     size: len_image
