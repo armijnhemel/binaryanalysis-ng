@@ -43,7 +43,7 @@ class SeamaUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-     no need to carve from the file
+    # no need to carve from the file
     def carve(self):
         pass
 
