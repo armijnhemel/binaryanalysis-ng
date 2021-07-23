@@ -2611,6 +2611,8 @@ def unpack_dlink_romfs(fileresult, scanenvironment, offset, unpackdir):
     checkfile.seek(offset + 22)
     unpackedsize = 22
 
+    checkbytes = checkfile.read(4)
+
     if checkbytes == b'v1.0':
         version = 1
     elif checkbytes == b'v9.0':
