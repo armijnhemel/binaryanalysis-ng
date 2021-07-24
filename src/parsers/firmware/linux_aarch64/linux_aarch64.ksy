@@ -14,11 +14,12 @@ seq:
   - id: ofs_text
     -orig-id: text_offset
     type: u8
-  - id: len_image
+  - id: effective_image_size
     -orig-id: image_size
     type: u8
   - id: flags
-    type: u8
+    size: 8
+    type: flags
   - id: reserved_2
     -orig-id: res2
     type: u8
@@ -33,3 +34,14 @@ seq:
   - id: reserved_5
     -orig-id: res5
     type: u4
+types:
+  flags:
+    meta:
+      bit-endian: le
+    seq:
+      - id: endianness
+        type: b1
+      - id: page_size
+        type: b2
+      - id: physical_placement
+        type: b1
