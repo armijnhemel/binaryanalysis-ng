@@ -8393,6 +8393,8 @@ def unpack_uboot_legacy(fileresult, scanenvironment, offset, unpackdir):
             imagename = 'kernel'
         elif ubootimagetype == 3:
             imagename = 'ramdisk'
+        elif ubootimagetype == 6:
+            imagename = 'script'
         ubootdata['name'] = imagename
     else:
         try:
