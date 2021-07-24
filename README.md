@@ -229,6 +229,7 @@ larger file, unless stated otherwise.
 145. USB Flashing Format (UF2)
 146. Android VDEX (identification only)
 147. SEAMA firmware files
+148. LLVM IR wrapper format (identification only)
 
 
 ## Invocation
