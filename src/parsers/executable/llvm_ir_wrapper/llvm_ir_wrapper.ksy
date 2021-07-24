@@ -17,7 +17,9 @@ seq:
     type: u4
   - id: cpu_type
     type: u4
+  # pad to 16 or 32 bytes?
 instances:
+  # TODO: make sure that the byte code is parsed as well
   bytecode:
     pos: ofs_bytecode
     size: len_bytecode
