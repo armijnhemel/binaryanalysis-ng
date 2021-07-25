@@ -38,9 +38,6 @@ class Grub2fontUnpackParser(UnpackParser):
     ]
     pretty_name = 'grub2font'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_grub2font(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         self.file_size = self.fileresult.filesize
         try:
