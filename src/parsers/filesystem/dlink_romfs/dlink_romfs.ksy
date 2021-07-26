@@ -94,6 +94,10 @@ types:
      data:
        pos: ofs_entry
        size: len_entry
+       type:
+         switch-on: is_directory
+         cases:
+           true: dir_entries
   entry_uid_block_v1:
     seq:
       - id: open_bracket
@@ -108,3 +112,18 @@ types:
       - id: entry_uid
         size: 4
         type: str
+  dir_entries:
+    seq:
+      - id: dir_entries
+        type: dir_entry
+        repeat: eos
+  dir_entry:
+    seq:
+      - id: directory_uid
+        type: u4
+      - id: next
+        type: u4
+      - id: entry_name
+        type: strz
+      - id: padding
+        size: next - _parent._io.pos
