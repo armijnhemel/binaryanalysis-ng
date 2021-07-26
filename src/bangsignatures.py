@@ -282,7 +282,6 @@ signaturetofunction = {
     'git_index': bangunpack.unpack_git_index,
     'flv': bangmedia.unpack_flv,
     'lzop': bangunpack.unpack_lzop,
-    'dlinkromfs': bangfilesystems.unpack_dlink_romfs,
     'pdf': bangmedia.unpack_pdf,
     'pack200': bangunpack.unpack_pack200,
     'zim': bangunpack.unpack_zim,
