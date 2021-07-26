@@ -73,7 +73,7 @@ class RomfsAmbarellaUnpackParser(UnpackParser):
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['ambarella', 'file system']
+        labels = ['ambarella', 'filesystem']
         metadata = {}
 
         self.unpack_results.set_labels(labels)
