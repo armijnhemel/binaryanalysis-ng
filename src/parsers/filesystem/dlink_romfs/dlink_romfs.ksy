@@ -76,9 +76,13 @@ types:
         type: u4
       - id: len_decompressed
         type: u4 
-      - id: entry_uid
-        size: 4
-        type: str
+        if: _root.super_block.signature.version.major == 9
+      - id: entry_uid_block
+        type:
+          switch-on: _root.super_block.signature.version.major
+          cases:
+            1: entry_uid_block_v1
+            9: entry_uid_block_v9
     doc-ref: https://github.com/antmicro/ecos-openrisc/blob/0891c1c/packages/fs/rom/current/src/romfs.c#L273
     instances:
      is_compressed:
@@ -87,8 +91,20 @@ types:
        value: entry_type & 0x1 == 0x1
      is_data:
        value: entry_type & 0x8 == 0x8
-     uid:
-       value: entry_uid.to_i
      data:
        pos: ofs_entry
        size: len_entry
+  entry_uid_block_v1:
+    seq:
+      - id: open_bracket
+        contents: ['<']
+      - id: entry_uid
+        size: 6
+        type: str
+      - id: closing_bracket
+        contents: ['>']
+  entry_uid_block_v9:
+    seq:
+      - id: entry_uid
+        size: 4
+        type: str
