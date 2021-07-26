@@ -1,7 +1,7 @@
 meta:
   id: dlink_romfs
   title: D-Link ROMFS format
-  license: MIT
+  license: GPL-2.0-or-later
   endian: le
   encoding: ASCII
 doc: |
@@ -15,22 +15,20 @@ seq:
   - id: super_block
     type: super_block
     size: 32
-  - id: first_entry
-    type: entry
   - id: entries
     type: entry
-    repeat: until
-    repeat-until: _io.pos == first_entry.ofs_entry
+    repeat: expr
+    repeat-expr: super_block.num_entries
 types:
   super_block:
     seq:
       - id: magic
         contents: "\x2emoR"
+      - id: num_entries
+        type: u4
       - id: unknown1
         type: u4
       - id: unknown2
-        type: u4
-      - id: unknown3
         type: u4
       - id: signature
         type: signature
