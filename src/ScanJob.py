@@ -649,7 +649,8 @@ def processfile(scanenvironment):
                 scanjob.check_for_valid_extension(unpacker)
 
             if unpacker.needs_unpacking():
-                scanjob.check_for_signatures(unpacker)
+                if 'synthesized' not in fileresult.labels:
+                    scanjob.check_for_signatures(unpacker)
 
             if carveunpacked:
                 scanjob.carve_file_data(unpacker)
