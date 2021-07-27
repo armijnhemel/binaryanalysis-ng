@@ -8,7 +8,7 @@ meta:
     - /executable/dex
   endian: le
   encoding: UTF-8
-doc-ref: https://android.googlesource.com/platform/art/+/master/runtime/vdex_file.h
+doc-ref: http://web.archive.org/web/20180816094438/https://android.googlesource.com/platform/dalvik.git/+/master/libdex/DexFile.h
 seq:
   - id: magic
     contents: "dey\n"
@@ -34,7 +34,7 @@ seq:
     type: u4
   - id: adler32
     type: u4
-    doc: adler32 checksum covering deps/opt
+    doc: adler32 checksum covering deps/deps_padding/opt
 instances:
   dex:
     pos: ofs_dex
