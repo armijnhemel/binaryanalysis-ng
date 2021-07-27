@@ -1196,6 +1196,12 @@ def unpack_odex(fileresult, scanenvironment, offset, unpackdir):
     checkbytes = checkfile.read(depslength)
     dexadler = zlib.adler32(checkbytes, dexadler)
 
+    # then padding, if any
+    if depslength % 8 != 0:
+        padding_length = 8 - (depslength % 8)
+        checkbytes = checkfile.read(padding_length)
+        dexadler = zlib.adler32(checkbytes, dexadler)
+
     # then the optimized table
     checkfile.seek(offset+optoffset)
     checkbytes = checkfile.read(optlength)
