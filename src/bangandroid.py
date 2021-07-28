@@ -674,33 +674,41 @@ def unpack_dex(
                           'reason': 'data outside of file'}
         return {'status': False, 'error': unpackingerror}
 
-    if verifychecksum:
-        # jump to byte 12 and read all data
-        checkfile.seek(offset+12)
 
-        # store the Adler32 of the uncompressed data
-        dexadler = zlib.adler32(b'')
+    # store the Adler32 of the uncompressed data
+    dexadler = zlib.adler32(b'')
+
+    # jump to byte 12
+    checkfile.seek(offset+12)
+
+    # the first 20 bytes are only relevant for the Adler32
+    checkbytes = checkfile.read(20)
+    dexadler = zlib.adler32(checkbytes, dexadler)
+
+    if verifychecksum:
         dexsha1 = hashlib.new('sha1')
 
-        # first read 20 bytes just relevant for the Adler32
-        checkbytes = checkfile.read(20)
+    # read all data to check the Adler32 checksum and the SHA1 checksum
+    bytes_to_read = dexsize - 12 - 20
+    readsize = 10000000
+    while bytes_to_read > 0:
+        if readsize > bytes_to_read:
+            readsize = bytes_to_read
+        checkbytes = checkfile.read(readsize)
+        if checkbytes == b'':
+            break
         dexadler = zlib.adler32(checkbytes, dexadler)
-
-        # read all data to check the Adler32 checksum and the SHA1 checksum
-        readsize = 10000000
-        while True:
-            checkbytes = checkfile.read(readsize)
-            if checkbytes == b'':
-                break
-            dexadler = zlib.adler32(checkbytes, dexadler)
+        if verifychecksum:
             dexsha1.update(checkbytes)
+        bytes_to_read -= len(checkbytes)
 
-        if dexadler != adlerchecksum:
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                              'reason': 'wrong Adler32'}
-            return {'status': False, 'error': unpackingerror}
+    if dexadler != adlerchecksum:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong Adler32'}
+        return {'status': False, 'error': unpackingerror}
 
+    if verifychecksum:
         # this happens quite a lot, also with Dex files coming
         # from Google. Treat this as a non-fatal warning if configured.
         strict_sha1 = False
@@ -1217,7 +1225,8 @@ def unpack_odex(fileresult, scanenvironment, offset, unpackdir):
     # unlikely at this point that it is an invalid file.
     dryrun = True
     verifychecksum = False
-    dexres = unpack_dex(fileresult, scanenvironment, offset + dexoffset, unpackdir, dryrun, verifychecksum)
+    dexres = unpack_dex(fileresult, scanenvironment, offset + dexoffset,
+                        unpackdir, dryrun, verifychecksum)
     if not dexres['status']:
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
