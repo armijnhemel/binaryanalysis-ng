@@ -19,10 +19,60 @@ seq:
     type:
       switch-on: version
       cases:
+        '"079"': header_079
         '"131"': header_137
         '"137"': header_137
 types:
+  header_079:
+    seq:
+      - id: adler32_checksum
+        type: u4
+      - id: instruction_set
+        type: u4
+      - id: instruction_set_features_bitmap
+        type: u4
+      - id: num_dex_file
+        -orig-id: dex_file_count_
+        type: u4
+      - id: ofs_executable
+        -orig-id: executable_offset_
+        type: u4
+      - id: ofs_interpreter_to_interpreter_bridge
+        -orig-id: interpreter_to_interpreter_bridge_offset_
+        type: u4
+      - id: ofs_interpreter_to_compiled_code_bridge
+        -orig-id: interpreter_to_compiled_code_bridge_offset_
+        type: u4
+      - id: ofs_jni_dlsym_lookup
+        -orig-id: jni_dlsym_lookup_offset_
+        type: u4
+      - id: ofs_quick_generic_jni_trampoline
+        -orig-id: quick_generic_jni_trampoline_offset_
+        type: u4
+      - id: ofs_quick_imt_conflict_trampoline
+        -orig-id: quick_imt_conflict_trampoline_offset_
+        type: u4
+      - id: ofs_quick_resolution_trampoline
+        -orig-id: quick_resolution_trampoline_offset_
+        type: u4
+      - id: ofs_quick_to_interpreter_bridge
+        -orig-id: quick_to_interpreter_bridge_offset_
+        type: u4
+      - id: image_patch_delta
+        type: u4
+      - id: ofs_image_file_oat_checksum
+        -orig-id: image_file_location_oat_checksum_
+        type: u4
+      - id: ofs_image_file_location_oat_data
+        -orig-id: image_file_location_oat_data_begin_
+        type: u4
+      - id: len_key_value_store
+        -orig-id: key_value_store_size_
+        type: u4
+      - id: key_value_store
+        size: len_key_value_store
   header_137:
+    # same as header_079 but with a few more fields
     seq:
       - id: adler32_checksum
         type: u4
@@ -60,3 +110,16 @@ types:
       - id: ofs_quick_to_interpreter_bridge
         -orig-id: quick_to_interpreter_bridge_offset_
         type: u4
+      - id: image_patch_delta
+        type: u4
+      - id: ofs_image_file_oat_checksum
+        -orig-id: image_file_location_oat_checksum_
+        type: u4
+      - id: ofs_image_file_location_oat_data
+        -orig-id: image_file_location_oat_data_begin_
+        type: u4
+      - id: len_key_value_store
+        -orig-id: key_value_store_size_
+        type: u4
+      - id: key_value_store
+        size: len_key_value_store
