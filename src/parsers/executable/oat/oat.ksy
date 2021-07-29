@@ -70,6 +70,7 @@ types:
         -orig-id: key_value_store_size_
         type: u4
       - id: key_value_store
+        type: key_value_store
         size: len_key_value_store
   header_137:
     # same as header_079 but with a few more fields
@@ -122,4 +123,16 @@ types:
         -orig-id: key_value_store_size_
         type: u4
       - id: key_value_store
+        type: key_value_store
         size: len_key_value_store
+  key_value_store:
+    seq:
+      - id: key_values
+        type: key_value
+        repeat: eos
+  key_value:
+    seq:
+      - id: key
+        type: strz
+      - id: value
+        type: strz
