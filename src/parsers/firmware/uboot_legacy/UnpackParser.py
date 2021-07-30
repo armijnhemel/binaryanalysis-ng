@@ -57,8 +57,8 @@ class UbootLegacyUnpackParser(WrappedUnpackParser):
 
     def unpack(self):
         unpacked_files = []
-        # set the name of the image. If the name of the image is either empty
-        # empty string hardcode a name based
+        # set the name of the image. If the name of the image is
+        # an empty string hardcode a name based
         # on the image type of the U-Boot file.
         if self.data.header.name == '':
             imagename = self.data.header.image_type.name
