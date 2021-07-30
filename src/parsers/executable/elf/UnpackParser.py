@@ -257,6 +257,8 @@ class ElfUnpackParser(WrappedUnpackParser):
                         pass
                     elif entry.note_name == b'FreeBSD\x00':
                         labels.append('freebsd')
+                    elif entry.note_name == b'OpenBSD\x00':
+                        labels.append('openbsd')
                     elif entry.note_name == b'NetBSD\x00':
                         # https://www.netbsd.org/docs/kernel/elf-notes.html
                         labels.append('netbsd')
