@@ -21,10 +21,13 @@ meta:
     - linux
   license: CC0-1.0
   ks-version: 0.9
-doc-ref: https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=HEAD
+doc-ref:
+  - https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=HEAD
+  - https://refspecs.linuxfoundation.org/elf/gabi4+/contents.html
+  - https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-46512.html
 seq:
   - id: magic
-    -orig-id: e_ident[EI_MAG0]..e[EI_MAG3]
+    -orig-id: e_ident[EI_MAG0]..e_ident[EI_MAG3]
     size: 4
     contents: [0x7f, "ELF"]
     doc: File identification, must be 0x7f + "ELF".
@@ -61,6 +64,25 @@ seq:
     size: 7
   - id: header
     type: endian_elf
+instances:
+  sh_idx_lo_reserved:
+    -orig-id: SHN_LORESERVE
+    value: 0xff00
+  sh_idx_lo_proc:
+    -orig-id: SHN_LOPROC
+    value: 0xff00
+  sh_idx_hi_proc:
+    -orig-id: SHN_HIPROC
+    value: 0xff1f
+  sh_idx_lo_os:
+    -orig-id: SHN_LOOS
+    value: 0xff20
+  sh_idx_hi_os:
+    -orig-id: SHN_HIOS
+    value: 0xff3f
+  sh_idx_hi_reserved:
+    -orig-id: SHN_HIRESERVE
+    value: 0xffff
 types:
   phdr_type_flags:
     params:
@@ -321,12 +343,6 @@ types:
                 'bits::b32': u4
                 'bits::b64': u8
         instances:
-          dynamic:
-            io: _root._io
-            pos: offset
-            size: filesz
-            type: dynamic_section
-            if: type == ph_type::dynamic
           flags_obj:
             type:
               switch-on: _root.bits
@@ -408,8 +424,15 @@ types:
                 'sh_type::note': note_section
                 'sh_type::rel': relocation_section(false)
                 'sh_type::rela': relocation_section(true)
+          linked_section:
+            value: _root.header.section_headers[linked_section_idx]
+            if: |
+              linked_section_idx != section_header_idx_special::undefined.to_i
+              and linked_section_idx < _root.header.qty_section_header
+            doc: may reference a later section header, so don't try to access too early (use only lazy `instances`)
+            doc-ref: https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.sheader.html#sh_link
           name:
-            io: _root.header.strings._io
+            io: _root.header.section_names._io
             pos: ofs_name
             type: strz
             encoding: ASCII
@@ -429,7 +452,14 @@ types:
           - id: entries
             type: dynamic_section_entry
             repeat: eos
+        instances:
+          is_string_table_linked:
+            value: _parent.linked_section.type == sh_type::strtab
       dynamic_section_entry:
+        doc-ref:
+          - https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-42444.html
+          - https://refspecs.linuxfoundation.org/elf/gabi4+/ch5.dynamic.html#dynamic_section
+        -webide-representation: "{tag_enum}: {value_or_ptr} {value_str} {flag_1_values:flags}"
         seq:
           - id: tag
             type:
@@ -451,44 +481,114 @@ types:
             type: dt_flag_1_values(value_or_ptr)
             if: "tag_enum == dynamic_array_tags::flags_1"
             -webide-parse-mode: eager
-        -webide-representation: "{tag_enum}: {value_or_ptr} {flag_1_values:flags}"
+          value_str:
+            io: _parent._parent.linked_section.body.as<strings_struct>._io
+            pos: value_or_ptr
+            type: strz
+            encoding: ASCII
+            if: is_value_str and _parent.is_string_table_linked
+            -webide-parse-mode: eager
+          is_value_str:
+            value: |
+              value_or_ptr != 0 and (
+                tag_enum == dynamic_array_tags::needed or
+                tag_enum == dynamic_array_tags::soname or
+                tag_enum == dynamic_array_tags::rpath or
+                tag_enum == dynamic_array_tags::runpath or
+                tag_enum == dynamic_array_tags::sunw_auxiliary or
+                tag_enum == dynamic_array_tags::sunw_filter or
+                tag_enum == dynamic_array_tags::auxiliary or
+                tag_enum == dynamic_array_tags::filter or
+                tag_enum == dynamic_array_tags::config or
+                tag_enum == dynamic_array_tags::depaudit or
+                tag_enum == dynamic_array_tags::audit
+              )
       dynsym_section:
         seq:
           - id: entries
-            type:
-              switch-on: _root.bits
-              cases:
-                'bits::b32': dynsym_section_entry32
-                'bits::b64': dynsym_section_entry64
+            type: dynsym_section_entry
             repeat: eos
-      dynsym_section_entry32:
+        instances:
+          is_string_table_linked:
+            value: _parent.linked_section.type == sh_type::strtab
+      dynsym_section_entry:
+        -orig-id:
+          - Elf32_Sym
+          - Elf64_Sym
+        doc-ref:
+          - https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-79797.html
+          - https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.symtab.html
+        -webide-representation: 'v:{value} s:{size:dec} t:{type} b:{bind} vis:{visibility} i:{sh_idx:dec}[={sh_idx_special}] n:{name}'
         seq:
-          - id: name_offset
+          - id: ofs_name
+            -orig-id: st_name
             type: u4
-          - id: value
+
+          - id: value_b32
             type: u4
-          - id: size
+            if: _root.bits == bits::b32
+          - id: size_b32
             type: u4
-          - id: info
-            type: u1
+            if: _root.bits == bits::b32
+
+          - id: bind
+            -orig-id: ELF32_ST_BIND(st_info)
+            type: b4
+            enum: symbol_binding
+          - id: type
+            -orig-id: ELF32_ST_TYPE(st_info)
+            type: b4
+            enum: symbol_type
           - id: other
             type: u1
-          - id: shndx
+            doc: don't read this field, access `visibility` instead
+          - id: sh_idx
+            -orig-id: st_shndx
             type: u2
-      dynsym_section_entry64:
-        seq:
-          - id: name_offset
-            type: u4
-          - id: info
-            type: u1
-          - id: other
-            type: u1
-          - id: shndx
-            type: u2
-          - id: value
+            doc: section header index
+
+          - id: value_b64
             type: u8
-          - id: size
+            if: _root.bits == bits::b64
+          - id: size_b64
             type: u8
+            if: _root.bits == bits::b64
+        instances:
+          value:
+            value: |
+              _root.bits == bits::b32 ? value_b32 :
+              _root.bits == bits::b64 ? value_b64 :
+              0
+          size:
+            value: |
+              _root.bits == bits::b32 ? size_b32 :
+              _root.bits == bits::b64 ? size_b64 :
+              0
+          name:
+            io: _parent._parent.linked_section.body.as<strings_struct>._io
+            pos: ofs_name
+            type: strz
+            encoding: ASCII
+            if: ofs_name != 0 and _parent.is_string_table_linked
+            -webide-parse-mode: eager
+          visibility:
+            value: other & 0x03
+            enum: symbol_visibility
+          sh_idx_special:
+            value: sh_idx
+            enum: section_header_idx_special
+          is_sh_idx_reserved:
+            value: |
+              sh_idx >= _root.sh_idx_lo_reserved and
+              sh_idx <= _root.sh_idx_hi_reserved
+          is_sh_idx_proc:
+            value: |
+              sh_idx >= _root.sh_idx_lo_proc and
+              sh_idx <= _root.sh_idx_hi_proc
+          is_sh_idx_os:
+            value: |
+              sh_idx >= _root.sh_idx_lo_os and
+              sh_idx <= _root.sh_idx_hi_os
       note_section:
         seq:
           - id: entries
@@ -569,7 +669,7 @@ types:
         type: section_header
         repeat: expr
         repeat-expr: qty_section_header
-      strings:
+      section_names:
         pos: section_headers[section_names_idx].ofs_body
         size: section_headers[section_names_idx].len_body
         type: strings_struct
@@ -660,12 +760,12 @@ enums:
     5: shlib
     6: phdr
     7: tls
-#    0x60000000: loos
+    # 0x60000000: lo_os
     0x65041580: pax_flags
-    0x6fffffff: hios
-#    0x70000000: loproc
+    # 0x6fffffff: hi_os
+    # 0x70000000: lo_proc
     0x70000001: arm_exidx
-#    0x7fffffff: hiproc
+    # 0x7fffffff: hi_proc
     0x6474e550: gnu_eh_frame
     0x6474e551: gnu_stack
     0x6474e552: gnu_relro
@@ -689,8 +789,8 @@ enums:
     16: preinit_array
     17: group
     18: symtab_shndx
-#    0x60000000: loos
-#    0x6fffffef: losunw
+    # 0x60000000: lo_os
+    # 0x6fffffef: lo_sunw
     0x6fffffef: sunw_capchain
     0x6ffffff0: sunw_capinfo
     0x6ffffff1: sunw_symsort
@@ -708,17 +808,114 @@ enums:
     0x6ffffffd: sunw_verdef
     0x6ffffffe: sunw_verneed
     0x6fffffff: sunw_versym
-#    0x6fffffff: HISUNW
-#    0x6fffffff: hios
-#    0x70000000: loproc
+    # 0x6fffffff: hi_sunw
+    # 0x6fffffff: hi_os
+    # 0x70000000: lo_proc
     0x70000000: sparc_gotdata
     0x70000001: amd64_unwind
-#    0x70000001: arm_exidx
+    # 0x70000001: arm_exidx
     0x70000002: arm_preemptmap
     0x70000003: arm_attributes
-#    0x7fffffff: hiproc
-#    0x80000000: louser
-#    0xffffffff: hiuser
+    # 0x7fffffff: hi_proc
+    # 0x80000000: lo_user
+    # 0xffffffff: hi_user
+  # https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-79797.html#chapter7-27
+  symbol_visibility:
+    0: default
+    1: internal
+    2: hidden
+    3: protected
+    4: exported
+    5: singleton
+    6: eliminate
+  # https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-79797.html#chapter6-tbl-21
+  symbol_binding:
+    0:
+      id: local
+      doc: not visible outside the object file containing their definition
+    1:
+      id: global
+      doc: visible to all object files being combined
+    2:
+      id: weak
+      doc: like `symbol_binding::global`, but their definitions have lower precedence
+    # 10: lo_os
+    10:
+      id: os10
+      doc: reserved for operating system-specific semantics
+    11:
+      id: os11
+      doc: reserved for operating system-specific semantics
+    12:
+      id: os12
+      doc: reserved for operating system-specific semantics
+    # 12: hi_os
+    # 13: lo_proc
+    13:
+      id: proc13
+      doc: reserved for processor-specific semantics
+    14:
+      id: proc14
+      doc: reserved for processor-specific semantics
+    15:
+      id: proc15
+      doc: reserved for processor-specific semantics
+    # 15: hi_proc
+  # https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-79797.html#chapter6-tbl-22
+  symbol_type:
+    0: no_type
+    1: object
+    2: func
+    3: section
+    4: file
+    5: common
+    6: tls
+    7: num
+    8: relc
+    9: srelc
+    # 10: lo_os
+    10:
+      id: os10
+      doc: reserved for OS-specific semantics
+    11:
+      id: os11
+      doc: reserved for OS-specific semantics
+    12:
+      id: os12
+      doc: reserved for OS-specific semantics
+    # 12: hi_os
+    # 13: lo_proc
+    13:
+      id: proc13
+      doc: reserved for processor-specific semantics
+    14:
+      id: proc14
+      doc: reserved for processor-specific semantics
+    15:
+      id: proc15
+      doc: reserved for processor-specific semantics
+    # 15: hi_proc
+  # https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-94076.html#chapter6-tbl-16
+  # see also `_root.sh_idx_*` instances
+  section_header_idx_special:
+    0:
+      id: undefined
+      -orig-id: SHN_UNDEF
+    # 0xff00: lo_reserve
+    # 0xff00: lo_proc
+    0xff00: before
+    0xff01: after
+    0xff02: amd64_lcommon
+    # 0xff1f: hi_proc
+    # 0xff20: lo_os
+    # 0xff3f: lo_sunw
+    0xff3f: sunw_ignore
+    # 0xff3f: hi_sunw
+    # 0xff3f: hi_os
+    0xfff1: abs
+    0xfff2: common
+    0xffff: xindex
+    # 0xffff: hi_reserve
   dynamic_array_tags:
     0: "null"            # Marks end of dynamic section
     1: needed            # Name of needed library
