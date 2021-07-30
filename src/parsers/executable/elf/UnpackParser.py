@@ -219,6 +219,7 @@ class ElfUnpackParser(WrappedUnpackParser):
             elif header.type == elf.Elf.ShType.note:
                 if header.name == '.note.go.buildid':
                     labels.append('go')
+
                 # Although not common notes sections can be merged
                 # with eachother.
                 for entry in header.body.entries:
@@ -254,6 +255,11 @@ class ElfUnpackParser(WrappedUnpackParser):
                     elif entry.note_name == b'Crashpad\x00\x00\x00\x00' and entry.note_type == 0x4f464e49:
                         # https://chromium.googlesource.com/crashpad/crashpad/+/refs/heads/master/util/misc/elf_note_types.h
                         pass
+                    elif entry.note_name == b'FreeBSD\x00':
+                        labels.append('freebsd')
+                    elif entry.note_name == b'NetBSD\x00':
+                        # https://www.netbsd.org/docs/kernel/elf-notes.html
+                        labels.append('netbsd')
                     else:
                         pass
 
