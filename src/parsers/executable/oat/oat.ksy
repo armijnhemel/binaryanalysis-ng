@@ -7,6 +7,13 @@ meta:
   endian: le
   encoding: UTF-8
 doc: |
+  The OAT format is an optimized format for Dalvik DEX code. OAT files are
+  typically distributed as ELF files, with the OAT and DEX code spanning
+  various ELF sections.
+
+  Google frequently updates the OAT format, but not every version is in use
+  in real products.
+
   <https://github.com/JesusFreke/smali/blob/master/dexlib2/OatVersions.txt>
 doc-ref: https://android.googlesource.com/platform/art/+/master/runtime/oat.h
 seq:
@@ -15,7 +22,7 @@ seq:
   - id: version
     type: strz
     size: 4
-  - id: dex_header
+  - id: oat_header
     type:
       switch-on: version
       cases:
