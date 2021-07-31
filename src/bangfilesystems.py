@@ -1381,7 +1381,6 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
             continue
         else:
             nodemagictype = 'normal'
-        unpackedsize += 2
 
         # then read the node type
         checkbytes = checkfile.read(2)
@@ -1441,7 +1440,6 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
 
         # skip past the CRC and start processing the data
         checkfile.seek(4, os.SEEK_CUR)
-        unpackedsize = checkfile.tell() - offset
 
         # process directory entries
         if inodetype == DIRENT:
