@@ -1730,6 +1730,7 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                         outfile.close()
                         break
                 elif compression_used == COMPR_RTIME:
+                    # TODO: see https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py
                     outfile.close()
                     break
                 #elif compression_used == COMPR_LZO:
