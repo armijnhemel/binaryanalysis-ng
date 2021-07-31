@@ -834,7 +834,7 @@ enums:
       id: local
       doc: not visible outside the object file containing their definition
     1:
-      id: global
+      id: global_symbol
       doc: visible to all object files being combined
     2:
       id: weak
