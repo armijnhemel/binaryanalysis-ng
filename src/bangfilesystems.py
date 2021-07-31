@@ -1352,6 +1352,7 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
 
     # reset the file pointer and read all the inodes
     checkfile.seek(offset)
+    prev_is_padding = False
     while True:
         oldoffset = checkfile.tell()
         if checkfile.tell() == filesize:
@@ -1368,7 +1369,7 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
             if checkbytes not in [b'\x85\x19', b'\x00\x00', b'\xff\xff']:
                 break
         if checkbytes == b'\x00\x00':
-            # dirty nodes, skip.
+            # dirty nodes
             nodemagictype = 'dirty'
         elif checkbytes == b'\xff\xff':
             # empty space
@@ -1390,8 +1391,25 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
 
         # check if the inode type is actually valid
         if inodetype not in validinodes:
-            break
+            if inodetype == 0:
+                if prev_is_padding:
+                    break
+                # due to page alignments there might
+                # be extra NULL bytes
+                if (oldoffset + 4)%4096 != 0:
+                    ofs = checkfile.tell()
+                    bytes_to_read = 4096 - ((oldoffset + 4)%4096)
+                    checkbytes = checkfile.read(bytes_to_read)
+                    if checkbytes != b'\x00' * bytes_to_read:
+                        checkfile.seek(ofs)
+                        break
+            else:
+                break
+            prev_is_padding = True
+            unpackedsize = checkfile.tell() - offset
+            continue
 
+        prev_is_padding = False
         # then read the size
         checkbytes = checkfile.read(4)
         if len(checkbytes) != 4:
