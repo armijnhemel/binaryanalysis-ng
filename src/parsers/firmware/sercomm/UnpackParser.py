@@ -43,10 +43,6 @@ class SercommUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = ['sercomm', 'firmware']
