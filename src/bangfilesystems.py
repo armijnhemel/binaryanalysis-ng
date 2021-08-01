@@ -1730,9 +1730,41 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                         outfile.close()
                         break
                 elif compression_used == COMPR_RTIME:
-                    # TODO: see https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py
-                    outfile.close()
-                    break
+                    # From: https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py
+                    # First initialize the positions, set to 0
+                    positions = [0] * 256
+
+                    # create a bytearray, set everything to 0
+                    data_out = bytearray([0] * decompressedsize)
+
+                    # create counters
+                    outpos = 0
+                    pos = 0
+
+                    # process all the bytes
+                    while outpos < decompressedsize:
+                        value = checkbytes[pos]
+                        pos += 1
+                        data_out[outpos] = value
+                        outpos += 1
+                        repeat = checkbytes[pos]
+                        pos += 1
+
+                        backoffs = positions[value]
+                        positions[value] = outpos
+                        if repeat:
+                            if backoffs + repeat >= outpos:
+                                while repeat:
+                                    data_out[outpos] = data_out[backoffs]
+                                    outpos += 1
+                                    backoffs += 1
+                                    repeat -= 1
+                            else:
+                                data_out[outpos : outpos + repeat] = data_out[
+                                    backoffs : backoffs + repeat
+                                ]
+                                outpos += repeat
+                    outfile.write(data_out)
                 #elif compression_used == COMPR_LZO:
                 # The JFFS2 version of LZO somehow cannot be unpacked with
                 # python-lzo
