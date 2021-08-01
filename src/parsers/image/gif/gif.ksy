@@ -110,8 +110,12 @@ types:
         type: u2
       - id: width
         type: u2
+        valid:
+          min: 1
       - id: height
         type: u2
+        valid:
+          min: 1
       - id: flags
         type: u1
       - id: local_color_table
