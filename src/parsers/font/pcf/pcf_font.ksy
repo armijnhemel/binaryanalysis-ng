@@ -32,6 +32,8 @@ seq:
   - id: num_tables
     -orig-id: table_count
     type: u4
+    valid:
+      min: 1
   - id: tables
     type: table
     repeat: expr
@@ -47,6 +49,17 @@ types:
       - id: type
         type: u4
         enum: types
+        valid:
+          any-of:
+            - types::properties
+            - types::accelerators
+            - types::metrics
+            - types::bitmaps
+            - types::ink_metrics
+            - types::bdf_encodings
+            - types::swidths
+            - types::glyph_names
+            - types::bdf_accelerators
       - id: format
         type: format
       - id: len_body
