@@ -61,7 +61,7 @@ types:
         type: version
       - id: fs_version
         type: version
-      - id: name
+      - id: product_id
         type: strz
         encoding: UTF-8
         size: 12
@@ -71,7 +71,7 @@ types:
         repeat-expr: 8
     doc: |
       ASUS has overloaded the name field and stores information about the
-      firmware here, including version information and the device name.
+      firmware here, including version information and the product ID.
       This is documented in for example the GPL source code of the RT-AC55UHP
       device, in the directory `release/src/asustools/mkimage.src/include/image.h`
   version:
