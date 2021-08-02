@@ -4,7 +4,9 @@ meta:
   license: GPL-2.0-only
   endian: le
   encoding: UTF-8
-doc-ref: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/ubifs/ubifs-media.h
+doc-ref:
+  - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/ubifs/ubifs-media.h
+  - http://www.linux-mtd.infradead.org/doc/ubifs.odp
 seq:
   - id: lebs
     size: super.node_contents.leb_size
@@ -16,17 +18,34 @@ instances:
   super:
     pos: 0
     type: superblock_node
-  leb_master_1:
+  master_1:
     pos: super.node_contents.leb_size
     type: leb1
     size: super.node_contents.leb_size
-    doc: LEB1 contains a copy of the master block
-  leb_master_2:
+    doc: |
+      LEB1 contains a copy of the master block. Technically the master block
+      could reside anywhere in the master area (LEB1 and LEB2), but on a
+      cleanly generated system it will almost certainly be at the beginning
+      of LEB1.
+  master_2:
     pos: super.node_contents.leb_size * 2
     size: super.node_contents.leb_size
     type: leb1
-    doc: LEB2 contains a copy of the master block
+    doc: |
+      LEB2 contains a copy of the master block. Technically the master block
+      could reside anywhere in the master area (LEB1 and LEB2), but on a
+      cleanly generated system it will almost certainly be at the beginning
+      of LEB2.
+  index:
+    pos: super.node_contents.leb_size * master_1.master_block.node_contents.leb_root
+    size: super.node_contents.leb_size
+    type: dummy
+  index_root:
+    pos: master_1.master_block.node_contents.ofs_root
+    io: index._io
+    type: index_block
 types:
+  dummy: {}
   leb1:
     seq:
       - id: master_block
@@ -38,6 +57,13 @@ types:
       - id: node_contents
         size: header.len_full_node - header._sizeof
         type: master_node
+  index_block:
+    seq:
+      - id: header
+        type: common_header
+      - id: node_contents
+        size: header.len_full_node - header._sizeof
+        type: index_node
   superblock_node:
     seq:
       - id: header
@@ -129,6 +155,20 @@ types:
         type: strz
         size: len_name
         doc: zero-terminated name
+  index_node:
+    seq:
+      - id: num_children
+        -orig-id: child_cnt
+        type: u2
+        doc: number of child index nodes
+      - id: level
+        type: u2
+        doc: tree level
+      - id: branches
+        type: branch
+        repeat: expr
+        repeat-expr: num_children
+        doc: LEB number / offset / length / key branches
   inode:
     seq:
       - id: key
@@ -223,7 +263,7 @@ types:
         -orig-id: log_lnum
         type: u4
         doc: start of the log
-      - id: leb_root_indexing
+      - id: leb_root
         -orig-id: root_lnum
         type: u4
         doc: LEB number of the root indexing node
@@ -434,6 +474,27 @@ types:
         type: padding_byte
         repeat: expr
         repeat-expr: 3774
+  branch:
+    seq:
+      - id: target_leb
+        -orig-id: lnum
+        type: u4
+        doc: LEB number of the target node
+      - id: ofs_target
+        -orig-id: offs
+        type: u4
+        doc: offset within @lnum
+      - id: len_target
+        -orig-id: len
+        type: u4
+        doc: target node length
+      - id: key
+        # assume "simple key length"
+        size: 8
+        doc: |
+          In an authenticated UBIFS we have the hash of the referenced node after @key.
+          This can't be added to the struct type definition because @key is a
+          dynamically sized element already.
 enums:
   compression:
     0:
