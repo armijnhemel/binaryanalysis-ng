@@ -4,72 +4,85 @@ meta:
   license: GPL-2.0-only
   endian: le
   encoding: UTF-8
+doc: |
+  The UBIFS file system is a file system for flash file systems. It works on
+  top of UBI (Unsorted Block Images), which works as an abstraction layer so
+  UBIFS does not need to care about low level details. This specification only
+  covers UBIFS, not UBI.
+
+  A UBIFS image is divided in several Logical Erase Blocks (LEB). The first
+  LEB (LEB0) contains the superblock node, which includes information about LEB
+  size, amongst others. The next two LEBs (LEB1 and LEB2) comprise the so called
+  "master area" and both contain a copy of the master node, which includes
+  information about where to find the index node, which is then used to access
+  all the files on the file system.
 doc-ref:
   - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/ubifs/ubifs-media.h
   - http://www.linux-mtd.infradead.org/doc/ubifs.odp
 seq:
   - id: lebs
-    size: super.node_contents.leb_size
+    size: super.node_header.leb_size
     repeat: expr
-    repeat-expr: super.node_contents.num_leb
+    repeat-expr: super.node_header.num_leb
 
 # some instances to access important data directly
 instances:
   super:
     pos: 0
     type: superblock_node
-  master_1:
-    pos: super.node_contents.leb_size
-    type: leb1
-    size: super.node_contents.leb_size
     doc: |
-      LEB1 contains a copy of the master block. Technically the master block
+      The superblock node will always be at the start of
+      the first LEB.
+  master_1:
+    pos: super.node_header.leb_size
+    type: masterblock_node
+    size: super.node_header.leb_size
+    doc: |
+      LEB1 contains a copy of the master node. Technically the master node
       could reside anywhere in the master area (LEB1 and LEB2), but on a
       cleanly generated system it will almost certainly be at the beginning
       of LEB1.
   master_2:
-    pos: super.node_contents.leb_size * 2
-    size: super.node_contents.leb_size
-    type: leb1
+    pos: super.node_header.leb_size * 2
+    size: super.node_header.leb_size
+    type: masterblock_node
     doc: |
-      LEB2 contains a copy of the master block. Technically the master block
+      LEB2 contains a copy of the master node. Technically the master node
       could reside anywhere in the master area (LEB1 and LEB2), but on a
       cleanly generated system it will almost certainly be at the beginning
       of LEB2.
   index:
-    pos: super.node_contents.leb_size * master_1.master_block.node_contents.leb_root
-    size: super.node_contents.leb_size
+    pos: super.node_header.leb_size * master_1.node_header.leb_root
+    size: super.node_header.leb_size
     type: dummy
+    doc: The LEB containing the index is declared in the master node.
   index_root:
-    pos: master_1.master_block.node_contents.ofs_root
+    pos: master_1.node_header.ofs_root
     io: index._io
     type: index_block
+    doc: The offset into the index LEB for the root index
 
 types:
   dummy: {}
-  leb1:
-    seq:
-      - id: master_block
-        type: masterblock_node
   masterblock_node:
     seq:
       - id: header
         type: common_header
-      - id: node_contents
+      - id: node_header
         size: header.len_full_node - header._sizeof
         type: master
   index_block:
     seq:
       - id: header
         type: common_header
-      - id: node_contents
+      - id: node_header
         size: header.len_full_node - header._sizeof
         type: index
   superblock_node:
     seq:
       - id: header
         type: common_header
-      - id: node_contents
+      - id: node_header
         size: header.len_full_node - header._sizeof
         type: superblock
 
@@ -159,8 +172,8 @@ types:
         type: u4
         doc: A 32bits random number, used to construct a 64bits identifier.
       - id: name
-        type: strz
         size: len_name
+        type: strz
         doc: zero-terminated name
   index:
     seq:
@@ -399,8 +412,6 @@ types:
         repeat-expr: 28
         doc: reserved for future, zeroes
     doc: logical eraseblock reference node.
-
-
   superblock:
     seq:
       - id: padding1
@@ -504,6 +515,24 @@ types:
         repeat: expr
         repeat-expr: 3774
         doc: reserved for future, zeroes
+    instances:
+      biglpt:
+        value: flags & 0x02 == 0x02
+        doc: if "big" LPT model is used if set
+      space_fixup:
+        value: flags & 0x04 == 0x04
+        doc: first-mount "fixup" of free space within LEBs needed
+      double_hash:
+        value: flags & 0x08 == 0x08
+        doc: |
+          store a 32bit cookie in directory entry nodes to
+          support 64bit cookies for lookups by hash
+      encrypted:
+        value: flags & 0x10 == 0x10
+        doc: filesystem contains encrypted files
+      authenticated:
+        value: flags & 0x20 == 0x20
+        doc: this filesystem contains hashes for authentication
   truncation:
     seq:
       - id: inode_number
