@@ -70,21 +70,21 @@ types:
         type: common_header
       - id: node_header
         size: header.len_full_node - header._sizeof
-        type: master
+        type: master_header
   index_block:
     seq:
       - id: header
         type: common_header
       - id: node_header
         size: header.len_full_node - header._sizeof
-        type: index
+        type: index_header
   superblock_node:
     seq:
       - id: header
         type: common_header
       - id: node_header
         size: header.len_full_node - header._sizeof
-        type: superblock
+        type: superblock_header
 
   # Common types
   common_header:
@@ -120,14 +120,14 @@ types:
       - id: padding
         contents: [0x00]
 
-  # Block node types
-  commit_start:
+  # Node types
+  commit_start_header:
     seq:
       - id: commit_number
         -orig-id: cmt_no
         type: u8
         doc: commit number
-  data:
+  data_header:
     seq:
       - id: key
         size: 16
@@ -147,7 +147,7 @@ types:
       #- id: data
       #  size: 1
       # dependent on header?
-  directory:
+  directory_header:
     seq:
       - id: key
         size: 16
@@ -175,7 +175,7 @@ types:
         size: len_name
         type: strz
         doc: zero-terminated name
-  index:
+  index_header:
     seq:
       - id: num_children
         -orig-id: child_cnt
@@ -189,7 +189,7 @@ types:
         repeat: expr
         repeat-expr: num_children
         doc: LEB number / offset / length / key branches
-  inode:
+  inode_header:
     seq:
       - id: key
         size: 16
@@ -264,9 +264,6 @@ types:
         repeat: expr
         repeat-expr: 26
         doc: reserved for future, zeroes
-      #- id: data
-      #  size: len_data
-      #  doc: data attached to the inode
     instances:
       compressed:
         value: flags & 0x01 == 0x01
@@ -289,7 +286,7 @@ types:
       encrypted:
         value: flags & 0x40 == 0x40
         doc: use encryption for this inode
-  master:
+  master_header:
     seq:
       - id: highest_inum
         type: u8
@@ -419,12 +416,12 @@ types:
       recovery:
         value: flags & 4 == 4
         doc: written by recovery
-  pad:
+  padding_header:
     seq:
       - id: len_padding
         type: u4
         doc: how many bytes after this node are unused (because padded)
-  reference:
+  reference_header:
     seq:
       - id: leb_number
         -orig-id: lnum
@@ -444,7 +441,7 @@ types:
         repeat-expr: 28
         doc: reserved for future, zeroes
     doc: logical eraseblock reference node.
-  superblock:
+  superblock_header:
     seq:
       - id: padding1
         size: 2
@@ -565,7 +562,7 @@ types:
       authenticated:
         value: flags & 0x20 == 0x20
         doc: this filesystem contains hashes for authentication
-  truncation:
+  truncation_header:
     seq:
       - id: inode_number
         -orig-id: inum
