@@ -267,6 +267,28 @@ types:
       #- id: data
       #  size: len_data
       #  doc: data attached to the inode
+    instances:
+      compressed:
+        value: flags & 0x01 == 0x01
+        doc: use compression for this inode
+      synchronous:
+        value: flags & 0x02 == 0x02
+        doc: I/O on this inode has to be synchronous
+      immutable:
+        value: flags & 0x04 == 0x04
+        doc: inode is immutable
+      append:
+        value: flags & 0x08 == 0x08
+        doc: writes to the inode may only append data
+      dirsync:
+        value: flags & 0x10 == 0x10
+        doc: I/O on this directory inode has to be synchronous
+      xattr:
+        value: flags & 0x20 == 0x20
+        doc: this inode is the inode for an extended attribute value
+      encrypted:
+        value: flags & 0x40 == 0x40
+        doc: use encryption for this inode
   master:
     seq:
       - id: highest_inum
@@ -387,6 +409,16 @@ types:
         repeat: expr
         repeat-expr: 152
         doc: reserved for future, zeroes
+    instances:
+      dirty:
+        value: flags & 1 == 1
+        doc: master node is dirty
+      no_orphans:
+        value: flags & 2 == 2
+        doc: no orphan inodes present
+      recovery:
+        value: flags & 4 == 4
+        doc: written by recovery
   pad:
     seq:
       - id: len_padding
