@@ -24,7 +24,7 @@ meta:
 doc-ref:
   - https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=HEAD
   - https://refspecs.linuxfoundation.org/elf/gabi4+/contents.html
-  - https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-46512.html
+  - https://docs.oracle.com/cd/E37838_01/html/E36783/glcfv.html
 seq:
   - id: magic
     -orig-id: e_ident[EI_MAG0]..e_ident[EI_MAG3]
@@ -457,7 +457,7 @@ types:
             value: _parent.linked_section.type == sh_type::strtab
       dynamic_section_entry:
         doc-ref:
-          - https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-42444.html
+          - https://docs.oracle.com/cd/E37838_01/html/E36783/chapter6-42444.html
           - https://refspecs.linuxfoundation.org/elf/gabi4+/ch5.dynamic.html#dynamic_section
         -webide-representation: "{tag_enum}: {value_or_ptr} {value_str} {flag_1_values:flags}"
         seq:
@@ -516,7 +516,7 @@ types:
           - Elf32_Sym
           - Elf64_Sym
         doc-ref:
-          - https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-79797.html
+          - https://docs.oracle.com/cd/E37838_01/html/E36783/man-sts.html
           - https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.symtab.html
         -webide-representation: 'v:{value} s:{size:dec} t:{type} b:{bind} vis:{visibility} i:{sh_idx:dec}[={sh_idx_special}] n:{name}'
         seq:
@@ -596,7 +596,7 @@ types:
             repeat: eos
       note_section_entry:
         doc-ref:
-          - https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-18048.html
+          - https://docs.oracle.com/cd/E37838_01/html/E36783/chapter6-18048.html
           # The following source claims that note's `name` and `descriptor` should be padded
           # to 8 bytes in 64-bit ELFs, not always to 4 - although this seems to be an idea of
           # the original spec, it did not catch on in the real world and most implementations
@@ -626,7 +626,7 @@ types:
             size: -len_descriptor % 4
       relocation_section:
         doc-ref:
-          - https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-54839.html
+          - https://docs.oracle.com/cd/E37838_01/html/E36783/chapter6-54839.html
           - https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.reloc.html
         params:
           - id: has_addend
@@ -673,6 +673,9 @@ types:
         pos: section_headers[section_names_idx].ofs_body
         size: section_headers[section_names_idx].len_body
         type: strings_struct
+        if: |
+          section_names_idx != section_header_idx_special::undefined.to_i
+          and section_names_idx < _root.header.qty_section_header
 enums:
   # EI_CLASS
   bits:
@@ -770,7 +773,8 @@ enums:
     0x6474e551: gnu_stack
     0x6474e552: gnu_relro
     0x6474e553: gnu_property
-  # https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-94076.html#chapter6-73445
+  # https://docs.oracle.com/cd/E37838_01/html/E36783/man-s.html#OSLLGchapter6-73445
+  # https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/boot/sys/sys/elf_common.h#L377-L462
   sh_type:
     0: null_type
     1: progbits
@@ -791,6 +795,15 @@ enums:
     18: symtab_shndx
     # 0x60000000: lo_os
     # 0x6fffffef: lo_sunw
+    0x6fffffec:
+      id: sunw_symnsort
+      doc-ref: https://docs.oracle.com/cd/E37838_01/html/E36783/man-s.html#OSLLGchapter6-73445
+    0x6fffffed:
+      id: sunw_phname
+      doc-ref: https://docs.oracle.com/cd/E37838_01/html/E36783/man-s.html#OSLLGchapter6-73445
+    0x6fffffee:
+      id: sunw_ancillary
+      doc-ref: https://docs.oracle.com/cd/E37838_01/html/E36783/man-s.html#OSLLGchapter6-73445
     0x6fffffef: sunw_capchain
     0x6ffffff0: sunw_capinfo
     0x6ffffff1: sunw_symsort
@@ -798,7 +811,10 @@ enums:
     0x6ffffff3: sunw_ldynsym
     0x6ffffff4: sunw_dof
     0x6ffffff5: sunw_cap
+    # 0x6ffffff5: gnu_attributes
     0x6ffffff6: sunw_signature
+    # 0x6ffffff6: gnu_hash
+    # 0x6ffffff7: gnu_liblist
     0x6ffffff7: sunw_annotate
     0x6ffffff8: sunw_debugstr
     0x6ffffff9: sunw_debug
@@ -806,8 +822,11 @@ enums:
     0x6ffffffb: sunw_comdat
     0x6ffffffc: sunw_syminfo
     0x6ffffffd: sunw_verdef
+    # 0x6ffffffd: gnu_verdef
     0x6ffffffe: sunw_verneed
+    # 0x6ffffffe: gnu_verneed
     0x6fffffff: sunw_versym
+    # 0x6fffffff: gnu_versym
     # 0x6fffffff: hi_sunw
     # 0x6fffffff: hi_os
     # 0x70000000: lo_proc
@@ -816,10 +835,16 @@ enums:
     # 0x70000001: arm_exidx
     0x70000002: arm_preemptmap
     0x70000003: arm_attributes
+    0x70000004:
+      id: arm_debugoverlay
+      doc-ref: https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/boot/sys/sys/elf_common.h#L425
+    0x70000005:
+      id: arm_overlaysection
+      doc-ref: https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/boot/sys/sys/elf_common.h#L426
     # 0x7fffffff: hi_proc
     # 0x80000000: lo_user
     # 0xffffffff: hi_user
-  # https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-79797.html#chapter7-27
+  # https://docs.oracle.com/cd/E37838_01/html/E36783/man-sts.html#OSLLGchapter7-27
   symbol_visibility:
     0: default
     1: internal
@@ -828,17 +853,22 @@ enums:
     4: exported
     5: singleton
     6: eliminate
-  # https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-79797.html#chapter6-tbl-21
+  # https://docs.oracle.com/cd/E37838_01/html/E36783/man-sts.html#OSLLGchapter6-tbl-21
   symbol_binding:
     0:
       id: local
       doc: not visible outside the object file containing their definition
     1:
       id: global_symbol
-      doc: visible to all object files being combined
+      -affected-by: 90
+      doc: |
+        visible to all object files being combined
+
+        As of KSC 0.9, this enum key can't be called `global` because it would
+        cause a syntax error in Python (it is a keyword).
     2:
       id: weak
-      doc: like `symbol_binding::global`, but their definitions have lower precedence
+      doc: like `symbol_binding::global_symbol`, but their definitions have lower precedence
     # 10: lo_os
     10:
       id: os10
@@ -861,22 +891,42 @@ enums:
       id: proc15
       doc: reserved for processor-specific semantics
     # 15: hi_proc
-  # https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-79797.html#chapter6-tbl-22
+  # https://docs.oracle.com/cd/E37838_01/html/E36783/man-sts.html#OSLLGchapter6-tbl-22
   symbol_type:
     0: no_type
-    1: object
-    2: func
-    3: section
-    4: file
-    5: common
-    6: tls
-    7: num
-    8: relc
-    9: srelc
+    1:
+      id: object
+      doc: associated with a data object, such as a variable, an array, and so on
+    2:
+      id: func
+      doc: associated with a function or other executable code
+    3:
+      id: section
+      doc: associated with a section
+    4:
+      id: file
+      doc: symbol's name gives the name of the source file associated with the object file
+    5:
+      id: common
+      doc: labels an uninitialized common block
+    6:
+      id: tls
+      doc: specifies a thread-local storage entity
+    8:
+      id: relc
+      doc: complex relocation expression
+      doc-ref: https://sourceware.org/git/?p=binutils-gdb.git;a=blob;f=include/elf/common.h;h=0d381f0d27;hb=HEAD#l1009
+    9:
+      id: srelc
+      doc: signed complex relocation expression
+      doc-ref: https://sourceware.org/git/?p=binutils-gdb.git;a=blob;f=include/elf/common.h;h=0d381f0d27;hb=HEAD#l1010
     # 10: lo_os
     10:
-      id: os10
-      doc: reserved for OS-specific semantics
+      id: gnu_ifunc
+      doc: |
+        reserved for OS-specific semantics
+
+        `STT_GNU_IFUNC` is a GNU extension to ELF format that adds support for "indirect functions"
     11:
       id: os11
       doc: reserved for OS-specific semantics
@@ -916,6 +966,8 @@ enums:
     0xfff2: common
     0xffff: xindex
     # 0xffff: hi_reserve
+  # https://docs.oracle.com/cd/E37838_01/html/E36783/chapter6-42444.html#OSLLGchapter6-tbl-52
+  # https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=HEAD#l853
   dynamic_array_tags:
     0: "null"            # Marks end of dynamic section
     1: needed            # Name of needed library
@@ -948,14 +1000,38 @@ enums:
     28: fini_arraysz     # Size in bytes of DT_FINI_ARRAY
     29: runpath          # Library search path
     30: flags            # Flags for the object being loaded
+    # 32: encoding  # special value (marker):
+                    # Values `v >= ::encoding and v < ::lo_os` follow the rules
+                    # for the interpretation of the d_un union as follows:
+                    # even number == 'd_ptr', odd number == 'd_val' or none
+                    # <https://github.com/tianocore/edk2-archive/blob/072289f45c/ArmPlatformPkg/Library/ArmShellCmdRunAxf/elf_common.h#L336-L340>
     32: preinit_array    # Array with addresses of preinit fct
     33: preinit_arraysz  # Size in bytes of DT_PREINIT_ARRAY
-    34: maxpostags       # Number used
+    34: symtab_shndx     # Address of SYMTAB_SHNDX section
+    # 0x6000000d: lo_os
     0x6000000d: sunw_auxiliary
-    0x6000000e: sunw_filter
+    0x6000000e:
+      id: sunw_rtldinf
+      doc-ref:
+        - https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libphobos/libdruntime/core/sys/solaris/sys/link.d;h=d9d47c0914;hb=HEAD#l76
+        - https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/uts/common/sys/link.h#L135
+    0x6000000f:
+      id: sunw_filter
+      doc: |
+        Note: <https://docs.oracle.com/cd/E37838_01/html/E36783/chapter6-42444.html#OSLLGchapter6-tbl-52>
+        states that `DT_SUNW_FILTER` has the value `0x6000000e`, but this is
+        apparently only a human error - that would make the value collide with
+        the previous one (`DT_SUNW_RTLDINF`) and there is not even a single
+        source supporting this other than verbatim copies of the same table.
+      doc-ref:
+        - https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libphobos/libdruntime/core/sys/solaris/sys/link.d;h=d9d47c0914;hb=HEAD#l77
+        - https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/uts/common/sys/link.h#L136
     0x60000010: sunw_cap
     0x60000011: sunw_symtab
     0x60000012: sunw_symsz
+    # 0x60000013: sunw_encoding  # DT_* encoding rules apply again for values
+                                 # `v >= ::sunw_encoding and v < ::hi_os` (see
+                                 # `::encoding` description)
     0x60000013: sunw_sortent
     0x60000014: sunw_symsort
     0x60000015: sunw_symsortsz
@@ -965,8 +1041,28 @@ enums:
     0x60000019: sunw_strpad
     0x6000001a: sunw_capchain
     0x6000001b: sunw_ldmach
+    0x6000001c: sunw_symtab_shndx
     0x6000001d: sunw_capchainent
+    0x6000001e: sunw_deferred
     0x6000001f: sunw_capchainsz
+    0x60000020: sunw_phname
+    0x60000021: sunw_parent
+    0x60000023: sunw_sx_aslr
+    0x60000025: sunw_relax
+    0x60000027: sunw_kmod
+    0x60000029: sunw_sx_nxheap
+    0x6000002b: sunw_sx_nxstack
+    0x6000002d: sunw_sx_adiheap
+    0x6000002f: sunw_sx_adistack
+    0x60000031: sunw_sx_ssbd
+    0x60000032: sunw_symnsort
+    0x60000033: sunw_symnsortsz
+    # 0x6ffff000: hi_os
+    # 0x6ffffd00: val_rng_lo  # Values `v >= ::val_rng_lo and v < ::val_rng_hi`
+                              # use the 'd_val' field of the dynamic structure
+    0x6ffffdf4:
+      id: gnu_flags_1
+      doc-ref: https://sourceware.org/git/?p=binutils-gdb.git;a=blob;f=include/elf/common.h;h=0d381f0d27;hb=HEAD#l1091
     0x6ffffdf5: gnu_prelinked   # Prelinking timestamp
     0x6ffffdf6: gnu_conflictsz  # Size of conflict section
     0x6ffffdf7: gnu_liblistsz   # Size of library list
@@ -978,6 +1074,9 @@ enums:
     0x6ffffdfd: posflag_1       # Flags for DT_* entries, effecting the following DT_* entry.
     0x6ffffdfe: syminsz         # Size of syminfo table (in bytes)
     0x6ffffdff: syminent        # Entry size of syminfo
+    # 0x6ffffdff: val_rng_hi
+    # 0x6ffffe00: addr_rng_lo  # Values `v >= ::addr_rng_lo and v < ::addr_rng_hi`
+                               # use the 'd_ptr' field of the dynamic structure
     0x6ffffef5: gnu_hash
     0x6ffffef6: tlsdesc_plt
     0x6ffffef7: tlsdesc_got
@@ -989,6 +1088,7 @@ enums:
     0x6ffffefd: pltpad
     0x6ffffefe: movetab
     0x6ffffeff: syminfo
+    # 0x6ffffeff: addr_rng_hi
     0x6ffffff0: versym
     0x6ffffff9: relacount
     0x6ffffffa: relcount
@@ -997,7 +1097,22 @@ enums:
     0x6ffffffd: verdefnum
     0x6ffffffe: verneed
     0x6fffffff: verneednum
-    0x70000001: sparc_register
+    # 0x70000000: lo_proc
+    0x70000001:
+      id: sparc_register
+      doc-ref: https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/boot/sys/sys/elf_common.h#L634-L635
+    0x07000001:
+      id: deprecated_sparc_register
+      doc: |
+        DT_SPARC_REGISTER was originally assigned 0x7000001. It is processor
+        specific, and should have been in the range DT_LOPROC-DT_HIPROC
+        instead of here. When the error was fixed,
+        DT_DEPRECATED_SPARC_REGISTER was created to maintain backward
+        compatability.
+      doc-ref:
+        - https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/cmd/sgs/libconv/common/dynamic.c#L522-L528
+        - https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/boot/sys/sys/elf_common.h#L634-L635
     0x7ffffffd: auxiliary
     0x7ffffffe: used
     0x7fffffff: filter
+    # 0x7fffffff: hi_proc
