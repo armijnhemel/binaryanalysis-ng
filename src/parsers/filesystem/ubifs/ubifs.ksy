@@ -18,7 +18,7 @@ doc: |
   all the files on the file system.
 doc-ref:
   - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/ubifs/ubifs-media.h
-  - http://www.linux-mtd.infradead.org/doc/ubifs.odp
+  - http://www.linux-mtd.infradead.org/doc/ubifs.pdf
 seq:
   - id: lebs
     size: super.node_header.leb_size
