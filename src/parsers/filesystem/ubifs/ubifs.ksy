@@ -44,6 +44,7 @@ instances:
     pos: master_1.master_block.node_contents.ofs_root
     io: index._io
     type: index_block
+
 types:
   dummy: {}
   leb1:
@@ -56,14 +57,14 @@ types:
         type: common_header
       - id: node_contents
         size: header.len_full_node - header._sizeof
-        type: master_node
+        type: master
   index_block:
     seq:
       - id: header
         type: common_header
       - id: node_contents
         size: header.len_full_node - header._sizeof
-        type: index_node
+        type: index
   superblock_node:
     seq:
       - id: header
@@ -107,7 +108,13 @@ types:
         contents: [0x00]
 
   # Block node types
-  data_node:
+  commit_start:
+    seq:
+      - id: commit_number
+        -orig-id: cmt_no
+       type: u8
+       doc: commit number
+  data:
     seq:
       - id: key
         size: 16
@@ -155,7 +162,7 @@ types:
         type: strz
         size: len_name
         doc: zero-terminated name
-  index_node:
+  index:
     seq:
       - id: num_children
         -orig-id: child_cnt
@@ -247,7 +254,7 @@ types:
       #- id: data
       #  size: len_data
       #  doc: data attached to the inode
-  master_node:
+  master:
     seq:
       - id: highest_inum
         type: u8
@@ -367,11 +374,33 @@ types:
         repeat: expr
         repeat-expr: 152
         doc: reserved for future, zeroes
-  pad_node:
+  pad:
     seq:
       - id: len_padding
         type: u4
         doc: how many bytes after this node are unused (because padded)
+  reference:
+    seq:
+      - id: leb_number
+        -orig-id: lnum
+        type: u4
+        doc: the referred logical eraseblock number
+      - id: ofs_leb
+        -orig-id: offs
+        type: u4
+        doc: start offset in the referred LEB
+      - id: journal_head_number
+        -orig-id: jhead
+        type: u4
+        doc: joural head number
+      - id: padding
+        type: padding_byte
+        repeat: expr
+        repeat-expr: 28
+        doc: reserved for future, zeroes
+    doc: logical eraseblock reference node.
+
+
   superblock:
     seq:
       - id: padding1
@@ -474,6 +503,26 @@ types:
         type: padding_byte
         repeat: expr
         repeat-expr: 3774
+        doc: reserved for future, zeroes
+  truncation:
+    seq:
+      - id: inode_number
+        -orig-id: inum
+        type: u4
+        doc: truncated inode number
+      - id: padding
+        type: padding_byte
+        repeat: expr
+        repeat-expr: 12
+        doc: reserved for future, zeroes
+      - id: old_size
+        type: u8
+        doc: size before truncation
+      - id: new_size
+        type: u8
+        doc: size after truncation
+    doc: This node exists only in the journal and never goes to the main area.
+
   branch:
     seq:
       - id: target_leb
@@ -495,6 +544,7 @@ types:
           In an authenticated UBIFS we have the hash of the referenced node after @key.
           This can't be added to the struct type definition because @key is a
           dynamically sized element already.
+
 enums:
   compression:
     0:
