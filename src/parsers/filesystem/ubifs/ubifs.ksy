@@ -6,24 +6,38 @@ meta:
   encoding: UTF-8
 doc-ref: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/ubifs/ubifs-media.h
 seq:
-  - id: leb0
-    size: super.node_contents.leb_size
-    doc: LEB0 contains the superblock
-  - id: leb1
-    size: super.node_contents.leb_size
-    doc: LEB1 contains a copy of the master block
-  - id: leb2
-    size: super.node_contents.leb_size
-    doc: LEB2 contains a copy of the master block
   - id: lebs
     size: super.node_contents.leb_size
     repeat: expr
-    repeat-expr: super.node_contents.num_leb - 3
+    repeat-expr: super.node_contents.num_leb
+
+# some instances to access important data directly
 instances:
   super:
     pos: 0
     type: superblock_node
+  leb_master_1:
+    pos: super.node_contents.leb_size
+    type: leb1
+    size: super.node_contents.leb_size
+    doc: LEB1 contains a copy of the master block
+  leb_master_2:
+    pos: super.node_contents.leb_size * 2
+    size: super.node_contents.leb_size
+    type: leb1
+    doc: LEB2 contains a copy of the master block
 types:
+  leb1:
+    seq:
+      - id: master_block
+        type: masterblock_node
+  masterblock_node:
+    seq:
+      - id: header
+        type: common_header
+      - id: node_contents
+        size: header.len_full_node - header._sizeof
+        type: master_node
   superblock_node:
     seq:
       - id: header
@@ -31,6 +45,8 @@ types:
       - id: node_contents
         size: header.len_full_node - header._sizeof
         type: superblock
+
+  # Common types
   common_header:
     seq:
       - id: magic
@@ -59,106 +75,60 @@ types:
         size: 2
         contents: [0x00, 0x00]
         doc: reserved for future, zeroes
-  superblock:
+  padding_byte:
     seq:
-      - id: padding1
-        size: 2
-        contents: [0x00, 0x00]
-        doc: reserved for future, zeroes
-      - id: key_hash
-        type: u1
-        doc: type of hash function used in keys
-      - id: key_fmt
-        type: u1
-        doc: format of the key
-      - id: flags
+      - id: padding
+        contents: [0x00]
+
+  # Block node types
+  data_node:
+    seq:
+      - id: key
+        size: 16
+        doc: node key
+      - id: uncompressed_size
+        -orig-id: size
         type: u4
-        doc: file-system flags (%UBIFS_FLG_BIGLPT, etc)
-      - id: min_io_size
-        type: u4
-        doc: minimal input/output unit size
-      - id: leb_size
-        type: u4
-        doc: logical eraseblock size in bytes
-      - id: num_leb
-        -orig-id: leb_cnt
-        type: u4
-        doc: count of LEBs used by file-system
-      - id: max_leb_cnt
-        type: u4
-        doc: maximum count of LEBs used by file-system
-      - id: max_bud_bytes
-        type: u8
-        doc: maximum amount of data stored in buds
-      - id: log_lebs
-        type: u4
-        doc: log size in logical eraseblocks
-      - id: lpt_lebs
-        type: u4
-        doc: number of LEBs used for lprops table
-      - id: orph_lebs
-        type: u4
-        doc: number of LEBs used for recording orphans
-      - id: jhead_cnt
-        type: u4
-        doc: count of journal heads
-      - id: fanout
-        type: u4
-        doc: tree fanout (max. number of links per indexing node)
-      - id: lsave_cnt
-        type: u4
-        doc: number of LEB numbers in LPT's save table
-      - id: fmt_version
-        type: u4
-        doc: UBIFS on-flash format version
-      - id: default_compression
-        -orig-id: default_compr
+        doc: uncompressed data size in bytes
+      - id: compression
         type: u2
         enum: compression
-      - id: padding2
-        size: 2
-        contents: [0x00, 0x00]
-        doc: reserved for future, zeroes
-      - id: reserve_pool_uid
-        -orig: rp_uid
-        type: u4
-        doc: reserve pool UID
-      - id: reserve_pool_gid
-        -orig: rp_gid
-        type: u4
-        doc: reserve pool GID
-      - id: reserve_pool_size
-        type: u8
-        doc: size of the reserved pool in bytes
-      - id: time_granularity
-        type: u4
-        doc: time granularity in nanoseconds
-      - id: uuid
-        size: 16
-        doc: UUID generated when the file system image was created
-      - id: ro_compat_version
-        type: u4
-        doc: UBIFS R/O compatibility version
-      - id: hmac
-        size: 64
-        doc: HMAC to authenticate the superblock node
-      - id: hmac_wkm
-        size: 64
-        doc: |
-          HMAC of a well known message (the string "UBIFS") as a convenience
-          to the user to check if the correct key is passed
-      - id: hash_algo
+        doc: compression type (%UBIFS_COMPR_NONE, %UBIFS_COMPR_LZO, etc)
+      - id: len_data
+        -orig-id: compr_size
         type: u2
-        doc: The hash algo used for this filesystem (one of enum hash_algo)
-      - id: hash_mst
-        size: 64
-        doc: |
-          hash of the master node, only valid for signed images in which the
-          master node does not contain a hmac
-      - id: padding3
-        type: padding_byte
-        repeat: expr
-        repeat-expr: 3774
+        doc: compressed data size in bytes, only valid when data is encrypted
+      #- id: data
+      #  size: 1
+      # dependent on header?
+  directory:
+    seq:
+      - id: key
+        size: 16
+        doc: node key
+      - id: inode_number
+        -orig-id: inum
+        type: u8
+        doc: target inode number
+      - id: padding1
+        contents: [0x00]
+        doc: reserved for future, zeroes
+      - id: inode_type
+        -orig-id: type
+        type: u1
+        enum: inode_types
+        doc: type of the target inode (%UBIFS_ITYPE_REG, %UBIFS_ITYPE_DIR, etc)
+      - id: len_name
+        -orig-id: nlen
+        type: u2
+        doc: name length
+      - id: cookie
+        type: u4
+        doc: A 32bits random number, used to construct a 64bits identifier.
+      - id: name
+        type: strz
+        size: len_name
+        doc: zero-terminated name
   inode:
     seq:
       - id: key
@@ -234,41 +204,236 @@ types:
         repeat: expr
         repeat-expr: 26
         doc: reserved for future, zeroes
-      - id: data
-        size: len_data
-        doc: data attached to the inode
-  directory:
+      #- id: data
+      #  size: len_data
+      #  doc: data attached to the inode
+  master_node:
     seq:
-      - id: key
-        size: 16
-        doc: node key
-      - id: inode_number
-        -orig-id: inum
+      - id: highest_inum
         type: u8
-        doc: target inode number
-      - id: padding1
-        contents: [0x00]
-        doc: reserved for future, zeroes
-      - id: inode_type
-        -orig-id: type
-        type: u1
-        enum: inode_types
-        doc: type of the target inode (%UBIFS_ITYPE_REG, %UBIFS_ITYPE_DIR, etc)
-      - id: len_name
-        -orig-id: nlen
-        type: u2
-        doc: name length
-      - id: cookie
+        doc: highest inode number in the committed index
+      - id: commit_number
+        -orig-id: cmt_no
+        type: u8
+        doc: commit number
+      - id: flags
         type: u4
-        doc: A 32bits random number, used to construct a 64bits identifier.
-      - id: name
-        type: strz
-        size: len_name
-        doc: zero-terminated name
-  padding_byte:
-    seq:
+        doc: various flags (%UBIFS_MST_DIRTY, etc)
+      - id: leb_log
+        -orig-id: log_lnum
+        type: u4
+        doc: start of the log
+      - id: leb_root_indexing
+        -orig-id: root_lnum
+        type: u4
+        doc: LEB number of the root indexing node
+      - id: ofs_root
+        -orig-id: root_offs
+        type: u4
+        doc: offset within @root_lnum
+      - id: root_indexing_length
+        -orig-id: root_len
+        type: u4
+        doc: root indexing node length
+      - id: leb_garbage_collect
+        -orig-id: gc_lnum
+        type: u4
+        doc: |
+          LEB reserved for garbage collection (%-1 value means the
+          LEB was not reserved and should be reserved on mount)
+      - id: leb_index_head
+        -orig-id: ihead_lnum
+        type: u4
+        doc: LEB number of index head
+      - id: ofs_ihead
+        -orig-id: ihead_offs
+        type: u4
+        doc: offset of index head
+      - id: len_index
+        -orig-id: index_size
+        type: u8
+        doc: size of index on flash
+      - id: total_free
+        type: u8
+        doc: total free space in bytes
+      - id: total_dirty
+        type: u8
+        doc: total dirty space in bytes
+      - id: total_used
+        type: u8
+        doc: total used space in bytes (includes only data LEBs)
+      - id: total_dead
+        type: u8
+        doc: total dead space in bytes (includes only data LEBs)
+      - id: total_dark
+        type: u8
+        doc: total dark space in bytes (includes only data LEBs)
+      - id: leb_lpt
+        -orig-id: lpt_lnum
+        type: u4
+        doc: LEB number of LPT root nnode
+      - id: ofs_lpt
+        -orig-id: lpt_offs
+        type: u4
+        doc: offset of LPT root nnode
+      - id: leb_nhead
+        -orig-id: nhead_lnum
+        type: u4
+        doc: LEB number of LPT head
+      - id: ofs_nhead
+        -orig-id: nhead_offs
+        type: u4
+        doc: offset of LPT head
+      - id: leb_lprops_table
+        -orig-id: ltab_lnum
+        type: u4
+        doc: LEB number of LPT's own lprops table
+      - id: ofs_ltab
+        -orig-id: ltab_offs
+        type: u4
+        doc: offset of LPT's own lprops table
+      - id: leb_save_table
+        -orig-id: lsave_lnum
+        type: u4
+        doc: LEB number of LPT's save table (big model only)
+      - id: ofs_lsave
+        -orig-id: lsave_offs
+        type: u4
+        doc: offset of LPT's save table (big model only)
+      - id: leb_last_lpt_scan
+        -orig-id: lscan_lnum
+        type: u4
+        doc: LEB number of last LPT scan
+      - id: empty_lebs
+        type: u4
+        doc: number of empty logical eraseblocks
+      - id: idx_lebs
+        type: u4
+        doc: number of indexing logical eraseblocks
+      - id: leb_cnt
+        type: u4
+        doc: count of LEBs used by file-system
+      - id: hash_root_index
+        size: 64
+        doc: the hash of the root index node
+      - id: hash_lpt
+        size: 64
+        doc: the hash of the LPT
+      - id: hmac
+        size: 64
+        doc: HMAC to authenticate the master node
       - id: padding
-        contents: [0x00]
+        type: padding_byte
+        repeat: expr
+        repeat-expr: 152
+        doc: reserved for future, zeroes
+  pad_node:
+    seq:
+      - id: len_padding
+        type: u4
+        doc: how many bytes after this node are unused (because padded)
+  superblock:
+    seq:
+      - id: padding1
+        size: 2
+        contents: [0x00, 0x00]
+        doc: reserved for future, zeroes
+      - id: key_hash
+        type: u1
+        doc: type of hash function used in keys
+      - id: key_fmt
+        type: u1
+        doc: format of the key
+      - id: flags
+        type: u4
+        doc: file-system flags (%UBIFS_FLG_BIGLPT, etc)
+      - id: min_io_size
+        type: u4
+        doc: minimal input/output unit size
+      - id: leb_size
+        type: u4
+        doc: logical eraseblock size in bytes
+      - id: num_leb
+        -orig-id: leb_cnt
+        type: u4
+        doc: count of LEBs used by file-system
+      - id: max_leb_cnt
+        type: u4
+        doc: maximum count of LEBs used by file-system
+      - id: max_bud_bytes
+        type: u8
+        doc: maximum amount of data stored in buds
+      - id: log_lebs
+        type: u4
+        doc: log size in logical eraseblocks
+      - id: lpt_lebs
+        type: u4
+        doc: number of LEBs used for lprops table
+      - id: orph_lebs
+        type: u4
+        doc: number of LEBs used for recording orphans
+      - id: jhead_cnt
+        type: u4
+        doc: count of journal heads
+      - id: fanout
+        type: u4
+        doc: tree fanout (max. number of links per indexing node)
+      - id: lsave_cnt
+        type: u4
+        doc: number of LEB numbers in LPT's save table
+      - id: fmt_version
+        type: u4
+        valid:
+          min: 4
+        doc: UBIFS on-flash format version
+      - id: default_compression
+        -orig-id: default_compr
+        type: u2
+        enum: compression
+      - id: padding2
+        size: 2
+        contents: [0x00, 0x00]
+        doc: reserved for future, zeroes
+      - id: reserve_pool_uid
+        -orig: rp_uid
+        type: u4
+        doc: reserve pool UID
+      - id: reserve_pool_gid
+        -orig: rp_gid
+        type: u4
+        doc: reserve pool GID
+      - id: reserve_pool_size
+        type: u8
+        doc: size of the reserved pool in bytes
+      - id: time_granularity
+        type: u4
+        doc: time granularity in nanoseconds
+      - id: uuid
+        size: 16
+        doc: UUID generated when the file system image was created
+      - id: ro_compat_version
+        type: u4
+        doc: UBIFS R/O compatibility version
+      - id: hmac
+        size: 64
+        doc: HMAC to authenticate the superblock node
+      - id: hmac_wkm
+        size: 64
+        doc: |
+          HMAC of a well known message (the string "UBIFS") as a convenience
+          to the user to check if the correct key is passed
+      - id: hash_algo
+        type: u2
+        doc: The hash algo used for this filesystem (one of enum hash_algo)
+      - id: hash_mst
+        size: 64
+        doc: |
+          hash of the master node, only valid for signed images in which the
+          master node does not contain a hmac
+      - id: padding3
+        type: padding_byte
+        repeat: expr
+        repeat-expr: 3774
 enums:
   compression:
     0:
@@ -373,3 +538,12 @@ enums:
       id: signature
       -orig-id: UBIFS_SIG_NODE
       doc: signature node
+  hashes:
+    0:
+      id: r5
+      -orig-id: UBIFS_KEY_HASH_R5
+      doc: R5 hash
+    1:
+      id: test_hash
+      -orig-id: UBIFS_KEY_HASH_TEST
+      doc: test hash which just returns first 4 bytes of the name
