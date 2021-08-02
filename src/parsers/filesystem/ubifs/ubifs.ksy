@@ -112,8 +112,8 @@ types:
     seq:
       - id: commit_number
         -orig-id: cmt_no
-       type: u8
-       doc: commit number
+        type: u8
+        doc: commit number
   data:
     seq:
       - id: key
