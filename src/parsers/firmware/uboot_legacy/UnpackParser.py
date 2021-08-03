@@ -22,6 +22,7 @@
 
 
 import os
+import binascii
 import pathlib
 from FileResult import FileResult
 from UnpackParser import WrappedUnpackParser
@@ -55,6 +56,26 @@ class UbootLegacyUnpackParser(WrappedUnpackParser):
         except (Exception, ValidationNotEqualError, ValidationLessThanError,
                 ValidationNotAnyOfError) as e:
             raise UnpackParserException(e.args)
+
+        # now calculate the CRC of the header and compare it
+        # to the stored one
+        oldoffset = self.infile.infile.tell()
+        self.infile.infile.seek(self.infile.offset)
+        crcbytes = bytearray(64)
+        self.infile.infile.readinto(crcbytes)
+        crcmv = memoryview(crcbytes)
+
+        # blank the header CRC field first
+        crcmv[4:8] = b'\x00' * 4
+        header_crc = binascii.crc32(crcmv)
+        crcmv.release()
+        self.infile.infile.seek(oldoffset)
+
+        check_condition(header_crc == self.data.header.header_crc, "invalid header CRC")
+
+        # image data crc
+        data_crc = binascii.crc32(self.data.data)
+        check_condition(data_crc == self.data.header.data_crc, "invalid image data CRC")
 
         # First try to see if this is perhaps an ASUS device
         self.is_asus_device = False
