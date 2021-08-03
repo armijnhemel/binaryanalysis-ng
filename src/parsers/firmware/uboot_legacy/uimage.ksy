@@ -34,6 +34,37 @@ types:
       - id: os_type
         type: u1
         enum: uimage_os
+        valid:
+          any-of:
+            - uimage_os::invalid
+            - uimage_os::openbsd
+            - uimage_os::netbsd
+            - uimage_os::freebsd
+            - uimage_os::bsd4_4
+            - uimage_os::linux
+            - uimage_os::svr4
+            - uimage_os::esix
+            - uimage_os::solaris
+            - uimage_os::irix
+            - uimage_os::sco
+            - uimage_os::dell
+            - uimage_os::ncr
+            - uimage_os::lynxos
+            - uimage_os::vxworks
+            - uimage_os::psos
+            - uimage_os::qnx
+            - uimage_os::u_boot
+            - uimage_os::rtems
+            - uimage_os::artos
+            - uimage_os::unity
+            - uimage_os::integrity
+            - uimage_os::ose
+            - uimage_os::plan9
+            - uimage_os::openrtos
+            - uimage_os::arm_trusted_firmware
+            - uimage_os::tee
+            - uimage_os::opensbi
+            - uimage_os::efi
       - id: architecture
         type: u1
         enum: uimage_arch
@@ -43,6 +74,15 @@ types:
       - id: compression_type
         type: u1
         enum: uimage_comp
+        valid:
+          any-of:
+            - uimage_comp::none
+            - uimage_comp::gzip
+            - uimage_comp::bzip2
+            - uimage_comp::lzma
+            - uimage_comp::lzo
+            - uimage_comp::lz4
+            - uimage_comp::lzstd
       - id: name_or_asus_info
         size: 32
         type: name_or_asus_info

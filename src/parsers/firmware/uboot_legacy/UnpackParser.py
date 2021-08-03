@@ -29,7 +29,7 @@ from bangunpack import unpack_uboot_legacy
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationNotEqualError, ValidationLessThanError, ValidationNotAnyOfError
 from . import uimage
 
 
@@ -52,18 +52,33 @@ class UbootLegacyUnpackParser(WrappedUnpackParser):
     def parse(self):
         try:
             self.data = uimage.Uimage.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationNotEqualError, ValidationLessThanError,
+                ValidationNotAnyOfError) as e:
             raise UnpackParserException(e.args)
+
+        # First try to see if this is perhaps an ASUS device
+        self.is_asus_device = False
+        asus_product_families = ['GS-', 'GT-', 'RP-', 'RT-']
+        try:
+            asus_product_id = self.data.header.name_or_asus_info.asus_info.product_id
+            for family in asus_product_families:
+                if asus_product_id.startswith(family):
+                    self.is_asus_device = True
+                    break
+        except:
+            pass
 
     def unpack(self):
         unpacked_files = []
         # set the name of the image. If the name of the image is
         # an empty string hardcode a name based
         # on the image type of the U-Boot file.
-        if self.data.header.name == '':
+
+
+        if self.is_asus_device or self.data.header.name_or_asus_info.name == '':
             imagename = self.data.header.image_type.name
         else:
-            imagename = self.data.header.name
+            imagename = self.data.header.name_or_asus_info.name
 
         outfile_rel = self.rel_unpack_dir / imagename
         outfile_full = self.scan_environment.unpack_path(outfile_rel)
@@ -85,6 +100,12 @@ class UbootLegacyUnpackParser(WrappedUnpackParser):
         metadata['load_address'] = self.data.header.load_address
         metadata['entry_point_address'] = self.data.header.entry_address
         metadata['image_data_crc'] = self.data.header.data_crc
+
+        if self.is_asus_device:
+            labels.append('asus')
+            asus_product_id = self.data.header.name_or_asus_info.asus_info.product_id
+            metadata['vendor'] = 'asus'
+            metadata['product_id'] = asus_product_id
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
