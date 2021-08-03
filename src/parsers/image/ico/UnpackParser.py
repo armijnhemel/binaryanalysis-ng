@@ -51,6 +51,7 @@ class IcoUnpackParser(UnpackParser):
                     "Invalid ico file: image outside of file")
             check_condition(img.ofs_img >= 6 + self.data.num_images * 16,
                     "Invalid ico file: image inside header")
+
     def calculate_unpacked_size(self):
         self.unpacked_size = self.infile.tell() - self.offset
         for i in self.data.images:
@@ -59,8 +60,11 @@ class IcoUnpackParser(UnpackParser):
     def unpack(self):
         """extract any files from the input file"""
         return []
+
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        self.unpack_results.set_labels(['graphics','ico','resource'])
-        self.unpack_results.set_metadata({})
+        labels = [['graphics', 'ico', 'resource']]
+        metadata = {}
 
+        self.unpack_results.set_labels(labels)
+        self.unpack_results.set_metadata(metadata)
