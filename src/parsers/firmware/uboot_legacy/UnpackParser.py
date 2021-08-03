@@ -125,7 +125,7 @@ class UbootLegacyUnpackParser(WrappedUnpackParser):
         if self.is_asus_device:
             labels.append('asus')
             asus_product_id = self.data.header.name_or_asus_info.asus_info.product_id
-            metadata['vendor'] = 'asus'
+            metadata['vendor'] = 'ASUS'
             metadata['product_id'] = asus_product_id
 
         self.unpack_results.set_metadata(metadata)
