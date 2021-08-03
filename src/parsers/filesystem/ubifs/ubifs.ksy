@@ -25,7 +25,7 @@ seq:
     repeat: expr
     repeat-expr: super.node_header.num_leb
 
-# some instances to access important data directly
+# some instances to access important data structures directly
 instances:
   super:
     pos: 0
@@ -144,9 +144,6 @@ types:
         -orig-id: compr_size
         type: u2
         doc: compressed data size in bytes, only valid when data is encrypted
-      #- id: data
-      #  size: 1
-      # dependent on header?
   directory_header:
     seq:
       - id: key
