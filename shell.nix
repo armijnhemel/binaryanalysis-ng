@@ -9,6 +9,7 @@ let
     deepdiff
     defusedxml
     kaitaistruct
+    leb128
     lz4
     python-lzo
     parameterized
