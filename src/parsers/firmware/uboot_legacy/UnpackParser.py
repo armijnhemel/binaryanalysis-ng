@@ -24,18 +24,15 @@
 import os
 import binascii
 import pathlib
-from FileResult import FileResult
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_uboot_legacy
 
+from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError, ValidationLessThanError, ValidationNotAnyOfError
 from . import uimage
 
 
-#class UbootLegacyUnpackParser(UnpackParser):
-class UbootLegacyUnpackParser(WrappedUnpackParser):
+class UbootLegacyUnpackParser(UnpackParser):
     extensions = []
 
     # There are different U-Boot files with different magic:
@@ -46,9 +43,6 @@ class UbootLegacyUnpackParser(WrappedUnpackParser):
         (0, b'\x83\x80\x00\x00')
     ]
     pretty_name = 'uboot_legacy'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_uboot_legacy(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         try:
@@ -121,6 +115,9 @@ class UbootLegacyUnpackParser(WrappedUnpackParser):
         metadata['load_address'] = self.data.header.load_address
         metadata['entry_point_address'] = self.data.header.entry_address
         metadata['image_data_crc'] = self.data.header.data_crc
+        metadata['os'] = self.data.header.os_type.name
+        metadata['architecture'] = self.data.header.architecture.name
+        metadata['image_type'] = self.data.header.image_type.name
 
         if self.is_asus_device:
             labels.append('asus')
