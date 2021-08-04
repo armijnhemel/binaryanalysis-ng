@@ -231,6 +231,7 @@ larger file, unless stated otherwise.
 147. SEAMA firmware files
 148. LLVM IR wrapper format (identification only)
 149. OpenWrt LXL firmware header
+150. Mediatek BootROM (header only)
 
 
 ## Invocation
