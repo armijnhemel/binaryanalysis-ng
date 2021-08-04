@@ -63,7 +63,7 @@ types:
       data:
         pos: ofs_image
         io: _parent._io
-        size: len_image
+        size: len_file
         if: ofs_image != 0
   rkfw:
     seq:
@@ -97,7 +97,7 @@ types:
         size: len_boot_image
       rkaf:
         pos: ofs_image
-        #size: len_boot_image
+        size: len_image
         type: rkaf
 enums:
   chip_identifiers:
