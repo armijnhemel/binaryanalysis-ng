@@ -232,6 +232,7 @@ larger file, unless stated otherwise.
 148. LLVM IR wrapper format (identification only)
 149. OpenWrt LXL firmware header
 150. Mediatek BootROM (header only)
+151. Rockchip RKFW and RKAF
 
 
 ## Invocation
