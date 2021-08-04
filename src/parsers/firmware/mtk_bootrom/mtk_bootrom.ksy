@@ -38,9 +38,6 @@ seq:
   - id: brom_security_config_data
     size: brom_security_config_header.len_data - brom_security_config_header._sizeof
     type: brom_security_config
-  #- id: sha256
-  #  size: file_info_data.signature_size
-  # TODO: in test files this doesn't match
 types:
   common_header:
     seq:
