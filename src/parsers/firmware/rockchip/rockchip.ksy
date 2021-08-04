@@ -4,6 +4,7 @@ meta:
   license: BSD
   endian: le
   encoding: UTF-8
+doc-ref: https://raw.githubusercontent.com/linux-rockchip/rkflashtool/0a5ad3a81/rkunpack.c
 seq:
   - id: rockchip
     type:
