@@ -27,8 +27,9 @@ seq:
       switch-on: version
       cases:
         '"079"': header_079
-        '"131"': header_137
-        '"137"': header_137
+        '"131"': header_131
+        '"137"': header_131
+        '"138"': header_131
 types:
   header_079:
     seq:
@@ -79,7 +80,7 @@ types:
       - id: key_value_store
         type: key_value_store
         size: len_key_value_store
-  header_137:
+  header_131:
     # same as header_079 but with a few more fields
     seq:
       - id: adler32_checksum
