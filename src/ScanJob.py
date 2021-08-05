@@ -246,10 +246,10 @@ class ScanJob:
             # TODO: check why this is a while true loop
             # instead of:
             # while unpacker.get_current_offset_in_file() != self.fileresult.filesize:
+            sigs_and_unpackers = self.scanenvironment.get_unpackparsers_for_signatures().items()
             while True:
                 candidateoffsetsfound = set()
-                for s, unpackparsers in \
-                    self.scanenvironment.get_unpackparsers_for_signatures().items():
+                for s, unpackparsers in sigs_and_unpackers:
                     offsets = unpacker.find_offsets_for_signature(s,
                             unpackparsers, self.fileresult.filesize)
                     candidateoffsetsfound.update(offsets)
