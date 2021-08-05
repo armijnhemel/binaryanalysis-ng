@@ -75,7 +75,7 @@ class UbootLegacyUnpackParser(UnpackParser):
         self.is_asus_device = False
         asus_product_families = ['GS-', 'GT-', 'RP-', 'RT-']
         try:
-            asus_product_id = self.data.header.name_or_asus_info.asus_info.product_id
+            asus_product_id = self.data.header.asus_info.product_id
             for family in asus_product_families:
                 if asus_product_id.startswith(family):
                     self.is_asus_device = True
@@ -90,10 +90,10 @@ class UbootLegacyUnpackParser(UnpackParser):
         # on the image type of the U-Boot file.
 
 
-        if self.is_asus_device or self.data.header.name_or_asus_info.name == '':
+        if self.is_asus_device or self.data.header.name == '':
             imagename = self.data.header.image_type.name
         else:
-            imagename = self.data.header.name_or_asus_info.name
+            imagename = self.data.header.name
 
         outfile_rel = self.rel_unpack_dir / imagename
         outfile_full = self.scan_environment.unpack_path(outfile_rel)
@@ -121,7 +121,7 @@ class UbootLegacyUnpackParser(UnpackParser):
 
         if self.is_asus_device:
             labels.append('asus')
-            asus_product_id = self.data.header.name_or_asus_info.asus_info.product_id
+            asus_product_id = self.data.header.asus_info.product_id
             metadata['vendor'] = 'ASUS'
             metadata['product_id'] = asus_product_id
 

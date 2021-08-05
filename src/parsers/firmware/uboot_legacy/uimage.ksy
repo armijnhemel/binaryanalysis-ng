@@ -83,17 +83,13 @@ types:
             - uimage_comp::lzo
             - uimage_comp::lz4
             - uimage_comp::lzstd
-      - id: name_or_asus_info
-        size: 32
-        type: name_or_asus_info
-  name_or_asus_info:
-    seq:
       - id: name
         encoding: UTF-8
         type: strz
+        size: 32
     instances:
       asus_info:
-        pos: 0
+        pos: 32
         type: asus_firmware_information
   asus_firmware_information:
     seq:
