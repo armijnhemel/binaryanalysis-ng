@@ -61,6 +61,7 @@ class ElfUnpackParser(WrappedUnpackParser):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'elf' ]
         metadata = {}
+        string_cutoff_length = 4
 
         if self.data.bits == elf.Elf.Bits.b32:
             metadata['bits'] = 32
@@ -95,7 +96,7 @@ class ElfUnpackParser(WrappedUnpackParser):
         metadata['machine'] = self.data.header.machine.value
 
         metadata['security'] = []
-        metadata['section_names'] = self.data.header.strings.entries
+        metadata['section_names'] = self.data.header.section_names.entries
 
         # keep track of whether or not GNU_RELRO has been set
         seen_relro = False
@@ -155,7 +156,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                     metadata['gnu debuglink'] = link_name
                 elif header.name in rodata_sections:
                     for s in header.body.split(b'\x00'):
-                        if len(s) < 2:
+                        if len(s) < string_cutoff_length:
                             continue
                         try:
                             data_strings.append(s.decode())
@@ -223,7 +224,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                 # Although not common notes sections can be merged
                 # with eachother.
                 for entry in header.body.entries:
-                    if entry.note_name == b'GNU\x00' and entry.note_type == 1:
+                    if entry.name == b'GNU\x00' and entry.type == 1:
                         # https://raw.githubusercontent.com/wiki/hjl-tools/linux-abi/linux-abi-draft.pdf
                         # normally in .note.ABI.tag
                         major_version = int.from_bytes(entry.note_description[4:8],
@@ -233,7 +234,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                         sublevel = int.from_bytes(entry.note_description[12:],
                                                   byteorder=metadata['endian'])
                         metadata['linux_version'] = (major_version, patchlevel, sublevel)
-                    elif entry.note_name == b'GNU\x00' and entry.note_type == 3:
+                    elif entry.name == b'GNU\x00' and entry.type == 3:
                         # normally in .note.gnu.build-id
                         buildid = binascii.hexlify(entry.note_description).decode()
                         metadata['build-id'] = buildid
@@ -241,28 +242,28 @@ class ElfUnpackParser(WrappedUnpackParser):
                             metadata['build-id hash'] = 'sha1'
                         elif len(buildid) == 32:
                             metadata['build-id hash'] = 'md5'
-                    elif entry.note_name == b'GNU\x00' and entry.note_type == 4:
+                    elif entry.name == b'GNU\x00' and entry.type == 4:
                         # normally in .note.gnu.gold-version
                         metadata['gold-version'] = entry.note_description.split(b'\x00', 1)[0].decode()
-                    elif entry.note_name == b'GNU\x00' and entry.note_type == 5:
+                    elif entry.name == b'GNU\x00' and entry.type == 5:
                         # normally in .note.gnu.property
                         pass
-                    elif entry.note_name == b'Go\x00\x00' and entry.note_type == 4:
+                    elif entry.name == b'Go\x00\x00' and entry.type == 4:
                         # normally in .note.go.buildid
                         # there are four hashes concatenated
                         # https://golang.org/pkg/cmd/internal/buildid/#FindAndHash
                         pass
-                    elif entry.note_name == b'Crashpad\x00\x00\x00\x00' and entry.note_type == 0x4f464e49:
+                    elif entry.name == b'Crashpad\x00\x00\x00\x00' and entry.type == 0x4f464e49:
                         # https://chromium.googlesource.com/crashpad/crashpad/+/refs/heads/master/util/misc/elf_note_types.h
                         pass
-                    elif entry.note_name == b'stapsdt\x00' and entry.note_type == 3:
+                    elif entry.name == b'stapsdt\x00' and entry.type == 3:
                         # SystemTap probe descriptors
                         labels.append('SystemTap')
-                    elif entry.note_name == b'FreeBSD\x00':
+                    elif entry.name == b'FreeBSD\x00':
                         labels.append('freebsd')
-                    elif entry.note_name == b'OpenBSD\x00':
+                    elif entry.name == b'OpenBSD\x00':
                         labels.append('openbsd')
-                    elif entry.note_name == b'NetBSD\x00':
+                    elif entry.name == b'NetBSD\x00':
                         # https://www.netbsd.org/docs/kernel/elf-notes.html
                         labels.append('netbsd')
                     else:
