@@ -10,7 +10,9 @@ doc: |
   icons - ICO. This is a container that contains one or more image
   files (effectively, DIB parts of BMP files or full PNG files are
   contained inside).
-doc-ref: https://msdn.microsoft.com/en-us/library/ms997538.aspx
+doc-ref:
+  - https://msdn.microsoft.com/en-us/library/ms997538.aspx
+  - https://en.wikipedia.org/wiki/ICO_(file_format)
 seq:
   - id: magic
     contents: [0, 0, 1, 0]
@@ -32,15 +34,11 @@ types:
       - id: width
         -orig-id: bWidth
         type: u1
-        valid:
-          min: 1
-        doc: Width of image, px
+        doc: Width of image, px. Value 0 means image width is 256 pixels.
       - id: height
         -orig-id: bHeight
         type: u1
-        valid:
-          min: 1
-        doc: Height of image, px
+        doc: Height of image, px. Value 0 means image height is 256 pixels.
       - id: num_colors
         -orig-id: bColorCount
         type: u1
