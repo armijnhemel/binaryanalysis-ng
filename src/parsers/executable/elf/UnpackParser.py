@@ -47,15 +47,34 @@ class ElfUnpackParser(WrappedUnpackParser):
         self.chunknames = set()
         try:
             self.data = elf.Elf.from_io(self.infile)
+
+            # calculate size, also read all the data to catch EOF
+            phoff = self.data.header.program_header_offset
+            self.unpacked_size = phoff
             for header in self.data.header.program_headers:
-                pass
+                self.unpacked_size = max(self.unpacked_size, phoff + header.offset + header.filesz)
+
+            # TODO: Qualcomm DSP6 (Hexagon) files, as found on many
+            # Android devices.
+
+            # typically the section header is at the end of the ELF file
+            shoff = self.data.header.section_header_offset
+            self.unpacked_size = max(self.unpacked_size, shoff + self.data.header.qty_section_header
+                                     * self.data.header.section_header_entry_size)
+            for header in self.data.header.section_headers:
+                self.unpacked_size = max(self.unpacked_size, header.ofs_body + header.len_body)
+
+                # ugly ugly hack to work around situations on Android where
+                # ELF files have been split into individual sections and all
+                # offsets are wrong.
+                if header.type == elf.Elf.ShType.note:
+                    for entry in header.body.entries:
+                        pass
         except (Exception, ValidationNotEqualError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):
-        self.unpacked_size = self.data.header.section_header_offset
-        for header in self.data.header.section_headers:
-            self.unpacked_size += self.data.header.section_header_entry_size
+        pass
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
@@ -96,7 +115,8 @@ class ElfUnpackParser(WrappedUnpackParser):
         metadata['machine'] = self.data.header.machine.value
 
         metadata['security'] = []
-        metadata['section_names'] = self.data.header.section_names.entries
+        if self.data.header.section_names is not None:
+            metadata['section_names'] = self.data.header.section_names.entries
 
         # keep track of whether or not GNU_RELRO has been set
         seen_relro = False
@@ -142,7 +162,7 @@ class ElfUnpackParser(WrappedUnpackParser):
         for header in self.data.header.section_headers:
             if header.name in ['.modinfo', '__ksymtab_strings']:
                 labels.append('linuxkernelmodule')
-            elif header.name in ['oat_patches', '.text.oat_patches']:
+            elif header.name in ['oat_patches', '.text.oat_patches', '.dex']:
                 labels.append('oat')
                 labels.append('android')
             elif header.name in ['.guile.procprops', '.guile.frame-maps',
@@ -161,6 +181,19 @@ class ElfUnpackParser(WrappedUnpackParser):
                             runpath = entry.value_str
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
                             soname = entry.value_str
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags_1:
+                            # check for position independent code
+                            if entry.flag_1_values.pie:
+                                metadata['security'].append('pie')
+                            # check for bind_now
+                            if entry.flag_1_values.now:
+                                if seen_relro:
+                                    metadata['security'].append('full relro')
+                                else:
+                                    metadata['security'].append('partial relro')
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags:
+                            # TODO: check for bind_now here as well
+                            pass
             elif header.type == elf.Elf.ShType.symtab:
                 if header.name == '.symtab':
                     for entry in header.body.entries:
