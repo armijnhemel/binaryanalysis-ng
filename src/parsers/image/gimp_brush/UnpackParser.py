@@ -16,7 +16,7 @@ class GimpBrushUnpackParser(UnpackParser):
 
     def calculate_unpacked_size(self):
         try:
-            self.unpacked_size = self.data.len_header + self.data.body_size
+            self.unpacked_size = self.data.len_header + self.data.len_body
         except BaseException as e:
             raise UnpackParserException(e.args)
 
@@ -35,7 +35,7 @@ class GimpBrushUnpackParser(UnpackParser):
         check_condition(self.data.header.width > 0, "Invalid width")
         check_condition(self.data.header.height > 0, "Invalid height")
         check_condition(self.data.len_header > 0, "Invalid header_size")
-        unpacked_size = self.data.len_header + self.data.body_size
+        unpacked_size = self.data.len_header + self.data.len_body
 
         check_condition(unpacked_size <= self.fileresult.filesize, "Not enough data")
         try:
