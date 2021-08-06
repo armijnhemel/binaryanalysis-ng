@@ -747,6 +747,7 @@ enums:
     # EM_X86_64
     0x3e: x86_64
     0x53: avr
+    0x5e: xtensa
     0xa4: qdsp6
     0xb9: avr32
     0xb7: aarch64
