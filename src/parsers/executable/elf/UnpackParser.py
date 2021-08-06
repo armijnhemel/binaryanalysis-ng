@@ -115,6 +115,23 @@ class ElfUnpackParser(WrappedUnpackParser):
         # store the data normally extracted using for example 'strings'
         data_strings = []
 
+        # store dependencies (empty for statically linked binaries)
+        needed = []
+
+        # store dynamic symbols (empty for statically linked binaries)
+        dynamic_symbols = []
+
+        # store symbols (empty for most binaries, except for
+        # non-stripped binaries)
+        symbols = []
+
+        # store RPATH and RUNPATH. Both could be present in a binary
+        rpath = ''
+        runpath = ''
+
+        # shared object name (for libraries)
+        soname = ''
+
         # only look at a few interesting sections. This should be expanded.
         rodata_sections = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
                            '.rodata.str1.8', '.rodata.cst4', '.rodata.cst8',
@@ -133,7 +150,48 @@ class ElfUnpackParser(WrappedUnpackParser):
                                  '.guile.docstrs.strtab', '.guile.docstrs']:
                 labels.append('guile')
 
-            if header.type == elf.Elf.ShType.progbits:
+            if header.type == elf.Elf.ShType.dynamic:
+                if header.name == '.dynamic':
+                    for entry in header.body.entries:
+                        if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
+                            needed.append(entry.value_str)
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
+                            rpath = entry.value_str
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
+                            runpath = entry.value_str
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
+                            soname = entry.value_str
+            elif header.type == elf.Elf.ShType.symtab:
+                if header.name == '.symtab':
+                    for entry in header.body.entries:
+                        symbol = {}
+                        if entry.name == None:
+                            symbol['name'] = ''
+                        else:
+                            symbol['name'] = entry.name
+                        symbol['type'] = entry.type.name
+                        symbol['binding'] = entry.bind.name
+                        symbol['visibility'] = entry.visibility.name
+                        symbol['section_index'] = entry.sh_idx
+                        symbol['size'] = entry.size
+                        symbols.append(symbol)
+            elif header.type == elf.Elf.ShType.dynsym:
+                if header.name == '.dynsym':
+                    for entry in header.body.entries:
+                        symbol = {}
+                        if entry.name == None:
+                            symbol['name'] = ''
+                        else:
+                            symbol['name'] = entry.name
+                        symbol['type'] = entry.type.name
+                        symbol['binding'] = entry.bind.name
+                        symbol['visibility'] = entry.visibility.name
+                        symbol['section_index'] = entry.sh_idx
+                        symbol['size'] = entry.size
+                        symbols.append(symbol)
+                        dynamic_symbols.append(symbol)
+
+            elif header.type == elf.Elf.ShType.progbits:
                 # process the various progbits sections here
                 if header.name == '.comment':
                     # comment, typically in binaries that have
@@ -270,6 +328,12 @@ class ElfUnpackParser(WrappedUnpackParser):
                         pass
 
         metadata['strings'] = data_strings
+        metadata['symbols'] = symbols
+        metadata['dynamic_symbols'] = dynamic_symbols
+        metadata['rpath'] = rpath
+        metadata['runpath'] = runpath
+        metadata['soname'] = soname
+        metadata['needed'] = needed
 
         if is_dynamic_elf:
             labels.append('dynamic')
