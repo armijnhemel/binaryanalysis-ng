@@ -47,7 +47,14 @@ types:
           no palette (i.e. RGB, RGBA, etc)
       - id: reserved
         -orig-id: bReserved
-        contents: [0]
+        type: u1
+        valid:
+          any-of: [0, 255]
+        doc: |
+          According to Wikipedia: "Although Microsoft's technical documentation
+          states that this value must be zero, the icon encoder built into .NET
+          (System.Drawing.Icon.Save) sets this value to 255. It appears that
+          the operating system ignores this value altogether."
       - id: num_planes
         -orig-id: wPlanes
         type: u2
