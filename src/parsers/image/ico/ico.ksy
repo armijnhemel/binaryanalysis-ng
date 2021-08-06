@@ -103,6 +103,8 @@ types:
       - id: len_header
         -orig-id: biSize
         type: u4
+        valid:
+          any-of: [12, 64, 16, 40, 52, 56, 108, 124]
       - id: width
         -orig-id: biWidth
         type: u4
