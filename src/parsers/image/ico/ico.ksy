@@ -90,3 +90,54 @@ types:
       is_png:
         value: png_header == [137, 80, 78, 71, 13, 10, 26, 10]
         doc: True if this image is in PNG format.
+      bmp:
+        pos: ofs_img
+        size: len_img
+        type: bitmapinfoheader
+        doc: |
+          Pre-reads first 8 bytes of the image to determine if it's an
+          embedded PNG file.
+        if: not is_png
+  bitmapinfoheader:
+    seq:
+      - id: len_header
+        -orig-id: biSize
+        type: u4
+      - id: width
+        -orig-id: biWidth
+        type: u4
+      - id: height
+        -orig-id: biHeight
+        type: u4
+      - id: planes
+        -orig-id: biPlanes
+        type: u2
+      - id: bit_count
+        type: u2
+      - id: compression
+        type: u4
+        valid: 0
+      - id: len_image
+        -orig-id: biSizeImage
+        type: u4
+      - id: x_resolution
+        -orig-id: biXPelsPerMeter
+        type: u4
+        valid: 0
+      - id: y_resolution
+        -orig-id: biYPelsPerMeter
+        type: u4
+        valid: 0
+      - id: num_colors_used
+        -orig-id: biClrUsed
+        type: u4
+        valid: 0
+      - id: num_colors_important
+        -orig-id: biClrImportant
+        type: u4
+        valid: 0
+    doc: |
+      The icHeader member has the form of a DIB BITMAPINFOHEADER. Only the
+      following members are used: biSize, biWidth, biHeight, biPlanes,
+      biBitCount, biSizeImage. All other members must be 0.
+    doc-ref: https://web.archive.org/web/20160531004250/https://msdn.microsoft.com/en-us/library/ms997538.aspx

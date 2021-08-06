@@ -40,7 +40,12 @@ class IcoUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
+
         for img in self.data.images:
+            try:
+                bmp_header = img.bmp
+            except (Exception, ValidationNotEqualError) as e:
+                raise UnpackParserException(e.args)
             #check_condition(img.num_colors > 0,
                     #"Invalid ico file: zero or negative num_colors")
             check_condition(img.num_planes > 0,
