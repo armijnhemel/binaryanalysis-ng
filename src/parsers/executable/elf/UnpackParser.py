@@ -315,48 +315,52 @@ class ElfUnpackParser(WrappedUnpackParser):
                 # Although not common notes sections can be merged
                 # with eachother.
                 for entry in header.body.entries:
-                    if entry.name == b'GNU\x00' and entry.type == 1:
+                    if entry.name == b'GNU' and entry.type == 1:
                         # https://raw.githubusercontent.com/wiki/hjl-tools/linux-abi/linux-abi-draft.pdf
                         # normally in .note.ABI.tag
-                        major_version = int.from_bytes(entry.note_description[4:8],
+                        major_version = int.from_bytes(entry.descriptor[4:8],
                                                        byteorder=metadata['endian'])
-                        patchlevel = int.from_bytes(entry.note_description[8:12],
+                        patchlevel = int.from_bytes(entry.descriptor[8:12],
                                                     byteorder=metadata['endian'])
-                        sublevel = int.from_bytes(entry.note_description[12:],
+                        sublevel = int.from_bytes(entry.descriptor[12:],
                                                   byteorder=metadata['endian'])
                         metadata['linux_version'] = (major_version, patchlevel, sublevel)
-                    elif entry.name == b'GNU\x00' and entry.type == 3:
+                    elif entry.name == b'GNU' and entry.type == 3:
                         # normally in .note.gnu.build-id
-                        buildid = binascii.hexlify(entry.note_description).decode()
+                        buildid = binascii.hexlify(entry.descriptor).decode()
                         metadata['build-id'] = buildid
                         if len(buildid) == 40:
                             metadata['build-id hash'] = 'sha1'
                         elif len(buildid) == 32:
                             metadata['build-id hash'] = 'md5'
-                    elif entry.name == b'GNU\x00' and entry.type == 4:
+                    elif entry.name == b'GNU' and entry.type == 4:
                         # normally in .note.gnu.gold-version
-                        metadata['gold-version'] = entry.note_description.split(b'\x00', 1)[0].decode()
-                    elif entry.name == b'GNU\x00' and entry.type == 5:
+                        metadata['gold-version'] = entry.descriptor.split(b'\x00', 1)[0].decode()
+                    elif entry.name == b'GNU' and entry.type == 5:
                         # normally in .note.gnu.property
                         pass
-                    elif entry.name == b'Go\x00\x00' and entry.type == 4:
+                    elif entry.name == b'Go' and entry.type == 4:
                         # normally in .note.go.buildid
                         # there are four hashes concatenated
                         # https://golang.org/pkg/cmd/internal/buildid/#FindAndHash
                         pass
-                    elif entry.name == b'Crashpad\x00\x00\x00\x00' and entry.type == 0x4f464e49:
+                    elif entry.name == b'Crashpad' and entry.type == 0x4f464e49:
                         # https://chromium.googlesource.com/crashpad/crashpad/+/refs/heads/master/util/misc/elf_note_types.h
                         pass
-                    elif entry.name == b'stapsdt\x00' and entry.type == 3:
+                    elif entry.name == b'stapsdt' and entry.type == 3:
                         # SystemTap probe descriptors
                         labels.append('SystemTap')
-                    elif entry.name == b'FreeBSD\x00':
+                    elif entry.name == b'FreeBSD':
                         labels.append('freebsd')
-                    elif entry.name == b'OpenBSD\x00':
+                    elif entry.name == b'OpenBSD':
                         labels.append('openbsd')
-                    elif entry.name == b'NetBSD\x00':
+                    elif entry.name == b'NetBSD':
                         # https://www.netbsd.org/docs/kernel/elf-notes.html
                         labels.append('netbsd')
+                    elif entry.name == b'Android' and entry.type == 1:
+                        # https://android.googlesource.com/platform/ndk/+/master/parse_elfnote.py
+                        labels.append('android')
+                        metadata['android ndk'] = int.from_bytes(entry.descriptor, byteorder='little')
                     else:
                         pass
 
