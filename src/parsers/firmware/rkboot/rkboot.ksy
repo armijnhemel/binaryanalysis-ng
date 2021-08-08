@@ -35,6 +35,10 @@ instances:
     type: rk_entry(4)
     repeat: expr
     repeat-expr: header.num_entries_loader
+  # at the end there is also a 4 byte CRC
+  # crc:
+  #   pos: after entries_loader[-1].data
+  #   size: 4
 types:
   header:
     seq:
@@ -97,6 +101,8 @@ types:
         valid: valid_version
       - id: name
         size: 40
+        type: str
+        encoding: utf-16-le
       - id: ofs_data
         type: u4
       - id: len_data
@@ -110,12 +116,19 @@ types:
         size: len_data
 enums:
   rkdevice:
+    # not complete, there are other other chips
     0: none
-    0x10: rk27
-    0x20: rk28
-    0x30: rknano
-    0x40: rkcrown
-    0x50: rk29
-    0x60: rk30
-    0x70: rk31
-    0x80: rk32
+    0x524b3237: rk27
+    0x32373341: rkcayman
+    0x524b3238: rk28
+    0x32383158: rk281x
+    0x32383242: rkpanda
+    0x32393058: rk29
+    0x32393258: rk292x
+    0x33303041: rk30
+    0x33313041: rk30b
+    0x33313042: rk31
+    0x33323041: rk32
+    0x32363243: rksmart
+    0x6e616e6f: rknano
+    0x4e4f5243: rkcrown
