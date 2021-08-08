@@ -47,20 +47,40 @@ class ElfUnpackParser(WrappedUnpackParser):
         self.chunknames = set()
         try:
             self.data = elf.Elf.from_io(self.infile)
+
+            # calculate size, also read all the data to catch EOF
+            phoff = self.data.header.program_header_offset
+            self.unpacked_size = phoff
             for header in self.data.header.program_headers:
-                pass
+                self.unpacked_size = max(self.unpacked_size, phoff + header.offset + header.filesz)
+
+            # TODO: Qualcomm DSP6 (Hexagon) files, as found on many
+            # Android devices.
+
+            # typically the section header is at the end of the ELF file
+            shoff = self.data.header.section_header_offset
+            self.unpacked_size = max(self.unpacked_size, shoff + self.data.header.qty_section_header
+                                     * self.data.header.section_header_entry_size)
+            for header in self.data.header.section_headers:
+                self.unpacked_size = max(self.unpacked_size, header.ofs_body + header.len_body)
+
+                # ugly ugly hack to work around situations on Android where
+                # ELF files have been split into individual sections and all
+                # offsets are wrong.
+                if header.type == elf.Elf.ShType.note:
+                    for entry in header.body.entries:
+                        pass
         except (Exception, ValidationNotEqualError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):
-        self.unpacked_size = self.data.header.section_header_offset
-        for header in self.data.header.section_headers:
-            self.unpacked_size += self.data.header.section_header_entry_size
+        pass
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'elf' ]
         metadata = {}
+        string_cutoff_length = 4
 
         if self.data.bits == elf.Elf.Bits.b32:
             metadata['bits'] = 32
@@ -95,7 +115,8 @@ class ElfUnpackParser(WrappedUnpackParser):
         metadata['machine'] = self.data.header.machine.value
 
         metadata['security'] = []
-        metadata['section_names'] = self.data.header.strings.entries
+        if self.data.header.section_names is not None:
+            metadata['section_names'] = self.data.header.section_names.entries
 
         # keep track of whether or not GNU_RELRO has been set
         seen_relro = False
@@ -114,6 +135,23 @@ class ElfUnpackParser(WrappedUnpackParser):
         # store the data normally extracted using for example 'strings'
         data_strings = []
 
+        # store dependencies (empty for statically linked binaries)
+        needed = []
+
+        # store dynamic symbols (empty for statically linked binaries)
+        dynamic_symbols = []
+
+        # store symbols (empty for most binaries, except for
+        # non-stripped binaries)
+        symbols = []
+
+        # store RPATH and RUNPATH. Both could be present in a binary
+        rpath = ''
+        runpath = ''
+
+        # shared object name (for libraries)
+        soname = ''
+
         # only look at a few interesting sections. This should be expanded.
         rodata_sections = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
                            '.rodata.str1.8', '.rodata.cst4', '.rodata.cst8',
@@ -124,7 +162,7 @@ class ElfUnpackParser(WrappedUnpackParser):
         for header in self.data.header.section_headers:
             if header.name in ['.modinfo', '__ksymtab_strings']:
                 labels.append('linuxkernelmodule')
-            elif header.name in ['oat_patches', '.text.oat_patches']:
+            elif header.name in ['oat_patches', '.text.oat_patches', '.dex']:
                 labels.append('oat')
                 labels.append('android')
             elif header.name in ['.guile.procprops', '.guile.frame-maps',
@@ -132,7 +170,61 @@ class ElfUnpackParser(WrappedUnpackParser):
                                  '.guile.docstrs.strtab', '.guile.docstrs']:
                 labels.append('guile')
 
-            if header.type == elf.Elf.ShType.progbits:
+            if header.type == elf.Elf.ShType.dynamic:
+                if header.name == '.dynamic':
+                    for entry in header.body.entries:
+                        if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
+                            needed.append(entry.value_str)
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
+                            rpath = entry.value_str
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
+                            runpath = entry.value_str
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
+                            soname = entry.value_str
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags_1:
+                            # check for position independent code
+                            if entry.flag_1_values.pie:
+                                metadata['security'].append('pie')
+                            # check for bind_now
+                            if entry.flag_1_values.now:
+                                if seen_relro:
+                                    metadata['security'].append('full relro')
+                                else:
+                                    metadata['security'].append('partial relro')
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags:
+                            # TODO: check for bind_now here as well
+                            pass
+            elif header.type == elf.Elf.ShType.symtab:
+                if header.name == '.symtab':
+                    for entry in header.body.entries:
+                        symbol = {}
+                        if entry.name == None:
+                            symbol['name'] = ''
+                        else:
+                            symbol['name'] = entry.name
+                        symbol['type'] = entry.type.name
+                        symbol['binding'] = entry.bind.name
+                        symbol['visibility'] = entry.visibility.name
+                        symbol['section_index'] = entry.sh_idx
+                        symbol['size'] = entry.size
+                        symbols.append(symbol)
+            elif header.type == elf.Elf.ShType.dynsym:
+                if header.name == '.dynsym':
+                    for entry in header.body.entries:
+                        symbol = {}
+                        if entry.name == None:
+                            symbol['name'] = ''
+                        else:
+                            symbol['name'] = entry.name
+                        symbol['type'] = entry.type.name
+                        symbol['binding'] = entry.bind.name
+                        symbol['visibility'] = entry.visibility.name
+                        symbol['section_index'] = entry.sh_idx
+                        symbol['size'] = entry.size
+                        symbols.append(symbol)
+                        dynamic_symbols.append(symbol)
+
+            elif header.type == elf.Elf.ShType.progbits:
                 # process the various progbits sections here
                 if header.name == '.comment':
                     # comment, typically in binaries that have
@@ -155,7 +247,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                     metadata['gnu debuglink'] = link_name
                 elif header.name in rodata_sections:
                     for s in header.body.split(b'\x00'):
-                        if len(s) < 2:
+                        if len(s) < string_cutoff_length:
                             continue
                         try:
                             data_strings.append(s.decode())
@@ -223,52 +315,62 @@ class ElfUnpackParser(WrappedUnpackParser):
                 # Although not common notes sections can be merged
                 # with eachother.
                 for entry in header.body.entries:
-                    if entry.note_name == b'GNU\x00' and entry.note_type == 1:
+                    if entry.name == b'GNU' and entry.type == 1:
                         # https://raw.githubusercontent.com/wiki/hjl-tools/linux-abi/linux-abi-draft.pdf
                         # normally in .note.ABI.tag
-                        major_version = int.from_bytes(entry.note_description[4:8],
+                        major_version = int.from_bytes(entry.descriptor[4:8],
                                                        byteorder=metadata['endian'])
-                        patchlevel = int.from_bytes(entry.note_description[8:12],
+                        patchlevel = int.from_bytes(entry.descriptor[8:12],
                                                     byteorder=metadata['endian'])
-                        sublevel = int.from_bytes(entry.note_description[12:],
+                        sublevel = int.from_bytes(entry.descriptor[12:],
                                                   byteorder=metadata['endian'])
                         metadata['linux_version'] = (major_version, patchlevel, sublevel)
-                    elif entry.note_name == b'GNU\x00' and entry.note_type == 3:
+                    elif entry.name == b'GNU' and entry.type == 3:
                         # normally in .note.gnu.build-id
-                        buildid = binascii.hexlify(entry.note_description).decode()
+                        buildid = binascii.hexlify(entry.descriptor).decode()
                         metadata['build-id'] = buildid
                         if len(buildid) == 40:
                             metadata['build-id hash'] = 'sha1'
                         elif len(buildid) == 32:
                             metadata['build-id hash'] = 'md5'
-                    elif entry.note_name == b'GNU\x00' and entry.note_type == 4:
+                    elif entry.name == b'GNU' and entry.type == 4:
                         # normally in .note.gnu.gold-version
-                        metadata['gold-version'] = entry.note_description.split(b'\x00', 1)[0].decode()
-                    elif entry.note_name == b'GNU\x00' and entry.note_type == 5:
+                        metadata['gold-version'] = entry.descriptor.split(b'\x00', 1)[0].decode()
+                    elif entry.name == b'GNU' and entry.type == 5:
                         # normally in .note.gnu.property
                         pass
-                    elif entry.note_name == b'Go\x00\x00' and entry.note_type == 4:
+                    elif entry.name == b'Go' and entry.type == 4:
                         # normally in .note.go.buildid
                         # there are four hashes concatenated
                         # https://golang.org/pkg/cmd/internal/buildid/#FindAndHash
                         pass
-                    elif entry.note_name == b'Crashpad\x00\x00\x00\x00' and entry.note_type == 0x4f464e49:
+                    elif entry.name == b'Crashpad' and entry.type == 0x4f464e49:
                         # https://chromium.googlesource.com/crashpad/crashpad/+/refs/heads/master/util/misc/elf_note_types.h
                         pass
-                    elif entry.note_name == b'stapsdt\x00' and entry.note_type == 3:
+                    elif entry.name == b'stapsdt' and entry.type == 3:
                         # SystemTap probe descriptors
                         labels.append('SystemTap')
-                    elif entry.note_name == b'FreeBSD\x00':
+                    elif entry.name == b'FreeBSD':
                         labels.append('freebsd')
-                    elif entry.note_name == b'OpenBSD\x00':
+                    elif entry.name == b'OpenBSD':
                         labels.append('openbsd')
-                    elif entry.note_name == b'NetBSD\x00':
+                    elif entry.name == b'NetBSD':
                         # https://www.netbsd.org/docs/kernel/elf-notes.html
                         labels.append('netbsd')
+                    elif entry.name == b'Android' and entry.type == 1:
+                        # https://android.googlesource.com/platform/ndk/+/master/parse_elfnote.py
+                        labels.append('android')
+                        metadata['android ndk'] = int.from_bytes(entry.descriptor, byteorder='little')
                     else:
                         pass
 
         metadata['strings'] = data_strings
+        metadata['symbols'] = symbols
+        metadata['dynamic_symbols'] = dynamic_symbols
+        metadata['rpath'] = rpath
+        metadata['runpath'] = runpath
+        metadata['soname'] = soname
+        metadata['needed'] = needed
 
         if is_dynamic_elf:
             labels.append('dynamic')
