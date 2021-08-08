@@ -233,6 +233,7 @@ larger file, unless stated otherwise.
 149. OpenWrt LXL firmware header
 150. Mediatek BootROM (header only)
 151. Rockchip RKFW and RKAF
+152. systemd journal files
 
 
 ## Invocation
