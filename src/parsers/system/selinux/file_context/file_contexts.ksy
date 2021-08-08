@@ -5,6 +5,7 @@ meta:
   license: CC0-1.0
   encoding: UTF-8
   endian: le
+# note: regex-arch (introduced in version 5) seems to be missing from the description in the source code
 doc-ref: https://github.com/SELinuxProject/selinux/blob/b550c0e/libselinux/utils/sefcontext_compile.c#L68
 seq:
   - id: magic
@@ -18,6 +19,13 @@ seq:
   - id: pcre_version
     type: strz
     size: len_pcre_version
+  - id: len_regex_arch
+    type: u4
+    if: version > 4
+  - id: regex_arch
+    type: strz
+    size: len_regex_arch
+    if: version > 4
   - id: num_stems
     type: u4
   - id: stems
