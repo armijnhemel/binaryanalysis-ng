@@ -86,6 +86,30 @@ types:
         size: header.len_full_node - header._sizeof
         type: superblock_header
 
+  block:
+    seq:
+      - id: header
+        type: common_header
+      - id: node_header
+        size: header.len_full_node - header._sizeof
+        type:
+          switch-on: header.node_type
+          cases:
+            node_types::inode: inode_header
+            node_types::data: data_header
+            node_types::directory: directory_header
+            #node_types::extended_attribute
+            node_types::truncation: truncation_header
+            node_types::padding: padding_header
+            #node_types::superblock: superblock_header
+            #node_types::master: master_header
+            node_types::reference: reference_header
+            node_types::index: index_header
+            node_types::commit_start: commit_start_header
+            #node_types::orphan:
+            #node_types::authentication
+            #node_types::signature
+
   # Common types
   common_header:
     seq:
@@ -140,7 +164,7 @@ types:
         type: u2
         enum: compression
         doc: compression type (%UBIFS_COMPR_NONE, %UBIFS_COMPR_LZO, etc)
-      - id: len_data
+      - id: len_compressed_data
         -orig-id: compr_size
         type: u2
         doc: compressed data size in bytes, only valid when data is encrypted
@@ -599,6 +623,12 @@ types:
           In an authenticated UBIFS we have the hash of the referenced node after @key.
           This can't be added to the struct type definition because @key is a
           dynamically sized element already.
+    instances:
+      branch_target:
+        pos: target_leb * _root.super.node_header.leb_size + ofs_target
+        size: len_target
+        io: _root._io
+        type: block
 
 enums:
   compression:
