@@ -36,9 +36,9 @@ instances:
     repeat: expr
     repeat-expr: header.num_entries_loader
   # at the end there is also a 4 byte CRC
-  # crc:
-  #   pos: after entries_loader[-1].data
-  #   size: 4
+  crc:
+    pos: entries_loader.last.ofs_data + entries_loader.last.len_data
+    size: 4
 types:
   header:
     seq:

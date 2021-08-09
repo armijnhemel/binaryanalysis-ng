@@ -49,9 +49,11 @@ class RockchipUnpackParser(UnpackParser):
                 self.unpacked_size = max(self.unpacked_size, entry.ofs_data + entry.len_data)
             for entry in self.data.entries_loader:
                 self.unpacked_size = max(self.unpacked_size, entry.ofs_data + entry.len_data)
+            # crc32 at the end of the file
+            crc = self.data.crc
+            self.unpacked_size += 4
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
-        # TODO: crc32 at the end of the file
 
 
     # no need to carve from the file
