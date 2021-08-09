@@ -285,6 +285,8 @@ types:
         repeat: expr
         repeat-expr: 26
         doc: reserved for future, zeroes
+      - id: data
+        size: len_data
     instances:
       compressed:
         value: flags & 0x01 == 0x01
@@ -462,6 +464,18 @@ types:
         repeat-expr: 28
         doc: reserved for future, zeroes
     doc: logical eraseblock reference node.
+  signature_header:
+    seq:
+      - id: type
+        type: u4
+      - id: len_signature
+        type: u4
+      - id: padding
+        type: padding_byte
+        repeat: expr
+        repeat-expr: 32
+      - id: signature
+        size: len_signature
   superblock_header:
     seq:
       - id: padding1
