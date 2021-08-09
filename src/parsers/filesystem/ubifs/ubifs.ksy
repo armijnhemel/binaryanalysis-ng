@@ -156,7 +156,7 @@ types:
       - id: key
         size: 16
         doc: node key
-      - id: uncompressed_size
+      - id: len_uncompressed
         -orig-id: size
         type: u4
         doc: uncompressed data size in bytes
@@ -168,6 +168,8 @@ types:
         -orig-id: compr_size
         type: u2
         doc: compressed data size in bytes, only valid when data is encrypted
+      - id: data
+        size-eos: true
   directory_header:
     seq:
       - id: key
@@ -309,6 +311,20 @@ types:
       encrypted:
         value: flags & 0x40 == 0x40
         doc: use encryption for this inode
+      is_socket:
+        value: mode & 0o0170000 == 0o140000
+      is_link:
+        value: mode & 0o0170000 == 0o120000
+      is_regular:
+        value: mode & 0o0170000 == 0o100000
+      is_block_device:
+        value: mode & 0o0170000 == 0o60000
+      is_dir:
+        value: mode & 0o0170000 == 0o40000
+      is_character_device:
+        value: mode & 0o0170000 == 0o20000
+      is_fifo:
+        value: mode & 0o0170000 == 0o10000
   master_header:
     seq:
       - id: highest_inum
@@ -439,6 +455,15 @@ types:
       recovery:
         value: flags & 4 == 4
         doc: written by recovery
+  orphan_header:
+    seq:
+      - id: commit_number
+        type: u8
+        doc: commit number (also top bit is set on the last node of the commit)
+      - id: inode_numbers
+        type: u8
+        repeat: eos
+        doc: inode numbers of orphans
   padding_header:
     seq:
       - id: len_padding
