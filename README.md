@@ -234,6 +234,7 @@ larger file, unless stated otherwise.
 150. Mediatek BootROM (header only)
 151. Rockchip RKFW and RKAF
 152. systemd journal files
+153. Rockchip rkboot
 
 
 ## Invocation
