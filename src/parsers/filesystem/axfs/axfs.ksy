@@ -1,7 +1,7 @@
 meta:
   id: axfs
   title: AXFS
-  license: CC0-1.0
+  license: GPL-2.0-only
   endian: be
   encoding: ASCII
 doc: |
@@ -88,7 +88,7 @@ seq:
     -orig-id: inode_mode_index
     type: u8
     doc: offset to inode mode index region descriptors
-  - id: ofs_node_array_index
+  - id: ofs_inode_array_index
     -orig-id: inode_array_index
     type: u8
     doc: offset to inode node index region descriptors
@@ -116,6 +116,61 @@ seq:
     type: u8
   - id: page_shift
     type: u1
+instances:
+  banode:
+    pos: ofs_banode
+    type: data_region
+  byte_aligned:
+    pos: ofs_byte_aligned
+    type: data_region
+  cblock:
+    pos: ofs_cblock
+    type: data_region
+  cnode:
+    pos: ofs_cnode
+    type: data_region
+  cnode_index:
+    pos: ofs_cnode_index
+    type: data_region
+  compressed:
+    pos: ofs_compressed
+    type: data_region
+  gids:
+    pos: ofs_gids
+    type: data_region
+  inode_array_index:
+    pos: ofs_inode_array_index
+    type: data_region
+  inode_file_size:
+    pos: ofs_inode_file_size
+    type: data_region
+  inode_mode_index:
+    pos: ofs_inode_mode_index
+    type: data_region
+  inode_name:
+    pos: ofs_inode_name
+    type: data_region
+  inode_num_entries:
+    pos: ofs_inode_num_entries
+    type: data_region
+  modes:
+    pos: ofs_modes
+    type: data_region
+  node_index:
+    pos: ofs_node_index
+    type: data_region
+  node_type:
+    pos: ofs_node_type
+    type: data_region
+  strings:
+    pos: ofs_strings_region
+    type: data_region
+  uids:
+    pos: ofs_uids
+    type: data_region
+  xip:
+    pos: ofs_xip
+    type: data_region
 types:
   data_region:
     # struct axfs_region_desc_onmedia
@@ -134,6 +189,10 @@ types:
       - id: incode
         type: u1
     doc: on media struct describing a data region
+    instances:
+      body:
+        pos: ofs_fs
+        size: size
 enums:
   node_types:
     0: xip
