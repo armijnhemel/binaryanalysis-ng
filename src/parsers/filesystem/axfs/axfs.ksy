@@ -114,6 +114,11 @@ seq:
     type: u1
   - id: timestamp
     type: u8
+    # so depending on which version of mkfs-axfs you have this
+    # is either aligned on 8 bits or not.
+    # Files generated with mkfs.axfs-legacy have four padding bytes
+  - id: padding
+    size: 4
   - id: page_shift
     type: u1
 instances:
