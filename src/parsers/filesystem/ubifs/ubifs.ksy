@@ -656,8 +656,9 @@ types:
         type: u4
         doc: target node length
       - id: key
-        # assume "simple key length"
-        size: 8
+        # assume "simple key length" as "simple key" is
+        # the only key supported right now
+        type: u8
         doc: |
           In an authenticated UBIFS we have the hash of the referenced node after @key.
           This can't be added to the struct type definition because @key is a
