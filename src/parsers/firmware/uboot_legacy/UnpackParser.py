@@ -40,6 +40,7 @@ class UbootLegacyUnpackParser(UnpackParser):
     # - .bix as apparently used by ZyXEL and Cisco in some devices
     signatures = [
         (0, b'\x27\x05\x19\x56'),
+        (0, b'\x80\x80\x00\x02'),
         (0, b'\x83\x80\x00\x00')
     ]
     pretty_name = 'uboot_legacy'
