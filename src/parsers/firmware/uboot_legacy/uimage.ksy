@@ -24,6 +24,7 @@ types:
             - magic_types::uimage
             - magic_types::bix
             - magic_types::bix2
+            - magic_types::bix3
       - id: header_crc
         type: u4
       - id: timestamp
@@ -458,3 +459,6 @@ enums:
     0x80800002:
       id: bix2
       doc: A variant of the .bix header found in the EnGenius ECS1112FP
+    0x93000000:
+      id: bix3
+      doc: A variant of the .bix header found in the EnGenius ECS1528FP
