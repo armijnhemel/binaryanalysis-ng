@@ -39,9 +39,6 @@ class MinidumpUnpackParser(UnpackParser):
     ]
     pretty_name = 'minidump'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_minidump(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = windows_minidump.WindowsMinidump.from_io(self.infile)
