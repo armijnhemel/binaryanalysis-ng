@@ -141,6 +141,9 @@ class ElfUnpackParser(WrappedUnpackParser):
         # store dynamic symbols (empty for statically linked binaries)
         dynamic_symbols = []
 
+        # store information about notes
+        notes = []
+
         # store symbols (empty for most binaries, except for
         # non-stripped binaries)
         symbols = []
@@ -313,8 +316,9 @@ class ElfUnpackParser(WrappedUnpackParser):
                     labels.append('go')
 
                 # Although not common notes sections can be merged
-                # with eachother.
+                # with eachother. Example: .notes in Linux kernel images
                 for entry in header.body.entries:
+                    notes.append((entry.name.decode(), entry.type))
                     if entry.name == b'GNU' and entry.type == 1:
                         # https://raw.githubusercontent.com/wiki/hjl-tools/linux-abi/linux-abi-draft.pdf
                         # normally in .note.ABI.tag
@@ -375,19 +379,19 @@ class ElfUnpackParser(WrappedUnpackParser):
                         labels.append('android')
                         metadata['android ndk'] = int.from_bytes(entry.descriptor, byteorder='little')
                     elif entry.name == b'Xen':
-                        # .note.Xen
-                        # example file: FreeBSD kernel
+                        # http://xenbits.xen.org/gitweb/?p=xen.git;a=blob;f=xen/include/public/elfnote.h;h=181cbc4ec71c4af298e40c3604daff7d3b48d52f;hb=HEAD
+                        # .note.Xen in FreeBSD kernel
+                        # .notes in Linux kernel)
                         labels.append('xen')
-                    else:
-                        pass
 
-        metadata['strings'] = data_strings
-        metadata['symbols'] = symbols
         metadata['dynamic_symbols'] = dynamic_symbols
+        metadata['needed'] = needed
+        metadata['notes'] = notes
         metadata['rpath'] = rpath
         metadata['runpath'] = runpath
         metadata['soname'] = soname
-        metadata['needed'] = needed
+        metadata['strings'] = data_strings
+        metadata['symbols'] = symbols
 
         if is_dynamic_elf:
             labels.append('dynamic')
