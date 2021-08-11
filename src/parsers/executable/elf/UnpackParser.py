@@ -44,7 +44,6 @@ class ElfUnpackParser(WrappedUnpackParser):
         return unpack_elf(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
-        self.chunknames = set()
         try:
             self.data = elf.Elf.from_io(self.infile)
 
