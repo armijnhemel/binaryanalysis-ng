@@ -40,7 +40,6 @@ class PeClassUnpackParser(UnpackParser):
 
     def parse(self):
         self.file_size = self.fileresult.filesize
-        self.chunknames = set()
         try:
             self.data = microsoft_pe.MicrosoftPe.from_io(self.infile)
             # this is a bit of an ugly hack to detect if the file

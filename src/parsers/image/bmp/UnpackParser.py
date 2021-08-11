@@ -36,7 +36,6 @@ class BmpUnpackParser(UnpackParser):
     # https://en.wikipedia.org/wiki/BMP_file_format
 
     def parse(self):
-        self.chunknames = set()
         try:
             self.data = bmp.Bmp.from_io(self.infile)
         except (Exception, ValidationNotEqualError, ValidationNotAnyOfError, ValidationGreaterThanError) as e:
