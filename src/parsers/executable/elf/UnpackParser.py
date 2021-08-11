@@ -155,7 +155,7 @@ class ElfUnpackParser(WrappedUnpackParser):
         # only look at a few interesting sections. This should be expanded.
         rodata_sections = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
                            '.rodata.str1.8', '.rodata.cst4', '.rodata.cst8',
-                           '.rodata.cst16']
+                           '.rodata.cst16', 'rodata']
 
         # process the various section headers
         is_dynamic_elf = False
