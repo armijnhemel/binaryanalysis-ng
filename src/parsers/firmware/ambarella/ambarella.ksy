@@ -16,7 +16,7 @@ seq:
     repeat: expr
     repeat-expr: 32
 instances:
-  data:
+  sections:
     type: section_data(_index)
     repeat: expr
     repeat-expr: 32
