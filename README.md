@@ -161,7 +161,6 @@ larger file, unless stated otherwise.
 78. ACDB (audio callibration database, proprietary file format from Qualcomm, labeling only)
 79. Microsoft DirectDraw Surface (structure checks and very limited sanity checking)
 80. Khronos KTX files (version 1)
-
 81. Android verified boot image
 82. SQLite 3
 83. Linux flattened device tree
