@@ -116,127 +116,133 @@ larger file, unless stated otherwise.
 38. ELF
 39. SWF (uncompressed, zlib, LZMA)
 40. Android resource files (table type, but possibly not all types, binary XML)
-41. Java/Android MANIFEST.MF files (whole file)
-42. Linux kernel configuration files (whole file)
-43. Dockerfile files (whole file)
-44. Python PKG-INFO files (whole file)
-45. base64/32/16 (whole file)
-46. SSH known hosts files (whole file)
-47. FLV (Macromedia Flash Video)
-48. Git index files
-49. Linux Software Map files (whole file)
-50. JSON (whole file)
-51. D-Link ROMFS
-52. Unix passwd files (whole file)
-53. Unix shadow files (whole file)
-54. bzip2
-55. GIF (needs PIL)
-56. JPEG (needs PIL)
-57. Microsoft Cabinet archives (needs cabextract)
-58. RZIP (requires rzip)
-59. 7z (requires external tools), single frame(?)
-60. Windows Compiled HTML Help (needs external tools, version 3
+41. base64/32/16 (whole file)
+42. FLV (Macromedia Flash Video)
+43. Git index files
+44. JSON (whole file)
+45. D-Link ROMFS
+46. bzip2
+47. GIF (needs PIL)
+48. JPEG (needs PIL)
+49. Microsoft Cabinet archives (needs cabextract)
+50. RZIP (requires rzip)
+51. 7z (requires external tools), single frame(?)
+52. Windows Compiled HTML Help (needs external tools, version 3
     only)
-61. Windows Imaging file format (needs external tools, single
+53. Windows Imaging file format (needs external tools, single
     image only)
-62. ext2/3/4 (missing: symbolic link support)
-63. zstd (needs zstd package)
-64. SGI image files (needs PIL)
-65. Apple Icon Image (needs PIL)
-66. LZ4 (requires LZ4 Python bindings), LZ4 legacy (requires 'lz4c')
-67. VMware VMDK (needs qemu-img, whole file only)
-68. QEMU qcow2 (needs qemu-img, whole file only)
-69. VirtualBox VDI (needs qemu-img, whole file only,
+54. ext2/3/4 (missing: symbolic link support)
+55. zstd (needs zstd package)
+56. SGI image files (needs PIL)
+57. Apple Icon Image (needs PIL)
+58. LZ4 (requires LZ4 Python bindings), LZ4 legacy (requires 'lz4c')
+59. VMware VMDK (needs qemu-img, whole file only)
+60. QEMU qcow2 (needs qemu-img, whole file only)
+61. VirtualBox VDI (needs qemu-img, whole file only,
     Oracle flavour only)
-70. XML (whole file)
-71. Snappy (needs python-snappy)
-72. various certificates (PEM, private key, etc., needs openssl)
-73. lzop
-74. CSS
-75. PNG/APNG (needs PIL)
-76. ar/deb (needs binutils)
-77. squashfs (needs squashfs-tools), only regular squashfs, vendor
+62. XML (whole file)
+63. Snappy (needs python-snappy)
+64. various certificates (PEM, private key, etc., needs openssl)
+65. lzop
+66. PNG/APNG (needs PIL)
+67. ar/deb (needs binutils)
+68. squashfs (needs squashfs-tools), only regular squashfs, vendor
     specific exotic variants need sasquatch
-78. BMP (needs PIL)
-79. PDF (simple verification, no object streams, incremental updates
+69. BMP (needs PIL)
+70. PDF (simple verification, no object streams, incremental updates
     at end of the file)
-80. pack200 (needs unpack200)
-81. GIMP brush (needs PIL)
-82. ZIM (Wikipedia archive format)
-83. MIDI
-84. Android tzdata
-85. Java key store (version 2 only)
-86. XG3D (proprietary file format from 3D Studio Max, labeling only)
-87. ACDB (audio callibration database, proprietary file format from Qualcomm, labeling only)
-88. Microsoft DirectDraw Surface (structure checks and very limited sanity checking)
-89. Khronos KTX files (version 1)
-90. Android verified boot image
-91. SQLite 3
-92. Linux fstab files
-93. Linux flattened device tree
-94. Broadcom TRX
-95. Photoshop PSD (raw bytes and RLE encoding only)
-96. pkg-config files
-97. minidump files
-98. PPM files ('raw' PPM only)
-99. PGM files ('raw' PGM only)
-100. PBM files ('raw' PBM only)
-101. Android bootloader for Qualcomm Snapdragon
-102. Android bootloader image (also a Lttle Kernel based variant)
-103. Android bootloader for Huawei devices
-104. FAT16 file systems (8.3 file names)
-105. iCalendar (RFC 5545) files (whole file only)
-106. Coreboot images
-107. Minix V1 file system (Linux variant)
-108. Unix compress (needs 'uncompress'), only if end
+71. pack200 (needs unpack200)
+72. GIMP brush (needs PIL)
+73. ZIM (Wikipedia archive format)
+74. MIDI
+75. Android tzdata
+76. Java key store (version 2 only)
+77. XG3D (proprietary file format from 3D Studio Max, labeling only)
+78. ACDB (audio callibration database, proprietary file format from Qualcomm, labeling only)
+79. Microsoft DirectDraw Surface (structure checks and very limited sanity checking)
+80. Khronos KTX files (version 1)
+
+81. Android verified boot image
+82. SQLite 3
+83. Linux flattened device tree
+84. Broadcom TRX
+85. Photoshop PSD (raw bytes and RLE encoding only)
+86. minidump files
+87. PPM files ('raw' PPM only)
+88. PGM files ('raw' PGM only)
+89. PBM files ('raw' PBM only)
+90. Android bootloader for Qualcomm Snapdragon
+91. Android bootloader image (also a Lttle Kernel based variant)
+92. Android bootloader for Huawei devices
+93. FAT16 file systems (8.3 file names)
+94. Coreboot images
+95. Minix V1 file system (Linux variant)
+96. Unix compress (needs 'uncompress'), only if end
      of the file is compress'd data
-109. Unix group files (whole file)
-110. TRANS.TBL files
-111. romfs
-112. cramfs (version 2 only)
-113. nb0 Android updates
-114. Quake PAK files
-115. Doom WAD files (IWAD only)
-116. Ambarella firmware files
-117. Ambarella romfs (used in Ambarella firmware files)
-118. bFLT
-119. Samba password files
-120. UBI (not UBIFS!), fastmap not supported
-121. GRUB2 font files
-122. BitTorrent files (subset)
-123. pcapng (carving, structural checks, little endian only)
-124. pcap (carving, structural checks)
-125. serialized Java (block data only, carving, structural checks)
-126. mapsforge map files (very basic structural checks)
-127. Parrot PLF files
-128. Windows INI files (text only)
-129. Subversion hash files (wcprops, all-wcprops, etc.)
-130. PFS file system
-131. YAFFS2 (including inband tags)
-132. Qualcomm QCDT files
-133. Chrome extensions (.crx)
-134. Windows shell link file (.lnk)
-135. PCF fonts (that actually follow the specification)
-136. DS_Store
-137. Qualcomm Snapdragon MSM bootloader files
-138. Mozilla ARchive (.mar)
-139. OpenFst (subset, identification only)
-140. SELinux file context
-141. Ogg
-142. Allwinner images
-143. DFU (Device Firmware Upgrade)
-144. Key Character Map binary files
-145. USB Flashing Format (UF2)
-146. Android VDEX (identification only)
-147. SEAMA firmware files
-148. LLVM IR wrapper format (identification only)
-149. OpenWrt LXL firmware header
-150. Mediatek BootROM (header only)
-151. Rockchip RKFW and RKAF
-152. systemd journal files
-153. Rockchip rkboot
-154. Python pickle
-155. glibc utmp/wtmp
+97. romfs
+98. cramfs (version 2 only)
+99. nb0 Android updates
+100. Quake PAK files
+101. Doom WAD files (IWAD only)
+102. Ambarella firmware files
+103. Ambarella romfs (used in Ambarella firmware files)
+104. bFLT
+105. UBI (not UBIFS!), fastmap not supported
+106. GRUB2 font files
+107. BitTorrent files (subset)
+108. pcapng (carving, structural checks, little endian only)
+109. pcap (carving, structural checks)
+110. serialized Java (block data only, carving, structural checks)
+111. mapsforge map files (very basic structural checks)
+112. Parrot PLF files
+113. PFS file system
+114. YAFFS2 (including inband tags)
+115. Qualcomm QCDT files
+116. Chrome extensions (.crx)
+117. Windows shell link file (.lnk)
+118. PCF fonts (that actually follow the specification)
+119. DS_Store
+120. Qualcomm Snapdragon MSM bootloader files
+121. Mozilla ARchive (.mar)
+122. OpenFst (subset, identification only)
+123. SELinux file context
+124. Ogg
+125. Allwinner images
+126. DFU (Device Firmware Upgrade)
+127. Key Character Map binary files
+128. USB Flashing Format (UF2)
+129. Android VDEX (identification only)
+130. SEAMA firmware files
+131. LLVM IR wrapper format (identification only)
+132. OpenWrt LXL firmware header
+133. Mediatek BootROM (header only)
+134. Rockchip RKFW and RKAF
+135. systemd journal files
+136. Rockchip rkboot
+137. Python pickle
+138. glibc utmp/wtmp
+
+The following text formats can be recognized:
+
+(NOTE: currently broken)
+
+1. Linux kernel configuration files (whole file)
+2. Dockerfile files (whole file)
+3. Python PKG-INFO files (whole file)
+4. Unix group files (whole file)
+5. TRANS.TBL files
+6. CSS
+7. Linux fstab files
+8. Windows INI files (text only)
+9. Linux Software Map files (whole file)
+10. Unix passwd files (whole file)
+11. Unix shadow files (whole file)
+12. Samba password files
+13. SSH known hosts files (whole file)
+14. Subversion hash files (wcprops, all-wcprops, etc.)
+15. pkg-config files
+16. Java/Android MANIFEST.MF files (whole file)
+17. iCalendar (RFC 5545) files (whole file only)
 
 
 ## Invocation
