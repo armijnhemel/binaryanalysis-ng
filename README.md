@@ -236,6 +236,7 @@ larger file, unless stated otherwise.
 152. systemd journal files
 153. Rockchip rkboot
 154. Python pickle
+155. glibc utmp/wtmp
 
 
 ## Invocation
