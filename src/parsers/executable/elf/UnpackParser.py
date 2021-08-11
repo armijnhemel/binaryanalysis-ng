@@ -350,6 +350,19 @@ class ElfUnpackParser(WrappedUnpackParser):
                     elif entry.name == b'stapsdt' and entry.type == 3:
                         # SystemTap probe descriptors
                         labels.append('SystemTap')
+                    elif entry.name == b'Linux':
+                        # .note.Linux as seen in some Linux kernel modules
+                        labels.append('linux kernel')
+                        if entry.type == 0x100:
+                            # LINUX_ELFNOTE_BUILD_SALT
+                            # see BUILD_SALT in init/Kconfig
+                            try:
+                                metadata['kernel build id salt'] = entry.descriptor.decode()
+                            except:
+                                pass
+                        elif entry.type == 0x101:
+                            # LINUX_ELFNOTE_LTO_INFO
+                            pass
                     elif entry.name == b'FreeBSD':
                         labels.append('freebsd')
                     elif entry.name == b'OpenBSD':
