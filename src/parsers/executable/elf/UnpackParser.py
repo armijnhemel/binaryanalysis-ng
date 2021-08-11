@@ -361,6 +361,10 @@ class ElfUnpackParser(WrappedUnpackParser):
                         # https://android.googlesource.com/platform/ndk/+/master/parse_elfnote.py
                         labels.append('android')
                         metadata['android ndk'] = int.from_bytes(entry.descriptor, byteorder='little')
+                    elif entry.name == b'Xen':
+                        # .note.Xen
+                        # example file: FreeBSD kernel
+                        labels.append('xen')
                     else:
                         pass
 
