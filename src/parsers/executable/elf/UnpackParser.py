@@ -194,8 +194,12 @@ class ElfUnpackParser(WrappedUnpackParser):
                                 else:
                                     metadata['security'].append('partial relro')
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags:
-                            # TODO: check for bind_now here as well
-                            pass
+                            # check for bind_now here as well
+                            if entry.flag_values.bind_now:
+                                if seen_relro:
+                                    metadata['security'].append('full relro')
+                                else:
+                                    metadata['security'].append('partial relro')
             elif header.type == elf.Elf.ShType.symtab:
                 if header.name == '.symtab':
                     for entry in header.body.entries:
