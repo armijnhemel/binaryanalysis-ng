@@ -164,7 +164,10 @@ class ElfUnpackParser(WrappedUnpackParser):
         for header in self.data.header.section_headers:
             if header.name in ['.modinfo', '__ksymtab_strings']:
                 labels.append('linuxkernelmodule')
-            elif header.name in ['oat_patches', '.text.oat_patches', '.dex']:
+            elif header.name in ['.oat_patches', '.text.oat_patches', '.dex']:
+                # OAT information has been stored in various sections
+                # test files:
+                # .oat_patches : fugu-lrx21m-factory-e012394c.zip
                 labels.append('oat')
                 labels.append('android')
             elif header.name in ['.guile.procprops', '.guile.frame-maps',
