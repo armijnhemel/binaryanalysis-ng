@@ -48,9 +48,6 @@ class AndroidSparseUnpackParser(UnpackParser):
     ]
     pretty_name = 'androidsparse'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_android_sparse(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         self.file_size = self.fileresult.filesize
         try:
