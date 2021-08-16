@@ -21,6 +21,10 @@ instances:
     pos: _io.size - _root.sector_size
     type: partition_header
 types:
+  padding_byte:
+    seq:
+      - id: padding
+        contents: [0x00]
   partition_entry:
     seq:
       - id: type_guid
@@ -37,6 +41,9 @@ types:
         type: str
         encoding: UTF-16LE
         size: 0x48
+      - id: padding
+        type: padding_byte
+        repeat: eos
   partition_header:
     seq:
       - id: signature
@@ -49,6 +56,7 @@ types:
         type: u4
       - id: reserved
         type: u4
+        valid: 0
       - id: current_lba
         type: u8
       - id: backup_lba
@@ -67,6 +75,10 @@ types:
         type: u4
       - id: crc32_array
         type: u4
+      - id: padding
+        type: padding_byte
+        repeat: expr
+        repeat-expr: header_size - 92
       # The document states "Reserved; must be zeroes for the rest of the block".
       # It would be pointless to process a data structure that must be zeroed.
     instances:
