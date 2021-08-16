@@ -35,7 +35,7 @@ from kaitaistruct import ValidationNotEqualError
 from . import android_msm_bootldr
 
 
-class AndroidBootHuaweiUnpackParser(UnpackParser):
+class AndroidMsmBootldrUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'BOOTLDR!')
