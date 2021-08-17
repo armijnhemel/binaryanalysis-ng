@@ -220,6 +220,7 @@ larger file, unless stated otherwise.
 136. Rockchip rkboot
 137. Python pickle
 138. glibc utmp/wtmp
+139. Android vendor boot
 
 The following text formats can be recognized:
 
