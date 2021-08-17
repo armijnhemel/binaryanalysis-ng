@@ -223,6 +223,7 @@ larger file, unless stated otherwise.
 139. Android vendor boot
 140. Android FBPK
 141. Samsung Tzar
+142. Qualcomm aboot (version 3 only, no unified boot)
 
 The following text formats can be recognized:
 
