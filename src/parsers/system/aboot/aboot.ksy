@@ -12,28 +12,28 @@ doc: |
 
   Test file: hammerhead-krt16m-factory-fb4041cc.zip
 
-Version 2:
+  Version 2:
 
-qsd8250_ffa
-qsd8250_surf
-qsd8650a_st1x
+  * qsd8250_ffa
+  * qsd8250_surf
+  * qsd8650a_st1x
 
-Version 3:
+  Version 3:
 
-apq8084
-fsm9010
-fsm9900
-mdm9615
-mdm9625
-mdm9635
-msm7627a
-msm7627_surf
-msm7630_surf
-msm8226
-msm8610
-msm8660_surf
-msm8960
-msm8974
+  * apq8084
+  * fsm9010
+  * fsm9900
+  * mdm9615
+  * mdm9625
+  * mdm9635
+  * msm7627a
+  * msm7627_surf
+  * msm7630_surf
+  * msm8226
+  * msm8610
+  * msm8660_surf
+  * msm8960
+  * msm8974
 
 doc-ref: https://source.codeaurora.org/quic/la/kernel/lk/tree/target/msm8974/tools/mkheader.c?h=master&id=82117399ba17ea60b7f771c641ff5b1c9283bdc9#n161
 seq:
