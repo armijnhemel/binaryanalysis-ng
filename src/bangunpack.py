@@ -11004,6 +11004,11 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
     # major version
     checkbytes = checkfile.read(2)
     major = int.from_bytes(checkbytes, byteorder=byteorder)
+    if major > 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid version'}
+        return {'status': False, 'error': unpackingerror}
     unpackedsize += 2
 
     # minor version
@@ -11085,6 +11090,7 @@ def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
     metadata['count'] = packet_count
 
     if not data_unpacked:
+        checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'no valid pcap data unpacked'}
         return {'status': False, 'error': unpackingerror}
