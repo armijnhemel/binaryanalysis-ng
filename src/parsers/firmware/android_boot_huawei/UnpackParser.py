@@ -45,7 +45,7 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
         check_condition(self.data.img_header.meta_header_size == 76, "invalid header size")
         self.unpacked_size = 0
-        for entry in self.data.img_header_entries:
+        for entry in self.data.entries.entries:
             self.unpacked_size = max(self.unpacked_size, entry.offset + entry.size)
         check_condition(file_size >= self.unpacked_size, "not enough data")
 
@@ -56,7 +56,7 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
 
     def unpack(self):
         unpacked_files = []
-        for entry in self.data.img_header_entries:
+        for entry in self.data.entries.entries:
             if entry.size == 0:
                 continue
             if entry.name == '':
@@ -79,7 +79,7 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
         metadata = {}
 
         metadata['partitions'] = []
-        for entry in self.data.img_header_entries:
+        for entry in self.data.entries.entries:
             if entry.size == 0:
                 continue
             metadata['partitions'].append({'name': entry.name,
