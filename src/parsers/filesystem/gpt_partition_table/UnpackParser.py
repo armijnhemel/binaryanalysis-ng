@@ -48,6 +48,11 @@ class GptPartitionTableUnpackParser(UnpackParser):
         # There are situations, such as on some Android devices , where the
         # GPT partition table and the actual partitions are separate from eachother
         # and where the LBA of the backup GPT is 0.
+        #
+        # There are also situations where the partition table is completely
+        # unreliable, for example Android devices where certain partitions have
+        # been removed from the firmware update, but where the partition table
+        # has not been changed.
         try:
             self.unpacked_size = (self.data.primary.backup_lba+1)*self.data.sector_size
         except BaseException as e:
