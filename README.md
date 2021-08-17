@@ -222,6 +222,7 @@ larger file, unless stated otherwise.
 138. glibc utmp/wtmp
 139. Android vendor boot
 140. Android FBPK
+141. Samsung Tzar
 
 The following text formats can be recognized:
 
