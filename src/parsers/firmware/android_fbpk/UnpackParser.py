@@ -30,6 +30,7 @@ from kaitaistruct import ValidationNotEqualError
 from . import android_fbpk
 
 
+# test file: redfin-rd1a.200810.020-factory-c3ea1715.zip
 class AndroidFbpkUnpackParser(UnpackParser):
     extensions = []
     signatures = [
