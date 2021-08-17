@@ -1,20 +1,22 @@
-# Defining parsers with kaitai-struct
+# Defining parsers with Kaitai Struct
 
 ## Introduction
 
-kaitai-struct is "a declarative language used to describe various binary data structures, laid out in files or in memory".
+Kaitai Struct is "a declarative language used to describe various binary data structures, laid out in files or in memory".
 
 https://github.com/kaitai-io/kaitai_struct
 http://kaitai.io/
 
 Basically it is a language to describe binary formats using a description file, which can then be used to generate parsers for various languages.
 
-## Installing the kaitai-struct compiler
+## Installing the Kaitai Struct compiler
 
-The easiest way to install the kaitai-struct compiler is to download a released zip file, as explained by the web site http://kaitai.io/#download (select your prefered installation format, such as `.deb` or `.zip`). If you do this make sure to download version 0.9.
+The easiest way to install the Kaitai Struct compiler is to download a released zip file, as explained by the web site http://kaitai.io/#download (select your prefered installation format, such as `.deb` or `.zip`). If you do this make sure to download version 0.9.
 
 Alternatively, you can build the compiler from scratch. This requires Scala and the Scala build tool. Note that you may need a recent version of sbt and download it from the sbt repository. You can find instructions for that on https://www.scala-sbt.org/download.html.
-Also note that the versions of the kaitai Python run-time's and the compiler must match, you may also need to reinstall the Python runtime.
+Also note that the versions of the kaitai Python run-time and the compiler must match, you may also need to reinstall the Python runtime.
+
+### Building the Kaitai Struct compiler
 
 First, you will need to checkout the repository from github if you have not done this already:
 
@@ -24,7 +26,7 @@ git clone --recursive https://github.com/kaitai-io/kaitai_struct.git
 
 See http://doc.kaitai.io/developers.html for more details. In my case, I cloned the repository directly under my home directory in `~/kaitai_struct`.
 
-During the build, the Scala build tool caches information in `~/.sbt`. If you try to build kaitai-struct-compiler again with another version of sbt or scala, you may run into problems. By removing the `~/.sbt` directory and rebuilding, I managed to build the program.
+During the build, the Scala build tool caches information in `~/.sbt`. If you try to build Kaitai Struct compiler again with another version of sbt or scala, you may run into problems. By removing the `~/.sbt` directory and rebuilding, I managed to build the program.
 
 
 After installing sbt, move to the compiler repository and run sbt:
@@ -36,7 +38,7 @@ sbt compilerJVM/universal:packageBin
 
 In case the version of sbt is different from the declared version in `project/build.properties` you might want to change the version in `project/build.properties` (for example: 1.4.3 vs 1.4.7).
 
-If the build succeeds, you can find a zip archive of the kaitai-struct compiler in `jvm/target/universal/`. In my case, this is `jvm/target/universal/kaitai-struct-compiler-0.9-SNAPSHOT.zip`.
+If the build succeeds, you can find a zip archive of the Kaitai Struct compiler in `jvm/target/universal/`. In my case, this is `jvm/target/universal/kaitai-struct-compiler-0.9-SNAPSHOT.zip`.
 
 Unpack the zip file somewhere and add the `bin` subdirectory to your path, or use absolute paths to invoke the compiler.
 
@@ -117,6 +119,10 @@ ksv <binary-file> <ksy file>
 
 ## Issues with kaitai parsers
 
+### Instances are lazily evaluated
+
+Kaitai parsers can contain so called instances. These are only evaluated when the data is accessed. That means that any size calculations or parse errors should also take instances into account.
+
 ### Position in the stream after reading
 
 Not all kaitai parsers read the complete file. The unpacker determines the file length by checking how many bytes have been read from the input stream. You must compensate for this in the unpacker that wraps the kaitai parser. For example, the `ico` parser does not parse the contained image data. You can either adjust `self.unpacked_size` by adding the length of the unparsed part, call a subparser on the image data, or perhaps even both.
@@ -127,11 +133,11 @@ Kaitai parsers that expect an end of stream, for example by using `size-eos`, or
 
 ### Handling parse errors
 
-The UnpackParser class asks us to raise UnpackParserExceptions for non-fatal errors. This means that we need to catch all parse errors when processing a file with kaitai-struct. You must not only handle any exceptions from calling `from_io`, but also from any kaitai-struct instances, as they may trigger the kaitai parser to read data.
+The UnpackParser class asks us to raise UnpackParserExceptions for non-fatal errors. This means that we need to catch all parse errors when processing a file with Kaitai Struct. You must not only handle any exceptions from calling `from_io`, but also from any Kaitai Struct instances, as they may trigger the kaitai parser to read data. One hack is to actually read all the instances data inside a `try` block during parsing.
 
 ### Importing kaitai types
 
-If you import a kaitai-struct file in another (relative import), say `vfat_directory_rec` the translated Python code contains:
+If you import a Kaitai Struct file in another (relative import), say `vfat_directory_rec` the translated Python code contains:
 
 ```
 import vfat_directory_rec
@@ -143,7 +149,7 @@ If we run tests with unittest's `discover` command, Python cannot find this modu
 ModuleNotFoundError: No module named 'vfat_directory_rec'
 ```
 
-The compilation of the kaitai-struct parser in the `Makefile` contains an extra step to rewrite this import to
+The compilation of the Kaitai Struct parser in the `Makefile` contains an extra step to rewrite this import to
 
 ```
 import vfat_directory_rec
