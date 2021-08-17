@@ -25,7 +25,10 @@ types:
       - id: len_body
         type: u4
         valid:
-          max: _root._io.size
+          max: 0x6400000
+          # no known firmware is larger than a couple of megabytes
+          # so setting it to 100 MiB is a safe choice.
+          #max: _root._io.size
           # the amount of bytes can never be more than the
           # amount of bytes in the file.
           # ugly hack to work around false positives while carving
