@@ -30,6 +30,7 @@ from kaitaistruct import ValidationNotEqualError
 from . import android_imgdata
 
 
+# test file hammerhead-krt16m-factory-fb4041cc.zip
 class AndroidImgdataUnpackParser(UnpackParser):
     extensions = []
     signatures = [
