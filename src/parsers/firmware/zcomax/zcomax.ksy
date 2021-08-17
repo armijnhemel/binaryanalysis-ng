@@ -24,10 +24,15 @@ types:
         valid: valid_contents
       - id: len_body
         type: u4
+        valid:
+          max: _root._io.size
+          # the amount of bytes can never be more than the
+          # amount of bytes in the file.
+          # ugly hack to work around false positives while carving
+          # and to prevent lots of bytes being read.
       - id: unknown
         size: 8
   tail:
-    # seemingly for every
     seq:
       - id: hardware_identifier
         type: u4
