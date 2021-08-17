@@ -20,6 +20,8 @@ seq:
   - id: version
     type: strz
     size: 4
+    valid:
+      any-of: ['"006"', '"010"', '"019"', '"021"'] # update whenever there is a new Android
   - id: dex_header
     type:
       switch-on: version
