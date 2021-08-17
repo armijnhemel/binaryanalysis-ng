@@ -74,7 +74,7 @@ class AndroidVendorBootUnpackParser(UnpackParser):
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['android vendor boot']
+        labels = ['android vendor boot', 'android']
         metadata = {}
         metadata['commandline'] = self.data.header.commandline
 
