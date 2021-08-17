@@ -50,7 +50,7 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # The Android sparse data image format is documented in the Android
 # source code tree:
 #
-# https://android.googlesource.com/platform/bootable/recovery/+/master/updater/blockimg.cpp#1838
+# https://android.googlesource.com/platform/bootable/recovery/+/4f81130039f6a312eba2027b3594a2be282f6b3a/updater/blockimg.cpp#1980
 #
 # Test files can be downloaded from LineageOS, for example:
 #
