@@ -102,15 +102,13 @@ class LzopUnpackParser(WrappedUnpackParser):
                     magic = b'\xf0' + int.to_bytes(block.len_decompressed, 4, 'big')
                     outfile.write(lzo.decompress(magic + block.block_type.data))
                 elif self.data.method == 128:
-                    # currently not supported in the Kaitai Struct grammar
-                    # and also not used in practice
+                    # seemingly not used in practice
                     outfile.write(zlib.decompress(block.block_type.data))
             counter += 1
         outfile.close()
         fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
         unpacked_files.append(fr)
         return unpacked_files
-
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
