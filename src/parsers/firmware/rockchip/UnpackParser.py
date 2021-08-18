@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationNotEqualError, ValidationExprError
 from . import rockchip
 
 
@@ -41,7 +41,7 @@ class RockchipUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = rockchip.Rockchip.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationNotEqualError, ValidationExprError) as e:
             raise UnpackParserException(e.args)
 
         self.unpacked_size = 0
