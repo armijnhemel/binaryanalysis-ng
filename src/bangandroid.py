@@ -32,6 +32,7 @@ import zlib
 import hashlib
 import re
 import pathlib
+import brotli
 
 # own modules
 import bangunpack
@@ -65,6 +66,9 @@ def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackdir_full = scanenvironment.unpack_path(unpackdir)
+    # TODO
+    # if the file is compressed with Brotli it should first
+    # be decompressed before it can be processed
 
     # for each .new.dat file there has to be a corresponding
     # .transfer.list file as well.
