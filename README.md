@@ -224,6 +224,7 @@ larger file, unless stated otherwise.
 140. Android FBPK
 141. Samsung Tzar
 142. Qualcomm aboot (version 3 only, no unified boot)
+143. Rockchip resource files
 
 The following text formats can be recognized:
 
