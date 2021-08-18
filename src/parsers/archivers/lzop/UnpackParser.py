@@ -58,8 +58,8 @@ class LzopUnpackParser(WrappedUnpackParser):
         # version, has to be 0x00, 0x10 or 0x20 according
         # to /usr/share/magic and 0x30 and 0x40 according
         # to files observed in the wild and lzop source code
-        check_condition(self.data.lzop_version in [0x00, 0x10, 0x20, 0x40],
-                        "not enough data")
+        check_condition(self.data.lzop_version in [0x00, 0x10, 0x20, 0x30, 0x40],
+                        "unsupported version")
         for block in self.data.blocks:
             # TODO: checksum verification
             if isinstance(block.block_type, lzop.Lzop.Terminator):
