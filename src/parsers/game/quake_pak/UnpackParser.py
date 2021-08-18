@@ -52,12 +52,26 @@ class QuakePakUnpackParser(UnpackParser):
 
     def unpack(self):
         unpacked_files = []
+        seen_files = set()
         for quake_entry in self.data.index.entries:
-            file_path = pathlib.Path(quake_entry.name)
+            out_labels = []
+            # there can be duplicate names, so rename
+            # example: PROGS/OPENCP/CP.PAK in SOUND/OPENCP.ZIP in FD12CD.iso
+            entry_name = quake_entry.name
+            if entry_name in seen_files:
+                counter=1
+                while True:
+                    entry_name = "%s-renamed-%d" % (quake_entry.name, counter)
+                    if entry_name not in seen_files:
+                        out_labels.append('renamed')
+                        break
+                    counter+=1
+
+            file_path = pathlib.Path(entry_name)
             outfile_rel = self.rel_unpack_dir / file_path
 
             # create subdirectories, if any are defined in the file name
-            if '/' in quake_entry.name:
+            if '/' in entry_name:
                 outfile_rel.parent.mkdir(parents=True, exist_ok=True)
 
             # write the file
@@ -65,9 +79,10 @@ class QuakePakUnpackParser(UnpackParser):
             os.sendfile(quake_file.fileno(), self.infile.fileno(), self.infile.offset + quake_entry.ofs, quake_entry.size)
             quake_file.close()
 
-            out_labels = []
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / quake_entry.name, set(out_labels))
+            fr = FileResult(self.fileresult, self.rel_unpack_dir / entry_name, set(out_labels))
             unpacked_files.append(fr)
+
+            seen_files.add(entry_name)
         return unpacked_files
 
     def set_metadata_and_labels(self):
