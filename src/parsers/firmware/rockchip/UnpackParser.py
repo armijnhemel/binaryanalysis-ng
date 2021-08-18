@@ -87,6 +87,7 @@ class RockchipUnpackParser(UnpackParser):
                         name_with_ctr = "%s-%d" % (new_name, counter)
                         if not new_name in seen_paths:
                             new_name = name_with_ctr
+                            out_labels.append('renamed')
                             break
                         counter += 1
                 file_path = pathlib.Path(new_name)

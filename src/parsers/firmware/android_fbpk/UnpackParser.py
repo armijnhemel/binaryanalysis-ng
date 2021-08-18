@@ -50,9 +50,9 @@ class AndroidFbpkUnpackParser(UnpackParser):
 
     def unpack(self):
         unpacked_files = []
-        out_labels = []
         seen_partitions = set()
         for entry in self.data.entries:
+            out_labels = []
             # only consider "real" partitions, not partition tables
             if entry.type == 0:
                 continue
@@ -64,6 +64,7 @@ class AndroidFbpkUnpackParser(UnpackParser):
                     new_partition_name = "%s-%d" % (entry.partition_name, counter)
                     if new_partition_name not in seen_partitions:
                         partition_name = new_partition_name
+                        out_labels.append('renamed')
                         break
                     counter += 1
 
