@@ -92,7 +92,7 @@ types:
         doc: True if this image is in PNG format.
       bmp:
         pos: ofs_img
-        size: len_img
+        size: 40
         type: bitmapinfoheader
         if: not is_png
   bitmapinfoheader:
