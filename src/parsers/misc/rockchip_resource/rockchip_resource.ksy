@@ -1,7 +1,7 @@
 meta:
   id: rockchip_resource
   title: Rockchip formats
-  license: BSD
+  license: CC-1.0
   endian: le
   encoding: UTF-8
 doc-ref: https://gitlab.com/postmarketOS/pmbootstrap/-/issues/2031
