@@ -37,3 +37,19 @@ Mediatek MT6572 based, uses `mtk_bootrom` amongst others.
 ## Verykool_S5014_VK_Generic_Dual_SW_1.6_4.4.2.zip
 
 Mediatek MT6582 based, uses `mtk_bootrom` amongst others.
+
+## Winstar_W37_150301_020637_4.2.2.zip
+
+Mediatek MT6572 based, uses UBI/ubifs
+
+## Winstar_S5_SP7731GEA_V03_20161027_6.0.zip
+
+Spreadtrum based, uses `spreadtrum_pac`
+
+## Xolo_Q700S_Plus_S004_05082014.zip
+
+Mediatek MT6582 based, uses `mtk_bootrom` amongst others.
+
+## Zopo_8510_MIUI_MT6592_20140328_4.2.2.zip
+
+Mediatek MT6592 based, uses `mtk_bootrom` amongst others.
