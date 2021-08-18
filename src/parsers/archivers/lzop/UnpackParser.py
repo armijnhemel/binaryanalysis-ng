@@ -24,11 +24,7 @@
 import os
 import pathlib
 import zlib
-#import lzo
-
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_lzop
-
+import lzo
 
 from FileResult import FileResult
 
@@ -38,16 +34,12 @@ from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError, Va
 from . import lzop
 
 
-class LzopUnpackParser(WrappedUnpackParser):
-#class LzopUnpackParser(UnpackParser):
+class LzopUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x89\x4c\x5a\x4f\x00\x0d\x0a\x1a\x0a')
     ]
     pretty_name = 'lzop'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_lzop(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         try:

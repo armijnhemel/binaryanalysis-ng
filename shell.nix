@@ -31,7 +31,6 @@ pkgs.mkShell {
     innoextract
     libxml2
     lz4
-    lzop
     mailcap
     ncompress
     openjdk8
