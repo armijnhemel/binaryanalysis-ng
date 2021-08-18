@@ -94,9 +94,6 @@ types:
         pos: ofs_img
         size: len_img
         type: bitmapinfoheader
-        doc: |
-          Pre-reads first 8 bytes of the image to determine if it's an
-          embedded PNG file.
         if: not is_png
   bitmapinfoheader:
     seq:
