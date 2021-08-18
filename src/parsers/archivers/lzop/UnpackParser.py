@@ -34,7 +34,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError
+from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError, ValidationNotAnyOfError
 from . import lzop
 
 
@@ -52,7 +52,7 @@ class LzopUnpackParser(WrappedUnpackParser):
     def parse(self):
         try:
             self.data = lzop.Lzop.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
+        except (Exception, ValidationNotEqualError, ValidationGreaterThanError, ValidationNotAnyOfError) as e:
             raise UnpackParserException(e.args)
 
         # version, has to be 0x00, 0x10 or 0x20 according
