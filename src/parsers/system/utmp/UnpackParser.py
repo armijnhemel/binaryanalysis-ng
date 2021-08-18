@@ -23,7 +23,7 @@
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
 from . import glibc_utmp
 
 class PythonPickleUnpackParser(UnpackParser):
@@ -34,7 +34,7 @@ class PythonPickleUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = glibc_utmp.GlibcUtmp.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):
