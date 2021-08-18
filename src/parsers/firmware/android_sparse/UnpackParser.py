@@ -87,7 +87,7 @@ class AndroidSparseUnpackParser(UnpackParser):
                 outfile.write(chunk.body)
             elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.fill:
                 # Fill data, always length 4
-                for c in range(0, entry.header.num_body_blocks):
+                for c in range(0, chunk.header.num_body_blocks):
                     # It has already been checked that blk_sz
                     # is divisible by 4.
                    outfile.write(chunk.body*(self.data.header.block_size//4))
