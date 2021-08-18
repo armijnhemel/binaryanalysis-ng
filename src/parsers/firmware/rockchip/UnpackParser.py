@@ -84,7 +84,7 @@ class RockchipUnpackParser(UnpackParser):
                 if new_name in seen_paths:
                     counter = 1
                     while True:
-                        name_with_ctr = "%s-%d" % (new_name, counter)
+                        name_with_ctr = "%s-renamed-%d" % (new_name, counter)
                         if not new_name in seen_paths:
                             new_name = name_with_ctr
                             out_labels.append('renamed')

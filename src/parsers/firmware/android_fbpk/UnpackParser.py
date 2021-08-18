@@ -61,7 +61,7 @@ class AndroidFbpkUnpackParser(UnpackParser):
             if partition_name in seen_partitions:
                 counter = 1
                 while True:
-                    new_partition_name = "%s-%d" % (entry.partition_name, counter)
+                    new_partition_name = "%s-renamed-%d" % (entry.partition_name, counter)
                     if new_partition_name not in seen_partitions:
                         partition_name = new_partition_name
                         out_labels.append('renamed')
