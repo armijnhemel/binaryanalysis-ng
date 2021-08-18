@@ -63,8 +63,8 @@ class AndroidDtoUnpacker(UnpackParser):
     def unpack(self):
         unpacked_files = []
         dtb_counter = 1
-        out_labels = []
         for i in self.data.entries:
+            out_labels = []
             file_path = pathlib.Path("unpacked-%d.dtb" % dtb_counter)
             self.extract_to_file(self.rel_unpack_dir / file_path, i.dt_offset, i.dt_size)
             dtb_counter += 1
