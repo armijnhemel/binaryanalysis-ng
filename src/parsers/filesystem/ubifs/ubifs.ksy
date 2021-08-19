@@ -512,6 +512,10 @@ types:
         doc: type of hash function used in keys
       - id: key_fmt
         type: u1
+        enum: key_formats
+        valid:
+          any-of:
+            - key_formats::simple
         doc: format of the key
       - id: flags
         type: u4
@@ -671,6 +675,13 @@ types:
         type: block
 
 enums:
+  key_formats:
+    0:
+      id: simple
+      -orig-id: UBIFS_SIMPLE_KEY_FMT
+      doc: |
+        The simple key format uses 29 bits for storing UBIFS
+        block number and hash value.
   compression:
     0:
       id: no_compression
