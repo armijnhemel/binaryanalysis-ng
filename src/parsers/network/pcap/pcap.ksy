@@ -34,6 +34,8 @@ types:
         contents: [0xd4, 0xc3, 0xb2, 0xa1]
       - id: version_major
         type: u2
+        valid:
+          max: 2
       - id: version_minor
         type: u2
       - id: thiszone
