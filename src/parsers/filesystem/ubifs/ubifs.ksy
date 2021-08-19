@@ -19,6 +19,7 @@ doc: |
   all the files on the file system.
 doc-ref:
   - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/ubifs/ubifs-media.h
+  - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/ubifs/key.h
   - http://www.linux-mtd.infradead.org/doc/ubifs.pdf
 seq:
   - id: lebs
@@ -686,6 +687,11 @@ types:
         enum: key_types
       - id: value
         type: b29
+    doc: |
+      Keys are 64-bits long. The first 32-bits are the inode number, or the
+      parent inode number in case of a directory entry. The next 3 bits are
+      the node type. The last 29 bits are the block number (data entries)
+      or the directory entry hash in case of a directory entry.
   longkey:
     seq:
       - id: inode_number
@@ -697,6 +703,14 @@ types:
         type: b29
       - id: unused
         size: 2
+    doc: |
+      Keys are 64-bits long. The first 32-bits are the inode number, or the
+      parent inode number in case of a directory entry. The next 3 bits are
+      the node type. The last 29 bits are the block number (data entries)
+      or the directory entry hash in case of a directory entry.
+
+      In case of a "longkey" (16 bytes) the last two bytes are currently
+      unused.
 
 enums:
   compression:
