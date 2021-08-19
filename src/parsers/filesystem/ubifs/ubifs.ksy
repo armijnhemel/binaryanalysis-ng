@@ -702,7 +702,7 @@ types:
       - id: value
         type: b29
       - id: unused
-        size: 2
+        size: 8
     doc: |
       Keys are 64-bits long. The first 32-bits are the inode number, or the
       parent inode number in case of a directory entry. The next 3 bits are
