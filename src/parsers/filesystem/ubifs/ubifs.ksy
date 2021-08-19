@@ -3,6 +3,7 @@ meta:
   title: UBIFS
   license: GPL-2.0-only
   endian: le
+  bit-endian: le
   encoding: UTF-8
 doc: |
   The UBIFS file system is a file system for flash file systems. It works on
@@ -680,22 +681,22 @@ types:
     seq:
       - id: inode_number
         type: u4
-      - id: key_value
-        type: u4
-    instances:
-      value:
-        value: key_value & 0x1fffffff
+      - id: type
+        type: b3
+        enum: key_types
+      - id: value
+        type: b29
   longkey:
     seq:
       - id: inode_number
         type: u4
-      - id: key_value
-        type: u4
+      - id: type
+        type: b3
+        enum: key_types
+      - id: value
+        type: b29
       - id: unused
         size: 2
-    instances:
-      value:
-        value: key_value & 0x1fffffff
 
 enums:
   compression:
