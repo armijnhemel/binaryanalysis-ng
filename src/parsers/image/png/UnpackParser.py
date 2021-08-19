@@ -31,6 +31,8 @@ Section 5 describes the structure of a PNG file
 import os
 import binascii
 import datetime
+import json
+import uuid
 from xml.parsers.expat import ExpatError
 
 import defusedxml.minidom
@@ -50,7 +52,7 @@ KNOWN_CHUNKS = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM',
                     'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT',
                     'sCAL', 'sTER', 'meTa', 'grAb', 'alPh', 'huBs',
                     'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd', 'dSIG',
-                    'eXIf', 'eXif'])
+                    'eXIf', 'eXif', 'skMf', 'skRf'])
 
 
 class PngUnpackParser(UnpackParser):
@@ -216,6 +218,31 @@ class PngUnpackParser(UnpackParser):
                     except UnicodeError:
                         pngtexts.append({'key': i.body.keyword,
                                          'value': i.body.text_datastream})
+            elif i.type == 'skMf':
+                # Extract meta information from files made with Evernote/Skitch
+                # http://web.archive.org/web/20210302212148/https://discussion.evernote.com/forums/topic/88532-how-to-extract-annotation-information-from-annotated-evernoteskitch-images/
+                # test file: https://content.invisioncic.com/Mevernote/post-269465-0-70688200-1442655592.png
+                # The metadata is in JSON format.
+                try:
+                    evernote_body = i.body.decode()
+                    evernote_meta = json.loads(evernote_body)
+                    if not 'evernote' in metadata:
+                        metadata['evernote'] = {}
+                    metadata['evernote']['meta'] = evernote_body
+                    png_type_labels.append('evernote')
+                except UnicodeError:
+                    pass
+                except json.JSONDecodeError:
+                    pass
+            elif i.type == 'skRf':
+                # The first 16 bytes are a uuid that is referenced in the JSON
+                # that can be found in the JSON of the skMf chunk in a URI
+                uri_uuid = uuid.UUID(bytes=i.body[:16])
+                if not 'evernote' in metadata:
+                    metadata['evernote'] = {}
+                metadata['evernote']['uri_uid'] = uri_uuid
+                # The rest of the image is the original PNG.
+                # TODO: extract PNG
 
         # check if the PNG is animated.
         # https://wiki.mozilla.org/APNG_Specification
