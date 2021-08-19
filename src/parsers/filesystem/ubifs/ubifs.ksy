@@ -155,7 +155,7 @@ types:
   data_header:
     seq:
       - id: key
-        size: 16
+        type: longkey
         doc: node key
       - id: len_uncompressed
         -orig-id: size
@@ -174,7 +174,7 @@ types:
   directory_header:
     seq:
       - id: key
-        size: 16
+        type: longkey
         doc: node key
       - id: inode_number
         -orig-id: inum
@@ -216,7 +216,7 @@ types:
   inode_header:
     seq:
       - id: key
-        size: 16
+        type: longkey
         doc: node key
       - id: sequence_number
         -orig-id: creat_sqnum
@@ -663,7 +663,7 @@ types:
       - id: key
         # assume "simple key length" as "simple key" is
         # the only key supported right now
-        type: u8
+        type: key
         doc: |
           In an authenticated UBIFS we have the hash of the referenced node after @key.
           This can't be added to the struct type definition because @key is a
@@ -674,6 +674,28 @@ types:
         size: len_target
         io: _root._io
         type: block
+
+  # Key types
+  key:
+    seq:
+      - id: inode_number
+        type: u4
+      - id: key_value
+        type: u4
+    instances:
+      value:
+        value: key_value & 0x1fffffff
+  longkey:
+    seq:
+      - id: inode_number
+        type: u4
+      - id: key_value
+        type: u4
+      - id: unused
+        size: 2
+    instances:
+      value:
+        value: key_value & 0x1fffffff
 
 enums:
   compression:
