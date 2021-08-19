@@ -98,11 +98,12 @@ types:
             node_types::inode: inode_header
             node_types::data: data_header
             node_types::directory: directory_header
-            #node_types::extended_attribute
+            # Extended attribute entry nodes are identical to directory entry nodes
+            node_types::extended_attribute: directory_header
             node_types::truncation: truncation_header
             node_types::padding: padding_header
-            #node_types::superblock: superblock_header
-            #node_types::master: master_header
+            node_types::superblock: superblock_header
+            node_types::master: master_header
             node_types::reference: reference_header
             node_types::index: index_header
             node_types::commit_start: commit_start_header
