@@ -675,13 +675,6 @@ types:
         type: block
 
 enums:
-  key_formats:
-    0:
-      id: simple
-      -orig-id: UBIFS_SIMPLE_KEY_FMT
-      doc: |
-        The simple key format uses 29 bits for storing UBIFS
-        block number and hash value.
   compression:
     0:
       id: no_compression
@@ -794,3 +787,27 @@ enums:
       id: test_hash
       -orig-id: UBIFS_KEY_HASH_TEST
       doc: test hash which just returns first 4 bytes of the name
+  key_formats:
+    0:
+      id: simple
+      -orig-id: UBIFS_SIMPLE_KEY_FMT
+      doc: |
+        The simple key format uses 29 bits for storing UBIFS
+        block number and hash value.
+  key_types:
+    0:
+      id: inode
+      -orig-id: UBIFS_INO_KEY
+      doc: inode node key
+    1:
+      id: data
+      -orig-id: UBIFS_DATA_KEY
+      doc: data node key
+    2:
+      id: directory
+      -orig-id: UBIFS_DENT_KEY
+      doc: directory entry node key
+    3:
+      id: extended_attribute
+      -orig-id: UBIFS_XENT_KEY
+      doc: extended attribute node key
