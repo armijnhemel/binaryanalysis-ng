@@ -3,7 +3,6 @@ meta:
   title: UBIFS
   license: GPL-2.0-only
   endian: le
-  bit-endian: le
   encoding: UTF-8
 doc: |
   The UBIFS file system is a file system for flash file systems. It works on
@@ -682,11 +681,14 @@ types:
     seq:
       - id: inode_number
         type: u4
-      - id: type
-        type: b3
+      - id: key_value
+        type: u4
+    instances:
+      type:
+        value: key_value >> 29
         enum: key_types
-      - id: value
-        type: b29
+      value:
+        value: key_value & 0x1fffffff
     doc: |
       Keys are 64-bits long. The first 32-bits are the inode number, or the
       parent inode number in case of a directory entry. The next 3 bits are
@@ -696,11 +698,8 @@ types:
     seq:
       - id: inode_number
         type: u4
-      - id: type
-        type: b3
-        enum: key_types
-      - id: value
-        type: b29
+      - id: key_value
+        type: u4
       - id: unused
         size: 8
     doc: |
@@ -711,6 +710,12 @@ types:
 
       In case of a "longkey" (16 bytes) the last two bytes are currently
       unused.
+    instances:
+      type:
+        value: key_value >> 29
+        enum: key_types
+      value:
+        value: key_value & 0x1fffffff
 
 enums:
   compression:
