@@ -886,3 +886,1159 @@ enums:
     0x1000: synthetic  # not directly defined in source code
     0x2000: annotation # declared as an annotation class
     0x4000: enum       # declared as an enumerated type
+  opcodes:
+    # The documentation on Google's website is not up to date, so also synced with
+    # https://github.com/JesusFreke/smali/blob/master/dexlib2/src/main/java/org/jf/dexlib2/Opcode.java
+    0x00:
+      id: nop
+      doc: Waste cycles.
+    0x01:
+      id: move
+      doc: Move the contents of one non-object register to another.
+    0x02:
+      id: move_from16
+      doc: Move the contents of one non-object register to another.
+    0x03:
+      id: move_16
+      doc: Move the contents of one non-object register to another.
+    0x04:
+      id: move_wide
+      doc: Move the contents of one register-pair to another.
+    0x05:
+      id: move_wide_from16
+      doc: Move the contents of one register-pair to another.
+    0x06:
+      id: move_wide_16
+      doc: Move the contents of one register-pair to another.
+    0x07:
+      id: move_object
+      doc: Move the contents of one object-bearing register to another.
+    0x08:
+      id: move_object_from16
+      doc: Move the contents of one object-bearing register to another.
+    0x09:
+      id: move_object_16
+      doc: Move the contents of one object-bearing register to another.
+    0x0a:
+      id: move_result
+      doc: |
+        Move the single-word non-object result of the most recent invoke-kind
+        into the indicated register. This must be done as the instruction
+        immediately after an invoke-kind whose (single-word, non-object)
+        result is not to be ignored; anywhere else is invalid.
+    0x0b:
+      id: move_result_wide
+      doc: |
+        Move the double-word result of the most recent invoke-kind into the
+        indicated register pair. This must be done as the instruction
+        immediately after an invoke-kind whose (double-word) result is not
+        to be ignored; anywhere else is invalid.
+    0x0c:
+      id: move_result_object
+      doc: |
+        Move the object result of the most recent invoke-kind into the
+        indicated register. This must be done as the instruction immediately
+        after an invoke-kind or filled-new-array whose (object) result is not
+        to be ignored; anywhere else is invalid.
+    0x0d:
+      id: move_exception
+      doc: |
+        Save a just-caught exception into the given register. This must be the
+        first instruction of any exception handler whose caught exception is
+        not to be ignored, and this instruction must only ever occur as the
+        first instruction of an exception handler; anywhere else is invalid.
+    0x0e:
+      id: return_void
+      doc: Return from a void method.
+    0x0f:
+      id: return
+      doc: Return from a single-width (32-bit) non-object value-returning method.
+    0x10:
+      id: return_wide
+      doc: Return from a double-width (64-bit) value-returning method.
+    0x11:
+      id: return_object
+      doc: Return from an object-returning method.
+    0x12:
+      id: const_4
+      doc: |
+        Move the given literal value (sign-extended to 32 bits) into the
+        specified register.
+    0x13:
+      id: const_16
+      doc: |
+        Move the given literal value (sign-extended to 32 bits) into the
+        specified register.
+    0x14:
+      id: const
+      doc: Move the given literal value into the specified register.
+    0x15:
+      id: const_high16
+      doc: |
+        Move the given literal value (right-zero-extended to 32 bits)
+        into the specified register.
+    0x16:
+      id: const_wide_16
+      doc: |
+        Move the given literal value (sign-extended to 64 bits) into the
+        specified register-pair.
+    0x17:
+      id: const_wide_32
+      doc: |
+        Move the given literal value (sign-extended to 64 bits) into the
+        specified register-pair.
+    0x18:
+      id: const_wide
+      doc: Move the given literal value into the specified register-pair.
+    0x19:
+      id: const_wide_high16
+      doc: |
+        Move the given literal value (right-zero-extended to 64 bits) into the
+        specified register-pair.
+    0x1a:
+      id: const_string
+      doc: |
+        Move a reference to the string specified by the given index into the
+        specified register.
+    0x1b:
+      id: const_string_jumbo
+      doc: |
+        Move a reference to the string specified by the given index into the
+        specified register.
+    0x1c:
+      id: const_class
+      doc: |
+        Move a reference to the class specified by the given index into the
+        specified register. In the case where the indicated type is primitive,
+        this will store a reference to the primitive type's degenerate class.
+    0x1d:
+      id: monitor_enter
+      doc: Acquire the monitor for the indicated object.
+    0x1e:
+      id: monitor_exit
+      doc: Release the monitor for the indicated object.
+    0x1f:
+      id: check_cast
+      doc: |
+        Throw a ClassCastException if the reference in the given register
+        cannot be cast to the indicated type.
+    0x20:
+      id: instance_of
+      doc: |
+        Store in the given destination register 1 if the indicated reference
+        is an instance of the given type, or 0 if not.
+    0x21:
+      id: array_length
+      doc: |
+        Store in the given destination register the length of the indicated
+        array, in entries
+    0x22:
+      id: new_instance
+      doc: |
+        Construct a new instance of the indicated type, storing a reference
+        to it in the destination. The type must refer to a non-array class.
+    0x23:
+      id: new_array
+      doc: |
+        Construct a new array of the indicated type and size. The type must
+        be an array type.
+    0x24:
+      id: filled_new_array
+      doc: |
+        Construct an array of the given type and size, filling it with the
+        supplied contents. The type must be an array type. The array's contents
+        must be single-word (that is, no arrays of long or double, but reference
+        types are acceptable). The constructed instance is stored as a "result"
+        in the same way that the method invocation instructions store their
+        results, so the constructed instance must be moved to a register with
+        an immediately subsequent move-result-object instruction (if it is to
+        be used).
+    0x25:
+      id: filled_new_array_range
+      doc: |
+        Construct an array of the given type and size, filling it with the
+        supplied contents. Clarifications and restrictions are the same as
+        filled-new-array, described above.
+    0x26:
+      id: fill_array_data
+      doc: |
+        Fill the given array with the indicated data. The reference must be
+        to an array of primitives, and the data table must match it in type
+        and must contain no more elements than will fit in the array. That is,
+        the array may be larger than the table, and if so, only the initial
+        elements of the array are set, leaving the remainder alone.
+    0x27:
+      id: throw
+      doc: Throw the indicated exception.
+    0x28:
+      id: goto
+      doc: Unconditionally jump to the indicated instruction.
+    0x29:
+      id: goto_16
+      doc: Unconditionally jump to the indicated instruction.
+    0x2a:
+      id: goto_32
+      doc: Unconditionally jump to the indicated instruction.
+    0x2b:
+      id: packed_switch
+      doc: |
+        Jump to a new instruction based on the value in the given register,
+        using a table of offsets corresponding to each value in a particular
+        integral range, or fall through to the next instruction if there is
+        no match.
+    0x2c:
+      id: sparse_switch
+      doc: |
+        Jump to a new instruction based on the value in the given register,
+        using an ordered table of value-offset pairs, or fall through to the
+        next instruction if there is no match.
+    0x2d:
+      id: cmpl_float
+      doc: |
+        Perform the indicated floating point or long comparison, setting a
+        to 0 if b == c, 1 if b > c, or -1 if b < c.
+    0x2e:
+      id: cmpg_float
+      doc: |
+        Perform the indicated floating point or long comparison, setting a
+        to 0 if b == c, 1 if b > c, or -1 if b < c.
+    0x2f:
+      id: cmpl_double
+      doc: |
+        Perform the indicated floating point or long comparison, setting a
+        to 0 if b == c, 1 if b > c, or -1 if b < c.
+    0x30:
+      id: cmpg_double
+      doc: |
+        Perform the indicated floating point or long comparison, setting a
+        to 0 if b == c, 1 if b > c, or -1 if b < c.
+    0x31:
+      id: cmpg_long
+      doc: |
+        Perform the indicated floating point or long comparison, setting a
+        to 0 if b == c, 1 if b > c, or -1 if b < c.
+    0x32:
+      id: if_eq
+      doc: |
+        Branch to the given destination if the given two registers' values
+        compare as specified.
+    0x33:
+      id: if_ne
+      doc: |
+        Branch to the given destination if the given two registers' values
+        compare as specified.
+    0x34:
+      id: if_lt
+      doc: |
+        Branch to the given destination if the given two registers' values
+        compare as specified.
+    0x35:
+      id: if_ge
+      doc: |
+        Branch to the given destination if the given two registers' values
+        compare as specified.
+    0x36:
+      id: if_gt
+      doc: |
+        Branch to the given destination if the given two registers' values
+        compare as specified.
+    0x37:
+      id: if_le
+      doc: |
+        Branch to the given destination if the given two registers' values
+        compare as specified.
+    0x38:
+      id: if_eqz
+      doc: |
+        Branch to the given destination if the given register's value compares
+        with 0 as specified.
+    0x39:
+      id: if_nez
+      doc: |
+        Branch to the given destination if the given register's value compares
+        with 0 as specified.
+    0x3a:
+      id: if_ltz
+      doc: |
+        Branch to the given destination if the given register's value compares
+        with 0 as specified.
+    0x3b:
+      id: if_gez
+      doc: |
+        Branch to the given destination if the given register's value compares
+        with 0 as specified.
+    0x3c:
+      id: if_gtz
+      doc: |
+        Branch to the given destination if the given register's value compares
+        with 0 as specified.
+    0x3d:
+      id: if_gtz
+      doc: |
+        Branch to the given destination if the given register's value compares
+        with 0 as specified.
+    # 0x3e - 0x43: unused
+    0x44:
+      id: aget
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x45:
+      id: aget_wide
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x46:
+      id: aget_object
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x47:
+      id: aget_boolean
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x48:
+      id: aget_byte
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x49:
+      id: aget_char
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x4a:
+      id: aget_short
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x4b:
+      id: aput
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x4c:
+      id: aput_wide
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x4d:
+      id: aput_object
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x4e:
+      id: aput_boolean
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x4f:
+      id: aput_byte
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x50:
+      id: aput_char
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x51:
+      id: aput_short
+      doc: |
+        Perform the identified array operation at the identified index of the
+        given array, loading or storing into the value register.
+    0x52:
+      id: iget
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x53:
+      id: iget_wide
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x54:
+      id: iget_object
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x55:
+      id: iget_boolean
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x56:
+      id: iget_byte
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x57:
+      id: iget_char
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x58:
+      id: iget_short
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x59:
+      id: iput
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x5a:
+      id: iput_wide
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x5b:
+      id: iput_object
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x5c:
+      id: iput_boolean
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x5d:
+      id: iput_byte
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x5e:
+      id: iput_char
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x5f:
+      id: iput_short
+      doc: |
+        Perform the identified object instance field operation with the
+        identified field, loading or storing into the value register.
+    0x60:
+      id: sget
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x61:
+      id: sget_wide
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x62:
+      id: sget_object
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x63:
+      id: sget_boolean
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x64:
+      id: sget_byte
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x65:
+      id: sget_char
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x66:
+      id: sget_short
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x67:
+      id: sput
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x68:
+      id: sput_wide
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x69:
+      id: sput_object
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x6a:
+      id: sput_boolean
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x6b:
+      id: sput_byte
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x6c:
+      id: sput_char
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x6d:
+      id: sput_short
+      doc: |
+        Perform the identified object static field operation with the
+        identified static field, loading or storing into the value register.
+    0x6e:
+      id: invoke_virtual
+      doc: |
+        Call the indicated method. The result (if any) may be stored with an
+        appropriate move-result* variant as the immediately subsequent instruction.
+    0x6f:
+      id: invoke_super
+      doc: |
+        Call the indicated method. The result (if any) may be stored with an
+        appropriate move-result* variant as the immediately subsequent instruction.
+    0x70:
+      id: invoke_direct
+      doc: |
+        Call the indicated method. The result (if any) may be stored with an
+        appropriate move-result* variant as the immediately subsequent instruction.
+    0x71:
+      id: invoke_static
+      doc: |
+        Call the indicated method. The result (if any) may be stored with an
+        appropriate move-result* variant as the immediately subsequent instruction.
+    0x72:
+      id: invoke_interface
+      doc: |
+        Call the indicated method. The result (if any) may be stored with an
+        appropriate move-result* variant as the immediately subsequent instruction.
+    # 0x73: unused , possibly return-void-no-barrier?
+    0x74:
+      id: invoke_virtual_range
+      doc: |
+        Call the indicated method. See first invoke-kind description above for
+        details, caveats, and suggestions.
+    0x75:
+      id: invoke_super_range
+      doc: |
+        Call the indicated method. See first invoke-kind description above for
+        details, caveats, and suggestions.
+    0x76:
+      id: invoke_direct_range
+      doc: |
+        Call the indicated method. See first invoke-kind description above for
+        details, caveats, and suggestions.
+    0x77:
+      id: invoke_static_range
+      doc: |
+        Call the indicated method. See first invoke-kind description above for
+        details, caveats, and suggestions.
+    0x78:
+      id: invoke_interface_range
+      doc: |
+        Call the indicated method. See first invoke-kind description above for
+        details, caveats, and suggestions.
+    # 0x79 - 0x7a : unused
+    0x7b:
+      id: neg_int
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x7c:
+      id: not_int
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x7d:
+      id: neg_long
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x7e:
+      id: not_long
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x7f:
+      id: neg_float
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x80:
+      id: neg_double
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x81:
+      id: int_to_long
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x82:
+      id: int_to_float
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x83:
+      id: int_to_double
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x84:
+      id: long_to_int
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x85:
+      id: long_to_float
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x86:
+      id: long_to_double
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x87:
+      id: float_to_int
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x88:
+      id: float_to_long
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x89:
+      id: float_to_double
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x8a:
+      id: double_to_int
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x8b:
+      id: double_to_long
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x8c:
+      id: double_to_float
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x8d:
+      id: int_to_byte
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x8e:
+      id: int_to_char
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x8f:
+      id: int_to_short
+      doc: |
+        Perform the identified unary operation on the source register, storing
+        the result in the destination register.
+    0x90:
+      id: add_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x91:
+      id: sub_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x92:
+      id: mul_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x93:
+      id: div_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x94:
+      id: rem_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x95:
+      id: and_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x96:
+      id: or_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x97:
+      id: xor_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x98:
+      id: shl_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x99:
+      id: shr_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x9a:
+      id: ushr_int
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x9b:
+      id: add_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x9c:
+      id: sub_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x9d:
+      id: mul_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x9e:
+      id: div_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0x9f:
+      id: rem_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xa0:
+      id: and_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xa1:
+      id: or_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xa2:
+      id: xor_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xa3:
+      id: shl_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xa4:
+      id: shr_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xa5:
+      id: ushr_long
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xa6:
+      id: add_float
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xa7:
+      id: sub_float
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xa8:
+      id: mul_float
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xa9:
+      id: div_float
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xaa:
+      id: rem_float
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xab:
+      id: add_double
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xac:
+      id: sub_double
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xad:
+      id: mul_double
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xae:
+      id: div_double
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xaf:
+      id: rem_double
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the destination register.
+    0xb0:
+      id: add_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xb1:
+      id: sub_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xb2:
+      id: mul_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xb3:
+      id: div_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xb4:
+      id: rem_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xb5:
+      id: and_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xb6:
+      id: or_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xb7:
+      id: xor_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xb8:
+      id: shl_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xb9:
+      id: shr_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xba:
+      id: ushr_int_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xbb:
+      id: add_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xbc:
+      id: sub_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xbd:
+      id: mul_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xbe:
+      id: div_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xbf:
+      id: rem_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xc0:
+      id: and_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xc1:
+      id: or_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xc2:
+      id: xor_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xc3:
+      id: shl_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xc4:
+      id: shr_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xc5:
+      id: ushr_long_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xc6:
+      id: add_float_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xc7:
+      id: sub_float_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xc8:
+      id: mul_float_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xc9:
+      id: div_float_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xca:
+      id: rem_float_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xcb:
+      id: add_double_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xcc:
+      id: sub_double_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xcd:
+      id: mul_double_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xce:
+      id: div_double_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xcf:
+      id: rem_double_2addr
+      doc: |
+        Perform the identified binary operation on the two source registers,
+        storing the result in the first source register.
+    0xd0:
+      id: add_int_lit16
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result in
+        the destination register.
+    0xd1:
+      id: rsub_int
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result in
+        the destination register.
+    0xd2:
+      id: mul_int_lit16
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result in
+        the destination register.
+    0xd3:
+      id: div_int_lit16
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result in
+        the destination register.
+    0xd4:
+      id: rem_int_lit16
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result in
+        the destination register.
+    0xd5:
+      id: and_int_lit16
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result in
+        the destination register.
+    0xd6:
+      id: or_int_lit16
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result in
+        the destination register.
+    0xd7:
+      id: xor_int_lit16
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result in
+        the destination register.
+    0xd8:
+      id: add_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    0xd9:
+      id: rsub_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    0xda:
+      id: mul_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    0xdb:
+      id: div_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    0xdc:
+      id: rem_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    0xdd:
+      id: and_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    0xde:
+      id: or_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    0xdf:
+      id: xor_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    0xe0:
+      id: shl_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    0xe1:
+      id: shr_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    0xe2:
+      id: ushr_int_lit8
+      doc: |
+        Perform the indicated binary op on the indicated register (first
+        argument) and literal value (second argument), storing the result
+        in the destination register.
+    # ec..f9 10x 	(unused) 	  	(unused)
+    0xe3:
+      id: iget_volatile
+    0xe4:
+      id: iput_volatile
+    0xe5:
+      id: sget_volatile
+    0xe6:
+      id: sput_volatile
+    0xe7:
+      id: iget_object_volatile
+    0xe8:
+      id: iget_wide_volatile
+    0xe9:
+      id: iput_wide_volatile
+    0xea:
+      id: sget_wide_volatile
+    0xeb:
+      id: sput_wide_volatile
+    0xfa:
+      id: invoke_polymorphic
+      doc: |
+         Invoke the indicated signature polymorphic method. The result (if any)
+         may be stored with an appropriate move-result* variant as the
+         immediately subsequent instruction.
+
+         Present in Dex files from version 038 onwards.
+    0xfb:
+      id: invoke_polymorphic_range
+      doc: |
+        Invoke the indicated method handle. See the invoke-polymorphic
+        description above for details.
+
+        Present in Dex files from version 038 onwards.
+    0xfc:
+      id: invoke_custom
+      doc: |
+        Resolves and invokes the indicated call site. The result from the
+        invocation (if any) may be stored with an appropriate move-result*
+        variant as the immediately subsequent instruction.
+
+        Present in Dex files from version 038 onwards.
+    0xfd:
+      id: invoke_custom_range
+      doc: |
+        Resolve and invoke a call site. See the invoke-custom description
+        above for details.
+
+        Present in Dex files from version 038 onwards.
+    0xfe:
+      id: const_method_handle
+      doc: |
+        Move a reference to the method handle specified by the given index
+        into the specified register.
+
+        Present in Dex files from version 039 onwards.
+    0xff:
+      id: const_method_type
+      doc: |
+        Move a reference to the method prototype specified by the given index
+        into the specified register.
+
+        Present in Dex files from version 039 onwards.
