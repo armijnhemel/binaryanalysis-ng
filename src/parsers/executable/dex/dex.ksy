@@ -742,6 +742,9 @@ types:
       - id: handlers
         type: encoded_catch_handler_list
         if: num_tries != 0
+    instances:
+      parsed_bytecode:
+        type: bytecodes
   encoded_catch_handler_list:
     seq:
       - id: num_entries
@@ -787,6 +790,24 @@ types:
         type: vlq_base128_le
       - id: addr
         type: vlq_base128_le
+  bytecodes:
+    seq:
+      - id: instructions
+        type: bytecode_item
+        #repeat: eos
+        repeat: expr
+        repeat-expr: 1
+  bytecode_item:
+    seq:
+      - id: opcode
+        type: u1
+        enum: opcodes
+      #- id: payload
+        #type:
+          #switch-on: payload
+          #cases:
+            #opcodes::nop: {}
+            #opcodes::
   map_item:
     -webide-representation: "{type}: offs={offset}, size={size}"
     seq:
@@ -1998,6 +2019,49 @@ enums:
       id: sget_wide_volatile
     0xeb:
       id: sput_wide_volatile
+    0xed:
+      id: throw_verification_error
+      doc: odex only
+    0xee:
+      id: execute_inline
+      doc: odex only
+    0xef:
+      id: execute_inline_range
+      doc: odex only
+    0xf0:
+      id: invoke_direct_empty
+      doc: invoke-direct-empty in API <= 13, invoke-object-init/range for API > 13
+    0xf1:
+      id: return_void_barrier
+      doc: odex only
+    0xf2:
+      id: iget_quick
+      doc: odex only
+    0xf3:
+      id: iget_wide_quick
+      doc: odex only
+    0xf4:
+      id: iget_object_quick
+      doc: odex only
+    0xf5:
+      id: iput_quick
+      doc: odex only
+    0xf6:
+      id: iput_wide_quick
+      doc: odex only
+    0xf7:
+      id: iput_object_quick
+      doc: odex only
+    0xf8:
+      id: invoke_virtual_quick
+      doc: odex only
+    0xf9:
+      id: invoke_virtual_quick_range
+      doc: odex only
+    #0xfa: invoke_super_quick
+    #  doc: odex only
+    #0xfb: invoke_super_quick_range
+    #  doc: odex only
     0xfa:
       id: invoke_polymorphic
       doc: |
