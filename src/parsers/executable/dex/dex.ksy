@@ -733,6 +733,58 @@ types:
         doc: |
           two bytes of padding to make tries four-byte aligned. This element is
           only present if tries_size is non-zero and insns_size is odd.
+      - id: tries
+        type: try_item
+        repeat: expr
+        repeat-expr: num_tries
+      - id: handlers
+        type: encoded_catch_handler_list
+        if: num_tries != 0
+  encoded_catch_handler_list:
+    seq:
+      - id: num_entries
+        -orig-id: size
+        type: vlq_base128_le
+        doc: size of this list, in entries
+      - id: encoded_catch_handler
+        type: encoded_catch_handler
+        repeat: expr
+        repeat-expr: num_entries.value_signed
+        doc: |
+          actual list of handler lists, represented directly
+          (not as offsets), and concatenated sequentially
+  encoded_catch_handler:
+    seq:
+      - id: num_catch_types
+        -orig-id: size
+        type: vlq_base128_le
+        doc: |
+          number of catch types in this list. If non-positive, then this is
+          the negative of the number of catch types, and the catches are
+          followed by a catch-all handler. For example: A size of 0 means that
+          there is a catch-all but no explicitly typed catches. A size of 2
+          means that there are two explicitly typed catches and no catch-all.
+          And a size of -1 means that there is one typed catch along with
+          a catch-all.
+      - id: handlers
+        type: encoded_type_addr_pair
+        repeat: expr
+        repeat-expr: '(num_catch_types.value_signed < 0 ? -num_catch_types.value_signed : num_catch_types.value_signed)'
+        doc: |
+          stream of abs(size) encoded items, one for each caught type, in
+          the order that the types should be tested.
+      - id: catch_all_addr
+        type: vlq_base128_le
+        if: num_catch_types.value < 1
+        doc: |
+          bytecode address of the catch-all handler. This element is only
+          present if size is non-positive.
+  encoded_type_addr_pair:
+    seq:
+      - id: type_idx
+        type: vlq_base128_le
+      - id: addr
+        type: vlq_base128_le
   map_item:
     -webide-representation: "{type}: offs={offset}, size={size}"
     seq:
@@ -783,6 +835,28 @@ types:
         type: map_item
         repeat: expr
         repeat-expr: size
+  try_item:
+    seq:
+      - id: start_address
+        type: u4
+        doc: |
+          start address of the block of code covered by this entry. The
+          address is a count of 16-bit code units to the start of the
+          first covered instruction.
+      - id: num_instructions
+        -orig-id: insn_count
+        type: u2
+        doc: |
+          number of 16-bit code units covered by this entry. The last code
+          unit covered (inclusive) is start_addr + insn_count - 1.
+      - id: ofs_handler
+        -orig-id: handler_off
+        type: u2
+        doc: |
+          offset in bytes from the start of the associated
+          encoded_catch_hander_list to the encoded_catch_handler for this
+          entry. This must be an offset to the start of an
+          encoded_catch_handler.
   type_item:
     seq:
       - id: type_idx
