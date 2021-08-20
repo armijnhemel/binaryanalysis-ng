@@ -951,7 +951,7 @@ enums:
       id: return_void
       doc: Return from a void method.
     0x0f:
-      id: return
+      id: return_value
       doc: Return from a single-width (32-bit) non-object value-returning method.
     0x10:
       id: return_wide
@@ -1173,7 +1173,7 @@ enums:
         Branch to the given destination if the given register's value compares
         with 0 as specified.
     0x3d:
-      id: if_gtz
+      id: if_lez
       doc: |
         Branch to the given destination if the given register's value compares
         with 0 as specified.
