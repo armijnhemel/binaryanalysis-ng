@@ -614,7 +614,8 @@ types:
           access flags for the field (public, final, etc.).
 
           See "access_flags Definitions" for details.
-      - id: code_off
+      - id: ofs_code
+        -orig-id: code_off
         type: vlq_base128_le
         doc: |
           offset from the start of the file to the code structure for this method,
@@ -625,8 +626,9 @@ types:
           The format of the data is specified by "code_item" below.
     instances:
       code:
-        pos: code_off.value
+        pos: ofs_code.value
         type: code_item
+        if: ofs_code.value != 0
   class_data_item:
     seq:
       - id: static_fields_size
