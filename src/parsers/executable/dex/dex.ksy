@@ -910,6 +910,8 @@ enums:
   opcodes:
     # The documentation on Google's website is not up to date, so also synced with
     # https://github.com/JesusFreke/smali/blob/master/dexlib2/src/main/java/org/jf/dexlib2/Opcode.java
+    # https://android.googlesource.com/platform/dalvik/+/android-4.4.2_r2/opcode-gen/bytecode.txt
+    # https://android.googlesource.com/platform/dalvik/+/refs/tags/android-vts-10.0_r9/opcode-gen/bytecode.txt
     0x00:
       id: nop
       doc: Waste cycles.
@@ -2019,6 +2021,9 @@ enums:
       id: sget_wide_volatile
     0xeb:
       id: sput_wide_volatile
+    0xec:
+      id: breakpoint
+      doc-ref: https://android.googlesource.com/platform/dalvik/+/android-4.4.2_r2/libdex/DexOpcodes.h
     0xed:
       id: throw_verification_error
       doc: odex only
