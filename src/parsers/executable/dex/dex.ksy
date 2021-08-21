@@ -722,6 +722,7 @@ types:
           size of the instructions list, in 16-bit code units
       - id: insns
         size: len_insns * 2
+        type: insns
         doc: |
           actual array of bytecode. The format of code in an insns array is
           specified by the companion document Dalvik bytecode. Note that
@@ -742,9 +743,14 @@ types:
       - id: handlers
         type: encoded_catch_handler_list
         if: num_tries != 0
+  insns:
+    seq:
+      - id: raw_bytecode
+        size-eos: true
     instances:
       parsed_bytecode:
         type: bytecodes
+        pos: 0
   encoded_catch_handler_list:
     seq:
       - id: num_entries
