@@ -97,6 +97,9 @@ types:
             '"mkBS"': adobe_fireworks_chunk
             '"mkTS"': adobe_fireworks_chunk
             '"prVW"': adobe_fireworks_chunk
+
+            # evernote/skitch chunks
+            '"skRf"': evernote_skrf_chunk
       - id: crc
         size: 4
   ihdr_chunk:
@@ -395,6 +398,12 @@ types:
     seq:
       - id: preview_data
         process: zlib
+        size-eos: true
+  evernote_skrf_chunk:
+    seq:
+      - id: uuid
+        size: 16
+      - id: data
         size-eos: true
 enums:
   color_type:

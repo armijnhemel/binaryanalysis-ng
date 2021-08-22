@@ -237,10 +237,10 @@ class PngUnpackParser(UnpackParser):
             elif i.type == 'skRf':
                 # The first 16 bytes are a uuid that is referenced in the JSON
                 # that can be found in the JSON of the skMf chunk in a URI
-                uri_uuid = uuid.UUID(bytes=i.body[:16])
+                uri_uuid = uuid.UUID(bytes=i.body.uuid)
                 if not 'evernote' in metadata:
                     metadata['evernote'] = {}
-                metadata['evernote']['uri_uid'] = uri_uuid
+                metadata['evernote']['uri_uuid'] = uri_uuid
                 # The rest of the image is the original PNG.
                 # TODO: extract PNG
 
