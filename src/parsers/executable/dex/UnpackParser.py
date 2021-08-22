@@ -205,16 +205,16 @@ class DexUnpackParser(WrappedUnpackParser):
 
                 # compute various hashes for the bytecode and store them
                 hashes = {}
-                sha256 = hashlib.sha256(method.code.insns.raw_bytecode).hexdigest()
+                sha256 = hashlib.sha256(method.code.insns).hexdigest()
                 hashes['sha256'] = sha256
-                tlsh_hash = tlsh.hash(method.code.insns.raw_bytecode)
+                tlsh_hash = tlsh.hash(method.code.insns)
                 if tlsh_hash != 'TNULL':
                     hashes['tlsh'] = tlsh_hash
                 else:
                     hashes['tlsh'] = None
 
                 # extract the relevant strings from the bytecode and store them
-                res = self.parse_bytecode(method.code.insns.raw_bytecode)
+                res = self.parse_bytecode(method.code.insns)
 
                 method_id += method.method_idx_diff.value
                 class_obj['methods'].append({'name': self.data.method_ids[method_id].method_name,
@@ -227,9 +227,9 @@ class DexUnpackParser(WrappedUnpackParser):
 
                 # compute various hashes for the bytecode and store them
                 hashes = {}
-                sha256 = hashlib.sha256(method.code.insns.raw_bytecode).hexdigest()
+                sha256 = hashlib.sha256(method.code.insns).hexdigest()
                 hashes['sha256'] = sha256
-                tlsh_hash = tlsh.hash(method.code.insns.raw_bytecode)
+                tlsh_hash = tlsh.hash(method.code.insns)
                 if tlsh_hash != 'TNULL':
                     hashes['tlsh'] = tlsh_hash
                 else:
