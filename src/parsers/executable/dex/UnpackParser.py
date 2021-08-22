@@ -151,7 +151,7 @@ class DexUnpackParser(WrappedUnpackParser):
             # - const-string/jumbo (0x1b)
             #
             # Some instructions contain extra data and they need to be
-            # parsed separately:
+            # parsed separately and then be skipped.
             #
             # - fill-array-data (0x26)
             # - packed-switch (0x2b)
@@ -163,14 +163,20 @@ class DexUnpackParser(WrappedUnpackParser):
                 string_id = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
                 string_ids.append(string_id)
             elif opcode == 0x26:
-                # first a branch offset
+                # first a branch offset, relative to the current opcode
                 branch_offset = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
+
+                # read the pseudo opcode
             elif opcode == 0x2b:
-                # first a branch offset
+                # first a branch offset, relative to the current opcode
                 branch_offset = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
+
+                # read the pseudo opcode
             elif opcode == 0x2c:
-                # first a branch offset
+                # first a branch offset, relative to the current opcode
                 branch_offset = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
+
+                # read the pseudo opcode
             counter += opcodes[opcode] * 2
             bytecode_processed = counter
         return string_ids
