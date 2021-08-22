@@ -476,6 +476,9 @@ types:
         pos: class_data_off
         type: class_data_item
         if: class_data_off != 0
+      sourcefile_name:
+        value: _root.string_ids[source_file_idx].value.data
+        -webide-parse-mode: eager
       static_values:
         pos: static_values_off
         type: encoded_array_item
