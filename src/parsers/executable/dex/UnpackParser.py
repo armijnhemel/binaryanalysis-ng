@@ -288,7 +288,7 @@ class DexUnpackParser(WrappedUnpackParser):
 
                 method_id += method.method_idx_diff.value
                 class_obj['methods'].append({'name': self.data.method_ids[method_id].method_name,
-                                            'class_type': 'direct', 'bytecode_hashes': hashes,
+                                            'method_type': 'direct', 'bytecode_hashes': hashes,
                                             'strings': strings})
             # process virtual methods
             method_id = 0
@@ -315,7 +315,7 @@ class DexUnpackParser(WrappedUnpackParser):
 
                 method_id += method.method_idx_diff.value
                 class_obj['methods'].append({'name': self.data.method_ids[method_id].method_name,
-                                            'class_type': 'virtual', 'bytecode_hashes': hashes,
+                                            'method_type': 'virtual', 'bytecode_hashes': hashes,
                                             'strings': strings})
 
             # process fields
