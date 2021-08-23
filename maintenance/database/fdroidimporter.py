@@ -37,7 +37,6 @@ try:
 except ImportError:
     from yaml import Loader
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", action="store", dest="cfg",
@@ -194,7 +193,7 @@ def main():
     dbcursor = dbconnection.cursor()
 
     # create a prepared statement
-    preparedmfg = "PREPARE apk_insert as INSERT INTO apk_contents (apkname, fullfilename, filename, sha256) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
+    preparedmfg = "PREPARE apk_insert as INSERT INTO apk_contents (apk, full_name, name, sha256) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedmfg)
 
     # Process the XML. Each application can have several
@@ -295,7 +294,7 @@ def main():
 
                 if apk_success:
                     # insert meta information about the APK
-                    dbcursor.execute("INSERT INTO fdroid_package (identifier, version, apkname, sha256, srcpackage) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+                    dbcursor.execute("INSERT INTO fdroid_package (identifier, version, apk, sha256, source_package) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
                                      (application_id, apk_version, apkname, apk_hash, srcname))
                     dbconnection.commit()
 
