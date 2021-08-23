@@ -33,13 +33,15 @@ from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import dex
 
-# opcodes for the various versions. The format is:
+# Opcodes for the various versions. The format is:
 #
 #   {opcode: code_units}
 #
 # where code_units is 16 bit (2 bytes) and includes the opcode itself
 # The names of the instructions are not very interesting here, but
 # the bytecode needs to be parsed to extract the right strings.
+#
+# Not every opcode is in every version.
 
 DEX_035_OPCODES = {0x00: 1, 0x01: 1, 0x02: 2, 0x03: 3, 0x04: 1,
                    0x05: 2, 0x06: 3, 0x07: 1, 0x08: 2, 0x09: 3,
@@ -111,9 +113,6 @@ class DexUnpackParser(WrappedUnpackParser):
         (0, b'dex\n')
     ]
     pretty_name = 'dex'
-
-    # There are many opcodes in Android, not all of which are in
-    # every version of Android.
 
     def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_dex(fileresult, scan_environment, offset, unpack_dir)
