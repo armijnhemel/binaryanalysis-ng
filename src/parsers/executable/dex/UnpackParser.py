@@ -23,6 +23,7 @@
 
 import os
 import hashlib
+import zlib
 import tlsh
 from UnpackParser import WrappedUnpackParser
 from bangandroid import unpack_dex
@@ -135,10 +136,9 @@ class DexUnpackParser(WrappedUnpackParser):
             opcodes = DEX_039
 
         len_bytecode = len(bytecode)
-        bytecode_processed = 0
         counter = 0
         string_ids = []
-        while bytecode_processed < len_bytecode:
+        while counter < len_bytecode:
             # read the first instruction
             opcode = bytecode[counter]
 
@@ -162,30 +162,63 @@ class DexUnpackParser(WrappedUnpackParser):
             elif opcode == 0x1b:
                 string_id = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
                 string_ids.append(string_id)
-            elif opcode == 0x26:
-                # first a branch offset, relative to the current opcode
-                branch_offset = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
+            elif opcode == 0x00:
+                # the payloads for fill-array-data, packed-switch and sparse-switch
+                # use a pseudo opcode
+                if bytecode[counter+1] == 1:
+                    # packed-switch-payload
+                    counter += opcodes[opcode] * 2
 
-                # read the pseudo opcode
-            elif opcode == 0x2b:
-                # first a branch offset, relative to the current opcode
-                branch_offset = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
+                    # number of entries in the table
+                    size = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
+                    counter += 2
+                    first_key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                    counter += 4
+                    # then the data
+                    for k in range(0, size):
+                        key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                        counter += 4
+                    continue
+                elif bytecode[counter+1] == 2:
+                    # sparse-switch-payload
+                    counter += opcodes[opcode] * 2
+                    size = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
+                    counter += 2
 
-                # read the pseudo opcode
-            elif opcode == 0x2c:
-                # first a branch offset, relative to the current opcode
-                branch_offset = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
+                    # keys
+                    for k in range(0, size):
+                        key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                        counter += 4
 
-                # read the pseudo opcode
+                    # targets
+                    for t in range(0, size):
+                        target = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                        counter += 4
+                    continue
+                elif bytecode[counter+1] == 3:
+                    # fill-array-data payload
+                    counter += opcodes[opcode] * 2
+                    element_width = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
+                    counter += 2
+
+                    size = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                    counter += 4
+
+                    # data
+                    counter += size * element_width
+                    continue
+
             counter += opcodes[opcode] * 2
-            bytecode_processed = counter
         return string_ids
 
     def parse(self):
         try:
             self.data = dex.Dex.from_io(self.infile)
+            computed_checksum = zlib.adler32(self.data.bytes_for_adler32)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
+        check_condition(self.data.header.checksum == computed_checksum,
+                        "wrong Adler32")
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
@@ -200,7 +233,6 @@ class DexUnpackParser(WrappedUnpackParser):
             class_obj = {}
             class_obj['classname'] = class_definition.type_name[1:-1]
             class_obj['source'] = class_definition.sourcefile_name
-            class_obj['strings'] = []
             class_obj['methods'] = []
 
             # process direct methods
@@ -220,11 +252,16 @@ class DexUnpackParser(WrappedUnpackParser):
                     hashes['tlsh'] = None
 
                 # extract the relevant strings from the bytecode and store them
+                strings = []
                 res = self.parse_bytecode(method.code.insns)
+                if res != []:
+                  for r in res:
+                      strings.append(self.data.string_ids[r].value.data)
 
                 method_id += method.method_idx_diff.value
                 class_obj['methods'].append({'name': self.data.method_ids[method_id].method_name,
-                                            'class_type': 'direct', 'bytecode_hashes': hashes})
+                                            'class_type': 'direct', 'bytecode_hashes': hashes,
+                                            'strings': strings})
             # process virtual methods
             method_id = 0
             for method in class_definition.class_data.virtual_methods:
@@ -242,9 +279,16 @@ class DexUnpackParser(WrappedUnpackParser):
                     hashes['tlsh'] = None
 
                 # extract the relevant strings from the bytecode and store them
+                strings = []
+                res = self.parse_bytecode(method.code.insns)
+                if res != []:
+                  for r in res:
+                      strings.append(self.data.string_ids[r].value.data)
+
                 method_id += method.method_idx_diff.value
                 class_obj['methods'].append({'name': self.data.method_ids[method_id].method_name,
-                                            'class_type': 'virtual', 'bytecode_hashes': hashes})
+                                            'class_type': 'virtual', 'bytecode_hashes': hashes,
+                                            'strings': strings})
 
             # process fields
             class_obj['fields'] = []
