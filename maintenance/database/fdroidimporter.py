@@ -37,6 +37,10 @@ try:
 except ImportError:
     from yaml import Loader
 
+# import tlsh and telfhash to process ELF files
+import tlsh
+import telfhash
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", action="store", dest="cfg",
@@ -284,9 +288,13 @@ def main():
                                     if filter_matched:
                                         continue
                                 apk_entry_hash = hashlib.new('sha256')
-                                apk_entry_hash.update(apk_entry.read_bytes())
+                                apk_entry_contents = apk_entry.read_bytes()
+                                apk_entry_hash.update(apk_entry_contents)
                                 apk_hashes.append((apkname, str(apk_entry), apk_entry.name,
                                                    apk_entry_hash.hexdigest()))
+                                # compute two additional hashes for ELF files
+                                # Just assume that ELF files in F-Droid are valid
+
                         os.chdir(old_dir)
 
                         # 4. clean up
