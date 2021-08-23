@@ -25,6 +25,12 @@ seq:
   - id: header
     type: header_item
 instances:
+  bytes_for_adler32:
+    pos: 12
+    size: header.file_size - 12
+    doc: |
+      The Adler32 checksum is computed over the entire file, minus the
+      magic value, version string and the checksum field.
   string_ids:
     pos: header.string_ids_off
     type: string_id_item
