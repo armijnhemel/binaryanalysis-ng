@@ -100,8 +100,9 @@ DEX_038_OPCODES = {0xfa: 4, 0xfb: 4, 0xfc: 3, 0xfd: 3}
 
 DEX_039_OPCODES = {0xfe: 2, 0xff: 2}
 
-# combine the opcodes
-DEX_035 = DEX_035_OPCODES
+# combine the opcodes. As Odex 037 contains Dex 035 files (with
+# optimizations) also consider the Odex opcodes in Dex 035 files.
+DEX_035 = DEX_035_OPCODES | DEX_037_OPCODES
 DEX_037 = DEX_035_OPCODES | DEX_037_OPCODES
 DEX_038 = DEX_035_OPCODES | DEX_037_OPCODES | DEX_038_OPCODES
 DEX_039 = DEX_035_OPCODES | DEX_037_OPCODES | DEX_038_OPCODES | DEX_039_OPCODES
