@@ -3,7 +3,7 @@ from . import windows_shell_items
 from . import windows_lnk_file
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
 
 class WindowsLinkUnpackParser(UnpackParser):
     extensions = ['.lnk']
@@ -16,7 +16,7 @@ class WindowsLinkUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = windows_lnk_file.WindowsLnkFile.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
             raise UnpackParserException(e.args)
     def unpack(self):
         """extract any files from the input file"""
