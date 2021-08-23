@@ -211,13 +211,41 @@ class DexUnpackParser(WrappedUnpackParser):
         return string_ids
 
     def parse(self):
+        filesize = self.fileresult.filesize
         try:
             self.data = dex.Dex.from_io(self.infile)
             computed_checksum = zlib.adler32(self.data.bytes_for_adler32)
+            self.unpacked_size = self.data.header.file_size
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.header.checksum == computed_checksum,
                         "wrong Adler32")
+
+        # check many offsets
+        check_condition(self.data.header.string_ids_off + self.data.header.string_ids_size <= filesize,
+                        "string_ids cannot be outside of file")
+        check_condition(self.data.header.type_ids_off + self.data.header.type_ids_size <= filesize,
+                        "type_ids cannot be outside of file")
+        check_condition(self.data.header.proto_ids_off + self.data.header.proto_ids_size <= filesize,
+                        "proto_ids cannot be outside of file")
+        check_condition(self.data.header.field_ids_off + self.data.header.field_ids_size <= filesize,
+                        "field_ids cannot be outside of file")
+        check_condition(self.data.header.method_ids_off + self.data.header.method_ids_size <= filesize,
+                        "method_ids cannot be outside of file")
+        check_condition(self.data.header.class_defs_off + self.data.header.class_defs_size <= filesize,
+                        "class_defs cannot be outside of file")
+        check_condition(self.data.header.data_off + self.data.header.data_size <= filesize,
+                        "data cannot be outside of file")
+        check_condition(self.data.header.map_off <= filesize,
+                        "map item cannot be outside of file")
+        check_condition(self.data.header.map_off >= self.data.header.data_off,
+                        "map item has to be inside data section")
+        check_condition(self.data.header.map_off < self.data.header.data_off + self.data.header.data_size,
+                        "map item has to be inside data section")
+
+    # make sure that self.unpacked_size is not overwritten
+    def calculate_unpacked_size(self):
+        pass
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
