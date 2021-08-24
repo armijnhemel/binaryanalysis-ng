@@ -197,8 +197,10 @@ def main():
     dbcursor = dbconnection.cursor()
 
     # create a prepared statement
-    preparedmfg = "PREPARE apk_insert as INSERT INTO apk_contents (apk, full_name, name, sha256) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
-    dbcursor.execute(preparedmfg)
+    prepared_apk = "PREPARE apk_insert as INSERT INTO apk_contents (apk, full_name, name, sha256) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
+    prepared_elf = "PREPARE elf_insert as INSERT INTO elf_hashes (sha256, telfhash, tlsh) values ($1, $2, $3) ON CONFLICT DO NOTHING"
+    dbcursor.execute(prepared_apk)
+    dbcursor.execute(prepared_elf)
 
     # Process the XML. Each application can have several
     # packages (versions) associated with it. The application
@@ -222,6 +224,7 @@ def main():
             elif childnode.nodeName == 'package':
                 # store files and hashes
                 apk_hashes = []
+                elf_hashes = []
                 apk_success = True
                 for packagenode in childnode.childNodes:
                     if packagenode.nodeName == 'srcname':
@@ -292,8 +295,15 @@ def main():
                                 apk_entry_hash.update(apk_entry_contents)
                                 apk_hashes.append((apkname, str(apk_entry), apk_entry.name,
                                                    apk_entry_hash.hexdigest()))
+
                                 # compute two additional hashes for ELF files
                                 # Just assume that ELF files in F-Droid are valid
+                                if apk_entry_contents[:4] == b'\x7fELF':
+                                    # telfhash doesn't support pathlib
+                                    telfhash_result = telfhash.telfhash(str(apk_entry))
+                                    tlsh_result = tlsh.hash(apk_entry_contents)
+                                    if tlsh_result != 'TNULL' and telfhash_result != []:
+                                        elf_hashes.append((apk_entry_hash.hexdigest(), telfhash_result[0]['telfhash'], tlsh_result))
 
                         os.chdir(old_dir)
 
@@ -308,6 +318,7 @@ def main():
 
                     # insert contents of all the files in the APK
                     psycopg2.extras.execute_batch(dbcursor, "execute apk_insert(%s, %s, %s, %s)", apk_hashes)
+                    psycopg2.extras.execute_batch(dbcursor, "execute elf_insert(%s, %s, %s)", elf_hashes)
                     dbconnection.commit()
 
                     apk_counter += 1
