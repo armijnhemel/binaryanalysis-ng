@@ -24,6 +24,7 @@ To use the files do the following:
 1. add the right tables to the database:
 
     $ psql -U username < fdroid-init.sql
+    $ psql -U username < elf-init.sql
 
 2. Import the data:
 
@@ -35,7 +36,7 @@ files and the location of the F-Droid download directory.
 
 # Database design
 
-There are three tables, with the following schema:
+There are three tables specific to F-Droid, with the following schema:
 
     CREATE TABLE IF NOT EXISTS fdroid_application(identifier text, source text, license text, PRIMARY KEY(identifier));
     CREATE TABLE IF NOT EXISTS fdroid_package(identifier text, version text, apk text, sha256 text, source_package text, PRIMARY KEY(identifier, version));
@@ -45,6 +46,16 @@ The table apk_contents has two additional indexes:
 
     CREATE INDEX apk_contents_sha256 ON apk_contents USING HASH (sha256);
     CREATE INDEX apk_contents_name ON apk_contents USING HASH (name);
+
+Then there is a table specific to ELF files, with the following schema:
+
+   CREATE TABLE IF NOT EXISTS elf_hashes(sha256 text, tlsh text, telfhash text);
+
+with an additional index:
+
+   CREATE INDEX elf_hashes_sha256 ON elf_hashes USING HASH (sha256);
+
+The ELF specific table is shared with other import scripts.
 
 The hash index is used because:
 
