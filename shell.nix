@@ -17,6 +17,7 @@ let
     pdfminer
     pefile
     pillow
+    protobuf
     pytest
     python-snappy
     pyyaml
@@ -38,6 +39,7 @@ pkgs.mkShell {
     openjdk8
     openssl
     my-python
+    protobuf
     qemu
     rzip
     sasquatch
