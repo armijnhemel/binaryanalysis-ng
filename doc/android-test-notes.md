@@ -3,8 +3,34 @@
 Some random notes detailing downloaded firmware files, including CPU, which
 file format is used, etc.
 
-Most of these files were downloaded from obscure firmware download sites,
-which I will not link to.
+# Official Android images
+
+The following files were downloaded from the official Android OTA/factory
+image websites:
+
+* <https://developers.google.com/android/ota>
+* <https://developers.google.com/android/images>
+
+## angler-mda89d-factory-9f001626.zip
+
+The Nexus 6P (codename "angler") was made by Huawei. Firmware uses the
+`androidboothuawei` format.
+
+## fugu-lrx21m-factory-e012394c.zip
+
+The Nexus Player (codename "fugu") was made by ASUS. The firmware uses
+the `androidasusboot` format. Uses OAT 039.
+
+## hammerhead-krt16m-factory-fb4041cc.zip
+
+The Nexus 5 (codename "hammerhead") was made by LG. The firmware uses the
+`androidmsmboot` format. Uses Odex 036 and regular Dex 035.
+
+# Random files
+
+Most of the files below were downloaded from obscure firmware download sites,
+which I will not link to. Some of these were repacked from the original and
+might have been modified.
 
 ## Eurostar_Onyx_1_Plus_MT6580_06262017_6.0.zip
 
