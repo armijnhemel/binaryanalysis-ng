@@ -41,7 +41,9 @@ types:
         -orig-id: FileCount
         type: u4
       - id: reserved
-        size: 496
+        type: padding_byte
+        repeat: expr
+        repeat-expr: 496
   entry:
     seq:
       - id: magic
@@ -61,3 +63,7 @@ types:
       data:
         pos: ofs_file_block * 512
         size: len_file
+  padding_byte:
+    seq:
+      - id: padding_byte
+        contents: [0x00]
