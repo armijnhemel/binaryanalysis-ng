@@ -36,6 +36,6 @@ To use the files do the following:
 
 # Database design
 
-There is one tables, with the following schema:
+There is one table, with the following schema:
 
     create table if not exists password(hashed text, plaintext text, primary key(hashed));
