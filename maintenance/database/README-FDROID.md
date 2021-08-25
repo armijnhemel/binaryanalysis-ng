@@ -22,7 +22,8 @@ crawled using the F-Droid crawler.
 
 To use the files do the following:
 
-1. add the right tables to the database:
+1. add the right tables to the database (change `username` to the user that owns
+the database table):
 
     $ psql -U username < fdroid-init.sql
     $ psql -U username < elf-init.sql
@@ -34,6 +35,47 @@ To use the files do the following:
 The configuration is a YAML file with information, such as database connection
 information, the location of the temporary directory for unpacking APK
 files and the location of the F-Droid download directory.
+
+## Statistics
+
+Some statistics of a fairly recent download of F-Droid (March 3, 2021):
+
+    bang=> \dt+; \di+;
+                              List of relations
+     Schema |        Name        | Type  | Owner |  Size   | Description
+    --------+--------------------+-------+-------+---------+-------------
+     public | apk_contents       | table | bang  | 824 MB  |
+     public | elf_hashes         | table | bang  | 2408 kB |
+     public | fdroid_application | table | bang  | 408 kB  |
+     public | fdroid_package     | table | bang  | 1512 kB |
+    (4 rows)
+
+                                           List of relations
+     Schema |          Name           | Type  | Owner |       Table        |  Size   | Description
+    --------+-------------------------+-------+-------+--------------------+---------+-------------
+     public | apk_contents_name       | index | bang  | apk_contents       | 159 MB  |
+     public | apk_contents_sha256     | index | bang  | apk_contents       | 143 MB  |
+     public | elf_hashes_sha256       | index | bang  | elf_hashes         | 1344 kB |
+     public | elf_hashes_telfhash     | index | bang  | elf_hashes         | 584 kB  |
+     public | fdroid_application_pkey | index | bang  | fdroid_application | 224 kB  |
+     public | fdroid_package_pkey     | index | bang  | fdroid_package     | 512 kB  |
+    (6 rows)
+
+    bang=> select from apk_contents ;
+    --
+    (4162107 rows)
+
+    bang=> select from elf_hashes ;
+    --
+    (10175 rows)
+
+    bang=> select from fdroid_application ;
+    --
+    (3377 rows)
+
+    bang=> select from fdroid_package ;
+    --
+    (7502 rows)
 
 # Database design
 
