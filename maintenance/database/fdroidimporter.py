@@ -306,7 +306,8 @@ def main():
                                         telfhash_result = []
                                     tlsh_result = tlsh.hash(apk_entry_contents)
                                     if tlsh_result != 'TNULL' and telfhash_result != []:
-                                        if telfhash_result[0]['telfhash'] != 'TNULL':
+                                        telfhash_res = telfhash_result[0]['telfhash']
+                                        if telfhash_res != 'TNULL' and telfhash_res != '-':
                                             elf_hashes.append((apk_entry_hash.hexdigest(), tlsh_result, telfhash_result[0]['telfhash']))
                                         else:
                                             elf_hashes.append((apk_entry_hash.hexdigest(), tlsh_result, ""))
