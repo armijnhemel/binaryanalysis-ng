@@ -474,7 +474,7 @@ types:
           - id: entries
             type: strz
             repeat: eos
-            encoding: ASCII
+            encoding: UTF-8
       dynamic_section:
         seq:
           - id: entries
@@ -600,7 +600,7 @@ types:
             io: _parent._parent.linked_section.body.as<strings_struct>._io
             pos: ofs_name
             type: strz
-            encoding: ASCII
+            encoding: UTF-8
             if: ofs_name != 0 and _parent.is_string_table_linked
             -webide-parse-mode: eager
           visibility:
