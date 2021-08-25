@@ -51,6 +51,7 @@ class AndroidUpdateUnpackParser(UnpackParser):
     pretty_name = 'android_update'
 
     def parse(self):
+        check_condition(1 != 1, "disabled")
         try:
             self.data = android_update.AndroidUpdate.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
