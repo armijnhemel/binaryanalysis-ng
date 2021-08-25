@@ -20,6 +20,7 @@ let
     pytest
     python-snappy
     pyyaml
+    telfhash
     tlsh
   ]);
     

@@ -23,6 +23,9 @@
 
 import os
 import binascii
+
+import telfhash
+
 from UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_elf
 from UnpackParser import UnpackParser, check_condition
@@ -398,6 +401,12 @@ class ElfUnpackParser(WrappedUnpackParser):
         metadata['soname'] = soname
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
+        metadata['telfhash'] = ''
+
+        telfhash_result = telfhash.telfhash(str(self.fileresult.filename))
+        telfhash_res = telfhash_result[0]['telfhash']
+        if telfhash_res != 'TNULL' and telfhash_res != '-':
+            metadata['telfhash'] = telfhash_res
 
         if is_dynamic_elf:
             labels.append('dynamic')
