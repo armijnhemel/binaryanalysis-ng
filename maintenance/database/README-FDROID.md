@@ -9,7 +9,8 @@ There is a crawler that downloads software from F-Droid.
 
 # Importing the F-Droid data
 
-The script 
+The script to import F-Droid data expects that F-Droid packages are first
+crawled using the F-Droid crawler.
 
 ## Requirements
 
