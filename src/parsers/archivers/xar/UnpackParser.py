@@ -116,6 +116,7 @@ class XarUnpackParser(WrappedUnpackParser):
                     self.unpacked_size = max(self.unpacked_size, end_of_header + checksum_offset + checksum_size)
                 elif child_node.tagName == 'file':
                     seen_type = False
+                    seen_name = False
                     for ic in child_node.childNodes:
                         if ic.nodeType == xml.dom.Node.ELEMENT_NODE:
                             if ic.tagName in ['data', 'ea']:
@@ -143,6 +144,8 @@ class XarUnpackParser(WrappedUnpackParser):
                             else:
                                 if ic.tagName == 'type':
                                     seen_type = True
+                                elif ic.tagName == 'name':
+                                    seen_name = True
                     check_condition(seen_type, "missing 'type' in TOC")
 
     # make sure that self.unpacked_size is not overwritten
