@@ -16,6 +16,11 @@ image websites:
 The Nexus 6P (codename "angler") was made by Huawei. Firmware uses the
 `androidboothuawei` format.
 
+## barbet-ota-rd2a.210605.006-e56baaf5.zip
+
+The Pixel 5a (codename "barbet") uses the Chrome update file format, which
+is not yet supported. It uses Dex 039, Vdex 021 and Oat 183.
+
 ## fugu-lrx21m-factory-e012394c.zip
 
 The Nexus Player (codename "fugu") was made by ASUS. The firmware uses
@@ -46,6 +51,11 @@ format. It uses Oat 079, Dex 035 and Dex 037.
 
 The Nexus 6 (codename "shamu") was made by Motorola Mobility. It uses the
 `android_img` format. It uses Oat 039.
+
+## soju-grk39f-factory-8e283784.zip
+
+The Nexus S (codename "crespo") was made by Samsung. It uses the `android_img`
+format and Dex 035 and Odex 036.
 
 ## walleye-opm1.171019.011-factory-f74dd4fd.zip
 
