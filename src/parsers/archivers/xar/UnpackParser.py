@@ -115,6 +115,7 @@ class XarUnpackParser(WrappedUnpackParser):
                                     "checksum cannot be outside of file")
                     self.unpacked_size = max(self.unpacked_size, end_of_header + checksum_offset + checksum_size)
                 elif child_node.tagName == 'file':
+                    seen_type = False
                     for ic in child_node.childNodes:
                         if ic.nodeType == xml.dom.Node.ELEMENT_NODE:
                             if ic.tagName in ['data', 'ea']:
@@ -139,6 +140,10 @@ class XarUnpackParser(WrappedUnpackParser):
                                 check_condition(end_of_header + data_offset + data_length <= self.fileresult.filesize,
                                     "file data cannot be outside of file")
                                 self.unpacked_size = max(self.unpacked_size, end_of_header + data_offset + data_length)
+                            else:
+                                if ic.tagName == 'type':
+                                    seen_type = True
+                    check_condition(seen_type, "missing 'type' in TOC")
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
