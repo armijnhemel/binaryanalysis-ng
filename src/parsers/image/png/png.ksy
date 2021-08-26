@@ -61,6 +61,8 @@ types:
         type: str
         size: 4
         encoding: UTF-8
+        valid:
+          expr: type != "\0\0\0\0"
       - id: body
         size: len
         type:
