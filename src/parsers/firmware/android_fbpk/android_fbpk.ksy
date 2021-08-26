@@ -10,8 +10,9 @@ seq:
     type: header
   - id: entries
     type: entry
-    repeat: expr
-    repeat-expr: header.num_entries
+    repeat: until
+    repeat-until: _index == header.num_entries - 1
+    if: header.num_entries != 0
 
 types:
   header:
