@@ -85,10 +85,12 @@ class XarUnpackParser(WrappedUnpackParser):
         self.unpacked_size = end_of_header
 
         # the XML consists of a top level checksum, followed by metadata
-        # for each file in the archive. The metadata for file includes offset
-        # and length for the file itself as well as any extra metadata like
-        # resource forks or extended attributes. This extra metadata is
-        # optional.
+        # for each file in the archive, which can be nested. The metadata
+        # for file includes offset and length for the file itself as well
+        # as any extra metadata like resource forks or extended attributes.
+        # This extra metadata is optional.
+
+        nodes_to_traverse = collections.deque()
         for child_node in tocnode.childNodes:
             if child_node.nodeType == xml.dom.Node.ELEMENT_NODE:
                 if child_node.tagName == 'checksum':
@@ -152,9 +154,74 @@ class XarUnpackParser(WrappedUnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    #def unpack(self):
-    #    """extract any files from the input file"""
-    #    return []
+    def unpack(self):
+        """extract any files from the input file"""
+        tocdom = defusedxml.minidom.parseString(self.data.toc.xml_string)
+        for i in tocdom.documentElement.childNodes:
+            # the childnodes of the element could also
+            # include text nodes, which are not interesting
+            if i.nodeType == xml.dom.Node.ELEMENT_NODE:
+                if i.tagName == 'toc':
+                    tocnode = i
+                    break
+
+        # process all the file and directory entries. These can
+        # be nested (files in directories, subdirectories), which
+        # is relevant for path information.
+        nodes_to_traverse = collections.deque()
+        for child_node in tocnode.childNodes:
+            if child_node.nodeType == xml.dom.Node.ELEMENT_NODE:
+                if child_node.tagName == 'file':
+                    outlabels = []
+
+                    # inspect the contents of the node. Since it is not
+                    # guaranteed in which order the elements appear in the XML
+                    # file some information has to be stored first.
+                    nodename = None
+                    nodetype = None
+                    nodedata = None
+
+                    for ic in child_node.childNodes:
+                        if ic.nodeType == xml.dom.Node.ELEMENT_NODE:
+                            if ic.tagName == 'name':
+                                # grab the name of the entry and store it in
+                                # nodename.
+                                for cn in ic.childNodes:
+                                    if cn.nodeType == xml.dom.Node.TEXT_NODE:
+                                        nodename = cn.data.strip()
+                                        # remove any superfluous / characters.
+                                        # This should not happen with XAR but
+                                        # just in case...
+                                        while nodename.startswith('/'):
+                                            nodename = nodename[1:]
+                            elif ic.tagName == 'type':
+                                # grab the type of the entry and store it in
+                                # nodetype.
+                                for cn in ic.childNodes:
+                                    if cn.nodeType == xml.dom.Node.TEXT_NODE:
+                                        nodetype = cn.data.strip()
+                            elif ic.tagName == 'data':
+                                for file_node in ic.childNodes:
+                                    if file_node.nodeType == xml.dom.Node.ELEMENT_NODE:
+                                        if file_node.tagName == 'offset':
+                                            # traverse the child nodes
+                                            for dd in file_node.childNodes:
+                                                if dd.nodeType == xml.dom.Node.TEXT_NODE:
+                                                    try:
+                                                        data_offset = int(dd.data.strip())
+                                                    except ValueError as e:
+                                                        raise UnpackParserException(e.args)
+                                        elif file_node.tagName == 'length':
+                                            # traverse the child nodes
+                                            for dd in file_node.childNodes:
+                                                if dd.nodeType == xml.dom.Node.TEXT_NODE:
+                                                    try:
+                                                        data_length = int(dd.data.strip())
+                                                    except ValueError as e:
+                                                        raise UnpackParserException(e.args)
+                    print(nodename)
+
+        return []
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
