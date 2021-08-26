@@ -37,6 +37,42 @@ The Pixel 5 (codename "redfin") was made by Google based on a Qualcomm chip.
 It uses the `android_fbpk` format and the `android_vendor_boot` format. It
 uses Dex 039, Vdex 021, Art 085 and Oat 183.
 
+## sailfish-nde63h-factory-43ba5f81.zip
+
+The Pixel (codename "sailfish") was made by HTC. It uses the `androidbootmsm`
+format. It uses Oat 079, Dex 035 and Dex 037.
+
+## shamu-lrx21o-factory-ef423ec5.zip
+
+The Nexus 6 (codename "shamu") was made by Motorola Mobility. It uses the
+`android_img` format. It uses Oat 039.
+
+## walleye-opm1.171019.011-factory-f74dd4fd.zip
+
+The Pixel 2 (codename "walleye") was made by HTC. it uses the `androidbootmsm`
+format. It uses Dex 037, Vdex 010 and Oat 131.
+
+# walleye-ppr1.180610.009-factory-4149f7e5.zip
+The Pixel 2 (codename "walleye") was made by HTC. it uses the `androidbootmsm`.
+It uses Dex 035, Dex 038, Dex 039, Vdex 019 and Oat 138.
+
+# ROM rebuilds
+
+Some test files are from ROM rebuilds
+
+## omni-7.1.2-20171120-flounder-WEEKLY.zip
+
+From <https://dl.omnirom.org/flounder/>. Uses the `android_img` format. It uses
+Dex 035 and Dex 037.
+
+## twrp-3.3.1-0-h870.img
+
+From <https://dl.twrp.me/h870/>. Uses the `android_img` format and Dex 035.
+
+## twrp-3.3.1-0-marlin.img
+
+From <https://dl.twrp.me/marlin/>. Uses the `android_img` format and Dex 035.
+
 # Random files
 
 Most of the files below were downloaded from obscure firmware download sites,
