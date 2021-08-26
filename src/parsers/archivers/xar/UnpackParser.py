@@ -79,11 +79,10 @@ class XarUnpackParser(WrappedUnpackParser):
 
         check_condition(havevalidtoc, "invalid TOC, \"toc\" element not found")
 
-        # Then further traverse the DOM for sanity checks
-        maxoffset = -1
-
-        # offsets are relative to the end of the header
+        # Then further traverse the DOM for sanity checks.
+        # The offsets are relative to the end of the header
         end_of_header = self.data._io.pos()
+        self.unpacked_size = end_of_header
 
         # the XML consists of a top level checksum, followed by metadata
         # for each file in the archive. The metadata for file includes offset
@@ -100,20 +99,21 @@ class XarUnpackParser(WrappedUnpackParser):
                                 # traverse the child nodes
                                 for dd in ic.childNodes:
                                     if dd.nodeType == xml.dom.Node.TEXT_NODE:
-                                        checksumoffset = dd.data.strip()
+                                        try:
+                                            checksum_offset = int(dd.data.strip())
+                                        except ValueError as e:
+                                            raise UnpackParserException(e.args)
                             elif ic.tagName == 'size':
                                 # traverse the child nodes
                                 for dd in ic.childNodes:
                                     if dd.nodeType == xml.dom.Node.TEXT_NODE:
-                                        checksumsize = dd.data.strip()
-                    try:
-                        checksumoffset = int(checksumoffset)
-                        checksumsize = int(checksumsize)
-                    except ValueError as e:
-                        raise UnpackParserException(e.args)
-                    check_condition(end_of_header + checksumoffset + checksumsize <= self.fileresult.filesize,
+                                        try:
+                                            checksum_size = int(dd.data.strip())
+                                        except ValueError as e:
+                                            raise UnpackParserException(e.args)
+                    check_condition(end_of_header + checksum_offset + checksum_size <= self.fileresult.filesize,
                                     "checksum cannot be outside of file")
-                    maxoffset = max(maxoffset, end_of_header + checksumoffset + checksumsize)
+                    self.unpacked_size = max(self.unpacked_size, end_of_header + checksum_offset + checksum_size)
                 elif child_node.tagName == 'file':
                     for ic in child_node.childNodes:
                         if ic.nodeType == xml.dom.Node.ELEMENT_NODE:
@@ -138,6 +138,11 @@ class XarUnpackParser(WrappedUnpackParser):
                                                         raise UnpackParserException(e.args)
                                 check_condition(end_of_header + data_offset + data_length <= self.fileresult.filesize,
                                     "file data cannot be outside of file")
+                                self.unpacked_size = max(self.unpacked_size, end_of_header + data_offset + data_length)
+
+    # make sure that self.unpacked_size is not overwritten
+    def calculate_unpacked_size(self):
+        pass
 
     #def unpack(self):
     #    """extract any files from the input file"""
@@ -146,6 +151,7 @@ class XarUnpackParser(WrappedUnpackParser):
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = ['archive', 'xar']
+        metadata = {}
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
