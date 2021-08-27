@@ -83,11 +83,34 @@ From <https://dl.twrp.me/h870/>. Uses the `android_img` format and Dex 035.
 
 From <https://dl.twrp.me/marlin/>. Uses the `android_img` format and Dex 035.
 
+# Official firmware files
+
+## htc_d027_9_7inch_wm3732_phonesdk_gc2035_gc0308_de_201210122.img
+
+Rockchip based, uses `rk_crc`, `rockchip` and `android_img` formats.
+Uses Dex 035 and Dex 036 (which officially doesn't exist).
+
+## I9300XXUFMB3_I9300OJKFMB3_ILO.zip
+
+Uses Dex 035 and Odex 036.
+
+## 7_inch_android1-5_18506_infotmic_X210_2.3.3.zip
+
+Infotmic m799ca based device. Uses Dex 035 and U-Boot.
+
 # Random files
 
 Most of the files below were downloaded from obscure firmware download sites,
 which I will not link to. Some of these were repacked from the original and
 might have been modified.
+
+## Allwinner_A23_T739_Mainboard_V2.2_JTX.zip
+
+Uses `android_img`, but `extra_cmdline` isn't asciiz.
+
+## Dimo_Soren_2S_MT6572_20140108_4.2.2.zip
+
+Mediatek MT6572 based, uses Dex 035 and Odex 036.
 
 ## Eurostar_Onyx_1_Plus_MT6580_06262017_6.0.zip
 
@@ -97,14 +120,26 @@ Mediatek MT6580 based, uses `mtk_bootrom` amongst others.
 
 Qualcomm MSM8916 based, uses `android_sparse_data` with Brotli compression.
 
+## Gretel_A6_MT6737M_6.0.zip
+
+Mediatek MT6737M based device. Uses `android_img`, Dex 035 and Oat 064.
+
 ## LYF_Jio_F271i_000-01-09-230818_SPD.zip
 
 Spreadtrum based, uses `spreadtrum_pac`
+
+## MD_LIFETAB_P9514.20111201.245-signed-ota-update-20111201040042.zip
+
+Based on NVidia Tegra. Uses Dex 035 and Odex 036.
 
 ## Nokia5_Android_7.1.2_October2017_Update.zip
 
 Qualcomm MSM8937 based, uses `android_sparse_data` but a newer format using
 bsdiff and imgdiff.
+
+## Odys_Loox_Update_1205.zip
+
+Rockchip based, uses cramfs. Uses `rk_crc` format, Dex 036 and Odex 036.
 
 ## Okapia_Shopno_SP7731GEA_V05_20160331_5.1_SPD.zip
 
@@ -125,6 +160,11 @@ Spreadtrum based, uses `spreadtrum_pac`
 ## Titan_8_Plus_MT6572_20180126_4.4.2.zip
 
 Mediatek MT6572 based, uses `mtk_bootrom` amongst others.
+
+## Vega_Tab_67_C543G_MT6572_16122016.zip
+
+Mediatek MT6572 based, uses Dex 035. Has a weirdly formatted ext4 file system that
+is smaller than declared.
 
 ## Vertex_Sun_MT6737M_20171214_7.0.zip
 
@@ -150,3 +190,12 @@ Mediatek MT6582 based, uses `mtk_bootrom` amongst others.
 ## Zopo_8510_MIUI_MT6592_20140328_4.2.2.zip
 
 Mediatek MT6592 based, uses `mtk_bootrom` amongst others.
+
+# Kind of Android
+
+Some files are partial Android or regular Linux devices with support
+for some Android things.
+
+## FANTEC_3DFHDL_Firmware_Android_20121128-v10.1.11_r9757.zip
+
+Realtek based device. Uses yaffs2 and Dex 035.
