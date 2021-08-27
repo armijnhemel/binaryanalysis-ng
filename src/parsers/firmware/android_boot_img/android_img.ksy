@@ -24,6 +24,8 @@ instances:
   header_version:
     pos: 40
     type: u4
+    valid:
+      max: 4
 types:
   header012:
     seq:
