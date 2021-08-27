@@ -286,8 +286,8 @@ types:
             type: vlq_base128_le
           - id: data
             size: utf16_size.value
-            type: str
-            encoding: ascii
+            #type: str
+            #encoding: ascii
     instances:
       value:
         pos: string_data_off

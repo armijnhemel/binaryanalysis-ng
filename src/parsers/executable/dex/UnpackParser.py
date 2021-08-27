@@ -25,6 +25,8 @@ import os
 import hashlib
 import zlib
 import tlsh
+import mutf8
+
 from UnpackParser import WrappedUnpackParser
 from bangandroid import unpack_dex
 
@@ -259,8 +261,8 @@ class DexUnpackParser(WrappedUnpackParser):
             if class_definition.class_data is None:
                 continue
             class_obj = {}
-            class_obj['classname'] = class_definition.type_name[1:-1]
-            class_obj['source'] = class_definition.sourcefile_name
+            class_obj['classname'] = mutf8.decode_modified_utf8(class_definition.type_name[1:-1])
+            class_obj['source'] = mutf8.decode_modified_utf8(class_definition.sourcefile_name)
             class_obj['methods'] = []
 
             # process direct methods
@@ -284,10 +286,17 @@ class DexUnpackParser(WrappedUnpackParser):
                 res = self.parse_bytecode(method.code.insns)
                 if res != []:
                   for r in res:
-                      strings.append(self.data.string_ids[r].value.data)
+                      try:
+                          # TODO, this shouldn't happen, so perhaps there is
+                          # something wrong in the byte code parsing logic
+                          bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
+                          strings.append(bytecode_string)
+                      except UnicodeDecodeError:
+                          pass
 
                 method_id += method.method_idx_diff.value
-                class_obj['methods'].append({'name': self.data.method_ids[method_id].method_name,
+                method_name = mutf8.decode_modified_utf8(self.data.method_ids[method_id].method_name)
+                class_obj['methods'].append({'name': method_name,
                                             'method_type': 'direct', 'bytecode_hashes': hashes,
                                             'strings': strings})
             # process virtual methods
@@ -311,10 +320,17 @@ class DexUnpackParser(WrappedUnpackParser):
                 res = self.parse_bytecode(method.code.insns)
                 if res != []:
                   for r in res:
-                      strings.append(self.data.string_ids[r].value.data)
+                      try:
+                          # TODO, this shouldn't happen, so perhaps there is
+                          # something wrong in the byte code parsing logic
+                          bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
+                          strings.append(bytecode_string)
+                      except UnicodeDecodeError:
+                          pass
 
                 method_id += method.method_idx_diff.value
-                class_obj['methods'].append({'name': self.data.method_ids[method_id].method_name,
+                method_name = mutf8.decode_modified_utf8(self.data.method_ids[method_id].method_name)
+                class_obj['methods'].append({'name': method_name,
                                             'method_type': 'virtual', 'bytecode_hashes': hashes,
                                             'strings': strings})
 
@@ -323,25 +339,27 @@ class DexUnpackParser(WrappedUnpackParser):
             field_id = 0
             for field in class_definition.class_data.static_fields:
                 field_id += field.field_idx_diff.value
-                field_type = self.data.field_ids[field_id].type_name
+                field_type = mutf8.decode_modified_utf8(self.data.field_ids[field_id].type_name)
                 if field_type.endswith(';'):
                     field_type = field_type[1:-1]
-                class_type = self.data.field_ids[field_id].class_name
+                class_type = mutf8.decode_modified_utf8(self.data.field_ids[field_id].class_name)
                 if class_type.endswith(';'):
                     class_type = class_type[1:-1]
-                class_obj['fields'].append({'name': self.data.field_ids[field_id].field_name,
+                field_name = mutf8.decode_modified_utf8(self.data.field_ids[field_id].field_name)
+                class_obj['fields'].append({'name': field_name,
                                             'type': field_type, 'class': class_type,
                                             'field_type': 'static'})
             field_id = 0
             for field in class_definition.class_data.instance_fields:
                 field_id += field.field_idx_diff.value
-                field_type = self.data.field_ids[field_id].type_name
+                field_type = mutf8.decode_modified_utf8(self.data.field_ids[field_id].type_name)
                 if field_type.endswith(';'):
                     field_type = field_type[1:-1]
-                class_type = self.data.field_ids[field_id].class_name
+                class_type = mutf8.decode_modified_utf8(self.data.field_ids[field_id].class_name)
                 if class_type.endswith(';'):
                     class_type = class_type[1:-1]
-                class_obj['fields'].append({'name': self.data.field_ids[field_id].field_name,
+                field_name = mutf8.decode_modified_utf8(self.data.field_ids[field_id].field_name)
+                class_obj['fields'].append({'name': field_name,
                                             'type': field_type, 'class': class_type,
                                             'field_type': 'instance'})
             metadata['classes'].append(class_obj)
