@@ -285,7 +285,8 @@ types:
           - id: utf16_size
             type: vlq_base128_le
           - id: data
-            size: utf16_size.value
+            terminator: 0
+            #size: utf16_size.value
             #type: str
             #encoding: ascii
     instances:
