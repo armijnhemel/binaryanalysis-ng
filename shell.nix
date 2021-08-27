@@ -12,6 +12,7 @@ let
     kaitaistruct
     leb128
     lz4
+    mutf8
     python-lzo
     parameterized
     pdfminer
