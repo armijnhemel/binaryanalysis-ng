@@ -13,6 +13,7 @@ let
     pyyaml
     requests
     telfhash
+    tlsh
     woodblock
   ]);
     
