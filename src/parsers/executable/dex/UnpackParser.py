@@ -144,6 +144,13 @@ class DexUnpackParser(WrappedUnpackParser):
             # read the first instruction
             opcode = bytecode[counter]
 
+            # check if there are nop instructions to
+            # keep the bytecode byte aligned
+            if len_bytecode - counter == 1:
+                if opcode == 0:
+                    counter += 1
+                    continue
+
             # TODO: length sanity check
 
             # process the byte code to find strings. The interesting
@@ -287,8 +294,8 @@ class DexUnpackParser(WrappedUnpackParser):
                 if res != []:
                   for r in res:
                       try:
-                          # TODO, this shouldn't happen, so perhaps there is
-                          # something wrong in the byte code parsing logic
+                          # this shouldn't happen, but there is a bug
+                          # in mutf8: https://github.com/TkTech/mutf8/issues/1
                           bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
                           strings.append(bytecode_string)
                       except UnicodeDecodeError:
@@ -321,8 +328,8 @@ class DexUnpackParser(WrappedUnpackParser):
                 if res != []:
                   for r in res:
                       try:
-                          # TODO, this shouldn't happen, so perhaps there is
-                          # something wrong in the byte code parsing logic
+                          # this shouldn't happen, but there is a bug
+                          # in mutf8: https://github.com/TkTech/mutf8/issues/1
                           bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
                           strings.append(bytecode_string)
                       except UnicodeDecodeError:
