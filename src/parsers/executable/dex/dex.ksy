@@ -789,7 +789,7 @@ types:
           the order that the types should be tested.
       - id: catch_all_addr
         type: vlq_base128_le
-        if: num_catch_types.value < 1
+        if: num_catch_types.value_signed < 1
         doc: |
           bytecode address of the catch-all handler. This element is only
           present if size is non-positive.
