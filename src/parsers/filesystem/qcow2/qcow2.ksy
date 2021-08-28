@@ -5,7 +5,7 @@ meta:
   endian: be
   encoding: ASCII
 doc-ref:
-  - https://people.gnome.org/~markmc/qcow-image-format.html
+  - https://git.qemu.org/?p=qemu.git;a=blob;f=docs/interop/qcow2.txt;h=0463f761efbb8deadc3e9f429c20bf37dcb4c756;hb=HEAD
 seq:
   - id: magic
     contents: ["QFI", 0xfb]
