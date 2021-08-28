@@ -486,6 +486,7 @@ types:
       sourcefile_name:
         value: _root.string_ids[source_file_idx].value.data
         -webide-parse-mode: eager
+        if: source_file_idx != 0xffffffff
       static_values:
         pos: static_values_off
         type: encoded_array_item

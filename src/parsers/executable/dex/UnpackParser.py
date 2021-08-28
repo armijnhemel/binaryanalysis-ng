@@ -273,7 +273,8 @@ class DexUnpackParser(WrappedUnpackParser):
                 continue
             class_obj = {}
             class_obj['classname'] = mutf8.decode_modified_utf8(class_definition.type_name[1:-1])
-            class_obj['source'] = mutf8.decode_modified_utf8(class_definition.sourcefile_name)
+            if class_definition.sourcefile_name is not None:
+                class_obj['source'] = mutf8.decode_modified_utf8(class_definition.sourcefile_name)
             class_obj['methods'] = []
 
             # process direct methods
