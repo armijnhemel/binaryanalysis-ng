@@ -191,6 +191,10 @@ class DexUnpackParser(WrappedUnpackParser):
                     for k in range(0, size):
                         key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
                         counter += 4
+                    if counter%2 != 0:
+                        opcode = bytecode[counter]
+                        if opcode == 0:
+                            counter += 1
                     continue
                 elif bytecode[counter+1] == 2:
                     # sparse-switch-payload
@@ -207,6 +211,10 @@ class DexUnpackParser(WrappedUnpackParser):
                     for t in range(0, size):
                         target = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
                         counter += 4
+                    if counter%2 != 0:
+                        opcode = bytecode[counter]
+                        if opcode == 0:
+                            counter += 1
                     continue
                 elif bytecode[counter+1] == 3:
                     # fill-array-data payload
@@ -219,6 +227,10 @@ class DexUnpackParser(WrappedUnpackParser):
 
                     # data
                     counter += size * element_width
+                    if counter%2 != 0:
+                        opcode = bytecode[counter]
+                        if opcode == 0:
+                            counter += 1
                     continue
 
             counter += opcodes[opcode] * 2
