@@ -36,8 +36,8 @@ seq:
       min: 1
   - id: tables
     type: table
-    repeat: expr
-    repeat-expr: num_tables
+    repeat: until
+    repeat-until: _index == num_tables - 1
 types:
   table:
     doc: |
