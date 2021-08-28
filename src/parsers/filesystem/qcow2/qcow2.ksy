@@ -1,0 +1,55 @@
+meta:
+  id: qcow2
+  title: QEMU QCOW
+  license: CC0-1.0
+  endian: be
+  encoding: ASCII
+doc-ref:
+  - https://people.gnome.org/~markmc/qcow-image-format.html
+seq:
+  - id: magic
+    contents: ["QFI", 0xfb]
+  - id: version
+    type: u4
+  - id: ofs_backing_file
+    -orig-id: backing_file_offset
+    type: u8
+  - id: len_backing_file
+    -orig-id: backing_file_size
+    type: u4
+  - id: cluster_bits
+    type: u4
+  - id: size
+    type: u8
+  - id: crypt_method
+    type: u4
+    enum: crypt_methods
+    valid:
+      any-of:
+        - crypt_methods::no_encryption
+        - crypt_methods::aes
+  - id: len_l1
+    -orig-id: l1_size
+    type: u4
+  - id: ofs_l1_table
+    -orig-id: l1_table_offset
+    type: u8
+  - id: ofs_refcount_table
+    -orig-id: refcount_table_offset
+    type: u8
+  - id: refcount_table_clusters
+    type: u4
+  - id: nb_snapshots
+    type: u4
+  - id: ofs_snapshots
+    -orig-id: snapshots_offset
+    type: u8
+instances:
+  l1table:
+    pos: ofs_l1_table
+    size: len_l1
+    if: ofs_l1_table != 0
+enums:
+  crypt_methods:
+    0: no_encryption
+    1: aes
