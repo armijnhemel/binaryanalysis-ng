@@ -487,6 +487,7 @@ types:
         value: _root.string_ids[source_file_idx].value.data
         -webide-parse-mode: eager
         if: source_file_idx != 0xffffffff
+        doc-ref: https://source.android.com/devices/tech/dalvik/dex-format#no-index
       static_values:
         pos: static_values_off
         type: encoded_array_item
