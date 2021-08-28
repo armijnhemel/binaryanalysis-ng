@@ -113,7 +113,11 @@ class DexUnpackParser(WrappedUnpackParser):
 #class DexUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (0, b'dex\n')
+        (0, b'dex\n035'),
+        (0, b'dex\n036'),
+        (0, b'dex\n037'),
+        (0, b'dex\n038'),
+        (0, b'dex\n039')
     ]
     pretty_name = 'dex'
 
