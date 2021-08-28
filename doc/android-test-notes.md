@@ -63,6 +63,7 @@ The Pixel 2 (codename "walleye") was made by HTC. it uses the `androidbootmsm`
 format. It uses Dex 037, Vdex 010 and Oat 131.
 
 # walleye-ppr1.180610.009-factory-4149f7e5.zip
+
 The Pixel 2 (codename "walleye") was made by HTC. it uses the `androidbootmsm`.
 It uses Dex 035, Dex 038, Dex 039, Vdex 019 and Oat 138.
 
