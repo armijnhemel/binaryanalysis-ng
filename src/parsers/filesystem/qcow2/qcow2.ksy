@@ -19,6 +19,8 @@ seq:
     type: u4
   - id: cluster_bits
     type: u4
+    valid:
+      min: 9
   - id: size
     type: u8
   - id: crypt_method
