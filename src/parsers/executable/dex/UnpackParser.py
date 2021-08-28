@@ -27,9 +27,6 @@ import zlib
 import tlsh
 import mutf8
 
-from UnpackParser import WrappedUnpackParser
-from bangandroid import unpack_dex
-
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
@@ -109,8 +106,7 @@ DEX_037 = DEX_035_OPCODES | DEX_037_OPCODES
 DEX_038 = DEX_035_OPCODES | DEX_037_OPCODES | DEX_038_OPCODES
 DEX_039 = DEX_035_OPCODES | DEX_037_OPCODES | DEX_038_OPCODES | DEX_039_OPCODES
 
-class DexUnpackParser(WrappedUnpackParser):
-#class DexUnpackParser(UnpackParser):
+class DexUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'dex\n035'),
@@ -120,9 +116,6 @@ class DexUnpackParser(WrappedUnpackParser):
         (0, b'dex\n039')
     ]
     pretty_name = 'dex'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_dex(fileresult, scan_environment, offset, unpack_dir)
 
     def parse_bytecode(self, bytecode, opcode_version=None):
         # parse enough of the bytecode to be able to extract the strings
