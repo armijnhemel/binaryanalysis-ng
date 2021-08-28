@@ -1,6 +1,10 @@
 # Dex bytecode
 
-BANG can process 
+BANG can process Dalvik Dex files and compute various hashes for the actual
+bytecode per method. These hashes can be used to identify code at the method
+level and do (possibly) interesting comparisons.
+
+Background material can be found here: <https://www.tdcommons.org/dpubs_series/2479/>
 
 ## Requirements
 
