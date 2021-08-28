@@ -141,6 +141,11 @@ class DexUnpackParser(WrappedUnpackParser):
         elif version_str == '039':
             opcodes = DEX_039
 
+        # keep track of which versions of the opcodes have been tried.
+        # It could be that the code has been optimized and a different
+        # set of opcodes needs to be tried. TODO
+        tried_versions = [version_str]
+
         len_bytecode = len(bytecode)
         counter = 0
         string_ids = []
