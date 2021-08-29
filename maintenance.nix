@@ -8,11 +8,13 @@ let
   my-python = pkgs.python39.withPackages (p: with p; [
     click
     defusedxml
+    packageurl-python
     psycopg2
     pytest
     pyyaml
     requests
     telfhash
+    tlsh
     woodblock
   ]);
     

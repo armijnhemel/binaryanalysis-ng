@@ -7,20 +7,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-This script processes CSV files from Malware Bazaar
-
-https://bazaar.abuse.ch/
-
-Dumps:
-
-https://bazaar.abuse.ch/export/
+This script processes data from Dex files processed by BANG
+and puts the relevant data in a PostgreSQL database.
 '''
 
 import sys
 import os
 import argparse
 import stat
-import csv
+import pathlib
+import pickle
 
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
@@ -34,26 +30,13 @@ try:
 except ImportError:
     from yaml import Loader
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    parser.add_argument("-f", "--file", action="store", dest="malwarefile",
-                        help="path to CSV dump file from Malware Bazaar", metavar="FILE")
+                        help="path to F-Droid configuration file", metavar="FILE")
+    parser.add_argument("-r", "--result-directory", action="store", dest="result_directory",
+                        help="path to BANG result directories", metavar="DIR")
     args = parser.parse_args()
-
-    # sanity checks for the file with passwords
-    if args.malwarefile is None:
-        parser.error("No CSV file with Malware Bazaar info provided, exiting")
-
-    # the file with passwords should exist ...
-    if not os.path.exists(args.malwarefile):
-        parser.error("File %s does not exist, exiting." % args.malwarefile)
-
-    # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.malwarefile).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.malwarefile)
 
     # sanity checks for the configuration file
     if args.cfg is None:
@@ -66,6 +49,20 @@ def main():
     # ... and should be a real file
     if not stat.S_ISREG(os.stat(args.cfg).st_mode):
         parser.error("%s is not a regular file, exiting." % args.cfg)
+
+    # sanity checks for the result directory
+    if args.result_directory is None:
+        parser.error("No result directory provided, exiting")
+
+    result_directory = pathlib.Path(args.result_directory)
+
+    # the result directory should exist ...
+    if not result_directory.exists():
+        parser.error("File %s does not exist, exiting." % args.result_directory)
+
+    # ... and should be a real directory
+    if not result_directory.is_dir():
+        parser.error("%s is not a directory, exiting." % args.result_directory)
 
     # read the configuration file. This is in YAML format
     try:
@@ -109,18 +106,6 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
-    verbose = False
-    if 'verbose' in config['general']:
-        if isinstance(config['general']['verbose'], bool):
-            verbose = config['general']['verbose']
-
-    try:
-        malwarefile = open(args.malwarefile, 'r')
-    except:
-        print("Cannot open CSV file from Malware Bazaar",
-              file=sys.stderr)
-        sys.exit(1)
-
     # open a connection to the database
     dbconnection = psycopg2.connect(database=postgresql_db,
                                     user=postgresql_user,
@@ -129,50 +114,61 @@ def main():
                                     host=postgresql_host)
     dbcursor = dbconnection.cursor()
 
-    fieldnames = ["first_seen_utc", "sha256_hash", "md5_hash", "sha1_hash", "reporter",
-                  "file_name", "file_type_guess", "mime_type", "signature", "clamav",
-                  "vtpercent", "imphash", "ssdeep", "tlsh"]
-    csvreader = csv.DictReader(malwarefile, fieldnames=fieldnames, skipinitialspace=True)
+    verbose = False
+    if 'verbose' in config['general']:
+        if isinstance(config['general']['verbose'], bool):
+            verbose = config['general']['verbose']
 
-    prepared_malware = "PREPARE malware_insert as INSERT INTO malware(sha256, tlsh, imphash, filename, signature, mimetype) values ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING"
-    dbcursor.execute(prepared_malware)
-    bulkinserts = []
+    # create a prepared statement
+    prepared_bytecode = "PREPARE bytecode_insert as INSERT INTO dex_bytecode (dex_sha256, class_name, method_name, bytecode_sha256, bytecode_tlsh) values ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
+    dbcursor.execute(prepared_bytecode)
 
-    # skip first 9 lines as they are comments
-    skip_counter = 0
-    for i in csvreader:
-        if skip_counter < 9:
-            skip_counter += 1
+    dex_counter = 0
+    method_counter = 0
+    # walk the results directory
+    for bang_directory in result_directory.iterdir():
+        bang_pickle = bang_directory / 'bang.pickle'
+        if not bang_pickle.exists():
             continue
-        # skip last line, not interesting
-        if i['sha256_hash'] is None:
-            continue
-        # record: sha256, filename, tlsh, mime_type, signature
-        sha256_hash = i['sha256_hash']
-        tlsh_hash = i['tlsh']
-        file_name = i['file_name']
-        mime_type = i['mime_type']
 
-        # imphashes can be n/a
-        # have errors or tab characters.
-        if i['imphash'] == 'n/a':
-            imphash = ''
+        # open the top level pickle
+        bang_data = pickle.load(open(bang_pickle, 'rb'))
+        db_rows = []
+        for bang_file in bang_data['scantree']:
+            if 'dex' in bang_data['scantree'][bang_file]['labels']:
+                sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
+
+                # open the result pickle
+                results_data = pickle.load(open(bang_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
+                for r in results_data['metadata']['classes']:
+                    class_name = r['classname']
+                    for m in r['methods']:
+                        method_name = m['name']
+                        if 'bytecode_hashes' in m:
+                             bytecode_sha256 = m['bytecode_hashes']['sha256']
+                             bytecode_tlsh = ''
+                             if m['bytecode_hashes']['tlsh'] is not None:
+                                 bytecode_tlsh = m['bytecode_hashes']['tlsh']
+                             db_rows.append((sha256, class_name, method_name, bytecode_sha256, bytecode_tlsh))
+                dex_counter += 1
+        # insert contents of all the files in the APK
+        psycopg2.extras.execute_batch(dbcursor, "execute bytecode_insert(%s, %s, %s, %s, %s)", db_rows)
+        method_counter += len(db_rows)
+        dbconnection.commit()
+        if verbose:
+            print("Processed %d dex files" % dex_counter)
+            print("Added %d methods" % len(db_rows))
+            print("Total %d methods" % method_counter)
+            print()
+
+
+    if verbose:
+        print()
+        if dex_counter == 1:
+            print("Processed: 1 dex file")
         else:
-            imphash = i['imphash']
-
-        # signatures can be n/a, there are also some that
-        # have errors or tab characters.
-        if i['signature'] == 'n/a':
-            signature = ''
-        else:
-            signature = i['signature'].replace('\t', '')
-        bulkinserts.append((sha256_hash, tlsh_hash, imphash, file_name, signature, mime_type))
-    malwarefile.close()
-
-    if bulkinserts != []:
-        psycopg2.extras.execute_batch(dbcursor,
-                                      "execute malware_insert(%s, %s, %s, %s, %s, %s)",
-                                      bulkinserts)
+            print("Processed %d dex files" % dex_counter)
+        print("Processed %d methods" % method_counter)
 
     # cleanup
     dbconnection.commit()
