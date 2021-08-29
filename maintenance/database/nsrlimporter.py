@@ -16,7 +16,7 @@
 import sys
 import os
 import argparse
-import stat
+import pathlib
 import csv
 
 # import some modules for dependencies, requires psycopg2 2.7+
@@ -55,12 +55,14 @@ def main():
     if args.nsrldir is None:
         parser.error("No NSRL directory provided, exiting")
 
+    nsrldir = pathlib.Path(args.nsrldir)
+
     # the configuration file should exist ...
-    if not os.path.exists(args.nsrldir):
+    if not nsrldir.exists():
         parser.error("Directory %s does not exist, exiting." % args.nsrldir)
 
     # ... and should be a real directory
-    if not stat.S_ISDIR(os.stat(args.nsrldir).st_mode):
+    if not nsrldir.is_dir():
         parser.error("%s is not a regular file, exiting." % args.nsrldir)
 
     nsrlfiles = os.listdir(args.nsrldir)
@@ -74,12 +76,14 @@ def main():
     if args.cfg is None:
         parser.error("No configuration file provided, exiting")
 
+    cfg = pathlib.Path(args.cfg)
+
     # the configuration file should exist ...
-    if not os.path.exists(args.cfg):
+    if not cfg.exists():
         parser.error("File %s does not exist, exiting." % args.cfg)
 
     # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.cfg).st_mode):
+    if not cfg.is_file():
         parser.error("%s is not a regular file, exiting." % args.cfg)
 
     # read the configuration file. This is in YAML format
