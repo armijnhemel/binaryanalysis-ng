@@ -28,6 +28,26 @@ To import the data do the following:
 
 ## Statistics
 
+Processing 1471 packages (some with multiple Dex files) from F-Droid:
+
+    bang=> \dt+; \di+;
+                           List of relations
+     Schema |     Name     | Type  | Owner |  Size   | Description
+    --------+--------------+-------+-------+---------+-------------
+     public | dex_bytecode | table | bang  | 5205 MB |
+    (1 row)
+
+                                          List of relations
+     Schema |             Name             | Type  | Owner |    Table     |  Size   | Description
+    --------+------------------------------+-------+-------+--------------+---------+-------------
+     public | dex_bytecode_bytecode_sha256 | index | bang  | dex_bytecode | 757 MB  |
+     public | dex_bytecode_bytecode_tlsh   | index | bang  | dex_bytecode | 1111 MB |
+     public | dex_bytecode_dex_sha256      | index | bang  | dex_bytecode | 1063 MB |
+    (3 rows)
+
+    bang=> select from dex_bytecode ;
+    --
+    (22306668 rows)
 
 # Database design
 
@@ -40,4 +60,10 @@ There are three additional indexes:
 
     CREATE INDEX dex_bytecode_dex_sha256 ON apk_contents USING HASH (dex_sha256);
     CREATE INDEX dex_bytecode_bytecode_sha256 ON apk_contents USING HASH (bytecode_sha256);
-    CREATE INDEX dex_bytecode_bytecode_tlsh ON apk_contents USING HASH (bytecode_tlsh);
+    CREATE INDEX dex_bytecode_bytecode_tlsh ON apk_contents (bytecode_tlsh);
+
+In case a lot of data is loaded into a clean database it might be wise to first
+load the data and create the indexes later. The index
+`dex_bytecode_bytecode_tlsh` isn't a hash index but a regular B-tree, because
+for some reason the TLSH data is giving the hash index trouble on PostgreSQL
+12.7.
