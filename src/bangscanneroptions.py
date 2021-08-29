@@ -51,6 +51,7 @@ class BangScannerOptions:
                 os.path.join(os.path.dirname(sys.argv[0]), 'bang.config'),
             'baseunpackdirectory': '',
             'temporarydirectory': None,
+            'removescandata': False,
             'removescandirectory': False,
             'createbytecounter': False,
             'createjson': True,
@@ -173,6 +174,8 @@ class BangScannerOptions:
                 section='configuration')
         self._set_integer_option_from_config('bangthreads',
                 section='configuration', option='threads')
+        self._set_boolean_option_from_config('removescandata',
+                section='configuration')
         self._set_boolean_option_from_config('removescandirectory',
                 section='configuration')
         self._set_boolean_option_from_config('createbytecounter',
