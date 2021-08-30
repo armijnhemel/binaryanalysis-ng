@@ -22,4 +22,5 @@ config:
     # [source, binary]
     categories: [source, binary]
     # mirror site of F-Droid. This should contain the scheme (http or https)
+    # See https://f-droid.org/en/docs/Running_a_Mirror/
     mirror: https://f-droid.org/

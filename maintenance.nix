@@ -7,10 +7,12 @@ let
 
   my-python = pkgs.python39.withPackages (p: with p; [
     click
+    cxxfilt
     defusedxml
     packageurl-python
     psycopg2
     pytest
+    python-ctags3
     pyyaml
     requests
     telfhash
@@ -21,6 +23,9 @@ let
 in
 pkgs.mkShell {
   buildInputs = with pkgs; [
+    gettext
     my-python
+    universal-ctags
+    yara
   ];
 }
