@@ -26,7 +26,6 @@ import sys
 import os
 import argparse
 import datetime
-import stat
 import hashlib
 import tempfile
 import multiprocessing
@@ -121,12 +120,14 @@ def main():
     if args.cfg is None:
         parser.error("No configuration file provided, exiting")
 
+    cfg = pathlib.Path(args.cfg)
+
     # the configuration file should exist ...
-    if not os.path.exists(args.cfg):
+    if not cfg.exists():
         parser.error("File %s does not exist, exiting." % args.cfg)
 
     # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.cfg).st_mode):
+    if not cfg.is_file():
         parser.error("%s is not a regular file, exiting." % args.cfg)
 
     # read the configuration file. This is in YAML format
