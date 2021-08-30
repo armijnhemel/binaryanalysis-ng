@@ -20,6 +20,7 @@ let
     pyyaml
     tinycss2
     tlsh
+    yara-python
   ]);
 
 in
