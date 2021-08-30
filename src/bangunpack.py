@@ -56,6 +56,7 @@ import defusedxml.minidom
 import lz4
 import lz4.frame
 import snappy
+import mutf8
 
 from FileResult import *
 
@@ -6584,11 +6585,12 @@ def unpack_java_class(fileresult, scanenvironment, offset, unpackdir):
             utf8len = int.from_bytes(checkbytes, byteorder='big')
             utf8bytes = checkfile.read(utf8len)
             # Caveat: Java uses its own "modified UTF-8", as described
-            # in 4.4.7. Assume for now that only simple ASCII is being
-            # used. This is a mistake.
+            # in 4.4.7.
             try:
-                constant_pool[i] = utf8bytes.decode()
+                constant_pool[i] = mutf8.decode_modified_utf8(utf8bytes)
             except UnicodeDecodeError:
+                # the upstream mutf8 library has an error and not everything
+                # is translated correctly.
                 constant_pool[i] = utf8bytes
             if len(utf8bytes) != utf8len:
                 checkfile.close()
