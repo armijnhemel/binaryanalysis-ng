@@ -4,16 +4,17 @@
 
 Kaitai Struct is "a declarative language used to describe various binary data structures, laid out in files or in memory".
 
-https://github.com/kaitai-io/kaitai_struct
-http://kaitai.io/
+<https://github.com/kaitai-io/kaitai_struct>
+<http://kaitai.io/>
 
 Basically it is a language to describe binary formats using a description file, which can then be used to generate parsers for various languages.
 
 ## Installing the Kaitai Struct compiler
 
-The easiest way to install the Kaitai Struct compiler is to download a released zip file, as explained by the web site http://kaitai.io/#download (select your prefered installation format, such as `.deb` or `.zip`). If you do this make sure to download version 0.9.
+The easiest way to install the Kaitai Struct compiler is to download a released zip file, as explained by the web site <http://kaitai.io/#download> (select your prefered installation format, such as `.deb` or `.zip`). If you do this make sure to download version 0.9 as some of the grammars depend on features introduced in version 0.9.
 
-Alternatively, you can build the compiler from scratch. This requires Scala and the Scala build tool. Note that you may need a recent version of sbt and download it from the sbt repository. You can find instructions for that on https://www.scala-sbt.org/download.html.
+Alternatively, you can build the compiler from scratch. This requires Scala and the Scala build tool. Note that you may need a recent version of sbt and download it from the sbt repository. You can find instructions for that on <https://www.scala-sbt.org/download.html>.
+
 Also note that the versions of the kaitai Python run-time and the compiler must match, you may also need to reinstall the Python runtime.
 
 ### Building the Kaitai Struct compiler
@@ -24,7 +25,7 @@ First, you will need to checkout the repository from github if you have not done
 git clone --recursive https://github.com/kaitai-io/kaitai_struct.git
 ```
 
-See http://doc.kaitai.io/developers.html for more details. In my case, I cloned the repository directly under my home directory in `~/kaitai_struct`.
+See <http://doc.kaitai.io/developers.html> for more details. In my case, I cloned the repository directly under my home directory in `~/kaitai_struct`.
 
 During the build, the Scala build tool caches information in `~/.sbt`. If you try to build Kaitai Struct compiler again with another version of sbt or scala, you may run into problems. By removing the `~/.sbt` directory and rebuilding, I managed to build the program.
 
@@ -73,7 +74,7 @@ kaitai-struct-compiler -t python gif.ksy
 
 ### Using the WebIDE
 
-Install the web IDE according to the instructions on https://github.com/kaitai-io/kaitai_struct_webide, for example:
+Install the web IDE according to the instructions on <https://github.com/kaitai-io/kaitai_struct_webide>, for example:
 
 ```
 git clone https://github.com/kaitai-io/ide-kaitai-io.github.io
@@ -81,7 +82,7 @@ cd ide-kaitai-io.github.io
 python3 -m http.server
 ```
 
-* Point your browser to http://localhost:8000/
+* Point your browser to <http://localhost:8000/>
 * click the upload icon on the bottom left area (a cloud with an upwards arrow)
 * upload a test file
 * select the kaitai parser from the list
@@ -101,7 +102,7 @@ Note that the version of the Ruby runtime of the visualizer must match the compi
 
 You can also run the Ruby script directly from the `kaitai_struct` repository, e.g.  `~/kaitai_struct/visualizer/bin/ksv`. If you want you can put it into your search path just as you need to do for `kaitai-struct-compiler`.
 
-See https://github.com/kaitai-io/kaitai_struct_visualizer for more details.
+See <https://github.com/kaitai-io/kaitai_struct_visualizer> for more details.
 
 Run the visualizer as follows:
 
