@@ -5,11 +5,13 @@ software.
 
 ## Crawling F-Droid data
 
-There is a crawler that downloads software from F-Droid.
+There is a crawler that downloads software from F-Droid. This crawler should
+be configured to download (at least) the binary data. See the crawler
+documentation how to do that.
 
 # Importing the F-Droid data
 
-The script to import F-Droid data expects that F-Droid packages are first
+The script to import F-Droid data expects that F-Droid APKs are first
 crawled using the F-Droid crawler.
 
 ## Requirements
@@ -30,7 +32,7 @@ the database table):
 
 2. Import the data:
 
-   $ $ python3 fdroidimporter.py -c /path/to/configuration
+    $ python3 fdroid_apk_importer.py -c /path/to/configuration
 
 The configuration is a YAML file with information, such as database connection
 information, the location of the temporary directory for unpacking APK
