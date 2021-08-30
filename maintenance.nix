@@ -26,5 +26,6 @@ pkgs.mkShell {
     gettext
     my-python
     universal-ctags
+    yara
   ];
 }
