@@ -1,7 +1,7 @@
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationNotEqualError, ValidationLessThanError, ValidationGreaterThanError
 from . import gimp_brush
 
 from PIL.GbrImagePlugin import GbrImageFile
@@ -23,10 +23,7 @@ class GimpBrushUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = gimp_brush.GimpBrush.from_io(self.infile)
-        # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
-            raise UnpackParserException(e.args)
-        except BaseException as e:
+        except (Exception, ValidationNotEqualError, ValidationLessThanError, ValidationGreaterThanError) as e:
             raise UnpackParserException(e.args)
 
         check_condition(self.data.header.version < 3, "Invalid version")
