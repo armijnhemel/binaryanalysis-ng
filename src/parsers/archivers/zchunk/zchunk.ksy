@@ -11,6 +11,16 @@ seq:
   - id: rest_of_header
     type: rest_of_header
     size: lead.len_header.value
+  - id: chunks
+    size: chunk_metadata[_index].len_chunk.value
+    repeat: expr
+    repeat-expr: num_chunks
+instances:
+  num_chunks:
+    value: rest_of_header.index.rest_of_index.num_chunks.value - 1
+    doc: the number of chunks includes the header, so -1
+  chunk_metadata:
+    value: rest_of_header.index.rest_of_index.chunks_metadata
 types:
   lead:
     seq:
@@ -92,7 +102,7 @@ types:
         type: compressed_integer
       - id: len_uncompressed_dict
         type: compressed_integer
-      - id: chunks
+      - id: chunks_metadata
         type: chunk(len_checksum)
         repeat: expr
         repeat-expr: num_chunks.value - 1
@@ -130,7 +140,6 @@ types:
         type: signature
         repeat: expr
         repeat-expr: num_signatures.value
-
   signature:
     seq:
       - id: signature_type
@@ -173,7 +182,6 @@ types:
           + (len >= 7 ? (groups[6].value << 42) : 0)
           + (len >= 8 ? (groups[7].value << 49) : 0)
         doc: Resulting value as normal integer
-
 enums:
   checksum_types:
     0: sha1
