@@ -47,6 +47,7 @@ pkgs.mkShell {
     unrar
     unshield
     utillinux
+    zchunk
     zstd
   ];
 }
