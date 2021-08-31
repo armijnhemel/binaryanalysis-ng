@@ -8,8 +8,8 @@ doc-ref: https://github.com/zchunk/zchunk/blob/main/zchunk_format.txt
 seq:
   - id: lead
     type: lead
-  - id: rest_of_header
-    type: rest_of_header
+  - id: header
+    type: header
     size: lead.len_header.value
   - id: chunks
     size: chunk_metadata[_index].len_chunk.value
@@ -17,10 +17,10 @@ seq:
     repeat-expr: num_chunks
 instances:
   num_chunks:
-    value: rest_of_header.index.rest_of_index.num_chunks.value - 1
+    value: header.index.num_chunks.value - 1
     doc: the number of chunks includes the header, so -1
   chunk_metadata:
-    value: rest_of_header.index.rest_of_index.chunks_metadata
+    value: header.index.chunks_metadata
 types:
   lead:
     seq:
@@ -43,12 +43,15 @@ types:
             checksum_type == checksum_types::sha512 ? 64 :
             checksum_type == checksum_types::sha512_128 ? 16 :
             0
-  rest_of_header:
+  header:
     seq:
       - id: preface
         type: preface
+      - id: len_index
+        type: compressed_integer
       - id: index
         type: index
+        size: len_index.value
       - id: signatures
         type: signatures
   preface:
@@ -82,20 +85,13 @@ types:
         size: len_data.value
   index:
     seq:
-      - id: len_index
-        type: compressed_integer
-      - id: rest_of_index
-        size: len_index.value
-        type: rest_of_index
-  rest_of_index:
-    seq:
       - id: checksum
         type: compressed_integer
       - id: num_chunks
         type: compressed_integer
       - id: dict_stream
         type: compressed_integer
-        if: _root.rest_of_header.preface.has_data_streams
+        if: _parent.preface.has_data_streams
       - id: dict_checksum
         size: len_checksum
       - id: len_dict
@@ -103,7 +99,7 @@ types:
       - id: len_uncompressed_dict
         type: compressed_integer
       - id: chunks_metadata
-        type: chunk(len_checksum)
+        type: chunk(len_checksum, _parent.preface.has_data_streams)
         repeat: expr
         repeat-expr: num_chunks.value - 1
         doc: the number of chunks includes the header, so -1
@@ -122,10 +118,12 @@ types:
     params:
       - id: len_checksum
         type: u4
+      - id: has_data_streams
+        type: bool
     seq:
       - id: chunk_stream
         type: compressed_integer
-        if: _root.rest_of_header.preface.has_data_streams
+        if: has_data_streams
       - id: chunk_checksum
         size: len_checksum
       - id: len_chunk
