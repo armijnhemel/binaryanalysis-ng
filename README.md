@@ -226,6 +226,7 @@ larger file, unless stated otherwise.
 142. Qualcomm aboot (version 3 only, no unified boot)
 143. Rockchip resource files
 144. Socionext Milbeaut firmware files
+145. zchunk
 
 The following text formats can be recognized:
 
