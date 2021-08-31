@@ -51,12 +51,17 @@ types:
         type: compressed_integer
       - id: num_optional_element
         type: compressed_integer
-        if: flags.value == 1
+        if: has_optional_elements
       - id: optional_elements
         type: optional_element
         repeat: expr
         repeat-expr: num_optional_element.value
-        if: flags.value == 1
+        if: has_optional_elements
+    instances:
+      has_data_streams:
+        value: flags.value & 0b1 == 0b1
+      has_optional_elements:
+        value: flags.value & 0b10 == 0b10
   optional_element:
     seq:
       - id: element_id
@@ -80,10 +85,10 @@ types:
         type: compressed_integer
       - id: dict_stream
         type: stream(len_checksum)
-        if: _root.rest_of_header.preface.flags.value == 1
+        if: _root.rest_of_header.preface.has_data_streams
       - id: chunk_stream
         type: stream(len_checksum)
-        if: _root.rest_of_header.preface.flags.value == 1
+        if: _root.rest_of_header.preface.has_data_streams
     instances:
       checksum_type:
         value: checksum.value
