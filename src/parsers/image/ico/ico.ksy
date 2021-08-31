@@ -68,10 +68,17 @@ types:
         type: u4
         valid:
           min: 1
+          max: _root._io.size
+          # the size can never be more than the
+          # amount of bytes in the file.
         doc: Size of the image data
       - id: ofs_img
         -orig-id: dwImageOffset
         type: u4
+        valid:
+          max: _root._io.size
+          # the offset can never be more than the
+          # amount of bytes in the file.
         doc: Absolute offset of the image data start in the file
     instances:
       img:
