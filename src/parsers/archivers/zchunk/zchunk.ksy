@@ -84,11 +84,19 @@ types:
       - id: num_chunks
         type: compressed_integer
       - id: dict_stream
-        type: stream(len_checksum)
+        type: compressed_integer
         if: _root.rest_of_header.preface.has_data_streams
-      - id: chunk_stream
-        type: stream(len_checksum)
-        if: _root.rest_of_header.preface.has_data_streams
+      - id: dict_checksum
+        size: len_checksum
+      - id: len_dict
+        type: compressed_integer
+      - id: len_uncompressed_dict
+        type: compressed_integer
+      - id: chunks
+        type: chunk(len_checksum)
+        repeat: expr
+        repeat-expr: num_chunks.value - 1
+        doc: the number of chunks includes the header, so -1
     instances:
       checksum_type:
         value: checksum.value
@@ -100,18 +108,19 @@ types:
             checksum_type == checksum_types::sha512 ? 64 :
             checksum_type == checksum_types::sha512_128 ? 16 :
             0
-  stream:
+  chunk:
     params:
       - id: len_checksum
         type: u4
     seq:
-      - id: stream
+      - id: chunk_stream
         type: compressed_integer
-      - id: checksum
+        if: _root.rest_of_header.preface.has_data_streams
+      - id: chunk_checksum
         size: len_checksum
-      - id: len_stream
+      - id: len_chunk
         type: compressed_integer
-      - id: len_uncompressed
+      - id: len_uncompressed_chunk
         type: compressed_integer
   signatures:
     seq:
