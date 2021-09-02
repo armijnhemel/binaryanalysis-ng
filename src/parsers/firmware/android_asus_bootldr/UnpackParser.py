@@ -21,8 +21,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-Extract bootloader files as found on Qualcomm Snapdragon (MSM)
-based Android devices.
+Extract bootloader files as found on some Android devices made by ASUS.
 '''
 
 import os
@@ -53,21 +52,23 @@ class AndroidAsusBootUnpackParser(UnpackParser):
         pass
 
     def unpack(self):
-        magic_to_files = {'IFWI!!!!': 'ifwi.bin',
+        chunk_to_files = {'IFWI!!!!': 'ifwi.bin',
                           'DROIDBT!': 'droidboot.img',
                           'SPLASHS!': 'splashscreen.img'}
         unpacked_files = []
         for image in self.data.images:
-            if image.magic in magic_to_files:
-                file_path = pathlib.Path(magic_to_files[image.magic])
-                outfile_rel = self.rel_unpack_dir / file_path
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                os.makedirs(outfile_full.parent, exist_ok=True)
-                outfile = open(outfile_full, 'wb')
-                outfile.write(image.body)
-                outfile.close()
-                fr = FileResult(self.fileresult, outfile_rel, set([]))
-                unpacked_files.append(fr)
+            if image.file_name != '':
+                file_path = pathlib.Path(image.file_name)
+            else:
+                file_path = pathlib.Path(chunk_to_files[image.chunk_id])
+            outfile_rel = self.rel_unpack_dir / file_path
+            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+            os.makedirs(outfile_full.parent, exist_ok=True)
+            outfile = open(outfile_full, 'wb')
+            outfile.write(image.body)
+            outfile.close()
+            fr = FileResult(self.fileresult, outfile_rel, set([]))
+            unpacked_files.append(fr)
         return unpacked_files
 
     def set_metadata_and_labels(self):
