@@ -294,7 +294,6 @@ signaturetofunction = {
     'ppm': bangmedia.unpack_pnm,
     'pgm': bangmedia.unpack_pnm,
     'pbm': bangmedia.unpack_pnm,
-    'androidbootmsm': bangandroid.unpack_android_boot_msm,
     'androidbootimg': bangandroid.unpack_android_boot_img,
     'fat': bangfilesystems.unpack_fat,
     'cbfs': bangfilesystems.unpack_cbfs,
