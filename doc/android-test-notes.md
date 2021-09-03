@@ -99,6 +99,14 @@ Uses Dex 035 and Odex 036.
 
 Infotmic m799ca based device. Uses Dex 035 and U-Boot.
 
+## OS_Acer_3.003.01.EMEA.CUS1EN_A21E_A.zip
+
+Acer BeTouch E130, uses the `nb0` format. The ZIP file contains an MSI file
+called `Acer E130 Tool Setup.msi` which can be unpacked with `7z`. Inside
+there is a CAB file called `_D73E97C33A4BA86CBC3B146ECFF38C2C` which can be
+unpacked with `cabextract` and which contains a file called
+`_B8D67569E4EF4C3386C854FEE4260157` which is the actual firmware file.
+
 # Random files
 
 Most of the files below were downloaded from obscure firmware download sites,

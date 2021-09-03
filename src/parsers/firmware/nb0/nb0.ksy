@@ -5,21 +5,32 @@ meta:
   encoding: UTF-8
   endian: le
 doc: |
-  A barely documented older Android firmware format used on NXP devices.
+  A barely documented older Android firmware format used on FreeScale/NXP
+  devices.
+
+  Test file (if you can find it): "ViewPad 7 Firmware v3_42_uk.zip". The
+  firmware update for the Acer BeTouch E130 also contains it, although it is
+  hidden deep inside the firmware.
+
+  Note: the extension "nb0' is also often used for Windows CE files.
 doc-ref:
   - https://github.com/yohanes/Acer-BeTouch-E130-RUT/blob/master/nb0.h
   - https://github.com/yohanes/Acer-BeTouch-E130-RUT/blob/master/nb0.c
 seq:
   - id: num_entries
     type: u4
+    valid:
+      min: 1
+      max: _root._io.size / 64
+      # the size can never be more than the
+      # amount of bytes in the file.
   - id: entries
     type: entry
     size: 64
     repeat: until
     repeat-until: _index == num_entries - 1
-    if: num_entries != 0
 instances:
-  partition:
+  partitions:
     type: partition_type(_index)
     repeat: expr
     repeat-expr: num_entries

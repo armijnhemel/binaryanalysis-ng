@@ -386,7 +386,6 @@ extensiontofunction = {
     '.pem': bangunpack.unpack_certificate,
     '.json': bangunpack.unpack_json,
     'tzdata': bangandroid.unpack_android_tzdata,
-    '.nb0': bangandroid.unpack_nb0,
 }
 
 import os
@@ -485,7 +484,6 @@ extensionprettyprint = {
     '.pc': 'pc',
     '.ics': 'ics',
     'trans.tbl': 'trans.tbl',
-    '.nb0': 'nb0',
     'smbpasswd': 'smbpasswd',
     '.ini': 'ini',
     'wcprops': 'subversion_hash',
