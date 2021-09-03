@@ -23,25 +23,17 @@
 import os
 import pathlib
 
-from UnpackParser import WrappedUnpackParser
-from bangandroid import unpack_nb0
-
 from FileResult import FileResult
-
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError, ValidationLessThanError
 from . import nb0
 
 
-#class Nb0UnpackParser(WrappedUnpackParser):
 class Nb0UnpackParser(UnpackParser):
     extensions = ['.nb0']
     signatures = []
     pretty_name = 'nb0'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_nb0(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         self.unpacked_size = 0
