@@ -23,8 +23,9 @@ seq:
     type: dt_table_header
   - id: entries
     type: dt_table_entry
-    repeat: expr
-    repeat-expr: header.dt_entry_count
+    repeat: until
+    repeat-until: _index == header.dt_entry_count - 1
+    if: header.dt_entry_count != 0
 
 types:
   dt_table_header:
