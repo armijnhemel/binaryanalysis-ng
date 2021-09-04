@@ -35,7 +35,9 @@ types:
       - id: len
         type: u4
         valid:
-          max: 2147483648
+          max: 10485760
+          # hardcode to 10 MiB per chunk as no sane PNG has that much data
+          #max: 2147483648
           # Although encoders and decoders should treat the length as unsigned,
           # its value must not exceed 2^31 bytes.
       - id: type
