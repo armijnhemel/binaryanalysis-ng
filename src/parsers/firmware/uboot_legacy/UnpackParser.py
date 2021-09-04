@@ -28,7 +28,7 @@ import pathlib
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationLessThanError, ValidationNotAnyOfError
+from kaitaistruct import ValidationNotEqualError, ValidationLessThanError, ValidationNotAnyOfError, ValidationGreaterThanError
 from . import uimage
 
 
@@ -50,7 +50,7 @@ class UbootLegacyUnpackParser(UnpackParser):
         try:
             self.data = uimage.Uimage.from_io(self.infile)
         except (Exception, ValidationNotEqualError, ValidationLessThanError,
-                ValidationNotAnyOfError) as e:
+                ValidationNotAnyOfError, ValidationGreaterThanError) as e:
             raise UnpackParserException(e.args)
 
         # now calculate the CRC of the header and compare it
