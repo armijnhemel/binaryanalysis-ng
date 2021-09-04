@@ -226,7 +226,6 @@ signaturetofunction = {
     'lzma_var1': bangunpack.unpack_lzma,
     'lzma_var2': bangunpack.unpack_lzma,
     'lzma_var3': bangunpack.unpack_lzma,
-    'timezone': bangunpack.unpack_timezone,
     'tar_posix': bangunpack.unpack_tar,
     'tar_gnu': bangunpack.unpack_tar,
     'ar': bangunpack.unpack_ar,
