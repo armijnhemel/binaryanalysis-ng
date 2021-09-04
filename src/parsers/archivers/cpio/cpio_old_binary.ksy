@@ -64,6 +64,8 @@ types:
         value: (fsize % 2)
       bsize:
         value: hsize + nsize + npaddingsize + fsize + fpaddingsize
+      cpio_mode:
+        value: mode
   four_byte_unsigned_integer:
     seq:
       - id: msb
