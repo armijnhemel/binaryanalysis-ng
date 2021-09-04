@@ -34,6 +34,10 @@ types:
     seq:
       - id: len
         type: u4
+        valid:
+          max: 2147483648
+          # Although encoders and decoders should treat the length as unsigned,
+          # its value must not exceed 2^31 bytes.
       - id: type
         type: str
         size: 4
@@ -47,24 +51,14 @@ types:
           cases:
             # Critical chunks
             '"IHDR"': ihdr_chunk
-            '"PLTE"': plte_chunk
-            # IDAT = raw
-            # IEND = empty, thus raw
 
             # Ancillary chunks
             '"cHRM"': chrm_chunk
             '"gAMA"': gama_chunk
-            # iCCP
-            # sBIT
             '"sRGB"': srgb_chunk
-            #'"bKGD"': raw
-            # hIST
-            # tRNS
             '"pHYs"': phys_chunk
-            # sPLT
             '"tIME"': time_chunk
             '"iTXt"': international_text_chunk
-            '"tEXt"': text_chunk
             '"zTXt"': compressed_text_chunk
 
             # animated PNG chunks
@@ -86,8 +80,12 @@ types:
     seq:
       - id: width
         type: u4
+        valid:
+          min: 1
       - id: height
         type: u4
+        valid:
+          min: 1
       - id: bit_depth
         type: u1
       - id: color_type

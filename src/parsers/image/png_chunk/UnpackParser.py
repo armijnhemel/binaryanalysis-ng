@@ -34,7 +34,7 @@ import binascii
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationExprError
+from kaitaistruct import ValidationNotEqualError, ValidationExprError, ValidationGreaterThanError
 from . import png_chunk
 
 # a list of known chunks
@@ -57,7 +57,7 @@ class PngUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = png_chunk.PngChunk.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationExprError) as e:
+        except (Exception, ValidationNotEqualError, ValidationExprError, ValidationGreaterThanError) as e:
             raise UnpackParserException(e.args)
 
         computed_crc = binascii.crc32(self.data.chunk.type.encode('utf-8'))
