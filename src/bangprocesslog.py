@@ -75,6 +75,7 @@ def main():
     logfile = open(args.checkfile, 'r')
     extensions_tmp = []
     openfiles = set()
+    opensignatures = set()
     for i in logfile:
         valid_line = False
         for j in ['FAIL', 'TRYING', 'SUCCESS']:
@@ -84,11 +85,14 @@ def main():
         if not valid_line:
             continue
         file_name = pathlib.Path(i[len(j):].strip().split(':', 1)[0].rsplit(' ', 3)[0])
+        signature = i.strip().split(':', 1)[0].rsplit(' ', 3)[1]
         if j == 'TRYING':
             openfiles.add(file_name)
+            opensignatures.add((file_name, signature))
         else:
             try:
                 openfiles.remove(file_name)
+                opensignatures.remove((file_name, signature))
             except:
                 pass
         if 'FAIL' not in i:
@@ -140,6 +144,13 @@ def main():
     print("---------------------------\n")
     for o in openfiles:
         print(o)
+
+    print()
+    print("Opened but not closed signatures")
+    print("---------------------------\n")
+    for o in opensignatures:
+        print(o)
+
 
 if __name__ == "__main__":
     main()
