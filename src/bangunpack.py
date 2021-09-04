@@ -10518,7 +10518,7 @@ def unpack_crx(fileresult, scanenvironment, offset, unpackdir):
     checkbytes = checkfile.read(4)
     public_key_length = int.from_bytes(checkbytes, byteorder='little')
 
-    # signature lengtj
+    # signature length
     checkbytes = checkfile.read(4)
     signature_length = int.from_bytes(checkbytes, byteorder='little')
 
