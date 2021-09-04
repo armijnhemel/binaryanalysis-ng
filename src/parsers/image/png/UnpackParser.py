@@ -21,7 +21,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-Parse and unpack PNG files. The specification of the PNG can be found at:
+Parse and unpack PNG files. The specification of the PNG format can be found
+at:
 
 https://www.w3.org/TR/PNG/
 
