@@ -104,7 +104,7 @@ seq:
     type: bitmap_info
   - id: bitmap
     type: bitmap
-    size-eos: true
+    size: file_hdr.len_file - file_hdr.ofs_bitmap
 types:
   bitmap:
     doc: |
