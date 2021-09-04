@@ -24,7 +24,8 @@ types:
         size: header.npaddingsize
       - id: filedata 
         type: skip_and_ignore_type
-        size: header.fsize
+        #size: header.fsize
+        size: header.checked_filesize
       - id: filedata_padding
         size: header.fpaddingsize
   cpio_old_binary_header:
@@ -66,6 +67,8 @@ types:
         value: hsize + nsize + npaddingsize + fsize + fpaddingsize
       cpio_mode:
         value: mode
+      checked_filesize:
+        value: '(fsize < _root._io.size) ? fsize : -1'
   four_byte_unsigned_integer:
     seq:
       - id: msb
