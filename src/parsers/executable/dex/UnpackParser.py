@@ -282,7 +282,10 @@ class DexUnpackParser(UnpackParser):
             if class_definition.class_data is None:
                 continue
             class_obj = {}
-            class_obj['classname'] = mutf8.decode_modified_utf8(class_definition.type_name[1:-1])
+            try:
+                class_obj['classname'] = mutf8.decode_modified_utf8(class_definition.type_name[1:-1])
+            except UnicodeDecodeError:
+                pass
             if class_definition.sourcefile_name is not None:
                 class_obj['source'] = mutf8.decode_modified_utf8(class_definition.sourcefile_name)
             class_obj['methods'] = []
@@ -377,9 +380,12 @@ class DexUnpackParser(UnpackParser):
                 field_type = mutf8.decode_modified_utf8(self.data.field_ids[field_id].type_name)
                 if field_type.endswith(';'):
                     field_type = field_type[1:-1]
-                class_type = mutf8.decode_modified_utf8(self.data.field_ids[field_id].class_name)
-                if class_type.endswith(';'):
-                    class_type = class_type[1:-1]
+                try:
+                    class_type = mutf8.decode_modified_utf8(self.data.field_ids[field_id].class_name)
+                    if class_type.endswith(';'):
+                        class_type = class_type[1:-1]
+                except UnicodeError:
+                    pass
                 field_name = mutf8.decode_modified_utf8(self.data.field_ids[field_id].field_name)
                 class_obj['fields'].append({'name': field_name,
                                             'type': field_type, 'class': class_type,
