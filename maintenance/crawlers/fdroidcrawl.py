@@ -36,7 +36,7 @@ import urllib
 # import defusedxml module to guard against XML attacks
 import defusedxml.minidom
 
-# import the requests module for downloading the XML
+# import the requests module for downloading data
 import requests
 
 # import YAML module
