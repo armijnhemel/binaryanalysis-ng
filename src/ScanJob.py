@@ -625,6 +625,8 @@ def processfile(scanenvironment):
 
     carveunpacked = True
 
+    os.chdir(scanenvironment.unpackdirectory)
+
     while True:
         try:
             scanjob = scanfilequeue.get(timeout=86400)
