@@ -61,6 +61,9 @@ class FileResult:
     def has_target(self):
         return self.target is not None
 
+    def set_target(self, target):
+        self.target = target
+
     def get_hashresult(self):
         return self.hash
 

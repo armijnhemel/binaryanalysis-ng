@@ -134,6 +134,8 @@ class ScanJob:
                 self.fileresult.set_filesize(0)
                 for hash_algorithm, hash_value in emptyhashresults.items():
                     self.fileresult.set_hashresult(hash_algorithm, hash_value)
+            elif self.type == 'symbolic link':
+                self.fileresult.set_target(self.fileresult.filename.readlink())
             return True
         self.fileresult.set_filesize(self.stat.st_size)
         return False
