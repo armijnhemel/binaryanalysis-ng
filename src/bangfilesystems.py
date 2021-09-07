@@ -4441,7 +4441,6 @@ def unpack_cramfs(fileresult, scanenvironment, offset, unpackdir):
 # Not all data from this format might be unpacked in a sane way.
 #
 # http://embedded-software.blogspot.com/2010/12/plf-file-format.html
-# http://thecyberrecce.net/2017/01/09/reversing-the-parrot-skycontroller-firmware/
 # https://github.com/Parrot-Developers/libARUpdater/blob/5b3667dd97c4ba0e38cb5f9a477773012c1e55d3/Sources/ARUPDATER_Plf.h
 # https://github.com/Parrot-Developers/libpuf/blob/master/src/libpuf_plf.h
 def unpack_plf(fileresult, scanenvironment, offset, unpackdir):
