@@ -61,10 +61,11 @@ class UbifsUnpackParser(UnpackParser):
         node_blocks = collections.deque()
         node_blocks.append(self.data.index_root)
 
-        # inode to parent and name mappings
+        # inode to parent, name and type mappings
         parent_to_inodes = {}
         inode_to_name = {}
         inode_to_parent = {}
+        inode_to_type = {}
 
         while True:
           # grab a node to process
@@ -83,23 +84,38 @@ class UbifsUnpackParser(UnpackParser):
                   # target inode number
                   target_inode = process_node.node_header.inode_number
                   target_name = process_node.node_header.name
+
+                  # store name, parent and type
                   inode_to_name[target_inode] = target_name
                   inode_to_parent[target_inode] = parent_inode_nr
+                  inode_to_type[target_inode] = process_node.node_header.inode_type
           except IndexError:
               break
 
         # reconstruct the directory paths per inode
-        inode_to_paths = {}
+        inode_to_path = {}
         for i in sorted(inode_to_name):
             new_name = inode_to_name[i]
             index = i
             while True:
                 if index not in inode_to_parent:
-                    inode_to_paths[i] = new_name
+                    inode_to_path[i] = new_name
                     break
                 index = inode_to_parent[index]
                 if index in inode_to_name:
                     new_name = os.path.join(inode_to_name[index], new_name)
+
+        # create the directories
+        for inode in inode_to_path:
+            if inode_to_type[inode] == ubifs.Ubifs.InodeTypes.directory:
+                outfile_rel = self.rel_unpack_dir / inode_to_path[inode]
+                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                outfile_full.mkdir(exist_ok=True)
+            else:
+                # create the directory of the parent
+                outfile_rel = self.rel_unpack_dir / inode_to_path[inode]
+                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                outfile_full.parent.mkdir(exist_ok=True)
 
         # now that there is a mapping of inodes to names of files
         # the nodes can be traversed again to find the extra metadata
@@ -108,25 +124,28 @@ class UbifsUnpackParser(UnpackParser):
         node_blocks.append(self.data.index_root)
 
         while True:
-          cur_open = None
-          cur_file = None
-          try:
-              process_node = node_blocks.popleft()
-              if type(process_node.node_header) == ubifs.Ubifs.IndexHeader:
-                  for branch in process_node.node_header.branches:
-                      node_blocks.append(branch.branch_target)
-              elif type(process_node.node_header) == ubifs.Ubifs.DirectoryHeader:
-                  if process_node.node_header.inode_type == ubifs.Ubifs.InodeTypes.directory:
-                      # create the directory
-                      outfile_rel = self.rel_unpack_dir / inode_to_paths[process_node.node_header.inode_number]
-                      outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                      outfile_full.mkdir()
-              elif type(process_node.node_header) == ubifs.Ubifs.InodeHeader:
-                  pass
-              elif type(process_node.node_header) == ubifs.Ubifs.DataHeader:
-                  pass
-          except IndexError:
-              break
+            cur_open = None
+            cur_file = None
+            try:
+                process_node = node_blocks.popleft()
+                if type(process_node.node_header) == ubifs.Ubifs.IndexHeader:
+                    for branch in process_node.node_header.branches:
+                        node_blocks.append(branch.branch_target)
+                elif type(process_node.node_header) == ubifs.Ubifs.InodeHeader:
+                    inode = process_node.node_header.key.inode_number
+                    if inode in inode_to_type:
+                        if inode_to_type[inode] == ubifs.Ubifs.InodeTypes.link:
+                            outfile_rel = self.rel_unpack_dir / inode_to_path[inode]
+                            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                            try:
+                                 target = process_node.node_header.data.decode()
+                                 outfile_full.symlink_to(target)
+                            except Exception as e:
+                                 continue
+                elif type(process_node.node_header) == ubifs.Ubifs.DataHeader:
+                    pass
+            except IndexError:
+                break
 
         unpacked_files = []
         for entry in self.data.file_headers:
