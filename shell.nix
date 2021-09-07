@@ -24,6 +24,7 @@ let
     pyyaml
     telfhash
     tlsh
+    zstd
   ]);
     
 in
