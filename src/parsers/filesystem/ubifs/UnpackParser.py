@@ -28,7 +28,7 @@ import collections
 import socket
 
 import lzo
-#import zstd
+import zstd
 
 from FileResult import FileResult
 
@@ -187,23 +187,11 @@ class UbifsUnpackParser(UnpackParser):
                     elif process_node.node_header.compression == ubifs.Ubifs.Compression.lzo:
                         outfile.write(lzo.decompress(process_node.node_header.data, False, process_node.node_header.len_uncompressed))
                     elif process_node.node_header.compression == ubifs.Ubifs.Compression.zstd:
-                        pass
-                        #outfile.write(zstd.decompress(process_node.node_header.data))
+                        outfile.write(zstd.decompress(process_node.node_header.data))
                     outfile.close()
             except IndexError:
                 break
 
-        for entry in self.data.file_headers:
-            out_labels = []
-            file_path = pathlib.Path(entry.name)
-            outfile_rel = self.rel_unpack_dir / file_path
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            outfile.write(entry.data)
-            outfile.close()
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
         return unpacked_files
 
     def set_metadata_and_labels(self):
