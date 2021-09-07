@@ -25,8 +25,10 @@ import sys
 import pathlib
 import zlib
 import collections
+import socket
 
 import lzo
+#import zstd
 
 from FileResult import FileResult
 
@@ -54,6 +56,8 @@ class UbifsUnpackParser(UnpackParser):
     #    pass
 
     def unpack(self):
+        unpacked_files = []
+
         # store the highest inode number
         highest_inum = self.data.master_1.node_header.highest_inum
 
@@ -68,29 +72,29 @@ class UbifsUnpackParser(UnpackParser):
         inode_to_type = {}
 
         while True:
-          # grab a node to process
-          try:
-              process_node = node_blocks.popleft()
-              if type(process_node.node_header) == ubifs.Ubifs.IndexHeader:
-                  for branch in process_node.node_header.branches:
-                      node_blocks.append(branch.branch_target)
-              elif type(process_node.node_header) == ubifs.Ubifs.DirectoryHeader:
-                  # TODO: use the key for some verification of the inode
-                  parent_inode_nr = process_node.node_header.key.inode_number
-                  if parent_inode_nr not in parent_to_inodes:
-                      parent_to_inodes[parent_inode_nr] = []
-                  parent_to_inodes[parent_inode_nr].append(process_node)
+            # grab a node to process
+            try:
+                process_node = node_blocks.popleft()
+                if type(process_node.node_header) == ubifs.Ubifs.IndexHeader:
+                    for branch in process_node.node_header.branches:
+                        node_blocks.append(branch.branch_target)
+                elif type(process_node.node_header) == ubifs.Ubifs.DirectoryHeader:
+                    # TODO: use the key for some verification of the inode
+                    parent_inode_nr = process_node.node_header.key.inode_number
+                    if parent_inode_nr not in parent_to_inodes:
+                        parent_to_inodes[parent_inode_nr] = []
+                    parent_to_inodes[parent_inode_nr].append(process_node)
 
-                  # target inode number
-                  target_inode = process_node.node_header.inode_number
-                  target_name = process_node.node_header.name
+                    # target inode number
+                    target_inode = process_node.node_header.inode_number
+                    target_name = process_node.node_header.name
 
-                  # store name, parent and type
-                  inode_to_name[target_inode] = target_name
-                  inode_to_parent[target_inode] = parent_inode_nr
-                  inode_to_type[target_inode] = process_node.node_header.inode_type
-          except IndexError:
-              break
+                    # store name, parent and type
+                    inode_to_name[target_inode] = target_name
+                    inode_to_parent[target_inode] = parent_inode_nr
+                    inode_to_type[target_inode] = process_node.node_header.inode_type
+            except IndexError:
+                break
 
         # reconstruct the directory paths per inode
         inode_to_path = {}
@@ -124,8 +128,6 @@ class UbifsUnpackParser(UnpackParser):
         node_blocks.append(self.data.index_root)
 
         while True:
-            cur_open = None
-            cur_file = None
             try:
                 process_node = node_blocks.popleft()
                 if type(process_node.node_header) == ubifs.Ubifs.IndexHeader:
@@ -134,20 +136,63 @@ class UbifsUnpackParser(UnpackParser):
                 elif type(process_node.node_header) == ubifs.Ubifs.InodeHeader:
                     inode = process_node.node_header.key.inode_number
                     if inode in inode_to_type:
-                        if inode_to_type[inode] == ubifs.Ubifs.InodeTypes.link:
-                            outfile_rel = self.rel_unpack_dir / inode_to_path[inode]
+                        outfile_rel = self.rel_unpack_dir / inode_to_path[inode]
+                        if inode_to_type[inode] == ubifs.Ubifs.InodeTypes.regular:
+                            # write a stub file
+                            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                            outfile = open(outfile_full, 'wb')
+                            outfile.close()
+                            fr = FileResult(self.fileresult, outfile_rel, set())
+                            unpacked_files.append(fr)
+                        elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.directory:
+                            # directories have already been processed, so skip
+                            pass
+                        elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.link:
                             outfile_full = self.scan_environment.unpack_path(outfile_rel)
                             try:
                                  target = process_node.node_header.data.decode()
                                  outfile_full.symlink_to(target)
                             except Exception as e:
                                  continue
+                            fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
+                            unpacked_files.append(fr)
+                        elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.block_device:
+                            # skip block devices
+                            pass
+                        elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.character_device:
+                            # skip character devices
+                            pass
+                        elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.fifo:
+                            # create fifo
+                            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                            os.mkfifo(outfile_full)
+                            fr = FileResult(self.fileresult, outfile_rel, set(['fifo']))
+                            unpacked_files.append(fr)
+                        elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.socket:
+                            # create socket
+                            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                            ubi_socket = socket.socket(socket.AF_UNIX)
+                            ubi_socket.bind(outfile_full)
+                            fr = FileResult(self.fileresult, outfile_rel, set(['socket']))
+                            unpacked_files.append(fr)
                 elif type(process_node.node_header) == ubifs.Ubifs.DataHeader:
-                    pass
+                    inode = process_node.node_header.key.inode_number
+                    outfile_rel = self.rel_unpack_dir / inode_to_path[inode]
+                    outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                    outfile = open(outfile_full, 'ab')
+                    if process_node.node_header.compression == ubifs.Ubifs.Compression.no_compression:
+                        outfile.write(process_node.node_header.data)
+                    elif process_node.node_header.compression == ubifs.Ubifs.Compression.zlib:
+                        outfile.write(zlib.decompress(process_node.node_header.data, -zlib.MAX_WBITS))
+                    elif process_node.node_header.compression == ubifs.Ubifs.Compression.lzo:
+                        outfile.write(lzo.decompress(process_node.node_header.data, False, process_node.node_header.len_uncompressed))
+                    elif process_node.node_header.compression == ubifs.Ubifs.Compression.zstd:
+                        pass
+                        #outfile.write(zstd.decompress(process_node.node_header.data))
+                    outfile.close()
             except IndexError:
                 break
 
-        unpacked_files = []
         for entry in self.data.file_headers:
             out_labels = []
             file_path = pathlib.Path(entry.name)
