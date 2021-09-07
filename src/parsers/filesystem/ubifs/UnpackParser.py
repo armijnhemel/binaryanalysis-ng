@@ -23,7 +23,11 @@
 import os
 import sys
 import pathlib
+import zlib
 import collections
+
+import lzo
+
 from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
@@ -44,20 +48,23 @@ class UbifsUnpackParser(UnpackParser):
             self.data = ubifs.Ubifs.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
-        print(self.data.index_root)
 
     # no need to carve from the file
     #def carve(self):
     #    pass
 
     def unpack(self):
-        # start with the root index and traverse
+        # store the highest inode number
+        highest_inum = self.data.master_1.node_header.highest_inum
 
+        # traverse the tree, starting with the root inode
         node_blocks = collections.deque()
         node_blocks.append(self.data.index_root)
 
-        # put all the inodes here. The root inode is typically 64
-        inodes = {}
+        # inode to parent and name mappings
+        parent_to_inodes = {}
+        inode_to_name = {}
+        inode_to_parent = {}
 
         while True:
           # grab a node to process
@@ -68,18 +75,56 @@ class UbifsUnpackParser(UnpackParser):
                       node_blocks.append(branch.branch_target)
               elif type(process_node.node_header) == ubifs.Ubifs.DirectoryHeader:
                   # TODO: use the key for some verification of the inode
-                  #print('inode nr', process_node.node_header.inode_number)
-                  #print('inode name', process_node.node_header.name)
-                  print('inode type', process_node.node_header.key.type)
-                  print('inode key', process_node.node_header.key.value)
-                  sys.stdout.flush()
+                  parent_inode_nr = process_node.node_header.key.inode_number
+                  if parent_inode_nr not in parent_to_inodes:
+                      parent_to_inodes[parent_inode_nr] = []
+                  parent_to_inodes[parent_inode_nr].append(process_node)
+
+                  # target inode number
+                  target_inode = process_node.node_header.inode_number
+                  target_name = process_node.node_header.name
+                  inode_to_name[target_inode] = target_name
+                  inode_to_parent[target_inode] = parent_inode_nr
+          except IndexError:
+              break
+
+        # reconstruct the directory paths per inode
+        inode_to_paths = {}
+        for i in sorted(inode_to_name):
+            new_name = inode_to_name[i]
+            index = i
+            while True:
+                if index not in inode_to_parent:
+                    inode_to_paths[i] = new_name
+                    break
+                index = inode_to_parent[index]
+                if index in inode_to_name:
+                    new_name = os.path.join(inode_to_name[index], new_name)
+
+        # now that there is a mapping of inodes to names of files
+        # the nodes can be traversed again to find the extra metadata
+        # as well as the data blocks belonging to the nodes.
+        node_blocks = collections.deque()
+        node_blocks.append(self.data.index_root)
+
+        while True:
+          cur_open = None
+          cur_file = None
+          try:
+              process_node = node_blocks.popleft()
+              if type(process_node.node_header) == ubifs.Ubifs.IndexHeader:
+                  for branch in process_node.node_header.branches:
+                      node_blocks.append(branch.branch_target)
+              elif type(process_node.node_header) == ubifs.Ubifs.DirectoryHeader:
+                  if process_node.node_header.inode_type == ubifs.Ubifs.InodeTypes.directory:
+                      # create the directory
+                      outfile_rel = self.rel_unpack_dir / inode_to_paths[process_node.node_header.inode_number]
+                      outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                      outfile_full.mkdir()
               elif type(process_node.node_header) == ubifs.Ubifs.InodeHeader:
-                  sys.stdout.flush()
+                  pass
               elif type(process_node.node_header) == ubifs.Ubifs.DataHeader:
-                  sys.stdout.flush()
-              else:
-                  print(type(process_node.node_header))
-                  sys.stdout.flush()
+                  pass
           except IndexError:
               break
 
