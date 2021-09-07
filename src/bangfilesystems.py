@@ -45,6 +45,7 @@ import subprocess
 import json
 import re
 import pathlib
+import lzo
 
 encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                         'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
@@ -1765,9 +1766,8 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                                 ]
                                 outpos += repeat
                     outfile.write(data_out)
-                #elif compression_used == COMPR_LZO:
-                # The JFFS2 version of LZO somehow cannot be unpacked with
-                # python-lzo
+                elif compression_used == COMPR_LZO:
+                    outfile.write(lzo.decompress(checkbytes, False, decompressedsize))
                 else:
                     outfile.close()
                     break

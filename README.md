@@ -104,7 +104,7 @@ larger file, unless stated otherwise.
 27. terminfo (little endian, including ncurses extension, does not
     recognize some wide character versions)
 28. AU (Sun/NeXT audio)
-29. JFFS2 (uncompressed, zlib, LZMA from OpenWrt)
+29. JFFS2 (uncompressed, zlib, rtime, lzo, LZMA from OpenWrt)
 30. CPIO (various flavours, little endian)
 31. Sun Raster files (standard type only)
 32. Intel Hex (text files only)
