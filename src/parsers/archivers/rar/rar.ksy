@@ -18,7 +18,7 @@ meta:
   license: CC0-1.0
   ks-version: 0.7
   imports:
-    - /common/dos_datetime
+    - dos_datetime
   endian: le
 doc: |
   RAR is a archive format used by popular proprietary RAR archiver,
