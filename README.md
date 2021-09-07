@@ -186,7 +186,7 @@ larger file, unless stated otherwise.
 102. Ambarella firmware files
 103. Ambarella romfs (used in Ambarella firmware files)
 104. bFLT
-105. UBI (not UBIFS!), fastmap not supported
+105. UBI, fastmap not supported
 106. GRUB2 font files
 107. BitTorrent files (subset)
 108. pcapng (carving, structural checks, little endian only)
@@ -227,6 +227,7 @@ larger file, unless stated otherwise.
 143. Rockchip resource files
 144. Socionext Milbeaut firmware files
 145. zchunk
+146. ubifs
 
 The following text formats can be recognized:
 
