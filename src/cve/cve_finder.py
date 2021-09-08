@@ -19,6 +19,7 @@ import pathlib
 import pickle
 import json
 import subprocess
+import tempfile
 
 # import YAML module for the configuration
 from yaml import load
@@ -97,25 +98,37 @@ def main():
     os.chdir(result_directory / 'unpack')
     for bang_file in bang_data['scantree']:
         if 'elf' in bang_data['scantree'][bang_file]['labels']:
-            if not 'busybox' in bang_file:
-                continue
+            temporary_file = tempfile.mkstemp()
+            os.fdopen(temporary_file[0]).close()
+            os.unlink(temporary_file[1])
+            temp_name = '%s.json' % temporary_file[1]
+            # for some reason "quiet mode" does not output any JSON
+            # TODO: test with a newer cve-bin-tool and retest
             if update_now:
                 # update the cve-bin-tool database on the first scan (if
                 # configured). This requires an Internet connection.
-                p = subprocess.Popen(['cve-bin-tool', '-q', '-u', 'now', '-f', 'json', bang_file],
+                #p = subprocess.Popen(['cve-bin-tool', '-q', '-u', 'now', '-f', 'json', '-o', temp_name, bang_file],
+                p = subprocess.Popen(['cve-bin-tool', '-u', 'now', '-f', 'json', '-o', temp_name, bang_file],
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 update_now = False
             else:
-                p = subprocess.Popen(['cve-bin-tool', '-q', '-u', 'never', '-f', 'json', bang_file],
+                #p = subprocess.Popen(['cve-bin-tool', '-q', '-u', 'never', '-f', 'json', '-o', temp_name, bang_file],
+                p = subprocess.Popen(['cve-bin-tool', '-u', 'never', '-f', 'json', '-o', temp_name, bang_file],
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (standard_out, standard_error) = p.communicate()
+
+            # return code is the number of products with known CVEs
+            # see cli.py in cve-bin-tool
             if p.returncode == 0:
                 # no CVEs found, continue
                 continue
-            elif p.returncode != 1:
-                # some other error
-                continue
-            print(bang_file, standard_error)
+
+            temp = open('%s.json' % temporary_file[1], 'rb')
+            cve_json = json.loads(temp.read())
+            temp.close()
+            os.unlink(temp_name)
+            results = json.dumps(cve_json, indent=4)
+            print(results)
 
     os.chdir(old_cwd)
 
