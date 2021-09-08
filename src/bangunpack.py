@@ -7485,6 +7485,11 @@ def unpack_elf(fileresult, scanenvironment, offset, unpackdir):
                 return {'status': False, 'error': unpackingerror}
             if sectiontype == 'symtab' and sectionheaders[s]['name'] != '.symtab':
                 continue
+            if dynamicstringstable is None:
+                checkfile.close()
+                unpackingerror = {'offset': offset, 'fatal': False,
+                                  'reason': 'symbol table but no dynamic string table'}
+                return {'status': False, 'error': unpackingerror}
             checkfile.seek(offset + sectionheaders[s]['sh_offset'])
             checkbytes = checkfile.read(sectionheaders[s]['sh_size'])
             localoffset = 0
