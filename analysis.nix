@@ -26,6 +26,7 @@ let
 in
 pkgs.mkShell {
   buildInputs = with pkgs; [
+    apkid
     binutils
     libxml2
     openjdk8
