@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-This script processes data from ELF files processed by BANG
+This script processes ELF files extracted/tagged by BANG
 and runs cve-bin-tool on them.
 '''
 
