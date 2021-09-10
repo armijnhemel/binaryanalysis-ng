@@ -26,25 +26,28 @@ import binascii
 
 import telfhash
 
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_elf
+from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from kaitaistruct import UndecidedEndiannessError
 from . import elf
 
+# a list of (partial) names of functions that have been
+# compiled with FORTIFY_SOURCE. This list is not necessarily
+# complete, but at least catches some verified functions.
+FORTIFY_NAMES = ['cpy_chk', 'printf_chk', 'cat_chk', 'poll_chk',
+                 'read_chk', '__memset_chk', '__memmove_chk',
+                 'syslog_chk', '__longjmp_chk', '__fdelt_chk',
+                 '__realpath_chk', '__explicit_bzero_chk', '__recv_chk',
+                 '__getdomainname_chk', '__gethostname_chk']
 
-#class ElfUnpackParser(UnpackParser):
-class ElfUnpackParser(WrappedUnpackParser):
+class ElfUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x7f\x45\x4c\x46')
     ]
     pretty_name = 'elf'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_elf(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         try:
@@ -77,6 +80,30 @@ class ElfUnpackParser(WrappedUnpackParser):
 
     def calculate_unpacked_size(self):
         pass
+
+    def carve(self):
+        """If the UnpackParser recognizes data but there is still data left in
+        the file, this method saves the parsed part of the file, leaving the
+        rest to be  analyzed. The part is saved to the unpack data directory,
+        under the name given by get_carved_filename.
+        """
+        if self.soname != '':
+            rel_output_path = self.rel_unpack_dir / self.soname
+        elif self.module_name != '':
+            rel_output_path = self.rel_unpack_dir / ("%s.ko" % self.module_name)
+        else:
+            rel_output_path = self.rel_unpack_dir / self.get_carved_filename()
+        abs_output_path = self.scan_environment.unpack_path(rel_output_path)
+        os.makedirs(abs_output_path.parent, exist_ok=True)
+        outfile = open(abs_output_path, 'wb')
+        # Although self.infile is an OffsetInputFile, fileno() will give the file
+        # descriptor of the backing file. Therefore, we need to specify self.offset here
+        os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset, self.unpacked_size)
+        outfile.close()
+        self.unpack_results.add_label('unpacked')
+        out_labels = self.unpack_results.get_labels() + ['unpacked']
+        fr = FileResult(self.fileresult, rel_output_path, set(out_labels))
+        self.unpack_results.add_unpacked_file( fr )
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
@@ -120,7 +147,8 @@ class ElfUnpackParser(WrappedUnpackParser):
         if self.data.header.section_names is not None:
             metadata['section_names'] = self.data.header.section_names.entries
 
-        # keep track of whether or not GNU_RELRO has been set
+        # RELRO is a technique to mitigate some security vulnerabilities
+        # http://refspecs.linuxfoundation.org/LSB_4.1.0/LSB-Core-generic/LSB-Core-generic/progheader.html
         seen_relro = False
 
         for header in self.data.header.program_headers:
@@ -155,7 +183,10 @@ class ElfUnpackParser(WrappedUnpackParser):
         runpath = ''
 
         # shared object name (for libraries)
-        soname = ''
+        self.soname = ''
+
+        # module name (for Linux kernel modules)
+        self.module_name = ''
 
         # only look at a few interesting sections. This should be expanded.
         rodata_sections = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
@@ -167,6 +198,15 @@ class ElfUnpackParser(WrappedUnpackParser):
         for header in self.data.header.section_headers:
             if header.name in ['.modinfo', '__ksymtab_strings']:
                 labels.append('linuxkernelmodule')
+                try:
+                    module_meta = header.body.split(b'\x00')
+                    for m in module_meta:
+                        meta = m.decode()
+                        if meta.startswith('name='):
+                            self.module_name = meta.split('=', maxsplit=1)[1]
+                            break
+                except Exception as e:
+                    pass
             elif header.name in ['.oat_patches', '.text.oat_patches', '.dex']:
                 # OAT information has been stored in various sections
                 # test files:
@@ -188,7 +228,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
                             runpath = entry.value_str
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
-                            soname = entry.value_str
+                            self.soname = entry.value_str
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags_1:
                             # check for position independent code
                             if entry.flag_1_values.pie:
@@ -235,6 +275,20 @@ class ElfUnpackParser(WrappedUnpackParser):
                         symbol['size'] = entry.size
                         symbols.append(symbol)
                         dynamic_symbols.append(symbol)
+
+                        if symbol['name'] == 'oatdata':
+                            labels.append('oat')
+                            labels.append('android')
+
+                        # security related information
+                        if symbol['name'] == '__stack_chk_fail':
+                            metadata['security'].append('stack smashing protector')
+                        if '_chk' in symbol['name']:
+                            if 'fortify' not in metadata['security']:
+                                for fortify_name in FORTIFY_NAMES:
+                                    if symbol['name'].endswith(fortify_name):
+                                        metadata['security'].append('fortify')
+                                        break
 
             elif header.type == elf.Elf.ShType.progbits:
                 # process the various progbits sections here
@@ -340,6 +394,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                         metadata['linux_version'] = (major_version, patchlevel, sublevel)
                     elif entry.name == b'GNU' and entry.type == 3:
                         # normally in .note.gnu.build-id
+                        # https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/developer_guide/compiling-build-id
                         buildid = binascii.hexlify(entry.descriptor).decode()
                         metadata['build-id'] = buildid
                         if len(buildid) == 40:
@@ -356,6 +411,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                         # normally in .note.go.buildid
                         # there are four hashes concatenated
                         # https://golang.org/pkg/cmd/internal/buildid/#FindAndHash
+                        # http://web.archive.org/web/20210113145647/https://utcc.utoronto.ca/~cks/space/blog/programming/GoBinaryStructureNotes
                         pass
                     elif entry.name == b'Crashpad' and entry.type == 0x4f464e49:
                         # https://chromium.googlesource.com/crashpad/crashpad/+/refs/heads/master/util/misc/elf_note_types.h
@@ -398,7 +454,7 @@ class ElfUnpackParser(WrappedUnpackParser):
         metadata['notes'] = notes
         metadata['rpath'] = rpath
         metadata['runpath'] = runpath
-        metadata['soname'] = soname
+        metadata['soname'] = self.soname
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
         metadata['telfhash'] = ''

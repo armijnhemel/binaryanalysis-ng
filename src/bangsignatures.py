@@ -272,7 +272,6 @@ signaturetofunction = {
     'dex': bangandroid.unpack_dex,
     'odex': bangandroid.unpack_odex,
     'snappy_framed': bangunpack.unpack_snappy,
-    'elf': bangunpack.unpack_elf,
     'swf': bangmedia.unpack_swf,
     'swf_zlib': bangmedia.unpack_swf,
     'swf_lzma': bangmedia.unpack_swf,
