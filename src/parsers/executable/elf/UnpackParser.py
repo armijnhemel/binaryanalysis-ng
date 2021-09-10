@@ -459,10 +459,11 @@ class ElfUnpackParser(UnpackParser):
         metadata['symbols'] = symbols
         metadata['telfhash'] = ''
 
-        telfhash_result = telfhash.telfhash(str(self.fileresult.filename))
-        telfhash_res = telfhash_result[0]['telfhash']
-        if telfhash_res != 'TNULL' and telfhash_res != '-':
-            metadata['telfhash'] = telfhash_res
+        if metadata['type'] in ['executable', 'shared']:
+            telfhash_result = telfhash.telfhash(str(self.fileresult.filename))
+            telfhash_res = telfhash_result[0]['telfhash']
+            if telfhash_res != 'TNULL' and telfhash_res != '-':
+                metadata['telfhash'] = telfhash_res
 
         if is_dynamic_elf:
             labels.append('dynamic')
