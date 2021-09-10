@@ -452,6 +452,7 @@ types:
                 'sh_type::rel': relocation_section(false)
                 'sh_type::rela': relocation_section(true)
                 'sh_type::arm_attributes': arm_attributes_section
+                'sh_type::gnu_versym': versym_section
             if: type != sh_type::nobits
           linked_section:
             value: _root.header.section_headers[linked_section_idx]
@@ -711,6 +712,12 @@ types:
             encoding: ASCII
           - id: attribute_tags
             size-eos: true
+      versym_section:
+        seq:
+          - id: symbol_versions
+            type: u2
+            repeat: eos
+            doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
     instances:
       program_headers:
         pos: program_header_offset
@@ -1501,12 +1508,12 @@ enums:
     0x6ffffffa: sunw_move
     0x6ffffffb: sunw_comdat
     0x6ffffffc: sunw_syminfo
-    0x6ffffffd: sunw_verdef
-    # 0x6ffffffd: gnu_verdef
-    0x6ffffffe: sunw_verneed
-    # 0x6ffffffe: gnu_verneed
-    0x6fffffff: sunw_versym
-    # 0x6fffffff: gnu_versym
+    # 0x6ffffffd: sunw_verdef
+    0x6ffffffd: gnu_verdef
+    # 0x6ffffffe: sunw_verneed
+    0x6ffffffe: gnu_verneed
+    # 0x6fffffff: sunw_versym
+    0x6fffffff: gnu_versym
     # 0x6fffffff: hi_sunw
     # 0x6fffffff: hi_os
     # 0x70000000: lo_proc
