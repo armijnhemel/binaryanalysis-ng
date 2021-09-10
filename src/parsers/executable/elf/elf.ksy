@@ -696,6 +696,7 @@ types:
           - id: sections
             type: arm_attributes_section_entry
             repeat: eos
+            doc-ref: https://developer.arm.com/documentation/ihi0044/h/?lang=en
       arm_attributes_section_entry:
         seq:
           - id: len_section
