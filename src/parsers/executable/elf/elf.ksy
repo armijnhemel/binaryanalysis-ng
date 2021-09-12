@@ -875,7 +875,7 @@ enums:
       id: arm
       doc: ARM
     41:
-      id: alpha
+      id: old_alpha
       -orig-id: EM_FAKE_ALPHA
       doc: DEC Alpha
     42:
@@ -1441,6 +1441,102 @@ enums:
       doc-ref:
         - https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L356
         - https://groups.google.com/g/generic-abi/c/n8tLQxj02YY
+    # unofficial values
+    # https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L358
+    4183:
+      id: avr_old
+      -orig-id: EM_AVR_OLD
+    4185:
+      id: msp430_old
+      -orig-id: EM_MSP430_OLD
+    4643:
+      id: adapteva_epiphany
+      -orig-id: EM_ADAPTEVA_EPIPHANY
+      doc: Adapteva's Epiphany architecture.
+    9520:
+      id: mt
+      -orig-id: EM_MT
+      doc: Morpho MT
+    13104:
+      id: cygnus_fr30
+      -orig-id: EM_CYGNUS_FR30
+    16727:
+      id: webassembly
+      -orig-id: EM_WEBASSEMBLY
+      doc: Unofficial value for Web Assembly binaries, as used by LLVM.
+    18056:
+      id: xc16x
+      -orig-id: EM_XC16X
+      doc: Infineon Technologies 16-bit microcontroller with C166-V2 core
+    19951:
+      id: s12z
+      -orig-id: EM_S12Z
+      doc: The Freescale toolchain generates elf files with this value.
+    23205:
+      id: dlx
+      -orig-id: EM_DLX
+      doc: openDLX
+    21569:
+      id: cygnus_frv
+      -orig-id: EM_CYGNUS_FRV
+    30288:
+      id: cygnus_d10v
+      -orig-id: EM_CYGNUS_D10V
+    30326:
+      id: cygnus_d30v
+      -orig-id: EM_CYGNUS_D30V
+    33303:
+      id: ip2k_old
+      -orig-id: EM_IP2K_OLD
+    36901:
+      id: cygnus_powerpc
+      -orig-id: EM_CYGNUS_POWERPC
+    36902:
+      id: alpha
+      -orig-id: EM_ALPHA
+    36929:
+      id: cygnus_m32r
+      -orig-id: EM_CYGNUS_M32R
+    36992:
+      id: cygnus_v850
+      -orig-id: EM_CYGNUS_V850
+    41872:
+      id: s390_old
+      -orig-id: EM_S390_OLD
+    43975:
+      id: xtensa_old
+      -orig-id: EM_XTENSA_OLD
+    44357:
+      id: xstormy16
+      -orig-id: EM_XSTORMY16
+    47787:
+      id: microblaze_old
+      -orig-id: EM_MICROBLAZE_OLD
+    48879:
+      id: cygnus_mn10300
+      -orig-id: EM_CYGNUS_MN10300
+    57005:
+      id: cygnus_mn10200
+      -orig-id: EM_CYGNUS_MN10200
+    65200:
+      id: m32c_old
+      -orig-id: EM_M32C_OLD
+      doc: Renesas M32C and M16C
+    65210:
+      id: iq2000
+      -orig-id: EM_IQ2000
+      doc: Vitesse IQ2000
+    65211:
+      id: nios32
+      -orig-id: EM_NIOS32
+    61453:
+      id: cygnus_mep
+      -orig-id: EM_CYGNUS_MEP
+      doc: Toshiba MeP
+    65261:
+      id: moxie_old
+      -orig-id: EM_MOXIE_OLD
+      doc: Old, unofficial value for Moxie
   ph_type:
     0: null_type
     1: load
