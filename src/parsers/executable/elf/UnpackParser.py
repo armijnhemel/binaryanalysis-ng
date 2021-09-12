@@ -67,6 +67,8 @@ class ElfUnpackParser(UnpackParser):
             self.unpacked_size = max(self.unpacked_size, shoff + self.data.header.qty_section_header
                                      * self.data.header.section_header_entry_size)
             for header in self.data.header.section_headers:
+                if header.type == elf.Elf.ShType.nobits:
+                    continue
                 self.unpacked_size = max(self.unpacked_size, header.ofs_body + header.len_body)
 
                 # ugly ugly hack to work around situations on Android where
