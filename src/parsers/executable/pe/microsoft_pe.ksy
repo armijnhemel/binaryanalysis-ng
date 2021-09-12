@@ -408,3 +408,9 @@ types:
         -orig-id: bCertificate
         size: length - 8
         doc: Contains a certificate, such as an Authenticode signature.
+      - id: padding
+        size: (-length%8)
+        doc: |
+          If the bCertificate content does not end on a quadword boundary, the
+          attribute certificate entry is padded with zeros, from the end of
+          bCertificate to the next quadword boundary.
