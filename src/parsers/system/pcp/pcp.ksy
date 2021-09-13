@@ -11,6 +11,7 @@ doc-ref: https://github.com/performancecopilot/pcp/blob/main/man/man5/LOGARCHIVE
 seq:
   - id: len_record1
     type: u4
+    valid: 132
   - id: header
     type: header
     size: len_record1 - len_record1._sizeof * 2
@@ -157,10 +158,10 @@ types:
       - id: num_labels
         type: u4
       - id: labels
-        type: label
+        type: label_entry
         repeat: expr
         repeat-expr: num_labels
-  label:
+  label_entry:
     seq:
       - id: ofs_name
         type: u2
