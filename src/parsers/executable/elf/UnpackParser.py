@@ -464,9 +464,10 @@ class ElfUnpackParser(UnpackParser):
         if metadata['type'] in ['executable', 'shared']:
             try:
                 telfhash_result = telfhash.telfhash(str(self.fileresult.filename))
-                telfhash_res = telfhash_result[0]['telfhash']
-                if telfhash_res != 'TNULL' and telfhash_res != '-':
-                    metadata['telfhash'] = telfhash_res
+                if telfhash_result != []:
+                    telfhash_res = telfhash_result[0]['telfhash']
+                    if telfhash_res != 'TNULL' and telfhash_res != '-':
+                        metadata['telfhash'] = telfhash_res
             except UnicodeEncodeError:
                 pass
 
