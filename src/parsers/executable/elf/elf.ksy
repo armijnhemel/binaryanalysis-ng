@@ -62,7 +62,7 @@ seq:
       Version of ABI targeted by this ELF file. Interpretation
       depends on `abi` attribute.
   - id: pad
-    size: 7
+    contents: [0, 0, 0, 0, 0, 0, 0]
   - id: header
     type: endian_elf
 instances:
