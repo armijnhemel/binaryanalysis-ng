@@ -45,6 +45,8 @@ types:
         doc: log start time, microseconds part
       - id: log_volume_number
         type: s4
+        valid:
+          any-of: [-1, -2]
         doc: current log volume number (or -1=.meta, -2=.index)
       - id: hostname
         size: 64
@@ -69,6 +71,12 @@ types:
       - id: tag
         type: u4
         enum: meta_records
+        valid:
+          any-of:
+            - meta_records::description
+            - meta_records::instance_domain
+            - meta_records::label
+            - meta_records::text
       - id: record
         type:
           switch-on: tag
@@ -137,6 +145,14 @@ types:
       - id: label_type
         type: u4
         enum: label_types
+        valid:
+          any-of:
+            - label_types::context
+            - label_types::domain
+            - label_types::indom
+            - label_types::cluster
+            - label_types::item
+            - label_types::instances
       - id: numeric_identifier
         type: s4
       - id: num_instances
