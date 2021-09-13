@@ -77,6 +77,12 @@ class ElfUnpackParser(UnpackParser):
                 if header.type == elf.Elf.ShType.note:
                     for entry in header.body.entries:
                         pass
+                # force read the header name
+                name = header.name
+            # read the names, but don't proces them. This is just to force
+            # evaluation, which normally happens lazily for instances in
+            # kaitai struct.
+            names = self.data.header.section_names
         except (Exception, ValidationNotEqualError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
