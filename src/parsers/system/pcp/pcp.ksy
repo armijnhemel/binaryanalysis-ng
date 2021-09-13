@@ -23,8 +23,7 @@ seq:
       cases:
         -1: meta
         -2: index
-    #repeat: expr
-    #repeat-expr: 1
+        #_: archive
     repeat: eos
 types:
   header:
@@ -33,8 +32,7 @@ types:
         contents: [0x50, 0x05, 0x26]
       - id: version
         type: u1
-        valid:
-          max: 2
+        valid: 2
       - id: logger_pid
         -orig-id: ll_pid
         type: u4
