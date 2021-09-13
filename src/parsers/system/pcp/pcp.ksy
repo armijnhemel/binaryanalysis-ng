@@ -46,7 +46,8 @@ types:
       - id: log_volume_number
         type: s4
         valid:
-          any-of: [-1, -2]
+          #any-of: [-1, -2]
+          any-of: [-1]
         doc: current log volume number (or -1=.meta, -2=.index)
       - id: hostname
         size: 64
