@@ -228,6 +228,7 @@ larger file, unless stated otherwise.
 144. Socionext Milbeaut firmware files
 145. zchunk
 146. ubifs
+147. Performance Co-Pilot metadata files
 
 The following text formats can be recognized:
 
