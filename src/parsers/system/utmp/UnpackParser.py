@@ -26,7 +26,7 @@ from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
 from . import glibc_utmp
 
-class PythonPickleUnpackParser(UnpackParser):
+class UtmpUnpackParser(UnpackParser):
     extensions = ['utmp', 'wtmp']
     signatures = []
     pretty_name = 'utmp'
