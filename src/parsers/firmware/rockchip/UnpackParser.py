@@ -74,6 +74,8 @@ class RockchipUnpackParser(UnpackParser):
         for entry in entries:
             if entry.path == 'SELF':
                 continue
+            if entry.data is None:
+                continue
 
             out_labels = []
 
