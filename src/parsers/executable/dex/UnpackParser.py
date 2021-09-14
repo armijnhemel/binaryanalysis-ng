@@ -106,6 +106,13 @@ DEX_037 = DEX_035_OPCODES | DEX_037_OPCODES
 DEX_038 = DEX_035_OPCODES | DEX_037_OPCODES | DEX_038_OPCODES
 DEX_039 = DEX_035_OPCODES | DEX_037_OPCODES | DEX_038_OPCODES | DEX_039_OPCODES
 
+ALL_DEX_VERSIONS = sorted(['035', '037', '038', '039'])
+
+OPCODES = {'035': DEX_035,
+           '037': DEX_037,
+           '038': DEX_038,
+           '039': DEX_039}
+
 class DexUnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -125,113 +132,143 @@ class DexUnpackParser(UnpackParser):
             version_str = opcode_version
 
         # select the correct opcodes
-        if version_str == '035':
-            opcodes = DEX_035
-        elif version_str == '037':
-            opcodes = DEX_037
-        elif version_str == '038':
-            opcodes = DEX_038
-        elif version_str == '039':
-            opcodes = DEX_039
+        opcodes = OPCODES[version_str]
+
+        len_bytecode = len(bytecode)
 
         # keep track of which versions of the opcodes have been tried.
         # It could be that the code has been optimized and a different
-        # set of opcodes needs to be tried. TODO
+        # set of opcodes needs to be tried.
         tried_versions = [version_str]
+        all_versions_tried = False
+        retry = False
 
-        len_bytecode = len(bytecode)
-        counter = 0
-        string_ids = []
-        while counter < len_bytecode:
-            # read the first instruction
-            opcode = bytecode[counter]
+        while not all_versions_tried:
+            counter = 0
+            string_ids = []
+            if retry:
+                if sorted(tried_versions) == ALL_DEX_VERSIONS:
+                    all_versions_tried = True
+                    break
+                for o in ALL_DEX_VERSIONS:
+                    if o not in tried_versions:
+                        opcodes = OPCODES[o]
+                        tried_versions.append(o)
+                        break
+                retry = False
+            while counter < len_bytecode:
+                # read the first instruction
+                opcode = bytecode[counter]
 
-            # check if there are nop instructions to
-            # keep the bytecode byte aligned
-            if len_bytecode - counter == 1:
-                if opcode == 0:
-                    counter += 1
-                    continue
+                # check if there are nop instructions to
+                # keep the bytecode byte aligned
+                if len_bytecode - counter == 1:
+                    if opcode == 0:
+                        counter += 1
+                        continue
 
-            # TODO: length sanity check
+                # TODO: length sanity check
 
-            # process the byte code to find strings. The interesting
-            # instructions are:
-            #
-            # - const-string (0x1a)
-            # - const-string/jumbo (0x1b)
-            #
-            # Some instructions contain extra data and they need to be
-            # parsed separately and then be skipped.
-            #
-            # - fill-array-data (0x26)
-            # - packed-switch (0x2b)
-            # - sparse-switch (0x2c)
-            if opcode == 0x1a:
-                string_id = int.from_bytes(bytecode[counter+2:counter+4], byteorder='little')
-                string_ids.append(string_id)
-            elif opcode == 0x1b:
-                string_id = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
-                string_ids.append(string_id)
-            elif opcode == 0x00:
-                # the payloads for fill-array-data, packed-switch and sparse-switch
-                # use a pseudo opcode
-                if bytecode[counter+1] == 1:
-                    # packed-switch-payload
-                    counter += opcodes[opcode] * 2
+                # process the byte code to find strings. The interesting
+                # instructions are:
+                #
+                # - const-string (0x1a)
+                # - const-string/jumbo (0x1b)
+                #
+                # Some instructions contain extra data and they need to be
+                # parsed separately and then be skipped.
+                #
+                # - fill-array-data (0x26)
+                # - packed-switch (0x2b)
+                # - sparse-switch (0x2c)
+                if opcode == 0x1a:
+                    string_id = int.from_bytes(bytecode[counter+2:counter+4], byteorder='little')
+                    string_ids.append(string_id)
+                elif opcode == 0x1b:
+                    string_id = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
+                    string_ids.append(string_id)
+                elif opcode == 0x00:
+                    # the payloads for fill-array-data, packed-switch and sparse-switch
+                    # use a pseudo opcode
+                    if bytecode[counter+1] == 1:
+                        # packed-switch-payload
+                        try:
+                            counter += opcodes[opcode] * 2
+                        except:
+                            retry = True
+                            break
 
-                    # number of entries in the table
-                    size = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
-                    counter += 2
-                    first_key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
-                    counter += 4
-                    # then the data
-                    for k in range(0, size):
-                        key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                        # number of entries in the table
+                        size = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
+                        counter += 2
+                        first_key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
                         counter += 4
-                    if counter%2 != 0:
-                        opcode = bytecode[counter]
-                        if opcode == 0:
-                            counter += 1
-                    continue
-                elif bytecode[counter+1] == 2:
-                    # sparse-switch-payload
-                    counter += opcodes[opcode] * 2
-                    size = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
-                    counter += 2
+                        # then the data
+                        for k in range(0, size):
+                            key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                            counter += 4
+                        if counter%2 != 0:
+                            opcode = bytecode[counter]
+                            if opcode == 0:
+                                counter += 1
+                        continue
+                    elif bytecode[counter+1] == 2:
+                        # sparse-switch-payload
+                        try:
+                            counter += opcodes[opcode] * 2
+                        except:
+                            retry = True
+                            break
 
-                    # keys
-                    for k in range(0, size):
-                        key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                        size = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
+                        counter += 2
+
+                        # keys
+                        for k in range(0, size):
+                            key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                            counter += 4
+
+                        # targets
+                        for t in range(0, size):
+                            target = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                            counter += 4
+                        if counter%2 != 0:
+                            opcode = bytecode[counter]
+                            if opcode == 0:
+                                counter += 1
+                        continue
+                    elif bytecode[counter+1] == 3:
+                        # fill-array-data payload
+                        try:
+                            counter += opcodes[opcode] * 2
+                        except:
+                            retry = True
+
+                        element_width = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
+                        counter += 2
+
+                        size = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
                         counter += 4
 
-                    # targets
-                    for t in range(0, size):
-                        target = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
-                        counter += 4
-                    if counter%2 != 0:
-                        opcode = bytecode[counter]
-                        if opcode == 0:
-                            counter += 1
-                    continue
-                elif bytecode[counter+1] == 3:
-                    # fill-array-data payload
+                        # data
+                        counter += size * element_width
+                        if counter%2 != 0:
+                            opcode = bytecode[counter]
+                            if opcode == 0:
+                                counter += 1
+                        continue
+
+                try:
                     counter += opcodes[opcode] * 2
-                    element_width = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
-                    counter += 2
+                except:
+                    retry = True
+                    break
+            if not retry:
+                break
 
-                    size = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
-                    counter += 4
-
-                    # data
-                    counter += size * element_width
-                    if counter%2 != 0:
-                        opcode = bytecode[counter]
-                        if opcode == 0:
-                            counter += 1
-                    continue
-
-            counter += opcodes[opcode] * 2
+            # do not try all versions yet, as this needs
+            # more sanity checks.
+            break
         return string_ids
 
     def parse(self):
