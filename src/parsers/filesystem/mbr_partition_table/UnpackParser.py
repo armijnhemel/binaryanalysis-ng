@@ -34,8 +34,14 @@ class MbrPartitionTableUnpackParser(UnpackParser):
     ]
 
     def parse(self):
+        raise UnpackParserException('disabled')
         try:
             self.data = mbr_partition_table.MbrPartitionTable.from_io(self.infile)
+            for p in self.data.partitions:
+                check_condition(not (p.lba_start == 0 and p.num_sectors != 0),
+                                'invalid LBA/sectors')
+                check_condition((p.lba_start + p.num_sectors) * 512 <= self.fileresult.filesize,
+                                "partition bigger than file")
         except BaseException as e:
             raise UnpackParserException(e.args)
 
@@ -47,8 +53,6 @@ class MbrPartitionTableUnpackParser(UnpackParser):
                         (p.lba_start + p.num_sectors) * 512 )
         except BaseException as e:
             raise UnpackParserException(e.args)
-        check_condition(self.unpacked_size <= self.fileresult.filesize,
-                "partition bigger than file")
         check_condition(self.unpacked_size >= 0x1be,
                 "invalid partition table: no partitions")
 
