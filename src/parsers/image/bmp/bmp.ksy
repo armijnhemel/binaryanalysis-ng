@@ -122,6 +122,12 @@ types:
       - id: len_file
         -orig-id: bfSize
         type: u4
+        valid:
+          max: _root._io.size
+          # the amount of bytes can never be more than the
+          # amount of bytes in the file.
+          # ugly hack to work around false positives while carving
+          # and to prevent lots of bytes being read.
         doc: not reliable, mostly ignored by BMP decoders
       - id: reserved1
         -orig-id: bfReserved1
@@ -136,13 +142,13 @@ types:
       - id: ofs_bitmap
         -orig-id: bfOffBits
         type: u4
-        doc: Offset to actual raw pixel data of the image
         valid:
           max: _root._io.size
           # the amount of bytes can never be more than the
           # amount of bytes in the file.
           # ugly hack to work around false positives while carving
           # and to prevent lots of bytes being read.
+        doc: Offset to actual raw pixel data of the image
   bitmap_info:
     -orig-id: BITMAPINFO
     doc-ref: https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfo
