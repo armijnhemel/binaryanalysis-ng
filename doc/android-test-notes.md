@@ -198,7 +198,14 @@ Mediatek MT6582 based, uses `mtk_bootrom` amongst others.
 
 ## Zopo_8510_MIUI_MT6592_20140328_4.2.2.zip
 
-Mediatek MT6592 based, uses `mtk_bootrom` amongst others.
+Mediatek MT6592 based, uses `mtk_bootrom` amongst others. Also uses
+Mediatek's own `jex` file format, which is used for some files like
+`/framework/mediatek-common.jar.jex`. There is also a separate `dex2jex`
+program, which seems to indicate that some Dex files are first transformed
+into another format, which is then stored in an ELF file, similar to what
+regular Android does with `oat`.
+
+There is no documentation for the `jex` file format.
 
 # Kind of Android
 
