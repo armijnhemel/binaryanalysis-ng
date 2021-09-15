@@ -28,7 +28,7 @@ import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
-from . import grub2font
+from . import grub2_font
 
 
 class Grub2fontUnpackParser(UnpackParser):
@@ -41,12 +41,12 @@ class Grub2fontUnpackParser(UnpackParser):
     def parse(self):
         self.file_size = self.fileresult.filesize
         try:
-            self.data = grub2font.Grub2font.from_io(self.infile)
-            for i in self.data.font_sections:
-                if i.section_name == 'CHIX':
-                    for e in i.body.entries:
+            self.data = grub2_font.Grub2Font.from_io(self.infile)
+            for i in self.data.sections:
+                if i.section_type == 'CHIX':
+                    for e in i.body.characters:
                         self.unpacked_size = max(self.unpacked_size,
-                                                 e.offset + 10 + len(e.bitmap.bitmap_data))
+                                                 e.ofs_definition + 10 + len(e.definition.bitmap_data))
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
