@@ -199,7 +199,7 @@ larger file, unless stated otherwise.
 115. Qualcomm QCDT files
 116. Chrome extensions (.crx)
 117. Windows shell link file (.lnk)
-118. PCF fonts (that actually follow the specification)
+118. PCF fonts (that actually follow the specification, little endian only)
 119. DS_Store
 120. Qualcomm Snapdragon MSM bootloader files
 121. Mozilla ARchive (.mar)
