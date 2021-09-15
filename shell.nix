@@ -19,6 +19,7 @@ let
     pefile
     pillow
     protobuf
+    pyaxmlparser
     pytest
     python-snappy
     pyyaml
