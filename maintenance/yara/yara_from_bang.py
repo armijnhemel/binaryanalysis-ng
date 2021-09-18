@@ -53,8 +53,8 @@ def generate_yara_package(yara_directory, package_name, functions, variables, st
         uuid = "%s"
 ''' % (package_name, package_name, generate_date, rule_uuid)
 
-    yara_file = yara_directory / ("%s.yara" % normalize_name(package_name))
-    rule_name = 'rule %s\n' % package_name
+    yara_file = yara_directory / ("%s.yara" % package_name)
+    rule_name = 'rule rule_%s\n' % normalize_name(str(rule_uuid))
     generate_yara(yara_file, rule_name, meta, functions, variables,strings)
     return yara_file.name
 
@@ -72,7 +72,7 @@ def generate_yara_binary(yara_directory, package_name, binary, functions, variab
 ''' % (binary, package_name, package_name, binary, generate_date, rule_uuid)
 
     yara_file = yara_directory / ("%s-%s.yara" % (package_name, binary))
-    rule_name = 'rule %s : %s \n' % (normalize_name(package_name), normalize_name(binary))
+    rule_name = 'rule rule_%s\n' % normalize_name(str(rule_uuid))
     generate_yara(yara_file, rule_name, meta, functions, variables,strings)
     return yara_file.name
 
