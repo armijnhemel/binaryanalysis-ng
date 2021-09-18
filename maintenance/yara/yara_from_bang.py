@@ -7,7 +7,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-This script processes BANG results and generates YARA rules
+This script processes BANG results and generates YARA rules for
+dynamically linked ELF files.
 '''
 
 import sys
