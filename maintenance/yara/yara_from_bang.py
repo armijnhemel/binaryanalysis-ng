@@ -269,7 +269,7 @@ def main():
         if strings_per_package == set() and variables_per_package == set() and functions_per_package == set():
             continue
     
-        yara_name = generate_yara_package(yara_package_directory, package_name, functions_per_package, variables_per_package, strings_per_package)
+        #yara_name = generate_yara_package(yara_package_directory, package_name, functions_per_package, variables_per_package, strings_per_package)
 
 if __name__ == "__main__":
     main()
