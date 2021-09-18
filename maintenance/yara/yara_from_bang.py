@@ -43,6 +43,7 @@ def normalize_name(name):
 def generate_yara_package(yara_directory, package_name, functions, variables, strings):
     # open a rule
     generate_date = datetime.datetime.utcnow().isoformat()
+    # TODO: build a uuid based on contents of the data that goes into the rule
     rule_uuid = uuid.uuid4()
     meta = '''
     meta:
@@ -88,7 +89,8 @@ def generate_yara(yara_file, rule_name, meta, functions, variables, strings):
         # write the strings
         counter = 1
         p.write("\n        // Extracted strings\n\n")
-        for s in sorted(strings):
+        #for s in sorted(strings):
+        for s in sorted([]):
             # TODO: properly escape characters
             p.write("        $string%d = \"%s\"\n" % (counter, s))
             counter += 1
