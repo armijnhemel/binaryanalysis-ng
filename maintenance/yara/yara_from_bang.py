@@ -15,10 +15,6 @@ import os
 import argparse
 import pathlib
 import tempfile
-import shutil
-import hashlib
-import subprocess
-import shutil
 import datetime
 import pickle
 import re
