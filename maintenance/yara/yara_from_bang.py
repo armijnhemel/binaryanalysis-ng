@@ -89,8 +89,7 @@ def generate_yara(yara_file, rule_name, meta, functions, variables, strings):
         # write the strings
         counter = 1
         p.write("\n        // Extracted strings\n\n")
-        #for s in sorted(strings):
-        for s in sorted([]):
+        for s in sorted(strings):
             # TODO: properly escape characters
             p.write("        $string%d = \"%s\"\n" % (counter, s))
             counter += 1
@@ -263,6 +262,9 @@ def main():
                     elf_to_identifiers['strings'] = strings
                     elf_to_identifiers['variables'] = variables
                     elf_to_identifiers['functions'] = functions
+                strings = set()
+                if strings == set() and variables == set() and functions == set():
+                    continue
                 yara_name = generate_yara_binary(yara_binary_directory, package_name, elf_name, functions, variables, strings)
         if strings_per_package == set() and variables_per_package == set() and functions_per_package == set():
             continue
