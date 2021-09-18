@@ -1009,6 +1009,11 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
             unpackingerror = {'offset': offset, 'fatal': False,
                               'reason': 'invalid JPEG data according to PIL'}
             return {'status': False, 'error': unpackingerror}
+        except PIL.Image.DecompressionBombError:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'JPEG too large according to PIL'}
+            return {'status': False, 'error': unpackingerror}
         checkfile.close()
 
         labels.append('graphics')
