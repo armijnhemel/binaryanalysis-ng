@@ -206,6 +206,11 @@ def main():
         if type(config['yara']['string_cutoff']) == int:
             string_cutoff = config['yara']['string_cutoff']
 
+    identifier_cutoff = 2
+    if 'identifier_cutoff' in config['yara']:
+        if type(config['yara']['identifier_cutoff']) == int:
+            identifier_cutoff = config['yara']['identifier_cutoff']
+
     # walk the results directory
     for bang_directory in result_directory.iterdir():
         bang_pickle = bang_directory / 'bang.pickle'
@@ -251,6 +256,8 @@ def main():
                 if results_data['metadata']['symbols'] != []:
                     for s in results_data['metadata']['symbols']:
                         if s['section_index'] == 0:
+                            continue
+                        if len(s['name']) < identifier_cutoff:
                             continue
                         if s['type'] == 'func':
                             functions.add(s['name'])
