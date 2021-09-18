@@ -226,7 +226,7 @@ def main():
                         if len(s) < string_cutoff:
                             continue
                         # ignore whitespace-only strings
-                        if re.match('^\s+$', s) is None:
+                        if re.match(r'^\s+$', s) is None:
                             strings.add(s)
                     strings_per_package.update(strings)
                 if results_data['metadata']['symbols'] != []:
