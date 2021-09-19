@@ -92,6 +92,8 @@ def generate_yara(yara_directory, metadata, functions, variables, strings):
 
 def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                       processlock, processed_files, string_cutoff, identifier_cutoff):
+
+    generate_identifier_files = False
     while True:
         bang_directory = yaraqueue.get()
         bang_pickle = bang_directory / 'bang.pickle'
@@ -186,12 +188,26 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     continue
                 yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings)
                 yara_files.append(yara_name)
+
         if yara_files != []:
             yara_file = yara_directory / ("%s.yara" % package_name)
             with yara_file.open(mode='w') as p:
                 p.write("/*\nRules for %s\n*/\n" % package_name)
                 for y in yara_files:
                     p.write("include \"./binary/%s\"\n" % y)
+            if generate_identifier_files:
+                if len(functions_per_package) != 0:
+                    yara_file = yara_directory / ("%s.func" % package_name)
+                    with yara_file.open(mode='w') as p:
+                        for f in sorted(functions_per_package):
+                            p.write(f)
+                            p.write('\n')
+                if len(variables_per_package) != 0:
+                    yara_file = yara_directory / ("%s.var" % package_name)
+                    with yara_file.open(mode='w') as p:
+                        for f in sorted(variables_per_package):
+                            p.write(f)
+                            p.write('\n')
         yaraqueue.task_done()
 
 def main():
