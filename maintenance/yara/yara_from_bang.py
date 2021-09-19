@@ -37,7 +37,7 @@ def normalize_name(name):
             name = name.replace(i, '_')
     return name
 
-def generate_yara(yara_directory, package_name, binary, functions, variables, strings):
+def generate_yara(yara_directory, package_name, elf_name, functions, variables, strings):
     generate_date = datetime.datetime.utcnow().isoformat()
     rule_uuid = uuid.uuid4()
     meta = '''
@@ -48,9 +48,9 @@ def generate_yara(yara_directory, package_name, binary, functions, variables, st
         binary_name = "%s"
         date = "%s"
         uuid = "%s"
-''' % (binary, package_name, package_name, binary, generate_date, rule_uuid)
+''' % (elf_name, package_name, package_name, elf_name, generate_date, rule_uuid)
 
-    yara_file = yara_directory / ("%s-%s.yara" % (package_name, binary))
+    yara_file = yara_directory / ("%s-%s.yara" % (package_name, elf_name))
     rule_name = 'rule rule_%s\n' % normalize_name(str(rule_uuid))
 
     with yara_file.open(mode='w') as p:
