@@ -20,6 +20,8 @@ import datetime
 import pickle
 import re
 import uuid
+import multiprocessing
+import queue
 
 import packageurl
 
@@ -88,110 +90,11 @@ def generate_yara(yara_directory, metadata, functions, variables, strings):
         p.write('\n}')
     return yara_file.name
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    parser.add_argument("-r", "--result-directory", action="store", dest="result_directory",
-                        help="path to BANG result directories", metavar="DIR")
-    args = parser.parse_args()
-
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    cfg = pathlib.Path(args.cfg)
-
-    # the configuration file should exist ...
-    if not cfg.exists():
-        parser.error("File %s does not exist, exiting." % args.cfg)
-
-    # ... and should be a real file
-    if not cfg.is_file():
-        parser.error("%s is not a regular file, exiting." % args.cfg)
-
-    # sanity checks for the result directory
-    if args.result_directory is None:
-        parser.error("No result directory provided, exiting")
-
-    result_directory = pathlib.Path(args.result_directory)
-
-    # the result directory should exist ...
-    if not result_directory.exists():
-        parser.error("File %s does not exist, exiting." % args.result_directory)
-
-    # ... and should be a real directory
-    if not result_directory.is_dir():
-        parser.error("%s is not a directory, exiting." % args.result_directory)
-
-    # read the configuration file. This is in YAML format
-    try:
-        configfile = open(args.cfg, 'r')
-        config = load(configfile, Loader=Loader)
-    except (YAMLError, PermissionError):
-        print("Cannot open configuration file, exiting", file=sys.stderr)
-        sys.exit(1)
-
-    # some sanity checks:
-    #for i in ['database', 'general', 'yara']:
-    for i in ['general', 'yara']:
-        if i not in config:
-            print("Invalid configuration file, section %s missing, exiting" % i,
-                  file=sys.stderr)
-            sys.exit(1)
-
-    verbose = False
-    if 'verbose' in config['general']:
-        if isinstance(config['general']['verbose'], bool):
-            verbose = config['general']['verbose']
-
-    if 'yara_directory' not in config['yara']:
-        print("yara_directory not defined in configuration, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    yara_directory = pathlib.Path(config['yara']['yara_directory'])
-    if not yara_directory.exists():
-        print("yara_directory does not exist, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    if not yara_directory.is_dir():
-        print("yara_directory is not a valid directory, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    # check if the yara directory is writable
-    try:
-        temp_name = tempfile.NamedTemporaryFile(dir=yara_directory)
-        temp_name.close()
-    except:
-        print("yara_directory is not writable, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    yara_binary_directory = yara_directory / 'binary'
-
-    yara_binary_directory.mkdir(exist_ok=True)
-
-    string_cutoff = 8
-    if 'string_cutoff' in config['yara']:
-        if type(config['yara']['string_cutoff']) == int:
-            string_cutoff = config['yara']['string_cutoff']
-
-    identifier_cutoff = 2
-    if 'identifier_cutoff' in config['yara']:
-        if type(config['yara']['identifier_cutoff']) == int:
-            identifier_cutoff = config['yara']['identifier_cutoff']
-
-    processed_files = set()
-
-    # walk the results directory
-    for bang_directory in result_directory.iterdir():
+def process_directory(yaraqueue, yara_directory, yara_binary_directory,
+                      processlock, processed_files, string_cutoff, identifier_cutoff):
+    while True:
+        bang_directory = yaraqueue.get()
         bang_pickle = bang_directory / 'bang.pickle'
-        if not bang_pickle.exists():
-            continue
-
         functions_per_package = set()
         variables_per_package = set()
         strings_per_package = set()
@@ -209,15 +112,21 @@ def main():
                 package_name = pathlib.Path(bang_file).name
                 root_sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
 
+                processlock.acquire()
+
                 # try to catch duplicates
                 if root_sha256 in processed_files:
                     processed = True
+                processlock.release()
                 break
 
         if processed:
+            yaraqueue.task_done()
             continue
 
-        processed_files.add(root_sha256)
+        processlock.acquire()
+        processed_files[root_sha256] = ''
+        processlock.release()
 
         for bang_file in bang_data['scantree']:
             metadata = {}
@@ -282,7 +191,149 @@ def main():
             with yara_file.open(mode='w') as p:
                 p.write("/*\nRules for %s\n*/\n" % package_name)
                 for y in yara_files:
-                    p.write("include \"./binary/%s\"" % y)
+                    p.write("include \"./binary/%s\"\n" % y)
+        yaraqueue.task_done()
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", action="store", dest="cfg",
+                        help="path to configuration file", metavar="FILE")
+    parser.add_argument("-r", "--result-directory", action="store", dest="result_directory",
+                        help="path to BANG result directories", metavar="DIR")
+    args = parser.parse_args()
+
+    # sanity checks for the configuration file
+    if args.cfg is None:
+        parser.error("No configuration file provided, exiting")
+
+    cfg = pathlib.Path(args.cfg)
+
+    # the configuration file should exist ...
+    if not cfg.exists():
+        parser.error("File %s does not exist, exiting." % args.cfg)
+
+    # ... and should be a real file
+    if not cfg.is_file():
+        parser.error("%s is not a regular file, exiting." % args.cfg)
+
+    # sanity checks for the result directory
+    if args.result_directory is None:
+        parser.error("No result directory provided, exiting")
+
+    result_directory = pathlib.Path(args.result_directory)
+
+    # the result directory should exist ...
+    if not result_directory.exists():
+        parser.error("File %s does not exist, exiting." % args.result_directory)
+
+    # ... and should be a real directory
+    if not result_directory.is_dir():
+        parser.error("%s is not a directory, exiting." % args.result_directory)
+
+    # read the configuration file. This is in YAML format
+    try:
+        configfile = open(args.cfg, 'r')
+        config = load(configfile, Loader=Loader)
+    except (YAMLError, PermissionError):
+        print("Cannot open configuration file, exiting", file=sys.stderr)
+        sys.exit(1)
+
+    # some sanity checks:
+    #for i in ['database', 'general', 'yara']:
+    for i in ['general', 'yara']:
+        if i not in config:
+            print("Invalid configuration file, section %s missing, exiting" % i,
+                  file=sys.stderr)
+            sys.exit(1)
+
+    verbose = False
+    if 'verbose' in config['general']:
+        if isinstance(config['general']['verbose'], bool):
+            verbose = config['general']['verbose']
+
+    threads = multiprocessing.cpu_count()
+    if 'threads' in config['general']:
+        if isinstance(config['general']['threads'], int):
+            threads = config['general']['threads']
+
+    if 'yara_directory' not in config['yara']:
+        print("yara_directory not defined in configuration, exiting",
+              file=sys.stderr)
+        sys.exit(1)
+
+    yara_directory = pathlib.Path(config['yara']['yara_directory'])
+    if not yara_directory.exists():
+        print("yara_directory does not exist, exiting",
+              file=sys.stderr)
+        sys.exit(1)
+
+    if not yara_directory.is_dir():
+        print("yara_directory is not a valid directory, exiting",
+              file=sys.stderr)
+        sys.exit(1)
+
+    # check if the yara directory is writable
+    try:
+        temp_name = tempfile.NamedTemporaryFile(dir=yara_directory)
+        temp_name.close()
+    except:
+        print("yara_directory is not writable, exiting",
+              file=sys.stderr)
+        sys.exit(1)
+
+    yara_binary_directory = yara_directory / 'binary'
+
+    yara_binary_directory.mkdir(exist_ok=True)
+
+    string_cutoff = 8
+    if 'string_cutoff' in config['yara']:
+        if isinstance(config['yara']['string_cutoff'], int):
+            string_cutoff = config['yara']['string_cutoff']
+
+    identifier_cutoff = 2
+    if 'identifier_cutoff' in config['yara']:
+        if type(config['yara']['identifier_cutoff']) == int:
+            identifier_cutoff = config['yara']['identifier_cutoff']
+
+    processmanager = multiprocessing.Manager()
+
+    # create a lock to control access to any shared data structures
+    processlock = multiprocessing.Lock()
+
+    # create a shared dictionary
+    processed_files = processmanager.dict()
+
+    # create a queue for scanning files
+    yaraqueue = processmanager.JoinableQueue(maxsize=0)
+    processes = []
+
+    # walk the results directory
+    for bang_directory in result_directory.iterdir():
+        bang_pickle = bang_directory / 'bang.pickle'
+        if not bang_pickle.exists():
+            continue
+
+        yaraqueue.put(bang_directory)
+
+    # create processes for unpacking archives
+    for i in range(0, threads):
+        process = multiprocessing.Process(target=process_directory,
+                                          args=(yaraqueue, yara_directory,
+                                                yara_binary_directory, processlock,
+                                                processed_files, string_cutoff,
+                                                identifier_cutoff))
+        processes.append(process)
+
+    # start all the processes
+    for process in processes:
+        process.start()
+
+    yaraqueue.join()
+
+    # Done processing, terminate processes
+    for process in processes:
+        process.terminate()
+
 
 if __name__ == "__main__":
     main()
