@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import spreadtrum_pac
 
 
@@ -42,7 +42,7 @@ class SpreadtrumPacUnpackParser(UnpackParser):
             for entry in self.data.entries.entries:
                 self.unpacked_size = max(self.unpacked_size, entry.header.ofs_partition + entry.header.len_partition)
                 len_data = len(entry.data)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         check_condition(self.fileresult.filesize >= self.unpacked_size, "not enough data")

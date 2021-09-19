@@ -25,6 +25,9 @@ types:
         size: 512
       - id: num_partitions
         type: u4
+        valid:
+          max: _root._io.size
+          # TODO: this check can probably be tighter
       - id: ofs_partitions_list
         -orig-id: partitionsListStart
         type: u4
