@@ -322,7 +322,7 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name in rodata_sections:
                     for s in header.body.split(b'\x00'):
                         try:
-                            decoded_strings = s.decode().split('\n')
+                            decoded_strings = s.decode().splitlines()
                             for decoded_string in decoded_strings:
                                 if len(decoded_string) < string_cutoff_length:
                                     continue
