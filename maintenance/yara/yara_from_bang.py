@@ -173,10 +173,16 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                             continue
                         if len(s['name']) < identifier_cutoff:
                             continue
+                        if '@@' in s['name']:
+                            identifier_name = s['name'].rsplit('@@', 1)[0]
+                        elif '@' in s['name']:
+                            identifier_name = s['name'].rsplit('@', 1)[0]
+                        else:
+                            identifier_name = s['name']
                         if s['type'] == 'func':
-                            functions.add(s['name'])
+                            functions.add(identifier_name)
                         elif s['type'] == 'object':
-                            variables.add(s['name'])
+                            variables.add(identifier_name)
                     functions_per_package.update(functions)
                     variables_per_package.update(variables)
                 if elf_name not in elf_to_identifiers:
@@ -210,7 +216,8 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                             p.write('\n')
         yaraqueue.task_done()
 
-def main():
+
+def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", action="store", dest="cfg",
                         help="path to configuration file", metavar="FILE")
@@ -352,4 +359,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv)
