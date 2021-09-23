@@ -321,10 +321,12 @@ class ElfUnpackParser(UnpackParser):
                     metadata['gnu debuglink'] = link_name
                 elif header.name in rodata_sections:
                     for s in header.body.split(b'\x00'):
-                        if len(s) < string_cutoff_length:
-                            continue
                         try:
-                            data_strings.append(s.decode())
+                            decoded_strings = s.decode().split('\n')
+                            for decoded_string in decoded_strings:
+                                if len(decoded_string) < string_cutoff_length:
+                                    continue
+                                data_strings.append(decoded_string)
                         except:
                             pass
                     # some Qt binaries use the Qt resource system,
