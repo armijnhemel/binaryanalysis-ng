@@ -223,6 +223,8 @@ def main(argv):
                         help="path to configuration file", metavar="FILE")
     parser.add_argument("-r", "--result-directory", action="store", dest="result_directory",
                         help="path to BANG result directories", metavar="DIR")
+    parser.add_argument("-i", "--identifiers", action="store", dest="identifiers",
+                        help="path to pickle with low quality identifiers", metavar="FILE")
     args = parser.parse_args()
 
     # sanity checks for the configuration file
