@@ -119,6 +119,9 @@ class ElfUnpackParser(UnpackParser):
         metadata = {}
         string_cutoff_length = 4
 
+        # translation table for ASCII strings
+        string_translation_table = str.maketrans({'\t': ' '})
+
         if self.data.bits == elf.Elf.Bits.b32:
             metadata['bits'] = 32
         elif self.data.bits == elf.Elf.Bits.b64:
@@ -326,7 +329,15 @@ class ElfUnpackParser(UnpackParser):
                             for decoded_string in decoded_strings:
                                 if len(decoded_string) < string_cutoff_length:
                                     continue
-                                data_strings.append(decoded_string)
+                                if decoded_string.isspace():
+                                    continue
+                                translated_string = decoded_string.translate(string_translation_table)
+                                if decoded_string.isascii():
+                                    # test the translated string
+                                    if translated_string.isprintable():
+                                        data_strings.append(decoded_string)
+                                else:
+                                    data_strings.append(decoded_string)
                         except:
                             pass
                     # some Qt binaries use the Qt resource system,
