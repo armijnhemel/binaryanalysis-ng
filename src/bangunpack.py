@@ -5534,6 +5534,11 @@ def unpack_zstd(fileresult, scanenvironment, offset, unpackdir):
         blocksize = int.from_bytes(checkbytes, byteorder='little') >> 3
         blocktype = int.from_bytes(checkbytes, byteorder='little') >> 1 & 0b11
 
+        # RLE blocks are always size 1, as block size means
+        # something else in that context.
+        if blocktype == 1:
+            blocksize = 1
+
         if checkfile.tell() + blocksize > filesize:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
