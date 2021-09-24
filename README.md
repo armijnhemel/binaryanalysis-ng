@@ -229,6 +229,7 @@ larger file, unless stated otherwise.
 145. zchunk
 146. ubifs
 147. Performance Co-Pilot metadata files
+148. data URI (png, gif, jpeg only)
 
 The following text formats can be recognized:
 
