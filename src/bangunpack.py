@@ -5530,7 +5530,10 @@ def unpack_zstd(fileresult, scanenvironment, offset, unpackdir):
         # first check if it is the last block
         if checkbytes[0] & 1 == 1:
             lastblock = True
+
         blocksize = int.from_bytes(checkbytes, byteorder='little') >> 3
+        blocktype = int.from_bytes(checkbytes, byteorder='little') >> 1 & 0b11
+
         if checkfile.tell() + blocksize > filesize:
             checkfile.close()
             unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
