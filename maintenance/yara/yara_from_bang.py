@@ -33,6 +33,11 @@ try:
 except ImportError:
     from yaml import Loader
 
+ESCAPE = str.maketrans({'"': '\\"',
+                        '\\': '\\\\',
+                        '\t': '\\t',
+                        '\n': '\\n'})
+
 def normalize_name(name):
     for i in ['.', '-']:
         if i in name:
@@ -69,7 +74,6 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
         p.write("\n        // Extracted strings\n\n")
         counter = 1
         for s in sorted(strings):
-            # TODO: properly escape characters
             p.write("        $string%d = \"%s\"\n" % (counter, s))
             counter += 1
 
@@ -177,7 +181,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                             continue
                         # ignore whitespace-only strings
                         if re.match(r'^\s+$', s) is None:
-                            strings.add(s)
+                            strings.add(s.translate(ESCAPE))
                     strings_per_package.update(strings)
                 if results_data['metadata']['symbols'] != []:
                     for s in results_data['metadata']['symbols']:
@@ -208,7 +212,6 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     elf_to_identifiers['strings'] = strings
                     elf_to_identifiers['variables'] = variables
                     elf_to_identifiers['functions'] = functions
-                strings = set()
                 if strings == set() and variables == set() and functions == set():
                     continue
                 yara_tags = tags + ['elf']
@@ -264,7 +267,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                                 continue
                             # ignore whitespace-only strings
                             if re.match(r'^\s+$', s) is None:
-                                strings.add(s)
+                                strings.add(s.translate(ESCAPE))
 
                     for field in c['fields']:
                         # ignore whitespace-only methods
@@ -277,7 +280,6 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                             continue
                         variables.add(field['name'])
 
-                strings = set()
                 if strings == set() and variables == set() and functions == set():
                     continue
                 yara_tags = tags + ['dex']
