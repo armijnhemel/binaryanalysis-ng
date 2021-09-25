@@ -93,7 +93,8 @@ def generate_yara(yara_directory, metadata, functions, variables, strings):
     return yara_file.name
 
 def process_directory(yaraqueue, yara_directory, yara_binary_directory,
-                      processlock, processed_files, string_cutoff, identifier_cutoff):
+                      processlock, processed_files, string_cutoff,
+                      identifier_cutoff, ignored_suffixes, ignore_weak_symbols):
 
     generate_identifier_files = False
     while True:
@@ -137,6 +138,10 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
             if 'elf' in bang_data['scantree'][bang_file]['labels']:
                 sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
                 elf_name = pathlib.Path(bang_file).name
+                suffix = pathlib.Path(bang_file).suffix
+
+                if suffix in ignored_suffixes:
+                    continue
 
                 metadata['name'] = elf_name
                 metadata['sha256'] = sha256
@@ -173,6 +178,9 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     for s in results_data['metadata']['symbols']:
                         if s['section_index'] == 0:
                             continue
+                        if ignore_weak_symbols:
+                            if s['binding'] == 'weak':
+                                continue
                         if len(s['name']) < identifier_cutoff:
                             continue
                         if '@@' in s['name']:
@@ -324,6 +332,13 @@ def main(argv):
 
     processmanager = multiprocessing.Manager()
 
+    ignored_suffixes = ['.o']
+
+    ignore_weak_symbols = False
+    if 'ignore_weak_symbols' in config['yara']:
+        if isinstance(config['yara']['ignore_weak_symbols'], bool):
+            ignore_weak_symbols = config['yara']['ignore_weak_symbols']
+
     # create a lock to control access to any shared data structures
     processlock = multiprocessing.Lock()
 
@@ -348,7 +363,8 @@ def main(argv):
                                           args=(yaraqueue, yara_directory,
                                                 yara_binary_directory, processlock,
                                                 processed_files, string_cutoff,
-                                                identifier_cutoff))
+                                                identifier_cutoff, ignored_suffixes,
+                                                ignore_weak_symbols))
         processes.append(process)
 
     # start all the processes

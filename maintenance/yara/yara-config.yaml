@@ -33,3 +33,4 @@ yara:
     # minimal length of functions/variable names, recommended
     # to not go below 2
     # identifier_cutoff: 2
+    # ignore_weak_symbols: false
