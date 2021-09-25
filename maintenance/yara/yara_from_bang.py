@@ -39,7 +39,7 @@ def normalize_name(name):
             name = name.replace(i, '_')
     return name
 
-def generate_yara(yara_directory, metadata, functions, variables, strings):
+def generate_yara(yara_directory, metadata, functions, variables, strings, tags):
     generate_date = datetime.datetime.utcnow().isoformat()
     rule_uuid = uuid.uuid4()
     meta = '''
@@ -54,7 +54,10 @@ def generate_yara(yara_directory, metadata, functions, variables, strings):
         meta += '        %s = "%s"\n' % (m, metadata[m])
 
     yara_file = yara_directory / ("%s-%s.yara" % (metadata['package'], metadata['name']))
-    rule_name = 'rule rule_%s\n' % normalize_name(str(rule_uuid))
+    if tags == []:
+        rule_name = 'rule rule_%s\n' % normalize_name(str(rule_uuid))
+    else:
+        rule_name = 'rule rule_%s: %s\n' % (normalize_name(str(rule_uuid)), " ".join(tags))
 
     with yara_file.open(mode='w') as p:
         p.write(rule_name)
@@ -92,7 +95,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings):
 def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                       processlock, processed_files, string_cutoff,
                       identifier_cutoff, ignored_suffixes, ignore_weak_symbols,
-                      lq_identifiers):
+                      lq_identifiers, tags):
 
     generate_identifier_files = False
     while True:
@@ -207,7 +210,8 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                 strings = set()
                 if strings == set() and variables == set() and functions == set():
                     continue
-                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings)
+                yara_tags = tags + ['elf']
+                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags)
                 yara_files.append(yara_name)
 
         if yara_files != []:
@@ -347,7 +351,8 @@ def main(argv):
 
     processmanager = multiprocessing.Manager()
 
-    ignored_suffixes = ['.o']
+    # ignore object files (regular and GHC specific)
+    ignored_suffixes = ['.o', '.p_o']
 
     ignore_weak_symbols = False
     if 'ignore_weak_symbols' in config['yara']:
@@ -372,6 +377,9 @@ def main(argv):
 
         yaraqueue.put(bang_directory)
 
+    #tags = ['debian', 'debian11']
+    tags = []
+
     # create processes for unpacking archives
     for i in range(0, threads):
         process = multiprocessing.Process(target=process_directory,
@@ -379,7 +387,8 @@ def main(argv):
                                                 yara_binary_directory, processlock,
                                                 processed_files, string_cutoff,
                                                 identifier_cutoff, ignored_suffixes,
-                                                ignore_weak_symbols, lq_identifiers))
+                                                ignore_weak_symbols, lq_identifiers,
+                                                tags))
         processes.append(process)
 
     # start all the processes
