@@ -195,11 +195,11 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                         else:
                             identifier_name = s['name']
                         if s['type'] == 'func':
-                            if identifier_name in lq_identifiers['functions']:
+                            if identifier_name in lq_identifiers['elf']['functions']:
                                 continue
                             functions.add(identifier_name)
                         elif s['type'] == 'object':
-                            if identifier_name in lq_identifiers['variables']:
+                            if identifier_name in lq_identifiers['elf']['variables']:
                                 continue
                             variables.add(identifier_name)
                     functions_per_package.update(functions)
@@ -255,6 +255,8 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                             continue
                         if method['name'].startswith('access$'):
                             continue
+                        if method['name'] in lq_identifiers['dex']['functions']:
+                            continue
                         functions.add(method['name'])
                     for method in c['methods']:
                         for s in method['strings']:
@@ -269,6 +271,9 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                         if len(field['name']) < identifier_cutoff:
                             continue
                         if re.match(r'^\s+$', field['name']) is not None:
+                            continue
+
+                        if field['name'] in lq_identifiers['dex']['variables']:
                             continue
                         variables.add(field['name'])
 
@@ -340,7 +345,8 @@ def main(argv):
     if not result_directory.is_dir():
         parser.error("%s is not a directory, exiting." % args.result_directory)
 
-    lq_identifiers = {'functions': [], 'variables': []}
+    lq_identifiers = {'elf': {'functions': [], 'variables': []},
+                      'dex': {'functions': [], 'variables': []}}
 
     # read the pickle with identifiers
     if args.identifiers is not None:
