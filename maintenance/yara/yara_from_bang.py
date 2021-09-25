@@ -67,6 +67,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
 
         # write the strings
         p.write("\n        // Extracted strings\n\n")
+        counter = 1
         for s in sorted(strings):
             # TODO: properly escape characters
             p.write("        $string%d = \"%s\"\n" % (counter, s))
@@ -255,6 +256,25 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                         if method['name'].startswith('access$'):
                             continue
                         functions.add(method['name'])
+                    for method in c['methods']:
+                        for s in method['strings']:
+                            if len(s) < string_cutoff:
+                                continue
+                            # ignore whitespace-only strings
+                            if re.match(r'^\s+$', s) is None:
+                                strings.add(s)
+
+                    for field in c['fields']:
+                        # ignore whitespace-only methods
+                        if len(field['name']) < identifier_cutoff:
+                            continue
+                        if re.match(r'^\s+$', field['name']) is not None:
+                            continue
+                        variables.add(field['name'])
+
+                strings = set()
+                if strings == set() and variables == set() and functions == set():
+                    continue
                 yara_tags = tags + ['dex']
                 yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags)
                 yara_files.append(yara_name)
