@@ -63,9 +63,6 @@ def generate_yara(yara_directory, metadata, functions, variables, strings):
         p.write('\n    strings:\n')
 
         # write the strings
-        counter = 1
-        p.write("\n        // Filename\n\n")
-        p.write("        $filename = \"%s\"\n" % metadata['name'])
         p.write("\n        // Extracted strings\n\n")
         for s in sorted(strings):
             # TODO: properly escape characters
