@@ -21,12 +21,17 @@ identifiers that can be filtered to make the YARA rules simpler.
 There are several identifiers such as function names and variable names
 that can be found in many binaries and that have generic names. Although
 they can still be useful they can also lead to false positives if there are
-only generic names.
+only generic names. They also take up unnecessary space as YARA has a maximum
+number of rules (10,000).
 
 Examples are:
 
 * very short identifiers (a single character)
-* identifiers that are a substring of other identifiers  as these could lead to
+* identifiers that are a substring of other identifiers as these could lead to
 false positives in YARA
-* identifiers that occur in many packages. A good example are weak ELF symbols
+* identifiers that occur in many packages. A good example: weak ELF symbols
 <https://en.wikipedia.org/wiki/Weak_symbol>
+
+A prefab list of low quality identifiers can be found in the files
+`low_quality_funcs` and `low_quality_vars`. These were handcrafted by looking
+at all identifiers found in all ELF files in Debian 11.
