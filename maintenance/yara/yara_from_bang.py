@@ -213,6 +213,51 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                 yara_tags = tags + ['elf']
                 yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags)
                 yara_files.append(yara_name)
+            elif 'dex' in bang_data['scantree'][bang_file]['labels']:
+                sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
+                dex_name = pathlib.Path(bang_file).name
+                suffix = pathlib.Path(bang_file).suffix
+
+                if suffix in ignored_suffixes:
+                    continue
+
+                # TODO: name is actually not correct, as it assumes
+                # there is only one binary with that particular name
+                # inside a package.
+                metadata['name'] = dex_name
+                metadata['sha256'] = sha256
+                metadata['package'] = package_name
+
+                # open the result pickle
+                try:
+                    results_data = pickle.load(open(bang_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
+                except:
+                    continue
+                if 'metadata' not in results_data:
+                    continue
+
+                if 'tlsh' in results_data:
+                    metadata['tlsh'] = results_data['tlsh']
+
+                strings = set()
+                functions = set()
+                variables = set()
+
+                for c in results_data['metadata']['classes']:
+                    for method in c['methods']:
+                        # ignore whitespace-only methods
+                        if len(method['name']) < identifier_cutoff:
+                            continue
+                        if re.match(r'^\s+$', method['name']) is not None:
+                            continue
+                        if method['name'] in ['<init>', '<clinit>']:
+                            continue
+                        if method['name'].startswith('access$'):
+                            continue
+                        functions.add(method['name'])
+                yara_tags = tags + ['dex']
+                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags)
+                yara_files.append(yara_name)
 
         if yara_files != []:
             yara_file = yara_directory / ("%s.yara" % package_name)
