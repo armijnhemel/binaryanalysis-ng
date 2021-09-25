@@ -140,6 +140,9 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                 if suffix in ignored_suffixes:
                     continue
 
+                # TODO: name is actually not correct, as it assumes
+                # there is only one binary with that particular name
+                # inside a package. Counter example: apt-utils_2.2.4_amd64.deb
                 metadata['name'] = elf_name
                 metadata['sha256'] = sha256
                 metadata['package'] = package_name
@@ -206,7 +209,8 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
             yara_file = yara_directory / ("%s.yara" % package_name)
             with yara_file.open(mode='w') as p:
                 p.write("/*\nRules for %s\n*/\n" % package_name)
-                for y in yara_files:
+                #for y in yara_files:
+                for y in sorted(set(yara_files)):
                     p.write("include \"./binary/%s\"\n" % y)
             if generate_identifier_files:
                 if len(functions_per_package) != 0:
