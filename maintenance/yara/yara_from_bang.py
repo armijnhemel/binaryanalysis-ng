@@ -91,7 +91,8 @@ def generate_yara(yara_directory, metadata, functions, variables, strings):
 
 def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                       processlock, processed_files, string_cutoff,
-                      identifier_cutoff, ignored_suffixes, ignore_weak_symbols):
+                      identifier_cutoff, ignored_suffixes, ignore_weak_symbols,
+                      lq_identifiers):
 
     generate_identifier_files = False
     while True:
@@ -190,8 +191,12 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                         else:
                             identifier_name = s['name']
                         if s['type'] == 'func':
+                            if identifier_name in lq_identifiers['functions']:
+                                continue
                             functions.add(identifier_name)
                         elif s['type'] == 'object':
+                            if identifier_name in lq_identifiers['variables']:
+                                continue
                             variables.add(identifier_name)
                     functions_per_package.update(functions)
                     variables_per_package.update(variables)
@@ -265,6 +270,15 @@ def main(argv):
     # ... and should be a real directory
     if not result_directory.is_dir():
         parser.error("%s is not a directory, exiting." % args.result_directory)
+
+    lq_identifiers = {'functions': [], 'variables': []}
+
+    # read the pickle with identifiers
+    if args.identifiers is not None:
+        try:
+            lq_identifiers = pickle.load(open(args.identifiers, 'rb'))
+        except:
+            pass
 
     # read the configuration file. This is in YAML format
     try:
@@ -365,7 +379,7 @@ def main(argv):
                                                 yara_binary_directory, processlock,
                                                 processed_files, string_cutoff,
                                                 identifier_cutoff, ignored_suffixes,
-                                                ignore_weak_symbols))
+                                                ignore_weak_symbols, lq_identifiers))
         processes.append(process)
 
     # start all the processes
