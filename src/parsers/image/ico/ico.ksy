@@ -137,7 +137,7 @@ types:
       - id: num_colors_used
         -orig-id: biClrUsed
         type: u4
-        valid: 0
+        #valid: 0
       - id: num_colors_important
         -orig-id: biClrImportant
         type: u4
