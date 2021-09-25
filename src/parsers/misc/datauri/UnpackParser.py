@@ -64,6 +64,7 @@ class DataUriUnpackParser(UnpackParser):
             data = self.infile.read(block_size)
             if data == b'':
                 raise UnpackParserException("end of file reached")
+            # TODO: also valid eob are "'", " " and ")"
             if b'"' in data:
                 eob = True
             check_data = data.split(b'"', 1)[0]
