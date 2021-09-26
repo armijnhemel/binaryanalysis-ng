@@ -57,6 +57,7 @@ import lz4
 import lz4.frame
 import snappy
 import mutf8
+import pyaxmlparser
 
 from FileResult import *
 
@@ -1947,6 +1948,8 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
                           'reason': 'mismatch between names in local file headers and central directory'}
         return {'status': False, 'error': unpackingerror}
 
+    metadata = {}
+
     unpackedsize = checkfile.tell() - offset
     if not encrypted:
         # if the ZIP file is at the end of the file then the ZIP module
@@ -2060,11 +2063,17 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
                 if androidsigning:
                     labels.append('apk')
                     labels.append('android')
+                if 'apk' in labels:
+                    try:
+                        apk = pyaxmlparser.APK(filename_full)
+                    except:
+                        pass
             if carved:
                 os.unlink(temporaryfile[1])
             checkfile.close()
             return {'status': True, 'length': unpackedsize, 'labels': labels,
-                    'filesandlabels': unpackedfilesandlabels}
+                    'filesandlabels': unpackedfilesandlabels,
+                    'metadata': metadata}
         except zipfile.BadZipFile:
             checkfile.close()
             if carved:
@@ -2080,7 +2089,8 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
         labels.append('zip')
         labels.append('encrypted')
         return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
+                'filesandlabels': unpackedfilesandlabels,
+                'metadata': metadata}
 
     # else carve the file
     targetfile_rel = os.path.join(unpackdir, 'encrypted.zip')
@@ -2095,7 +2105,8 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
 
     unpackedfilesandlabels.append((targetfile_rel, ['encrypted', 'zip', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
+            'filesandlabels': unpackedfilesandlabels,
+            'metadata': metadata}
 
 # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT section 4.3.6
 unpack_zip.signatures = {'zip': b'\x50\x4b\x03\04'}
