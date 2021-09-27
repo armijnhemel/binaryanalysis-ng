@@ -1,16 +1,19 @@
 # binaryanalysis-ng
 Binary Analysis Next Generation (BANG)
 
-BANG is a framework for unpacking files (like firmware) recursively and running
-checks on the unpacked files. Its intended use is to be able to find out the
-provenance of the unpacked files and classify/label files, making them available
-for further analysis.
+BANG is a framework for processing binary files (like firmware). It consists of
+an unpacker that recursively unpacks and classifies/labels files and separate
+analysis programs that work on the results of the unpacker.
+
+Some intended uses:
+
+* provenance detection ("what is inside this file")
+* security scans ("are there any known security risks associated with this file")
 
 ## Requirements
 
 * a recent Linux distribution (Fedora 33 or higher, or equivalent), or NixOS
-* Python 3.8.x or higher
-* for maintenance scripts: Python 3.9.x or higher (as some Python 3.9 specific features are used in the maintenance scripts)
+* Python 3.9.x or higher
 * pillow (possibly named python3-pillow), a drop in replacement for PIL ( http://python-pillow.github.io/ )
 * GNU binutils (for 'ar')
 * squashfs-tools (for 'unsquashfs')
@@ -39,12 +42,17 @@ for further analysis.
 * lz4 (for 'lz4c')
 * elasticsearch (possibly named python3-elasticsearch)
 
-or if you are fortunate enough to be using [nix](https://nixos.org/nix), run
-`nix-shell` to load all the dependencies during development.
+and many others (see `shell.nix`, `maintenance.nix` and `analysis.nix` for a
+full list).
 
 Additionally install "sasquatch"
 
 https://github.com/devttys0/sasquatch
+
+If you are fortunate enough to be using [nix](https://nixos.org/nix), run
+`nix-shell` to load all the dependencies for the unpacker,
+`nix-shell maintenance.nix` for the maintenance scripts and
+`nix-shell analysis.nix` for the maintenance scripts.
 
 ## Supported hardware
 
@@ -55,7 +63,7 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 * Fedora 32 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
-## Docker container
+## Docker container (recently untested, assume broken)
 
 ```
 docker image build -t bang .
@@ -256,7 +264,13 @@ The following text formats can be recognized:
 
 ## Invocation
 
+To unpack a file run:
+
     $ python3 bang-scanner -c bang.config -f /path/to/binary
+
+This will output a directory with inside a number of files and directories.
+The output directory can serve as input to the analysis scripts (and some
+knowledgebase scripts).
 
 ## License
 
