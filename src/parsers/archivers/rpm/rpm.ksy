@@ -19,30 +19,24 @@ doc: |
   RPM file format, as well as a currently abandoned fork (rpm5). These formats
   are not covered by this specification.
 doc-ref:
-  - https://github.com/rpm-software-management/rpm/blob/911448/doc/manual/format.md
-  - https://github.com/rpm-software-management/rpm/blob/911448/doc/manual/tags.md
+  - https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/format.md
+  - https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md
   - https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/pkgformat.html
   - http://ftp.rpm.org/max-rpm/
 seq:
   - id: lead
     type: lead
   - id: signature
-    type: signature
+    type: header(true)
   - id: boundary_padding
     size: (- _io.pos) % 8
   - id: header
-    type: header
-  #- id: payload
-    # size: ??
-    # doc: if signature has a SIZE value, then it is:
-    # signature[SIZE][0] - sizeof<header>
-instances:
-  lead_size:
-    value: lead._sizeof
-  header_size:
-    value: header.header_size
-  payload_offset:
-    value: header._io.pos
+    type: header(false)
+  # - id: payload
+  #   size: ??
+  #   doc: |
+  #     if signature has a SIZE value, then it is:
+  #     signature[SIZE][0] - sizeof<header>
 types:
   dummy: {}
   lead:
@@ -59,9 +53,9 @@ types:
         type: u2
         enum: architectures
       - id: package_name
+        size: 66
         type: strz
         encoding: UTF-8
-        size: 66
       - id: os
         -orig-id: osnum
         type: u2
@@ -78,26 +72,31 @@ types:
         valid: 0x3
       - id: minor
         type: u1
-  # signature, which is almost identical to header
-  # except that some of the tags have a different
-  # meaning in signature and header.
-  signature:
+  # header structure used for both the "header" and "signature",
+  # but that some of the tags have a different meaning in
+  # signature and header (hence they use different enums)
+  header:
+    params:
+      - id: is_signature
+        type: bool
     seq:
       - id: header_record
         type: header_record
       - id: index_records
-        type: signature_index_record
+        type: header_index_record
         repeat: expr
-        repeat-expr: header_record.index_record_count
+        repeat-expr: header_record.num_index_records
       - id: storage_section
+        size: header_record.len_storage_section
         type: dummy
-        size: header_record.index_storage_size
-  signature_index_record:
-    -webide-representation: '{tag}'
+    instances:
+      is_header:
+        value: not is_signature
+  header_index_record:
+    -webide-representation: '{signature_tag} {header_tag} [{record_type}]'
     seq:
-      - id: tag
+      - id: tag_raw
         type: u4
-        enum: signature_tags
       - id: record_type
         type: u4
         enum: header_types
@@ -106,6 +105,14 @@ types:
       - id: count
         type: u4
     instances:
+      signature_tag:
+        value: tag_raw
+        enum: signature_tags
+        if: _parent.is_signature
+      header_tag:
+        value: tag_raw
+        enum: header_tags
+        if: _parent.is_header
       body:
         io: _parent.storage_section._io
         pos: ofs_record
@@ -118,7 +125,7 @@ types:
             header_types::string: record_type_string
             header_types::bin: record_type_bin(count)
             header_types::string_array: record_type_string_array(count)
-            header_types::i18nstring: record_type_string_array(count)
+            header_types::i18n_string: record_type_string_array(count)
   record_type_int8:
     params:
       - id: count
@@ -172,62 +179,18 @@ types:
         encoding: UTF-8
         repeat: expr
         repeat-expr: count
-  # header, which is almost identical to signature
-  # except that some of the tags have a different
-  # meaning in signature and header.
-  header:
-    seq:
-      - id: header_record
-        type: header_record
-      - id: index_records
-        type: header_index_record
-        repeat: expr
-        repeat-expr: header_record.index_record_count
-      - id: storage_section
-        type: dummy
-        size: header_record.index_storage_size
-    instances:
-      header_size:
-        value: header_record._sizeof + header_record.index_record_count * index_records.first._sizeof + header_record.index_storage_size
-  header_index_record:
-    -webide-representation: '{tag}'
-    seq:
-      - id: tag
-        type: u4
-        enum: header_tags
-      - id: record_type
-        type: u4
-        enum: header_types
-      - id: record_offset
-        type: u4
-      - id: count
-        type: u4
-    instances:
-      body:
-        io: _parent.storage_section._io
-        pos: record_offset
-        type:
-          switch-on: record_type
-          cases:
-            header_types::int8: record_type_int8(count)
-            header_types::int16: record_type_int16(count)
-            header_types::int32: record_type_int32(count)
-            header_types::string: record_type_string
-            header_types::bin: record_type_bin(count)
-            header_types::string_array: record_type_string_array(count)
-            header_types::i18nstring: record_type_string_array(count)
   header_record:
     seq:
       - id: magic
         contents: [0x8e, 0xad, 0xe8, 0x01]
       - id: reserved
         contents: [0, 0, 0, 0]
-      - id: index_record_count
+      - id: num_index_records
         -orig-id: nindex
         type: u4
         valid:
           min: 1
-      - id: index_storage_size
+      - id: len_storage_section
         -orig-id: hsize
         type: u4
         doc: |
@@ -237,28 +200,95 @@ enums:
   rpm_types:
     0: binary
     1: source
+
+  # these come (mostly) from <https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L159>
+  # (see <https://ftp.osuosl.org/pub/rpm/max-rpm/s1-rpm-multi-build-install-detection.html#S3-RPM-MULTI-XXX-CANON>
+  # for `arch_canon` entry explanation)
+  #
+  # See also
+  #   - <https://github.com/eclipse/packager/blob/51ccdd3/rpm/src/main/java/org/eclipse/packager/rpm/Architecture.java>
+  #   - <https://github.com/craigwblake/redline/blob/15afff5/src/main/java/org/redline_rpm/header/Architecture.java>
+  #   - <https://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch01s03.html>
   architectures:
-    # these come (mostly) from rpmrc.in
-    1: x86
+    1:
+      id: x86
+      doc: x86 or x86_64
+    2:
+      id: alpha
+      doc: Alpha or Sparc64
+      doc-ref:
+        - https://github.com/eclipse/packager/blob/51ccdd3/rpm/src/main/java/org/eclipse/packager/rpm/Architecture.java#L24
+        - https://github.com/file/file/blob/9b2538d/magic/Magdir/rpm#L14
+        - https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L174-L183
     3: sparc
     4: mips
     5: ppc
+    6: m68k
+    7:
+      id: sgi
+      -orig-id: IP
+      doc: SGI Inhouse Processors (IP)
+      doc-ref:
+        - https://github.com/file/file/blob/9b2538d/magic/Magdir/rpm#L19
+        - https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L205
+    8: rs6000
     9: ia64
+    10:
+      id: sparc64
+      doc-ref:
+        - https://github.com/file/file/blob/9b2538d/magic/Magdir/rpm#L22
+        - https://github.com/craigwblake/redline/blob/15afff5/src/main/java/org/redline_rpm/header/Architecture.java#L15
     11: mips64
     12: arm
+    13:
+      id: m68k_mint
+      -orig-id: m68kmint
+      doc-ref:
+        - https://github.com/craigwblake/redline/blob/15afff5/src/main/java/org/redline_rpm/header/Architecture.java#L18
+        - https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L226-L233
     14: s390
     15: s390x
     16: ppc64
     17: sh
     18: xtensa
     19: aarch64
+    20:
+      id: mips_r6
+      -orig-id: mipsr6
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L252-L253
+    21:
+      id: mips64_r6
+      -orig-id: mips64r6
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L254-L255
     22: riscv
-    255: noarch
+    255:
+      id: no_arch
+      -orig-id: noarch
+      doc: can be installed on any architecture
+      doc-ref:
+        - https://github.com/file/file/blob/9b2538d/magic/Magdir/rpm#L31
+        - https://github.com/rpm-software-management/rpm/blob/911448f2/lib/rpmrc.c#L1466
   operating_systems:
-    # these come from rpmrc.in
+    # these come from <https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L261>
     # in practice it will almost always be 1
     1: linux
     2: irix
+    255:
+      id: no_os
+      -orig-id: noos
+      doc: |
+        This value is pretty much a guess, based on that `archnum` and `osnum`
+        values are handled by the same function `getMachineInfo()` (see
+        `doc-ref` link) which uses 255 for an unknown value. Value
+        `architectures::no_arch` can be verified with the magic file of
+        `file(1)` and `.rpm` files that have `noarch` in their name, so it seems
+        reasonable that `no_os` (or "`noos`" originally) follows the same
+        pattern.
+
+        Moreover, this value is actually used in practice, see this sample file:
+        <https://github.com/craigwblake/redline/blob/15afff5/src/test/resources/rpm-3-1.0-1.somearch.rpm>
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/lib/rpmrc.c#L1466
+
   signature_tags:
     # Tags from LSB.
     # the first three are shared with header_tags
@@ -269,7 +299,7 @@ enums:
       id: header_immutable
       -orig-id: HEADER_IMMUTABLE
     100:
-      id: i18ntable
+      id: i18n_table
       -orig-id: HEADER_I18NTABLE
     # RPMSIGTAG_*
     267:
@@ -312,7 +342,7 @@ enums:
       -orig-id: RPMSIGTAG_RESERVEDSPACE
       doc: Space reserved for signatures
   header_tags:
-    # Tags from LSB, some from lib/rpmtag.h
+    # Tags from LSB, some from [lib/rpmtag.h](https://github.com/rpm-software-management/rpm/blob/911448f2/lib/rpmtag.h)
     # This includes all tags, except obsolete, internal and
     # unimplemented tags, except when present in LSB
     62:
@@ -322,7 +352,7 @@ enums:
       id: header_immutable
       -orig-id: HEADER_IMMUTABLE
     100:
-      id: i18ntable
+      id: i18n_table
       -orig-id: HEADER_I18NTABLE
     # RPMTAG_*
     1000:
@@ -355,17 +385,17 @@ enums:
         pointed to by this index record contains a full desription of
         the package.
     1006:
-      id: buildtime
+      id: build_time
       -orig-id: RPMTAG_BUILDTIME
       doc: |
         Specifies the time as seconds since the epoch
         at which the package was built.
     1007:
-      id: buildhost
+      id: build_host
       -orig-id: RPMTAG_BUILDHOST
       doc: Specifies the hostname of the system on which the package was built.
     1008:
-      id: installtime # from lib/rpmtag.h
+      id: install_time # from lib/rpmtag.h
       -orig-id: RPMTAG_INSTALLTIME
     1009:
       id: size
@@ -440,7 +470,7 @@ enums:
         Specifies the postuninstall scriptlet. If present, then
         postuninstall_interpreter shall also be present.
     1027:
-      id: old_filenames
+      id: old_file_names
       -orig-id: RPMTAG_OLDFILENAMES
     1028:
       id: file_sizes
@@ -683,10 +713,10 @@ enums:
       id: dir_indexes
       -orig-id: RPMTAG_DIRINDEXES
     1117:
-      id: basenames
+      id: base_names
       -orig-id: RPMTAG_BASENAMES
     1118:
-      id: dirnames
+      id: dir_names
       -orig-id: RPMTAG_DIRNAMES
     1119:
       id: orig_dir_indexes # from lib/rpmtag.h
@@ -698,10 +728,10 @@ enums:
       id: orig_dir_names # from lib/rpmtag.h
       -orig-id: RPMTAG_ORIGDIRNAMES
     1122:
-      id: optflags
+      id: opt_flags
       -orig-id: RPMTAG_OPTFLAGS
     1123:
-      id: disturl
+      id: dist_url
       -orig-id: RPMTAG_DISTURL
     1124:
       id: payload_format
@@ -738,11 +768,13 @@ enums:
       id: class_dict
       -orig-id: RPMTAG_CLASSDICT
     1143:
-      id: file_dependsx
+      id: file_depends_idx
       -orig-id: RPMTAG_FILEDEPENDSX
+      doc: Index into `::depends_dict` denoting start of this file's dependencies.
     1144:
-      id: file_dependsn
+      id: file_depends_num
       -orig-id: RPMTAG_FILEDEPENDSN
+      doc: Number of file dependencies in `::depends_dict`, starting from `::file_depends_idx`
     1145:
       id: depends_dict
       -orig-id: RPMTAG_DEPENDSDICT
@@ -750,25 +782,25 @@ enums:
       id: source_pkgid
       -orig-id: RPMTAG_SOURCEPKGID
     1148:
-      id: fscontexts
+      id: fs_contexts
       -orig-id: RPMTAG_FSCONTEXTS
     1149:
-      id: recontexts
+      id: re_contexts
       -orig-id: RPMTAG_RECONTEXTS
     1150:
       id: policies
       -orig-id: RPMTAG_POLICIES
     1151:
-      id: pretrans
+      id: pre_trans
       -orig-id: RPMTAG_PRETRANS
     1152:
-      id: posttrans
+      id: post_trans
       -orig-id: RPMTAG_POSTTRANS
     1153:
-      id: pretrans_prog
+      id: pre_trans_prog
       -orig-id: RPMTAG_PRETRANSPROG
     1154:
-      id: posttrans_prog
+      id: post_trans_prog
       -orig-id: RPMTAG_POSTTRANSPROG
     1155:
       id: dist_tag
@@ -795,7 +827,7 @@ enums:
       id: trigger_type
       -orig-id: RPMTAG_TRIGGERTYPE
     5007:
-      id: orig_filenames
+      id: orig_file_names
       -orig-id: RPMTAG_ORIGFILENAMES
     5008:
       id: long_file_sizes
@@ -844,7 +876,7 @@ enums:
       id: pre_un_flags
       -orig-id: RPMTAG_PREUNFLAGS
     5023:
-      id: post_unflags
+      id: post_un_flags
       -orig-id: RPMTAG_POSTUNFLAGS
     5024:
       id: pre_trans_flags
@@ -883,7 +915,7 @@ enums:
       id: order_flags
       -orig-id: RPMTAG_ORDERFLAGS
     5040:
-      id: inst_filenames
+      id: inst_file_names
       -orig-id: RPMTAG_INSTFILENAMES
     5041:
       id: require_nevrs
@@ -1040,4 +1072,4 @@ enums:
     6: string # NUL terminated
     7: bin
     8: string_array # NUL terminated strings
-    9: i18nstring # NUL terminated strings
+    9: i18n_string # NUL terminated strings
