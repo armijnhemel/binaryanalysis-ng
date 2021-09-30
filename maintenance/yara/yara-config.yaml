@@ -35,3 +35,5 @@ yara:
     # identifier_cutoff: 2
     # ignore weak ELF symbols. Recommended to set to 'true'
     ignore_weak_symbols: true
+    # the maximum amount of identifiers that YARA will consider
+    max_identifiers: 10000

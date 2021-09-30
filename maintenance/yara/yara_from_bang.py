@@ -64,6 +64,11 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
     else:
         rule_name = 'rule rule_%s: %s\n' % (normalize_name(str(rule_uuid)), " ".join(tags))
 
+    total_identifiers = len(functions) + len(variables) + len(strings)
+
+    if total_identifiers > yara_env['max_identifiers']:
+        pass
+
     with yara_file.open(mode='w') as p:
         p.write(rule_name)
         p.write('{')
@@ -420,6 +425,11 @@ def main(argv):
         if type(config['yara']['identifier_cutoff']) == int:
             identifier_cutoff = config['yara']['identifier_cutoff']
 
+    max_identifiers = 10000
+    if 'max_identifiers' in config['yara']:
+        if isinstance(config['yara']['max_identifiers'], int):
+            string_cutoff = config['yara']['max_identifiers']
+
     processmanager = multiprocessing.Manager()
 
     # ignore object files (regular and GHC specific)
@@ -455,7 +465,8 @@ def main(argv):
                 'identifier_cutoff': identifier_cutoff,
                 'ignored_suffixes': ignored_suffixes,
                 'ignore_weak_symbols': ignore_weak_symbols,
-                'lq_identifiers': lq_identifiers, 'tags': tags}
+                'lq_identifiers': lq_identifiers, 'tags': tags,
+                'max_identifiers': max_identifiers}
 
     # create processes for unpacking archives
     for i in range(0, threads):
