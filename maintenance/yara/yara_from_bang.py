@@ -213,8 +213,16 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     elf_to_identifiers['strings'] = strings
                     elf_to_identifiers['variables'] = variables
                     elf_to_identifiers['functions'] = functions
+
+                # do not generate a YARA file if there is no data
                 if strings == set() and variables == set() and functions == set():
                     continue
+
+                total_identifiers = len(functions) + len(variables) + len(strings)
+
+                if total_identifiers > yara_env['max_identifiers']:
+                    pass
+
                 yara_tags = yara_env['tags'] + ['elf']
                 yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags)
                 yara_files.append(yara_name)
@@ -281,6 +289,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                             continue
                         variables.add(field['name'])
 
+                # do not generate a YARA file if there is no data
                 if strings == set() and variables == set() and functions == set():
                     continue
 
