@@ -38,11 +38,13 @@ ESCAPE = str.maketrans({'"': '\\"',
                         '\t': '\\t',
                         '\n': '\\n'})
 
+
 def normalize_name(name):
     for i in ['.', '-']:
         if i in name:
             name = name.replace(i, '_')
     return name
+
 
 def generate_yara(yara_directory, metadata, functions, variables, strings, tags):
     generate_date = datetime.datetime.utcnow().isoformat()
@@ -96,6 +98,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
         p.write('        all of them\n')
         p.write('\n}')
     return yara_file.name
+
 
 def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                       processlock, processed_files, yara_env):
@@ -370,7 +373,6 @@ def main(argv):
         sys.exit(1)
 
     # some sanity checks:
-    #for i in ['database', 'general', 'yara']:
     for i in ['general', 'yara']:
         if i not in config:
             print("Invalid configuration file, section %s missing, exiting" % i,
@@ -459,7 +461,7 @@ def main(argv):
 
         yaraqueue.put(bang_directory)
 
-    #tags = ['debian', 'debian11']
+    # tags = ['debian', 'debian11']
     tags = []
 
     yara_env = {'verbose': verbose, 'string_cutoff': string_cutoff,
