@@ -423,7 +423,7 @@ def main(argv):
 
     identifier_cutoff = 2
     if 'identifier_cutoff' in config['yara']:
-        if isinstance(config['yara']['identifier_cutoff']), int):
+        if isinstance(config['yara']['identifier_cutoff'], int):
             identifier_cutoff = config['yara']['identifier_cutoff']
 
     max_identifiers = 10000
