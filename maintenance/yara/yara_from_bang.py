@@ -64,11 +64,6 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
     else:
         rule_name = 'rule rule_%s: %s\n' % (normalize_name(str(rule_uuid)), " ".join(tags))
 
-    total_identifiers = len(functions) + len(variables) + len(strings)
-
-    if total_identifiers > yara_env['max_identifiers']:
-        pass
-
     with yara_file.open(mode='w') as p:
         p.write(rule_name)
         p.write('{')
@@ -285,6 +280,12 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
 
                 if strings == set() and variables == set() and functions == set():
                     continue
+
+                total_identifiers = len(functions) + len(variables) + len(strings)
+
+                if total_identifiers > yara_env['max_identifiers']:
+                    pass
+
                 yara_tags = yara_env['tags'] + ['dex']
                 yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags)
                 yara_files.append(yara_name)
