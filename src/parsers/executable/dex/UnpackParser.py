@@ -346,15 +346,14 @@ class DexUnpackParser(UnpackParser):
                 # extract the relevant strings from the bytecode and store them
                 strings = []
                 res = self.parse_bytecode(method.code.insns)
-                if res != []:
-                  for r in res:
-                      try:
-                          # this shouldn't happen, but there is a bug
-                          # in mutf8: https://github.com/TkTech/mutf8/issues/1
-                          bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
-                          strings.append(bytecode_string)
-                      except UnicodeDecodeError:
-                          pass
+                for r in res:
+                    try:
+                        # this shouldn't happen, but there is a bug
+                        # in mutf8: https://github.com/TkTech/mutf8/issues/1
+                        bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
+                        strings.append(bytecode_string)
+                    except UnicodeDecodeError:
+                        pass
 
                 method_id += method.method_idx_diff.value
                 method_name = mutf8.decode_modified_utf8(self.data.method_ids[method_id].method_name)
@@ -380,15 +379,14 @@ class DexUnpackParser(UnpackParser):
                 # extract the relevant strings from the bytecode and store them
                 strings = []
                 res = self.parse_bytecode(method.code.insns)
-                if res != []:
-                  for r in res:
-                      try:
-                          # this shouldn't happen, but there is a bug
-                          # in mutf8: https://github.com/TkTech/mutf8/issues/1
-                          bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
-                          strings.append(bytecode_string)
-                      except UnicodeDecodeError:
-                          pass
+                for r in res:
+                    try:
+                        # this shouldn't happen, but there is a bug
+                        # in mutf8: https://github.com/TkTech/mutf8/issues/1
+                        bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
+                        strings.append(bytecode_string)
+                    except UnicodeDecodeError:
+                        pass
 
                 method_id += method.method_idx_diff.value
                 method_name = mutf8.decode_modified_utf8(self.data.method_ids[method_id].method_name)
