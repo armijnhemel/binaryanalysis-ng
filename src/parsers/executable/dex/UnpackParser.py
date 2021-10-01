@@ -349,10 +349,15 @@ class DexUnpackParser(UnpackParser):
                 res = self.parse_bytecode(method.code.insns)
                 for r in res:
                     try:
-                        # this shouldn't happen, but there is a bug
+                        # this shouldn't happen, but there is was bug
                         # in mutf8: https://github.com/TkTech/mutf8/issues/1
                         bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
-                        strings.append(bytecode_string)
+                        try:
+                            # this shouldn't happen, but there is likely a bug in mutf8
+                            bytecode_string.encode()
+                            strings.append(bytecode_string)
+                        except:
+                            pass
                     except UnicodeDecodeError:
                         pass
 
@@ -382,10 +387,15 @@ class DexUnpackParser(UnpackParser):
                 res = self.parse_bytecode(method.code.insns)
                 for r in res:
                     try:
-                        # this shouldn't happen, but there is a bug
+                        # this shouldn't happen, but there is was bug
                         # in mutf8: https://github.com/TkTech/mutf8/issues/1
                         bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
-                        strings.append(bytecode_string)
+                        try:
+                            # this shouldn't happen, but there is likely a bug in mutf8
+                            bytecode_string.encode()
+                            strings.append(bytecode_string)
+                        except:
+                            pass
                     except UnicodeDecodeError:
                         pass
 

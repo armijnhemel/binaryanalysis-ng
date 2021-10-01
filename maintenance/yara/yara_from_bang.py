@@ -73,8 +73,11 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
         p.write("\n        // Extracted strings\n\n")
         counter = 1
         for s in sorted(strings):
-            p.write("        $string%d = \"%s\"\n" % (counter, s))
-            counter += 1
+            try:
+                p.write("        $string%d = \"%s\"\n" % (counter, s))
+                counter += 1
+            except:
+                pass
 
         # write the functions
         p.write("\n        // Extracted functions\n\n")
