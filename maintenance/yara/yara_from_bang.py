@@ -175,7 +175,9 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                 variables = set()
                 if results_data['metadata']['strings'] != []:
                     for s in results_data['metadata']['strings']:
-                        if len(s) < yara_env['string_cutoff']:
+                        if len(s) < yara_env['string_min_cutoff']:
+                            continue
+                        if len(s) > yara_env['string_max_cutoff']:
                             continue
                         # ignore whitespace-only strings
                         if re.match(r'^\s+$', s) is None:
@@ -269,7 +271,9 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                         functions.add(method['name'])
                     for method in c['methods']:
                         for s in method['strings']:
-                            if len(s) < yara_env['string_cutoff']:
+                            if len(s) < yara_env['string_min_cutoff']:
+                                continue
+                            if len(s) > yara_env['string_max_cutoff']:
                                 continue
                             # ignore whitespace-only strings
                             if re.match(r'^\s+$', s) is None:
@@ -424,10 +428,15 @@ def main(argv):
 
     yara_binary_directory.mkdir(exist_ok=True)
 
-    string_cutoff = 8
-    if 'string_cutoff' in config['yara']:
-        if isinstance(config['yara']['string_cutoff'], int):
-            string_cutoff = config['yara']['string_cutoff']
+    string_min_cutoff = 8
+    if 'string_min_cutoff' in config['yara']:
+        if isinstance(config['yara']['string_min_cutoff'], int):
+            string_min_cutoff = config['yara']['string_min_cutoff']
+
+    string_max_cutoff = 200
+    if 'string_max_cutoff' in config['yara']:
+        if isinstance(config['yara']['string_max_cutoff'], int):
+            string_max_cutoff = config['yara']['string_max_cutoff']
 
     identifier_cutoff = 2
     if 'identifier_cutoff' in config['yara']:
@@ -470,7 +479,8 @@ def main(argv):
     # tags = ['debian', 'debian11']
     tags = []
 
-    yara_env = {'verbose': verbose, 'string_cutoff': string_cutoff,
+    yara_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
+                'string_max_cutoff': string_max_cutoff,
                 'identifier_cutoff': identifier_cutoff,
                 'ignored_suffixes': ignored_suffixes,
                 'ignore_weak_symbols': ignore_weak_symbols,
