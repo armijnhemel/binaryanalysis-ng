@@ -486,7 +486,7 @@ class ElfUnpackParser(UnpackParser):
                 if telfhash_result != []:
                     telfhash_res = telfhash_result[0]['telfhash']
                     if telfhash_res != 'TNULL' and telfhash_res != '-':
-                        metadata['telfhash'] = telfhash_res
+                        metadata['telfhash'] = telfhash_res.upper()
             except UnicodeEncodeError:
                 pass
 
