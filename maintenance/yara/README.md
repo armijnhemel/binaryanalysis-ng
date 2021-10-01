@@ -61,6 +61,6 @@ false positives in YARA
 * identifiers that occur in many packages. A good example: weak ELF symbols
 <https://en.wikipedia.org/wiki/Weak_symbol>
 
-A prefab list of low quality identifiers can be found in the files
-`low_quality_funcs` and `low_quality_vars`. These were handcrafted by looking
+A prefab list of low quality ELF identifiers can be found in the files
+`low_quality_elf_funcs` and `low_quality_elf_vars`. These were handcrafted by looking
 at all identifiers found in all ELF files in Debian 11.
