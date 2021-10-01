@@ -30,6 +30,8 @@ import sys
 import traceback
 from operator import itemgetter
 
+import puremagic
+
 import bangsignatures
 from banglogging import log
 import banglogging
@@ -180,6 +182,14 @@ class ScanJob:
         # https://www.iana.org/assignments/media-types/media-types.xhtml
         mimeres = mimetypes.guess_type(self.fileresult.filename.name)
         self.fileresult.set_mimetype(mimeres)
+
+    def check_magic(self):
+        magic_res = []
+        try:
+            magic_res = puremagic.magic_file(str(self.fileresult.filename))
+        except:
+            pass
+        self.fileresult.set_magic(magic_res)
 
     def check_for_valid_extension(self, unpacker):
         # TODO: this method will try to unpack multiple extensions
@@ -648,6 +658,7 @@ def processfile(scanenvironment):
             scanjob.check_for_padding_file(unpacker)
             scanjob.check_for_unpacked_file(unpacker)
             scanjob.check_mime_types()
+            scanjob.check_magic()
 
             if unpacker.needs_unpacking():
                 scanjob.check_for_valid_extension(unpacker)
