@@ -11,6 +11,7 @@ let
     defusedxml
     packageurl-python
     psycopg2
+    puremagic
     pytest
     python-ctags3
     pyyaml
