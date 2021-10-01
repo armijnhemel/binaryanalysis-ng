@@ -33,16 +33,14 @@ try:
 except ImportError:
     from yaml import Loader
 
+# YARA escape sequences
 ESCAPE = str.maketrans({'"': '\\"',
                         '\\': '\\\\',
                         '\t': '\\t',
                         '\n': '\\n'})
 
-def normalize_name(name):
-    for i in ['.', '-']:
-        if i in name:
-            name = name.replace(i, '_')
-    return name
+NAME_ESCAPE = str.maketrans({'.': '_',
+                             '-': '_'})
 
 
 def generate_yara(yara_directory, metadata, functions, variables, strings, tags):
@@ -61,9 +59,9 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
 
     yara_file = yara_directory / ("%s-%s.yara" % (metadata['package'], metadata['name']))
     if tags == []:
-        rule_name = 'rule rule_%s\n' % normalize_name(str(rule_uuid))
+        rule_name = 'rule rule_%s\n' % str(rule_uuid).translate(NAME_ESCAPE)
     else:
-        rule_name = 'rule rule_%s: %s\n' % (normalize_name(str(rule_uuid)), " ".join(tags))
+        rule_name = 'rule rule_%s: %s\n' % (str(rule_uuid).translate(NAME_ESCAPE), " ".join(tags))
 
     with yara_file.open(mode='w') as p:
         p.write(rule_name)
