@@ -33,16 +33,15 @@ try:
 except ImportError:
     from yaml import Loader
 
+# YARA escape sequences
 ESCAPE = str.maketrans({'"': '\\"',
                         '\\': '\\\\',
                         '\t': '\\t',
                         '\n': '\\n'})
 
-def normalize_name(name):
-    for i in ['.', '-']:
-        if i in name:
-            name = name.replace(i, '_')
-    return name
+NAME_ESCAPE = str.maketrans({'.': '_',
+                             '-': '_'})
+
 
 def generate_yara(yara_directory, metadata, functions, variables, strings, tags):
     generate_date = datetime.datetime.utcnow().isoformat()
@@ -60,9 +59,9 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
 
     yara_file = yara_directory / ("%s-%s.yara" % (metadata['package'], metadata['name']))
     if tags == []:
-        rule_name = 'rule rule_%s\n' % normalize_name(str(rule_uuid))
+        rule_name = 'rule rule_%s\n' % str(rule_uuid).translate(NAME_ESCAPE)
     else:
-        rule_name = 'rule rule_%s: %s\n' % (normalize_name(str(rule_uuid)), " ".join(tags))
+        rule_name = 'rule rule_%s: %s\n' % (str(rule_uuid).translate(NAME_ESCAPE), " ".join(tags))
 
     with yara_file.open(mode='w') as p:
         p.write(rule_name)
@@ -97,10 +96,9 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
         p.write('\n}')
     return yara_file.name
 
+
 def process_directory(yaraqueue, yara_directory, yara_binary_directory,
-                      processlock, processed_files, string_cutoff,
-                      identifier_cutoff, ignored_suffixes, ignore_weak_symbols,
-                      lq_identifiers, tags):
+                      processlock, processed_files, yara_env):
 
     generate_identifier_files = False
     while True:
@@ -146,7 +144,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                 elf_name = pathlib.Path(bang_file).name
                 suffix = pathlib.Path(bang_file).suffix
 
-                if suffix in ignored_suffixes:
+                if suffix in yara_env['ignored_suffixes']:
                     continue
 
                 # TODO: name is actually not correct, as it assumes
@@ -177,7 +175,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                 variables = set()
                 if results_data['metadata']['strings'] != []:
                     for s in results_data['metadata']['strings']:
-                        if len(s) < string_cutoff:
+                        if len(s) < yara_env['string_cutoff']:
                             continue
                         # ignore whitespace-only strings
                         if re.match(r'^\s+$', s) is None:
@@ -187,10 +185,10 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     for s in results_data['metadata']['symbols']:
                         if s['section_index'] == 0:
                             continue
-                        if ignore_weak_symbols:
+                        if yara_env['ignore_weak_symbols']:
                             if s['binding'] == 'weak':
                                 continue
-                        if len(s['name']) < identifier_cutoff:
+                        if len(s['name']) < yara_env['identifier_cutoff']:
                             continue
                         if '@@' in s['name']:
                             identifier_name = s['name'].rsplit('@@', 1)[0]
@@ -199,11 +197,11 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                         else:
                             identifier_name = s['name']
                         if s['type'] == 'func':
-                            if identifier_name in lq_identifiers['elf']['functions']:
+                            if identifier_name in yara_env['lq_identifiers']['elf']['functions']:
                                 continue
                             functions.add(identifier_name)
                         elif s['type'] == 'object':
-                            if identifier_name in lq_identifiers['elf']['variables']:
+                            if identifier_name in yara_env['lq_identifiers']['elf']['variables']:
                                 continue
                             variables.add(identifier_name)
                     functions_per_package.update(functions)
@@ -212,9 +210,17 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     elf_to_identifiers['strings'] = strings
                     elf_to_identifiers['variables'] = variables
                     elf_to_identifiers['functions'] = functions
+
+                # do not generate a YARA file if there is no data
                 if strings == set() and variables == set() and functions == set():
                     continue
-                yara_tags = tags + ['elf']
+
+                total_identifiers = len(functions) + len(variables) + len(strings)
+
+                if total_identifiers > yara_env['max_identifiers']:
+                    pass
+
+                yara_tags = yara_env['tags'] + ['elf']
                 yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags)
                 yara_files.append(yara_name)
             elif 'dex' in bang_data['scantree'][bang_file]['labels']:
@@ -222,7 +228,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                 dex_name = pathlib.Path(bang_file).name
                 suffix = pathlib.Path(bang_file).suffix
 
-                if suffix in ignored_suffixes:
+                if suffix in yara_env['ignored_suffixes']:
                     continue
 
                 # TODO: name is actually not correct, as it assumes
@@ -250,7 +256,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                 for c in results_data['metadata']['classes']:
                     for method in c['methods']:
                         # ignore whitespace-only methods
-                        if len(method['name']) < identifier_cutoff:
+                        if len(method['name']) < yara_env['identifier_cutoff']:
                             continue
                         if re.match(r'^\s+$', method['name']) is not None:
                             continue
@@ -258,12 +264,12 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                             continue
                         if method['name'].startswith('access$'):
                             continue
-                        if method['name'] in lq_identifiers['dex']['functions']:
+                        if method['name'] in yara_env['lq_identifiers']['dex']['functions']:
                             continue
                         functions.add(method['name'])
                     for method in c['methods']:
                         for s in method['strings']:
-                            if len(s) < string_cutoff:
+                            if len(s) < yara_env['string_cutoff']:
                                 continue
                             # ignore whitespace-only strings
                             if re.match(r'^\s+$', s) is None:
@@ -271,18 +277,25 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
 
                     for field in c['fields']:
                         # ignore whitespace-only methods
-                        if len(field['name']) < identifier_cutoff:
+                        if len(field['name']) < yara_env['identifier_cutoff']:
                             continue
                         if re.match(r'^\s+$', field['name']) is not None:
                             continue
 
-                        if field['name'] in lq_identifiers['dex']['variables']:
+                        if field['name'] in yara_env['lq_identifiers']['dex']['variables']:
                             continue
                         variables.add(field['name'])
 
+                # do not generate a YARA file if there is no data
                 if strings == set() and variables == set() and functions == set():
                     continue
-                yara_tags = tags + ['dex']
+
+                total_identifiers = len(functions) + len(variables) + len(strings)
+
+                if total_identifiers > yara_env['max_identifiers']:
+                    pass
+
+                yara_tags = yara_env['tags'] + ['dex']
                 yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags)
                 yara_files.append(yara_name)
 
@@ -366,7 +379,6 @@ def main(argv):
         sys.exit(1)
 
     # some sanity checks:
-    #for i in ['database', 'general', 'yara']:
     for i in ['general', 'yara']:
         if i not in config:
             print("Invalid configuration file, section %s missing, exiting" % i,
@@ -419,8 +431,13 @@ def main(argv):
 
     identifier_cutoff = 2
     if 'identifier_cutoff' in config['yara']:
-        if type(config['yara']['identifier_cutoff']) == int:
+        if isinstance(config['yara']['identifier_cutoff'], int):
             identifier_cutoff = config['yara']['identifier_cutoff']
+
+    max_identifiers = 10000
+    if 'max_identifiers' in config['yara']:
+        if isinstance(config['yara']['max_identifiers'], int):
+            max_identifiers = config['yara']['max_identifiers']
 
     processmanager = multiprocessing.Manager()
 
@@ -450,18 +467,22 @@ def main(argv):
 
         yaraqueue.put(bang_directory)
 
-    #tags = ['debian', 'debian11']
+    # tags = ['debian', 'debian11']
     tags = []
+
+    yara_env = {'verbose': verbose, 'string_cutoff': string_cutoff,
+                'identifier_cutoff': identifier_cutoff,
+                'ignored_suffixes': ignored_suffixes,
+                'ignore_weak_symbols': ignore_weak_symbols,
+                'lq_identifiers': lq_identifiers, 'tags': tags,
+                'max_identifiers': max_identifiers}
 
     # create processes for unpacking archives
     for i in range(0, threads):
         process = multiprocessing.Process(target=process_directory,
                                           args=(yaraqueue, yara_directory,
                                                 yara_binary_directory, processlock,
-                                                processed_files, string_cutoff,
-                                                identifier_cutoff, ignored_suffixes,
-                                                ignore_weak_symbols, lq_identifiers,
-                                                tags))
+                                                processed_files, yara_env))
         processes.append(process)
 
     # start all the processes
