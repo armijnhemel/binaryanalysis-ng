@@ -38,7 +38,6 @@ ESCAPE = str.maketrans({'"': '\\"',
                         '\t': '\\t',
                         '\n': '\\n'})
 
-
 def normalize_name(name):
     for i in ['.', '-']:
         if i in name:
@@ -440,7 +439,7 @@ def main(argv):
     max_identifiers = 10000
     if 'max_identifiers' in config['yara']:
         if isinstance(config['yara']['max_identifiers'], int):
-            string_cutoff = config['yara']['max_identifiers']
+            max_identifiers = config['yara']['max_identifiers']
 
     processmanager = multiprocessing.Manager()
 
