@@ -16,6 +16,36 @@ The script takes result files of BANG scans (for example: Debian archive
 files) and creates YARA files. Optionally it can use a list of low quality
 identifiers that can be filtered to make the YARA rules simpler.
 
+### Pros and cons of generating YARA rules from binaries
+
+There are benefits to generating YARA rules from binaries, but also drawbacks,
+depending on the type of binary. It seems to work really well for the vast
+majority of ELF dynamically binaries but not for for example Dalvik `.dex`
+files.
+
+#### Dynamically linked ELF binaries
+
+Dynamically linked ELF binaries are created from object files that are
+in turned created from source code files. Dependencies (like third parties)
+typically do not end up in the dynamically linked ELF file (although there
+are of course exceptions, for example when there is a complete copy of
+third party software included in the package), so the separation between
+package and third party code tends to be clean. Information extracted from
+binaries in a package usually is from just that package.
+
+#### Android Dex files
+
+For Android Dex files it is much more difficult to make a good match using
+rules generated from binaries, as Dex files are much closer to statically
+linked files: you will find a lot dependencies included in the `classes.dex`
+files that cannot be found in the source code of a project, but can be found
+in the dependencies.
+
+This makes rules generated from `.dex` files good for recognizing those
+particular files but not packages (because of all the dependencies that
+are included in the binary). It is much better to create rules from source
+code for `.dex` files.
+
 ### Running BANG to extract identifiers
 
 First you need to run BANG on a collection of files, for example all `.debs`
