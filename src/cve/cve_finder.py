@@ -89,6 +89,10 @@ def main():
         print("result pickle not found, exiting", file=sys.stderr)
         sys.exit(1)
 
+    if not (result_directory / 'unpack').exists():
+        print("unpack directory not found, exiting", file=sys.stderr)
+        sys.exit(1)
+
     bang_data = pickle.load(open(bang_pickle, 'rb'))
 
     update_now = False
