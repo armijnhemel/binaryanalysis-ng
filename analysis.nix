@@ -6,7 +6,6 @@ let
   pkgs = import sources.nixpkgs { config.allowUnfree = true; overlays = []; };
 
   my-python = pkgs.python39.withPackages (p: with p; [
-    cve-bin-tool
     deepdiff
     defusedxml
     dockerfile-parse
@@ -29,6 +28,7 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     apkid
     binutils
+    cve-bin-tool
     libxml2
     openjdk8
     openssl
