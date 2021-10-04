@@ -66,17 +66,12 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 ## Docker container (recently untested, assume broken)
 
 ```
+cd util
+make docker-kaitai
+cd ../src
 docker image build -t bang .
 docker container run --rm -it bang
 ```
-
-or from the `src` directory, type
-
-```
-make dockerbuild
-```
-
-
 
 ## Supported file types
 
