@@ -23,10 +23,14 @@ seq:
   - id: padding
     size: header.len_header - header._sizeof
   - id: partitions
-    type: partition
-    #repeat: expr
-    #repeat-expr: 1
+    type: partitions
+    size: header.len_file - header.len_header
 types:
+  partitions:
+    seq:
+      - id: partition
+        type: partition
+        repeat: eos
   header:
     seq:
       - id: magic
@@ -67,30 +71,30 @@ types:
       seq:
         - id: section_type
           type: u4
-        - id: len_entry
+          enum: section_types
+        - id: len_section
           type: u4
         - id: crc32
           type: u4
-        - id: unknown1
+        - id: load_address
           type: u4
         - id: uncompressed_size
           type: u4
         - id: data
-          size: len_entry
-          type:
-            switch-on: section_type
-            cases:
-              section_types::boot_configuration: dummy
+          size: len_section
         - id: padding
-          size: 0
+          size: (-len_section % 4)
           doc: additional padding to keep partitions 4 byte aligned
-  dummy: {}
 enums:
   section_types:
+    0x0: unknown
+    0x3: boot_loader
     0x5: directory_names
     0x7: boot_configuration
+    0x9: file_system_data
     0xb: partition_table
     0xc: installer
   file_types:
+    0: unknown
     1: executable
     2: archive
