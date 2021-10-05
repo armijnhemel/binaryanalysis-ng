@@ -24,6 +24,7 @@ general:
     # directory for unpacking. By default this is /tmp or
     # whatever the default set by the system is.
     # tempdir: /tmp
+    # threads: 0
     verbose: true
 yara:
     # directory to store generated YARA files
