@@ -28,7 +28,7 @@ seq:
 types:
   partitions:
     seq:
-      - id: partition
+      - id: partitions
         type: partition
         repeat: eos
   header:
@@ -68,30 +68,36 @@ types:
       - id: bugfix_version
         type: u4
   partition:
-      seq:
-        - id: section_type
-          type: u4
-          enum: section_types
-        - id: len_section
-          type: u4
-        - id: crc32
-          type: u4
-        - id: load_address
-          type: u4
-        - id: uncompressed_size
-          type: u4
-        - id: data
-          size: len_section
-        - id: padding
-          size: (-len_section % 4)
-          doc: additional padding to keep partitions 4 byte aligned
+    seq:
+      - id: section_type
+        type: u4
+        enum: section_types
+      - id: len_section
+        type: u4
+      - id: crc32
+        type: u4
+      - id: load_address
+        type: u4
+      - id: uncompressed_size
+        type: u4
+      - id: data
+        size: len_section
+      - id: padding
+        size: (-len_section % 4)
+        doc: additional padding to keep partitions 4 byte aligned
 enums:
   section_types:
-    0x0: unknown
+    0x0: unknown_0
+    0x1: unknown_1
+    0x2: unknown_2
     0x3: boot_loader
+    0x4: unknown_4
     0x5: directory_names
+    0x6: unknown_6
     0x7: boot_configuration
+    0x8: unknown_8
     0x9: file_system_data
+    0xa: unknown_10
     0xb: partition_table
     0xc: installer
   file_types:
