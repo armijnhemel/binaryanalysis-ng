@@ -13,7 +13,7 @@ doc: |
 
 doc-ref:
   - http://embedded-software.blogspot.com/2010/12/plf-file-format.html
-  - https://web.archive.org/web/20210907153741/https://titanwolf.org/Network/Articles/Article?AID=a7225440-da3a-45e8-89c3-c098b93e7fc2#gsc.tab=0
+  - https://web.archive.org/web/20170109192314/http://thecyberrecce.net/2017/01/09/reversing-the-parrot-skycontroller-firmware/
   - https://github.com/Parrot-Developers/libARUpdater/blob/5b3667dd97c4ba0e38cb5f9a477773012c1e55d3/Sources/ARUPDATER_Plf.h
   - https://github.com/Parrot-Developers/libpuf/blob/master/src/libpuf_plf.h
   - https://github.com/scorp2kk/ardrone-tool
