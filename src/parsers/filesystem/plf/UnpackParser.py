@@ -108,6 +108,7 @@ class PlfUnpackParser(WrappedUnpackParser):
 
                     # add result to result set
                     fr = FileResult(self.fileresult, outfile_rel, set(['directory']))
+                    unpacked_files.append(fr)
                 elif entry_filetype == 0x8:
                     # write data, skip the first 12 bytes of the data
                     # (entry tag, plus 8 bytes of other unknown information)
@@ -117,18 +118,21 @@ class PlfUnpackParser(WrappedUnpackParser):
 
                     # add result to result set
                     fr = FileResult(self.fileresult, outfile_rel, set())
+                    unpacked_files.append(fr)
 
                 elif entry_filetype == 0xa:
                     # symlink, only process if not compressed
-                    if not compressed:
-                        try:
-                            target_name = entry_data[12:].split(b'\x00', 1)[0].decode()
-                        except:
-                            continue
-                        outfile_full.symlink_to(target_name)
+                    if compressed:
+                        continue
+                    try:
+                        target_name = entry_data[12:].split(b'\x00', 1)[0].decode()
+                    except:
+                        continue
+                    outfile_full.symlink_to(target_name)
 
-                        # add result to result set
-                        fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
+                    # add result to result set
+                    fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
+                    unpacked_files.append(fr)
 
             elif partition.section_type == plf.Plf.SectionTypes.unknown_4:
                 pass
