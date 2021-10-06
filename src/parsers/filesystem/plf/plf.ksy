@@ -82,24 +82,74 @@ types:
         type: u4
       - id: data
         size: len_section
+        type:
+          switch-on: section_type
+          cases:
+            section_types::section11: partition_table
       - id: padding
         size: (-len_section % 4)
         doc: additional padding to keep partitions 4 byte aligned
+  partition_table:
+    seq:
+      - id: table_version
+        type: u4
+      - id: major_version
+        type: u4
+      - id: minor_version
+        type: u4
+      - id: bugfix_version
+        type: u4
+      - id: unknown1
+        type: u4
+      - id: unknown2
+        type: u4
+      - id: unknown3
+        type: u4
+      - id: unknown4
+        type: u4
+      - id: unknown5
+        type: u4
+      - id: num_entries
+        type: u4
+      - id: partition_entries
+        type: partition_entry
+        repeat: expr
+        repeat-expr: num_entries
+  partition_entry:
+    seq:
+      - id: device
+        type: u2
+      - id: volume_type
+        type: u2
+      - id: volume
+        type: u2
+      - id: unknown
+        type: u2
+      - id: len_volume
+        type: u4
+      - id: volume_action
+        type: u4
+      - id: volume_name
+        type: strz
+        size: 32
+      - id: mount_name
+        type: strz
+        size: 32
 enums:
   section_types:
-    0x0: unknown_0
-    0x1: unknown_1
-    0x2: unknown_2
-    0x3: boot_loader
-    0x4: unknown_4
-    0x5: directory_names
-    0x6: unknown_6
-    0x7: boot_configuration
-    0x8: unknown_8
-    0x9: file_system_data
-    0xa: unknown_10
-    0xb: partition_table
-    0xc: installer
+    0x0: section0
+    0x1: section1
+    0x2: section2
+    0x3: section3
+    0x4: section4 # data for the web server?
+    0x5: section5 # directory names?
+    0x6: section6
+    0x7: section7
+    0x8: section8
+    0x9: section9
+    0xa: section10
+    0xb: section11 # partition table
+    0xc: section12
   file_types:
     0: unknown
     1: executable
