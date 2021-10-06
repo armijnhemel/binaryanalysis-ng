@@ -69,11 +69,14 @@ class PlfUnpackParser(WrappedUnpackParser):
             # should be unpacked together.
             if partition.section_type == plf.Plf.SectionTypes.file_system_data:
                 if file_system_data_directory is None:
-                    outfile_rel = self.rel_unpack_dir / 'file_system_data'
-                    file_system_data_directory = self.scan_environment.unpack_path(outfile_rel)
+                    data_dir_rel = self.rel_unpack_dir / 'file_system_data'
+                    file_system_data_directory = self.scan_environment.unpack_path(data_dir_rel)
                     file_system_data_directory.mkdir()
+
+                compressed = False
                 if partition.uncompressed_size != 0:
                     # compressed data
+                    compressed = True
                     try:
                         data = gzip.decompress(partition.data)
                     except:
@@ -90,6 +93,43 @@ class PlfUnpackParser(WrappedUnpackParser):
                     file_path = pathlib.Path(entry_name.decode())
                 except:
                     continue
+
+                entry_tag = entry_data[:4]
+                entry_flags = int.from_bytes(entry_tag, byteorder='little')
+                entry_filetype = entry_flags >> 12
+
+                # then process based on the file type
+                outfile_rel = data_dir_rel / file_path
+                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+
+                if entry_filetype == 0x4:
+                    # create directory
+                    os.makedirs(outfile_full, exist_ok=True)
+
+                    # add result to result set
+                    fr = FileResult(self.fileresult, outfile_rel, set(['directory']))
+                elif entry_filetype == 0x8:
+                    # write data, skip the first 12 bytes of the data
+                    # (entry tag, plus 8 bytes of other unknown information)
+                    outfile = open(outfile_full, 'wb')
+                    outfile.write(entry_data[12:])
+                    outfile.close()
+
+                    # add result to result set
+                    fr = FileResult(self.fileresult, outfile_rel, set())
+
+                elif entry_filetype == 0xa:
+                    # symlink, only process if not compressed
+                    if not compressed:
+                        try:
+                            target_name = entry_data[12:].split(b'\x00', 1)[0].decode()
+                        except:
+                            continue
+                        outfile_full.symlink_to(target_name)
+
+                        # add result to result set
+                        fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
+
             elif partition.section_type == plf.Plf.SectionTypes.unknown_4:
                 pass
             else:
