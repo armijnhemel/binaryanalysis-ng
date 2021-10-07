@@ -153,6 +153,7 @@ class ScanJob:
                 'offset': 0,
                 'size': self.fileresult.filesize,
                 'files': [],
+                'relative_files': [],
             }
             self.fileresult.add_unpackedfile(report)
         else:
@@ -174,6 +175,7 @@ class ScanJob:
                 'offset': 0,
                 'size': self.fileresult.filesize,
                 'files': [],
+                'relative_files': [],
             }
             self.fileresult.add_unpackedfile(report)
 
@@ -234,6 +236,7 @@ class ScanJob:
                         'type': unpackparser.pretty_name,
                         'size': unpackresult.get_length(),
                         'files': [],
+                        'relative_files': [],
                     }
 
                     if unpackresult.get_metadata != {}:
@@ -243,6 +246,7 @@ class ScanJob:
                         j = ScanJob(unpackedfile)
                         self.scanenvironment.scanfilequeue.put(j)
                         report['files'].append(unpackedfile.filename)
+                        report['relative_files'].append(unpackedfile.filename.relative_to(unpacker.get_data_unpack_directory()))
                     self.fileresult.add_unpackedfile(report)
 
     def check_for_signatures(self, unpacker):
@@ -363,6 +367,7 @@ class ScanJob:
                         'type': unpackparser.pretty_name,
                         'size': unpackresult.get_length(),
                         'files': [],
+                        'relative_files': [],
                     }
 
                     if unpackresult.get_metadata != {}:
@@ -376,6 +381,7 @@ class ScanJob:
 
                     for unpackedfile in unpackresult.get_unpacked_files():
                         report['files'].append(unpackedfile.filename)
+                        report['relative_files'].append(unpackedfile.filename.relative_to(unpacker.get_data_unpack_directory()))
                         j = ScanJob(unpackedfile)
                         self.scanenvironment.scanfilequeue.put(j)
 
@@ -501,6 +507,7 @@ class ScanJob:
                     'type': 'carved',
                     'size': u_low - carve_index,
                     'files': [ outfile_rel ],
+                    'relative_files': [ outfile_rel.relative_to(unpacker.get_data_unpack_directory()) ],
                 }
                 self.fileresult.add_unpackedfile(report)
 
@@ -596,6 +603,7 @@ class ScanJob:
                     'type': unpack_parser.pretty_name,
                     'size': unpackresult.get_length(),
                     'files': [],
+                    'relative_files': [],
                 }
 
                 if unpackresult.get_metadata != {}:
@@ -606,6 +614,7 @@ class ScanJob:
 
                 for unpackedfile in unpackresult.get_unpacked_files():
                     report['files'].append(unpackedfile.filename)
+                    report['relative_files'].append(unpackedfile.filename.relative_to(unpacker.get_data_unpack_directory()))
                     j = ScanJob(unpackedfile)
                     self.scanenvironment.scanfilequeue.put(j)
 
