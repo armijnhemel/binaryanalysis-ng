@@ -154,6 +154,10 @@ class ElfUnpackParser(UnpackParser):
         metadata['machine_name'] = self.data.header.machine.name
         metadata['machine'] = self.data.header.machine.value
 
+        # store the ABI, both numerical and pretty printed
+        metadata['abi_name'] = self.data.abi.name
+        metadata['abi'] = self.data.abi.value
+
         metadata['security'] = []
         if self.data.header.section_names is not None:
             metadata['section_names'] = self.data.header.section_names.entries
