@@ -108,13 +108,17 @@ class ElfUnpackParser(UnpackParser):
         # descriptor of the backing file. Therefore, we need to specify self.offset here
         os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset, self.unpacked_size)
         outfile.close()
+
+        (labels, metadata) = self.extract_metadata_and_labels()
+
         self.unpack_results.add_label('unpacked')
-        out_labels = self.unpack_results.get_labels() + ['unpacked']
+        out_labels = self.unpack_results.get_labels() + ['unpacked'] + labels
         fr = FileResult(self.fileresult, rel_output_path, set(out_labels))
+        fr.set_metadata(metadata)
         self.unpack_results.add_unpacked_file( fr )
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
+    def extract_metadata_and_labels(self):
+        '''Extract metadata from the ELF file and set labels'''
         labels = [ 'elf' ]
         metadata = {}
         string_cutoff_length = 4
@@ -498,6 +502,10 @@ class ElfUnpackParser(UnpackParser):
             labels.append('dynamic')
         else:
             labels.append('static')
+        return(labels, metadata)
 
+    def set_metadata_and_labels(self):
+        """sets metadata and labels for the unpackresults"""
+        (labels, metadata) = self.extract_metadata_and_labels()
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
