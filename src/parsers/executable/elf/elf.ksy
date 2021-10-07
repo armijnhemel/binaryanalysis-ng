@@ -769,6 +769,9 @@ enums:
     0x10: fenixos # The FenixOS highly scalable multi-core OS
     0x11: cloudabi # Nuxi CloudABI
     0x12: openvos # Stratus Technologies OpenVOS
+    0x40: arm_eabi # ARM EABI
+    0x61: arm # ARM
+    0xff: standalone # Standalone (embedded) application
   # e_type
   obj_type:
     # ET_NONE
