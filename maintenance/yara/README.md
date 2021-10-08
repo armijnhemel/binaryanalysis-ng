@@ -5,6 +5,49 @@ This directory contains scripts to generate YARA rules. There are two scripts
 1. script to generate YARA rules from source code
 2. script to generate YARA rules from BANG results
 
+## When to use which processor
+
+There are situations where it is better to use rules generated from source
+code than rules generated from binaries.
+
+The benefit of generating rules from binaries is that you do not need to
+have access to the source code to create YARA files. The drawback is that
+not every binary is well suited for this, due to how the binaries are
+created or processed.
+
+It seems to work really well for the vast majority of ELF dynamically
+binaries but not for for example Dalvik `.dex`
+files.
+
+### Dynamically linked ELF binaries
+
+Dynamically linked ELF binaries are created from object files that are
+in turned created from source code files. Dependencies (like third parties)
+typically do not end up in the dynamically linked ELF file (although there
+are of course exceptions, for example when there is a complete copy of
+third party software included in the package), so the separation between
+package and third party code tends to be clean. Information extracted from
+binaries in a package usually is from just that package.
+
+### Android Dex files
+
+For Android Dex files it is much more difficult to make a good match using
+rules generated from binaries, as Dex files are much closer to statically
+linked files: you will find a lot dependencies included in the `classes.dex`
+files that cannot be found in the source code of a project, but can be found
+in the dependencies.
+
+By default many programs are also obfuscated or shrunk by Android tools
+such as Android Studio:
+
+<https://developer.android.com/studio/build/shrink-code>
+
+which advertises obfuscation of class names and method names as a feature.
+
+This makes rules generated from `.dex` files not suited. It is much better
+to create rules from source code and focus on other identifiers, such as
+strings embedded in `.dex` files.
+
 ## Source code processor (TODO)
 
 The script takes source code archives, unpacks them, extracts data using
@@ -15,36 +58,6 @@ The script takes source code archives, unpacks them, extracts data using
 The script takes result files of BANG scans (for example: Debian archive
 files) and creates YARA files. Optionally it can use a list of low quality
 identifiers that can be filtered to make the YARA rules simpler.
-
-### Pros and cons of generating YARA rules from binaries
-
-There are benefits to generating YARA rules from binaries, but also drawbacks,
-depending on the type of binary. It seems to work really well for the vast
-majority of ELF dynamically binaries but not for for example Dalvik `.dex`
-files.
-
-#### Dynamically linked ELF binaries
-
-Dynamically linked ELF binaries are created from object files that are
-in turned created from source code files. Dependencies (like third parties)
-typically do not end up in the dynamically linked ELF file (although there
-are of course exceptions, for example when there is a complete copy of
-third party software included in the package), so the separation between
-package and third party code tends to be clean. Information extracted from
-binaries in a package usually is from just that package.
-
-#### Android Dex files
-
-For Android Dex files it is much more difficult to make a good match using
-rules generated from binaries, as Dex files are much closer to statically
-linked files: you will find a lot dependencies included in the `classes.dex`
-files that cannot be found in the source code of a project, but can be found
-in the dependencies.
-
-This makes rules generated from `.dex` files good for recognizing those
-particular files but not packages (because of all the dependencies that
-are included in the binary). It is much better to create rules from source
-code for `.dex` files.
 
 ### Running BANG to extract identifiers
 
