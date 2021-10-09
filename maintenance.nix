@@ -13,7 +13,6 @@ let
     psycopg2
     puremagic
     pytest
-    python-ctags3
     pyyaml
     requests
     telfhash
