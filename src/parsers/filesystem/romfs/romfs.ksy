@@ -55,11 +55,11 @@ types:
         value: next_fileheader_and_flags & 4294967280
       executable:
         value: next_fileheader_and_flags & 8 == 8
-      mode_info:
+      filetype:
         value: next_fileheader_and_flags & 7
-        enum: filetype
+        enum: filetypes
 enums:
-  filetype:
+  filetypes:
     0: hardlink
     1: directory
     2: regular_file
