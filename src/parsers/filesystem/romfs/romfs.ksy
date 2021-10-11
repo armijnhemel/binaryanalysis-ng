@@ -1,7 +1,7 @@
 meta:
   id: romfs
   title: romfs
-  license: GPL-2.0
+  license: GPL-2.0-or-later
   encoding: ASCII
   endian: be
 doc-ref: https://www.kernel.org/doc/Documentation/filesystems/romfs.rst
