@@ -27,7 +27,7 @@ types:
       - id: files
         type: fileheader
         repeat: until
-        repeat-until: _.next_fileheader == 0 or _io.eof
+        repeat-until: _io.eof
   fileheader:
     seq:
       - id: next_fileheader_and_flags
