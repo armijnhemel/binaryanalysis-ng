@@ -129,12 +129,15 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
 
         unpack_dir = tempfile.TemporaryDirectory(dir=temporary_directory)
         tar_archive = source_directory / archive
-        if tarfile.is_tarfile(tar_archive):
-            try:
-                tarchive = tarfile.open(name=tar_archive)
-                members = tarchive.getmembers()
-            except Exception as e:
-                return
+        if not tarfile.is_tarfile(tar_archive):
+            yaraqueue.task_done()
+            continue
+        try:
+            tarchive = tarfile.open(name=tar_archive)
+            members = tarchive.getmembers()
+        except Exception as e:
+            yaraqueue.task_done()
+            continue
 
         identifiers_per_language = {}
 
