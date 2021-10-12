@@ -22,6 +22,8 @@ import shutil
 import hashlib
 import subprocess
 import datetime
+import multiprocessing
+import queue
 
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
@@ -117,104 +119,127 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
     return yara_file.name
 
 
-def unpack_archive(temporary_directory, source_directory, archive, yara_env):
+def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_output_directory, yara_env):
     '''Unpack an archive based on extension and extract identifiers'''
-    unpack_dir = tempfile.TemporaryDirectory(dir=temporary_directory)
-    tar_archive = source_directory / archive
-    if tarfile.is_tarfile(tar_archive):
-        try:
-            tarchive = tarfile.open(name=tar_archive)
-            members = tarchive.getmembers()
-        except Exception as e:
-            return
 
-    identifiers_per_language = {}
+    while True:
+        archive = yaraqueue.get()
 
-    for m in members:
-        extract_file = pathlib.Path(m.name)
-        if extract_file.suffix.lower() in SRC_EXTENSIONS:
-            if extract_file.suffix.lower() in C_SRC_EXTENSIONS:
-                language = 'c'
-                if 'c' not in identifiers_per_language:
-                    identifiers_per_language['c'] = {}
-                    identifiers_per_language['c']['strings'] = set()
-                    identifiers_per_language['c']['functions'] = set()
-                    identifiers_per_language['c']['variables'] = set()
-            elif extract_file.suffix.lower() in JAVA_SRC_EXTENSIONS:
-                language = 'java'
-                if 'java' not in identifiers_per_language:
-                    identifiers_per_language['java'] = {}
-                    identifiers_per_language['java']['strings'] = set()
-                    identifiers_per_language['java']['functions'] = set()
-                    identifiers_per_language['java']['variables'] = set()
+        unpack_dir = tempfile.TemporaryDirectory(dir=temporary_directory)
+        tar_archive = source_directory / archive
+        if tarfile.is_tarfile(tar_archive):
+            try:
+                tarchive = tarfile.open(name=tar_archive)
+                members = tarchive.getmembers()
+            except Exception as e:
+                return
 
-            # some path sanity checks (TODO: add more checks)
-            if extract_file.is_absolute():
-                pass
-            else:
-                member = tarchive.extractfile(m)
+        identifiers_per_language = {}
 
-                # first run xgettext
-                p = subprocess.Popen(['xgettext', '-a', '-o', '-', '--omit-header', '-'],
-                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE)
-                (stdout, stderr) = p.communicate(member.read())
+        for m in members:
+            extract_file = pathlib.Path(m.name)
+            if extract_file.suffix.lower() in SRC_EXTENSIONS:
+                if extract_file.suffix.lower() in C_SRC_EXTENSIONS:
+                    language = 'c'
+                    if 'c' not in identifiers_per_language:
+                        identifiers_per_language['c'] = {}
+                        identifiers_per_language['c']['strings'] = set()
+                        identifiers_per_language['c']['functions'] = set()
+                        identifiers_per_language['c']['variables'] = set()
+                elif extract_file.suffix.lower() in JAVA_SRC_EXTENSIONS:
+                    language = 'java'
+                    if 'java' not in identifiers_per_language:
+                        identifiers_per_language['java'] = {}
+                        identifiers_per_language['java']['strings'] = set()
+                        identifiers_per_language['java']['functions'] = set()
+                        identifiers_per_language['java']['variables'] = set()
 
-                if p.returncode == 0 and stdout != b'':
-                    # process the output of standard out
-                    lines = stdout.splitlines()
-                    in_msg_id = False
-                    msg_id = ''
-                    for line in lines:
-                        if line.strip() == b'':
-                            continue
-                        if line.startswith(b'#'):
-                            # skip comments, hints, etc.
-                            continue
-                        try:
-                            decoded_line = line.decode()
-                            if decoded_line.startswith('msgid '):
-                                msg_id += decoded_line[7:-1]
-                                in_msg_id = True
-                            elif decoded_line.startswith('msgstr '):
-                                if len(msg_id) >= yara_env['string_min_cutoff'] and len(msg_id) <= yara_env['string_max_cutoff']:
-                                    identifiers_per_language[language]['strings'].add(msg_id)
-                                msg_id = ''
-                                in_msg_id = False
-                            else:
-                                if in_msg_id:
-                                    msg_id += decoded_line[1:-1]
-                                    pass
-                        except:
-                            pass
-                    if len(msg_id) >= yara_env['string_min_cutoff'] and len(msg_id) <= yara_env['string_max_cutoff']:
-                        identifiers_per_language[language]['strings'].add(msg_id)
+                # some path sanity checks (TODO: add more checks)
+                if extract_file.is_absolute():
+                    pass
+                else:
+                    member = tarchive.extractfile(m)
 
-                # then run ctags. Unfortunately ctags cannot process
-                # information from stdin so the file has to be extracted first
-                tarchive.extract(m, path=unpack_dir.name)
-                p = subprocess.Popen(['ctags', '-x', '-f', '-', unpack_dir.name / extract_file ],
-                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE)
-                (stdout, stderr) = p.communicate()
-                if p.returncode == 0 and stdout != b'':
-                    lines = stdout.splitlines()
-                    for line in lines:
-                        try:
-                            ctags_name, ctags_type = (line.decode().split(maxsplit=2))[:2]
-                            if len(ctags_name) < yara_env['identifier_cutoff']:
+                    # first run xgettext
+                    p = subprocess.Popen(['xgettext', '-a', '-o', '-', '--omit-header', '-'],
+                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+                    (stdout, stderr) = p.communicate(member.read())
+
+                    if p.returncode == 0 and stdout != b'':
+                        # process the output of standard out
+                        lines = stdout.splitlines()
+                        in_msg_id = False
+                        msg_id = ''
+                        for line in lines:
+                            if line.strip() == b'':
                                 continue
-                            if ctags_type == 'field':
-                                identifiers_per_language[language]['variables'].add(ctags_name)
-                            elif ctags_type == 'variable':
-                                # Kotlin uses variables, not fields
-                                identifiers_per_language[language]['variables'].add(ctags_name)
-                            elif ctags_type == 'method':
-                                identifiers_per_language[language]['functions'].add(ctags_name)
-                        except:
+                            if line.startswith(b'#'):
+                                # skip comments, hints, etc.
+                                continue
+                            try:
+                                decoded_line = line.decode()
+                                if decoded_line.startswith('msgid '):
+                                    msg_id += decoded_line[7:-1]
+                                    in_msg_id = True
+                                elif decoded_line.startswith('msgstr '):
+                                    if len(msg_id) >= yara_env['string_min_cutoff'] and len(msg_id) <= yara_env['string_max_cutoff']:
+                                        identifiers_per_language[language]['strings'].add(msg_id)
+                                    msg_id = ''
+                                    in_msg_id = False
+                                else:
+                                    if in_msg_id:
+                                        msg_id += decoded_line[1:-1]
+                                        pass
+                            except:
                                 pass
+                        if len(msg_id) >= yara_env['string_min_cutoff'] and len(msg_id) <= yara_env['string_max_cutoff']:
+                            identifiers_per_language[language]['strings'].add(msg_id)
 
-    return identifiers_per_language
+                    # then run ctags. Unfortunately ctags cannot process
+                    # information from stdin so the file has to be extracted first
+                    tarchive.extract(m, path=unpack_dir.name)
+                    p = subprocess.Popen(['ctags', '-x', '-f', '-', unpack_dir.name / extract_file ],
+                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+                    (stdout, stderr) = p.communicate()
+                    if p.returncode == 0 and stdout != b'':
+                        lines = stdout.splitlines()
+                        for line in lines:
+                            try:
+                                ctags_name, ctags_type = (line.decode().split(maxsplit=2))[:2]
+                                if len(ctags_name) < yara_env['identifier_cutoff']:
+                                    continue
+                                if ctags_type == 'field':
+                                    identifiers_per_language[language]['variables'].add(ctags_name)
+                                elif ctags_type == 'variable':
+                                    # Kotlin uses variables, not fields
+                                    identifiers_per_language[language]['variables'].add(ctags_name)
+                                elif ctags_type == 'method':
+                                    identifiers_per_language[language]['functions'].add(ctags_name)
+                            except:
+                                    pass
+
+        for language in identifiers_per_language:
+            # TODO: name is actually not correct, as it assumes
+            # there is only one binary with that particular name
+            # inside a package.
+            metadata= {}
+            metadata['name'] = archive.name
+            metadata['sha256'] = ""
+            metadata['package'] = archive.name
+            metadata['language'] = language
+
+            strings = identifiers_per_language[language]['strings']
+            variables = identifiers_per_language[language]['variables']
+            functions = identifiers_per_language[language]['functions']
+
+            if not (strings == set() and variables == set() and functions == set()):
+                yara_tags = yara_env['tags'] + [language]
+                yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags)
+
+        yaraqueue.task_done()
+        #return identifiers_per_language
 
 
 def main():
@@ -334,6 +359,11 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
+    threads = multiprocessing.cpu_count()
+    if 'threads' in config['general']:
+        if isinstance(config['general']['threads'], int):
+            threads = config['general']['threads']
+
     string_min_cutoff = 8
     if 'string_min_cutoff' in config['yara']:
         if isinstance(config['yara']['string_min_cutoff'], int):
@@ -361,6 +391,12 @@ def main():
                 'identifier_cutoff': identifier_cutoff,
                 'tags': tags, 'max_identifiers': max_identifiers}
 
+    processmanager = multiprocessing.Manager()
+
+    # create a queue for scanning files
+    yaraqueue = processmanager.JoinableQueue(maxsize=0)
+    processes = []
+
     # get a list of archives, with associated metadata (purl) and then:
     # 1. unpack the archive
     # 2. walk all the files
@@ -369,25 +405,26 @@ def main():
     # 5. generate YARA rules
     # walk the results directory
     for archive in source_directory.iterdir():
-        identifiers_per_language = unpack_archive(temporary_directory, source_directory, archive, yara_env)
+        yaraqueue.put(archive)
 
-        for language in identifiers_per_language:
-            # TODO: name is actually not correct, as it assumes
-            # there is only one binary with that particular name
-            # inside a package.
-            metadata= {}
-            metadata['name'] = archive.name
-            metadata['sha256'] = ""
-            metadata['package'] = archive.name
-            metadata['language'] = language
+    # create processes for unpacking archives
+    for i in range(0, threads):
+        process = multiprocessing.Process(target=extract_identifiers,
+                                          args=(yaraqueue, temporary_directory,
+                                                source_directory, yara_output_directory,
+                                                yara_env))
+        processes.append(process)
 
-            strings = identifiers_per_language[language]['strings']
-            variables = identifiers_per_language[language]['variables']
-            functions = identifiers_per_language[language]['functions']
+    # start all the processes
+    for process in processes:
+        process.start()
 
-            if not (strings == set() and variables == set() and functions == set()):
-                yara_tags = yara_env['tags'] + [language]
-                yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags)
+    yaraqueue.join()
+
+    # Done processing, terminate processes
+    for process in processes:
+        process.terminate()
+
 
 if __name__ == "__main__":
     main()
