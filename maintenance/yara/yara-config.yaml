@@ -22,7 +22,8 @@ database:
     # postgresql_port: 5432
 general:
     # directory for unpacking. By default this is /tmp or
-    # whatever the default set by the system is.
+    # whatever the default set by the system is (for example
+    # /run/user/$UID/
     # tempdir: /tmp
     # threads: 0
     verbose: true
