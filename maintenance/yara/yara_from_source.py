@@ -46,6 +46,7 @@ C_SRC_EXTENSIONS = ['.c', '.cc', '.cpp', '.cxx', '.c++', '.h', '.hh', '.hpp',
                     '.dtsi', ]
 
 JAVA_SRC_EXTENSIONS = ['.java', '.jsp', '.groovy', '.scala', '.kt']
+JAVASCRIPT_SRC_EXTENSIONS = ['.js', '.dart']
 
 SRC_EXTENSIONS = C_SRC_EXTENSIONS + JAVA_SRC_EXTENSIONS
 
