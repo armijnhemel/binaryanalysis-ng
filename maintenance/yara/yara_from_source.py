@@ -122,16 +122,13 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
 
 
 def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_output_directory, yara_env):
-    '''Unpack an archive based on extension and extract identifiers'''
+    '''Unpack a tar archive based on extension and extract identifiers'''
 
     while True:
         archive = yaraqueue.get()
 
         unpack_dir = tempfile.TemporaryDirectory(dir=temporary_directory)
         tar_archive = source_directory / archive
-        if not tarfile.is_tarfile(tar_archive):
-            yaraqueue.task_done()
-            continue
         try:
             tarchive = tarfile.open(name=tar_archive)
             members = tarchive.getmembers()
@@ -395,6 +392,9 @@ def main():
 
     # walk the archives directory
     for archive in source_directory.iterdir():
+        tar_archive = source_directory / archive
+        if not tarfile.is_tarfile(tar_archive):
+            continue
         yaraqueue.put(archive)
 
     # create processes for unpacking archives
