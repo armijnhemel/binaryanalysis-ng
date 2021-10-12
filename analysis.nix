@@ -15,7 +15,6 @@ let
     parameterized
     pdfminer
     psycopg2
-    puremagic
     pytest
     pyyaml
     tinycss2

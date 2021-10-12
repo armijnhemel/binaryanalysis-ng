@@ -19,7 +19,6 @@ let
     pefile
     pillow
     protobuf
-    puremagic
     pyaxmlparser
     pytest
     python-snappy

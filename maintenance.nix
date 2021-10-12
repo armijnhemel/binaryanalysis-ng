@@ -11,7 +11,6 @@ let
     defusedxml
     packageurl-python
     psycopg2
-    puremagic
     pytest
     pyyaml
     requests
