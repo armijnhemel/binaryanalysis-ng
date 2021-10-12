@@ -139,10 +139,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
 
         identifiers_per_language = {}
 
-        pre_extracted = False
-        if len(members) > 10000:
-             tarchive.extractall(path=unpack_dir.name)
-             pre_extracted = True
+        tarchive.extractall(path=unpack_dir.name)
         for m in members:
             extract_file = pathlib.Path(m.name)
             if extract_file.suffix.lower() in SRC_EXTENSIONS:
@@ -165,10 +162,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                 if extract_file.is_absolute():
                     pass
                 else:
-                    if not pre_extracted:
-                        member = tarchive.extractfile(m)
-                    else:
-                        member = open(unpack_dir.name / extract_file, 'rb')
+                    member = open(unpack_dir.name / extract_file, 'rb')
 
                     # first run xgettext
                     p = subprocess.Popen(['xgettext', '-a', '-o', '-', '--no-wrap', '--omit-header', '-'],
@@ -198,8 +192,6 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
 
                     # then run ctags. Unfortunately ctags cannot process
                     # information from stdin so the file has to be extracted first
-                    if not pre_extracted:
-                        tarchive.extract(m, path=unpack_dir.name)
                     p = subprocess.Popen(['ctags', '--output-format=json', '-f', '-', unpack_dir.name / extract_file ],
                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE)
