@@ -226,6 +226,8 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                                     identifiers_per_language[language]['variables'].add(ctags_name)
                                 elif ctags_json['kind'] == 'method':
                                     identifiers_per_language[language]['functions'].add(ctags_name)
+                                elif ctags_json['kind'] == 'function':
+                                    identifiers_per_language[language]['functions'].add(ctags_name)
                             except:
                                     pass
 
