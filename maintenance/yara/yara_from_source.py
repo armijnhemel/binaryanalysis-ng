@@ -244,7 +244,6 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                 yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags)
 
         yaraqueue.task_done()
-        #return identifiers_per_language
 
 
 def main():
@@ -402,13 +401,7 @@ def main():
     yaraqueue = processmanager.JoinableQueue(maxsize=0)
     processes = []
 
-    # get a list of archives, with associated metadata (purl) and then:
-    # 1. unpack the archive
-    # 2. walk all the files
-    # 3. extract function names/variable names with ctags
-    # 4. extract strings with xgettext
-    # 5. generate YARA rules
-    # walk the results directory
+    # walk the archives directory
     for archive in source_directory.iterdir():
         yaraqueue.put(archive)
 
