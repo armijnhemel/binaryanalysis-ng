@@ -139,24 +139,36 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
 
         identifiers_per_language = {}
 
+        identifiers_per_language['c'] = {}
+        identifiers_per_language['c']['strings'] = set()
+        identifiers_per_language['c']['functions'] = set()
+        identifiers_per_language['c']['variables'] = set()
+
+        identifiers_per_language['java'] = {}
+        identifiers_per_language['java']['strings'] = set()
+        identifiers_per_language['java']['functions'] = set()
+        identifiers_per_language['java']['variables'] = set()
+
+        extracted = 0
+
+        for m in members:
+            extract_file = pathlib.Path(m.name)
+            if extract_file.suffix.lower() in SRC_EXTENSIONS:
+                extracted += 1
+                break
+
+        if extracted == 0:
+            yaraqueue.task_done()
+            continue
+
         tarchive.extractall(path=unpack_dir.name)
         for m in members:
             extract_file = pathlib.Path(m.name)
             if extract_file.suffix.lower() in SRC_EXTENSIONS:
                 if extract_file.suffix.lower() in C_SRC_EXTENSIONS:
                     language = 'c'
-                    if 'c' not in identifiers_per_language:
-                        identifiers_per_language['c'] = {}
-                        identifiers_per_language['c']['strings'] = set()
-                        identifiers_per_language['c']['functions'] = set()
-                        identifiers_per_language['c']['variables'] = set()
                 elif extract_file.suffix.lower() in JAVA_SRC_EXTENSIONS:
                     language = 'java'
-                    if 'java' not in identifiers_per_language:
-                        identifiers_per_language['java'] = {}
-                        identifiers_per_language['java']['strings'] = set()
-                        identifiers_per_language['java']['functions'] = set()
-                        identifiers_per_language['java']['variables'] = set()
 
                 # some path sanity checks (TODO: add more checks)
                 if extract_file.is_absolute():
