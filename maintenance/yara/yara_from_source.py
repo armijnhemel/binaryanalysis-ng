@@ -162,7 +162,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                     member = tarchive.extractfile(m)
 
                     # first run xgettext
-                    p = subprocess.Popen(['xgettext', '-a', '-o', '-', '--omit-header', '-'],
+                    p = subprocess.Popen(['xgettext', '-a', '-o', '-', '--no-wrap', '--omit-header', '-'],
                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE)
                     (stdout, stderr) = p.communicate(member.read())
@@ -170,8 +170,6 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                     if p.returncode == 0 and stdout != b'':
                         # process the output of standard out
                         lines = stdout.splitlines()
-                        in_msg_id = False
-                        msg_id = ''
                         for line in lines:
                             if line.strip() == b'':
                                 continue
@@ -181,21 +179,11 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                             try:
                                 decoded_line = line.decode()
                                 if decoded_line.startswith('msgid '):
-                                    msg_id += decoded_line[7:-1]
-                                    in_msg_id = True
-                                elif decoded_line.startswith('msgstr '):
+                                    msg_id = decoded_line[7:-1]
                                     if len(msg_id) >= yara_env['string_min_cutoff'] and len(msg_id) <= yara_env['string_max_cutoff']:
                                         identifiers_per_language[language]['strings'].add(msg_id)
-                                    msg_id = ''
-                                    in_msg_id = False
-                                else:
-                                    if in_msg_id:
-                                        msg_id += decoded_line[1:-1]
-                                        pass
                             except:
                                 pass
-                        if len(msg_id) >= yara_env['string_min_cutoff'] and len(msg_id) <= yara_env['string_max_cutoff']:
-                            identifiers_per_language[language]['strings'].add(msg_id)
 
                     # then run ctags. Unfortunately ctags cannot process
                     # information from stdin so the file has to be extracted first
