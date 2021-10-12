@@ -74,7 +74,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
 
     #yara_file = yara_directory / ("%s-%s.yara" % (metadata['package'], metadata['name']))
     # TODO: origin and package?
-    yara_file = yara_directory / ("%s.yara" % metadata['package'])
+    yara_file = yara_directory / ("%s-%s.yara" % (metadata['package'], metadata['language']))
     if tags == []:
         rule_name = 'rule rule_%s\n' % str(rule_uuid).translate(NAME_ESCAPE)
     else:
@@ -128,13 +128,26 @@ def unpack_archive(temporary_directory, source_directory, archive, yara_env):
         except Exception as e:
             return
 
-    strings = set()
-    functions = set()
-    variables = set()
+    identifiers_per_language = {}
 
     for m in members:
         extract_file = pathlib.Path(m.name)
         if extract_file.suffix.lower() in SRC_EXTENSIONS:
+            if extract_file.suffix.lower() in C_SRC_EXTENSIONS:
+                language = 'c'
+                if 'c' not in identifiers_per_language:
+                    identifiers_per_language['c'] = {}
+                    identifiers_per_language['c']['strings'] = set()
+                    identifiers_per_language['c']['functions'] = set()
+                    identifiers_per_language['c']['variables'] = set()
+            elif extract_file.suffix.lower() in JAVA_SRC_EXTENSIONS:
+                language = 'java'
+                if 'java' not in identifiers_per_language:
+                    identifiers_per_language['java'] = {}
+                    identifiers_per_language['java']['strings'] = set()
+                    identifiers_per_language['java']['functions'] = set()
+                    identifiers_per_language['java']['variables'] = set()
+
             # some path sanity checks (TODO: add more checks)
             if extract_file.is_absolute():
                 pass
@@ -165,7 +178,7 @@ def unpack_archive(temporary_directory, source_directory, archive, yara_env):
                                 in_msg_id = True
                             elif decoded_line.startswith('msgstr '):
                                 if len(msg_id) >= yara_env['string_min_cutoff'] and len(msg_id) <= yara_env['string_max_cutoff']:
-                                    strings.add(msg_id)
+                                    identifiers_per_language[language]['strings'].add(msg_id)
                                 msg_id = ''
                                 in_msg_id = False
                             else:
@@ -175,7 +188,7 @@ def unpack_archive(temporary_directory, source_directory, archive, yara_env):
                         except:
                             pass
                     if len(msg_id) >= yara_env['string_min_cutoff'] and len(msg_id) <= yara_env['string_max_cutoff']:
-                        strings.add(msg_id)
+                        identifiers_per_language[language]['strings'].add(msg_id)
 
                 # then run ctags. Unfortunately ctags cannot process
                 # information from stdin so the file has to be extracted first
@@ -185,26 +198,23 @@ def unpack_archive(temporary_directory, source_directory, archive, yara_env):
                                      stderr=subprocess.PIPE)
                 (stdout, stderr) = p.communicate()
                 if p.returncode == 0 and stdout != b'':
-                    if extract_file.suffix.lower() in C_SRC_EXTENSIONS:
-                        pass
-                    elif extract_file.suffix.lower() in JAVA_SRC_EXTENSIONS:
-                        lines = stdout.splitlines()
-                        for line in lines:
-                            try:
-                                ctags_name, ctags_type = (line.decode().split(maxsplit=2))[:2]
-                                if len(ctags_name) < yara_env['identifier_cutoff']:
-                                    continue
-                                if ctags_type == 'field':
-                                    variables.add(ctags_name)
-                                elif ctags_type == 'variable':
-                                    # Kotlin uses variables, not fields
-                                    variables.add(ctags_name)
-                                elif ctags_type == 'method':
-                                    functions.add(ctags_name)
-                            except:
+                    lines = stdout.splitlines()
+                    for line in lines:
+                        try:
+                            ctags_name, ctags_type = (line.decode().split(maxsplit=2))[:2]
+                            if len(ctags_name) < yara_env['identifier_cutoff']:
+                                continue
+                            if ctags_type == 'field':
+                                identifiers_per_language[language]['variables'].add(ctags_name)
+                            elif ctags_type == 'variable':
+                                # Kotlin uses variables, not fields
+                                identifiers_per_language[language]['variables'].add(ctags_name)
+                            elif ctags_type == 'method':
+                                identifiers_per_language[language]['functions'].add(ctags_name)
+                        except:
                                 pass
 
-    return (strings, functions, variables)
+    return identifiers_per_language
 
 
 def main():
@@ -359,19 +369,25 @@ def main():
     # 5. generate YARA rules
     # walk the results directory
     for archive in source_directory.iterdir():
-        (strings, functions, variables) = unpack_archive(temporary_directory, source_directory, archive, yara_env)
+        identifiers_per_language = unpack_archive(temporary_directory, source_directory, archive, yara_env)
 
-        # TODO: name is actually not correct, as it assumes
-        # there is only one binary with that particular name
-        # inside a package.
-        metadata= {}
-        metadata['name'] = archive.name
-        metadata['sha256'] = ""
-        metadata['package'] = archive.name
+        for language in identifiers_per_language:
+            # TODO: name is actually not correct, as it assumes
+            # there is only one binary with that particular name
+            # inside a package.
+            metadata= {}
+            metadata['name'] = archive.name
+            metadata['sha256'] = ""
+            metadata['package'] = archive.name
+            metadata['language'] = language
 
-        yara_tags = yara_env['tags']
-        yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags)
-        #break
+            strings = identifiers_per_language[language]['strings']
+            variables = identifiers_per_language[language]['variables']
+            functions = identifiers_per_language[language]['functions']
+
+            if not (strings == set() and variables == set() and functions == set()):
+                yara_tags = yara_env['tags'] + [language]
+                yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags)
 
 if __name__ == "__main__":
     main()
