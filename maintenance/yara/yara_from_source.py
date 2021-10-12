@@ -175,12 +175,20 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                     pass
                 else:
                     member = open(unpack_dir.name / extract_file, 'rb')
+                    member_data = member.read()
+                    member.close()
+                    member_hash = hashlib.new('sha256')
+                    member_hash.update(member_data)
+                    file_hash = member_hash.hexdigest()
+
+                    # TODO: lookup hash in some database to detect third
+                    # party/external components so they can be ignored
 
                     # first run xgettext
                     p = subprocess.Popen(['xgettext', '-a', '-o', '-', '--no-wrap', '--omit-header', '-'],
                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE)
-                    (stdout, stderr) = p.communicate(member.read())
+                    (stdout, stderr) = p.communicate(member_data)
 
                     if p.returncode == 0 and stdout != b'':
                         # process the output of standard out
