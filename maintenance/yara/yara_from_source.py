@@ -128,7 +128,6 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
     while True:
         archive = yaraqueue.get()
 
-        unpack_dir = tempfile.TemporaryDirectory(dir=temporary_directory)
         tar_archive = source_directory / archive
         try:
             tarchive = tarfile.open(name=tar_archive)
@@ -161,6 +160,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
             yaraqueue.task_done()
             continue
 
+        unpack_dir = tempfile.TemporaryDirectory(dir=temporary_directory)
         tarchive.extractall(path=unpack_dir.name)
         for m in members:
             extract_file = pathlib.Path(m.name)
@@ -247,6 +247,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                 yara_tags = yara_env['tags'] + [language]
                 yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags)
 
+        unpack_dir.cleanup()
         yaraqueue.task_done()
 
 
