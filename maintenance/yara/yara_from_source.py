@@ -12,6 +12,7 @@ This script processes source code archives and generates YARA rules
 
 import sys
 import os
+import re
 import uuid
 import argparse
 import pathlib
@@ -189,7 +190,9 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                                 if decoded_line.startswith('msgid '):
                                     msg_id = decoded_line[7:-1]
                                     if len(msg_id) >= yara_env['string_min_cutoff'] and len(msg_id) <= yara_env['string_max_cutoff']:
-                                        identifiers_per_language[language]['strings'].add(msg_id)
+                                        # ignore whitespace-only strings
+                                        if re.match(r'^\s+$', msg_id) is None:
+                                            identifiers_per_language[language]['strings'].add(msg_id)
                             except:
                                 pass
 
