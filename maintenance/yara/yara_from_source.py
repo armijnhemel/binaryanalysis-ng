@@ -24,6 +24,7 @@ import subprocess
 import datetime
 import multiprocessing
 import queue
+import json
 
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
@@ -199,7 +200,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                     # then run ctags. Unfortunately ctags cannot process
                     # information from stdin so the file has to be extracted first
                     tarchive.extract(m, path=unpack_dir.name)
-                    p = subprocess.Popen(['ctags', '-x', '-f', '-', unpack_dir.name / extract_file ],
+                    p = subprocess.Popen(['ctags', '--output-format=json', '-f', '-', unpack_dir.name / extract_file ],
                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE)
                     (stdout, stderr) = p.communicate()
@@ -207,15 +208,19 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                         lines = stdout.splitlines()
                         for line in lines:
                             try:
-                                ctags_name, ctags_type = (line.decode().split(maxsplit=2))[:2]
+                                ctags_json = json.loads(line)
+                            except Exception as e:
+                                continue
+                            try:
+                                ctags_name = ctags_json['name']
                                 if len(ctags_name) < yara_env['identifier_cutoff']:
                                     continue
-                                if ctags_type == 'field':
+                                if ctags_json['kind'] == 'field':
                                     identifiers_per_language[language]['variables'].add(ctags_name)
-                                elif ctags_type == 'variable':
+                                elif ctags_json['kind'] == 'variable':
                                     # Kotlin uses variables, not fields
                                     identifiers_per_language[language]['variables'].add(ctags_name)
-                                elif ctags_type == 'method':
+                                elif ctags_json['kind'] == 'method':
                                     identifiers_per_language[language]['functions'].add(ctags_name)
                             except:
                                     pass
