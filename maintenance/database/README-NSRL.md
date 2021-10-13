@@ -95,59 +95,59 @@ work. To disable this behaviour (NOT recommended) supply the `-t` flag:
 
 ## Statistics:
 
-Some statistics for a recent version of NSRL (2.60, March 2018):
+Some statistics for a recent version of NSRL (2.74, September 2021, modern applications only):
 
     bang=> \dt+
                              List of relations
      Schema |       Name        | Type  | Owner |  Size   | Description 
     --------+-------------------+-------+-------+---------+-------------
-     public | nsrl_entry        | table | bang  | 13 GB   | 
-     public | nsrl_hash         | table | bang  | 7477 MB | 
-     public | nsrl_manufacturer | table | bang  | 4208 kB | 
-     public | nsrl_os           | table | bang  | 104 kB  | 
-     public | nsrl_product      | table | bang  | 12 MB   | 
+     public | nsrl_entry        | table | bang  | 13 GB   |
+     public | nsrl_hash         | table | bang  | 5391 MB |
+     public | nsrl_manufacturer | table | bang  | 4944 kB |
+     public | nsrl_os           | table | bang  | 128 kB  |
+     public | nsrl_product      | table | bang  | 2184 kB |
     (5 rows)
     
     bang=> \di+
                                           List of relations
      Schema |          Name          | Type  | Owner |       Table       |  Size   | Description 
     --------+------------------------+-------+-------+-------------------+---------+-------------
-     public | nsrl_entry_sha1        | index | bang  | nsrl_entry        | 16 GB   | 
-     public | nsrl_hash_pkey         | index | bang  | nsrl_hash         | 5434 MB | 
-     public | nsrl_manufacturer_pkey | index | bang  | nsrl_manufacturer | 1976 kB | 
-     public | nsrl_os_pkey           | index | bang  | nsrl_os           | 48 kB   | 
-     public | nsrl_product_pkey      | index | bang  | nsrl_product      | 6720 kB | 
+     public | nsrl_entry_sha1        | index | bang  | nsrl_entry        | 12 GB   |
+     public | nsrl_hash_pkey         | index | bang  | nsrl_hash         | 2501 MB |
+     public | nsrl_manufacturer_pkey | index | bang  | nsrl_manufacturer | 2280 kB |
+     public | nsrl_os_pkey           | index | bang  | nsrl_os           | 72 kB   |
+     public | nsrl_product_pkey      | index | bang  | nsrl_product      | 552 kB  |
     (5 rows)
 
     bang=> select from nsrl_entry ;
     --
-    (179741841 rows)
+    (182824087 rows)
     
     bang=> select from nsrl_hash ;
     --
-    (62275938 rows)
+    (38320334 rows)
     
     bang=> select from nsrl_manufacturer ;
     --
-    (80636 rows)
+    (95343 rows)
     
     bang=> select from nsrl_os ;
     --
-    (1003 rows)
+    (1359 rows)
     
     bang=> select from nsrl_product ;
     --
-    (164295 rows)
+    (24372 rows)
 
 # Database design
 
 There are five tables, with the following schema:
 
     create table if not exists nsrl_hash(sha1 text, md5 text, crc32 text, filename text, primary key(sha1));
-    create table if not exists nsrl_entry(sha1 text, productcode int);
-    create table if not exists nsrl_manufacturer(manufacturercode int, manufacturername text, primary key(manufacturercode));
-    create table if not exists nsrl_os(oscode int, osname text, osversion text, manufacturercode int, primary key(oscode));
-    create table if not exists nsrl_product(productcode int, productname text, productversion text, manufacturercode int, applicationtype text, primary key(productcode));
+    create table if not exists nsrl_entry(sha1 text, product_code int);
+    create table if not exists nsrl_manufacturer(code int, name text, primary key(code));
+    create table if not exists nsrl_os(code int, name text, version text, manufacturer_code int, primary key(code));
+    create table if not exists nsrl_product(code int, name text, version text, manufacturer_code int, application_type text, primary key(code));
 
 The table `nsrl_entry` has an additional index:
 
