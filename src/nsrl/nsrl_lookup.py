@@ -114,12 +114,57 @@ def main(argv):
               file=sys.stderr)
         sys.exit(1)
 
+    conn = psycopg2.connect(database=postgresql_db, user=postgresql_user,
+                            password=postgresql_password,
+                            port=postgresql_port, host=postgresql_host)
+
+    cursor = conn.cursor()
+
     # process each entry in the BANG result and store the parent per name.
     for bang_result in bang_results['scantree']:
+        # ignore empty files as these appear often in NSRL
+        if 'empty' in bang_results['scantree'][bang_result]['labels']:
+            continue
+
+        # ignore padding
+        if 'padding' in bang_results['scantree'][bang_result]['labels']:
+            continue
+
         # retrieve the hash so we can open the result file
         if 'sha1' not in bang_results['scantree'][bang_result]['hash']:
             continue
         sha1 = bang_results['scantree'][bang_result]['hash']['sha1']
+
+        manufacturercache = {}
+
+        # get more results
+        cursor.execute("SELECT p.name, p.version, p.application_type, p.manufacturer_code FROM nsrl_product p, nsrl_entry e WHERE p.code = e.product_code AND e.sha1=%s;", (sha1,))
+        productres = cursor.fetchall()
+        conn.commit()
+        for p in productres:
+            # first create a result object
+            dbres = {}
+            (productname, productversion, applicationtype, manufacturercode) = p
+            if manufacturercode in manufacturercache:
+                manufacturer = manufacturercache[manufacturercode]
+            else:
+                cursor.execute("SELECT name FROM nsrl_manufacturer WHERE code=%s", (manufacturercode,))
+                manufacturerres = cursor.fetchone()
+                if manufacturerres is None:
+                    # this shouldn't happen
+                    conn.commit()
+                    return results
+                manufacturer = manufacturerres[0]
+                manufacturercache[manufacturercode] = manufacturer
+                conn.commit()
+            dbres['productname'] = productname
+            dbres['productversion'] = productversion
+            dbres['applicationtype'] = applicationtype
+            dbres['manufacturer'] = manufacturer
+
+            # print the result
+            print(bang_result, dbres)
+
 
 if __name__ == "__main__":
     main(sys.argv)
