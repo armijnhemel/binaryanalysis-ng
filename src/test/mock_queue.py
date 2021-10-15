@@ -4,6 +4,7 @@ class QueueEmptyError(Exception):
     pass
 
 class MockQueue:
+    Empty = QueueEmptyError
     def __init__(self):
         self.queue = collections.deque() #[]
     def get(self, timeout=0):
