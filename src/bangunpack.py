@@ -9572,6 +9572,15 @@ def unpack_compress(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize = 0
     unpackdir_full = scanenvironment.unpack_path(unpackdir)
 
+    if shutil.which('uncompress') is None:
+        if shutil.which('uncompress-ncompress') is None:
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'uncompress program not found'}
+            return {'status': False, 'error': unpackingerror}
+        uncompress = 'uncompress-ncompress'
+    else:
+        uncompress = 'uncompress'
+
     # open the file, skip the magic
     checkfile = open(filename_full, 'rb')
     checkfile.seek(offset+2)
@@ -9601,7 +9610,7 @@ def unpack_compress(fileresult, scanenvironment, offset, unpackdir):
     testdata = checkfile.read(1024)
 
     # ...and run 'uncompress' to see if anything can be compressed at all
-    p = subprocess.Popen(['uncompress'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen([uncompress], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (standard_out, standard_error) = p.communicate(testdata)
     if len(standard_out) == 0:
         checkfile.close()
