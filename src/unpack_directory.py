@@ -1,6 +1,7 @@
 import uuid
 import pickle
 import pathlib
+from contextlib import contextmanager
 
 class UnpackDirectory:
     REL_UNPACK_DIR = 'rel'
@@ -21,6 +22,7 @@ class UnpackDirectory:
             fn = uuid.uuid4().hex
         self._ud_path = pathlib.Path(fn)
         self._file_path = None
+        self._size = None
 
     @classmethod
     def from_ud_path(cls, unpack_root, name):
@@ -64,12 +66,33 @@ class UnpackDirectory:
         with p.open('w') as f:
             f.write(str(path))
 
+
+    @property
+    def abs_file_path(self):
+        return self._unpack_root / self.file_path
+
+    @property
+    def unpack_root(self):
+        return self._unpack_root
+
+    @property
+    def size(self):
+        '''returns the size of the file this is an unpack_directory for.'''
+        if self._size is None:
+            # get the size
+            # TODO: as a property,
+            # or if it does not have it, from the file itself
+            self._size = self.abs_file_path.stat().st_size
+
     @property
     def info(self):
         '''Accesses the file information stored in the unpack directory.'''
         path = self.abs_ud_path / 'info.pkl'
-        with path.open('rb') as f:
-            return pickle.load(f)
+        try:
+            with path.open('rb') as f:
+                return pickle.load(f)
+        except FileNotFoundError as e:
+            return {}
 
     @info.setter
     def info(self, data):
@@ -112,23 +135,52 @@ class UnpackDirectory:
         '''If the unpackparser remains with extra data after parsing, this method
         will store that data.
         '''
-        full_path = self._unpack_root / 'extra' / 'data'
+        full_path = self._unpack_root / self.ud_path / 'extra' / 'data'
         full_path.parent.mkdir(parents=True, exist_ok=True)
         with full_path.open('wb') as f:
             f.write(data)
         return full_path
 
-    def extract_data(self, offset, length, data):
-        '''If the file is scanned for content, then this method will extract any
-        data to the unpack_directory.
-        '''
-        # TODO: make context manager? e.g.
-        # with ud.extract_data(....) as f:
-        #     f.sendfile(...)
-        full_path = self._unpack_root / 'extracted' / f'{offset:012x}-{length:012x}'
+    @contextmanager
+    def obsoliet_open_extract_file(self, offset, size):
+        full_path = self._unpack_root / self.ud_path / 'extracted' / f'{offset:012x}-{size:012x}'
         full_path.parent.mkdir(parents=True, exist_ok=True)
-        with full_path.open('wb') as f:
-            f.write(data)
-        return full_path
+        f = full_path.open('wb')
+        try:
+            yield f
+        finally:
+            f.close()
 
+    def add_extracted_file(self, unpack_directory):
+        info = self.info
+        info.setdefault('extracted_files', {})[unpack_directory.file_path] = unpack_directory.ud_path
+        self.info = info
+
+    def extracted_filename(self, offset, size):
+        return self.ud_path / 'extracted' / f'{offset:012x}-{size:012x}'
+
+    @property
+    def extracted_files(self):
+        return self.info.get('extracted_files', {})
+        #info = self.info
+        #full_path = self._unpack_root / self.ud_path / 'extracted' 
+        #for extracted_path in full_path.iterdir():
+            #yield extracted_path
+
+    @property
+    def unpack_parser(self):
+        raise AttributeError('cannot read unpack parser')
+        # return self._unpack_parser
+
+    @unpack_parser.setter
+    def unpack_parser(self, unpack_parser):
+        self._unpack_parser = unpack_parser
+
+    def unpack_files(self):
+        if self._unpack_parser is None:
+            raise AttributeError('no unpack_parser available')
+        for fn in self._unpack_parser.unpack(self):
+            ud = UnpackDirectory(self.unpack_root, None, False)
+            ud.file_path = fn
+            yield ud
 

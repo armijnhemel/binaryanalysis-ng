@@ -71,6 +71,10 @@ def copy_testfile_to_environment(basedir, rel_path, scan_environment):
         pass
     shutil.copy(basedir / rel_path, unpacked_path)
 
+def parse_success(self):
+    self.unpacked_size = self.length
+    pass
+
 def parse_and_unpack_success(self):
     r = UnpackResults()
     fr = FileResult(self.fileresult, self.get_carved_filename(), set())
@@ -78,6 +82,9 @@ def parse_and_unpack_success(self):
     r.set_length(self.length)
     return r
     
+def parse_fail(self):
+    raise UnpackParserException("failing unpackparser")
+
 def parse_and_unpack_fail(self):
     raise UnpackParserException("failing unpackparser")
 
@@ -87,13 +94,16 @@ def create_unpackparser(name, fail = False,
         pretty_name = '', scan_if_featureless = False): 
     if fail:
         parse_and_unpack_method = parse_and_unpack_fail
+        parse_method = parse_fail
     else:
         parse_and_unpack_method = parse_and_unpack_success
+        parse_method = parse_success
     c = type(name, (UnpackParser,), {
                 'extensions': extensions,
                 'signatures': signatures,
                 'scan_if_featureless': scan_if_featureless,
                 'parse_and_unpack': parse_and_unpack_method,
+                'parse_from_offset': parse_method,
                 'pretty_name': pretty_name,
                 'length': length
             })
@@ -186,6 +196,7 @@ class UnpackParserZeroLength(UnpackParser):
     signatures = [(1,b'BB')]
 
     def parse(self):
+        self.unpacked_size = 0
         return
     def calculate_unpacked_size(self):
         return 0

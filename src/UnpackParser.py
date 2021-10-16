@@ -56,7 +56,12 @@ class UnpackParser:
     signatures = []
     scan_if_featureless = False
 
-    def __init__(self, fileresult, scan_environment, rel_unpack_dir, offset):
+    def __init__(self, input_file, offset):
+        '''Creates an UnpackParser that will read from input_file, starting at offset.'''
+        self.offset = offset
+        self.infile = OffsetInputFile(input_file, self.offset)
+
+    def x__init__(self, fileresult, scan_environment, rel_unpack_dir, offset):
         """Constructor. All constructor arguments are available as object
         fields of the same name.
         """
@@ -66,12 +71,14 @@ class UnpackParser:
         self.scan_environment = scan_environment
         self.rel_unpack_dir = rel_unpack_dir
         self.offset = offset
+
     def parse(self):
         """Override this method to implement parsing the file data. If there is
         a (non-fatal) error during the parsing, you should raise an
         UnpackParserException.
         """
         raise UnpackParserException("%s: undefined parse method" % self.__class__.__name__)
+
     def parse_from_offset(self):
         """Parses the data from a file pointed to by fileresult, starting from
         offset. Normally you do not need to override this.
@@ -81,11 +88,13 @@ class UnpackParser:
         self.calculate_unpacked_size()
         check_condition(self.unpacked_size > 0, 'Parser resulted in zero length file')
     def open(self):
+        '''obsolete, we need to pass an open file handle to the object.'''
         filename_full = self.scan_environment.get_unpack_path_for_fileresult(
                     self.fileresult)
         f = filename_full.open('rb')
         self.infile = OffsetInputFile(f, self.offset)
     def close(self):
+        '''obsolete, we need to pass an open file handle to the object.'''
         self.infile.close()
     def calculate_unpacked_size(self):
         """Override this to calculate the length of the file data that is
@@ -95,6 +104,11 @@ class UnpackParser:
         You must assign the length to self.unpacked_size.
         """
         self.unpacked_size = self.infile.tell()
+
+    @property
+    def parsed_size(self):
+        return self.unpacked_size
+
     def parse_and_unpack(self):
         """Parses the file and unpacks any contents into other files. Files are
         stored in the filesandlabels field of the self.unpack_results
@@ -131,6 +145,7 @@ class UnpackParser:
         outfile = open(abs_output_path, 'wb')
         # Although self.infile is an OffsetInputFile, fileno() will give the file
         # descriptor of the backing file. Therefore, we need to specify self.offset here
+        # note: does not work with mmapped files
         os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset, self.unpacked_size)
         outfile.close()
         self.unpack_results.add_label('unpacked')
@@ -141,14 +156,19 @@ class UnpackParser:
         """Override this method to set metadata and labels."""
         self.unpack_results.set_labels([])
         self.unpack_results.set_metadata({})
-    def unpack(self):
+
+    def unpack(self, unpack_directory):
         """Override this method to unpack any data into subfiles.
-        The filenames are relative to the unpack directory root that the
-        scan_environment points to (usually this is a file under unpack_dir).
-        Must return a list of FileResult objects.
+        The filenames will be stored in unpack_directory root.
+        {OBSOLETE, TODO, Must return a list of FileResult objects.}
         For (non-fatal) errors, you should raise a UnpackParserException.
         """
         return []
+
+    def write_info(self, unpack_directory):
+        '''write any file info or metadata to the unpack_directory.'''
+        unpack_directory.info = {}
+
     @classmethod
     def is_valid_extension(cls, ext):
         return ext in cls.extensions
@@ -203,6 +223,18 @@ class WrappedUnpackParser(UnpackParser):
         unpack_results.set_metadata(r.get('metadata', {}))
         return unpack_results
 
+class SynthesizingParser(UnpackParser):
+    @classmethod
+    def with_size(cls, input_file, offset, size):
+        o = cls(input_file, offset)
+        o.unpacked_size = size
+        return o
+
+    def parse_from_offset(self):
+        pass
+
+    def parse(self):
+        pass
 
 def check_condition(condition, message):
     """semantic check function to see if condition is True.
