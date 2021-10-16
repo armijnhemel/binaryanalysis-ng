@@ -53,7 +53,7 @@ class DlinkRomfsUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
 
         # first reconstruct all the paths, before writing any data

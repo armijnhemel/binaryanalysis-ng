@@ -47,7 +47,7 @@ class DfuUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         target_counter = 1
         for target in self.data.targets:

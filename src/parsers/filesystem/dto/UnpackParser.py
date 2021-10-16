@@ -60,7 +60,7 @@ class AndroidDtoUnpacker(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         dtb_counter = 1
         for i in self.data.entries:

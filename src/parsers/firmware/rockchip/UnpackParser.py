@@ -62,7 +62,7 @@ class RockchipUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
 
         if self.data.magic == 'RKFW':

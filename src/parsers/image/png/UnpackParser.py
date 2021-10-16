@@ -98,7 +98,7 @@ class PngUnpackParser(UnpackParser):
         check_condition('IEND' in self.chunknames,
                         "IEND section missing")
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         """extract any files from the input file"""
         return []
     def set_metadata_and_labels(self):

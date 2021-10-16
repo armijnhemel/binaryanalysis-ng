@@ -69,7 +69,7 @@ class PeClassUnpackParser(UnpackParser):
         # to get this information from the PE headers, so other
         # tricks need to be found. TODO.
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         """extract any files from the input file"""
         return []
 

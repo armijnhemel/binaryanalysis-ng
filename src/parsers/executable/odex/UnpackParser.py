@@ -55,7 +55,7 @@ class OdexUnpackParser(WrappedUnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         # write dex
         unpacked_files = []
         out_labels = []

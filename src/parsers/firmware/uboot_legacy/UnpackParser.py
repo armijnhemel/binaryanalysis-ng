@@ -85,7 +85,7 @@ class UbootLegacyUnpackParser(UnpackParser):
         except:
             pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         # set the name of the image. If the name of the image is
         # an empty string hardcode a name based

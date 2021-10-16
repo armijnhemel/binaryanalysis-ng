@@ -58,7 +58,7 @@ class AndroidMsmBootldrUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         cur_offset = self.data.ofs_img_bodies
         for entry in self.data.img_headers:

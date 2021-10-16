@@ -49,7 +49,7 @@ class WavUnpackParser(WrappedUnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         """extract any files from the input file"""
         return []
     def set_metadata_and_labels(self):

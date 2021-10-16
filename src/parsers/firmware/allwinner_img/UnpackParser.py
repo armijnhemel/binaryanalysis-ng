@@ -55,7 +55,7 @@ class AllwinnerUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         for entry in self.data.file_headers:
             out_labels = []

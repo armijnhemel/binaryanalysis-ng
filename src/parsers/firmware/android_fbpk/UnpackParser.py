@@ -48,7 +48,7 @@ class AndroidFbpkUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         seen_partitions = set()
         for entry in self.data.entries:

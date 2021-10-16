@@ -41,7 +41,7 @@ class TarUnpackParser(UnpackParser):
             outfile.write(tar_reader.read())
             outfile.close()
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         for tarinfo in self.tarinfos:
             file_path = pathlib.Path(tarinfo.name)

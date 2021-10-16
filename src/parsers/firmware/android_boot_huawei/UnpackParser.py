@@ -54,7 +54,7 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         for entry in self.data.image_header.entries:
             if entry.len_body == 0:

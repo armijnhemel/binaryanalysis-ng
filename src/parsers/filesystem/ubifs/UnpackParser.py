@@ -55,7 +55,7 @@ class UbifsUnpackParser(UnpackParser):
     #def carve(self):
     #    pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
 
         # store the highest inode number

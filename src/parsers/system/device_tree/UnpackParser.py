@@ -69,7 +69,7 @@ class DeviceTreeUnpackParser(UnpackParser):
     # check if there are any file image tree images as described
     # here
     # https://elinux.org/images/f/f4/Elc2013_Fernandes.pdf
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         property_level = 0
         in_kernel = False

@@ -43,7 +43,7 @@ class RkCrcUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         out_labels = []
 

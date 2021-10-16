@@ -54,7 +54,7 @@ class MozillaMar(UnpackParser):
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.file_size
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         for entry in self.data.index.index_entries.index_entry:
             if entry.file_name == '':

@@ -18,7 +18,7 @@ class RarUnpackParser(UnpackParser):
             self.data = rar.Rar.from_io(self.infile)
         except (BaseException, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
-    def unpack(self):
+    def unpack(self, unpack_directory):
         return []
         # TODO: (?) for multifile rar only process the .rar file and let it
         # search for .r00, .r01 etc. (these must be written to disk before

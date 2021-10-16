@@ -69,7 +69,7 @@ class GptPartitionTableUnpackParser(UnpackParser):
         check_condition(self.unpacked_size <= self.fileresult.filesize,
                 "partition bigger than file")
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         partition_number = 0
         for e in self.data.primary.entries:

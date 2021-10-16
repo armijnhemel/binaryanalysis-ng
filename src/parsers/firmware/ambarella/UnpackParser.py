@@ -68,7 +68,7 @@ class AmbarellaUnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         # section to name, from:
         # http://web.archive.org/web/20140627194326/http://forum.dashcamtalk.com/threads/r-d-a7-r-d-thread.5119/page-2
         # post #28

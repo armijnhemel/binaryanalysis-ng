@@ -48,7 +48,7 @@ class SamsungTzarUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         out_labels = []
         for entry in self.data.entries:

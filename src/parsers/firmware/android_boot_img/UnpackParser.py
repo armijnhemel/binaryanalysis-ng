@@ -81,7 +81,7 @@ class AndroidImgUnpacker(WrappedUnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         # the android boot loader images don't have names recorded
         # for the different parts, so just hardcode these.
         kernel_name = 'kernel'

@@ -56,7 +56,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
         check_condition(self.unpacked_size >= 0x1be,
                 "invalid partition table: no partitions")
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         """extract any files from the input file"""
         unpacked_files = []
         partition_number = 0

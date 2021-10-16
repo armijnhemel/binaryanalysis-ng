@@ -51,7 +51,7 @@ class AndroidAsusBootUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         chunk_to_files = {'IFWI!!!!': 'ifwi.bin',
                           'DROIDBT!': 'droidboot.img',
                           'SPLASHS!': 'splashscreen.img'}

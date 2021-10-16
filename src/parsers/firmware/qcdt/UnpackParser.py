@@ -48,7 +48,7 @@ class QcdtUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         offset_to_entry = {}
         ctr = 1

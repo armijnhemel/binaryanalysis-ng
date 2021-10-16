@@ -69,7 +69,7 @@ class IcoUnpackParser(UnpackParser):
         for i in self.data.images:
             self.unpacked_size = max(self.unpacked_size, i.ofs_img + i.len_img)
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         """extract any files from the input file"""
         return []
 

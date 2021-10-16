@@ -70,7 +70,7 @@ class AndroidSparseUnpackParser(UnpackParser):
         check_condition(self.data.header.version.major == 1, "unsupported major version")
         check_condition(self.data.header.block_size % 4 == 0, "unsupported block size")
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         # there is only one file that needs to be unpacked/created
         unpacked_files = []
 

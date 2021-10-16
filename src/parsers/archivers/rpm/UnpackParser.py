@@ -82,7 +82,7 @@ class RpmUnpackParser(WrappedUnpackParser):
                 self.payload_format = i.body.values[0]
 
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         if self.payload_format != 'cpio':
             return(unpacked_files)

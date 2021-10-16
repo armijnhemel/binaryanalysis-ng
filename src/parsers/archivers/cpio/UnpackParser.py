@@ -99,7 +99,7 @@ class CpioBaseUnpackParser(UnpackParser):
         os.makedirs(outfile_full.parent, exist_ok=True)
         outfile_full.symlink_to(link_path)
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         pos = 0
         for e in self.data.entries:

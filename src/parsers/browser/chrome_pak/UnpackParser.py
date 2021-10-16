@@ -61,7 +61,7 @@ class ChromePakUnpackParser(UnpackParser):
         check_condition(self.data.header.resources[-1].offset <= self.fileresult.filesize,
                         "not enough data")
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         out_labels = []
         resources = self.data.header.resources

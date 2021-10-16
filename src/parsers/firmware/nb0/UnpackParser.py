@@ -57,7 +57,7 @@ class Nb0UnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         unpacked_files = []
         seen_partitions = set()
         for i in range(0, self.data.num_entries):

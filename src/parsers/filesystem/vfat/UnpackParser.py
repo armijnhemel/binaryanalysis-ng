@@ -81,7 +81,7 @@ class VfatUnpackParser(UnpackParser):
     def get_fat32_entry(self, n):
         return struct.unpack("<I", self.data.fats[0][4*n:4*n+4])[0] & 0x0fffffff
 
-    def unpack(self):
+    def unpack(self, unpack_directory):
         try:
             unpacked_files = [
                 x for x in self.unpack_directory(
