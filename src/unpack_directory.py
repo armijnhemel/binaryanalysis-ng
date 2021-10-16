@@ -83,6 +83,7 @@ class UnpackDirectory:
             # TODO: as a property,
             # or if it does not have it, from the file itself
             self._size = self.abs_file_path.stat().st_size
+        return self._size
 
     @property
     def info(self):
