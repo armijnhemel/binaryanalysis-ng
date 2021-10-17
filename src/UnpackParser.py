@@ -161,19 +161,18 @@ class UnpackParser:
         self.unpack_results.set_labels([])
         self.unpack_results.set_metadata({})
 
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         """Override this method to unpack any data into subfiles.
-        The filenames will be stored in unpack_directory root.
+        The filenames will be stored in meta_directory root.
         {OBSOLETE, TODO, Must return a list of FileResult objects.}
         For (non-fatal) errors, you should raise a UnpackParserException.
         """
         return []
 
-    def write_info(self, unpack_directory):
-        '''update any file info or metadata to the unpack_directory.
-        Be aware that unpack_directory.info may contain data already!
+    def write_info(self, meta_directory):
+        '''update any file info or metadata to the MetaDirectory.
+        Be aware that meta_directory.info may contain data already!
         '''
-        #unpack_directory.info = {}
         pass
 
     @classmethod
@@ -245,11 +244,11 @@ class SynthesizingParser(UnpackParser):
     def parse(self):
         pass
 
-    def write_info(self, unpack_directory):
+    def write_info(self, meta_directory):
         # write inf
-        info = unpack_directory.info
+        info = meta_directory.info
         info.setdefault('labels', []).append('synthesized')
-        unpack_directory.info = info
+        meta_directory.info = info
 
 
 class PaddingParser(UnpackParser):
@@ -278,18 +277,18 @@ class PaddingParser(UnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    def write_info(self, unpack_directory):
+    def write_info(self, meta_directory):
         if self.is_padding:
             # write inf
-            info = unpack_directory.info
+            info = meta_directory.info
             info.setdefault('labels', []).append('padding')
-            unpack_directory.info = info
+            meta_directory.info = info
 
 
 class ExtractingParser(UnpackParser):
     '''If a file is parsed and consists of more than one file extra data, we extract the files
-    into a new UnpackDirectory. If you want to record extra metadata for the parent
-    UnpackDirectory, assign this parser to it.
+    into a new MetaDirectory. If you want to record extra metadata for the parent
+    MetaDirectory, assign this parser to it.
     '''
     @classmethod
     def with_parts(cls, input_file, parts):
@@ -306,8 +305,8 @@ class ExtractingParser(UnpackParser):
     def parse(self):
         pass
 
-    def write_info(self, unpack_directory):
-        '''TODO: write any data about the parent UnpackDirectory here.'''
+    def write_info(self, meta_directory):
+        '''TODO: write any data about the parent MetaDirectory here.'''
         pass
 
 

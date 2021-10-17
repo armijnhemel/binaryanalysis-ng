@@ -3,7 +3,7 @@ import re
 import mmap
 import logging
 from operator import itemgetter
-from unpack_directory import *
+from meta_directory import *
 from UnpackParser import SynthesizingParser, ExtractingParser, PaddingParser
 from UnpackParserException import UnpackParserException
 import bangsignatures
@@ -11,16 +11,16 @@ import bangsignatures
 class ScanJob:
     def __init__(self, path):
         self._path = path
-        self._unpack_directory = None
+        self._meta_directory = None
 
     def set_scan_environment(self, scan_environment):
         self.scan_environment = scan_environment
 
     @property
-    def unpack_directory(self):
-        if self._unpack_directory is None:
-            self._unpack_directory = UnpackDirectory.from_ud_path(self.scan_environment.unpackdirectory, self._path)
-        return self._unpack_directory
+    def meta_directory(self):
+        if self._meta_directory is None:
+            self._meta_directory = MetaDirectory.from_md_path(self.scan_environment.unpackdirectory, self._path)
+        return self._meta_directory
 
 def is_unscannable(path):
     # TODO: do we want labels on unscannable files?
@@ -41,32 +41,32 @@ def is_padding(path):
             ispadding = c == b''
     return ispadding
 
-def extract_file(path_unpack_directory, in_file, offset, file_size):
-    extracted_path = path_unpack_directory.extracted_filename(offset, file_size)
-    abs_extracted_path = path_unpack_directory.unpack_root / extracted_path
+def extract_file(checking_meta_directory, in_file, offset, file_size):
+    extracted_path = checking_meta_directory.extracted_filename(offset, file_size)
+    abs_extracted_path = checking_meta_directory.meta_root / extracted_path
     abs_extracted_path.parent.mkdir(parents=True, exist_ok=True)
     with abs_extracted_path.open('wb') as extracted_file:
         os.sendfile(extracted_file.fileno(), in_file.fileno(), offset, file_size)
-    ud = UnpackDirectory(path_unpack_directory.unpack_root, None, False)
-    ud.file_path = extracted_path
-    path_unpack_directory.add_extracted_file(ud)
-    return ud
+    extracted_md = MetaDirectory(checking_meta_directory.meta_root, None, False)
+    extracted_md.file_path = extracted_path
+    checking_meta_directory.add_extracted_file(extracted_md)
+    return extracted_md
 
 
-def check_for_padding(path_unpack_directory):
-    with path_unpack_directory.abs_file_path.open('rb') as in_file:
+def check_for_padding(checking_meta_directory):
+    with checking_meta_directory.abs_file_path.open('rb') as in_file:
         try:
             unpack_parser = PaddingParser(in_file, 0)
             unpack_parser.parse_from_offset()
-            logging.debug(f'check_for_padding: size = {unpack_parser.parsed_size}/{path_unpack_directory.size}')
-            if unpack_parser.parsed_size == path_unpack_directory.size:
-                logging.debug(f'check_for_padding: yield {unpack_parser} for {path_unpack_directory.file_path}')
-                path_unpack_directory.unpack_parser = unpack_parser
-                yield path_unpack_directory
+            logging.debug(f'check_for_padding: size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
+            if unpack_parser.parsed_size == checking_meta_directory.size:
+                logging.debug(f'check_for_padding: yield {unpack_parser} for {checking_meta_directory.file_path}')
+                checking_meta_directory.unpack_parser = unpack_parser
+                yield checking_meta_directory
         except UnpackParserException as e:
             logging.debug(f'check_for_padding: parser exception: {e}')
 
-        logging.debug(f'check_for_padding: {path_unpack_directory.file_path} is not a padding file')
+        logging.debug(f'check_for_padding: {checking_meta_directory.file_path} is not a padding file')
 
 def find_extension_parsers(scan_environment, mapped_file):
     for ext, unpack_parsers in scan_environment.get_unpackparsers_for_extensions().items():
@@ -74,39 +74,39 @@ def find_extension_parsers(scan_environment, mapped_file):
             logging.debug(f'find_extension_parser: {ext!r} parsed by {unpack_parser_cls}')
             yield ext, unpack_parser_cls
 
-def check_by_extension(scan_environment, path_unpack_directory):
-    with path_unpack_directory.abs_file_path.open('rb') as in_file:
+def check_by_extension(scan_environment, checking_meta_directory):
+    with checking_meta_directory.abs_file_path.open('rb') as in_file:
         mapped_file = mmap.mmap(in_file.fileno(),0, access=mmap.ACCESS_READ)
         for ext, unpack_parser_cls in find_extension_parsers(scan_environment, mapped_file):
-            if bangsignatures.matches_file_pattern(path_unpack_directory.file_path, ext):
+            if bangsignatures.matches_file_pattern(checking_meta_directory.file_path, ext):
                 logging.debug(f'check_by_extension: {unpack_parser_cls} parses extension {ext}')
                 try:
                     unpack_parser = unpack_parser_cls(mapped_file, 0)
                     unpack_parser.parse_from_offset()
                     if unpack_parser.parsed_size == mapped_file.size():
                         logging.debug(f'check_by_extension: parser parsed entire file')
-                        path_unpack_directory.unpack_parser = unpack_parser
-                        yield path_unpack_directory
+                        checking_meta_directory.unpack_parser = unpack_parser
+                        yield checking_meta_directory
                     else:
                         logging.debug(f'check_by_extension: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{mapped_file.size()}] ({mapped_file.size() - unpack_parser.parsed_size} bytes)')
-                        # yield the path_unpack_directory with a ExtractingUnpackParser, in
+                        # yield the checking_meta_directory with a ExtractingUnpackParser, in
                         # case we want to record metadata about it.
-                        path_unpack_directory.unpack_parser = ExtractingParser.with_parts(
+                        checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
                             mapped_file,
                             [ (0,unpack_parser.parsed_size),
                             (unpack_parser.parsed_size, mapped_file.size() - unpack_parser.parsed_size) ]
                             )
-                        yield path_unpack_directory
+                        yield checking_meta_directory
 
                         # yield the matched part of the file
-                        ud = extract_file(path_unpack_directory, in_file, 0, unpack_parser.parsed_size)
-                        ud.unpack_parser = unpack_parser
-                        yield ud
+                        extracted_md = extract_file(checking_meta_directory, in_file, 0, unpack_parser.parsed_size)
+                        extracted_md.unpack_parser = unpack_parser
+                        yield extracted_md
 
                         # yield a synthesized file
-                        ud = extract_file(path_unpack_directory, in_file, unpack_parser.parsed_size, mapped_file.size() - unpack_parser.parsed_size)
-                        ud.unpack_parser = SynthesizingParser.with_size(mapped_file, unpack_parser.parsed_size, mapped_file.size() - unpack_parser.parsed_size)
-                        yield ud
+                        extracted_md = extract_file(checking_meta_directory, in_file, unpack_parser.parsed_size, mapped_file.size() - unpack_parser.parsed_size)
+                        extracted_md.unpack_parser = SynthesizingParser.with_size(mapped_file, unpack_parser.parsed_size, mapped_file.size() - unpack_parser.parsed_size)
+                        yield extracted_md
 
                         # stop after first successful extension parse
                         # TODO: make this configurable?
@@ -164,65 +164,64 @@ def scan_signatures(scan_environment, mapped_file):
         yield scan_offset, SynthesizingParser.with_size(mapped_file, offset, mapped_file.size() - scan_offset)
 
 
-def check_by_signature(scan_environment, path_unpack_directory):
+def check_by_signature(scan_environment, checking_meta_directory):
     # find offsets
-    with path_unpack_directory.abs_file_path.open('rb') as in_file:
+    with checking_meta_directory.abs_file_path.open('rb') as in_file:
         mapped_file = mmap.mmap(in_file.fileno(),0, access=mmap.ACCESS_READ)
         parts = [] # record the parts for the ExtractingParser
         for offset, unpack_parser in scan_signatures(scan_environment, mapped_file):
             logging.debug(f'check_by_signature: got match at {offset}: {unpack_parser} length {unpack_parser.parsed_size}')
-            if offset == 0 and unpack_parser.parsed_size == path_unpack_directory.size:
+            if offset == 0 and unpack_parser.parsed_size == checking_meta_directory.size:
                 # no need to extract a subfile
-                path_unpack_directory.unpack_parser = unpack_parser
-                yield path_unpack_directory
+                checking_meta_directory.unpack_parser = unpack_parser
+                yield checking_meta_directory
             else:
-                ud = extract_file(path_unpack_directory, in_file, offset, unpack_parser.parsed_size)
-                ud.unpack_parser = unpack_parser
-                yield ud
+                extracted_md = extract_file(checking_meta_directory, in_file, offset, unpack_parser.parsed_size)
+                extracted_md.unpack_parser = unpack_parser
+                yield extracted_md
                 parts.append((offset, unpack_parser.parsed_size))
             # yield ExtractingParser
             if parts != []:
-                path_unpack_directory.unpack_parser = ExtractingParser.with_parts(mapped_file, parts)
-                yield path_unpack_directory
+                checking_meta_directory.unpack_parser = ExtractingParser.with_parts(mapped_file, parts)
+                yield checking_meta_directory
 
 def process_job(scanjob):
-    # scanjob has: path, unpack_directory object and context
-    unpack_directory = scanjob.unpack_directory
+    # scanjob has: path, meta_directory object and context
+    meta_directory = scanjob.meta_directory
 
-    if is_unscannable(unpack_directory.file_path):
+    if is_unscannable(meta_directory.file_path):
         return
 
-    # if scanjob.context_is_padding(unpack_directory.context): return
-    for ud in check_for_padding(unpack_directory):
-        # TODO: implement processing from r.unpack_parser (PaddingParser)
-        logging.debug(f'process padding file in {ud} with {ud.unpack_parser}')
-        ud.unpack_parser.write_info(ud)
+    # if scanjob.context_is_padding(meta_directory.context): return
+    for md in check_for_padding(meta_directory):
+        logging.debug(f'process padding file in {md} with {md.unpack_parser}')
+        md.unpack_parser.write_info(md)
         return # skip padding file by returning
 
-    for ud in check_by_extension(scanjob.scan_environment, unpack_directory):
-        logging.debug(f'process_job: analyzing {ud.file_path} into {ud.ud_path} with {ud.unpack_parser}')
-        # ud is an unpack_directory
+    for md in check_by_extension(scanjob.scan_environment, meta_directory):
+        logging.debug(f'process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
+        # md is an meta_directory
         # unpackdirectory has files to unpack (i.e. for archives)
-        for unpacked_dir in ud.unpack_parser.unpack(ud):
-            logging.debug(f'process_job: unpacked {unpacked_dir.file_path}, with info in {unpacked_dir.ud_path}')
+        for unpacked_md in md.unpack_parser.unpack(md):
+            logging.debug(f'process_job: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
             # queue up
             pass
-        ud.unpack_parser.write_info(ud)
+        md.unpack_parser.write_info(md)
 
     # stop after first successful unpack (TODO: make configurable?)
-    if unpack_directory.is_scanned():
+    if meta_directory.is_scanned():
         return
 
-    for ud in check_by_signature(scanjob.scan_environment, unpack_directory):
-        logging.debug(f'process_job: analyzing {ud.file_path} into {ud.ud_path} with {ud.unpack_parser}')
-        # if ud is synthesized, queue it for extra checks?
-        for unpacked_dir in ud.unpack_files():
+    for md in check_by_signature(scanjob.scan_environment, meta_directory):
+        logging.debug(f'process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
+        # if md is synthesized, queue it for extra checks?
+        for unpacked_dir in md.unpack_files():
             # queue
             pass
-        ud.unpack_parser.write_info(ud)
+        md.unpack_parser.write_info(md)
 
-    # stop after first successful unpack (TODO)
-    if unpack_directory.is_scanned():
+    # stop after first successful scan for this file (TODO: make configurable?)
+    if meta_directory.is_scanned():
         return
 
     # if extension and signature did not give any results, try other things
