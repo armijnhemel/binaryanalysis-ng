@@ -102,6 +102,8 @@ class UnpackDirectory:
 
     @info.setter
     def info(self, data):
+        '''Set the info property to data. Note: this will overwrite everything!
+        '''
         logging.debug(f'info.setter: set info = {data}')
         path = self.abs_ud_path / 'info.pkl'
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -140,27 +142,9 @@ class UnpackDirectory:
         full_path.mkdir(parents=True, exist_ok=True)
         return unpacked_path
 
-    def write_extra_data(self, data):
-        '''If the unpackparser remains with extra data after parsing, this method
-        will store that data.
-        '''
-        full_path = self._unpack_root / self.ud_path / 'extra' / 'data'
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-        with full_path.open('wb') as f:
-            f.write(data)
-        return full_path
-
-    @contextmanager
-    def obsoliet_open_extract_file(self, offset, size):
-        full_path = self._unpack_root / self.ud_path / 'extracted' / f'{offset:012x}-{size:012x}'
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-        f = full_path.open('wb')
-        try:
-            yield f
-        finally:
-            f.close()
-
     def add_extracted_file(self, unpack_directory):
+        '''Adds an UnpackDirectory for an extracted file to this UnpackDirectory.
+        '''
         logging.debug(f'add_extracted_file: adding {unpack_directory.ud_path} for {unpack_directory.file_path}')
         info = self.info
         info.setdefault('extracted_files', {})[unpack_directory.file_path] = unpack_directory.ud_path
@@ -168,10 +152,15 @@ class UnpackDirectory:
         logging.debug(f'add_extracted_file: wrote info {info}')
 
     def extracted_filename(self, offset, size):
+        '''Create a filename for an extracted file, based on offset and size.
+        '''
         return self.ud_path / 'extracted' / f'{offset:012x}-{size:012x}'
 
     @property
     def extracted_files(self):
+        '''The extracted files in this UnpackDirectory. It is a dictionary mapping
+        extracted filenames to UnpackDirectory names.
+        '''
         return self.info.get('extracted_files', {})
         #info = self.info
         #full_path = self._unpack_root / self.ud_path / 'extracted' 
@@ -180,7 +169,9 @@ class UnpackDirectory:
 
     @property
     def unpack_parser(self):
-        # raise AttributeError('cannot read unpack parser')
+        '''The UnpackParser that should write information to this UnpackDirectory
+        during parsing.
+        '''
         return self._unpack_parser
 
     @unpack_parser.setter
@@ -188,9 +179,12 @@ class UnpackDirectory:
         self._unpack_parser = unpack_parser
 
     def is_scanned(self):
+        '''True when an UnpackParser is assigned to this UnpackDirectory.
+        '''
         return self._unpack_parser is not None
 
     def unpack_files(self):
+        # TODO: should this stay or go?
         if self._unpack_parser is None:
             raise AttributeError('no unpack_parser available')
         for fn in self._unpack_parser.unpack(self):
