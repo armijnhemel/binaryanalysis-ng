@@ -146,7 +146,8 @@ def scan_signatures(scan_environment, mapped_file):
             unpack_parser = unpack_parser_cls(mapped_file, offset)
             unpack_parser.parse_from_offset()
             if offset == 0 and unpack_parser.parsed_size == mapped_file.size():
-                logging.debug(f'scan_signatures: skipping [{scan_offset}:{unpack_parser.parsed_size}], covers entire file')
+                logging.debug(f'scan_signatures: skipping [{scan_offset}:{unpack_parser.parsed_size}], covers entire file, yielding {unpack_parser} and return')
+                yield 0, unpack_parser
                 return
             if offset > scan_offset:
                 # if it does, yield a synthesizing parser for the padding before the file
@@ -215,7 +216,7 @@ def process_job(scanjob):
     for md in check_by_signature(scanjob.scan_environment, meta_directory):
         logging.debug(f'process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
         # if md is synthesized, queue it for extra checks?
-        for unpacked_dir in md.unpack_files():
+        for unpacked_md in md.unpack_parser.unpack(md):
             # queue
             pass
         md.unpack_parser.write_info(md)

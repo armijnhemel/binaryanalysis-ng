@@ -121,16 +121,29 @@ class MetaDirectory:
             unpacked_path = self.md_path / self.REL_UNPACK_DIR / path_name
         return unpacked_path
 
-    def unpack_regular_file(self, path, data):
-        '''Unpack a file with path path into the MetaDirectory, with contents data.
-        Returns the path relative to the MetaDirectory.
+    @contextmanager
+    def unpack_regular_file(self, path):
+        '''Context manager for unpacking a file with path path into the MetaDirectory,
+        yields a file object, that you can write to, directly or via sendfile().
         '''
+        logging.debug(f'unpack_regular_file: unpacking for {path}')
         unpacked_path = self.unpacked_path(path)
-        full_path = self._meta_root / unpacked_path
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-        with full_path.open('wb') as f:
-            f.write(data)
-        return unpacked_path
+        abs_unpacked_path = self._meta_root / unpacked_path
+        abs_unpacked_path.parent.mkdir(parents=True, exist_ok=True)
+        logging.debug(f'unpack_regular_file: opening for {unpacked_path}')
+        unpacked_md = MetaDirectory(self.meta_root, None, False)
+        unpacked_md.file_path = unpacked_path
+        unpacked_md.parent_md = self.md_path
+        f = abs_unpacked_path.open('wb')
+        try:
+            yield unpacked_md, f
+        finally:
+            f.close()
+        # update info
+        info = self.info
+        info.setdefault('unpacked_relative_files', []).append(unpacked_path)
+        logging.debug(f'unpack_regular_file: update info to {info}')
+        self.info = info
 
     def unpack_directory(self, path):
         '''Unpack a directory with path path into the MetaDirectory.
@@ -140,6 +153,27 @@ class MetaDirectory:
         full_path = self._meta_root / unpacked_path
         full_path.mkdir(parents=True, exist_ok=True)
         return unpacked_path
+
+    @property
+    def unpacked_files(self):
+        # TODO get absolute files too
+        return self.unpacked_relative_files
+
+    @property
+    def unpacked_relative_files(self):
+        files =  self.info.get('unpacked_relative_files',[])
+        logging.debug(f'unpacked_relative_files: got {files}')
+        return files
+        # TODO: get from directory or from property? property
+
+    def unpack_files(self):
+        # TODO: should this stay or go?
+        if self._unpack_parser is None:
+            raise AttributeError('no unpack_parser available')
+        for fn in self._unpack_parser.unpack(self):
+            md = MetaDirectory(self.meta_root, None, False)
+            md.file_path = fn
+            yield md
 
     def add_extracted_file(self, meta_dir):
         '''Adds an MetaDirectory for an extracted file to this MetaDirectory.
@@ -193,12 +227,4 @@ class MetaDirectory:
         '''
         return self._unpack_parser is not None
 
-    def unpack_files(self):
-        # TODO: should this stay or go?
-        if self._unpack_parser is None:
-            raise AttributeError('no unpack_parser available')
-        for fn in self._unpack_parser.unpack(self):
-            md = MetaDirectory(self.meta_root, None, False)
-            md.file_path = fn
-            yield md
 

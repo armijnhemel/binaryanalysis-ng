@@ -1,8 +1,34 @@
+import logging
 from .util import *
 from meta_directory import *
 from scan_job import *
 from .mock_queue import *
 from UnpackParser import PaddingParser
+
+class UnpackParserUnpacksRelative(UnpackParser):
+    pretty_name = 'UnpackParserUnpacksRelative'
+    extensions = []
+    signatures = [(1,b'AA')]
+    length = 5
+
+    filenames = [ 'unpack1', 'unpack2' ]
+
+    def parse(self):
+        pass
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.length
+
+    def unpack(self, meta_directory):
+        # TODO
+        logging.debug(f'UnpackParserUnpacksRelative::unpack: unpacking')
+        for fn in self.filenames:
+            logging.debug(f'UnpackParserUnpacksRelative::unpack: unpacking {fn!r}')
+            with meta_directory.unpack_regular_file(pathlib.Path(fn)) as (unpacked_md, f):
+                logging.debug(f'UnpackParserUnpacksRelative::unpack: write')
+                f.write(b'x')
+                yield unpacked_md
+                # TODO: yield new meta_directory
 
 parser_pass_AA_1_5 = create_unpackparser('ParserPassAA_1_5',
         signatures = [(1,b'AA')],
@@ -369,10 +395,25 @@ def test_extracted_file_has_parent(scan_environment):
     ]
     assert path_md.extracted_md(3,5).info.get('parent_md') == path_md.md_path
 
+################
+
+# test processing with parsers that unpack files
+
+def test_unpacking_parser_unpacks_files(scan_environment):
+    s = b'xAAyy'
+    fn = pathlib.Path('test_unpack2.data')
+    create_test_file(scan_environment, fn, s)
+    path_md = create_meta_directory_for_path(scan_environment, fn, True)
+    scan_environment.set_unpackparsers([UnpackParserUnpacksRelative])
+    scanjob = queue_file_job(scan_environment, path_md)
+    run_scan_loop(scan_environment)
+    assert sorted(path_md.extracted_files.keys()) == []
+    expected_files = [ path_md.unpacked_path(pathlib.Path(x)) for x in UnpackParserUnpacksRelative.filenames ]
+    assert path_md.unpacked_files == expected_files
 
 ################
 
-# test unpacking with real parsers
+# test processing with real parsers
 
 def test_sigscan_extract_gif_file_from_prepended_file(scan_environment):
     gif_fn = testdir_base / 'testdata' / pathlib.Path("unpackers") / "gif" / "test.gif"
