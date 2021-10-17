@@ -350,6 +350,33 @@ def test_sigscan_extract_with_zero_length_parser(scan_environment):
     ]
 
 
+#######
+
+# Test properties for extracted files
+
+def get_extracted_ud(path_ud, offset, size):
+    # TODO: put this on UnpackDirectory class?
+    file_key = path_ud.extracted_filename(offset, size)
+    return path_ud.extracted_files[file_key]
+
+
+def test_extracted_file_has_parent(scan_environment):
+    s = b'xAAyBBbb'
+    fn = pathlib.Path('test_unpack2.data')
+    create_test_file(scan_environment, fn, s)
+    path_ud = create_unpack_directory_for_path(scan_environment, fn, True)
+    scan_environment.set_unpackparsers([parser_fail_BB_1, parser_pass_BB_1_5])
+    scanjob = queue_file_job(scan_environment, path_ud)
+    run_scan_loop(scan_environment)
+    # b'xAAyBBbb'
+    #   | ||   |
+    assert sorted(path_ud.extracted_files.keys()) == [
+        path_ud.extracted_filename(0,3),
+        path_ud.extracted_filename(3,5)
+    ]
+    assert get_extracted_ud(path_ud,3,5).info.get('parent') == path_ud.ud_path
+
+
 ################
 
 # test unpacking with real parsers
