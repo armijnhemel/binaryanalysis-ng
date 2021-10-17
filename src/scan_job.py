@@ -56,10 +56,10 @@ def check_for_padding(path_unpack_directory):
     r = is_padding(path_unpack_directory.abs_file_path)    
     if r:
         # TODO: mark path_unpack_directory as padding?
+        # TODO: set PaddingParser to path_unpack_directory
         yield path_unpack_directory
 
 def find_extension_parsers(scan_environment, mapped_file):
-    # TODO: implement
     for ext, unpack_parsers in scan_environment.get_unpackparsers_for_extensions().items():
         for unpack_parser_cls in unpack_parsers:
             logging.debug(f'find_extension_parser: {ext!r} parsed by {unpack_parser_cls}')
@@ -69,10 +69,8 @@ def check_by_extension(scan_environment, path_unpack_directory):
     with path_unpack_directory.abs_file_path.open('rb') as in_file:
         mapped_file = mmap.mmap(in_file.fileno(),0, access=mmap.ACCESS_READ)
         for ext, unpack_parser_cls in find_extension_parsers(scan_environment, mapped_file):
-            # logging.debug(f'does {path_unpack_directory.file_path} match {ext}?')
             if bangsignatures.matches_file_pattern(path_unpack_directory.file_path, ext):
                 logging.debug(f'check_by_extension: {unpack_parser_cls} parses extension {ext}')
-                # this will give all unpack_parsers that match the extension
                 try:
                     unpack_parser = unpack_parser_cls(mapped_file, 0)
                     unpack_parser.parse_from_offset()
@@ -82,7 +80,6 @@ def check_by_extension(scan_environment, path_unpack_directory):
                         yield path_unpack_directory
                     else:
                         logging.debug(f'check_by_extension: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{mapped_file.size()}] ({mapped_file.size() - unpack_parser.parsed_size} bytes)')
-                        # there is something to extract
                         # yield the path_unpack_directory with a ExtractingUnpackParser, in
                         # case we want to record metadata about it.
                         path_unpack_directory.unpack_parser = ExtractingParser.with_parts(
@@ -91,25 +88,24 @@ def check_by_extension(scan_environment, path_unpack_directory):
                             (unpack_parser.parsed_size, mapped_file.size() - unpack_parser.parsed_size) ]
                             )
                         yield path_unpack_directory
-                        # extract the matched file
+
+                        # yield the matched part of the file
                         ud = extract_file(path_unpack_directory, in_file, 0, unpack_parser.parsed_size)
                         ud.unpack_parser = unpack_parser
                         yield ud
 
-                        # extract a synthesized file
+                        # yield a synthesized file
                         ud = extract_file(path_unpack_directory, in_file, unpack_parser.parsed_size, mapped_file.size() - unpack_parser.parsed_size)
                         ud.unpack_parser = SynthesizingParser.with_size(mapped_file, unpack_parser.parsed_size, mapped_file.size() - unpack_parser.parsed_size)
                         yield ud
 
-                    # unpack_parser.unpack(path_unpack_directory)
-                    # TODO: update info, not overwite
-                    # TODO: is this necessary? this is done later
-                    # unpack_parser.write_info(path_unpack_directory)
-                    # yield path_unpack_directory
-                    # take the first working parser
-                    return
+                        # stop after first successful extension parse
+                        # TODO: make this configurable?
+                        return
+
                 except UnpackParserException as e:
-                    pass
+                    logging.debug(f'check_by_extension: parser exception: {e}')
+
 
 def find_offsets_for_signature(signature, unpack_parsers, mapped_file):
     s_offset, s_text = signature
@@ -117,7 +113,7 @@ def find_offsets_for_signature(signature, unpack_parsers, mapped_file):
         logging.debug(f'find_offsets_for_signature: match for {s_text!r} at {r.start()}, offset={s_offset}')
         if r.start() < s_offset:
             continue
-        # TODO: prescan?
+        # TODO: prescan? or let the unpack_parser.parse() handle that?
         for u in unpack_parsers:
             yield r.start() - s_offset, u
 
@@ -144,17 +140,16 @@ def scan_signatures(scan_environment, mapped_file):
                 logging.debug(f'scan_signatures: skipping [{scan_offset}:{unpack_parser.parsed_size}], covers entire file')
                 return
             if offset > scan_offset:
-                # if it does, return a synthesizing parser for the padding before the file
+                # if it does, yield a synthesizing parser for the padding before the file
                 logging.debug(f'scan_signatures: [{scan_offset}:{offset}] yields SynthesizingParser, length {offset - scan_offset}')
                 yield scan_offset, SynthesizingParser.with_size(mapped_file, offset, offset - scan_offset)
-            # return the unpackparser
+            # yield the part that the unpackparser parsed
             logging.debug(f'scan_signatures: [{offset}:{offset+unpack_parser.parsed_size}] yields {unpack_parser}, length {unpack_parser.parsed_size}')
             yield offset, unpack_parser
             scan_offset = offset + unpack_parser.parsed_size
         except UnpackParserException as e:
             logging.debug(f'scan_signatures: parser exception: {e}')
-            pass
-    # return the trailing part
+    # yield the trailing part
     if 0 < scan_offset < mapped_file.size():
         logging.debug(f'scan_signatures: [{scan_offset}:{mapped_file.size()}] yields SynthesizingParser, length {mapped_file.size() - scan_offset}')
         yield scan_offset, SynthesizingParser.with_size(mapped_file, offset, mapped_file.size() - scan_offset)
@@ -163,27 +158,23 @@ def scan_signatures(scan_environment, mapped_file):
 def check_by_signature(scan_environment, path_unpack_directory):
     # find offsets
     with path_unpack_directory.abs_file_path.open('rb') as in_file:
-        mm = mmap.mmap(in_file.fileno(),0, access=mmap.ACCESS_READ)
-        for offset, unpack_parser in scan_signatures(scan_environment, mm):
+        mapped_file = mmap.mmap(in_file.fileno(),0, access=mmap.ACCESS_READ)
+        parts = [] # record the parts for the ExtractingParser
+        for offset, unpack_parser in scan_signatures(scan_environment, mapped_file):
             logging.debug(f'check_by_signature: got match at {offset}: {unpack_parser} length {unpack_parser.parsed_size}')
-            try:
-                if offset == 0 and unpack_parser.parsed_size == path_unpack_directory.size:
-                    # no need to extract a subfile
-                    # unpack_parser.unpack(path_unpack_directory)
-                    path_unpack_directory.unpack_parser = unpack_parser
-                    # TODO: update info, not overwite
-                    # TODO: is this necessary? this is done later
-                    # unpack_parser.write_info(path_unpack_directory)
-                    yield path_unpack_directory
-                else:
-                    ud = extract_file(path_unpack_directory, in_file, offset, unpack_parser.parsed_size)
-                    ud.unpack_parser = unpack_parser
-                    # TODO: update info, not overwite
-                    # TODO: is this necessary? this is done later
-                    # unpack_parser.write_info(ud)
-                    yield ud
-            except UnpackParserException as e:
-                pass
+            if offset == 0 and unpack_parser.parsed_size == path_unpack_directory.size:
+                # no need to extract a subfile
+                path_unpack_directory.unpack_parser = unpack_parser
+                yield path_unpack_directory
+            else:
+                ud = extract_file(path_unpack_directory, in_file, offset, unpack_parser.parsed_size)
+                ud.unpack_parser = unpack_parser
+                yield ud
+                parts.append((offset, unpack_parser.parsed_size))
+            # yield ExtractingParser
+            if parts != []:
+                path_unpack_directory.unpack_parser = ExtractingParser.with_parts(mapped_file, parts)
+                yield path_unpack_directory
 
 def process_job(scanjob):
     # scanjob has: path, unpack_directory object and context
@@ -194,6 +185,7 @@ def process_job(scanjob):
 
     # if scanjob.context_is_padding(unpack_directory.context): return
     for r in check_for_padding(unpack_directory):
+        # TODO: implement processing from r.unpack_parser (PaddingParser)
         return
 
     for r in check_by_extension(scanjob.scan_environment, unpack_directory):
