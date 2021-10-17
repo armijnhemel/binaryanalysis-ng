@@ -36,7 +36,7 @@ types:
       - id: size_log_zone
         type: u2
       - id: max_size
-        type: u2
+        type: u4
       - id: magic
         contents: [0x8f, 0x13]
       - id: state
