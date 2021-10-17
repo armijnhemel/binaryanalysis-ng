@@ -367,7 +367,7 @@ def test_extracted_file_has_parent(scan_environment):
         path_md.extracted_filename(0,3),
         path_md.extracted_filename(3,5)
     ]
-    assert path_md.extracted_md(3,5).info.get('parent') == path_md.md_path
+    assert path_md.extracted_md(3,5).info.get('parent_md') == path_md.md_path
 
 
 ################

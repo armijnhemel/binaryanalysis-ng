@@ -148,7 +148,12 @@ class MetaDirectory:
         info = self.info
         info.setdefault('extracted_files', {})[meta_dir.file_path] = meta_dir.md_path
         self.info = info
-        logging.debug(f'add_extracted_file: wrote info {info}')
+        logging.debug(f'add_extracted_file: wrote info {info} for {self.md_path}')
+        logging.debug(f'add_extracted_file: setting parent for {meta_dir.md_path} to {self.md_path}')
+        info = meta_dir.info
+        info['parent_md'] = self.md_path
+        meta_dir.info = info
+        logging.debug(f'add_extracted_file: wrote info {info} for {meta_dir.md_path}')
 
     def extracted_filename(self, offset, size):
         '''Create a filename for an extracted file, based on offset and size.
