@@ -410,6 +410,7 @@ def test_unpacking_parser_unpacks_files(scan_environment):
     assert sorted(path_md.extracted_files.keys()) == []
     expected_files = [ path_md.unpacked_path(pathlib.Path(x)) for x in UnpackParserUnpacksRelative.filenames ]
     assert path_md.unpacked_files == expected_files
+    assert all(not p.is_absolute() for p in path_md.unpacked_files)
 
 ################
 
