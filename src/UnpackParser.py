@@ -241,6 +241,46 @@ class SynthesizingParser(UnpackParser):
     def parse(self):
         pass
 
+    def write_info(self, unpack_directory):
+        # write inf
+        info = unpack_directory.info
+        info.setdefault('labels', []).append('synthesized')
+        unpack_directory.info = info
+
+
+class PaddingParser(UnpackParser):
+    validpadding = [b'\x00', b'\xff']
+
+    def __init__(self, input_file, offset):
+        super().__init__(input_file, offset)
+        self.is_padding = False
+
+    def parse(self):
+        size = 0
+        is_padding = False
+
+        c = self.infile.read(1)
+        padding_char = c
+        is_padding = c in self.validpadding
+        if is_padding:
+            while c == padding_char:
+                c = self.infile.read(1)
+                size += 1
+            ispadding = c == b''
+        self.unpacked_size = size
+        self.is_padding = is_padding
+
+    def calculate_unpacked_size(self):
+        pass
+
+    def write_info(self, unpack_directory):
+        if self.is_padding:
+            # write inf
+            info = unpack_directory.info
+            info.setdefault('labels', []).append('padding')
+            unpack_directory.info = info
+
+
 class ExtractingParser(UnpackParser):
     '''If a file was parsed and unexpectedly got extra data, we can extract this into a
     new UnpackDirectory. The UnpackParser will be set on the new UnpackDirectory. In case

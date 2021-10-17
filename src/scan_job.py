@@ -4,7 +4,7 @@ import mmap
 import logging
 from operator import itemgetter
 from unpack_directory import *
-from UnpackParser import SynthesizingParser, ExtractingParser
+from UnpackParser import SynthesizingParser, ExtractingParser, PaddingParser
 from UnpackParserException import UnpackParserException
 import bangsignatures
 
@@ -53,11 +53,23 @@ def extract_file(path_unpack_directory, in_file, offset, file_size):
 
 
 def check_for_padding(path_unpack_directory):
-    r = is_padding(path_unpack_directory.abs_file_path)    
-    if r:
-        # TODO: mark path_unpack_directory as padding?
-        # TODO: set PaddingParser to path_unpack_directory
-        yield path_unpack_directory
+    with path_unpack_directory.abs_file_path.open('rb') as in_file:
+        try:
+            unpack_parser = PaddingParser(in_file, 0)
+            unpack_parser.parse_from_offset()
+            logging.debug(f'check_for_padding: size = {unpack_parser.parsed_size}/{path_unpack_directory.size}')
+            if unpack_parser.parsed_size == path_unpack_directory.size:
+                #r = is_padding(path_unpack_directory.abs_file_path)    
+                #if r:
+                # TODO: mark path_unpack_directory as padding?
+
+                logging.debug(f'check_for_padding: yield {unpack_parser} for {path_unpack_directory.file_path}')
+                path_unpack_directory.unpack_parser = unpack_parser
+                yield path_unpack_directory
+        except UnpackParserException as e:
+            logging.debug(f'check_for_padding: parser exception: {e}')
+
+        logging.debug(f'check_for_padding: {path_unpack_directory.file_path} is not a padding file')
 
 def find_extension_parsers(scan_environment, mapped_file):
     for ext, unpack_parsers in scan_environment.get_unpackparsers_for_extensions().items():
@@ -184,33 +196,33 @@ def process_job(scanjob):
         return
 
     # if scanjob.context_is_padding(unpack_directory.context): return
-    for r in check_for_padding(unpack_directory):
+    for ud in check_for_padding(unpack_directory):
         # TODO: implement processing from r.unpack_parser (PaddingParser)
-        return
+        logging.debug(f'process padding file in {ud} with {ud.unpack_parser}')
+        ud.unpack_parser.write_info(ud)
+        return # skip padding file by returning
 
-    for r in check_by_extension(scanjob.scan_environment, unpack_directory):
-        logging.debug(f'process_job: analyzing {r.file_path} into {r.ud_path} with {r.unpack_parser}')
-        # r is an unpack_directory
+    for ud in check_by_extension(scanjob.scan_environment, unpack_directory):
+        logging.debug(f'process_job: analyzing {ud.file_path} into {ud.ud_path} with {ud.unpack_parser}')
+        # ud is an unpack_directory
         # unpackdirectory has files to unpack (i.e. for archives)
-        for unpacked_dir in r.unpack_parser.unpack(r):
+        for unpacked_dir in ud.unpack_parser.unpack(ud):
             logging.debug(f'process_job: unpacked {unpacked_dir.file_path}, with info in {unpacked_dir.ud_path}')
             # queue up
             pass
-        r.unpack_parser.write_info(unpack_directory)
+        ud.unpack_parser.write_info(ud)
 
-    # stop after first successful unpack (TODO)
-    # find some property on the unpack_directory
-    print(unpack_directory.info)
+    # stop after first successful unpack (TODO: make configurable?)
     if unpack_directory.is_scanned():
         return
 
-    for r in check_by_signature(scanjob.scan_environment, unpack_directory):
-        logging.debug(f'process_job: analyzing {r.file_path} into {r.ud_path} with {r.unpack_parser}')
-        # if r is synthesized, queue it for extra checks?
-        for unpacked_dir in r.unpack_files():
+    for ud in check_by_signature(scanjob.scan_environment, unpack_directory):
+        logging.debug(f'process_job: analyzing {ud.file_path} into {ud.ud_path} with {ud.unpack_parser}')
+        # if ud is synthesized, queue it for extra checks?
+        for unpacked_dir in ud.unpack_files():
             # queue
             pass
-        # for extra in r.extra_data: pass # no extra data if scanning by sig
+        ud.unpack_parser.write_info(ud)
 
     # stop after first successful unpack (TODO)
     if unpack_directory.is_scanned():

@@ -2,6 +2,7 @@ from .util import *
 from unpack_directory import *
 from scan_job import *
 from .mock_queue import *
+from UnpackParser import PaddingParser
 
 parser_pass_AA_1_5 = create_unpackparser('ParserPassAA_1_5',
         signatures = [(1,b'AA')],
@@ -63,7 +64,25 @@ def run_scan_loop(scan_environment):
 
 # TODO: Tests for unpack directory, is extracted/unpacked ud.file_path relative?
 
+######################################
 
+# Tests for detecting padding files
+def test_detect_padding_file(scan_environment):
+    fn = pathlib.Path('test_padding.data')
+    create_test_file(scan_environment, fn, b'\xff'*300)
+    path_ud = create_unpack_directory_for_path(scan_environment, fn, True)
+    scanjob = queue_file_job(scan_environment, path_ud)
+    run_scan_loop(scan_environment)
+    assert 'padding' in path_ud.info.get('labels', [])
+    assert sorted(path_ud.extracted_files.keys()) == []
+
+def test_detect_non_padding_file(scan_environment):
+    fn = pathlib.Path('test_padding.data')
+    create_test_file(scan_environment, fn, b'\xff'*299 + b'A')
+    path_ud = create_unpack_directory_for_path(scan_environment, fn, True)
+    scanjob = queue_file_job(scan_environment, path_ud)
+    run_scan_loop(scan_environment)
+    assert 'padding' not in path_ud.info.get('labels', [])
 
 ######################################
 

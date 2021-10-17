@@ -4,6 +4,9 @@ import pathlib
 import logging
 from contextlib import contextmanager
 
+# Rule for caching properties: only properties that are volatile (i.e. during parsing)
+# or constant (such as file name) can be cached.
+
 class UnpackDirectory:
     REL_UNPACK_DIR = 'rel'
     ABS_UNPACK_DIR = 'abs'
