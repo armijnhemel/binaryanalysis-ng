@@ -84,6 +84,16 @@ def test_detect_non_padding_file(scan_environment):
     run_scan_loop(scan_environment)
     assert 'padding' not in path_ud.info.get('labels', [])
 
+def test_detect_empty_file(scan_environment):
+    fn = pathlib.Path('test_empty.data')
+    create_test_file(scan_environment, fn, b'')
+    path_ud = create_unpack_directory_for_path(scan_environment, fn, True)
+    scanjob = queue_file_job(scan_environment, path_ud)
+    run_scan_loop(scan_environment)
+    assert path_ud.info.get('labels', []) == [] # TODO what to check?
+    assert sorted(path_ud.extracted_files.keys()) == []
+
+
 ######################################
 
 # Tests for extracting during an extension based scan

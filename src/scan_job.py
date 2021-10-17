@@ -23,7 +23,8 @@ class ScanJob:
         return self._unpack_directory
 
 def is_unscannable(path):
-    return not path.is_file()
+    # TODO: do we want labels on unscannable files?
+    return not path.is_file() or path.stat().st_size == 0
     # return path.is_dir() or path.is_fifo() or path.is_socket() or path.is_block_device() or path.is_char_device() or path.is_symlink()
 
 def is_padding(path):
