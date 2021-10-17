@@ -166,6 +166,12 @@ class MetaDirectory:
         #for extracted_path in full_path.iterdir():
             #yield extracted_path
 
+    def extracted_md(self, offset, size):
+        file_key = self.extracted_filename(offset, size)
+        file_value = self.extracted_files[file_key]
+        md = MetaDirectory.from_md_path(self.meta_root, file_value)
+        return md
+
     @property
     def unpack_parser(self):
         '''The UnpackParser that should write information to this MetaDirectory

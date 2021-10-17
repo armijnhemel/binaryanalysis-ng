@@ -169,7 +169,7 @@ def test_sigscan_extract_non_overlapping_both_successful(scan_environment):
         path_md.extracted_filename(20,len(s)-20)
     ]
 
-    md_ex1 = get_extracted_md(path_md, 5, 10)
+    md_ex1 = path_md.extracted_md(5, 10)
     assert 'synthesized' in md_ex1.info.get('labels', [])
 
 # 2. overlapping files with unpackers that extract during scan
@@ -353,13 +353,6 @@ def test_sigscan_extract_with_zero_length_parser(scan_environment):
 
 # Test properties for extracted files
 
-def get_extracted_md(path_md, offset, size):
-    # TODO: put this on MetaDirectory class?
-    file_key = path_md.extracted_filename(offset, size)
-    file_value = path_md.extracted_files[file_key]
-    md = MetaDirectory.from_md_path(path_md.meta_root, file_value)
-    return md
-
 def test_extracted_file_has_parent(scan_environment):
     s = b'xAAyBBbb'
     fn = pathlib.Path('test_unpack2.data')
@@ -374,7 +367,7 @@ def test_extracted_file_has_parent(scan_environment):
         path_md.extracted_filename(0,3),
         path_md.extracted_filename(3,5)
     ]
-    assert get_extracted_md(path_md,3,5).info.get('parent') == path_md.md_path
+    assert path_md.extracted_md(3,5).info.get('parent') == path_md.md_path
 
 
 ################
