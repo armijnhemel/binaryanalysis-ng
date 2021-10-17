@@ -60,10 +60,6 @@ def check_for_padding(path_unpack_directory):
             unpack_parser.parse_from_offset()
             logging.debug(f'check_for_padding: size = {unpack_parser.parsed_size}/{path_unpack_directory.size}')
             if unpack_parser.parsed_size == path_unpack_directory.size:
-                #r = is_padding(path_unpack_directory.abs_file_path)    
-                #if r:
-                # TODO: mark path_unpack_directory as padding?
-
                 logging.debug(f'check_for_padding: yield {unpack_parser} for {path_unpack_directory.file_path}')
                 path_unpack_directory.unpack_parser = unpack_parser
                 yield path_unpack_directory
@@ -230,7 +226,7 @@ def process_job(scanjob):
         return
 
     # if extension and signature did not give any results, try other things
-    # TODO
+    # TODO: try featureless parsers
 
 def process_jobs(scan_environment):
     # code smell, should not be needed if unpackparsers behave

@@ -87,15 +87,17 @@ class UnpackParser:
         self.parse()
         self.calculate_unpacked_size()
         check_condition(self.unpacked_size > 0, 'Parser resulted in zero length file')
-    def open(self):
+
+    def x_open(self):
         '''obsolete, we need to pass an open file handle to the object.'''
         filename_full = self.scan_environment.get_unpack_path_for_fileresult(
                     self.fileresult)
         f = filename_full.open('rb')
         self.infile = OffsetInputFile(f, self.offset)
-    def close(self):
+    def x_close(self):
         '''obsolete, we need to pass an open file handle to the object.'''
         self.infile.close()
+
     def calculate_unpacked_size(self):
         """Override this to calculate the length of the file data that is
         extracted. Needed if you call the UnpackParser to extract (carve)
@@ -177,6 +179,7 @@ class UnpackParser:
     @classmethod
     def is_valid_extension(cls, ext):
         return ext in cls.extensions
+
     def extract_to_file(self, filename, start, length):
         """Extracts data from the input stream, starting at start, of length
         length, to the file pointed to by filename.
@@ -229,6 +232,7 @@ class WrappedUnpackParser(UnpackParser):
         return unpack_results
 
 class SynthesizingParser(UnpackParser):
+
     @classmethod
     def with_size(cls, input_file, offset, size):
         o = cls(input_file, offset)
@@ -249,7 +253,8 @@ class SynthesizingParser(UnpackParser):
 
 
 class PaddingParser(UnpackParser):
-    validpadding = [b'\x00', b'\xff']
+
+    valid_padding_chars = [b'\x00', b'\xff']
 
     def __init__(self, input_file, offset):
         super().__init__(input_file, offset)
@@ -261,7 +266,7 @@ class PaddingParser(UnpackParser):
 
         c = self.infile.read(1)
         padding_char = c
-        is_padding = c in self.validpadding
+        is_padding = c in self.valid_padding_chars
         if is_padding:
             while c == padding_char:
                 c = self.infile.read(1)
@@ -282,11 +287,9 @@ class PaddingParser(UnpackParser):
 
 
 class ExtractingParser(UnpackParser):
-    '''If a file was parsed and unexpectedly got extra data, we can extract this into a
-    new UnpackDirectory. The UnpackParser will be set on the new UnpackDirectory. In case
-    we want to record extra metadata for the parent UnpackDirectory, assign this parser to
-    it.
-    TODO: implement write_info
+    '''If a file is parsed and consists of more than one file extra data, we extract the files
+    into a new UnpackDirectory. If you want to record extra metadata for the parent
+    UnpackDirectory, assign this parser to it.
     '''
     @classmethod
     def with_parts(cls, input_file, parts):
@@ -303,6 +306,9 @@ class ExtractingParser(UnpackParser):
     def parse(self):
         pass
 
+    def write_info(self, unpack_directory):
+        '''TODO: write any data about the parent UnpackDirectory here.'''
+        pass
 
 
 def check_condition(condition, message):
@@ -311,3 +317,4 @@ def check_condition(condition, message):
     """
     if not condition:
         raise UnpackParserException(message)
+
