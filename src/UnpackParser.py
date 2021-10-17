@@ -130,6 +130,7 @@ class UnpackParser:
     def get_carved_filename(cls):
         """Override this to change the name of the unpacked file if it is
         carved. Default is unpacked.<pretty_name>.
+        OBSOLETE
         """
         return "unpacked.%s" % cls.pretty_name
 
@@ -138,6 +139,7 @@ class UnpackParser:
         the file, this method saves the parsed part of the file, leaving the
         rest to be  analyzed. The part is saved to the unpack data directory,
         under the name given by get_carved_filename.
+        OBSOLETE
         """
         rel_output_path = self.rel_unpack_dir / self.get_carved_filename()
         abs_output_path = self.scan_environment.unpack_path(rel_output_path)
@@ -166,8 +168,11 @@ class UnpackParser:
         return []
 
     def write_info(self, unpack_directory):
-        '''write any file info or metadata to the unpack_directory.'''
-        unpack_directory.info = {}
+        '''update any file info or metadata to the unpack_directory.
+        Be aware that unpack_directory.info may contain data already!
+        '''
+        #unpack_directory.info = {}
+        pass
 
     @classmethod
     def is_valid_extension(cls, ext):
@@ -235,6 +240,30 @@ class SynthesizingParser(UnpackParser):
 
     def parse(self):
         pass
+
+class ExtractingParser(UnpackParser):
+    '''If a file was parsed and unexpectedly got extra data, we can extract this into a
+    new UnpackDirectory. The UnpackParser will be set on the new UnpackDirectory. In case
+    we want to record extra metadata for the parent UnpackDirectory, assign this parser to
+    it.
+    TODO: implement write_info
+    '''
+    @classmethod
+    def with_parts(cls, input_file, parts):
+        '''the sum of all lengths in parts is the calculated file size.'''
+        o = cls(input_file, 0)
+        o._parts = parts
+        size = sum(p[1] for p in parts)
+        o.unpacked_size = size
+        return o
+
+    def parse_from_offset(self):
+        pass
+
+    def parse(self):
+        pass
+
+
 
 def check_condition(condition, message):
     """semantic check function to see if condition is True.

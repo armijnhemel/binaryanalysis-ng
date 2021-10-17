@@ -37,8 +37,10 @@ parser_pass_BB_0_5 = create_unpackparser('ParserPassBB_0_5',
         pretty_name = 'pass-BB-0-5')
 
 def create_test_file(scan_environment, path, content):
-    with (scan_environment.temporarydirectory / path).open('wb') as f:
+    abs_path = scan_environment.temporarydirectory / path
+    with abs_path.open('wb') as f:
         f.write(content)
+    return abs_path
 
 def create_unpack_directory_for_path(scan_environment, path, is_root):
     path_ud = UnpackDirectory(scan_environment.unpackdirectory, None, is_root)
@@ -57,8 +59,71 @@ def run_scan_loop(scan_environment):
         pass
 
 
+######################################
+
+# TODO: Tests for unpack directory, is extracted/unpacked ud.file_path relative?
+
+
+
+######################################
+
+# Tests for extracting during an extension based scan
+
+from parsers.image.gif.UnpackParser import GifUnpackParser
+
+class ExtensionOnlyGifUnpackParser(GifUnpackParser):
+    signatures = []
+
+
+def test_extscan_extract_gif_file_full_file(scan_environment):
+    fn = testdir_base / 'testdata' / pathlib.Path('unpackers') / 'gif' / 'test.gif'
+    path_ud = create_unpack_directory_for_path(scan_environment, fn, True)
+    scan_environment.set_unpackparsers([ExtensionOnlyGifUnpackParser])
+    scanjob = queue_file_job(scan_environment, path_ud)
+    run_scan_loop(scan_environment)
+    assert sorted(path_ud.extracted_files.keys()) == []
+    assert path_ud.file_path == fn
+    # assert path_ud.info.get(...)
+
+
+def test_extscan_extract_gif_file_prepended_data(scan_environment):
+    gif_fn = testdir_base / 'testdata' / pathlib.Path("unpackers") / "gif" / "test.gif"
+    with gif_fn.open('rb') as f:
+        s = b'x'*128 + f.read()
+    fn = pathlib.Path('test_gif_prepended.gif')
+    create_test_file(scan_environment, fn, s)
+    path_ud = create_unpack_directory_for_path(scan_environment, fn, True)
+    scan_environment.set_unpackparsers([ExtensionOnlyGifUnpackParser])
+    scanjob = queue_file_job(scan_environment, path_ud)
+    run_scan_loop(scan_environment)
+    assert not path_ud.is_scanned()
+    assert sorted(path_ud.extracted_files.keys()) == [ ]
+ 
+def test_extscan_extract_gif_file_appended_data(scan_environment):
+    gif_fn = testdir_base / 'testdata' / pathlib.Path("unpackers") / "gif" / "test.gif"
+    with gif_fn.open('rb') as f:
+        s = f.read() + b'x'*128
+    fn = pathlib.Path('test_gif_appended.gif')
+    abs_fn = create_test_file(scan_environment, fn, s)
+    path_ud = create_unpack_directory_for_path(scan_environment, fn, True)
+    scan_environment.set_unpackparsers([ExtensionOnlyGifUnpackParser])
+    scanjob = queue_file_job(scan_environment, path_ud)
+    run_scan_loop(scan_environment)
+    assert path_ud.abs_file_path == abs_fn
+    assert sorted(path_ud.extracted_files.keys()) == [
+        path_ud.extracted_filename(0, path_ud.size - 128),
+        path_ud.extracted_filename(path_ud.size - 128, 128)
+    ]
+    # TODO: check if extracted gif file contains the data
+    # TODO: check that path_ud does not contain any gif metadata
+    # assert path_ud.info.get(...)
+ 
+######################################
+
+# Tests for extracting during a signature based scan
+
 # 1. non-overlapping files with unpackers that extract during scan
-def test_extract_non_overlapping_both_successful(scan_environment):
+def test_sigscan_extract_non_overlapping_both_successful(scan_environment):
     s = b'xAAxxxxxxxxxxxxyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack1.data')
     create_test_file(scan_environment, fn, s)
@@ -80,7 +145,7 @@ def test_extract_non_overlapping_both_successful(scan_environment):
     assert 'synthesized' in ud_syn1.info.get('labels', [])
 
 # 2. overlapping files with unpackers that extract during scan
-def test_extract_overlapping_both_successful(scan_environment):
+def test_sigscan_extract_overlapping_both_successful(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -97,7 +162,7 @@ def test_extract_overlapping_both_successful(scan_environment):
 
 
 # 3. same offset, different unpackers: one extracts, the other does not
-def test_extract_same_offset_first_successful(scan_environment):
+def test_sigscan_extract_same_offset_first_successful(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -113,7 +178,7 @@ def test_extract_same_offset_first_successful(scan_environment):
         path_ud.extracted_filename(8,len(s)-8)
     ]
 
-def test_extract_same_offset_second_successful(scan_environment):
+def test_sigscan_extract_same_offset_second_successful(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -129,7 +194,7 @@ def test_extract_same_offset_second_successful(scan_environment):
         path_ud.extracted_filename(8,len(s)-8)
     ]
 
-def test_extract_overlapping_different_offset_both_successful(scan_environment):
+def test_sigscan_extract_overlapping_different_offset_both_successful(scan_environment):
     s = b'xAAyyyyyyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -147,7 +212,7 @@ def test_extract_overlapping_different_offset_both_successful(scan_environment):
 # 4. same offset, different unpackers that both unpack (polyglot)
 # e.g. iso image containing an image in the first block
 # -> first parser wins
-def test_extract_same_offset_both_successful(scan_environment):
+def test_sigscan_extract_same_offset_both_successful(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -163,7 +228,7 @@ def test_extract_same_offset_both_successful(scan_environment):
         path_ud.extracted_filename(8,len(s)-8)
     ]
 
-def test_extract_same_offset_both_successful_reversed_order(scan_environment):
+def test_sigscan_extract_same_offset_both_successful_reversed_order(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -180,7 +245,7 @@ def test_extract_same_offset_both_successful_reversed_order(scan_environment):
     ]
 
 # 5. files with unpackers that do not unpack
-def test_extract_overlapping_none_successful(scan_environment):
+def test_sigscan_extract_overlapping_none_successful(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -192,7 +257,7 @@ def test_extract_overlapping_none_successful(scan_environment):
     #   |               |
     assert sorted(path_ud.extracted_files.keys()) == [ ]
 
-def test_extract_parse_successful_at_end(scan_environment):
+def test_sigscan_extract_parse_successful_at_end(scan_environment):
     s = b'xAAyBBbb'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -207,7 +272,7 @@ def test_extract_parse_successful_at_end(scan_environment):
         path_ud.extracted_filename(3,5)
     ]
 
-def test_extracting_overlapping_successful_parsers(scan_environment):
+def test_sigscan_extracting_overlapping_successful_parsers(scan_environment):
     s = b'--xAAyBBbCCxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -226,7 +291,7 @@ def test_extracting_overlapping_successful_parsers(scan_environment):
         path_ud.extracted_filename(14,len(s)-14)
     ]
 
-def test_extracting_parses_whole_string(scan_environment):
+def test_sigscan_extracting_parses_whole_string(scan_environment):
     s = b'xBBxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -239,7 +304,7 @@ def test_extracting_parses_whole_string(scan_environment):
     assert sorted(path_ud.extracted_files.keys()) == []
 
 # test: prevent infinite extractions from zero length files.
-def test_extract_with_zero_length_parser(scan_environment):
+def test_sigscan_extract_with_zero_length_parser(scan_environment):
     s = b'xBBxx12345'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -260,9 +325,13 @@ def test_extract_with_zero_length_parser(scan_environment):
 
 # test unpacking with real parsers
 
+def test_sigscan_extract_gif_file_from_prepended_file(scan_environment):
+    gif_fn = testdir_base / 'testdata' / pathlib.Path("unpackers") / "gif" / "test.gif"
+    with gif_fn.open('rb') as f:
+        s = b'x'*128 + f.read()
+    fn = pathlib.Path('test_unpack2.data')
+    create_test_file(scan_environment, fn, s)
 
-def test_extract_gif_file_from_prepended_file(scan_environment):
-    fn = testdir_base / 'testdata' / pathlib.Path("unpackers") / "gif" / "test-prepend-random-data.gif"
     path_ud = create_unpack_directory_for_path(scan_environment, fn, True)
     # scan_environment.set_unpackparsers([UnpackParserZeroLength, parser_pass_BB_0_5])
     scanjob = queue_file_job(scan_environment, path_ud)

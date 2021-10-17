@@ -1,6 +1,7 @@
 import uuid
 import pickle
 import pathlib
+import logging
 from contextlib import contextmanager
 
 class UnpackDirectory:
@@ -23,6 +24,7 @@ class UnpackDirectory:
         self._ud_path = pathlib.Path(fn)
         self._file_path = None
         self._size = None
+        self._unpack_parser = None
 
     @classmethod
     def from_ud_path(cls, unpack_root, name):
@@ -97,10 +99,13 @@ class UnpackDirectory:
 
     @info.setter
     def info(self, data):
+        logging.debug(f'info.setter: set info = {data}')
         path = self.abs_ud_path / 'info.pkl'
         path.parent.mkdir(parents=True, exist_ok=True)
+        logging.debug(f'info.setter: writing to {path}')
         with path.open('wb') as f:
             pickle.dump(data, f)
+            logging.debug(f'info.setter: wrote info')
 
     def unpacked_path(self, path):
         '''Gives the path, relative to the unpack root, of an unpacked path
@@ -153,9 +158,11 @@ class UnpackDirectory:
             f.close()
 
     def add_extracted_file(self, unpack_directory):
+        logging.debug(f'add_extracted_file: adding {unpack_directory.ud_path} for {unpack_directory.file_path}')
         info = self.info
         info.setdefault('extracted_files', {})[unpack_directory.file_path] = unpack_directory.ud_path
         self.info = info
+        logging.debug(f'add_extracted_file: wrote info {info}')
 
     def extracted_filename(self, offset, size):
         return self.ud_path / 'extracted' / f'{offset:012x}-{size:012x}'
@@ -170,12 +177,15 @@ class UnpackDirectory:
 
     @property
     def unpack_parser(self):
-        raise AttributeError('cannot read unpack parser')
-        # return self._unpack_parser
+        # raise AttributeError('cannot read unpack parser')
+        return self._unpack_parser
 
     @unpack_parser.setter
     def unpack_parser(self, unpack_parser):
         self._unpack_parser = unpack_parser
+
+    def is_scanned(self):
+        return self._unpack_parser is not None
 
     def unpack_files(self):
         if self._unpack_parser is None:
