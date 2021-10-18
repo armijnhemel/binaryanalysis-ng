@@ -11,13 +11,16 @@ seq:
     type: superblock
     size: 1024
   - id: inodes_bitmap
-    size: superblock.num_inode_bitmap_blocks * 1024
+    size: superblock.num_inode_bitmap_blocks * block_size
   - id: zones_bitmap
-    size: superblock.num_zone_bitmap_blocks * 1024
+    size: superblock.num_zone_bitmap_blocks * block_size
   - id: inodes
     type: inode
     repeat: expr
     repeat-expr: superblock.num_inodes
+instances:
+  block_size:
+    value: 1024
 types:
   superblock:
     seq:
