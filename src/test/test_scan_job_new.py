@@ -5,13 +5,13 @@ from scan_job import *
 from .mock_queue import *
 from UnpackParser import PaddingParser
 
-class UnpackParserUnpacksRelative(UnpackParser):
+class UnpackParserUnpacksBase(UnpackParser):
     pretty_name = 'UnpackParserUnpacksRelative'
     extensions = []
     signatures = [(1,b'AA')]
     length = 5
 
-    filenames = [ 'unpack1', 'unpack2' ]
+    filenames = [ ]
 
     def parse(self):
         pass
@@ -29,6 +29,12 @@ class UnpackParserUnpacksRelative(UnpackParser):
                 f.write(b'x')
                 yield unpacked_md
                 # TODO: yield new meta_directory
+
+class UnpackParserUnpacksRelative(UnpackParserUnpacksBase):
+    filenames = [ 'unpack1', 'unpack2' ]
+
+class UnpackParserUnpacksAbsolute(UnpackParserUnpacksBase):
+    filenames = [ '/unpack1', '/unpack2' ]
 
 parser_pass_AA_1_5 = create_unpackparser('ParserPassAA_1_5',
         signatures = [(1,b'AA')],
@@ -399,7 +405,7 @@ def test_extracted_file_has_parent(scan_environment):
 
 # test processing with parsers that unpack files
 
-def test_unpacking_parser_unpacks_files(scan_environment):
+def test_unpacking_parser_unpacks_relative_files(scan_environment):
     s = b'xAAyy'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -409,8 +415,21 @@ def test_unpacking_parser_unpacks_files(scan_environment):
     run_scan_loop(scan_environment)
     assert sorted(path_md.extracted_files.keys()) == []
     expected_files = [ path_md.unpacked_path(pathlib.Path(x)) for x in UnpackParserUnpacksRelative.filenames ]
-    assert path_md.unpacked_files == expected_files
-    assert all(not p.is_absolute() for p in path_md.unpacked_files)
+    assert list(path_md.unpacked_files.keys()) == expected_files
+    assert all(p.is_relative_to(path_md.unpacked_rel_root) for p, md in path_md.unpacked_files.items())
+
+def test_unpacking_parser_unpacks_absolute_files(scan_environment):
+    s = b'xAAyy'
+    fn = pathlib.Path('test_unpack2.data')
+    create_test_file(scan_environment, fn, s)
+    path_md = create_meta_directory_for_path(scan_environment, fn, True)
+    scan_environment.set_unpackparsers([UnpackParserUnpacksAbsolute])
+    scanjob = queue_file_job(scan_environment, path_md)
+    run_scan_loop(scan_environment)
+    assert sorted(path_md.extracted_files.keys()) == []
+    expected_files = [ path_md.unpacked_path(pathlib.Path(x)) for x in UnpackParserUnpacksAbsolute.filenames ]
+    assert list(path_md.unpacked_files.keys()) == expected_files
+    assert all(p.is_relative_to(path_md.unpacked_abs_root) for p, md in path_md.unpacked_files.items())
 
 ################
 

@@ -112,6 +112,14 @@ class MetaDirectory:
             pickle.dump(data, f)
             logging.debug(f'info.setter: wrote info')
 
+    @property
+    def unpacked_abs_root(self):
+        return self.md_path / self.ABS_UNPACK_DIR
+
+    @property
+    def unpacked_rel_root(self):
+        return self.md_path / self.REL_UNPACK_DIR
+
     def unpacked_path(self, path_name):
         '''Create a path in the MetaDirectory for an unpacked file with name path_name.
         '''
@@ -141,7 +149,10 @@ class MetaDirectory:
             f.close()
         # update info
         info = self.info
-        info.setdefault('unpacked_relative_files', []).append(unpacked_path)
+        if path.is_absolute():
+            info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
+        else:
+            info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
         logging.debug(f'unpack_regular_file: update info to {info}')
         self.info = info
 
@@ -157,14 +168,19 @@ class MetaDirectory:
     @property
     def unpacked_files(self):
         # TODO get absolute files too
-        return self.unpacked_relative_files
+        return self.unpacked_relative_files | self.unpacked_absolute_files
 
     @property
     def unpacked_relative_files(self):
-        files =  self.info.get('unpacked_relative_files',[])
+        files =  self.info.get('unpacked_relative_files',{})
         logging.debug(f'unpacked_relative_files: got {files}')
         return files
-        # TODO: get from directory or from property? property
+
+    @property
+    def unpacked_absolute_files(self):
+        files =  self.info.get('unpacked_absolute_files',{})
+        logging.debug(f'unpacked_absolute_files: got {files}')
+        return files
 
     def unpack_files(self):
         # TODO: should this stay or go?
