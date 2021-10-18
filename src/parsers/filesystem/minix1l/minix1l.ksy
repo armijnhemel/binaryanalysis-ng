@@ -72,13 +72,13 @@ types:
         type: u1
       - id: links
         type: u1
-      - id: direct_zones
+      - id: direct_zone_numbers
         type: zone_number
         repeat: expr
         repeat-expr: 7
-      - id: indirect_zone
+      - id: indirect_zone_number
         type: zone_number
-      - id: double_indirect_zone
+      - id: double_indirect_zone_number
         type: zone_number
   zone_number:
     seq:
@@ -86,6 +86,12 @@ types:
         type: u2
         valid:
           max: _root.superblock.num_zones
+    instances:
+      zone_data:
+        pos: number * _root.block_size
+        type: zone
+        io: _root._io
+        if: number != 0
   zone:
     seq:
       - id: data
