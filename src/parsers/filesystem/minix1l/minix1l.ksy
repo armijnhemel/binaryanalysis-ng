@@ -25,6 +25,11 @@ instances:
     value: 1024
   inode_size:
     value: 32
+  zones:
+    pos: superblock.first_data_zone * block_size
+    type: zone
+    repeat: expr
+    repeat-expr: superblock.num_zones - superblock.first_data_zone
 types:
   superblock:
     seq:
@@ -68,16 +73,20 @@ types:
       - id: links
         type: u1
       - id: direct_zones
-        type: zone
+        type: zone_number
         repeat: expr
         repeat-expr: 7
       - id: indirect_zone
-        type: zone
+        type: zone_number
       - id: double_indirect_zone
-        type: zone
-  zone:
+        type: zone_number
+  zone_number:
     seq:
       - id: number
         type: u2
         valid:
           max: _root.superblock.num_zones
+  zone:
+    seq:
+      - id: data
+        size: _root.block_size
