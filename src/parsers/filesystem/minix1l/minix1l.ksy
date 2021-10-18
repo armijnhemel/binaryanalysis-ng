@@ -77,7 +77,7 @@ types:
         type: zone
   zone:
     seq:
-      - id: zone_number
+      - id: number
         type: u2
         valid:
           max: _root.superblock.num_zones
