@@ -1,4 +1,5 @@
 import uuid
+import mmap
 import pickle
 import pathlib
 import logging
@@ -89,6 +90,23 @@ class MetaDirectory:
             # or if it does not have it, from the file itself
             self._size = self.abs_file_path.stat().st_size
         return self._size
+
+    @contextmanager
+    def open_and_map_file(self):
+        self._open_file = self.abs_file_path.open('rb')
+        self._mapped_file = mmap.mmap(self._open_file.fileno(),0, access=mmap.ACCESS_READ)
+        try:
+            yield self._open_file, self._mapped_file
+        finally:
+            self._open_file.close()
+
+    @property
+    def open_file(self):
+        return self._open_file
+
+    @property
+    def mapped_file(self):
+        return self._mapped_file
 
     @property
     def info(self):
