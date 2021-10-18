@@ -29,9 +29,11 @@ types:
       - id: num_inodes
         type: u2
         valid:
-          expr: num_inodes > 0
+          min: 1
       - id: num_zones
         type: u2
+        valid:
+          min: 1
       - id: num_inode_bitmap_blocks
         type: u2
       - id: num_zone_bitmap_blocks
