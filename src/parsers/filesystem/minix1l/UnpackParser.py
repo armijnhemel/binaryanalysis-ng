@@ -20,10 +20,14 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# /usr/share/magic
+# https://en.wikipedia.org/wiki/MINIX_file_system
+# https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/fs/mfs
+# https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/usr.sbin/mkfs.mfs/v1l
+
+
 import os
 import stat
-from UnpackParser import WrappedUnpackParser
-from bangfilesystems import unpack_minix1l
 
 from FileResult import FileResult
 
@@ -34,8 +38,7 @@ from kaitaistruct import ValidationFailedError
 from . import minix1l
 
 
-class Minix1lUnpackParser(WrappedUnpackParser):
-#class Minix1lUnpackParser(UnpackParser):
+class Minix1lUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0x410, b'\x8f\x13')

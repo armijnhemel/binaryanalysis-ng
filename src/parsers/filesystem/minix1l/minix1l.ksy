@@ -1,6 +1,6 @@
 meta:
   id: minix1l
-  title: Minix file system (Linux extended variant
+  title: Minix file system (Linux extended variant)
   license: CC0-1.0
   endian: le
   encoding: ASCII

@@ -295,7 +295,6 @@ signaturetofunction = {
     'androidbootimg': bangandroid.unpack_android_boot_img,
     'fat': bangfilesystems.unpack_fat,
     'cbfs': bangfilesystems.unpack_cbfs,
-    'minix_1l': bangfilesystems.unpack_minix1l,
     'compress': bangunpack.unpack_compress,
     'romfs': bangfilesystems.unpack_romfs,
     'cramfs_le': bangfilesystems.unpack_cramfs,
