@@ -64,7 +64,7 @@ types:
         type: u2
       - id: uid
         type: u2
-      - id: length
+      - id: size
         type: u4
       - id: time
         type: u4
