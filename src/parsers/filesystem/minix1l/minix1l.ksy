@@ -6,10 +6,10 @@ meta:
   encoding: ASCII
 seq:
   - id: bootblock
-    size: 1024
+    size: block_size
   - id: superblock
     type: superblock
-    size: 1024
+    size: block_size
   - id: inodes_bitmap
     size: superblock.num_inode_bitmap_blocks * block_size
   - id: zones_bitmap
@@ -18,6 +18,8 @@ seq:
     type: inode
     repeat: expr
     repeat-expr: superblock.num_inodes
+  - id: padding
+    size: (- _io.pos) % block_size
 instances:
   block_size:
     value: 1024
@@ -51,13 +53,13 @@ types:
       - id: uid
         type: u2
       - id: length
-        type: u2
+        type: u4
       - id: time
-        type: u2
+        type: u4
       - id: gid
-        type: u2
+        type: u1
       - id: links
-        type: u2
+        type: u1
       - id: direct_zones
         type: u2
         repeat: expr
