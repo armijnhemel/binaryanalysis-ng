@@ -124,6 +124,9 @@ class Minix1lUnpackParser(WrappedUnpackParser):
                         except:
                             # TODO: what to do in this case?
                             continue
+
+                        if inode_name not in ['.', '..']:
+                            inode_to_name[inodenr] = os.path.join(current_directory, inode_name)
             elif stat.S_ISREG(i.mode):
                 check_condition(len(zones) != 0, "no valid zones found")
 
@@ -170,9 +173,9 @@ class Minix1lUnpackParser(WrappedUnpackParser):
             if stat.S_ISDIR(i.mode):
                 current_directory = inode_to_name[inode_counter]
                 if current_directory != '':
-                    outfile_rel = os.path.join(unpackdir, current_directory)
-                    outfile_full = scanenvironment.unpack_path(outfile_rel)
-                    os.makedirs(outfile_full)
+                    outfile_rel = self.rel_unpack_dir / inode_to_name[inode_counter]
+                    outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                    os.makedirs(outfile_full, exist_ok=True)
 
                 for z in zones:
                     for r in range(0, len(z.zone_data.data)//32):
@@ -207,15 +210,15 @@ class Minix1lUnpackParser(WrappedUnpackParser):
                 outfile_full = self.scan_environment.unpack_path(outfile_rel)
 
                 # process zones to get the target name
-                destinationname = ''
+                target = ''
                 for z in zones:
                     try:
-                        destinationname += z.zone_data.data.split(b'\x00', 1)[0].decode()
+                        target += z.zone_data.data.split(b'\x00', 1)[0].decode()
                     except:
-                        destinationname = ''
+                        target = ''
                         break
-                if destinationname != '':
-                    outfile.symlink_to(destination_name)
+                if target != '':
+                    outfile_full.symlink_to(target)
                 fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
                 unpacked_files.append(fr)
 
