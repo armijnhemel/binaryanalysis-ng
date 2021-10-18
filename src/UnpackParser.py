@@ -250,6 +250,10 @@ class SynthesizingParser(UnpackParser):
         info.setdefault('labels', []).append('synthesized')
         meta_directory.info = info
 
+    def unpack(self, meta_directory):
+        # synthesize files must be scanned again, so let them unpack themselves
+        yield meta_directory
+
 
 class PaddingParser(UnpackParser):
 

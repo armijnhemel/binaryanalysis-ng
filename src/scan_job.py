@@ -12,9 +12,15 @@ class ScanJob:
     def __init__(self, path):
         self._path = path
         self._meta_directory = None
+        self._scan_environment = None
 
-    def set_scan_environment(self, scan_environment):
-        self.scan_environment = scan_environment
+    @property
+    def scan_environment(self):
+        return self._scan_environment
+
+    @scan_environment.setter
+    def scan_environment(self, scan_environment):
+        self._scan_environment = scan_environment
 
     @property
     def meta_directory(self):
@@ -257,8 +263,8 @@ def process_job(scanjob):
         logging.debug(f'process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
         for unpacked_md in md.unpack_with_unpack_parser():
             logging.debug(f'process_job: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
-            # TODO: queue unpacked_md
-            pass
+            job = ScanJob(unpacked_md.md_path)
+            scanjob.scan_environment.scanfilequeue.put(job)
         md.write_info_with_unpack_parser()
 
     # stop after first successful unpack (TODO: make configurable?)
@@ -269,8 +275,8 @@ def process_job(scanjob):
         logging.debug(f'process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
         # if md is synthesized, queue it for extra checks?
         for unpacked_md in md.unpack_with_unpack_parser():
-            # TODO: queue unpacked_md
-            pass
+            job = ScanJob(unpacked_md.md_path)
+            scanjob.scan_environment.scanfilequeue.put(job)
         md.write_info_with_unpack_parser()
 
     # stop after first successful scan for this file (TODO: make configurable?)
@@ -294,7 +300,7 @@ def process_jobs(scan_environment):
             scanjob = scan_environment.scanfilequeue.get(timeout=86400)
         except scan_environment.scanfilequeue.Empty as e:
             break
-        scanjob.set_scan_environment(scan_environment)
+        scanjob.scan_environment = scan_environment
         process_job(scanjob)
         scan_environment.scanfilequeue.task_done()
 

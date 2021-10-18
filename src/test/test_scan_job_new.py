@@ -433,6 +433,36 @@ def test_unpacking_parser_unpacks_absolute_files(scan_environment):
 
 ################
 
+# test extracted and unpacked files are queued
+
+def test_extracted_file_is_queued(scan_environment):
+    s = b'xAAyBBbb'
+    fn = pathlib.Path('test_unpack2.data')
+    create_test_file(scan_environment, fn, s)
+    path_md = create_meta_directory_for_path(scan_environment, fn, True)
+    scan_environment.set_unpackparsers([parser_fail_BB_1, parser_pass_BB_1_5])
+    scanjob = queue_file_job(scan_environment, path_md)
+    run_scan_loop(scan_environment)
+    # b'xAAyBBbb'
+    #   | ||   |
+    jobs_queued = [x for x in scan_environment.scanfilequeue.history if x != -1]
+    assert len(jobs_queued) == 2
+
+def test_unpacked_file_is_queued(scan_environment):
+    s = b'xAAyy'
+    fn = pathlib.Path('test_unpack2.data')
+    create_test_file(scan_environment, fn, s)
+    path_md = create_meta_directory_for_path(scan_environment, fn, True)
+    scan_environment.set_unpackparsers([UnpackParserUnpacksAbsolute])
+    scanjob = queue_file_job(scan_environment, path_md)
+    run_scan_loop(scan_environment)
+    jobs_queued = [x for x in scan_environment.scanfilequeue.history if x != -1]
+    assert len(jobs_queued) == 3
+
+
+
+################
+
 # test processing with real parsers
 
 def test_sigscan_extract_gif_file_from_prepended_file(scan_environment):
