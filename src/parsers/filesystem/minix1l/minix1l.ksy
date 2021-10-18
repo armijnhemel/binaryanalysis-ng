@@ -23,6 +23,8 @@ seq:
 instances:
   block_size:
     value: 1024
+  inode_size:
+    value: 32
 types:
   superblock:
     seq:
@@ -40,6 +42,9 @@ types:
         type: u2
       - id: first_data_zone
         type: u2
+        valid:
+          min: 2 + num_inode_bitmap_blocks + num_zone_bitmap_blocks + ((num_inodes/_root.inode_size) % _root.block_size)
+          max: num_zones
       - id: size_log_zone
         type: u2
       - id: max_size
@@ -68,5 +73,9 @@ types:
         repeat-expr: 7
       - id: indirect_zone
         type: u2
+        valid:
+          min: _root.superblock.first_data_zone
       - id: double_indirect_zone
         type: u2
+        valid:
+          min: _root.superblock.first_data_zone
