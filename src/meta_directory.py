@@ -129,24 +129,25 @@ class MetaDirectory:
             unpacked_path = self.md_path / self.REL_UNPACK_DIR / path_name
         return unpacked_path
 
+    def make_md_for_file(self, path):
+        abs_path = self.meta_root / path
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        md = MetaDirectory(self.meta_root, None, False)
+        md.file_path = path
+        f = abs_path.open('wb')
+        return md, f
+
     @contextmanager
     def unpack_regular_file(self, path):
         '''Context manager for unpacking a file with path path into the MetaDirectory,
         yields a file object, that you can write to, directly or via sendfile().
         '''
-        logging.debug(f'unpack_regular_file: unpacking for {path}')
         unpacked_path = self.unpacked_path(path)
-        abs_unpacked_path = self._meta_root / unpacked_path
-        abs_unpacked_path.parent.mkdir(parents=True, exist_ok=True)
-        logging.debug(f'unpack_regular_file: opening for {unpacked_path}')
-        unpacked_md = MetaDirectory(self.meta_root, None, False)
-        unpacked_md.file_path = unpacked_path
-        unpacked_md.parent_md = self.md_path
-        f = abs_unpacked_path.open('wb')
+        unpacked_md, unpacked_file = self.make_md_for_file(unpacked_path)
         try:
-            yield unpacked_md, f
+            yield unpacked_md, unpacked_file
         finally:
-            f.close()
+            unpacked_file.close()
         # update info
         info = self.info
         if path.is_absolute():
@@ -197,19 +198,15 @@ class MetaDirectory:
         extracted file.
         '''
         extracted_path = self.extracted_filename(offset, file_size)
-        abs_extracted_path = self.meta_root / extracted_path
-        abs_extracted_path.parent.mkdir(parents=True, exist_ok=True)
-        extracted_file = abs_extracted_path.open('wb')
-        extracted_md = MetaDirectory(self.meta_root, None, False)
-        extracted_md.file_path = extracted_path
-        self.add_extracted_file(extracted_md)
+        extracted_md, extracted_file = self.make_md_for_file(extracted_path)
         try:
             yield extracted_md, extracted_file
         finally:
             extracted_file.close()
+        self.add_extracted_file(extracted_md)
 
     def add_extracted_file(self, meta_dir):
-        '''Adds an MetaDirectory for an extracted file to this MetaDirectory and sets its
+        '''Adds a MetaDirectory for an extracted file to this MetaDirectory and sets its
         parent.
         '''
         logging.debug(f'add_extracted_file: adding {meta_dir.md_path} for {meta_dir.file_path}')
