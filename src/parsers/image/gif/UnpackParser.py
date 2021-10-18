@@ -44,16 +44,23 @@ class GifUnpackParser(UnpackParser):
         except BaseException as e:
             raise UnpackParserException(e.args)
 
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         """extract any files from the input file"""
         return []
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
+    def write_info(self, meta_directory):
+        info = meta_directory.info
+        info.setdefault('labels',[]).append(self.labels)
+        info.setdefault('metadata',{}).update(self.metadata)
+        meta_directory.info = info
+
+    labels = ['gif', 'graphics']
+
+    @property
+    def metadata(self):
         extensions = [ x.body for x in self.data.blocks
                 if x.block_type == self.data.BlockType.extension ]
 
-        labels = ['gif', 'graphics']
         metadata = { 'width': self.data.logical_screen_descriptor.screen_width,
                      'height': self.data.logical_screen_descriptor.screen_height}
 
@@ -150,5 +157,4 @@ class GifUnpackParser(UnpackParser):
         comments = [b''.join([ y.bytes for y in x ]) for x in subblocks]
         metadata['comments'] = comments
         metadata['applications'] = applications
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)
+        return metadata
