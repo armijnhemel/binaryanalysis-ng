@@ -77,9 +77,37 @@ types:
         repeat: expr
         repeat-expr: 7
       - id: indirect_zone_number
-        type: zone_number
+        type: indirect_zone_number
       - id: double_indirect_zone_number
+        type: double_indirect_zone_number
+  double_indirect_zone_number:
+    seq:
+      - id: number
+        type: u2
+        valid:
+          max: _root.superblock.num_zones
+    instances:
+      zone_data:
+        pos: number * _root.block_size
+        io: _root._io
+        type: indirect_zone_number
+        repeat: expr
+        repeat-expr: _root.block_size/number._sizeof
+        if: number != 0
+  indirect_zone_number:
+    seq:
+      - id: number
+        type: u2
+        valid:
+          max: _root.superblock.num_zones
+    instances:
+      zone_data:
+        pos: number * _root.block_size
+        io: _root._io
         type: zone_number
+        repeat: expr
+        repeat-expr: _root.block_size/number._sizeof
+        if: number != 0
   zone_number:
     seq:
       - id: number
