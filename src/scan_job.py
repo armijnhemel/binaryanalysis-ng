@@ -22,37 +22,30 @@ class ScanJob:
             self._meta_directory = MetaDirectory.from_md_path(self.scan_environment.unpackdirectory, self._path)
         return self._meta_directory
 
+#####
+#
+# Returns if a path is an unscannable file, i.e. not a regular file or empty.
+#
 def is_unscannable(path):
     # TODO: do we want labels on unscannable files?
     return not path.is_file() or path.stat().st_size == 0
     # return path.is_dir() or path.is_fifo() or path.is_socket() or path.is_block_device() or path.is_char_device() or path.is_symlink()
 
-def is_padding(path):
-    validpadding = [b'\x00', b'\xff']
-    ispadding = False
 
-    with path.open('rb') as f:
-        c = f.read(1)
-        padding_char = c
-        ispadding = c in validpadding
-        if ispadding:
-            while c == padding_char:
-                c = f.read(1)
-            ispadding = c == b''
-    return ispadding
-
+#####
+#
+# Extracts in_file[offset:offset+file_size] in checking_meta_directory.
+#
 def extract_file(checking_meta_directory, in_file, offset, file_size):
-    extracted_path = checking_meta_directory.extracted_filename(offset, file_size)
-    abs_extracted_path = checking_meta_directory.meta_root / extracted_path
-    abs_extracted_path.parent.mkdir(parents=True, exist_ok=True)
-    with abs_extracted_path.open('wb') as extracted_file:
+    with checking_meta_directory.extract_file(offset, file_size) as (extracted_md, extracted_file):
         os.sendfile(extracted_file.fileno(), in_file.fileno(), offset, file_size)
-    extracted_md = MetaDirectory(checking_meta_directory.meta_root, None, False)
-    extracted_md.file_path = extracted_path
-    checking_meta_directory.add_extracted_file(extracted_md)
     return extracted_md
 
-
+#####
+#
+# Iterator that checks if the file for checking_meta_directory is a padding file. Yields
+# checking_meta_directory if this is the case.
+#
 def check_for_padding(checking_meta_directory):
     with checking_meta_directory.abs_file_path.open('rb') as in_file:
         try:
@@ -68,12 +61,26 @@ def check_for_padding(checking_meta_directory):
 
         logging.debug(f'check_for_padding: {checking_meta_directory.file_path} is not a padding file')
 
+#####
+#
+# Iterator that yields all combinations of extensions and UnpackParsers.
+# We cannot do a direct lookup, since we do not know the extension in advance, for example
+# file.tar.gz could have extension .gz, but also .tar.gz. Therefore we sacrifice a little
+# speed to be more flexible.
+#
 def find_extension_parsers(scan_environment, mapped_file):
     for ext, unpack_parsers in scan_environment.get_unpackparsers_for_extensions().items():
         for unpack_parser_cls in unpack_parsers:
             logging.debug(f'find_extension_parser: {ext!r} parsed by {unpack_parser_cls}')
             yield ext, unpack_parser_cls
 
+#####
+#
+# Iterator that yields a MetaDirectory for a successfully parsed file by extension. If the
+# file contains extra data, it will yield MetaDirectory objects for the parent
+# (i.e. checking_meta_directory), for the parsed part, and for the extracted part.
+# Stops after a successful parse.
+#
 def check_by_extension(scan_environment, checking_meta_directory):
     with checking_meta_directory.abs_file_path.open('rb') as in_file:
         mapped_file = mmap.mmap(in_file.fileno(),0, access=mmap.ACCESS_READ)
@@ -116,6 +123,11 @@ def check_by_extension(scan_environment, checking_meta_directory):
                     logging.debug(f'check_by_extension: parser exception: {e}')
 
 
+#####
+#
+# Iterator that yields all combinations of offsets and UnpackParsers for a specific signature
+# found in mapped_file.
+#
 def find_offsets_for_signature(signature, unpack_parsers, mapped_file):
     s_offset, s_text = signature
     for r in re.finditer(re.escape(s_text), mapped_file):
@@ -126,6 +138,11 @@ def find_offsets_for_signature(signature, unpack_parsers, mapped_file):
         for u in unpack_parsers:
             yield r.start() - s_offset, u
 
+#####
+#
+# Iterator that yields all combinations of offsets and UnpackParsers for all signatures
+# found in mapped_file.
+#
 def find_signature_parsers(scan_environment, mapped_file):
     for s, unpack_parsers in scan_environment.get_unpackparsers_for_signatures().items():
         logging.debug(f'find_signature_parsers: {s} parsed by {unpack_parsers}')
@@ -133,6 +150,15 @@ def find_signature_parsers(scan_environment, mapped_file):
         for offset, unpack_parser in find_offsets_for_signature(s, unpack_parsers, mapped_file):
             yield offset, unpack_parser
 
+#####
+#
+# Iterator that yields succesfully parsed parts in mapped_file and the parts that are not
+# parsed, in order. It chooses the first signature that it parses successfully, and will not
+# yield any overlapping results. In case of the same offset, the order of the signature
+# parsers as configured in the scan_environment determines the order in which it tries
+# parsing with UnpackParsers. If you want a different order, change the way
+# find_signature_parsers is sorted, perhaps with parser priorities.
+#
 def scan_signatures(scan_environment, mapped_file):
     scan_offset = 0
     for offset, unpack_parser_cls in sorted(find_signature_parsers(scan_environment, mapped_file), key=itemgetter(0)):
@@ -165,6 +191,13 @@ def scan_signatures(scan_environment, mapped_file):
         yield scan_offset, SynthesizingParser.with_size(mapped_file, offset, mapped_file.size() - scan_offset)
 
 
+#####
+#
+# Iterator that yields a MetaDirectory for all file parts parsed by signature. If the
+# file itself is the only part, it will yield checking_meta_directory, otherwise,
+# it will yield MetaDirectory objects for the parent (i.e. checking_meta_directory), and
+# for all the parsed and extracted parts.
+#
 def check_by_signature(scan_environment, checking_meta_directory):
     # find offsets
     with checking_meta_directory.abs_file_path.open('rb') as in_file:
@@ -186,13 +219,23 @@ def check_by_signature(scan_environment, checking_meta_directory):
                 checking_meta_directory.unpack_parser = ExtractingParser.with_parts(mapped_file, parts)
                 yield checking_meta_directory
 
+#####
+#
+# Processes a ScanJob. The scanjob stores a MetaDirectory path that contains all
+# information needed for processing, such as the path of the file to analyze, and
+# any context.
+#
 def process_job(scanjob):
     # scanjob has: path, meta_directory object and context
     meta_directory = scanjob.meta_directory
 
+    # TODO: if we want to record meta data for unscannable files, change
+    # this into an iterator pattern where you will get MetaDirectories with an
+    # assigned parser to write the meta data.
     if is_unscannable(meta_directory.file_path):
         return
 
+    # TODO: see if we can decide if files are padding from the MetaDirectory context.
     # if scanjob.context_is_padding(meta_directory.context): return
     for md in check_for_padding(meta_directory):
         logging.debug(f'process padding file in {md} with {md.unpack_parser}')
@@ -201,11 +244,9 @@ def process_job(scanjob):
 
     for md in check_by_extension(scanjob.scan_environment, meta_directory):
         logging.debug(f'process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
-        # md is an meta_directory
-        # unpackdirectory has files to unpack (i.e. for archives)
         for unpacked_md in md.unpack_parser.unpack(md):
             logging.debug(f'process_job: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
-            # queue up
+            # TODO: queue unpacked_md
             pass
         md.unpack_parser.write_info(md)
 
@@ -217,7 +258,7 @@ def process_job(scanjob):
         logging.debug(f'process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
         # if md is synthesized, queue it for extra checks?
         for unpacked_md in md.unpack_parser.unpack(md):
-            # queue
+            # TODO: queue unpacked_md
             pass
         md.unpack_parser.write_info(md)
 
@@ -228,6 +269,10 @@ def process_job(scanjob):
     # if extension and signature did not give any results, try other things
     # TODO: try featureless parsers
 
+####
+#
+# Process all jobs on the scan queue in the scan_environment.
+#
 def process_jobs(scan_environment):
     # code smell, should not be needed if unpackparsers behave
     os.chdir(scan_environment.unpackdirectory)

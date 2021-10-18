@@ -191,8 +191,26 @@ class MetaDirectory:
             md.file_path = fn
             yield md
 
+    @contextmanager
+    def extract_file(self, offset, file_size):
+        '''Given offset and file_size, yield a tuple (MetaDirectory, file object) for the
+        extracted file.
+        '''
+        extracted_path = self.extracted_filename(offset, file_size)
+        abs_extracted_path = self.meta_root / extracted_path
+        abs_extracted_path.parent.mkdir(parents=True, exist_ok=True)
+        extracted_file = abs_extracted_path.open('wb')
+        extracted_md = MetaDirectory(self.meta_root, None, False)
+        extracted_md.file_path = extracted_path
+        self.add_extracted_file(extracted_md)
+        try:
+            yield extracted_md, extracted_file
+        finally:
+            extracted_file.close()
+
     def add_extracted_file(self, meta_dir):
-        '''Adds an MetaDirectory for an extracted file to this MetaDirectory.
+        '''Adds an MetaDirectory for an extracted file to this MetaDirectory and sets its
+        parent.
         '''
         logging.debug(f'add_extracted_file: adding {meta_dir.md_path} for {meta_dir.file_path}')
         info = self.info
@@ -222,6 +240,9 @@ class MetaDirectory:
             #yield extracted_path
 
     def extracted_md(self, offset, size):
+        '''Given an offset and size, search the MetaDirectory that belongs to an
+        extracted file. Raises KeyError if the file does not exist.
+        '''
         file_key = self.extracted_filename(offset, size)
         file_value = self.extracted_files[file_key]
         md = MetaDirectory.from_md_path(self.meta_root, file_value)
