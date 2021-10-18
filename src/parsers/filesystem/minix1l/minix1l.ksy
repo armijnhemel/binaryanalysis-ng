@@ -68,14 +68,16 @@ types:
       - id: links
         type: u1
       - id: direct_zones
-        type: u2
+        type: zone
         repeat: expr
         repeat-expr: 7
       - id: indirect_zone
-        type: u2
-        valid:
-          min: _root.superblock.first_data_zone
+        type: zone
       - id: double_indirect_zone
+        type: zone
+  zone:
+    seq:
+      - id: zone_number
         type: u2
         valid:
-          min: _root.superblock.first_data_zone
+          max: _root.superblock.num_zones
