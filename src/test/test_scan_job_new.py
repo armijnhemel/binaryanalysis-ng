@@ -443,7 +443,6 @@ def test_sigscan_extract_gif_file_from_prepended_file(scan_environment):
     create_test_file(scan_environment, fn, s)
 
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    # scan_environment.set_unpackparsers([UnpackParserZeroLength, parser_pass_BB_0_5])
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
 
