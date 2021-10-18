@@ -265,3 +265,13 @@ class MetaDirectory:
         return self._unpack_parser is not None
 
 
+    def write_info_with_unpack_parser(self):
+        '''Let the UnpackParser write metadata to the MetaDirectory.
+        '''
+        self.unpack_parser.write_info(self)
+
+    def unpack_with_unpack_parser(self):
+        '''Let the UnpackParser unpack files to the MetaDirectory.
+        '''
+        return self.unpack_parser.unpack(self)
+

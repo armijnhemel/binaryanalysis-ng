@@ -250,16 +250,16 @@ def process_job(scanjob):
     # if scanjob.context_is_padding(meta_directory.context): return
     for md in check_for_padding(meta_directory):
         logging.debug(f'process padding file in {md} with {md.unpack_parser}')
-        md.unpack_parser.write_info(md)
+        md.write_info_with_unpack_parser()
         return # skip padding file by returning
 
     for md in check_by_extension(scanjob.scan_environment, meta_directory):
         logging.debug(f'process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
-        for unpacked_md in md.unpack_parser.unpack(md):
+        for unpacked_md in md.unpack_with_unpack_parser():
             logging.debug(f'process_job: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
             # TODO: queue unpacked_md
             pass
-        md.unpack_parser.write_info(md)
+        md.write_info_with_unpack_parser()
 
     # stop after first successful unpack (TODO: make configurable?)
     if meta_directory.is_scanned():
@@ -268,10 +268,10 @@ def process_job(scanjob):
     for md in check_by_signature(scanjob.scan_environment, meta_directory):
         logging.debug(f'process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
         # if md is synthesized, queue it for extra checks?
-        for unpacked_md in md.unpack_parser.unpack(md):
+        for unpacked_md in md.unpack_with_unpack_parser():
             # TODO: queue unpacked_md
             pass
-        md.unpack_parser.write_info(md)
+        md.write_info_with_unpack_parser()
 
     # stop after first successful scan for this file (TODO: make configurable?)
     if meta_directory.is_scanned():
