@@ -36,7 +36,6 @@ class MetaDirectory:
         if the directory already exists.
         '''
         md = MetaDirectory(meta_root, name, False)
-        # read properties from persisted data
         return md
 
     @property
@@ -51,8 +50,6 @@ class MetaDirectory:
         '''The absolute path of the MetaDirectory.'''
         return self._meta_root / self._md_path
 
-    # TODO: for non-root files, store the file_path as a relative path
-    # (automatic)
     @property
     def file_path(self):
         if self._file_path is None:
@@ -61,8 +58,6 @@ class MetaDirectory:
                 self._file_path = pathlib.Path(f.read())
         return self._file_path
 
-    # TODO: for non-root files, store the file_path as a relative path
-    # (automatic)
     @file_path.setter
     def file_path(self, path):
         self._file_path = path
@@ -93,6 +88,11 @@ class MetaDirectory:
 
     @contextmanager
     def open_and_map_file(self):
+        '''Context manager to open the file that this MetaDirectory represents. Yields a
+        file object and an mmap-ed file object, but these are also stored as properties.
+        We need both, since sendfile wants an actual file object, and we also want the
+        advantages of mmap.
+        '''
         self._open_file = self.abs_file_path.open('rb')
         self._mapped_file = mmap.mmap(self._open_file.fileno(),0, access=mmap.ACCESS_READ)
         try:
@@ -102,10 +102,14 @@ class MetaDirectory:
 
     @property
     def open_file(self):
+        '''Returns a file object for the opened file that this MetaDirectory represents.
+        '''
         return self._open_file
 
     @property
     def mapped_file(self):
+        '''Returns an mmap object for the opened file that this MetaDirectory represents.
+        '''
         return self._mapped_file
 
     @property
@@ -186,7 +190,6 @@ class MetaDirectory:
 
     @property
     def unpacked_files(self):
-        # TODO get absolute files too
         return self.unpacked_relative_files | self.unpacked_absolute_files
 
     @property
@@ -200,15 +203,6 @@ class MetaDirectory:
         files =  self.info.get('unpacked_absolute_files',{})
         logging.debug(f'unpacked_absolute_files: got {files}')
         return files
-
-    def unpack_files(self):
-        # TODO: should this stay or go?
-        if self._unpack_parser is None:
-            raise AttributeError('no unpack_parser available')
-        for fn in self._unpack_parser.unpack(self):
-            md = MetaDirectory(self.meta_root, None, False)
-            md.file_path = fn
-            yield md
 
     @contextmanager
     def extract_file(self, offset, file_size):

@@ -93,18 +93,18 @@ def check_by_extension(scan_environment, checking_meta_directory):
             try:
                 unpack_parser = unpack_parser_cls(checking_meta_directory.mapped_file, 0)
                 unpack_parser.parse_from_offset()
-                if unpack_parser.parsed_size == checking_meta_directory.mapped_file.size():
+                if unpack_parser.parsed_size == checking_meta_directory.size:
                     logging.debug(f'check_by_extension: parser parsed entire file')
                     checking_meta_directory.unpack_parser = unpack_parser
                     yield checking_meta_directory
                 else:
-                    logging.debug(f'check_by_extension: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.mapped_file.size()}] ({checking_meta_directory.mapped_file.size() - unpack_parser.parsed_size} bytes)')
+                    logging.debug(f'check_by_extension: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size}] ({checking_meta_directory.size - unpack_parser.parsed_size} bytes)')
                     # yield the checking_meta_directory with a ExtractingUnpackParser, in
                     # case we want to record metadata about it.
                     checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
                         checking_meta_directory.mapped_file,
                         [ (0,unpack_parser.parsed_size),
-                        (unpack_parser.parsed_size, checking_meta_directory.mapped_file.size() - unpack_parser.parsed_size) ]
+                        (unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size) ]
                         )
                     yield checking_meta_directory
 
@@ -114,8 +114,8 @@ def check_by_extension(scan_environment, checking_meta_directory):
                     yield extracted_md
 
                     # yield a synthesized file
-                    extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.mapped_file.size() - unpack_parser.parsed_size)
-                    extracted_md.unpack_parser = SynthesizingParser.with_size(checking_meta_directory.mapped_file, unpack_parser.parsed_size, checking_meta_directory.mapped_file.size() - unpack_parser.parsed_size)
+                    extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
+                    extracted_md.unpack_parser = SynthesizingParser.with_size(checking_meta_directory.mapped_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
                     yield extracted_md
 
                     # stop after first successful extension parse
@@ -244,6 +244,7 @@ def process_job(scanjob):
     # TODO: if we want to record meta data for unscannable files, change
     # this into an iterator pattern where you will get MetaDirectories with an
     # assigned parser to write the meta data.
+    # Also move the meta_directory.open_and_map_file line above these lines.
     if is_unscannable(meta_directory.file_path):
         return
 
