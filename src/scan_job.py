@@ -224,6 +224,17 @@ def check_by_signature(scan_environment, checking_meta_directory):
 # Processes a ScanJob. The scanjob stores a MetaDirectory path that contains all
 # information needed for processing, such as the path of the file to analyze, and
 # any context.
+# (Most) checks follow the iterator pattern: for every positive check result, the code
+# yields a MetaDirectory (could be the one for the current file, or could be one that is
+# extracted, if the file contains multiple parts). This MetaDirectory object has an
+# unpack_parser property, which the code will use to write metadata to this MetaDirectory.
+# There are special parsers for parts that could not be parsed (SynthesizingParser), for
+# padding files (PaddingParser), and for a file from which files are extracted
+# (ExtractingParser).
+# The code will also call the UnpackParser to unpack any files (for example for archives).
+# The UnpackParser's unpack method will unpack the files into the MetaDirectory, and yield
+# a MetaDirectory object for every unpacked file. The code will create a new ScanJob for each
+# unpacked MetaDirectory and queue it.
 #
 def process_job(scanjob):
     # scanjob has: path, meta_directory object and context
