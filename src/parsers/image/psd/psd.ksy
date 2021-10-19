@@ -98,6 +98,10 @@ types:
         type: u4
       - id: data
         size: len_resource
+        type:
+          switch-on: resource_id
+          cases:
+            resource_ids::xmp_metadata: xmp
       - id: padding2
         size: 1
         if: len_resource % 2 == 1
@@ -123,6 +127,12 @@ types:
           cases:
             compression::raw: raw_data
             compression::rle: rle_data
+  xmp:
+    seq:
+      - id: data
+        type: str
+        size-eos: true
+        encoding: utf-8
   raw_data:
     seq:
       - id: data
