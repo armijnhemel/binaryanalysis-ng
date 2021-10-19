@@ -288,7 +288,6 @@ signaturetofunction = {
     'avb': bangandroid.unpack_avb,
     'sqlite3': bangunpack.unpack_sqlite,
     'trx': bangunpack.unpack_trx,
-    'psd': bangmedia.unpack_psd,
     'ppm': bangmedia.unpack_pnm,
     'pgm': bangmedia.unpack_pnm,
     'pbm': bangmedia.unpack_pnm,
