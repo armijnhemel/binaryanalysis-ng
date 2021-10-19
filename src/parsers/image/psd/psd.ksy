@@ -4,12 +4,8 @@ meta:
   file-extension: psd
   license: CC0-1.0
   ks-version: 0.9
-  encoding: ASCII
   endian: be
-doc: |
-  Simple grammar for Photoshop PSD that has enough functionality
-  to replace a handwritten parser in BANG.
-
+doc-ref: https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
 seq:
   - id: header
     type: header
