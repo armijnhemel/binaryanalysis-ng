@@ -31,8 +31,9 @@ from . import spreadtrum_pac
 
 
 class SpreadtrumPacUnpackParser(UnpackParser):
-    extensions = ['.pac']
-    signatures = []
+    #extensions = ['.pac']
+    extensions = []
+    signatures = [(2116, b'\xfa\xff\xfa\xff')]
     pretty_name = 'spreadtrum_pac'
 
     def parse(self):

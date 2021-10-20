@@ -4,7 +4,9 @@ meta:
   license: CC-1.0
   encoding: UTF-8
   endian: le
-doc-ref: https://github.com/divinebird/pacextractor/blob/master/pacextractor.c
+doc-ref:
+  - https://github.com/divinebird/pacextractor/blob/master/pacextractor.c
+  - https://github.com/yonglongliu/vendor/blob/f0e4a4c5025b8f7a13e69db3af9446717702f4f2/sprd/build/buildpac/tools/unpac_perl/unpac.pl#L145
 seq:
   - id: header
     type: header
@@ -15,7 +17,7 @@ instances:
 types:
   header:
     seq:
-      - id: unknown1
+      - id: version
         size: 48
       - id: len_file
         type: u4
@@ -31,14 +33,32 @@ types:
       - id: ofs_partitions_list
         -orig-id: partitionsListStart
         type: u4
-      - id: unknown3
-        size: 20
+      - id: mode
+        type: u4
+      - id: flash_type
+        type: u4
+      - id: nand_strategy
+        type: u4
+      - id: is_nv_backup
+        type: u4
+      - id: nand_page_type
+        type: u4
       - id: product_name2
-        size: 100
-      - id: unknown4
-        size: 12
-      - id: unknown5
-        size: 4
+        size: 200
+      - id: oma_dm_product_flag
+        type: u4
+      - id: is_oma_dm
+        type: u4
+      - id: is_preload
+        type: u4
+      - id: reserved
+        size: 800
+      - id: magic
+        contents: [0xfa, 0xff, 0xfa, 0xff]
+      - id: crc1
+        type: u2
+      - id: crc2
+        type: u2
   entries:
     params:
       - id: num_partitions
@@ -74,10 +94,20 @@ types:
       - id: len_partition
         -orig-id: partitionSize
         type: u4
-      - id: unknown1
-        size: 8
+      - id: file_flag
+        type: u4
+      - id: check_flag
+        type: u4
       - id: ofs_partition
         -orig-id: partitionAddrInPac
         type: u4
-      - id: unknown2
-        size: 12
+      - id: omit_flag
+        type: u4
+      - id: addr_num
+        type: u4
+      - id: addresses
+        type: u4
+        repeat: expr
+        repeat-expr: 5
+      - id: reserved
+        size: 996
