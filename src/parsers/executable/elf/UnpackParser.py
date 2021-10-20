@@ -155,8 +155,12 @@ class ElfUnpackParser(UnpackParser):
             metadata['type'] = 'processor specific'
 
         # store the machine type, both numerical and pretty printed
-        metadata['machine_name'] = self.data.header.machine.name
-        metadata['machine'] = self.data.header.machine.value
+        if type(self.data.header.machine):
+            metadata['machine_name'] = "unknown architecture"
+            metadata['machine'] = self.data.header.machine
+        else:
+            metadata['machine_name'] = self.data.header.machine.name
+            metadata['machine'] = self.data.header.machine.value
 
         # store the ABI, both numerical and pretty printed
         metadata['abi_name'] = self.data.abi.name
@@ -501,7 +505,10 @@ class ElfUnpackParser(UnpackParser):
         if is_dynamic_elf:
             labels.append('dynamic')
         else:
-            labels.append('static')
+            if metadata['type'] == 'core':
+                labels.append('core')
+            else:
+                labels.append('static')
         return(labels, metadata)
 
     def set_metadata_and_labels(self):
