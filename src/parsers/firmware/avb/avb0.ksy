@@ -24,6 +24,7 @@ seq:
     repeat-expr: (- _io.pos) % block_size
   - id: blocks
     type: block
+    size: block_size
     repeat: until
     repeat-until: _.footer.is_footer or _io.eof or (not _.footer.is_footer and not _.footer.is_padding)
 instances:
@@ -32,6 +33,10 @@ instances:
   footer_size:
     value: 64
 types:
+  padding_block:
+    seq:
+      - id: padding
+        contents: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   padding_byte:
     seq:
       - id: padding
@@ -39,9 +44,9 @@ types:
   block:
     seq:
       - id: padding
-        type: padding_byte
+        type: padding_block
         repeat: expr
-        repeat-expr: _root.block_size - _root.footer_size
+        repeat-expr: (_root.block_size - _root.footer_size) / 64
       - id: footer
         type: footer_or_padding
         size-eos: true
