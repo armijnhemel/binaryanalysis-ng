@@ -115,6 +115,7 @@ types:
             descriptor_tags::property: property_descriptor
             descriptor_tags::hashtree: hashtree
             descriptor_tags::hash: hash
+            descriptor_tags::kernel_cmdline: kernel_cmdline
             descriptor_tags::chain_partition: chain_partition
       - id: padding
         size: (- _io.pos) % 8
@@ -136,21 +137,6 @@ types:
         contents: [0x00]
       - id: padding
         size: (- _io.pos) % 8
-  chain_partition:
-    seq:
-      - id: rollback_index_location
-        type: u4
-      - id: len_partition_name
-        type: u4
-      - id: len_public_key
-        type: u4
-      - id: reserved
-        size: 64
-      - id: partition_name
-        type: str
-        size: len_partition_name
-      - id: public_key
-        size: len_public_key
   hashtree:
     seq:
       - id: dm_verity_version
@@ -215,6 +201,30 @@ types:
         size: len_salt
       - id: digest
         size: len_digest
+  kernel_cmdline:
+    seq:
+      - id: flags
+        type: u4
+      - id: len_kernel_cmdline
+        type: u4
+      - id: kernel_cmdline
+        type: str
+        size: len_kernel_cmdline
+  chain_partition:
+    seq:
+      - id: rollback_index_location
+        type: u4
+      - id: len_partition_name
+        type: u4
+      - id: len_public_key
+        type: u4
+      - id: reserved
+        size: 64
+      - id: partition_name
+        type: str
+        size: len_partition_name
+      - id: public_key
+        size: len_public_key
 enums:
   encryption:
     0: no_encryption
