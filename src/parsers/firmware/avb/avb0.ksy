@@ -18,7 +18,50 @@ seq:
   - id: auxiliary_data
     type: auxiliary_data
     size: header.len_auxiliary_block
+  - id: padding
+    type: padding_byte
+    repeat: expr
+    repeat-expr: (- _io.pos) % block_size
+  - id: blocks
+    type: block
+    repeat: until
+    repeat-until: _.footer.is_footer or _io.eof or (not _.footer.is_footer and not _.footer.is_padding)
+instances:
+  block_size:
+    value: 4096
+  footer_size:
+    value: 64
 types:
+  padding_byte:
+    seq:
+      - id: padding
+        contents: [0x00]
+  block:
+    seq:
+      - id: padding
+        type: padding_byte
+        repeat: expr
+        repeat-expr: _root.block_size - _root.footer_size
+      - id: footer
+        type: footer_or_padding
+        size-eos: true
+  footer_or_padding:
+    seq:
+      - id: footer
+        type: footer
+        if: is_footer
+      - id: padding
+        type: padding_byte
+        repeat: eos
+        if: is_padding
+    instances:
+      magic:
+        pos: 0
+        size: 4
+      is_footer:
+        value: magic == [0x41, 0x56, 0x42, 0x66]   # '"AVBf"'
+      is_padding:
+        value: magic == [0x00, 0x00, 0x00, 0x00]
   header:
     seq:
       - id: magic
@@ -68,12 +111,33 @@ types:
       - id: flags
         type: u4
       - id: padding1
-        size: 4
+        contents: [0x00, 0x00, 0x00, 0x00]
       - id: release_string
         type: strz
         size: 48
       - id: padding2
-        size: 80
+        type: padding_byte
+        repeat: expr
+        repeat-expr: 80
+  footer:
+    seq:
+      - id: magic
+        contents: "AVBf"
+      - id: major_version
+        type: u4
+      - id: minor_version
+        type: u4
+      - id: original_image_size
+        type: u8
+        doc: The original size of the image on the partition.
+      - id: vbmeta_offset
+        type: u8
+        doc: The offset of the |AvbVBMetaImageHeader| struct.
+      - id: vbmeta_size
+        type: u8
+        doc: The size of the vbmeta block (header + auth + aux blocks).
+      - id: reserved
+        size: 28
   authentication_data:
     instances:
       hash:
