@@ -40,7 +40,8 @@ uses `androidasusboot` format. It uses Odex 036 and regular Dex 035.
 
 The Pixel 5 (codename "redfin") was made by Google based on a Qualcomm chip.
 It uses the `android_fbpk` format and the `android_vendor_boot` format. It
-uses Dex 039, Vdex 021, Art 085 and Oat 183.
+uses Dex 039, Vdex 021, Art 085 and Oat 183. It contains Android verified
+boot (`avb`) images.
 
 ## sailfish-nde63h-factory-43ba5f81.zip
 
