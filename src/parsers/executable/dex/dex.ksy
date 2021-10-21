@@ -10,7 +10,7 @@ meta:
     - executable
   license: Apache-2.0
   imports:
-    - vlq_base128_le
+    - /common/vlq_base128_le
   endian: le
 doc: |
   Android OS applications executables are typically stored in its own
