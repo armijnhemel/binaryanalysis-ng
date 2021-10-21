@@ -147,6 +147,10 @@ instances:
     pos: header.map_off
     type: map_list
 types:
+  dummy:
+    seq:
+      - id: dummy_id
+        type: vlq_base128_le
   header_item:
     seq:
       - id: magic
