@@ -281,7 +281,6 @@ signaturetofunction = {
     'pdf': bangmedia.unpack_pdf,
     'pack200': bangunpack.unpack_pack200,
     'zim': bangunpack.unpack_zim,
-    'javakeystore': bangunpack.unpack_java_keystore,
     'xg3d': bangmedia.unpack_xg3d,
     'acdb': bangunpack.unpack_acdb,
     'ktx11': bangmedia.unpack_ktx11,
