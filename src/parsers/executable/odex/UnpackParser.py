@@ -27,7 +27,7 @@ from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
-from . import odex
+#from . import odex
 
 from UnpackParser import WrappedUnpackParser
 from bangandroid import unpack_odex
