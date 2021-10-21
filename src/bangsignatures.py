@@ -269,8 +269,6 @@ signaturetofunction = {
     'qcow2': bangfilesystems.unpack_qcow2,
     'vdi': bangfilesystems.unpack_vdi,
     'javaclass': bangunpack.unpack_java_class,
-    'dex': bangandroid.unpack_dex,
-    'odex': bangandroid.unpack_odex,
     'snappy_framed': bangunpack.unpack_snappy,
     'swf': bangmedia.unpack_swf,
     'swf_zlib': bangmedia.unpack_swf,
