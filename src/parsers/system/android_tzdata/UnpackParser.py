@@ -37,9 +37,6 @@ class TzdataUnpackParser(UnpackParser):
     signatures = []
     pretty_name = 'tzdata'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_android_tzdata(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         self.unpacked_size = 0
         try:
