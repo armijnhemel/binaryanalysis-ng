@@ -1,0 +1,58 @@
+meta:
+  id: bflt
+  title: BFLT
+  license: CC0-1.0
+  ks-version: 0.9
+  encoding: utf-8
+  endian: be
+doc-ref:
+  - https://web.archive.org/web/20120123212024/http://retired.beyondlogic.org/uClinux/bflt.htm
+  - http://web.archive.org/web/20180317070540/https://blog.tangrs.id.au/2012/04/07/bflt-format-implementation-notes/
+seq:
+  - id: header
+    type: header
+    size: 64
+types:
+  header:
+    seq:
+      - id: magic
+        contents: "bFLT"
+      - id: version
+        type: u4
+        valid: 4
+      - id: ofs_entry
+        type: u4
+        doc: |
+          Offset of first executable instruction with
+          text segment from beginning of filed
+      - id: ofs_data_start
+        type: u4
+        doc:  Offset of data segment from beginning of file
+      - id: ofs_data_end
+        type: u4
+        doc: Offset of end of data segment from beginning of file
+      - id: ofs_bss_end
+        type: u4
+        doc: Offset of end of data segment from beginning of file
+      - id: stack_size
+        type: u4
+        doc: Size of stack, in bytes
+      - id: ofs_reloc_start
+        type: u4
+        doc: Offset of relocation records from beginning of file
+      - id: reloc_count
+        type: u4
+        doc: Number of relocation records
+      - id: flags
+        type: u4
+      - id: build_date
+        type: u4
+      - id: filler
+        contents: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    instances:
+      load_into_ram:
+        value: flags & 0x1 == 1
+      got_pic:
+        value: flags & 0x2 == 2
+      gzip_compressed:
+        value: flags & 0x4 == 4
