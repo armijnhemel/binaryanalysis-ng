@@ -36,9 +36,6 @@ class AvbUnpackParser(UnpackParser):
     ]
     pretty_name = 'avb'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_avb(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = avb0.Avb0.from_io(self.infile)
