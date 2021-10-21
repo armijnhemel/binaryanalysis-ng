@@ -379,7 +379,6 @@ extensiontofunction = {
     '.rsa': bangunpack.unpack_certificate,
     '.pem': bangunpack.unpack_certificate,
     '.json': bangunpack.unpack_json,
-    'tzdata': bangandroid.unpack_android_tzdata,
 }
 
 import os
