@@ -26,27 +26,21 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
-#from . import odex
+from kaitaistruct import ValidationFailedError
+from . import odex
 
-from UnpackParser import WrappedUnpackParser
-from bangandroid import unpack_odex
 
-#class OdexUnpackParser(UnpackParser):
-class OdexUnpackParser(WrappedUnpackParser):
+class OdexUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'dey\n036\x00')
     ]
     pretty_name = 'odex'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_odex(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = odex.Odex.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         self.unpacked_size = self.data.ofs_opt + self.data.len_opt
