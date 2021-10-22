@@ -311,7 +311,6 @@ signaturetofunction = {
     'yaffs_le_2': bangfilesystems.unpack_yaffs2,
     'yaffs_be_1': bangfilesystems.unpack_yaffs2,
     'yaffs_be_2': bangfilesystems.unpack_yaffs2,
-    #'dhtb': bangandroid.unpack_dhtb,
     'crx': bangunpack.unpack_crx,
 }
 
