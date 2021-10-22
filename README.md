@@ -238,6 +238,7 @@ larger file, unless stated otherwise.
 146. ubifs
 147. Performance Co-Pilot metadata files
 148. data URI (png, gif, jpeg only)
+149. DHTB signed files
 
 The following text formats can be recognized:
 
