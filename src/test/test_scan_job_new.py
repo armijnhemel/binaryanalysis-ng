@@ -92,6 +92,9 @@ def run_scan_loop(scan_environment):
         pass
 
 
+def reopen_md(orig_md):
+    return MetaDirectory.from_md_path(orig_md.meta_root, orig_md.md_path)
+
 ######################################
 
 # TODO: Tests for MetaDirectory, e.g. is the extracted/unpacked md.file_path relative?
@@ -105,8 +108,9 @@ def test_detect_padding_file(scan_environment):
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
-    assert 'padding' in path_md.info.get('labels', [])
-    assert sorted(path_md.extracted_files.keys()) == []
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert 'padding' in md.info.get('labels', [])
+        assert sorted(md.extracted_files.keys()) == []
 
 def test_detect_non_padding_file(scan_environment):
     fn = pathlib.Path('test_padding.data')
@@ -114,7 +118,8 @@ def test_detect_non_padding_file(scan_environment):
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
-    assert 'padding' not in path_md.info.get('labels', [])
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert 'padding' not in md.info.get('labels', [])
 
 def test_detect_empty_file(scan_environment):
     fn = pathlib.Path('test_empty.data')
@@ -122,8 +127,9 @@ def test_detect_empty_file(scan_environment):
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
-    assert path_md.info.get('labels', []) == [] # TODO what to check?
-    assert sorted(path_md.extracted_files.keys()) == []
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert md.info.get('labels', []) == [] # TODO what to check?
+        assert sorted(md.extracted_files.keys()) == []
 
 
 ######################################
@@ -142,9 +148,10 @@ def test_extscan_extract_gif_file_full_file(scan_environment):
     scan_environment.set_unpackparsers([ExtensionOnlyGifUnpackParser])
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
-    assert sorted(path_md.extracted_files.keys()) == []
-    assert path_md.file_path == fn
-    # assert path_md.info.get(...)
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == []
+        assert md.file_path == fn
+        # assert md.info.get(...)
 
 
 def test_extscan_extract_gif_file_prepended_data(scan_environment):
@@ -158,7 +165,8 @@ def test_extscan_extract_gif_file_prepended_data(scan_environment):
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     assert not path_md.is_scanned()
-    assert sorted(path_md.extracted_files.keys()) == [ ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [ ]
  
 def test_extscan_extract_gif_file_appended_data(scan_environment):
     gif_fn = testdir_base / 'testdata' / pathlib.Path("unpackers") / "gif" / "test.gif"
@@ -170,14 +178,15 @@ def test_extscan_extract_gif_file_appended_data(scan_environment):
     scan_environment.set_unpackparsers([ExtensionOnlyGifUnpackParser])
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
-    assert path_md.abs_file_path == abs_fn
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0, path_md.size - 128),
-        path_md.extracted_filename(path_md.size - 128, 128)
-    ]
-    # TODO: check if extracted gif file contains the data
-    # TODO: check that path_md does not contain any gif metadata
-    # assert path_md.info.get(...)
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert md.abs_file_path == abs_fn
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0, md.size - 128),
+            md.extracted_filename(md.size - 128, 128)
+        ]
+        # TODO: check if extracted gif file contains the data
+        # TODO: check that path_md does not contain any gif metadata
+        # assert path_md.info.get(...)
  
 ######################################
 
@@ -194,15 +203,17 @@ def test_sigscan_extract_non_overlapping_both_successful(scan_environment):
     run_scan_loop(scan_environment)
     # b'xAAxxxxxxxxxxxxyBBxxxxxxxxxxx'
     #   |   ||        ||   ||       |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,5),
-        path_md.extracted_filename(5,10),
-        path_md.extracted_filename(15,5),
-        path_md.extracted_filename(20,len(s)-20)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,5),
+            md.extracted_filename(5,10),
+            md.extracted_filename(15,5),
+            md.extracted_filename(20,len(s)-20)
+        ]
 
-    md_ex1 = path_md.extracted_md(5, 10)
-    assert 'synthesized' in md_ex1.info.get('labels', [])
+    md_ex1 = md.extracted_md(5, 10)
+    with md_ex1.open(open_file=False):
+        assert 'synthesized' in md_ex1.info.get('labels', [])
 
 # 2. overlapping files with unpackers that extract during scan
 def test_sigscan_extract_overlapping_both_successful(scan_environment):
@@ -215,10 +226,11 @@ def test_sigscan_extract_overlapping_both_successful(scan_environment):
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
     #   |   ||          |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,5),
-        path_md.extracted_filename(5,len(s)-5)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,5),
+            md.extracted_filename(5,len(s)-5)
+        ]
 
 
 # 3. same offset, different unpackers: one extracts, the other does not
@@ -232,11 +244,12 @@ def test_sigscan_extract_same_offset_first_successful(scan_environment):
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
     #   |  |   ||       |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,3),
-        path_md.extracted_filename(3,5),
-        path_md.extracted_filename(8,len(s)-8)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,3),
+            md.extracted_filename(3,5),
+            md.extracted_filename(8,len(s)-8)
+        ]
 
 def test_sigscan_extract_same_offset_second_successful(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
@@ -248,11 +261,12 @@ def test_sigscan_extract_same_offset_second_successful(scan_environment):
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
     #   |  |   ||       |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,3),
-        path_md.extracted_filename(3,5),
-        path_md.extracted_filename(8,len(s)-8)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,3),
+            md.extracted_filename(3,5),
+            md.extracted_filename(8,len(s)-8)
+        ]
 
 def test_sigscan_extract_overlapping_different_offset_both_successful(scan_environment):
     s = b'xAAyyyyyyBBxxxxxxxxxxx'
@@ -264,10 +278,11 @@ def test_sigscan_extract_overlapping_different_offset_both_successful(scan_envir
     run_scan_loop(scan_environment)
     # b'xAAyyyyyyBBxxxxxxxxxxx'
     #   |   ||               |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,5),
-        path_md.extracted_filename(5,len(s)-5)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,5),
+            md.extracted_filename(5,len(s)-5)
+        ]
 
 # 4. same offset, different unpackers that both unpack (polyglot)
 # e.g. iso image containing an image in the first block
@@ -282,11 +297,12 @@ def test_sigscan_extract_same_offset_both_successful(scan_environment):
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
     #   | ||   ||       |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,3),
-        path_md.extracted_filename(3,5),
-        path_md.extracted_filename(8,len(s)-8)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,3),
+            md.extracted_filename(3,5),
+            md.extracted_filename(8,len(s)-8)
+        ]
 
 def test_sigscan_extract_same_offset_both_successful_reversed_order(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
@@ -298,11 +314,12 @@ def test_sigscan_extract_same_offset_both_successful_reversed_order(scan_environ
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
     #   | ||   ||       |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,3),
-        path_md.extracted_filename(3,7),
-        path_md.extracted_filename(10,len(s)-10)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,3),
+            md.extracted_filename(3,7),
+            md.extracted_filename(10,len(s)-10)
+        ]
 
 # 5. files with unpackers that do not unpack
 def test_sigscan_extract_overlapping_none_successful(scan_environment):
@@ -315,7 +332,8 @@ def test_sigscan_extract_overlapping_none_successful(scan_environment):
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
     #   |               |
-    assert sorted(path_md.extracted_files.keys()) == [ ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [ ]
 
 def test_sigscan_extract_parse_successful_at_end(scan_environment):
     s = b'xAAyBBbb'
@@ -327,10 +345,11 @@ def test_sigscan_extract_parse_successful_at_end(scan_environment):
     run_scan_loop(scan_environment)
     # b'xAAyBBbb'
     #   | ||   |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,3),
-        path_md.extracted_filename(3,5)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,3),
+            md.extracted_filename(3,5)
+        ]
 
 def test_sigscan_extracting_overlapping_successful_parsers(scan_environment):
     s = b'--xAAyBBbCCxxxxxxxx'
@@ -343,13 +362,14 @@ def test_sigscan_extracting_overlapping_successful_parsers(scan_environment):
     run_scan_loop(scan_environment)
     # b'--xAAyBBbCCxxxxxxxx'
     #   |||...||||...||   |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,2),
-        path_md.extracted_filename(2,5),
-        path_md.extracted_filename(7,2),
-        path_md.extracted_filename(9,5),
-        path_md.extracted_filename(14,len(s)-14)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,2),
+            md.extracted_filename(2,5),
+            md.extracted_filename(7,2),
+            md.extracted_filename(9,5),
+            md.extracted_filename(14,len(s)-14)
+        ]
 
 def test_sigscan_extracting_parses_whole_string(scan_environment):
     s = b'xBBxx'
@@ -361,7 +381,8 @@ def test_sigscan_extracting_parses_whole_string(scan_environment):
     run_scan_loop(scan_environment)
     # b'--xAAyBBbCCxxxxxxxx'
     #   |||...||||...||   |
-    assert sorted(path_md.extracted_files.keys()) == []
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == []
 
 # test: prevent infinite extractions from zero length files.
 def test_sigscan_extract_with_zero_length_parser(scan_environment):
@@ -374,11 +395,12 @@ def test_sigscan_extract_with_zero_length_parser(scan_environment):
     run_scan_loop(scan_environment)
     # b'xBBxx12345'
     #   ||...||  |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,1),
-        path_md.extracted_filename(1,5),
-        path_md.extracted_filename(6,len(s)-6)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,1),
+            md.extracted_filename(1,5),
+            md.extracted_filename(6,len(s)-6)
+        ]
 
 
 #######
@@ -395,11 +417,13 @@ def test_extracted_file_has_parent(scan_environment):
     run_scan_loop(scan_environment)
     # b'xAAyBBbb'
     #   | ||   |
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,3),
-        path_md.extracted_filename(3,5)
-    ]
-    assert path_md.extracted_md(3,5).info.get('parent_md') == path_md.md_path
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,3),
+            md.extracted_filename(3,5)
+        ]
+        with md.extracted_md(3,5).open() as sub_md:
+            assert sub_md.info.get('parent_md') == md.md_path
 
 ################
 
@@ -413,10 +437,11 @@ def test_unpacking_parser_unpacks_relative_files(scan_environment):
     scan_environment.set_unpackparsers([UnpackParserUnpacksRelative])
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
-    assert sorted(path_md.extracted_files.keys()) == []
-    expected_files = [ path_md.unpacked_path(pathlib.Path(x)) for x in UnpackParserUnpacksRelative.filenames ]
-    assert list(path_md.unpacked_files.keys()) == expected_files
-    assert all(p.is_relative_to(path_md.unpacked_rel_root) for p, md in path_md.unpacked_files.items())
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == []
+        expected_files = [ md.unpacked_path(pathlib.Path(x)) for x in UnpackParserUnpacksRelative.filenames ]
+        assert list(md.unpacked_files.keys()) == expected_files
+        assert all(p.is_relative_to(md.unpacked_rel_root) for p, _ in md.unpacked_files.items())
 
 def test_unpacking_parser_unpacks_absolute_files(scan_environment):
     s = b'xAAyy'
@@ -426,10 +451,11 @@ def test_unpacking_parser_unpacks_absolute_files(scan_environment):
     scan_environment.set_unpackparsers([UnpackParserUnpacksAbsolute])
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
-    assert sorted(path_md.extracted_files.keys()) == []
-    expected_files = [ path_md.unpacked_path(pathlib.Path(x)) for x in UnpackParserUnpacksAbsolute.filenames ]
-    assert list(path_md.unpacked_files.keys()) == expected_files
-    assert all(p.is_relative_to(path_md.unpacked_abs_root) for p, md in path_md.unpacked_files.items())
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == []
+        expected_files = [ md.unpacked_path(pathlib.Path(x)) for x in UnpackParserUnpacksAbsolute.filenames ]
+        assert list(md.unpacked_files.keys()) == expected_files
+        assert all(p.is_relative_to(md.unpacked_abs_root) for p, _ in md.unpacked_files.items())
 
 ################
 
@@ -475,11 +501,11 @@ def test_sigscan_extract_gif_file_from_prepended_file(scan_environment):
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
-
-    assert sorted(path_md.extracted_files.keys()) == [
-        path_md.extracted_filename(0,128),
-        path_md.extracted_filename(128, path_md.size-128)
-    ]
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == [
+            md.extracted_filename(0,128),
+            md.extracted_filename(128, md.size-128)
+        ]
 
 
 

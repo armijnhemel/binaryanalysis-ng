@@ -243,18 +243,19 @@ def process_job(scanjob):
 
     # TODO: if we want to record meta data for unscannable files, change
     # this into an iterator pattern where you will get MetaDirectories with an
-    # assigned parser to write the meta data.
-    # Also move the meta_directory.open_and_map_file line above these lines.
+    # assigned parser to write the meta data. Be aware that we may not be able to
+    # open unscannable files, so this parser must be special.
     if is_unscannable(meta_directory.file_path):
         return
 
-    with meta_directory.open_and_map_file():
+    with meta_directory.open():
 
         # TODO: see if we can decide if files are padding from the MetaDirectory context.
         # if scanjob.context_is_padding(meta_directory.context): return
         for md in check_for_padding(meta_directory):
             logging.debug(f'process padding file in {md} with {md.unpack_parser}')
-            md.write_info_with_unpack_parser()
+            with md.open(open_file=False):
+                md.write_info_with_unpack_parser()
             return # skip padding file by returning
 
         for md in check_by_extension(scanjob.scan_environment, meta_directory):
@@ -263,7 +264,8 @@ def process_job(scanjob):
                 logging.debug(f'process_job: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
                 job = ScanJob(unpacked_md.md_path)
                 scanjob.scan_environment.scanfilequeue.put(job)
-            md.write_info_with_unpack_parser()
+            with md.open(open_file=False):
+                md.write_info_with_unpack_parser()
 
         # stop after first successful unpack (TODO: make configurable?)
         if meta_directory.is_scanned():
@@ -275,7 +277,8 @@ def process_job(scanjob):
             for unpacked_md in md.unpack_with_unpack_parser():
                 job = ScanJob(unpacked_md.md_path)
                 scanjob.scan_environment.scanfilequeue.put(job)
-            md.write_info_with_unpack_parser()
+            with md.open(open_file=False):
+                md.write_info_with_unpack_parser()
 
         # stop after first successful scan for this file (TODO: make configurable?)
         if meta_directory.is_scanned():

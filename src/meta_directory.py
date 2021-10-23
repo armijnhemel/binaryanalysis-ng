@@ -5,8 +5,12 @@ import pathlib
 import logging
 from contextlib import contextmanager
 
-# Rule for caching properties: only properties that are volatile (i.e. during parsing)
-# or constant (such as file name) can be cached.
+# The MetaDirectory caches the info field, to avoid unnecessary disk access. This means
+# that at most one MetaDirectory object should exist for a given meta directory. Aliases to
+# the same MetaDirectory are not a problem, when entering the MetaDirectory.open() context,
+# the info field is not re-read if it is not empty. When leaving the context, the info field
+# is written to disk.
+
 
 class MetaDirectory:
     REL_UNPACK_DIR = 'rel'
@@ -29,6 +33,9 @@ class MetaDirectory:
         self._file_path = None
         self._size = None
         self._unpack_parser = None
+        self._open_file = None
+        self._mapped_file = None
+        self.info = {}
 
     @classmethod
     def from_md_path(cls, meta_root, name):
@@ -87,18 +94,35 @@ class MetaDirectory:
         return self._size
 
     @contextmanager
-    def open_and_map_file(self):
-        '''Context manager to open the file that this MetaDirectory represents. Yields a
-        file object and an mmap-ed file object, but these are also stored as properties.
-        We need both, since sendfile wants an actual file object, and we also want the
-        advantages of mmap.
+    def open(self, open_file=True):
+        '''Context manager to open the MetaDirectory represents. Yields itself.
+        It opens the file, mmaps the file and reads the information stored in the
+        metadirectory. When exiting the context, it will save the information to disk
+        and close the file.
+        We need both the open file and the mmaped file, since sendfile wants an actual
+        file object, and we also want the advantages of mmap.
+        If open_file is False, or the file is already open, this context manager will not
+        touch the file.
         '''
-        self._open_file = self.abs_file_path.open('rb')
-        self._mapped_file = mmap.mmap(self._open_file.fileno(),0, access=mmap.ACCESS_READ)
+        open_file = open_file or (self._open_file is None)
+        if open_file:
+                self._open_file = self.abs_file_path.open('rb')
+                try:
+                    self._mapped_file = mmap.mmap(self._open_file.fileno(),0, access=mmap.ACCESS_READ)
+                except ValueError as e:
+                    logging.warning(f'[{self.md_path}]open: error mmapping {self.abs_file_path}: {e}')
+        if self.info == {}:
+            self.info = self._read_info()
+            logging.debug(f'[{self.md_path}]open: opening context, reading info {self.info}')
         try:
-            yield self._open_file, self._mapped_file
+            yield self
         finally:
-            self._open_file.close()
+            if open_file:
+                self._open_file.close()
+                self._open_file = None
+                self._mapped_file = None
+            logging.debug(f'[{self.md_path}]open: closing context, writing info {self.info}')
+            self._write_info(self.info)
 
     @property
     def open_file(self):
@@ -112,27 +136,26 @@ class MetaDirectory:
         '''
         return self._mapped_file
 
-    @property
-    def info(self):
-        '''Accesses the file information stored in the MetaDirectory.'''
+    def _read_info(self):
+        '''Reads the file information stored in the MetaDirectory.'''
         path = self.abs_md_path / 'info.pkl'
+        logging.debug(f'[{self.md_path}]_read_info: reading from {path}')
         try:
             with path.open('rb') as f:
                 return pickle.load(f)
         except FileNotFoundError as e:
             return {}
 
-    @info.setter
-    def info(self, data):
+    def _write_info(self, data):
         '''Set the info property to data. Note: this will overwrite everything!
         '''
-        logging.debug(f'info.setter: set info = {data}')
+        logging.debug(f'[{self.md_path}]_write_info: set info = {data}')
         path = self.abs_md_path / 'info.pkl'
         path.parent.mkdir(parents=True, exist_ok=True)
-        logging.debug(f'info.setter: writing to {path}')
+        logging.debug(f'[{self.md_path}]_write_info: writing to {path}')
         with path.open('wb') as f:
             pickle.dump(data, f)
-            logging.debug(f'info.setter: wrote info')
+            logging.debug(f'[{self.md_path}]_write_info: wrote info')
 
     @property
     def unpacked_abs_root(self):
@@ -171,13 +194,11 @@ class MetaDirectory:
         finally:
             unpacked_file.close()
         # update info
-        info = self.info
         if path.is_absolute():
-            info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
+            self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
         else:
-            info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
-        logging.debug(f'unpack_regular_file: update info to {info}')
-        self.info = info
+            self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
+        logging.debug(f'[{self.md_path}]unpack_regular_file: update info to {self.info}')
 
     def unpack_directory(self, path):
         '''Unpack a directory with path path into the MetaDirectory.
@@ -195,13 +216,13 @@ class MetaDirectory:
     @property
     def unpacked_relative_files(self):
         files =  self.info.get('unpacked_relative_files',{})
-        logging.debug(f'unpacked_relative_files: got {files}')
+        logging.debug(f'[{self.md_path}]unpacked_relative_files: got {files}')
         return files
 
     @property
     def unpacked_absolute_files(self):
         files =  self.info.get('unpacked_absolute_files',{})
-        logging.debug(f'unpacked_absolute_files: got {files}')
+        logging.debug(f'[{self.md_path}]unpacked_absolute_files: got {files}')
         return files
 
     @contextmanager
@@ -221,16 +242,12 @@ class MetaDirectory:
         '''Adds a MetaDirectory for an extracted file to this MetaDirectory and sets its
         parent.
         '''
-        logging.debug(f'add_extracted_file: adding {meta_dir.md_path} for {meta_dir.file_path}')
-        info = self.info
-        info.setdefault('extracted_files', {})[meta_dir.file_path] = meta_dir.md_path
-        self.info = info
-        logging.debug(f'add_extracted_file: wrote info {info} for {self.md_path}')
-        logging.debug(f'add_extracted_file: setting parent for {meta_dir.md_path} to {self.md_path}')
-        info = meta_dir.info
-        info['parent_md'] = self.md_path
-        meta_dir.info = info
-        logging.debug(f'add_extracted_file: wrote info {info} for {meta_dir.md_path}')
+        logging.debug(f'[{self.md_path}]add_extracted_file: adding {meta_dir.md_path} for {meta_dir.file_path}')
+        self.info.setdefault('extracted_files', {})[meta_dir.file_path] = meta_dir.md_path
+        logging.debug(f'[{self.md_path}]add_extracted_file: set info {self.info} for {self.md_path}')
+        logging.debug(f'[{self.md_path}]add_extracted_file: setting parent for {meta_dir.md_path} to {self.md_path}')
+        with meta_dir.open(open_file=False):
+            meta_dir.info['parent_md'] = self.md_path
 
     def extracted_filename(self, offset, size):
         '''Create a filename for an extracted file, based on offset and size.
@@ -243,10 +260,6 @@ class MetaDirectory:
         extracted filenames to MetaDirectory names.
         '''
         return self.info.get('extracted_files', {})
-        #info = self.info
-        #full_path = self._meta_root / self.md_path / 'extracted' 
-        #for extracted_path in full_path.iterdir():
-            #yield extracted_path
 
     def extracted_md(self, offset, size):
         '''Given an offset and size, search the MetaDirectory that belongs to an
