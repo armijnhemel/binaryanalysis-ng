@@ -83,6 +83,9 @@ class ElfUnpackParser(UnpackParser):
             # evaluation, which normally happens lazily for instances in
             # kaitai struct.
             names = self.data.header.section_names
+
+            # TODO linux kernel module signatures
+            # see scripts/sign-file.c in Linux kernel
         except (Exception, ValidationNotEqualError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
