@@ -8,9 +8,11 @@ import os
 import pathlib
 
 class OffsetInputFile:
-    def __init__(self, infile, offset):
+    def __init__(self, infile, offset, size):
+        '''size is the size of infile.'''
         self.infile = infile
         self.offset = offset
+        self._size = size
 
     def __getattr__(self, name):
         return self.infile.__getattribute__(name)
@@ -23,6 +25,9 @@ class OffsetInputFile:
     def tell(self):
         return self.infile.tell() - self.offset
 
+    @property
+    def size(self):
+        return self._size - self.offset
 
 
 class UnpackParser:
@@ -56,10 +61,10 @@ class UnpackParser:
     signatures = []
     scan_if_featureless = False
 
-    def __init__(self, input_file, offset):
+    def __init__(self, input_file, offset, size):
         '''Creates an UnpackParser that will read from input_file, starting at offset.'''
         self.offset = offset
-        self.infile = OffsetInputFile(input_file, self.offset)
+        self.infile = OffsetInputFile(input_file, self.offset, size)
 
     def x__init__(self, fileresult, scan_environment, rel_unpack_dir, offset):
         """Constructor. All constructor arguments are available as object
@@ -234,7 +239,7 @@ class SynthesizingParser(UnpackParser):
 
     @classmethod
     def with_size(cls, input_file, offset, size):
-        o = cls(input_file, offset)
+        o = cls(input_file, offset, 0)
         o.unpacked_size = size
         return o
 
@@ -260,7 +265,7 @@ class PaddingParser(UnpackParser):
     valid_padding_chars = [b'\x00', b'\xff']
 
     def __init__(self, input_file, offset):
-        super().__init__(input_file, offset)
+        super().__init__(input_file, offset, 0)
         self.is_padding = False
 
     def parse(self):
@@ -297,7 +302,7 @@ class ExtractingParser(UnpackParser):
     @classmethod
     def with_parts(cls, input_file, parts):
         '''the sum of all lengths in parts is the calculated file size.'''
-        o = cls(input_file, 0)
+        o = cls(input_file, 0, 0)
         o._parts = parts
         size = sum(p[1] for p in parts)
         o.unpacked_size = size

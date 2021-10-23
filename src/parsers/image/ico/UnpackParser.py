@@ -59,7 +59,7 @@ class IcoUnpackParser(UnpackParser):
                     #"Invalid ico file: zero or negative num_planes")
             #check_condition(img.bpp > 0,
                     #"Invalid ico file: zero or negative bpp")
-            check_condition(img.ofs_img + img.len_img <= self.fileresult.filesize,
+            check_condition(img.ofs_img + img.len_img <= self.infile.size,
                     "Invalid ico file: image outside of file")
             check_condition(img.ofs_img >= 6 + self.data.num_images * 16,
                     "Invalid ico file: image inside header")
@@ -69,14 +69,17 @@ class IcoUnpackParser(UnpackParser):
         for i in self.data.images:
             self.unpacked_size = max(self.unpacked_size, i.ofs_img + i.len_img)
 
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         """extract any files from the input file"""
         return []
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['graphics', 'ico', 'resource']
-        metadata = {}
+    def write_info(self, meta_directory):
+        meta_directory.info.setdefault('labels',[]).append(self.labels)
+        meta_directory.info.setdefault('metadata',{}).update(self.metadata)
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)
+    labels = ['graphics', 'ico', 'resource']
+
+    @property
+    def metadata(self):
+        return {}
+

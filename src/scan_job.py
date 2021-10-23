@@ -91,7 +91,7 @@ def check_by_extension(scan_environment, checking_meta_directory):
         if bangsignatures.matches_file_pattern(checking_meta_directory.file_path, ext):
             logging.debug(f'check_by_extension: {unpack_parser_cls} parses extension {ext}')
             try:
-                unpack_parser = unpack_parser_cls(checking_meta_directory.mapped_file, 0)
+                unpack_parser = unpack_parser_cls(checking_meta_directory.mapped_file, 0, checking_meta_directory.size)
                 unpack_parser.parse_from_offset()
                 if unpack_parser.parsed_size == checking_meta_directory.size:
                     logging.debug(f'check_by_extension: parser parsed entire file')
@@ -172,7 +172,7 @@ def scan_signatures(scan_environment, mapped_file):
         # try if the unpackparser works
         try:
             logging.debug(f'scan_signatures: try parse at {offset} with {unpack_parser_cls}')
-            unpack_parser = unpack_parser_cls(mapped_file, offset)
+            unpack_parser = unpack_parser_cls(mapped_file, offset, mapped_file.size())
             unpack_parser.parse_from_offset()
             if offset == 0 and unpack_parser.parsed_size == mapped_file.size():
                 logging.debug(f'scan_signatures: skipping [{scan_offset}:{unpack_parser.parsed_size}], covers entire file, yielding {unpack_parser} and return')

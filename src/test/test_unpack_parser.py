@@ -16,8 +16,9 @@ def unpackparser(request):
 
 def test_unpack_parser_without_parse_method():
     testfile = testdir_base / 'testdata' / 'unpackers' / 'fat' / 'test-fat12-multidirfile.fat'
+    sz = testfile.stat().st_size
     with testfile.open('rb') as f:
-        p = InvalidUnpackParser(f, 0)
+        p = InvalidUnpackParser(f, 0, sz)
         with pytest.raises(UnpackParserException, match = r"undefined parse method") as cm:
             p.parse()
 
@@ -40,23 +41,26 @@ def test_unpackparsers_are_found():
 
 def test_wrapped_unpackparser_raises_exception(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'fat' / 'test-fat12-multidirfile.fat'
+    sz = testfile.stat().st_size
 
     with testfile.open('rb') as f:
-        p = SqliteUnpackParser(f, 0)
+        p = SqliteUnpackParser(f, 0, sz)
         with pytest.raises(UnpackParserException, match = r".*") as cm:
             r = p.parse()
 
 def test_unpackparser_raises_exception(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'fat' / 'test-fat12-multidirfile.fat'
+    sz = testfile.stat().st_size
     with testfile.open('rb') as f:
-        p = GifUnpackParser(f, 0)
+        p = GifUnpackParser(f, 0, sz)
         with pytest.raises(UnpackParserException, match = r".*") as cm:
             r = p.parse()
 
 def test_all_unpack_parsers_raise_exception_on_empty_file(scan_environment, unpackparser):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'empty'
+    sz = testfile.stat().st_size
     with testfile.open('rb') as f:
-        up = unpackparser(f, 0)
+        up = unpackparser(f, 0, sz)
         with pytest.raises(UnpackParserException, match = r".*") as cm:
             r = up.parse_and_unpack()
             pytest.fail("%s accepts empty file" % unpackparser.__name__)

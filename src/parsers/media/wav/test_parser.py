@@ -7,8 +7,9 @@ from .UnpackParser import WavUnpackParser
 
 def test_load_standard_wav_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'wav' / 'test.wav'
+    sz = testfile.stat().st_size
     with testfile.open('rb') as f:
-        p = WavUnpackParser(f, 0)
+        p = WavUnpackParser(f, 0, sz)
         p.parse()
         md = MockMetaDirectory()
         p.write_info(md)
