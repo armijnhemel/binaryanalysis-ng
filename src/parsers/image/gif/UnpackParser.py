@@ -49,10 +49,8 @@ class GifUnpackParser(UnpackParser):
         return []
 
     def write_info(self, meta_directory):
-        info = meta_directory.info
-        info.setdefault('labels',[]).append(self.labels)
-        info.setdefault('metadata',{}).update(self.metadata)
-        meta_directory.info = info
+        meta_directory.info.setdefault('labels',[]).append(self.labels)
+        meta_directory.info.setdefault('metadata',{}).update(self.metadata)
 
     labels = ['gif', 'graphics']
 
