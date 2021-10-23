@@ -49,13 +49,18 @@ class WavUnpackParser(WrappedUnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         """extract any files from the input file"""
         return []
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'wav', 'audio' ]
-        metadata = {}
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)
+    def write_info(self, meta_directory):
+        meta_directory.info.setdefault('labels',[]).append(self.labels)
+        meta_directory.info.setdefault('metadata',{}).update(self.metadata)
+
+    labels = [ 'wav', 'audio' ]
+
+    @property
+    def metadata(self):
+        """sets metadata and labels for the unpackresults"""
+        return {}
+
