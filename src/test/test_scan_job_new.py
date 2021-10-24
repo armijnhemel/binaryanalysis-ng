@@ -20,7 +20,6 @@ class UnpackParserUnpacksBase(UnpackParser):
         self.unpacked_size = self.length
 
     def unpack(self, meta_directory):
-        # TODO
         logging.debug(f'UnpackParserUnpacksRelative::unpack: unpacking')
         for fn in self.filenames:
             logging.debug(f'UnpackParserUnpacksRelative::unpack: unpacking {fn!r}')
@@ -28,7 +27,6 @@ class UnpackParserUnpacksBase(UnpackParser):
                 logging.debug(f'UnpackParserUnpacksRelative::unpack: write')
                 f.write(b'x')
                 yield unpacked_md
-                # TODO: yield new meta_directory
 
 class UnpackParserUnpacksRelative(UnpackParserUnpacksBase):
     filenames = [ 'unpack1', 'unpack2' ]
@@ -74,11 +72,6 @@ def create_test_file(scan_environment, path, content):
     with abs_path.open('wb') as f:
         f.write(content)
     return abs_path
-
-def create_meta_directory_for_path(scan_environment, path, is_root):
-    path_md = MetaDirectory(scan_environment.unpackdirectory, None, is_root)
-    path_md.file_path = scan_environment.temporarydirectory / path
-    return path_md
 
 def queue_file_job(scan_environment, md):
     scanjob = ScanJob(md.md_path) # TODO: add context and parent? or are they in the md?

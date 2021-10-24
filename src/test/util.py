@@ -4,6 +4,7 @@ import pathlib
 import pytest
 import shutil
 
+from meta_directory import *
 from FileResult import *
 from ScanEnvironment import *
 from bangsignatures import maxsignaturesoffset
@@ -18,6 +19,11 @@ from UnpackResults import UnpackResults
 
 _scriptdir = os.path.dirname(__file__)
 testdir_base = pathlib.Path(_scriptdir).resolve()
+
+def create_meta_directory_for_path(scan_environment, path, is_root):
+    path_md = MetaDirectory(scan_environment.unpackdirectory, None, is_root)
+    path_md.file_path = scan_environment.temporarydirectory / path
+    return path_md
 
 def _create_clean_directory(dirpath):
     try:
