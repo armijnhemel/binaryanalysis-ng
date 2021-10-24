@@ -10,7 +10,7 @@ def test_load_standard_gif_file(scan_environment):
     sz = testfile.stat().st_size
     with testfile.open('rb') as f:
         p = GifUnpackParser(f, 0, sz)
-        p.parse()
+        p.parse_from_offset()
         md = MockMetaDirectory()
         p.write_info(md)
         for _ in p.unpack(md): pass
@@ -23,5 +23,5 @@ def test_load_png_file(scan_environment):
     with testfile.open('rb') as f:
         p = GifUnpackParser(f, 0, sz)
         with pytest.raises(UnpackParserException, match = r".*") as cm:
-            p.parse()
+            p.parse_from_offset()
 

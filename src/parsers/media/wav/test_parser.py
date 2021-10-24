@@ -10,7 +10,7 @@ def test_load_standard_wav_file(scan_environment):
     sz = testfile.stat().st_size
     with testfile.open('rb') as f:
         p = WavUnpackParser(f, 0, sz)
-        p.parse()
+        p.parse_from_offset()
         md = MockMetaDirectory()
         p.write_info(md)
         for _ in p.unpack(md): pass
