@@ -34,7 +34,7 @@ class GimpBrushUnpackParser(UnpackParser):
         check_condition(self.data.len_header > 0, "Invalid header_size")
         unpacked_size = self.data.len_header + self.data.len_body
 
-        check_condition(unpacked_size <= self.fileresult.filesize, "Not enough data")
+        check_condition(unpacked_size <= self.infile.size, "Not enough data")
         try:
             self.infile.seek(0)
             testimg = GbrImageFile(self.infile)
@@ -42,9 +42,15 @@ class GimpBrushUnpackParser(UnpackParser):
         except BaseException as e:
             raise UnpackParserException(e.args)
 
-    def set_metadata_and_labels(self):
-        self.unpack_results.set_labels(['gimp brush', 'graphics'])
-        self.unpack_results.set_metadata({'width': self.data.header.width,
-                                           'height': self.data.header.height,
-                                           'color_depth': self.data.header.bytes_per_pixel.value
-                                        })
+    def write_info(self, meta_directory):
+        meta_directory.info.setdefault('labels',[]).append(self.labels)
+        meta_directory.info.setdefault('metadata',{}).update(self.metadata)
+
+    labels = ['gimp brush', 'graphics']
+
+    @property
+    def metadata(self):
+        return { 'width': self.data.header.width,
+                'height': self.data.header.height,
+                'color_depth': self.data.header.bytes_per_pixel.value
+            }
