@@ -1,5 +1,6 @@
 import os
 import struct
+import pathlib
 from . import vfat
 from . import vfat_directory
 from UnpackParser import UnpackParser, check_condition
@@ -45,7 +46,7 @@ class VfatUnpackParser(UnpackParser):
         self.fat12 = self.is_fat12()
         self.fat32 = self.data.boot_sector.is_fat32
         self.pos_data = self.data.boot_sector.pos_root_dir + self.data.boot_sector.size_root_dir
-        check_condition(self.pos_data <= self.fileresult.filesize,
+        check_condition(self.pos_data <= self.infile.size,
                 "data sector outside file")
 
     def calculate_unpacked_size(self):
@@ -81,17 +82,14 @@ class VfatUnpackParser(UnpackParser):
     def get_fat32_entry(self, n):
         return struct.unpack("<I", self.data.fats[0][4*n:4*n+4])[0] & 0x0fffffff
 
-    def unpack(self, unpack_directory):
-        try:
-            unpacked_files = [
-                x for x in self.unpack_directory(
-                    self.data.root_dir.records, self.rel_unpack_dir)
-            ]
-        except BaseException as e:
-            raise UnpackParserException(e.args)
-        return unpacked_files
+    def unpack(self, meta_directory):
+        return self.unpack_directory(meta_directory, self.data.root_dir.records, pathlib.Path('.'))
+        #try:
+            #return self.unpack_directory(meta_directory, self.data.root_dir.records)
+        #except BaseException as e:
+            #raise UnpackParserException(e.args)
 
-    def unpack_directory(self, directory_records, rel_unpack_dir):
+    def unpack_directory(self, meta_directory, directory_records, prefix):
         lfn = False
         fn = ''
         for record in directory_records:
@@ -111,53 +109,51 @@ class VfatUnpackParser(UnpackParser):
             if not lfn:
                 if fn[0] == '\0': continue
                 # get other attributes
-                rel_outfile = rel_unpack_dir / fn
+                # rel_outfile = rel_unpack_dir / fn
                 if record.attr_subdirectory:
                     if fn != '.' and fn != '..':
-                        dir_entries = self.extract_dir(
-                                record.start_clus, rel_outfile)
-                        # parse dir_entries and process
+                        dir_entries = self.get_dir_entries(record.start_clus)
+                        # We are just extracting the directory, not creating a
+                        # MetaDirectory for it.
+                        meta_directory.unpack_directory(prefix / fn)
+                        # parse dir_entries for subdir
                         subdir = vfat_directory.VfatDirectory.from_bytes(dir_entries)
-                        for unpacked_file in self.unpack_directory(
-                                subdir.records, rel_outfile):
-                            yield unpacked_file
+                        for unpacked_md in self.unpack_directory(meta_directory,
+                                subdir.records, prefix / fn):
+                            yield unpacked_md
                      
                 else:
-                    # TODO: if normal_file
-                    yield self.extract_file(record.start_clus, record.file_size, rel_outfile)
+                    for unpacked_md in self.extract_file(meta_directory, record.start_clus, record.file_size, prefix / fn):
+                        yield unpacked_md
 
 
-    def extract_dir(self, start_cluster, rel_outfile):
-        abs_outfile = self.scan_environment.unpack_path(rel_outfile)
-        os.makedirs(abs_outfile, exist_ok=True)
+    def get_dir_entries(self, start_cluster):
         dir_entries = b''
         cluster_size = self.data.boot_sector.bpb.ls_per_clus * \
                 self.data.boot_sector.bpb.bytes_per_ls
         for cluster in self.cluster_chain(start_cluster):
             start = self.pos_data + (cluster-2) * cluster_size
-            check_condition(start+cluster_size <= self.fileresult.filesize,
+            check_condition(start+cluster_size <= self.infile.size,
                     "file data outside file")
             self.infile.seek(start)
             dir_entries += self.infile.read(cluster_size)
         return dir_entries
 
-    def extract_file(self, start_cluster, file_size, rel_outfile):
-        abs_outfile = self.scan_environment.unpack_path(rel_outfile)
-        os.makedirs(abs_outfile.parent, exist_ok=True)
-        outfile = open(abs_outfile, 'wb')
+    def extract_file(self, meta_directory, start_cluster, file_size, out_fn):
         size_read = 0
         cluster_size = self.data.boot_sector.bpb.ls_per_clus * \
                 self.data.boot_sector.bpb.bytes_per_ls
-        for cluster in self.cluster_chain(start_cluster):
-            bytes_to_read = min(cluster_size, file_size - size_read)
-            start = self.pos_data + (cluster-2) * cluster_size
-            check_condition(start+bytes_to_read <= self.fileresult.filesize,
-                    "file data outside file")
-            os.sendfile(outfile.fileno(), self.infile.fileno(), start + self.infile.offset, bytes_to_read)
-            size_read += bytes_to_read
-        outfile.close()
-        outlabels = []
-        return FileResult(self.fileresult, rel_outfile, set(outlabels))
+        with meta_directory.unpack_regular_file(pathlib.Path(out_fn)) as (unpacked_md, f):
+            for cluster in self.cluster_chain(start_cluster):
+                bytes_to_read = min(cluster_size, file_size - size_read)
+                start = self.pos_data + (cluster-2) * cluster_size
+                check_condition(start+bytes_to_read <= self.infile.size,
+                        "file data outside file")
+
+                os.sendfile(f.fileno(), self.infile.fileno(), start + self.infile.offset, bytes_to_read)
+                size_read += bytes_to_read
+            yield unpacked_md
+
 
     def is_end_cluster(self, cluster):
         # TODO: handle bad clusters and other exceptions
