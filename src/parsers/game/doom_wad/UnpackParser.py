@@ -49,8 +49,7 @@ class DoomWadUnpackParser(UnpackParser):
         # than the file itself and there would be hundreds of millions of
         # index entries for which the generated code would first try to create
         # an IndexEntry() object leading to an out of memory issue.
-        filesize = self.fileresult.filesize
-        check_condition(self.data.index_offset <= filesize, "index offset outside of file")
+        check_condition(self.data.index_offset <= self.infile.size, "index offset outside of file")
         check_condition(self.data.num_index_entries > 0, "no lumps defined")
 
         # another ugly hack to prevent ASCII decoding errors
@@ -66,6 +65,8 @@ class DoomWadUnpackParser(UnpackParser):
         for i in self.data.index:
             self.unpacked_size = max(self.unpacked_size, i.offset + i.size)
 
-    def set_metadata_and_labels(self):
-        self.unpack_results.set_labels(['doom', 'wad', 'resource'])
-        self.unpack_results.set_metadata({})
+    labels = ['doom', 'wad', 'resource']
+
+    def write_info(self, meta_directory):
+        meta_directory.info.setdefault('labels',[]).append(self.labels)
+
