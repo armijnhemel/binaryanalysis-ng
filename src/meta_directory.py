@@ -166,7 +166,7 @@ class MetaDirectory:
         return self.md_path / self.REL_UNPACK_DIR
 
     def unpacked_path(self, path_name):
-        '''Create a path in the MetaDirectory for an unpacked file with name path_name.
+        '''Gives a path in the MetaDirectory for an unpacked file with name path_name.
         '''
         if path_name.is_absolute():
             unpacked_path = self.md_path / self.ABS_UNPACK_DIR / path_name.relative_to('/')
