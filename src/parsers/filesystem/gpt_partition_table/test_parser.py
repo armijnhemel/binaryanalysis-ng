@@ -5,27 +5,26 @@ from test.mock_metadirectory import *
 from .UnpackParser import GptPartitionTableUnpackParser
 
 def test_load_standard_file(scan_environment):
-    rel_testfile = pathlib.Path('download') / 'filesystem' / 'gpt_partition_table' / 'OPNsense-18.1.6-OpenSSL-vga-amd64.img'
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    filesize = fr.filesize
-    data_unpack_dir = rel_testfile.parent / 'some_dir'
-    p = GptPartitionTableUnpackParser(fr, scan_environment, data_unpack_dir, 0)
-    p.open()
-    r = p.parse_and_unpack()
-    p.close()
-    assert r.get_length() == filesize
-    assert len(r.get_unpacked_files()) == 4
+    testfile = testdir_base / 'testdata' / 'download' / 'filesystem' / 'gpt_partition_table' / 'OPNsense-21.7.1-OpenSSL-vga-amd64.img'
+    sz = testfile.stat().st_size
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with testfile.open('rb') as f:
+        p = GptPartitionTableUnpackParser(f, 0, sz)
+        p.parse_from_offset()
+        p.write_info(md)
+        for _ in p.unpack(md): pass
+    assert len(md.unpacked_files) == 4
 
 def test_load_mbr_partition_table(scan_environment):
-    rel_testfile = pathlib.Path('download') / 'filesystem' / 'mbr_partition_table' / 'openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img'
-    data_unpack_dir = rel_testfile.parent / 'some_dir'
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    p = GptPartitionTableUnpackParser(fr, scan_environment, data_unpack_dir, 0)
-    p.open()
-    with pytest.raises(UnpackParserException, match = r".*") as cm:
-        r = p.parse_and_unpack()
-    p.close()
+    testfile = testdir_base / 'testdata' / 'download' / 'filesystem' / 'mbr_partition_table' / 'openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img'
+    sz = testfile.stat().st_size
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with testfile.open('rb') as f:
+        p = GptPartitionTableUnpackParser(f, 0, sz)
+        with pytest.raises(UnpackParserException, match = r".*") as cm:
+            p.parse_from_offset()
+            p.write_info(md)
+            for _ in p.unpack(md): pass
+
 
 

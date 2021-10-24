@@ -22,6 +22,7 @@
 
 
 import os
+import pathlib
 from . import mbr_partition_table
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
@@ -34,13 +35,13 @@ class MbrPartitionTableUnpackParser(UnpackParser):
     ]
 
     def parse(self):
-        raise UnpackParserException('disabled')
+        # raise UnpackParserException('disabled')
         try:
             self.data = mbr_partition_table.MbrPartitionTable.from_io(self.infile)
             for p in self.data.partitions:
                 check_condition(not (p.lba_start == 0 and p.num_sectors != 0),
                                 'invalid LBA/sectors')
-                check_condition((p.lba_start + p.num_sectors) * 512 <= self.fileresult.filesize,
+                check_condition((p.lba_start + p.num_sectors) * 512 <= self.infile.size,
                                 "partition bigger than file")
         except BaseException as e:
             raise UnpackParserException(e.args)
@@ -56,7 +57,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
         check_condition(self.unpacked_size >= 0x1be,
                 "invalid partition table: no partitions")
 
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         """extract any files from the input file"""
         unpacked_files = []
         partition_number = 0
@@ -64,19 +65,20 @@ class MbrPartitionTableUnpackParser(UnpackParser):
             partition_ext = "part"
             partition_start = p.lba_start * 512
             partition_length = p.num_sectors * 512
-            outfile_rel = self.rel_unpack_dir / ("unpacked.mbr-partition%d.%s" %
-                (partition_number, partition_ext))
-            self.extract_to_file(outfile_rel, 
-                    partition_start, partition_length)
-            partition_name = p.partition_type.name
-            # TODO: add partition name to labels
-            outlabels = ['partition']
-            fr = FileResult(self.fileresult, outfile_rel, set(outlabels))
-            unpacked_files.append( fr )
-            partition_number += 1
-        return unpacked_files
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        self.unpack_results.set_labels(['filesystem','mbr'])
-        self.unpack_results.set_metadata({})
+            outfile = "unpacked.mbr-partition%d.%s" % (partition_number, partition_ext)
+            with meta_directory.unpack_regular_file(pathlib.Path(outfile)) as (unpacked_md, f):
+                os.sendfile(f.fileno(), self.infile.fileno(), partition_start, partition_length)
+                partition_name = p.partition_type.name
+                # add some context to the MetaDirectory of the unpacked file
+                # TODO: add partition name to labels
+                with unpacked_md.open(open_file=False):
+                    unpacked_md.info.setdefault('labels', []).append('partition')
+                yield unpacked_md
+            partition_number += 1
+
+    def write_info(self, meta_directory):
+        meta_directory.info.setdefault('labels',[]).append(self.labels)
+
+    labels = ['filesystem','mbr']
+

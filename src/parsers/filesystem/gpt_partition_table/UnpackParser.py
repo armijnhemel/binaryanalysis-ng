@@ -22,6 +22,7 @@
 
 import os
 import uuid
+import pathlib
 from . import gpt_partition_table
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
@@ -53,10 +54,11 @@ class GptPartitionTableUnpackParser(UnpackParser):
         # unreliable, for example Android devices where certain partitions have
         # been removed from the firmware update, but where the partition table
         # has not been changed.
+
+        # TODO: better exception handling
         try:
             self.unpacked_size = (self.data.primary.backup_lba+1)*self.data.sector_size
         except BaseException as e:
-            print("EXC")
             raise UnpackParserException(e.args)
 
         all_entries_size = self.data.primary.entries_size * self.data.primary.entries_count
@@ -64,33 +66,38 @@ class GptPartitionTableUnpackParser(UnpackParser):
         for e in self.data.primary.entries:
             partition_start = e.first_lba * self.data.sector_size
             partition_end = (e.last_lba + 1) * self.data.sector_size
-            if partition_start  + partition_end > self.fileresult.filesize:
+            if partition_start  + partition_end > self.infile.size:
                 continue
-        check_condition(self.unpacked_size <= self.fileresult.filesize,
+        check_condition(self.unpacked_size <= self.infile.size,
                 "partition bigger than file")
 
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         unpacked_files = []
         partition_number = 0
         for e in self.data.primary.entries:
             partition_start = e.first_lba * self.data.sector_size
-            if partition_start > self.fileresult.filesize:
+            if partition_start > self.infile.size:
                 continue
             partition_end = (e.last_lba + 1) * self.data.sector_size
             partition_ext = 'part'
-            outfile_rel = self.rel_unpack_dir / ("unpacked.gpt-partition%d.%s" %
-                    (partition_number, partition_ext))
-            self.extract_to_file(outfile_rel,
-                    partition_start, partition_end - partition_start)
-            outlabels = ['partition']
-            fr = FileResult(self.fileresult, outfile_rel, set(outlabels))
-            unpacked_files.append( fr )
-            partition_number += 1
-        return unpacked_files
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['filesystem','gpt']
+            outfile = "unpacked.gpt-partition%d.%s" % (partition_number, partition_ext)
+            with meta_directory.unpack_regular_file(pathlib.Path(outfile)) as (unpacked_md, f):
+                os.sendfile(f.fileno(), self.infile.fileno(), partition_start, partition_end - partition_start)
+
+                with unpacked_md.open(open_file=False):
+                    unpacked_md.info.setdefault('labels', []).append('partition')
+                yield unpacked_md
+            partition_number += 1
+
+    def write_info(self, meta_directory):
+        meta_directory.info.setdefault('labels',[]).append(self.labels)
+        meta_directory.info.setdefault('metadata',[]).append(self.metadata)
+
+    labels = ['filesystem','gpt']
+
+    @property
+    def metadata(self):
         metadata = {}
         metadata['partitions'] = []
 
@@ -99,5 +106,5 @@ class GptPartitionTableUnpackParser(UnpackParser):
             guid = uuid.UUID(bytes=e.guid)
             metadata['partitions'].append({'uuid': guid, 'name': e.name.split('\x00')[0]})
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)
+        return metadata
+
