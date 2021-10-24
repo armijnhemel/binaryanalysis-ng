@@ -28,27 +28,20 @@ class TarUnpackParser(UnpackParser):
     ]
     pretty_name = 'tar'
 
-    def tar_unpack_regular(self, outfile_rel, tarinfo):
+    def tar_unpack_regular(self, meta_directory, path, tarinfo):
         # TODO: absolute paths
         #print(outfile_rel)
-        if outfile_rel.is_absolute():
-            raise UnpackParserException("trying to extract to absolute path")
-        else:
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
+        with meta_directory.unpack_regular_file(path) as (unpacked_md, f):
             tar_reader = self.unpacktar.extractfile(tarinfo)
-            outfile.write(tar_reader.read())
-            outfile.close()
+            f.write(tar_reader.read())
+            yield unpacked_md
 
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         unpacked_files = []
         for tarinfo in self.tarinfos:
             file_path = pathlib.Path(tarinfo.name)
-            outfile_rel = self.rel_unpack_dir / file_path
             if tarinfo.isfile(): # normal file
-                self.tar_unpack_regular(outfile_rel, tarinfo)
-                pass
+                for unpacked_md in self.tar_unpack_regular(meta_directory, file_path, tarinfo): yield unpacked_md
             elif tarinfo.issym(): # symlink
                 pass
             elif tarinfo.islnk(): # hard link
@@ -56,10 +49,10 @@ class TarUnpackParser(UnpackParser):
             elif tarinfo.isdir(): # directory
                 pass
 
-            out_labels = []
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
-        return unpacked_files
+            #out_labels = []
+            #fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
+            #unpacked_files.append(fr)
+        #return unpacked_files
 
     def parse(self):
         try:
