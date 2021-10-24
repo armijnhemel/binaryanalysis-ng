@@ -1,6 +1,7 @@
 import sys, os
 import hashlib
 from test.util import *
+from test.mock_metadirectory import *
 
 from .UnpackParser import VfatUnpackParser
 

@@ -1,5 +1,6 @@
 import sys, os
 from test.util import *
+from test.mock_metadirectory import *
 from UnpackParserException import UnpackParserException
 
 from .UnpackParser import MbrPartitionTableUnpackParser
