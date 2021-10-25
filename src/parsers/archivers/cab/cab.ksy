@@ -81,7 +81,7 @@ seq:
     encoding: ASCII
     if: has_next_cabinet
     doc: (optional) (optional) name of next disk
-  - id: first_foler
+  - id: first_folder
     type: folder
 instances:
   has_previous_cabinet:
