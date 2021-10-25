@@ -8,6 +8,10 @@ meta:
   imports:
     - /common/vlq_base128_le
 doc-ref: https://raw.githubusercontent.com/mapsforge/mapsforge/master/docs/Specification-Binary-Map-File.md
+doc: |
+  Incomplete and probably incorrect grammar for mapsforge files. The
+  incorrectness is related to the use of leb128 (vlq_base128) which
+  according to the mapsforge docs isn't true for signed values.
 seq:
   - id: preheader
     type: preheader
@@ -91,9 +95,14 @@ types:
         type: u1
       - id: ofs_sub_file
         type: u8
+        valid:
+          min: _root.preheader.len_header
+          max: _root.header.len_file
         doc: absolute start position of the sub file
       - id: len_sub_file
         type: u8
+        valid:
+          max: _root.header.len_file - ofs_sub_file
   tags:
     seq:
       - id: num_tags
