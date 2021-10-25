@@ -724,6 +724,7 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
 
         # check if this is EXP (only in hierarchical syntax)
         if checkbytes == b'\xff\xdf':
+            print('yo', filename_full)
             if not ishierarchical:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize,
@@ -3412,104 +3413,3 @@ def unpack_pnm(fileresult, scanenvironment, offset, unpackdir):
             'filesandlabels': unpackedfilesandlabels}
 
 unpack_pnm.signatures = {'ppm': b'P6', 'pgm': b'P5', 'pbm': b'P4'}
-
-
-# https://github.com/mapsforge/mapsforge/blob/master/docs/Specification-Binary-Map-File.md
-def unpack_mapsforge(fileresult, scanenvironment, offset, unpackdir):
-    '''Verify/carve a Mapsforge binary mape file'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-    unpackdir_full = scanenvironment.unpack_path(unpackdir)
-
-    # header is at least 64 bytes
-    if offset + 64 > filesize:
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'not enough data for header'}
-        return {'status': False, 'error': unpackingerror}
-
-    # open the file and skip the magic
-    checkfile = open(filename_full, 'rb')
-    checkfile.seek(offset+20)
-
-    # header size
-    checkbytes = checkfile.read(4)
-    header_size = int.from_bytes(checkbytes, byteorder='big')
-    if offset + header_size + 20 > filesize:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'not enough data for header'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 4
-
-    # file version
-    checkbytes = checkfile.read(4)
-    file_version = int.from_bytes(checkbytes, byteorder='big')
-    unpackedsize += 4
-
-    # map size
-    checkbytes = checkfile.read(8)
-    map_size = int.from_bytes(checkbytes, byteorder='big')
-    if offset + map_size > filesize:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'not enough data for header'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 8
-
-    # creation date
-    checkbytes = checkfile.read(8)
-    creation_date = int.from_bytes(checkbytes, byteorder='big')
-    unpackedsize += 8
-
-    # bounding box
-    checkbytes = checkfile.read(4)
-    min_lat = int.from_bytes(checkbytes, byteorder='big')
-    unpackedsize += 4
-
-    checkbytes = checkfile.read(4)
-    min_lon = int.from_bytes(checkbytes, byteorder='big')
-    unpackedsize += 4
-
-    checkbytes = checkfile.read(4)
-    max_lat = int.from_bytes(checkbytes, byteorder='big')
-    unpackedsize += 4
-
-    checkbytes = checkfile.read(4)
-    max_lon = int.from_bytes(checkbytes, byteorder='big')
-    unpackedsize += 4
-
-    # tile size
-    checkbytes = checkfile.read(2)
-    tile_size = int.from_bytes(checkbytes, byteorder='big')
-    unpackedsize += 2
-
-    if offset == 0 and map_size == filesize:
-        labels.append('mapsforge')
-        checkfile.close()
-        return {'status': True, 'length': map_size, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
-
-    # else carve the file. It is anonymous, so just give it a name
-    outfile_rel = os.path.join(unpackdir, "unpacked.map")
-    outfile_full = scanenvironment.unpack_path(outfile_rel)
-
-    # create the unpacking directory
-    os.makedirs(unpackdir_full, exist_ok=True)
-    outfile = open(outfile_full, 'wb')
-    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, map_size)
-    outfile.close()
-    checkfile.close()
-
-    unpackedfilesandlabels.append((outfile_rel, ['mapsforge', 'unpacked']))
-    return {'status': True, 'length': map_size, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_mapsforge.signatures = {'mapsforge': b'mapsforge binary OSM'}
-unpack_mapsforge.minimum_size = 64

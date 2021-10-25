@@ -304,7 +304,6 @@ signaturetofunction = {
     'pcap_be_nano': bangunpack.unpack_pcap,
     'android_binary_xml': bangandroid.unpack_android_resource,
     'serialized_java': bangunpack.unpack_serialized_java,
-    'mapsforge': bangmedia.unpack_mapsforge,
     'plf': bangfilesystems.unpack_plf,
     'pfs': bangfilesystems.unpack_pfs,
     'yaffs_le_1': bangfilesystems.unpack_yaffs2,
