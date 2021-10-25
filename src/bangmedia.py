@@ -724,7 +724,6 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
 
         # check if this is EXP (only in hierarchical syntax)
         if checkbytes == b'\xff\xdf':
-            print('yo', filename_full)
             if not ishierarchical:
                 checkfile.close()
                 unpackingerror = {'offset': offset+unpackedsize,
