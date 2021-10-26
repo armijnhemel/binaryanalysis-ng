@@ -51,7 +51,7 @@ class SamsungTzarUnpackParser(UnpackParser):
     def unpack(self):
         unpacked_files = []
         out_labels = []
-        for entry in self.data.entries:
+        for entry in self.data.entries.entries:
             file_path = entry.filename
             outfile_rel = self.rel_unpack_dir / file_path
             outfile_full = self.scan_environment.unpack_path(outfile_rel)
