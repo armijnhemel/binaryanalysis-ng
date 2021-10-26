@@ -29,9 +29,6 @@ import snappy
 
 from FileResult import FileResult
 
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_snappy
-
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
