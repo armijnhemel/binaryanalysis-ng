@@ -368,6 +368,9 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
     haverockridge = False
     havezisofs = False
 
+    # http://fileformats.archiveteam.org/wiki/Apple_ISO_9660_extensions
+    is_apple_iso = False
+
     isobuffer = bytearray(2048)
 
     # create the unpacking directory
@@ -706,6 +709,9 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
                             suversion = system_use[suoffset+3]
                             sudata = system_use[suoffset+4:suoffset+4+sulength]
 
+                            if signatureword == b'AA':
+                                is_apple_iso = True
+
                             # the 'SP' entry can only appear once per
                             # directory hierarchy and has to be the
                             # very first entry of the first directory
@@ -721,7 +727,7 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
                                 havesusp = True
                                 suspskip = system_use[suoffset+6]
                             else:
-                                if not havesusp:
+                                if not havesusp and not is_apple_iso:
                                     checkfile.close()
                                     unpackingerror = {'offset': offset+unpackedsize,
                                                       'fatal': False,
