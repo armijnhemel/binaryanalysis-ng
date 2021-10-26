@@ -112,6 +112,9 @@ class SnappyUnpackParser(UnpackParser):
         unpacked_files.append(fr)
         return unpacked_files
 
+    # no need to carve from the file
+    def carve(self):
+        pass
 
     def calculate_unpacked_size(self):
         pass
