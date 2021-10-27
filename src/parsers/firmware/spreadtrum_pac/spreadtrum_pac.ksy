@@ -106,6 +106,8 @@ types:
       - id: ofs_partition
         -orig-id: partitionAddrInPac
         type: u4
+        valid:
+          max: _root._io.size
       - id: omit_flag
         type: u4
       - id: addr_num
