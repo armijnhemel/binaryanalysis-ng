@@ -21,6 +21,9 @@ types:
         size: 48
       - id: len_file
         type: u4
+        valid:
+          min: 2124
+          max: _root._io.size
       - id: product_name
         size: 512
       - id: firmware_name
@@ -93,6 +96,8 @@ types:
         #encoding: UTF-16-LE
       - id: len_partition
         -orig-id: partitionSize
+        valid:
+          max: _root._io.size
         type: u4
       - id: file_flag
         type: u4
@@ -101,6 +106,8 @@ types:
       - id: ofs_partition
         -orig-id: partitionAddrInPac
         type: u4
+        valid:
+          min: _root.header._sizeof
       - id: omit_flag
         type: u4
       - id: addr_num
