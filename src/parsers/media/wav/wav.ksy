@@ -688,3 +688,4 @@ enums:
       doc-ref: https://www.wavosaur.com/forum/click-at-end-of-sounds-t315.html
     # CDif private chunk, unknown origin
     0x66694443: cdif
+    # TODO: add more RIFF chunks

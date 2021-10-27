@@ -218,7 +218,6 @@ signaturesoffset = {
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
     'webp': bangmedia.unpack_webp,
-    'wav': bangmedia.unpack_wav,
     'ani': bangmedia.unpack_ani,
     'mng': bangmedia.unpack_mng,
     'gzip': bangunpack.unpack_gzip,
