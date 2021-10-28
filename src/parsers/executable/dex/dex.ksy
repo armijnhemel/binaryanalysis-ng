@@ -767,7 +767,7 @@ types:
       - id: encoded_catch_handler
         type: encoded_catch_handler
         repeat: expr
-        repeat-expr: num_entries.value_signed
+        repeat-expr: num_entries.value
         doc: |
           actual list of handler lists, represented directly
           (not as offsets), and concatenated sequentially
