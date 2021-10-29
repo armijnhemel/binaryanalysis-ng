@@ -250,7 +250,6 @@ signaturetofunction = {
     'android_backup': bangandroid.unpack_android_backup,
     'sgi': bangmedia.unpack_sgi,
     'aiff': bangmedia.unpack_aiff,
-    'terminfo': bangunpack.unpack_terminfo,
     'rzip': bangunpack.unpack_rzip,
     'jffs2_little_endian': bangfilesystems.unpack_jffs2,
     'jffs2_big_endian': bangfilesystems.unpack_jffs2,

@@ -1,6 +1,6 @@
 meta:
-  id: terminfo
-  title: terminfo
+  id: terminfo_extended
+  title: terminfo extended storage
   license: CC0-1.0
   encoding: ASCII
   endian: le
@@ -47,6 +47,11 @@ seq:
   - id: string_table
     type: string_table
     size: len_string_table
+  - id: padding
+    size: 1
+    if: _io.pos % 2 == 1
+  - id: extended_storage
+    type: extended_storage
 types:
   names_section:
     seq:
@@ -74,6 +79,48 @@ types:
         type: u2
         repeat: eos
   string_table:
+    seq:
+      - id: strings
+        terminator: 0x00
+        repeat: eos
+  extended_storage:
+    seq:
+      - id: num_boolean_capabilities
+        type: u2
+      - id: num_numeric_capabilities
+        type: u2
+      - id: num_string_capabilities
+        type: u2
+      - id: num_items_extended_string_table
+        type: u2
+      - id: len_extended_string_table
+        type: u2
+      - id: booleans
+        type: flag
+        repeat: expr
+        repeat-expr: num_boolean_capabilities
+      - id: padding
+        size: 1
+        if: num_boolean_capabilities % 2 == 1
+      - id: numbers
+        type: u2
+        repeat: expr
+        repeat-expr: num_numeric_capabilities
+      - id: string_capabilities
+        type: u2
+        repeat: expr
+        repeat-expr: num_string_capabilities
+      - id: needed
+        type: u2
+        repeat: expr
+        repeat-expr: need
+      - id: extended_string_table
+        type: extended_string_table
+        size: len_extended_string_table
+    instances:
+      need:
+        value: num_boolean_capabilities + num_numeric_capabilities + num_string_capabilities
+  extended_string_table:
     seq:
       - id: strings
         terminator: 0x00
