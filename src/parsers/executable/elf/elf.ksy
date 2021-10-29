@@ -57,11 +57,13 @@ seq:
       Specifies which OS- and ABI-related extensions will be used
       in this ELF file.
   - id: abi_version
+    -orig-id: e_ident[EI_ABIVERSION]
     type: u1
     doc: |
       Version of ABI targeted by this ELF file. Interpretation
       depends on `abi` attribute.
   - id: pad
+    -orig-id: e_ident[EI_PAD]..e_ident[EI_NIDENT - 1]
     contents: [0, 0, 0, 0, 0, 0, 0]
   - id: header
     type: endian_elf
@@ -476,6 +478,8 @@ types:
           - id: entries
             type: strz
             repeat: eos
+            # For an explanation of why UTF-8 instead of ASCII, see the comment
+            # on the `name` attribute in the `dynsym_section_entry` type.
             encoding: UTF-8
       dynamic_section:
         seq:
@@ -602,6 +606,14 @@ types:
             io: _parent._parent.linked_section.body.as<strings_struct>._io
             pos: ofs_name
             type: strz
+            # UTF-8 is used (instead of ASCII) because Golang binaries may
+            # contain specific Unicode code points in symbol identifiers.
+            #
+            # See
+            # * <https://golang.org/doc/asm#symbols>: "the assembler allows the
+            #   middle dot character U+00B7 and the division slash U+2215 in
+            #   identifiers"
+            # * <https://github.com/kaitai-io/kaitai_struct_formats/issues/520>
             encoding: UTF-8
             if: ofs_name != 0 and _parent.is_string_table_linked
             -webide-parse-mode: eager
