@@ -70,17 +70,6 @@ class UnpackParser:
         self.offset = offset
         self.infile = OffsetInputFile(meta_directory, self.offset)
 
-    def x__init__(self, fileresult, scan_environment, rel_unpack_dir, offset):
-        """Constructor. All constructor arguments are available as object
-        fields of the same name.
-        """
-        self.unpacked_size = 0
-        self.unpack_results = UnpackResults()
-        self.fileresult = fileresult
-        self.scan_environment = scan_environment
-        self.rel_unpack_dir = rel_unpack_dir
-        self.offset = offset
-
     def parse(self):
         """Override this method to implement parsing the file data. If there is
         a (non-fatal) error during the parsing, you should raise an
@@ -97,16 +86,6 @@ class UnpackParser:
         self.calculate_unpacked_size()
         check_condition(self.unpacked_size > 0, 'Parser resulted in zero length file')
 
-    def x_open(self):
-        '''obsolete, we need to pass an open file handle to the object.'''
-        filename_full = self.scan_environment.get_unpack_path_for_fileresult(
-                    self.fileresult)
-        f = filename_full.open('rb')
-        self.infile = OffsetInputFile(f, self.offset)
-    def x_close(self):
-        '''obsolete, we need to pass an open file handle to the object.'''
-        self.infile.close()
-
     def calculate_unpacked_size(self):
         """Override this to calculate the length of the file data that is
         extracted. Needed if you call the UnpackParser to extract (carve)
@@ -120,51 +99,6 @@ class UnpackParser:
     def parsed_size(self):
         return self.unpacked_size
 
-    def parse_and_unpack(self):
-        """Parses the file and unpacks any contents into other files. Files are
-        stored in the filesandlabels field of the self.unpack_results
-        dictionary.
-        You normally do not need to override this method. Any
-        UnpackParserExceptions that are raised are assumed to be non-fatal,
-        i.e. the program can continue. Other exceptions are not assumed to be
-        handled and may cause the program to abort.
-        """
-
-        self.parse_from_offset()
-        self.unpack_results.set_length(self.unpacked_size)
-        self.set_metadata_and_labels()
-        unpacked_files = self.unpack()
-        self.unpack_results.set_unpacked_files(unpacked_files)
-        return self.unpack_results
-
-    @classmethod
-    def get_carved_filename(cls):
-        """Override this to change the name of the unpacked file if it is
-        carved. Default is unpacked.<pretty_name>.
-        OBSOLETE
-        """
-        return "unpacked.%s" % cls.pretty_name
-
-    def carve(self):
-        """If the UnpackParser recognizes data but there is still data left in
-        the file, this method saves the parsed part of the file, leaving the
-        rest to be  analyzed. The part is saved to the unpack data directory,
-        under the name given by get_carved_filename.
-        OBSOLETE
-        """
-        rel_output_path = self.rel_unpack_dir / self.get_carved_filename()
-        abs_output_path = self.scan_environment.unpack_path(rel_output_path)
-        os.makedirs(abs_output_path.parent, exist_ok=True)
-        outfile = open(abs_output_path, 'wb')
-        # Although self.infile is an OffsetInputFile, fileno() will give the file
-        # descriptor of the backing file. Therefore, we need to specify self.offset here
-        # note: does not work with mmapped files
-        os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset, self.unpacked_size)
-        outfile.close()
-        self.unpack_results.add_label('unpacked')
-        out_labels = self.unpack_results.get_labels() + ['unpacked']
-        fr = FileResult(self.fileresult, rel_output_path, set(out_labels))
-        self.unpack_results.add_unpacked_file( fr )
     def set_metadata_and_labels(self):
         """Override this method to set metadata and labels."""
         self.unpack_results.set_labels([])
@@ -173,7 +107,6 @@ class UnpackParser:
     def unpack(self, meta_directory):
         """Override this method to unpack any data into subfiles.
         The filenames will be stored in meta_directory root.
-        {OBSOLETE, TODO, Must return a list of FileResult objects.}
         For (non-fatal) errors, you should raise a UnpackParserException.
         """
         return []
