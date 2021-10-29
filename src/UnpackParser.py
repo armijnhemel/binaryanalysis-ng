@@ -8,11 +8,11 @@ import os
 import pathlib
 
 class OffsetInputFile:
-    def __init__(self, meta_directory, offset):
-        self.infile = meta_directory.open_file
-        self.mapped_file = meta_directory.mapped_file
+    def __init__(self, from_meta_directory, offset):
+        self.infile = from_meta_directory.open_file
+        self.mapped_file = from_meta_directory.mapped_file
         self.offset = offset
-        self._size = meta_directory.size
+        self._size = from_meta_directory.size
 
     def __getattr__(self, name):
         return self.infile.__getattribute__(name)
@@ -64,11 +64,11 @@ class UnpackParser:
     signatures = []
     scan_if_featureless = False
 
-    def __init__(self, meta_directory, offset):
-        '''Creates an UnpackParser that will read from meta_directory's input file,
+    def __init__(self, from_meta_directory, offset):
+        '''Creates an UnpackParser that will read from from_meta_directory's input file,
         starting at offset.'''
         self.offset = offset
-        self.infile = OffsetInputFile(meta_directory, self.offset)
+        self.infile = OffsetInputFile(from_meta_directory, self.offset)
 
     def parse(self):
         """Override this method to implement parsing the file data. If there is
@@ -104,16 +104,16 @@ class UnpackParser:
         self.unpack_results.set_labels([])
         self.unpack_results.set_metadata({})
 
-    def unpack(self, meta_directory):
+    def unpack(self, to_meta_directory):
         """Override this method to unpack any data into subfiles.
-        The filenames will be stored in meta_directory root.
+        The filenames will be stored in to_meta_directory root.
         For (non-fatal) errors, you should raise a UnpackParserException.
         """
         return []
 
-    def write_info(self, meta_directory):
+    def write_info(self, to_meta_directory):
         '''update any file info or metadata to the MetaDirectory.
-        Be aware that meta_directory.info may contain data already!
+        Be aware that to_meta_directory.info may contain data already!
         '''
         pass
 
@@ -175,8 +175,8 @@ class WrappedUnpackParser(UnpackParser):
 class SynthesizingParser(UnpackParser):
 
     @classmethod
-    def with_size(cls, meta_directory, offset, size):
-        o = cls(meta_directory, offset)
+    def with_size(cls, from_meta_directory, offset, size):
+        o = cls(from_meta_directory, offset)
         o.unpacked_size = size
         return o
 
@@ -186,23 +186,20 @@ class SynthesizingParser(UnpackParser):
     def parse(self):
         pass
 
-    def write_info(self, meta_directory):
-        # write inf
-        info = meta_directory.info
-        info.setdefault('labels', []).append('synthesized')
-        meta_directory.info = info
+    def write_info(self, to_meta_directory):
+        to_meta_directory.info.setdefault('labels', []).append('synthesized')
 
-    def unpack(self, meta_directory):
+    def unpack(self, to_meta_directory):
         # synthesize files must be scanned again, so let them unpack themselves
-        yield meta_directory
+        yield to_meta_directory
 
 
 class PaddingParser(UnpackParser):
 
     valid_padding_chars = [b'\x00', b'\xff']
 
-    def __init__(self, meta_directory, offset):
-        super().__init__(meta_directory, offset)
+    def __init__(self, from_meta_directory, offset):
+        super().__init__(from_meta_directory, offset)
         self.is_padding = False
 
     def parse(self):
@@ -223,12 +220,9 @@ class PaddingParser(UnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    def write_info(self, meta_directory):
+    def write_info(self, to_meta_directory):
         if self.is_padding:
-            # write inf
-            info = meta_directory.info
-            info.setdefault('labels', []).append('padding')
-            meta_directory.info = info
+            to_meta_directory.info.setdefault('labels', []).append('padding')
 
 
 class ExtractingParser(UnpackParser):
@@ -237,9 +231,9 @@ class ExtractingParser(UnpackParser):
     MetaDirectory, assign this parser to it.
     '''
     @classmethod
-    def with_parts(cls, meta_directory, parts):
+    def with_parts(cls, from_meta_directory, parts):
         '''the sum of all lengths in parts is the calculated file size.'''
-        o = cls(meta_directory, 0)
+        o = cls(from_meta_directory, 0)
         o._parts = parts
         size = sum(p[1] for p in parts)
         o.unpacked_size = size
@@ -251,7 +245,7 @@ class ExtractingParser(UnpackParser):
     def parse(self):
         pass
 
-    def write_info(self, meta_directory):
+    def write_info(self, to_meta_directory):
         '''TODO: write any data about the parent MetaDirectory here.'''
         pass
 
