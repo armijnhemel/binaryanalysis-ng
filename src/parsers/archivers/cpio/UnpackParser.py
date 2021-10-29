@@ -45,34 +45,6 @@ from UnpackParserException import UnpackParserException
 from FileResult import FileResult
 from kaitaistruct import ValidationNotEqualError
 
-def x_rewrite_symlink(file_path, target_path):
-    """rewrites a symlink of target_path, relative to file_path.
-    target_path and file_path are both Path objects. Returns a
-    Path object, representing a relative symlink.
-    We assume that file_path is normalized.
-    """
-    file_path = pathlib.Path('/') / file_path
-    target_res = (file_path.parent / target_path).resolve()
-    target_dir_count = len(target_res.parts[1:-1])
-    file_dir_count = len(file_path.parts[1:-1])
-    if target_path.is_absolute():
-        ddots = ['..'] * file_dir_count 
-        link_path = pathlib.Path('.').joinpath(*ddots) \
-                .joinpath(*target_res.parts[1:])
-    else:
-        ddots = ['..'] * min(file_dir_count, file_dir_count - target_dir_count)
-        link_path = pathlib.Path('.').joinpath(*ddots) / target_path.name
-    return link_path
-
-def rewrite_symlink(meta_directory, file_path, target_path):
-    # rewrite symlink. A relative symlink can stay as is?
-    # a absolute link must be prefix with the relative path to the abs root
-    if target_path.is_absolute():
-        file_path_abs = meta_directory.unpack_path(file_path)
-        p = pathlib.Path('.').relative_to(file_path)
-
-
-
 class CpioBaseUnpackParser(UnpackParser):
     extensions = []
     signatures = []
@@ -114,10 +86,6 @@ class CpioBaseUnpackParser(UnpackParser):
             if e.filename != self.data.trailing_filename:
                 file_path = pathlib.Path(e.filename)
 
-                #if file_path.is_absolute():
-                #    file_path = file_path.relative_to('/')
-                #outfile_rel = self.rel_unpack_dir / file_path
-
                 mode = e.header.cpio_mode
                 logging.debug(f'unpack: entry has mode {mode}')
 
@@ -125,7 +93,6 @@ class CpioBaseUnpackParser(UnpackParser):
                     yield from self.unpack_directory(meta_directory, file_path)
                 elif stat.S_ISLNK(mode):
                     yield from self.unpack_link(meta_directory, file_path, e.filedata.split(b'\x00')[0].decode())
-                    # out_labels.append('symbolic link') TODO: move to unpack_link
                 elif stat.S_ISCHR(mode) or stat.S_ISBLK(mode):
                     yield from self.unpack_device(meta_directory, file_path)
                     pos += e.header.bsize
@@ -136,12 +103,7 @@ class CpioBaseUnpackParser(UnpackParser):
                     filedata_start = e.header.hsize + e.header.nsize + e.header.npaddingsize
                     yield from self.unpack_regular(meta_directory, file_path, pos + filedata_start, e.header.fsize)
 
-                #fr = FileResult(self.fileresult,
-                #        self.rel_unpack_dir / file_path,
-                #        set(out_labels))
-                #unpacked_files.append( fr )
             pos += e.header.bsize
-        #return unpacked_files
 
     def set_metadata_and_labels(self):
         return

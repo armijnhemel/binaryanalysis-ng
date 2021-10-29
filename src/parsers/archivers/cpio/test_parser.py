@@ -3,8 +3,7 @@ from test.util import *
 from test.mock_metadirectory import *
 
 from .UnpackParser import CpioNewAsciiUnpackParser, \
-    CpioNewCrcUnpackParser, CpioPortableAsciiUnpackParser, \
-    rewrite_symlink
+    CpioNewCrcUnpackParser, CpioPortableAsciiUnpackParser
 
 def test_load_cpio_file_new_ascii(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'cpio' / 'test-new.cpio'
