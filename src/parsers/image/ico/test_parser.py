@@ -6,13 +6,13 @@ from .UnpackParser import IcoUnpackParser
 
 def test_load_standard_ico_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'ico' / 'test.ico'
-    sz = testfile.stat().st_size
-    with testfile.open('rb') as f:
-        p = IcoUnpackParser(f, 0, sz)
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open() as opened_md:
+        p = IcoUnpackParser(opened_md, 0)
         p.parse_from_offset()
-        md = MockMetaDirectory()
-        p.write_info(md)
-        for _ in p.unpack(md): pass
-        assert md.unpacked_files == {}
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+    with reopen_md(md).open(open_file=False) as unpacked_md:
+        assert unpacked_md.unpacked_files == {}
 
 

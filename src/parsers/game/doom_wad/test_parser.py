@@ -7,21 +7,23 @@ from .UnpackParser import DoomWadUnpackParser
 
 def test_load_standard_wad_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'download' / 'game' / 'doom_wad' / 'doom1.wad'
-    sz = testfile.stat().st_size
-    with testfile.open('rb') as f:
-        p = DoomWadUnpackParser(f, 0, sz)
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open() as opened_md:
+        p = DoomWadUnpackParser(opened_md, 0)
         p.parse_from_offset()
-        md = MockMetaDirectory()
-        p.write_info(md)
-        for _ in p.unpack(md): pass
-        assert md.unpacked_files == {}
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+    with reopen_md(md).open(open_file=False) as unpacked_md:
+        assert unpacked_md.unpacked_files == {}
 
 def test_load_png_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'png' / 'test.png'
-    sz = testfile.stat().st_size
-    with testfile.open('rb') as f:
-        p = DoomWadUnpackParser(f, 0, sz)
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open() as opened_md:
+        p = DoomWadUnpackParser(opened_md, 0)
         with pytest.raises(UnpackParserException, match = r".*") as cm:
-            r = p.parse_from_offset()
+            p.parse_from_offset()
+            p.write_info(opened_md)
+            for _ in p.unpack(opened_md): pass
 
 
