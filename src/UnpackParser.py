@@ -8,11 +8,11 @@ import os
 import pathlib
 
 class OffsetInputFile:
-    def __init__(self, infile, offset, size):
-        '''size is the size of infile.'''
-        self.infile = infile
+    def __init__(self, meta_directory, offset):
+        self.infile = meta_directory.open_file
+        self.mapped_file = meta_directory.mapped_file
         self.offset = offset
-        self._size = size
+        self._size = meta_directory.size
 
     def __getattr__(self, name):
         return self.infile.__getattribute__(name)
@@ -24,6 +24,9 @@ class OffsetInputFile:
 
     def tell(self):
         return self.infile.tell() - self.offset
+
+    def fileno(self):
+        return self.infile.fileno()
 
     @property
     def size(self):
@@ -61,10 +64,11 @@ class UnpackParser:
     signatures = []
     scan_if_featureless = False
 
-    def __init__(self, input_file, offset, size):
-        '''Creates an UnpackParser that will read from input_file, starting at offset.'''
+    def __init__(self, meta_directory, offset):
+        '''Creates an UnpackParser that will read from meta_directory's input file,
+        starting at offset.'''
         self.offset = offset
-        self.infile = OffsetInputFile(input_file, self.offset, size)
+        self.infile = OffsetInputFile(meta_directory, self.offset)
 
     def x__init__(self, fileresult, scan_environment, rel_unpack_dir, offset):
         """Constructor. All constructor arguments are available as object
@@ -238,8 +242,8 @@ class WrappedUnpackParser(UnpackParser):
 class SynthesizingParser(UnpackParser):
 
     @classmethod
-    def with_size(cls, input_file, offset, size):
-        o = cls(input_file, offset, 0)
+    def with_size(cls, meta_directory, offset, size):
+        o = cls(meta_directory, offset)
         o.unpacked_size = size
         return o
 
@@ -264,8 +268,8 @@ class PaddingParser(UnpackParser):
 
     valid_padding_chars = [b'\x00', b'\xff']
 
-    def __init__(self, input_file, offset):
-        super().__init__(input_file, offset, 0)
+    def __init__(self, meta_directory, offset):
+        super().__init__(meta_directory, offset)
         self.is_padding = False
 
     def parse(self):
@@ -300,9 +304,9 @@ class ExtractingParser(UnpackParser):
     MetaDirectory, assign this parser to it.
     '''
     @classmethod
-    def with_parts(cls, input_file, parts):
+    def with_parts(cls, meta_directory, parts):
         '''the sum of all lengths in parts is the calculated file size.'''
-        o = cls(input_file, 0, 0)
+        o = cls(meta_directory, 0)
         o._parts = parts
         size = sum(p[1] for p in parts)
         o.unpacked_size = size
