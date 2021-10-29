@@ -22,8 +22,6 @@
 
 
 import os
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_terminfo
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
@@ -32,22 +30,22 @@ from . import terminfo
 from . import terminfo_extended
 
 
-class TerminfoUnpackParser(WrappedUnpackParser):
-#class TerminfoUnpackParser(UnpackParser):
+class TerminfoUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x1a\x01')
     ]
     pretty_name = 'terminfo'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_terminfo(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
-            self.data = terminfo.Terminfo.from_io(self.infile)
+            self.data = terminfo_extended.TerminfoExtended.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            self.infile.infile.seek(self.infile.offset)
+            try:
+                self.data = terminfo.Terminfo.from_io(self.infile)
+            except (Exception, ValidationFailedError) as e:
+                raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
