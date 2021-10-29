@@ -354,7 +354,6 @@ signatureprettyprint = {
 # One example is the Android sparse data format.
 # These extensions should be lower case
 extensiontofunction = {
-    '.swp': bangunpack.unpack_vim_swapfile,
     '.new.dat': bangandroid.unpack_android_sparse_data,
     '.ihex': bangtext.unpack_ihex,
     '.hex': bangtext.unpack_ihex,
