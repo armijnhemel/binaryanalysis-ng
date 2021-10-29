@@ -35,6 +35,7 @@
 import os
 import stat
 import pathlib
+import logging
 from . import cpio_new_ascii
 from . import cpio_new_crc
 from . import cpio_portable_ascii
@@ -44,7 +45,7 @@ from UnpackParserException import UnpackParserException
 from FileResult import FileResult
 from kaitaistruct import ValidationNotEqualError
 
-def rewrite_symlink(file_path, target_path):
+def x_rewrite_symlink(file_path, target_path):
     """rewrites a symlink of target_path, relative to file_path.
     target_path and file_path are both Path objects. Returns a
     Path object, representing a relative symlink.
@@ -63,6 +64,15 @@ def rewrite_symlink(file_path, target_path):
         link_path = pathlib.Path('.').joinpath(*ddots) / target_path.name
     return link_path
 
+def rewrite_symlink(meta_directory, file_path, target_path):
+    # rewrite symlink. A relative symlink can stay as is?
+    # a absolute link must be prefix with the relative path to the abs root
+    if target_path.is_absolute():
+        file_path_abs = meta_directory.unpack_path(file_path)
+        p = pathlib.Path('.').relative_to(file_path)
+
+
+
 class CpioBaseUnpackParser(UnpackParser):
     extensions = []
     signatures = []
@@ -74,62 +84,65 @@ class CpioBaseUnpackParser(UnpackParser):
         # the file. It looks like the file is padded to make the total
         # file size a multiple of 16, but more research is needed. For
         # now, we ignore the padding and accept a wrong size.
-    def unpack_directory(self, filename):
-        outfile_full = self.scan_environment.unpack_path(filename)
-        os.makedirs(outfile_full, exist_ok=True)
+    def unpack_directory(self, meta_directory, path):
+        # we unpack the directory, but do not yield a MetaDirectory for it
+        meta_directory.unpack_directory(path)
+        # outfile_full = self.scan_environment.unpack_path(filename)
+        #os.makedirs(outfile_full, exist_ok=True)
+        if False: yield None
 
-    def unpack_regular(self, filename, start, length):
-        self.extract_to_file(filename, start, length)
+    def unpack_regular(self, meta_directory, path, start, length):
+        with meta_directory.unpack_regular_file(path) as (unpacked_md, f):
+            os.sendfile(f.fileno(), self.infile.fileno(), start, length)
+            yield unpacked_md
 
-    def unpack_device(self, filename):
-        pass
+    def unpack_device(self, meta_directory, filename):
+        if False: yield None
 
-    def unpack_link(self, filename, target, rewrite=False):
-        """we assume filename is normalized. If rewrite is True, symlinks are
-        rewritten to point to other extracted files."""
-        file_path = pathlib.Path(filename)
-        target_path = pathlib.Path(target)
-        if rewrite:
-            link_path = rewrite_symlink(file_path, target_path)
-        else:
-            link_path = target_path
+    def unpack_link(self, meta_directory, path, target, rewrite=False):
+        # symlinks are not rewritten.
+        meta_directory.unpack_symlink(path, target)
+        logging.debug(f'unpack_link: {path} -> {target}')
+        return []
 
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile_full.symlink_to(link_path)
-
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         unpacked_files = []
         pos = 0
         for e in self.data.entries:
             out_labels = []
+            logging.debug(f'unpack: got entry {e.filename}')
             if e.filename != self.data.trailing_filename:
                 file_path = pathlib.Path(e.filename)
-                if file_path.is_absolute():
-                    file_path = file_path.relative_to('/')
+
+                #if file_path.is_absolute():
+                #    file_path = file_path.relative_to('/')
+                #outfile_rel = self.rel_unpack_dir / file_path
+
                 mode = e.header.cpio_mode
-                outfile_rel = self.rel_unpack_dir / file_path
+                logging.debug(f'unpack: entry has mode {mode}')
+
                 if stat.S_ISDIR(mode):
-                    self.unpack_directory(outfile_rel)
+                    yield from self.unpack_directory(meta_directory, file_path)
                 elif stat.S_ISLNK(mode):
-                    self.unpack_link(file_path, e.filedata.split(b'\x00')[0].decode())
-                    out_labels.append('symbolic link')
+                    yield from self.unpack_link(meta_directory, file_path, e.filedata.split(b'\x00')[0].decode())
+                    # out_labels.append('symbolic link') TODO: move to unpack_link
                 elif stat.S_ISCHR(mode) or stat.S_ISBLK(mode):
-                    self.unpack_device(outfile_rel)
+                    yield from self.unpack_device(meta_directory, file_path)
                     pos += e.header.bsize
                     continue
                 elif stat.S_ISREG(mode):
-                    filedata_start = e.header.hsize + e.header.nsize + e.header.npaddingsize
-                    self.unpack_regular(outfile_rel,
-                            pos + filedata_start, e.header.fsize)
+                    logging.debug(f'unpack: regular file')
 
-                fr = FileResult(self.fileresult,
-                        self.rel_unpack_dir / file_path,
-                        set(out_labels))
-                unpacked_files.append( fr )
+                    filedata_start = e.header.hsize + e.header.nsize + e.header.npaddingsize
+                    yield from self.unpack_regular(meta_directory, file_path, pos + filedata_start, e.header.fsize)
+
+                #fr = FileResult(self.fileresult,
+                #        self.rel_unpack_dir / file_path,
+                #        set(out_labels))
+                #unpacked_files.append( fr )
             pos += e.header.bsize
-        return unpacked_files
+        #return unpacked_files
+
     def set_metadata_and_labels(self):
         return
 

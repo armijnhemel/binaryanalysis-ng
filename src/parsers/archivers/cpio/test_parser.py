@@ -7,217 +7,144 @@ from .UnpackParser import CpioNewAsciiUnpackParser, \
     rewrite_symlink
 
 def test_load_cpio_file_new_ascii(scan_environment):
-    rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-new.cpio'
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    filesize = fr.filesize
-    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
-    p = CpioNewAsciiUnpackParser(fr, scan_environment, data_unpack_dir, 0)
-    p.open()
-    r = p.parse_and_unpack()
-    p.close()
-    assert r.get_length() <= filesize
-    extracted_fn = data_unpack_dir / 'test.sgi'
-    assert r.get_unpacked_files()[0].filename == extracted_fn
-    assert r.get_unpacked_files()[0].labels == set()
-    assertUnpackedPathExists(scan_environment, extracted_fn)
-    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
-    with open(extracted_fn_abs,"rb") as f:
-        assert f.read(2) == b'\x01\xda'
-
-def test_load_cpio_file_new_ascii_with_offset(scan_environment):
-    padding_length = 5
-    rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-new-padded.cpio'
-    orig_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-new.cpio'
-    abs_orig_testfile = testdir_base / 'testdata' / orig_testfile
-    abs_testfile = testdir_base / 'testdata' / rel_testfile
-    with open(abs_testfile,"wb") as f:
-        f.write(b"A" * padding_length)
-        with open(abs_orig_testfile,"rb") as g:
-                f.write(g.read())
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    filesize = fr.filesize
-    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
-    p = CpioNewAsciiUnpackParser(fr, scan_environment, data_unpack_dir, padding_length)
-    p.open()
-    r = p.parse_and_unpack()
-    p.close()
-    assert r.get_length() <= filesize
-    extracted_fn = data_unpack_dir / 'test.sgi'
-    assert r.get_unpacked_files()[0].filename == extracted_fn
-    assert r.get_unpacked_files()[0].labels == set()
-    assertUnpackedPathExists(scan_environment, extracted_fn)
-    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
-    with open(extracted_fn_abs,"rb") as f:
-        assert f.read(2) == b'\x01\xda'
-
+    testfile = testdir_base / 'testdata' / 'unpackers' / 'cpio' / 'test-new.cpio'
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open('rb') as opened_md:
+        p = CpioNewAsciiUnpackParser(opened_md, 0)
+        p.parse_from_offset()
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+    with reopen_md(md).open() as unpacked_md:
+        extracted_fn = unpacked_md.unpacked_path(pathlib.Path('test.sgi'))
+        assert extracted_fn in unpacked_md.unpacked_files
+        extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
+        assert extracted_fn_abs.exists()
+        with open(extracted_fn_abs,"rb") as f:
+            assert f.read(2) == b'\x01\xda'
 
 
 def test_load_cpio_file_portable_ascii(scan_environment):
-    rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-old.cpio'
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    filesize = fr.filesize
-    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-2")
-    p = CpioPortableAsciiUnpackParser(fr, scan_environment, data_unpack_dir, 0)
-    p.open()
-    r = p.parse_and_unpack()
-    p.close()
-    assert r.get_length() <= filesize
-    extracted_fn = data_unpack_dir / 'test.sgi'
-    assert r.get_unpacked_files()[0].filename == extracted_fn
-    assert r.get_unpacked_files()[0].labels == set()
-    assertUnpackedPathExists(scan_environment, extracted_fn)
+    testfile = testdir_base / 'testdata' / 'unpackers' / 'cpio' / 'test-old.cpio'
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open('rb') as opened_md:
+        p = CpioPortableAsciiUnpackParser(opened_md, 0)
+        p.parse_from_offset()
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+    with reopen_md(md).open() as unpacked_md:
+        extracted_fn = unpacked_md.unpacked_path(pathlib.Path('test.sgi'))
+        assert extracted_fn in unpacked_md.unpacked_files
+        extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
+        assert extracted_fn_abs.exists()
+        with open(extracted_fn_abs,"rb") as f:
+            assert f.read(2) == b'\x01\xda'
+
 
 def test_unpack_different_filetypes(scan_environment):
-    rel_testfile = pathlib.Path('download') / 'archivers' / 'cpio' / 'initramfs.cpio'
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    filesize = fr.filesize
-    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-3")
-    p = CpioNewAsciiUnpackParser(fr, scan_environment, data_unpack_dir, 0)
-    p.open()
-    r = p.parse_and_unpack()
-    p.close()
-    assert r.get_length() <= filesize
+    testfile = testdir_base / 'testdata' / 'download'/ 'archivers' / 'cpio' / 'initramfs.cpio'
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open(open_file=False) as opened_md:
+        p = CpioNewAsciiUnpackParser(opened_md, 0)
+        p.parse_from_offset()
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+        logging.debug(f'--> info = {opened_md.info}')
 
-    # check if etc is a directory
-    extracted_fn = data_unpack_dir / 'etc'
-    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
-    assert extracted_fn_abs.is_dir()
-    extracted_labels = [ i for i in r.get_unpacked_files() if i.filename == extracted_fn][0].labels
-    assert extracted_labels == set()
+    with reopen_md(md).open(open_file=False) as unpacked_md:
+        unpacked_fn = unpacked_md.unpacked_path(pathlib.Path('etc'))
+        unpacked_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / unpacked_fn
+        assert unpacked_fn_abs.is_dir()
 
-    # check if /linuxrc is a symlink to bin/busybox
-    # extracted_fn = data_unpack_dir / 'bin' / 'dbclient'
-    extracted_fn = data_unpack_dir / 'linuxrc'
-    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
-    assert extracted_fn_abs.is_symlink()
-    assert extracted_fn_abs.resolve().name == 'busybox'
-    assert extracted_fn_abs.resolve().parent.name == 'bin'
-    extracted_labels = [ i for i in r.get_unpacked_files() if i.filename == extracted_fn][0].labels
-    assert 'symbolic link' in extracted_labels
+        # check if /linuxrc is a symlink to bin/busybox
+        unpacked_fn = unpacked_md.unpacked_path(pathlib.Path('linuxrc'))
+        unpacked_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / unpacked_fn
+        assert unpacked_fn_abs.is_symlink()
+        assert unpacked_fn_abs.resolve().name == 'busybox'
+        assert unpacked_fn_abs.resolve().parent.name == 'bin'
+        assert unpacked_fn in unpacked_md.unpacked_symlinks
 
-    # check if device /dev/zero is skipped
-    extracted_fn = data_unpack_dir / 'dev' / 'zero'
-    assertUnpackedPathDoesNotExist(scan_environment, extracted_fn)
-    extracted_files = [ i for i in r.get_unpacked_files() if i.filename == extracted_fn]
-    assert extracted_files == []
-
+        # check if device /dev/zero is skipped
+        unpacked_fn = md.unpacked_path(pathlib.Path('/dev/zero'))
+        unpacked_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / unpacked_fn
+        assert not unpacked_fn_abs.exists()
+        assert unpacked_fn not in md.unpacked_files
+        assert unpacked_fn not in md.unpacked_symlinks
+    
 
 def test_cpio_with_absolute_path(scan_environment):
-    rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-absolute-path.cpio'
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    filesize = fr.filesize
-    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name+"-4")
-    p = CpioNewAsciiUnpackParser(fr, scan_environment, data_unpack_dir, 0)
-    p.open()
-    r = p.parse_and_unpack()
-    p.close()
-    assert r.get_length() <= filesize
-
-    extracted_fn = data_unpack_dir / 'e' / 't.sgi'
-    assertUnpackedPathExists(scan_environment, extracted_fn)
-    extracted_labels = [ i for i in r.get_unpacked_files() if i.filename == extracted_fn][0].labels
-    assert extracted_labels == set()
+    testfile = testdir_base / 'testdata' / 'unpackers' / 'cpio' / 'test-absolute-path.cpio'
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open('rb') as opened_md:
+        p = CpioNewAsciiUnpackParser(opened_md, 0)
+        p.parse_from_offset()
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+    with reopen_md(md).open() as unpacked_md:
+        unpacked_fn = unpacked_md.unpacked_path(pathlib.Path('/e/t.sgi'))
+        unpacked_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / unpacked_fn
+        assert unpacked_fn_abs.exists()
+        with unpacked_md.md_for_unpacked_path(unpacked_fn).open(open_file=False) as sub_md:
+            assert sub_md.info.get('labels', set()) == set()
 
 
 def test_load_cpio_with_multiple_files_portable(scan_environment):
-    rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-old-multiple-files.cpio'
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    filesize = fr.filesize
-    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
-    p = CpioPortableAsciiUnpackParser(fr, scan_environment, data_unpack_dir, 0)
-    p.open()
-    r = p.parse_and_unpack()
-    p.close()
-    assert r.get_length() <= filesize
-    assert len(r.get_unpacked_files()) == 2
-    assert r.get_unpacked_files()[0].filename == data_unpack_dir / 'example.hex'
-    assert r.get_unpacked_files()[1].filename == data_unpack_dir / 'example.txt'
-    assertUnpackedPathExists(scan_environment, data_unpack_dir / 'example.hex')
-    assertUnpackedPathExists(scan_environment, data_unpack_dir / 'example.txt')
-    extracted_fn_abs_1 = pathlib.Path(scan_environment.unpackdirectory) / data_unpack_dir / 'example.hex'
-    extracted_fn_abs_2 = pathlib.Path(scan_environment.unpackdirectory) / data_unpack_dir / 'example.txt'
-    s1 = open(extracted_fn_abs_1,"rb").read()
-    s2 = open(extracted_fn_abs_2,"rb").read()
-    assert s1 == s2
-    # with open(extracted_fn_abs,"rb") as f:
-    #    assert f.read(2) == b'\x01\xda'
+    testfile = testdir_base / 'testdata' / 'unpackers' / 'cpio' / 'test-old-multiple-files.cpio'
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open('rb') as opened_md:
+        p = CpioPortableAsciiUnpackParser(opened_md, 0)
+        p.parse_from_offset()
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+    with reopen_md(md).open() as unpacked_md:
+        assert len(unpacked_md.unpacked_files) == 2
+        up1 = unpacked_md.unpacked_path(pathlib.Path('example.hex'))
+        up2 = unpacked_md.unpacked_path(pathlib.Path('example.txt'))
+        assert set(unpacked_md.unpacked_files.keys()) == set([up1,up2])
+        assert (scan_environment.unpackdirectory / up1). exists()
+        assert (scan_environment.unpackdirectory / up2). exists()
+        s1 = (scan_environment.unpackdirectory / up1).open('rb').read()
+        s2 = (scan_environment.unpackdirectory / up2).open('rb').read()
+        assert s1 == s2
 
 
 def test_load_cpio_with_multiple_files_crc(scan_environment):
-    rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-crc-multiple-files.cpio'
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    filesize = fr.filesize
-    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
-    p = CpioNewCrcUnpackParser(fr, scan_environment, data_unpack_dir, 0)
-    p.open()
-    r = p.parse_and_unpack()
-    p.close()
-    assert r.get_length() <= filesize
-    assert len(r.get_unpacked_files()) == 2
-    assert r.get_unpacked_files()[0].filename == data_unpack_dir / 'example.hex'
-    assert r.get_unpacked_files()[1].filename == data_unpack_dir / 'example.txt'
-    assertUnpackedPathExists(scan_environment, data_unpack_dir / 'example.hex')
-    assertUnpackedPathExists(scan_environment, data_unpack_dir / 'example.txt')
-    extracted_fn_abs_1 = pathlib.Path(scan_environment.unpackdirectory) / data_unpack_dir / 'example.hex'
-    extracted_fn_abs_2 = pathlib.Path(scan_environment.unpackdirectory) / data_unpack_dir / 'example.txt'
-    s1 = open(extracted_fn_abs_1,"rb").read()
-    s2 = open(extracted_fn_abs_2,"rb").read()
-    assert s1 == s2
-    # with open(extracted_fn_abs,"rb") as f:
-    #    assert f.read(2) == b'\x01\xda'
+    testfile = testdir_base / 'testdata' / 'unpackers' / 'cpio' / 'test-crc-multiple-files.cpio'
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open('rb') as opened_md:
+        p = CpioNewCrcUnpackParser(opened_md, 0)
+        p.parse_from_offset()
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+    with reopen_md(md).open() as unpacked_md:
+        assert len(unpacked_md.unpacked_files) == 2
+        up1 = unpacked_md.unpacked_path(pathlib.Path('example.hex'))
+        up2 = unpacked_md.unpacked_path(pathlib.Path('example.txt'))
+        assert set(unpacked_md.unpacked_files.keys()) == set([up1,up2])
+        assert (scan_environment.unpackdirectory / up1). exists()
+        assert (scan_environment.unpackdirectory / up2). exists()
+        s1 = (scan_environment.unpackdirectory / up1).open('rb').read()
+        s2 = (scan_environment.unpackdirectory / up2).open('rb').read()
+        assert s1 == s2
+
 
 def test_load_cpio_with_multiple_files_new_ascii(scan_environment):
-    rel_testfile = pathlib.Path('unpackers') / 'cpio' / 'test-new-multiple-files.cpio'
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    filesize = fr.filesize
-    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
-    p = CpioNewAsciiUnpackParser(fr, scan_environment, data_unpack_dir, 0)
-    p.open()
-    r = p.parse_and_unpack()
-    p.close()
-    assert r.get_length() <= filesize
-    assert len(r.get_unpacked_files()) == 2
-    assert r.get_unpacked_files()[0].filename == data_unpack_dir / 'example.hex'
-    assert r.get_unpacked_files()[1].filename == data_unpack_dir / 'example.txt'
-    assertUnpackedPathExists(scan_environment, data_unpack_dir / 'example.hex')
-    assertUnpackedPathExists(scan_environment, data_unpack_dir / 'example.txt')
-    extracted_fn_abs_1 = pathlib.Path(scan_environment.unpackdirectory) / data_unpack_dir / 'example.hex'
-    extracted_fn_abs_2 = pathlib.Path(scan_environment.unpackdirectory) / data_unpack_dir / 'example.txt'
-    s1 = open(extracted_fn_abs_1,"rb").read()
-    s2 = open(extracted_fn_abs_2,"rb").read()
-    assert s1 == s2
-    # with open(extracted_fn_abs,"rb") as f:
-    #    assert f.read(2) == b'\x01\xda'
-
-
-
-# TODO: is this test relevant if we change the unpacking strategy?
-def test_rewrite_symlink():
-    p = CpioNewAsciiUnpackParser(None, None, None, 0)
-
-    expected_results = [
-        ('test/dir/a.txt', '../c.txt', '../c.txt'),
-        ('test/dir/a.txt', '../../c.txt', '../../c.txt'),
-        ('test/dir/a.txt', '../../../../../../../../../c.txt', '../../c.txt'),
-        ('/test/dir/a.txt', '../../../../../../../../../c.txt', '../../c.txt'),
-        ('test/dir/a.txt', '/a/b/c.txt', '../../a/b/c.txt'),
-        ('test/dir/a.txt', '/a/../b/c.txt', '../../b/c.txt'),
-        ('test/dir/a.txt', '/a/../../../b/c.txt', '../../b/c.txt'),
-        ('/some/test/dir/a.txt', '/a/b/c.txt', '../../../a/b/c.txt'),
-    ]
-    for filename, target, expected_link in expected_results:
-        ptarget = pathlib.Path(target)
-        pfile = pathlib.Path(filename)
-        plink = pathlib.Path(expected_link)
-        assert rewrite_symlink(pfile, ptarget) == plink
+    testfile = testdir_base / 'testdata' / 'unpackers' / 'cpio' / 'test-new-multiple-files.cpio'
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open('rb') as opened_md:
+        p = CpioNewAsciiUnpackParser(opened_md, 0)
+        p.parse_from_offset()
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+    with reopen_md(md).open() as unpacked_md:
+        assert len(unpacked_md.unpacked_files) == 2
+        up1 = unpacked_md.unpacked_path(pathlib.Path('example.hex'))
+        up2 = unpacked_md.unpacked_path(pathlib.Path('example.txt'))
+        assert set(unpacked_md.unpacked_files.keys()) == set([up1,up2])
+        assert (scan_environment.unpackdirectory / up1). exists()
+        assert (scan_environment.unpackdirectory / up2). exists()
+        s1 = (scan_environment.unpackdirectory / up1).open('rb').read()
+        s2 = (scan_environment.unpackdirectory / up2).open('rb').read()
+        assert s1 == s2
 
 # Following archive formats are supported: binary, old ASCII, new ASCII, crc, HPUX binary, HPUX old ASCII, old tar, and POSIX.1 tar.
 

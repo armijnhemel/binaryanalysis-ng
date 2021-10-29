@@ -174,6 +174,20 @@ class MetaDirectory:
             unpacked_path = self.md_path / self.REL_UNPACK_DIR / path_name
         return unpacked_path
 
+    def md_for_unpacked_path(self, unpacked_path):
+        '''Given an unpacked path, return its MetaDirectory.
+        '''
+        file_value = self.unpacked_files[unpacked_path]
+        md = MetaDirectory.from_md_path(self.meta_root, file_value)
+        return md
+
+    def unpacked_md(self, path):
+        '''Given a path, return the MetaDirectory for its corresponding unpacked file.
+        path is a relative or absolute path, not the unpacked_path.
+        '''
+        unpacked_path = self.unpacked_path(path)
+        return self.md_for_unpacked_path(unpacked_path)
+
     def make_md_for_file(self, path):
         abs_path = self.meta_root / path
         abs_path.parent.mkdir(parents=True, exist_ok=True)
@@ -208,6 +222,23 @@ class MetaDirectory:
         full_path = self._meta_root / unpacked_path
         full_path.mkdir(parents=True, exist_ok=True)
         return unpacked_path
+
+    def unpack_symlink(self, source, target):
+        '''Unpacks a symlink with path source, pointing to target. The target is not modified
+        or rewritten.
+        Returns the source path relative to the MetaDirectory.
+        '''
+        unpacked_path = self.unpacked_path(source)
+        full_path = self._meta_root / unpacked_path
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        full_path.symlink_to(target)
+        self.info.setdefault('unpacked_symlinks', {})[unpacked_path] = target
+        logging.debug(f'[{self.md_path}]unpack_symlink: update info to {self.info}')
+        return unpacked_path
+
+    @property
+    def unpacked_symlinks(self):
+        return self.info.get('unpacked_symlinks',{})
 
     @property
     def unpacked_files(self):
