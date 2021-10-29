@@ -85,8 +85,6 @@ def run_scan_loop(scan_environment):
         pass
 
 
-def reopen_md(orig_md):
-    return MetaDirectory.from_md_path(orig_md.meta_root, orig_md.md_path)
 
 ######################################
 

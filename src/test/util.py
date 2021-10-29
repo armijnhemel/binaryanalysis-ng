@@ -25,6 +25,9 @@ def create_meta_directory_for_path(scan_environment, path, is_root):
     path_md.file_path = scan_environment.temporarydirectory / path
     return path_md
 
+def reopen_md(orig_md):
+    return MetaDirectory.from_md_path(orig_md.meta_root, orig_md.md_path)
+
 def _create_clean_directory(dirpath):
     try:
         shutil.rmtree(dirpath)
