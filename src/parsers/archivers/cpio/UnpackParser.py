@@ -105,8 +105,8 @@ class CpioBaseUnpackParser(UnpackParser):
 
             pos += e.header.bsize
 
-    def set_metadata_and_labels(self):
-        return
+    labels = ['cpio']
+    metadata = {}
 
 class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
     extensions = []

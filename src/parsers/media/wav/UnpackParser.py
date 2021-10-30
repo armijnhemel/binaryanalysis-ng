@@ -53,14 +53,6 @@ class WavUnpackParser(WrappedUnpackParser):
         """extract any files from the input file"""
         return []
 
-    def write_info(self, meta_directory):
-        meta_directory.info.setdefault('labels',[]).append(self.labels)
-        meta_directory.info.setdefault('metadata',{}).update(self.metadata)
-
     labels = [ 'wav', 'audio' ]
-
-    @property
-    def metadata(self):
-        """sets metadata and labels for the unpackresults"""
-        return {}
+    metadata = {}
 

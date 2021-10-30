@@ -64,4 +64,6 @@ class TarUnpackParser(UnpackParser):
         except tarfile.TarError as e:
             raise UnpackParserException(e.args)
 
+    labels = ['tar']
+    metadata = {}
 

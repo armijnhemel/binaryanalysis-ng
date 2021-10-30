@@ -73,13 +73,6 @@ class IcoUnpackParser(UnpackParser):
         """extract any files from the input file"""
         return []
 
-    def write_info(self, meta_directory):
-        meta_directory.info.setdefault('labels',[]).append(self.labels)
-        meta_directory.info.setdefault('metadata',{}).update(self.metadata)
-
     labels = ['graphics', 'ico', 'resource']
-
-    @property
-    def metadata(self):
-        return {}
+    metadata = {}
 

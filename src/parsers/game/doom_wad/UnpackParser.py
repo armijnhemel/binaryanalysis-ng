@@ -66,7 +66,6 @@ class DoomWadUnpackParser(UnpackParser):
             self.unpacked_size = max(self.unpacked_size, i.offset + i.size)
 
     labels = ['doom', 'wad', 'resource']
+    metadata = {}
 
-    def write_info(self, meta_directory):
-        meta_directory.info.setdefault('labels',[]).append(self.labels)
 

@@ -42,10 +42,6 @@ class GimpBrushUnpackParser(UnpackParser):
         except BaseException as e:
             raise UnpackParserException(e.args)
 
-    def write_info(self, meta_directory):
-        meta_directory.info.setdefault('labels',[]).append(self.labels)
-        meta_directory.info.setdefault('metadata',{}).update(self.metadata)
-
     labels = ['gimp brush', 'graphics']
 
     @property

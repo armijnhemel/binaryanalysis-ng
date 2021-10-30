@@ -114,7 +114,9 @@ def create_unpackparser(name, fail = False,
                 'parse_and_unpack': parse_and_unpack_method,
                 'parse_from_offset': parse_method,
                 'pretty_name': pretty_name,
-                'length': length
+                'length': length,
+                'labels': [],
+                'metadata': {},
             })
     return c
 

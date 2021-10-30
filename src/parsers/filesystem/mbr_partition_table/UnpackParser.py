@@ -77,8 +77,6 @@ class MbrPartitionTableUnpackParser(UnpackParser):
                 yield unpacked_md
             partition_number += 1
 
-    def write_info(self, meta_directory):
-        meta_directory.info.setdefault('labels',[]).append(self.labels)
-
     labels = ['filesystem','mbr']
+    metadata = {}
 

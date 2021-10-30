@@ -84,15 +84,10 @@ class GptPartitionTableUnpackParser(UnpackParser):
             outfile = "unpacked.gpt-partition%d.%s" % (partition_number, partition_ext)
             with meta_directory.unpack_regular_file(pathlib.Path(outfile)) as (unpacked_md, f):
                 os.sendfile(f.fileno(), self.infile.fileno(), partition_start, partition_end - partition_start)
-
                 with unpacked_md.open(open_file=False):
                     unpacked_md.info.setdefault('labels', []).append('partition')
                 yield unpacked_md
             partition_number += 1
-
-    def write_info(self, meta_directory):
-        meta_directory.info.setdefault('labels',[]).append(self.labels)
-        meta_directory.info.setdefault('metadata',[]).append(self.metadata)
 
     labels = ['filesystem','gpt']
 

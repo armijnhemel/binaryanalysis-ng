@@ -11,6 +11,9 @@ class UnpackParserUnpacksBase(UnpackParser):
     signatures = [(1,b'AA')]
     length = 5
 
+    labels = []
+    metadata = {}
+
     filenames = [ ]
 
     def parse(self):

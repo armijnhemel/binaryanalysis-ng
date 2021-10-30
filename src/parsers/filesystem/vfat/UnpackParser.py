@@ -176,3 +176,6 @@ class VfatUnpackParser(UnpackParser):
         while not self.is_end_cluster(cluster):
             yield cluster
             cluster = self.get_cluster_map_entry(cluster)
+
+    labels = ['filesystem','vfat']
+    metadata = {}

@@ -80,10 +80,6 @@ class IhexUnpackParser(UnpackParser):
             f.write(b''.join(self.data))
             yield unpacked_md
 
-    def write_info(self, to_meta_directory):
-        to_meta_directory.info.setdefault('labels',[]).extend(self.labels)
-        to_meta_directory.info.setdefault('metadata',{}).update(self.metadata)
-
     labels = [ 'ihex' ]
     metadata = {}
 
