@@ -114,9 +114,21 @@ Most of the files below were downloaded from obscure firmware download sites,
 which I will not link to. Some of these were repacked from the original and
 might have been modified.
 
+## Alcatel_OneTouch_991D_MT6573_Arabic_150415.zip
+
+Uses `yaffs2`, `android_img`, Dex 035.
+
+## Allfine10 Joy RK3066.zip
+
+Uses `rockchip`, `rk_crc`, `android_img`, Dex 035 and (withdrawn) Dex 036
+
 ## Allwinner_A23_T739_Mainboard_V2.2_JTX.zip
 
 Uses `android_img`, but `extra_cmdline` isn't asciiz.
+
+## BQ_Aquaris_E4.5_2.0.1_20150623_1900_MT6582.zip
+
+Mediatek MT6582 based, uses `mtk_bootrom`, `android_img`, `androidsparse`, Dex 035.
 
 ## Dimo_Soren_2S_MT6572_20140108_4.2.2.zip
 
@@ -149,7 +161,7 @@ bsdiff and imgdiff.
 
 ## Odys_Loox_Update_1205.zip
 
-Rockchip based, uses cramfs. Uses `rk_crc` format, Dex 036 and Odex 036.
+Rockchip based, uses cramfs. Uses `rk_crc` format, Dex 035 and Odex 036.
 
 ## Okapia_Shopno_SP7731GEA_V05_20160331_5.1_SPD.zip
 

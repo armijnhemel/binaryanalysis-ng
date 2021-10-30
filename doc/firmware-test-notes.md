@@ -59,6 +59,22 @@ Uses `ubi`, `ubifs`, `lzma` compressed kernel
 
 Uses `ubi`, `squashfs`, `lzma` compressed kernel, uses `ipk` files.
 
+## Tinker_Edge_T-Mendel-Chef-V1.0.0-20200221.zip
+
+Uses `androidsparse`
+
+## EAX80-V1.0.1.70_1.0.2.zip
+
+Uses `jffs2`, `ubi`, `squashfs`
+
+## ECS1008P-1112FP_FWv1.1.40_20201008.zip
+
+MIPS based (Realtek 83xx). Uses `tar`, `u-boot` (BIX variant)
+
+## IC-3210W_3.05.zip
+
+MIPS based. Uses `u-boot`, `xz`, `cpio`
+
 ## https://github.com/mrdoob/three.js.git
 
 Contains test files for ktx
