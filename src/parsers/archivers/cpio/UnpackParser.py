@@ -68,12 +68,13 @@ class CpioBaseUnpackParser(UnpackParser):
     signatures = []
     pretty_name = 'cpio'
 
-    def calculate_unpacked_size(self):
-        self.unpacked_size = self.infile.tell() - self.offset
+    #def calculate_unpacked_size(self):
+        #self.unpacked_size = self.infile.tell() - self.offset
         # the cpio(5) man page is unclear about the padding at the end of
         # the file. It looks like the file is padded to make the total
         # file size a multiple of 16, but more research is needed. For
         # now, we ignore the padding and accept a wrong size.
+
     def unpack_directory(self, filename):
         outfile_full = self.scan_environment.unpack_path(filename)
         os.makedirs(outfile_full, exist_ok=True)
@@ -130,6 +131,7 @@ class CpioBaseUnpackParser(UnpackParser):
                 unpacked_files.append( fr )
             pos += e.header.bsize
         return unpacked_files
+
     def set_metadata_and_labels(self):
         return
 
