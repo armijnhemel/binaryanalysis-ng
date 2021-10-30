@@ -48,7 +48,7 @@ from kaitaistruct import ValidationNotEqualError
 class CpioBaseUnpackParser(UnpackParser):
     extensions = []
     signatures = []
-    pretty_name = 'cpio'
+    pretty_name = 'cpio-base'
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.infile.tell() - self.offset
@@ -111,6 +111,7 @@ class CpioBaseUnpackParser(UnpackParser):
 class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
     extensions = []
     signatures = [ (0, b'070701') ]
+    pretty_name = 'cpio-new-ascii'
 
     def parse(self):
         try:
@@ -124,7 +125,7 @@ class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
 class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
     extensions = []
     signatures = [ (0, b'070702') ]
-    pretty_name = 'cpio'
+    pretty_name = 'cpio-new-crc'
 
     def parse(self):
         try:
@@ -138,7 +139,7 @@ class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
 class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
     extensions = []
     signatures = [ (0, b'070707') ]
-    pretty_name = 'cpio'
+    pretty_name = 'cpio-portable-ascii'
 
     def parse(self):
         try:
@@ -152,7 +153,7 @@ class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
 class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
     extensions = []
     signatures = [ (0, b'\xc7\x71') ]
-    pretty_name = 'cpio'
+    pretty_name = 'cpio-old-bin'
 
     def parse(self):
         try:

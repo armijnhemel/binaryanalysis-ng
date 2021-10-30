@@ -446,6 +446,10 @@ def get_unpackers_for_featureless_files():
 
 unpackers_for_featureless_files = get_unpackers_for_featureless_files()
 
+def get_unpacker_by_pretty_name(name):
+    l = [ u for u in get_unpackers() if u.pretty_name == name ]
+    return l[0]
+
 # a lookup table to map extensions to a name
 # for pretty printing.
 extensionprettyprint = {

@@ -3,7 +3,7 @@ import pytest
 from .util import *
 from UnpackParserException import UnpackParserException
 from UnpackParser import UnpackParser
-from bangsignatures import get_unpackers
+from bangsignatures import get_unpackers, get_unpacker_by_pretty_name
 from parsers.database.sqlite.UnpackParser import SqliteUnpackParser
 from parsers.image.gif.UnpackParser import GifUnpackParser
 
@@ -13,6 +13,41 @@ class InvalidUnpackParser(UnpackParser):
 @pytest.fixture(params = get_unpackers())
 def unpackparser(request):
     return request.param
+
+def parsers_and_test_files():
+    return [
+        (get_unpacker_by_pretty_name('cpio-new-ascii'), testdir_base / 'testdata' / 'unpackers' / 'cpio' / 'test-new.cpio'),
+        (get_unpacker_by_pretty_name('gif'), testdir_base / 'testdata' / 'unpackers' / 'gif' / 'test.gif'),
+        (get_unpacker_by_pretty_name('png'), testdir_base / 'testdata' / 'unpackers' / 'png' / 'test.png'),
+        (get_unpacker_by_pretty_name('fat'), testdir_base / 'testdata' / 'unpackers' / 'fat' / 'test.fat'),
+        (get_unpacker_by_pretty_name('fat'), testdir_base / 'testdata' / 'unpackers' / 'fat' / 'test-fat12-multidirfile.fat'),
+        (get_unpacker_by_pretty_name('gimpbrush'), testdir_base / 'testdata' / 'unpackers' / 'gimpbrush' / 'test.gbr'),
+        (get_unpacker_by_pretty_name('ico'), testdir_base / 'testdata' / 'unpackers' / 'ico' / 'test.ico'),
+        (get_unpacker_by_pretty_name('ihex'), testdir_base / 'testdata' / 'unpackers' / 'ihex' / 'example.hex'),
+    ]
+
+
+@pytest.fixture(params = parsers_and_test_files())
+def parser_and_test_file(request):
+    return request.param
+
+def test_parsed_size_correct_with_offset(scan_environment, parser_and_test_file):
+    unpack_parser_cls, test_path = parser_and_test_file
+    offset = 128
+    offset_path = scan_environment.temporarydirectory / f'offset_{test_path.name}'
+    expected_size = test_path.stat().st_size
+    with offset_path.open('wb') as outfile:
+        outfile.write(b'A' * offset)
+        with test_path.open('rb') as infile:
+            # TODO: sendfile gives an OSError here
+            #os.sendfile(outfile.fileno(), infile.fileno(), 0, expected_size)
+            outfile.write(infile.read())
+
+    md = create_meta_directory_for_path(scan_environment, offset_path, True)
+    with md.open() as opened_md:
+        p = unpack_parser_cls(opened_md, offset)
+        p.parse_from_offset()
+        assert p.parsed_size == expected_size
 
 def test_unpack_parser_without_parse_method(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'fat' / 'test-fat12-multidirfile.fat'
