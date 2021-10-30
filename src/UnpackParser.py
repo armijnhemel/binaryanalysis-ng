@@ -115,7 +115,18 @@ class UnpackParser:
         '''update any file info or metadata to the MetaDirectory.
         Be aware that to_meta_directory.info may contain data already!
         '''
-        pass
+        self.record_parser(to_meta_directory)
+        self.add_labels(to_meta_directory)
+        self.update_metadata(to_meta_directory)
+
+    def record_parser(self, to_meta_directory):
+        to_meta_directory.info['unpack_parser'] = self.pretty_name
+
+    def add_labels(self, to_meta_directory):
+        to_meta_directory.info.setdefault('labels',[]).extend(self.labels)
+
+    def update_metadata(self, to_meta_directory):
+        to_meta_directory.info.setdefault('metadata',{}).update(self.metadata)
 
     @classmethod
     def is_valid_extension(cls, ext):
