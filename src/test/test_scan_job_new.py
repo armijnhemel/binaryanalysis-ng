@@ -498,5 +498,16 @@ def test_sigscan_extract_gif_file_from_prepended_file(scan_environment):
             md.extracted_filename(128, md.size-128)
         ]
 
+####################
+# Featureless parser
+
+
+def test_parse_featureless_file(scan_environment):
+    fn = testdir_base / 'testdata' / pathlib.Path("unpackers") / "ihex" / "example.txt"
+    path_md = create_meta_directory_for_path(scan_environment, fn, True)
+    scanjob = queue_file_job(scan_environment, path_md)
+    run_scan_loop(scan_environment)
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert md.unpacked_path(pathlib.Path('unpacked-from-ihex')) in md.unpacked_files
 
 
