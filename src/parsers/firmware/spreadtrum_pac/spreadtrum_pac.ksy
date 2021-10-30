@@ -37,6 +37,9 @@ types:
       - id: ofs_partitions_list
         -orig-id: partitionsListStart
         type: u4
+        valid:
+          min: 2124
+          max: _root._io.size
       - id: mode
         type: u4
       - id: flash_type
@@ -56,7 +59,10 @@ types:
       - id: is_preload
         type: u4
       - id: reserved
-        size: 800
+        type: padding4
+        repeat: expr
+        repeat-expr: 200
+        #size: 800
       - id: magic
         contents: [0xfa, 0xff, 0xfa, 0xff]
       - id: crc1
@@ -119,3 +125,7 @@ types:
         repeat-expr: 5
       - id: reserved
         size: 996
+  padding4:
+    seq:
+      - id: padding
+        contents: [0x00, 0x00, 0x00, 0x00]
