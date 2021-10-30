@@ -59,6 +59,7 @@ class MetaDirectory:
 
     @property
     def file_path(self):
+        '''The path of the file that this MetaDirectory refers to, relative to the MetaDirectory.'''
         if self._file_path is None:
             p = self.abs_md_path / 'pathname'
             with p.open('r') as f:
@@ -77,15 +78,17 @@ class MetaDirectory:
 
     @property
     def abs_file_path(self):
+        '''The absolute path of the file that this MetaDirectory refers to.'''
         return self._meta_root / self.file_path
 
     @property
     def meta_root(self):
+        '''The absolute path of the MetaDirectory.'''
         return self._meta_root
 
     @property
     def size(self):
-        '''returns the size of the file this is an unpack_directory for.'''
+        '''the size of the file that the MetaDirectory refers to.'''
         if self._size is None:
             # get the size
             # TODO: as a property,
@@ -95,14 +98,20 @@ class MetaDirectory:
 
     @contextmanager
     def open(self, open_file=True):
-        '''Context manager to open the MetaDirectory represents. Yields itself.
+        '''Context manager to "open" the MetaDirectory. Yields itself.
         It opens the file, mmaps the file and reads the information stored in the
-        metadirectory. When exiting the context, it will save the information to disk
-        and close the file.
+        metadirectory. When exiting the context, it will save the information to the
+        MetaDirectory and close the file.
         We need both the open file and the mmaped file, since sendfile wants an actual
         file object, and we also want the advantages of mmap.
         If open_file is False, or the file is already open, this context manager will not
         touch the file.
+        If the info is not empty, it will not read it from the info file. During the
+        processing loop multiple references to the same MetaDirectory can exist, and we
+        want to be able to "open" them, even if they are already open. If we would
+        re-read the information from the info file, any changes would be lost. We always
+        write the information upon leaving the context. This works well as long as the
+        references to the MetaDirectory are all in the same thread.
         '''
         open_file = open_file or (self._open_file is None)
         if open_file:

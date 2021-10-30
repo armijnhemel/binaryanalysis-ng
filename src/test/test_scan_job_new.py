@@ -70,12 +70,6 @@ parser_pass_BB_0_5 = create_unpackparser('ParserPassBB_0_5',
         length = 5,
         pretty_name = 'pass-BB-0-5')
 
-def create_test_file(scan_environment, path, content):
-    abs_path = scan_environment.temporarydirectory / path
-    with abs_path.open('wb') as f:
-        f.write(content)
-    return abs_path
-
 def queue_file_job(scan_environment, md):
     scanjob = ScanJob(md.md_path) # TODO: add context and parent? or are they in the md?
     scan_environment.scanfilequeue.put(scanjob)

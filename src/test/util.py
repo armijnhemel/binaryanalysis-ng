@@ -28,6 +28,12 @@ def create_meta_directory_for_path(scan_environment, path, is_root):
 def reopen_md(orig_md):
     return MetaDirectory.from_md_path(orig_md.meta_root, orig_md.md_path)
 
+def create_test_file(scan_environment, path, content):
+    abs_path = scan_environment.temporarydirectory / path
+    with abs_path.open('wb') as f:
+        f.write(content)
+    return abs_path
+
 def _create_clean_directory(dirpath):
     try:
         shutil.rmtree(dirpath)
