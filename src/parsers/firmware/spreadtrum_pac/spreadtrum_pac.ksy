@@ -31,6 +31,7 @@ types:
       - id: num_partitions
         type: u4
         valid:
+          min: 1
           max: _root._io.size
           # TODO: this check can probably be tighter
       - id: ofs_partitions_list
