@@ -130,6 +130,10 @@ class DexUnpackParser(UnpackParser):
         else:
             version_str = opcode_version
 
+        # Dex 036 is officially not supported
+        if version_str == '036':
+            return []
+
         # select the correct opcodes
         opcodes = OPCODES[version_str]
 
