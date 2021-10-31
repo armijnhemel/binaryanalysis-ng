@@ -34,7 +34,8 @@ The Nexus 5 (codename "hammerhead") was made by LG. The firmware uses the
 ## raven-sd1a.210817.015.a4-factory-bd6cb030.zip
 
 The Pixel 6 Pro uses the `android_fbpk` vesrion 2 format (currently
-unsupported).
+unsupported). It uses Art 099, Oat 195, Vdex 027, Dex 035, Dex 038
+and Dex 039.
 
 ## razorg-JLS36C-factory-834eab41.zip
 
