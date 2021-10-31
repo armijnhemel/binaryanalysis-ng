@@ -21,6 +21,7 @@ types:
         contents: "FBPK"
       - id: version
         type: u4
+        valid: 1
       - id: img_version
         size: 68
       - id: num_entries
