@@ -31,6 +31,11 @@ the `androidasusboot` format. Uses OAT 039.
 The Nexus 5 (codename "hammerhead") was made by LG. The firmware uses the
 `androidmsmboot` format. Uses Odex 036 and regular Dex 035.
 
+## raven-sd1a.210817.015.a4-factory-bd6cb030.zip
+
+The Pixel 6 Pro uses the `android_fbpk` vesrion 2 format (currently
+unsupported).
+
 ## razorg-JLS36C-factory-834eab41.zip
 
 The Nexus 7 2013 Mobile (codename "razorg") was made by ASUS. The firmware
@@ -39,9 +44,9 @@ uses `androidasusboot` format. It uses Odex 036 and regular Dex 035.
 ## redfin-rd1a.200810.020-factory-c3ea1715.zip
 
 The Pixel 5 (codename "redfin") was made by Google based on a Qualcomm chip.
-It uses the `android_fbpk` format and the `android_vendor_boot` format. It
-uses Dex 039, Vdex 021, Art 085 and Oat 183. It contains Android verified
-boot (`avb`) images.
+It uses the `android_fbpk` version 1 format and the `android_vendor_boot`
+format. It uses Dex 039, Vdex 021, Art 085 and Oat 183. It contains Android
+verified boot (`avb`) images.
 
 ## sailfish-nde63h-factory-43ba5f81.zip
 
