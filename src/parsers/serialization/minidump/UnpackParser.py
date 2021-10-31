@@ -29,7 +29,7 @@ https://chromium.googlesource.com/breakpad/breakpad/+/master/src/google_breakpad
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import windows_minidump
 
 class MinidumpUnpackParser(UnpackParser):
@@ -47,7 +47,7 @@ class MinidumpUnpackParser(UnpackParser):
             # has been truncated.
             for i in self.data.streams:
                  a = type(i.data)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):

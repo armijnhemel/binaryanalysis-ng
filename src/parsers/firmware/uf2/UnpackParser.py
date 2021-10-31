@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import uf2
 
 
@@ -40,7 +40,7 @@ class Uf2UnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = uf2.Uf2.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.uf2_block_start.block_number == 0,
                         'invalid start block')

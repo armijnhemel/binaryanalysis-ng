@@ -42,7 +42,7 @@ from . import cpio_old_binary
 from UnpackParser import UnpackParser
 from UnpackParserException import UnpackParserException
 from FileResult import FileResult
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 
 def rewrite_symlink(file_path, target_path):
     """rewrites a symlink of target_path, relative to file_path.
@@ -143,7 +143,7 @@ class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
         try:
             self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
@@ -157,7 +157,7 @@ class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
         try:
             self.data = cpio_new_crc.CpioNewCrc.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
@@ -171,7 +171,7 @@ class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
         try:
             self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
@@ -185,7 +185,7 @@ class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
         try:
             self.data = cpio_old_binary.CpioOldBinary.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)

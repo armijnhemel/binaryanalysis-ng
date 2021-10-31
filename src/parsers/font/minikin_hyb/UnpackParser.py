@@ -25,7 +25,7 @@ import pathlib
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import minikin_hyb
 
 
@@ -40,7 +40,7 @@ class MinikinHybUnpackParser(UnpackParser):
         file_size = self.fileresult.filesize
         try:
             self.data = minikin_hyb.MinikinHyb.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.file_size <= file_size, "invalid file size")
         check_condition(self.data.ofs_alphabet + 4 + self.data.alphabet.alphabet_table.size <= self.data.file_size,

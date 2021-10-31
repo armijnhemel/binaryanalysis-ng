@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationLessThanError, ValidationNotAnyOfError
+from kaitaistruct import ValidationFailedError
 from . import vdex
 
 class VdexUnpackParser(UnpackParser):
@@ -39,7 +39,7 @@ class VdexUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = vdex.Vdex.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationLessThanError, ValidationNotAnyOfError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

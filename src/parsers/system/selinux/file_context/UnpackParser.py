@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
+from kaitaistruct import ValidationFailedError
 from . import file_contexts
 
 
@@ -41,7 +41,7 @@ class FileContext(UnpackParser):
         file_size = self.fileresult.filesize
         try:
             self.data = file_contexts.FileContexts.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
 

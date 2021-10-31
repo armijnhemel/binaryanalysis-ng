@@ -24,7 +24,7 @@ import os
 from . import ico
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
+from kaitaistruct import ValidationFailedError
 
 class IcoUnpackParser(UnpackParser):
     pretty_name = 'ico'
@@ -36,7 +36,7 @@ class IcoUnpackParser(UnpackParser):
         try:
             self.data = ico.Ico.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
@@ -49,7 +49,7 @@ class IcoUnpackParser(UnpackParser):
                                     "width in icon dir and bmp header not matching")
                     check_condition(img.height * 2 == bmp_header.height,
                                     "height in icon dir and bmp header not matching")
-            except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
+            except (Exception, ValidationFailedError) as e:
                 raise UnpackParserException(e.args)
             #check_condition(img.num_colors > 0,
                     #"Invalid ico file: zero or negative num_colors")

@@ -29,7 +29,7 @@ import pathlib
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import android_img
 
 from bangandroid import unpack_android_boot_img
@@ -51,7 +51,7 @@ class AndroidImgUnpacker(WrappedUnpackParser):
         file_size = self.fileresult.filesize
         try:
             self.data = android_img.AndroidImg.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         # right now only look at version < 3

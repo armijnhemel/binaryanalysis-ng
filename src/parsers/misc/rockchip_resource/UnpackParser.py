@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import rockchip_resource
 
 # test file inside rk3126_5.1_f86p_xiangjiao_eZeetab7Q12-S_gc0329_800x480_20150813_v004.rar
@@ -43,7 +43,7 @@ class RockchipResourceUnpackParser(UnpackParser):
             # ugly hack to force KS to read data
             for entry in self.data.entries:
                 tmp = len(entry.data)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         self.unpacked_size = 0

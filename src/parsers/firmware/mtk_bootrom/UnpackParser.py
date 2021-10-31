@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
+from kaitaistruct import ValidationFailedError
 from . import mtk_bootrom
 
 
@@ -40,7 +40,7 @@ class MtkBootromUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = mtk_bootrom.MtkBootrom.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

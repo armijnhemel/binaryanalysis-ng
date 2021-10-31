@@ -26,7 +26,7 @@ from bangunpack import unpack_java_class
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import java_class
 
 
@@ -44,7 +44,7 @@ class JavaClassUnpackParser(WrappedUnpackParser):
     def parse(self):
         try:
             self.data = java_class.JavaClass.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

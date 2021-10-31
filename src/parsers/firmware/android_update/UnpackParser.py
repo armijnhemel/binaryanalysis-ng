@@ -37,7 +37,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import android_update
 from . import google_protobuf
 from . import vlq_base128_le
@@ -54,7 +54,7 @@ class AndroidUpdateUnpackParser(UnpackParser):
         check_condition(1 != 1, "disabled")
         try:
             self.data = android_update.AndroidUpdate.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.img_header.len_image + self.offset <= self.fileresult.filesize, "not enough data")
 

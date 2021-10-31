@@ -36,7 +36,7 @@ from bangunpack import unpack_zstd
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import rpm
 
 #class RpmUnpackParser(UnpackParser):
@@ -54,7 +54,7 @@ class RpmUnpackParser(WrappedUnpackParser):
         file_size = self.fileresult.filename.stat().st_size
         try:
             self.data = rpm.Rpm.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         check_condition(self.data.lead.type == rpm.Rpm.RpmTypes.binary or

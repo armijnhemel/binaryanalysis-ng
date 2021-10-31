@@ -29,7 +29,7 @@ import telfhash
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from kaitaistruct import UndecidedEndiannessError
 from . import elf
 
@@ -86,7 +86,7 @@ class ElfUnpackParser(UnpackParser):
 
             # TODO linux kernel module signatures
             # see scripts/sign-file.c in Linux kernel
-        except (Exception, ValidationNotEqualError, UndecidedEndiannessError) as e:
+        except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):

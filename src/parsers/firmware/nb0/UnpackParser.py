@@ -26,7 +26,7 @@ import pathlib
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError, ValidationLessThanError
+from kaitaistruct import ValidationFailedError
 from . import nb0
 
 
@@ -44,7 +44,7 @@ class Nb0UnpackParser(UnpackParser):
                                          self.data.entries[entry].len_partition + 4 + self.data.num_entries * 64)
                 # read data because Kaitai Struct evaluates instances lazily
                 len_data = len(self.data.partitions[entry].body)
-        except (Exception, ValidationNotEqualError, ValidationLessThanError, ValidationGreaterThanError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.unpacked_size <= self.fileresult.filesize,
                         "partitions cannot be outside of file")

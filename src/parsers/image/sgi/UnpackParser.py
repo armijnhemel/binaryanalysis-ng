@@ -25,7 +25,7 @@ import pathlib
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
+from kaitaistruct import ValidationFailedError
 from . import sgi
 
 from UnpackParser import WrappedUnpackParser
@@ -57,7 +57,7 @@ class SgiUnpackParser(WrappedUnpackParser):
                             "data cannot be outside of file")
             else:
                 self.unpacked_size = self.infile.tell()
-        except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     # make sure that self.unpacked_size is not overwritten
