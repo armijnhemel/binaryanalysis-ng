@@ -13,6 +13,7 @@ doc: |
   version 010: Android 8.1 (verified: walleye-opm1.171019.011-factory-f74dd4fd.zip )
   version 019: Android 9 (verified: walleye-ppr1.180610.009-factory-4149f7e5.zip )
   version 021: Android 10 & 11
+  version 027: Android 12
 doc-ref: https://android.googlesource.com/platform/art/+/master/runtime/vdex_file.h
 seq:
   - id: magic
