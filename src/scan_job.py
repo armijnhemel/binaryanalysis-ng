@@ -1,6 +1,7 @@
 import os
 import re
 import mmap
+import queue
 import logging
 from operator import itemgetter
 from meta_directory import *
@@ -285,6 +286,7 @@ def check_featureless(scan_environment, checking_meta_directory):
 def process_job(scanjob):
     # scanjob has: path, meta_directory object and context
     meta_directory = scanjob.meta_directory
+    logging.debug(f'process_job: {scanjob.meta_directory.md_path}')
 
     # TODO: if we want to record meta data for unscannable files, change
     # this into an iterator pattern where you will get MetaDirectories with an
@@ -352,11 +354,19 @@ def process_jobs(scan_environment):
     while True:
         try:
             # TODO: check if timeout long enough
-            scanjob = scan_environment.scanfilequeue.get(timeout=86400)
-        except scan_environment.scanfilequeue.Empty as e:
+            logging.debug(f'process_jobs: getting scanjob')
+            #scanjob = scan_environment.scanfilequeue.get(timeout=86400)
+            # we can wait forever, because we use a JoinableQueue
+            scanjob = scan_environment.scanfilequeue.get()
+            logging.debug(f'process_jobs: {scanjob=}')
+        except queue.Empty as e:
+            logging.debug(f'process_jobs: empty scan queue')
             break
         scanjob.scan_environment = scan_environment
         process_job(scanjob)
+        logging.debug(f'process_jobs: scanjob done.')
         scan_environment.scanfilequeue.task_done()
 
+    logging.debug(f'process_jobs: nothing more in queue.')
+    scan_environment.scanfilequeue.join()
 

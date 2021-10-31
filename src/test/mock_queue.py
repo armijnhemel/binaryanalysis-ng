@@ -1,10 +1,7 @@
 import collections
-
-class QueueEmptyError(Exception):
-    pass
+import queue
 
 class MockQueue:
-    Empty = QueueEmptyError
     def __init__(self):
         self.queue = collections.deque() #[]
         self._history = []
@@ -14,7 +11,7 @@ class MockQueue:
             self.history.append(-1)
             return item
         except IndexError:
-            raise QueueEmptyError()
+            raise queue.Empty()
     def put(self, job):
         self._history.append(job)
         self.queue.append(job)
