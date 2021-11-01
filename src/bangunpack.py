@@ -55,7 +55,6 @@ import sqlite3
 import defusedxml.minidom
 import lz4
 import lz4.frame
-import snappy
 import mutf8
 import pyaxmlparser
 
@@ -5247,114 +5246,6 @@ def unpack_lz4(fileresult, scanenvironment, offset, unpackdir):
 
 # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
 unpack_lz4.signatures = {'lz4': b'\x04\x22\x4d\x18'}
-
-
-# LZ4 legacy format, uses external tools as it is not
-# supported in python-lz4:
-# https://github.com/python-lz4/python-lz4/issues/169
-# https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
-def unpack_lz4legacy(fileresult, scanenvironment, offset, unpackdir):
-    '''Unpack LZ4 legacy compressed data.'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-    unpackdir_full = scanenvironment.unpack_path(unpackdir)
-
-    # open the file, seek to the offset
-    checkfile = open(filename_full, 'rb')
-    checkfile.seek(offset+4)
-    unpackedsize = 4
-
-    # now process to see how much data should be
-    # processed using the LZ4 utilities
-    blockunpacked = False
-    while True:
-        # block compressed size
-        checkbytes = checkfile.read(4)
-        if len(checkbytes) != 4:
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                              'reason': 'not enough data for block compressed size'}
-            return {'status': False, 'error': unpackingerror}
-        # "if the frame is followed by a valid Frame Magic Number, it is considered completed."
-        if checkbytes == b'\x02\x21\x4c\x18':
-            break
-        blockcompressedsize = int.from_bytes(checkbytes, byteorder='little')
-        if offset + blockcompressedsize + 8 > filesize:
-            if not blockunpacked:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                                  'reason': 'compressed data cannot be outside file'}
-                return {'status': False, 'error': unpackingerror}
-            break
-        unpackedsize += 4
-
-        # skip over the compressed data
-        checkfile.seek(blockcompressedsize, os.SEEK_CUR)
-        unpackedsize += blockcompressedsize
-
-        # check if the end of file was reached
-        if unpackedsize == filesize:
-            break
-        blockunpacked = True
-
-    # create the unpacking directory
-    os.makedirs(unpackdir_full, exist_ok=True)
-
-    if offset == 0 and unpackedsize == filesize:
-        checkfile.close()
-        if filename_full.suffix.lower() == '.lz4':
-            outfile_rel = os.path.join(unpackdir, filename_full.stem)
-        else:
-            outfile_rel = os.path.join(unpackdir, "unpacked-from-lz4-legacy")
-        outfile_full = scanenvironment.unpack_path(outfile_rel)
-        p = subprocess.Popen(['lz4c', '-d', filename_full, outfile_full],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (outputmsg, errormsg) = p.communicate()
-        if p.returncode != 0:
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'not a LZ4 legacy file'}
-            return {'status': False, 'error': unpackingerror}
-        labels.append('compressed')
-        labels.append('lz4')
-        unpackedfilesandlabels.append((outfile_rel, []))
-        return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
-    else:
-        # first write the data to a temporary file
-        temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
-        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
-        os.fdopen(temporaryfile[0]).close()
-        checkfile.close()
-
-        if filename_full.suffix.lower() == '.lz4':
-            outfile_rel = os.path.join(unpackdir, filename_full.stem)
-        else:
-            outfile_rel = os.path.join(unpackdir, "unpacked-from-lz4-legacy")
-        outfile_full = scanenvironment.unpack_path(outfile_rel)
-        p = subprocess.Popen(['lz4c', '-d', temporaryfile[1], outfile_full],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (outputmsg, errormsg) = p.communicate()
-        os.unlink(temporaryfile[1])
-
-        if p.returncode != 0:
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'not a LZ4 legacy file'}
-            return {'status': False, 'error': unpackingerror}
-
-        unpackedfilesandlabels.append((outfile_rel, []))
-        return {'status': True, 'length': unpackedsize, 'labels': labels,
-                'filesandlabels': unpackedfilesandlabels}
-
-    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                      'reason': 'invalid LZ4 legacy data'}
-    return {'status': False, 'error': unpackingerror}
-
-# https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
-unpack_lz4legacy.signatures = {'lz4_legacy': b'\x02\x21\x4c\x18'}
 
 
 # There are a few variants of XML. The first one is the "regular"
