@@ -60,7 +60,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
 
     # set up the jobs
     process_manager = multiprocessing.Manager()
-    scan_queue = process_manager.JoinableQueue(maxsize=20)
+    scan_queue = process_manager.JoinableQueue(maxsize=0)
     scan_environment.scanfilequeue = scan_queue
     processes = [ multiprocessing.Process(target = process_jobs, args = (scan_environment,)) ]
     logging.debug(f'cli: starting processes...')
