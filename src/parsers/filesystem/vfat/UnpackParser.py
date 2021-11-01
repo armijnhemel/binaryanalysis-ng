@@ -1,6 +1,7 @@
 import os
 import struct
 import pathlib
+import logging
 from . import vfat
 from . import vfat_directory
 from UnpackParser import UnpackParser, check_condition
@@ -93,35 +94,43 @@ class VfatUnpackParser(UnpackParser):
         lfn = False
         fn = ''
         for record in directory_records:
+            logging.debug(f'vfat_parser: {record=} {record.attributes=}')
+            # logging.debug(f'{get_lfn_part(record)=!r} {get_short_filename(record)=!r} {record.start_clus=} {record.file_size=}')
             if not lfn:
-                if record.is_lfn_entry:
+                if record.attributes == 0x0f: # is lfn_entry
                     lfn = True
                     fn = get_lfn_part(record)
                 else:
                     fn = get_short_filename(record)
             else: # lfn
-                if record.is_lfn_entry:
+                if record.attributes == 0x0f:
 
                     fn = get_lfn_part(record) + fn
+
                 else:
                     lfn = False
                     pass # keep long filename
+            logging.debug(f'vfat_parser: {fn=} {lfn=}')
             if not lfn:
                 if fn[0] == '\0': continue
+                logging.debug(f'vfat_parser: {record.attr_subdirectory=}')
                 # get other attributes
-                # rel_outfile = rel_unpack_dir / fn
                 if record.attr_subdirectory:
                     if fn != '.' and fn != '..':
+                        logging.debug(f'vfat:unpack_directory: get dir_entries')
                         dir_entries = self.get_dir_entries(record.start_clus)
                         # We are just extracting the directory, not creating a
                         # MetaDirectory for it.
+                        logging.debug(f'vfat:unpack_directory: {dir_entries=}')
+                        logging.debug(f'vfat:unpack_directory: {prefix!r} / {fn!r}')
                         meta_directory.unpack_directory(prefix / fn)
                         # parse dir_entries for subdir
                         subdir = vfat_directory.VfatDirectory.from_bytes(dir_entries)
                         for unpacked_md in self.unpack_directory(meta_directory,
                                 subdir.records, prefix / fn):
                             yield unpacked_md
-                     
+                elif record.attr_volume_label:
+                    pass
                 else:
                     for unpacked_md in self.extract_file(meta_directory, record.start_clus, record.file_size, prefix / fn):
                         yield unpacked_md

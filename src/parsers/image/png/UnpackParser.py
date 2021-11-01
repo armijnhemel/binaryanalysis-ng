@@ -98,9 +98,10 @@ class PngUnpackParser(UnpackParser):
         check_condition('IEND' in self.chunknames,
                         "IEND section missing")
 
-    def unpack(self, unpack_directory):
-        """extract any files from the input file"""
-        return []
+    def write_info(self, to_meta_directory):
+        self.labels, self.metadata = self.set_metadata_and_labels()
+        super().write_info(to_meta_directory)
+
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'png', 'graphics' ]
@@ -316,5 +317,5 @@ class PngUnpackParser(UnpackParser):
         unknownchunks = list(self.chunknames.difference(KNOWN_CHUNKS))
         metadata['unknownchunks'] = unknownchunks
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)
+        return labels, metadata
+

@@ -30,7 +30,7 @@ seq:
     type: u4
 instances:
   is_lfn_entry:
-    value: attributes & 0x0f
+    value: attributes == 0x0f
   lfn_part_seq_nr:
     pos: 0
     size: 1

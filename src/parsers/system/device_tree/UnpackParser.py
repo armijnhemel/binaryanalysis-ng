@@ -35,12 +35,11 @@ class DeviceTreeUnpackParser(UnpackParser):
     pretty_name = 'dtb'
 
     def parse(self):
-        file_size = self.fileresult.filesize
         try:
             self.data = dtb.Dtb.from_io(self.infile)
         except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
             raise UnpackParserException(e.args)
-        check_condition(file_size >= self.data.total_size, "not enough data")
+        check_condition(self.infile.size >= self.data.total_size, "not enough data")
         if self.data.version > 16:
             check_condition(self.data.min_compatible_version, "invalid compatible version")
         # check some offsets
@@ -69,8 +68,7 @@ class DeviceTreeUnpackParser(UnpackParser):
     # check if there are any file image tree images as described
     # here
     # https://elinux.org/images/f/f4/Elc2013_Fernandes.pdf
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, to_meta_directory):
         property_level = 0
         in_kernel = False
         in_fdt = False
@@ -97,23 +95,14 @@ class DeviceTreeUnpackParser(UnpackParser):
             elif node.type == dtb.Dtb.Fdt.prop:
                 if has_images:
                     if node.body.name == 'data':
-                        outfile_rel = self.rel_unpack_dir / level_to_name.pop()
-                        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                        os.makedirs(outfile_full.parent, exist_ok=True)
-                        outfile = open(outfile_full, 'wb')
-                        outfile.write(node.body.property)
-                        outfile.close()
-                        fr = FileResult(self.fileresult, outfile_rel, set([]))
-                        unpacked_files.append(fr)
-        return unpacked_files
+                        p = pathlib.Path(level_to_name.pop())
+                        with to_meta_directory.unpack_regular_file(p) as (unpacked_md, outfile):
+                            outfile.write(node.body.property)
+                            yield unpacked_md
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.total_size
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['dtb', 'flattened device tree']
-        metadata = {}
+    labels = ['dtb', 'flattened device tree']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

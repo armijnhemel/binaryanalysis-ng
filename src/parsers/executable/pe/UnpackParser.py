@@ -39,7 +39,6 @@ class PeClassUnpackParser(UnpackParser):
     pretty_name = 'pe'
 
     def parse(self):
-        self.file_size = self.fileresult.filesize
         try:
             self.data = microsoft_pe.MicrosoftPe.from_io(self.infile)
             # this is a bit of an ugly hack to detect if the file
@@ -49,7 +48,7 @@ class PeClassUnpackParser(UnpackParser):
                 pass
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.mz.ofs_pe <= self.file_size,
+        check_condition(self.data.mz.ofs_pe <= self.infile.size,
                 "invalid offset")
 
     def calculate_unpacked_size(self):
@@ -69,14 +68,6 @@ class PeClassUnpackParser(UnpackParser):
         # to get this information from the PE headers, so other
         # tricks need to be found. TODO.
 
-    def unpack(self, unpack_directory):
-        """extract any files from the input file"""
-        return []
+    labels = [ 'pe', 'executable' ]
+    metadata = {}
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'pe', 'executable' ]
-        metadata = {}
-
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

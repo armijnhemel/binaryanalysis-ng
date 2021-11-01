@@ -89,35 +89,11 @@ class ElfUnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    def carve(self):
-        """If the UnpackParser recognizes data but there is still data left in
-        the file, this method saves the parsed part of the file, leaving the
-        rest to be  analyzed. The part is saved to the unpack data directory,
-        under the name given by get_carved_filename.
-        """
-        if self.soname != '':
-            rel_output_path = self.rel_unpack_dir / self.soname
-        elif self.module_name != '':
-            rel_output_path = self.rel_unpack_dir / ("%s.ko" % self.module_name)
-        else:
-            rel_output_path = self.rel_unpack_dir / self.get_carved_filename()
-        abs_output_path = self.scan_environment.unpack_path(rel_output_path)
-        os.makedirs(abs_output_path.parent, exist_ok=True)
-        outfile = open(abs_output_path, 'wb')
-        # Although self.infile is an OffsetInputFile, fileno() will give the file
-        # descriptor of the backing file. Therefore, we need to specify self.offset here
-        os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset, self.unpacked_size)
-        outfile.close()
+    def write_info(self, to_meta_directory):
+        self.labels, self.metadata = self.extract_metadata_and_labels(to_meta_directory)
+        super().write_info(to_meta_directory)
 
-        (labels, metadata) = self.extract_metadata_and_labels()
-
-        self.unpack_results.add_label('unpacked')
-        out_labels = self.unpack_results.get_labels() + ['unpacked'] + labels
-        fr = FileResult(self.fileresult, rel_output_path, set(out_labels))
-        fr.set_metadata(metadata)
-        self.unpack_results.add_unpacked_file( fr )
-
-    def extract_metadata_and_labels(self):
+    def extract_metadata_and_labels(self, to_meta_directory):
         '''Extract metadata from the ELF file and set labels'''
         labels = [ 'elf' ]
         metadata = {}
@@ -490,7 +466,7 @@ class ElfUnpackParser(UnpackParser):
 
         if metadata['type'] in ['executable', 'shared']:
             try:
-                telfhash_result = telfhash.telfhash(str(self.fileresult.filename))
+                telfhash_result = telfhash.telfhash(str(to_meta_directory.file_path))
                 if telfhash_result != []:
                     telfhash_res = telfhash_result[0]['telfhash']
                     if telfhash_res != 'TNULL' and telfhash_res != '-':
@@ -504,8 +480,3 @@ class ElfUnpackParser(UnpackParser):
             labels.append('static')
         return(labels, metadata)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        (labels, metadata) = self.extract_metadata_and_labels()
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)
