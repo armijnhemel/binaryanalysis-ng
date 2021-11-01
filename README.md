@@ -12,9 +12,18 @@ Some intended uses:
 
 ## Requirements
 
-* a recent Linux distribution (Fedora 33 or higher, or equivalent), or NixOS
+The recommended way to use [Nix](https://nixos.org/nix), run
+`nix-shell` to load all the dependencies for the unpacker,
+`nix-shell maintenance.nix` for the maintenance scripts and
+`nix-shell analysis.nix` for the maintenance scripts.
+
+`nix` will make sure that everything is downloaded and installed.
+
+### Other distributions without Nix
+
+* a recent Linux distribution (Fedora 33 or higher, or equivalent)
 * Python 3.9.x or higher
-* pillow (possibly named python3-pillow), a drop in replacement for PIL ( http://python-pillow.github.io/ )
+* pillow (possibly named python3-pillow), a drop in replacement for PIL ( <http://python-pillow.github.io/> )
 * GNU binutils (for 'ar')
 * squashfs-tools (for 'unsquashfs')
 * cabextract
@@ -45,14 +54,9 @@ Some intended uses:
 and many others (see `shell.nix`, `maintenance.nix` and `analysis.nix` for a
 full list).
 
-Additionally install "sasquatch"
+Additionally install `sasquatch`:
 
-https://github.com/devttys0/sasquatch
-
-If you are fortunate enough to be using [nix](https://nixos.org/nix), run
-`nix-shell` to load all the dependencies for the unpacker,
-`nix-shell maintenance.nix` for the maintenance scripts and
-`nix-shell analysis.nix` for the maintenance scripts.
+<https://github.com/devttys0/sasquatch>
 
 ## Supported hardware
 
@@ -278,9 +282,9 @@ knowledgebase scripts).
 GNU Affero General Public License, version 3 (AGPL-3.0)
 
 The code for verifying and labeling Android Verified Boot images was heavily
-inspired by code from Android (avbtool) found at:
+inspired by code from Android (`avbtool`) found at:
 
-https://android.googlesource.com/platform/external/avb/+/master/avbtool
+<https://android.googlesource.com/platform/external/avb/+/master/avbtool>
 
 The original license for avbtool:
 
@@ -309,7 +313,7 @@ The original license for avbtool:
 
 The code for rtime decompression was copied from:
 
-https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py
+<https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py>
 
 The original license for jefferson:
 
@@ -339,12 +343,12 @@ The original license for jefferson:
 
 The recommended coding style is described in PEP 8:
 
-https://www.python.org/dev/peps/pep-0008/
+<https://www.python.org/dev/peps/pep-0008/>
 
 It is recommended to run PEP 8 verification tools, for example
 python3-flake8 (on Fedora).
 
-Another tool that is highly recommended is pylint.
+Another tool that is highly recommended is `pylint`.
 
 # Acknowledgement
 
