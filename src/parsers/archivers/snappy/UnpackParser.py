@@ -72,10 +72,8 @@ class SnappyUnpackParser(UnpackParser):
         unpacked_files = []
 
         # check if the file starts at offset 0. If not, carve the
-        # file first, as cabextract tries to be smart and unpack
-        # all cab data in a file, like concatenated cab files,
-        # even if there is other data in between the individual
-        # cab files
+        # file first, as snappy tries to be smart and unpack
+        # all concatenated snappy data in a file.
         havetmpfile = False
 
         if not (self.offset == 0 and self.fileresult.filesize == self.unpacked_size):
