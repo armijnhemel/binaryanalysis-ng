@@ -5171,7 +5171,7 @@ unpack_zstd.signatures = {'zstd_08': b'\x28\xb5\x2f\xfd'}
 unpack_zstd.pretty = 'zstd'
 
 
-# https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md
+# https://github.com/lz4/lz4/blob/dev/doc/lz4_Frame_format.md
 # uses https://pypi.org/project/lz4/
 def unpack_lz4(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack LZ4 compressed data.'''
