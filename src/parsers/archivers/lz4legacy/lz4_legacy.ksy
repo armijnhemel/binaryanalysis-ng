@@ -4,7 +4,17 @@ meta:
   license: CC0-1.0
   endian: le
   encoding: ASCII
-doc-ref: https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
+doc-ref: https://github.com/lz4/lz4/blob/dev/doc/lz4_Frame_format.md#legacy-frame
+doc: |
+  Specification has the following notice:
+
+  Copyright (c) 2013-2020 Yann Collet
+
+  Permission is granted to copy and distribute this document for any purpose and
+  without charge, including translations into other languages and incorporation
+  into compilations, provided that the copyright notice and this notice are preserved,
+  and that any substantive changes or deletions from the original are clearly
+  marked. Distribution of this document is unlimited.
 seq:
   - id: magic
     type: u4
