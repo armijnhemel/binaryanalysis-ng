@@ -261,7 +261,6 @@ signaturetofunction = {
     'rpm': bangunpack.unpack_rpm,
     'zstd_08': bangunpack.unpack_zstd,
     'lz4': bangunpack.unpack_lz4,
-    'lz4_legacy': bangunpack.unpack_lz4legacy,
     'vmdk': bangfilesystems.unpack_vmdk,
     'qcow2': bangfilesystems.unpack_qcow2,
     'vdi': bangfilesystems.unpack_vdi,
