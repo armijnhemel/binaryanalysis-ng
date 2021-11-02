@@ -360,12 +360,9 @@ unpack_android_backup.signatures = {'android_backup': b'ANDROID BACKUP\n'}
 # Android resources files (such as "resources.arsc") as found in
 # many APK files. Description:
 #
-# https://android.googlesource.com/platform/frameworks/base.git/+/master/libs/androidfw/include/androidfw/ResourceTypes.h
+# https://android.googlesource.com/platform/frameworks/base.git/+/2fedba9a32d9e92344eaf6e9faf5b43e1bc2ae70/libs/androidfw/include/androidfw/ResourceTypes.h
 #
-# As the pointer is to the master Git repository line references
-# might chance over time.
-#
-# Around line 182 the format description starts.
+# Around line 202 the format description starts.
 def unpack_android_resource(fileresult, scanenvironment, offset, unpackdir):
     '''Verify and/or carve an Android resources file.'''
     filesize = fileresult.filesize
