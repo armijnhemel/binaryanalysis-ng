@@ -35,7 +35,6 @@ import shutil
 import binascii
 import string
 import tempfile
-import struct
 import collections
 import math
 import tarfile
