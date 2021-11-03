@@ -57,7 +57,10 @@ import lz4.frame
 import mutf8
 import pyaxmlparser
 
+from parsers.archivers.cpio import UnpackParser as cpio_unpack
+
 from FileResult import *
+from UnpackParserException import UnpackParserException
 
 encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                         'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
@@ -4937,17 +4940,24 @@ def unpack_rpm(fileresult, scanenvironment, offset, unpackdir):
                     payloaddir / os.path.basename(payloadfile),
                     set([]))
             fr.set_filesize(payloadsize)
-            unpackresult = unpack_cpio(fr, scanenvironment, 0, unpackdir)
-            # cleanup
-            shutil.rmtree(payloaddir)
-            if not unpackresult['status']:
+            cpio_parser = cpio_unpack.CpioNewAsciiUnpackParser(fr, scanenvironment, unpackdir, 0)
+            try:
+                cpio_parser.open()
+                unpackresult = cpio_parser.parse_and_unpack()
+            except UnpackParserException as e:
                 checkfile.close()
                 unpackingerror = {'offset': offset, 'fatal': False,
                                   'reason': 'could not unpack CPIO payload'}
-                return {'status': False, 'error': unpackingerror}
-            for i in unpackresult['filesandlabels']:
-                # TODO: is normpath necessary now that we use relative paths?
-                unpackedfilesandlabels.append((os.path.normpath(i[0]), i[1]))
+            finally:
+                cpio_parser.close()
+
+            shutil.rmtree(payloaddir)
+
+            # walk the results and add them. This is a bit ugly as
+            # the data is already in the right format, but it has to be
+            # reworked to the old format.
+            for i in unpackresult.unpacked_files:
+                unpackedfilesandlabels.append((i.filename, i.labels))
         elif payload == b'drpm':
             payloadfile_rel = scanenvironment.rel_unpack_path(payloadfile)
             unpackedfilesandlabels.append((payloadfile_rel, ['delta rpm data']))
@@ -4961,6 +4971,7 @@ def unpack_rpm(fileresult, scanenvironment, offset, unpackdir):
         if payload == b'drpm':
             labels.append('drpm')
 
+    checkfile.close()
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
