@@ -23,6 +23,7 @@
 
 import os
 import binascii
+import json
 
 import telfhash
 
@@ -467,6 +468,13 @@ class ElfUnpackParser(UnpackParser):
                                 pass
                         elif entry.type == 0x101:
                             # LINUX_ELFNOTE_LTO_INFO
+                            pass
+                    elif entry.name == b'FDO' and entry.type == 0xcafe1a7e:
+                        # https://fedoraproject.org/wiki/Changes/Package_information_on_ELF_objects
+                        # extract JSON and store it
+                        try:
+                            metadata['package note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
+                        except:
                             pass
                     elif entry.name == b'FreeBSD':
                         labels.append('freebsd')
