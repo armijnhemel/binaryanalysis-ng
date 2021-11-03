@@ -32,7 +32,7 @@ except ImportError:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to F-Droid configuration file", metavar="FILE")
+                        help="path to configuration file", metavar="FILE")
     parser.add_argument("-r", "--result-directory", action="store", dest="result_directory",
                         help="path to BANG result directories", metavar="DIR")
     args = parser.parse_args()
