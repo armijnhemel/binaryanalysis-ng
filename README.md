@@ -17,7 +17,10 @@ The recommended way to use [Nix](https://nixos.org/nix), run
 `nix-shell maintenance.nix` for the maintenance scripts and
 `nix-shell analysis.nix` for the maintenance scripts.
 
-`nix` will make sure that everything is downloaded and installed.
+`nix` will make sure that everything is downloaded and installed to run BANG.
+
+In addition you will need to install the Kaitai Struct compiler. This is
+described in the file `doc/kaitai-struct.md`.
 
 ### Other distributions without Nix
 
@@ -113,8 +116,8 @@ larger file, unless stated otherwise.
 24. GNU message catalog
 25. RPM (gzip, XZ, bzip2, LZMA, zstd, not: delta RPM)
 26. AIFF/AIFF-C
-27. terminfo (little endian, including ncurses extension, does not
-    recognize some wide character versions)
+27. terminfo (little endian, regular and extended storage format, not
+    extended number format)
 28. AU (Sun/NeXT audio)
 29. JFFS2 (uncompressed, zlib, rtime, lzo, LZMA from OpenWrt)
 30. CPIO (various flavours, little endian)
