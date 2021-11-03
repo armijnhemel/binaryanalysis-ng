@@ -4940,6 +4940,8 @@ def unpack_rpm(fileresult, scanenvironment, offset, unpackdir):
                     payloaddir / os.path.basename(payloadfile),
                     set([]))
             fr.set_filesize(payloadsize)
+
+            # assuming that the CPIO data is always in "new ascii" format
             cpio_parser = cpio_unpack.CpioNewAsciiUnpackParser(fr, scanenvironment, unpackdir, 0)
             try:
                 cpio_parser.open()
