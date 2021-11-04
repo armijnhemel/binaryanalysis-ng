@@ -26,9 +26,7 @@ import os
 import shutil
 import stat
 import subprocess
-
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_7z
+import tempfile
 
 from FileResult import FileResult
 
@@ -38,16 +36,12 @@ from kaitaistruct import ValidationFailedError
 from . import sevenzip
 
 
-class SevenzipUnpackParser(WrappedUnpackParser):
-#class SevenzipUnpackParser(UnpackParser):
+class SevenzipUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'7z\xbc\xaf\x27\x1c')
     ]
     pretty_name = '7z'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_7z(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         check_condition(shutil.which('7z') is not None, '7z program not found')
@@ -93,7 +87,7 @@ class SevenzipUnpackParser(WrappedUnpackParser):
             os.fdopen(temporary_file[0]).close()
 
         if havetmpfile:
-            p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', temporaryfile[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
             p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', self.fileresult.filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -106,7 +100,7 @@ class SevenzipUnpackParser(WrappedUnpackParser):
             return unpacked_files
 
         # walk the results directory
-        for result in unpackdir_full.iterdir():
+        for result in unpackdir_full.glob('**/*'):
             # first change the permissions
             result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
