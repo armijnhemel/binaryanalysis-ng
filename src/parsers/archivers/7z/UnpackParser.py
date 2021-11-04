@@ -36,6 +36,19 @@ from kaitaistruct import ValidationFailedError
 from . import sevenzip
 
 
+# https://en.wikipedia.org/wiki/7z
+# Inside the 7z distribution there is a file called
+#
+# DOC/7zFormat.txt
+#
+# that describes the file format.
+#
+# This unpacker can recognize 7z formats, but only if the 7z file
+# consists of a single frame.
+#
+# Variants exist: Texas Instruments' AR7 uses a modified
+# version with that identifies itself as version 48.50
+# which cannot be unpacked with an unmodified 7z
 class SevenzipUnpackParser(UnpackParser):
     extensions = []
     signatures = [
