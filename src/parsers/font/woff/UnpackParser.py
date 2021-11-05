@@ -23,8 +23,6 @@
 
 import os
 import zlib
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_woff
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
@@ -32,16 +30,29 @@ from kaitaistruct import ValidationFailedError
 from . import woff
 
 
-class WoffUnpackParser(WrappedUnpackParser):
-#class WoffUnpackParser(UnpackParser):
+class WoffUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'wOFF')
     ]
     pretty_name = 'woff'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_woff(fileresult, scan_environment, offset, unpack_dir)
+    def parse(self):
+        self.unpacked_size = 0
+        try:
+            self.data = woff.Woff.from_io(self.infile)
+
+            # check all the tables, some sanity checks and read the data
+            # to work around lazy evaluation in Kaitai
+            for table in self.data.woff.table_directories:
+                check_condition(table.len_data <= table.len_uncompressed_data,
+                                "invalid table length")
+                if table.len_data != table.len_uncompressed_data:
+                    data = zlib.decompress(table.data.data)
+                    check_condition(len(data) == table.len_uncompressed_data,
+                                    "invalid zlib compressed data")
+        except (Exception, ValidationFailedError) as e:
+            raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""

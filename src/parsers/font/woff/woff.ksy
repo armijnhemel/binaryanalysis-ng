@@ -6,23 +6,13 @@ meta:
   endian: be
 doc-ref: https://www.w3.org/TR/2012/REC-WOFF-20121213/
 seq:
-  - id: header
-    type: header
-  - id: table_directories
-    type: table_directory
-    repeat: expr
-    repeat-expr: header.num_tables
-instances:
-  extended_metadata:
-    pos: header.ofs_meta
-    size: header.len_meta
-    if: header.len_meta != 0
-  private_data:
-    pos: header.ofs_private_data_block
-    size: header.len_private_data_block
-    if: header.len_private_data_block != 0
+  - id: preheader
+    type: preheader
+  - id: woff
+    type: woff
+    size: preheader.len_file - preheader._sizeof
 types:
-  header:
+  preheader:
     seq:
       - id: signature
         contents: 'wOFF'
@@ -32,6 +22,27 @@ types:
       - id: len_file
         type: u4
         doc: Total size of the WOFF file.
+  woff:
+    seq:
+      - id: header
+        type: header
+      - id: table_directories
+        type: table_directory
+        repeat: expr
+        repeat-expr: header.num_tables
+    instances:
+      extended_metadata:
+        pos: header.ofs_meta
+        size: header.len_meta
+        io: _root._io
+        if: header.len_meta != 0
+      private_data:
+        pos: header.ofs_private_data_block
+        size: header.len_private_data_block
+        io: _root._io
+        if: header.len_private_data_block != 0
+  header:
+    seq:
       - id: num_tables
         type: u2
         doc: Number of entries in directory of font tables.
@@ -50,18 +61,26 @@ types:
         doc: Minor version of the WOFF file.
       - id: ofs_meta
         type: u4
+        valid:
+          max: _root.preheader.len_file
         doc: Offset to metadata block, from beginning of WOFF file.
       - id: len_meta
         type: u4
+        valid:
+          max: _root.preheader.len_file - ofs_meta
         doc: Length of compressed metadata block.
       - id: meta_orig_length
         type: u4
         doc: Uncompressed size of metadata block.
       - id: ofs_private_data_block
         type: u4
+        valid:
+          max: _root.preheader.len_file
         doc: Offset to private data block, from beginning of WOFF file.
       - id: len_private_data_block
         type: u4
+        valid:
+          max: _root.preheader.len_file - ofs_private_data_block
         doc: Length of private data block.
   table_directory:
     seq:
@@ -83,5 +102,14 @@ types:
     instances:
       data:
         pos: ofs_data
-        size: len_data
+        type: table_data(len_data)
         io: _root._io
+  table_data:
+    params:
+      - id: len_data
+        type: u4
+    seq:
+      - id: data
+        size: len_data
+      - id: padding
+        size: (-len_data % 4)

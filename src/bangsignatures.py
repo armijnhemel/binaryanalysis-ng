@@ -243,7 +243,6 @@ signaturetofunction = {
     'iso9660': bangfilesystems.unpack_iso9660,
     'lzip': bangunpack.unpack_lzip,
     'jpeg': bangmedia.unpack_jpeg,
-    'woff': bangunpack.unpack_woff,
     'opentype': bangunpack.unpack_opentype_font,
     'ttc': bangunpack.unpack_opentype_font_collection,
     'truetype': bangunpack.unpack_truetype_font,
