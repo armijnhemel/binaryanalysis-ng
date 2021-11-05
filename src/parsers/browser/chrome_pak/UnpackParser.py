@@ -58,31 +58,26 @@ class ChromePakUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.header.resources[-1].id == 0, "wrong resource identifier")
-        check_condition(self.data.header.resources[-1].offset <= self.fileresult.filesize,
+        check_condition(self.data.header.resources[-1].offset <= self.infile.size,
                         "not enough data")
 
-    def unpack(self, unpack_directory):
-        unpacked_files = []
-        out_labels = []
+    def unpack(self, meta_directory):
         resources = self.data.header.resources
         for i in range(0, len(resources)-1):
             offset = resources[i].offset
             offset_next = resources[i+1].offset
             length = offset_next - offset
             file_path = pathlib.Path("resource-%d" % resources[i].id)
-            self.extract_to_file(self.rel_unpack_dir / file_path, offset, length)
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
-        return unpacked_files
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
+                os.sendfile(f.fileno(), self.infile.fileno(), offset, length)
+                yield unpacked_md
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.header.resources[-1].offset
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['pak', 'resource']
-        metadata = {}
-        metadata['version'] = self.data.version
+    labels = ['pak', 'resource']
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)
+    @property
+    def metadata(self):
+        return { 'version' : self.data.version }
+

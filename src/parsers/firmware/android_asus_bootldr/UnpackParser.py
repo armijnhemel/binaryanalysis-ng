@@ -47,36 +47,19 @@ class AndroidAsusBootUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError, ValidationLessThanError) as e:
             raise UnpackParserException(e.args)
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         chunk_to_files = {'IFWI!!!!': 'ifwi.bin',
                           'DROIDBT!': 'droidboot.img',
                           'SPLASHS!': 'splashscreen.img'}
-        unpacked_files = []
         for image in self.data.images:
             if image.file_name != '':
                 file_path = pathlib.Path(image.file_name)
             else:
                 file_path = pathlib.Path(chunk_to_files[image.chunk_id])
-            outfile_rel = self.rel_unpack_dir / file_path
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            outfile.write(image.body)
-            outfile.close()
-            fr = FileResult(self.fileresult, outfile_rel, set([]))
-            unpacked_files.append(fr)
-        return unpacked_files
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(image.body)
+                yield unpacked_md
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'bootloader']
-        metadata = {}
+    labels = ['android', 'bootloader']
+    metadata = { 'vendor': 'asus' }
 
-        metadata['vendor'] = 'asus'
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

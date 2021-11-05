@@ -57,34 +57,22 @@ class OdexUnpackParser(WrappedUnpackParser):
 
     def unpack(self, unpack_directory):
         # write dex
-        unpacked_files = []
-        out_labels = []
 
         # cut .odex from the path name if it is there
-        if self.fileresult.filename.suffix == '.odex':
-            file_path = pathlib.Path(self.fileresult.filename.with_suffix('.dex').name)
+        if metadata.file_path.suffix == '.odex':
+            file_path = pathlib.Path(metadata.file_path.with_suffix('.dex').name)
         # else anonymous file
         else:
             file_path = pathlib.Path("unpacked_from_odex")
 
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        outfile.write(self.data.raw_dex)
-        outfile.close()
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-        unpacked_files.append(fr)
-        return unpacked_files
+        with metadata.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.raw_dex)
+            yield unpacked_md
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'odex']
-        metadata = {}
+    labels = ['android', 'odex']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

@@ -37,22 +37,17 @@ class LlvmIrWrapperUnpackParser(UnpackParser):
     pretty_name = 'llvm_ir_wrapper'
 
     def parse(self):
-        self.file_size = self.fileresult.filesize
         try:
             self.data = llvm_ir_wrapper.LlvmIrWrapper.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
         self.unpacked_size = self.data.ofs_bytecode + self.data.len_bytecode
-        check_condition(self.file_size >= self.unpacked_size, "not enough data")
+        check_condition(self.infile.size >= self.unpacked_size, "not enough data")
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['llvm']
-        metadata = {}
+    labels = ['llvm']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

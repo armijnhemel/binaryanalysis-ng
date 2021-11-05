@@ -40,17 +40,12 @@ class QuakePakUnpackParser(UnpackParser):
         except EOFError as e:
             raise UnpackParserException(e.args)
 
-
-    # no need to carve the Quake PAK file itself from the file
-    def carve(self):
-        pass
-
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.ofs_index + self.data.len_index
         for i in self.data.index.entries:
             self.unpacked_size = max(self.unpacked_size, i.ofs + i.size)
 
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         unpacked_files = []
         seen_files = set()
         for quake_entry in self.data.index.entries:
@@ -68,23 +63,17 @@ class QuakePakUnpackParser(UnpackParser):
                     counter+=1
 
             file_path = pathlib.Path(entry_name)
-            outfile_rel = self.rel_unpack_dir / file_path
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
 
-            # create subdirectories, if any are defined in the file name
-            if '/' in entry_name:
-                outfile_rel.parent.mkdir(parents=True, exist_ok=True)
+                os.sendfile(f.fileno(), self.infile.fileno(), self.infile.offset + quake_entry.ofs, quake_entry.size)
 
-            # write the file
-            quake_file = outfile_rel.open(mode='xb')
-            os.sendfile(quake_file.fileno(), self.infile.fileno(), self.infile.offset + quake_entry.ofs, quake_entry.size)
-            quake_file.close()
-
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / entry_name, set(out_labels))
-            unpacked_files.append(fr)
+                # TODO: set original file name on unpacked_md if renamed
+                with unpacked_md.open(open_file = False):
+                    unpacked_md.info['labels'] = out_labels
+                yield unpacked_md
 
             seen_files.add(entry_name)
-        return unpacked_files
 
-    def set_metadata_and_labels(self):
-        self.unpack_results.set_labels(['quake', 'resource'])
-        self.unpack_results.set_metadata({})
+    labels = ['quake', 'resource']
+    metadata = {}
+

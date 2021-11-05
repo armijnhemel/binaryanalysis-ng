@@ -51,7 +51,6 @@ class RpmUnpackParser(WrappedUnpackParser):
         return unpack_rpm(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
-        file_size = self.fileresult.filename.stat().st_size
         try:
             self.data = rpm.Rpm.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
@@ -67,7 +66,7 @@ class RpmUnpackParser(WrappedUnpackParser):
             if i.tag == rpm.Rpm.SignatureTags.size:
                 rpmsize = i.body.values[0]
         self.payload_size = rpmsize - self.data.header.header_size
-        check_condition(self.data.payload_offset + self.payload_size <= file_size,
+        check_condition(self.data.payload_offset + self.payload_size <= self.infile.size,
                         "payload cannot be outside of file")
 
         self.compressor_seen = False

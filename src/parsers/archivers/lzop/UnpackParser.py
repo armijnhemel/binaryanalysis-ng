@@ -58,55 +58,37 @@ class LzopUnpackParser(UnpackParser):
             if isinstance(block.block_type, lzop.Lzop.Terminator):
                 break
 
-
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
-        unpacked_files = []
-        out_labels = []
+    def unpack(self, meta_directory):
         if self.data.name != '':
             file_path = pathlib.Path(self.data.name)
         else:
             file_path = 'unpacked-from-lzo'
 
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            counter = 1
+            for block in self.data.blocks:
+                if isinstance(block.block_type, lzop.Lzop.Terminator):
+                    break
+                if block.len_decompressed == block.block_type.len_compressed:
+                    # if the compressed and decompressed length are the same
+                    # then the data needs to be written directly it seems.
+                    outfile.write(block.block_type.data)
+                else:
+                    # various methods are allowed according to conf.h in lzop code
+                    # 1, 2, 3 are LZO related
+                    # 0x1a, 0x1b, 0x2a, 0x2b, 0x2d are NRV related (discontinued library)
+                    # 128 is zlib related
+                    # In practice LZO ones will be used the most
+                    if self.data.method in [1, 2, 3]:
+                        # TODO: catch errors
+                        magic = b'\xf0' + int.to_bytes(block.len_decompressed, 4, 'big')
+                        outfile.write(lzo.decompress(magic + block.block_type.data))
+                    elif self.data.method == 128:
+                        # seemingly not used in practice
+                        outfile.write(zlib.decompress(block.block_type.data))
+                counter += 1
+            yield unpacked_md
 
-        counter = 1
-        for block in self.data.blocks:
-            if isinstance(block.block_type, lzop.Lzop.Terminator):
-                break
-            if block.len_decompressed == block.block_type.len_compressed:
-                # if the compressed and decompressed length are the same
-                # then the data needs to be written directly it seems.
-                outfile.write(block.block_type.data)
-            else:
-                # various methods are allowed according to conf.h in lzop code
-                # 1, 2, 3 are LZO related
-                # 0x1a, 0x1b, 0x2a, 0x2b, 0x2d are NRV related (discontinued library)
-                # 128 is zlib related
-                # In practice LZO ones will be used the most
-                if self.data.method in [1, 2, 3]:
-                    # TODO: catch errors
-                    magic = b'\xf0' + int.to_bytes(block.len_decompressed, 4, 'big')
-                    outfile.write(lzo.decompress(magic + block.block_type.data))
-                elif self.data.method == 128:
-                    # seemingly not used in practice
-                    outfile.write(zlib.decompress(block.block_type.data))
-            counter += 1
-        outfile.close()
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-        unpacked_files.append(fr)
-        return unpacked_files
+    labels = ['lzo', 'compressed']
+    metadata = {}
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['lzo', 'compressed']
-        metadata = {}
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

@@ -40,7 +40,7 @@ class MozillaMar(UnpackParser):
     pretty_name = 'mar'
 
     def parse(self):
-        file_size = self.fileresult.filesize
+        file_size = self.infile.size
         try:
             self.data = mozilla_mar.MozillaMar.from_io(self.infile)
         except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
@@ -54,28 +54,15 @@ class MozillaMar(UnpackParser):
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.file_size
 
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
         for entry in self.data.index.index_entries.index_entry:
             if entry.file_name == '':
                 continue
 
-            out_labels = []
-            outfile_rel = self.rel_unpack_dir / entry.file_name
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            outfile.write(entry.content)
-            outfile.close()
+            with meta_directory.unpack_regular_file(entry.file_name) as (unpacked_md, f):
+                f.write(entry.content)
+                yield unpacked_md
 
-            fr = FileResult(self.fileresult, outfile_rel, set(out_labels))
-            unpacked_files.append(fr)
-        return unpacked_files
+    labels = [ 'mozilla mar' ]
+    metadata = {}
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'mozilla mar' ]
-        metadata = {}
-
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

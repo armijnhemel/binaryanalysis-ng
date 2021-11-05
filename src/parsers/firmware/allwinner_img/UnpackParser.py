@@ -42,38 +42,31 @@ class AllwinnerUnpackParser(UnpackParser):
             self.data = allwinner_img.AllwinnerImg.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.img_header.len_image + self.offset <= self.fileresult.filesize, "not enough data")
+        check_condition(self.data.img_header.len_image + self.offset <= self.infile.size, "not enough data")
         self.unpacked_size = 0
         for entry in self.data.file_headers:
             check_condition(entry.file_header_data.stored_length >= entry.file_header_data.original_length,
                             "invalid original/stored length")
             self.unpacked_size = max(self.unpacked_size, entry.file_header_data.offset + entry.file_header_data.stored_length)
-        check_condition(self.fileresult.filesize >= self.unpacked_size, "not enough data")
+        check_condition(self.infile.size >= self.unpacked_size, "not enough data")
 
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
         for entry in self.data.file_headers:
-            out_labels = []
             file_path = pathlib.Path(entry.file_header_data.name)
-            self.extract_to_file(self.rel_unpack_dir / file_path,
-                                 entry.file_header_data.offset,
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
+                os.sendfile(f.fileno(), self.infile.fileno(), entry.file_header_data.offset,
                                  entry.file_header_data.original_length)
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
-        return unpacked_files
+                yield unpacked_md
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['allwinner']
+    labels = ['allwinner']
+
+    @property
+    def metadata(self):
         metadata = {}
         metadata['hardware'] = {}
         metadata['hardware']['usb_product_id'] = self.data.img_header.usb_pid
@@ -86,6 +79,5 @@ class AllwinnerUnpackParser(UnpackParser):
             metadata['partitions'].append({'name': entry.file_header_data.name,
                                            'offset': entry.file_header_data.offset,
                                            'size': entry.file_header_data.original_length})
+        return metadata
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

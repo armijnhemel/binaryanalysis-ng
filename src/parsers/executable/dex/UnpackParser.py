@@ -273,7 +273,7 @@ class DexUnpackParser(UnpackParser):
         return string_ids
 
     def parse(self):
-        filesize = self.fileresult.filesize
+        filesize = self.infile.size
         try:
             self.data = dex.Dex.from_io(self.infile)
             computed_checksum = zlib.adler32(self.data.bytes_for_adler32)
@@ -309,9 +309,10 @@ class DexUnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['dex', 'android']
+    labels = ['dex', 'android']
+
+    @property
+    def metadata(self):
         metadata = {}
         metadata['version'] = self.data.header.version_str
         metadata['classes'] = []
@@ -437,6 +438,5 @@ class DexUnpackParser(UnpackParser):
                                             'type': field_type, 'class': class_type,
                                             'field_type': 'instance'})
             metadata['classes'].append(class_obj)
+        return metadata
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

@@ -47,40 +47,23 @@ class ZchunkUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         unpacked_files = []
         out_labels = []
 
         # determine the name of the output file
-        if self.fileresult.filename.suffix.lower() == '.zck':
-            file_path = pathlib.Path(self.fileresult.filename.stem)
+        if meta_directory.file_path.suffix.lower() == '.zck':
+            file_path = pathlib.Path(meta_directory.file_path.stem)
         else:
             file_path = pathlib.Path("unpacked_from_zchunk")
 
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            p = subprocess.Popen(['unzck', '-c', meta_directory.file_path], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
 
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        p = subprocess.Popen(['unzck', '-c', self.fileresult.filename], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+            (outputmsg, errormsg) = p.communicate()
+            check_condition(p.returncode == 0, "zck unpacking error")
+            yield unpacked_md
 
-        (outputmsg, errormsg) = p.communicate()
-        outfile.close()
+    labels = ['zchunk', 'compressed']
+    metadata = {}
 
-        check_condition(p.returncode == 0, "zck unpacking error")
-
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-        unpacked_files.append(fr)
-        return unpacked_files
-
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['zchunk', 'compressed']
-        metadata = {}
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)
