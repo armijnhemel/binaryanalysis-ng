@@ -258,7 +258,6 @@ signaturetofunction = {
     'ext2': bangfilesystems.unpack_ext2,
     'rpm': bangunpack.unpack_rpm,
     'zstd_08': bangunpack.unpack_zstd,
-    'lz4': bangunpack.unpack_lz4,
     'vmdk': bangfilesystems.unpack_vmdk,
     'qcow2': bangfilesystems.unpack_qcow2,
     'vdi': bangfilesystems.unpack_vdi,
