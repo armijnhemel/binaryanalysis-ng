@@ -6,7 +6,9 @@ meta:
   encoding: ASCII
 doc-ref: https://github.com/lz4/lz4/blob/dev/doc/lz4_Frame_format.md
 doc: |
-  Specification has the following notice:
+  This specification describes a single LZ4 frame.
+
+  The original LZ4 frame format specification has the following notice:
 
   Copyright (c) 2013-2020 Yann Collet
 
