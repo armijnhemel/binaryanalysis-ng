@@ -48,7 +48,7 @@ class AndroidImgUnpacker(WrappedUnpackParser):
         return unpack_android_boot_img(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
-        file_size = self.fileresult.filesize
+        file_size = self.infile.size
         try:
             self.data = android_img.AndroidImg.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
@@ -81,7 +81,7 @@ class AndroidImgUnpacker(WrappedUnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         # the android boot loader images don't have names recorded
         # for the different parts, so just hardcode these.
         kernel_name = 'kernel'
@@ -92,58 +92,34 @@ class AndroidImgUnpacker(WrappedUnpackParser):
 
         unpacked_files = []
 
-        outfile_rel = self.rel_unpack_dir / kernel_name
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        outfile.write(self.data.kernel_img)
-        outfile.close()
-        fr = FileResult(self.fileresult, outfile_rel, set([]))
-        unpacked_files.append(fr)
+        with meta_directory.unpack_regular_file(pathlib.Path(kernel_name) as (unpacked_md, f):
+            f.write(self.data.kernel_img)
+            yield unpacked_md
 
         if self.data.ramdisk.size > 0:
-            outfile_rel = self.rel_unpack_dir / ramdisk_name
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            outfile.write(self.data.ramdisk_img)
-            outfile.close()
-            fr = FileResult(self.fileresult, outfile_rel, set([]))
-            unpacked_files.append(fr)
-        if self.data.second.size > 0:
-            outfile_rel = self.rel_unpack_dir / secondstage_name
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            outfile.write(self.data.second_img)
-            outfile.close()
-            fr = FileResult(self.fileresult, outfile_rel, set([]))
-            unpacked_files.append(fr)
-        if self.data.header_version > 0:
-            if self.data.recovery_dtbo.size > 0:
-                outfile_rel = self.rel_unpack_dir / recovery_name
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                os.makedirs(outfile_full.parent, exist_ok=True)
-                outfile = open(outfile_full, 'wb')
-                outfile.write(self.data.recovery_dtbo_img)
-                outfile.close()
-                fr = FileResult(self.fileresult, outfile_rel, set([]))
-                unpacked_files.append(fr)
-        if self.data.header_version > 1:
-            if self.data.dtb.size > 0:
-                outfile_rel = self.rel_unpack_dir / dtb_name
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                os.makedirs(outfile_full.parent, exist_ok=True)
-                outfile = open(outfile_full, 'wb')
-                outfile.write(self.data.dtb_img)
-                outfile.close()
-                fr = FileResult(self.fileresult, outfile_rel, set([]))
-                unpacked_files.append(fr)
-        return unpacked_files
+            with meta_directory.unpack_regular_file(pathlib.Path(ramdisk_name) as (unpacked_md,f):
+                f.write(self.data.ramdisk_img)
+                yield unpacked_md
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'android', "android boot image"]
+        if self.data.second.size > 0:
+            with meta_directory.unpack_regular_file(pathlib.Path(secondstage_name) as (unpacked_md,f):
+                f.write(self.data.second_img)
+                yield unpacked_md
+
+        if self.data.header_version > 0 and self.data.recovery_dtbo.size > 0:
+            with meta_directory.unpack_regular_file(pathlib.Path(recovery_name) as (unpacked_md,f):
+                f.write(self.data.recovery_dtbo_img)
+                yield unpacked_md
+
+        if self.data.header_version > 1 and self.data.dtb.size > 0:
+            with meta_directory.unpack_regular_file(pathlib.Path(dtb_name) as (unpacked_md,f):
+                f.write(self.data.dtb_img)
+                yield unpacked_md
+
+    labels = [ 'android', "android boot image"]
+
+    @property
+    def metadata(self):
         metadata = {'version': self.data.header_version}
         if self.data.name != '':
             metadata = {'name': self.data.name}
@@ -157,6 +133,5 @@ class AndroidImgUnpacker(WrappedUnpackParser):
                                'year': self.data.os_version.year,
                                'month': self.data.os_version.month,
                               }
+        return metadata
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

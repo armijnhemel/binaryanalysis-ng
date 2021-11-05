@@ -46,16 +46,12 @@ class AndroidImgdataUnpackParser(UnpackParser):
                 self.unpacked_size = max(self.unpacked_size, image.ofs_image + image.len_image)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.unpacked_size <= self.fileresult.filesize, "data outside file")
+        check_condition(self.unpacked_size <= self.infile.size, "data outside file")
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'imgdata']
-        metadata = {}
+    labels = ['android', 'imgdata']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)
