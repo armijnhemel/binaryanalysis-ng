@@ -47,14 +47,9 @@ class DlinkRomfsUnpackParser(UnpackParser):
         ct = 0
         for entry in self.data.entries:
             self.unpacked_size = max(self.unpacked_size, entry.ofs_entry + entry.len_entry)
-        check_condition(self.fileresult.filesize >= self.unpacked_size, "not enough data")
+        check_condition(self.infile.size >= self.unpacked_size, "not enough data")
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
 
         # first reconstruct all the paths, before writing any data
         entry_to_path = {0: pathlib.Path('')}
@@ -68,43 +63,36 @@ class DlinkRomfsUnpackParser(UnpackParser):
 
         # go through all inodes again, but now write the data
         for entry in self.data.entries:
-            out_labels = []
+            # out_labels = []
             if entry.entry_id_block.entry_id == 0:
                 continue
-            file_path = entry_to_path[entry.entry_id_block.entry_id]
-            outfile_rel = self.rel_unpack_dir / file_path
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+            file_path = pathlib.Path(entry_to_path[entry.entry_id_block.entry_id])
 
             if entry.is_directory:
-                out_labels.append('directory')
-                os.makedirs(outfile_full, exist_ok=True)
+                # out_labels.append('directory')
+                # directories do not have a meta directory
+                meta_directory.unpack_directory(file_path)
             elif entry.is_regular:
-                outfile = open(outfile_full, 'wb')
-                if entry.is_compressed:
-                    outfile.write(lzma.decompress(entry.data))
-                else:
-                    outfile.write(entry.data)
-                outfile.close()
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    if entry.is_compressed:
+                        outfile.write(lzma.decompress(entry.data))
+                    else:
+                        outfile.write(entry.data)
+                    yield unpacked_md
             elif entry.is_symlink:
-                out_labels.append('symbolic link')
+                # out_labels.append('symbolic link')
+                # symlinks do not have a meta directory
                 try:
                     target = entry.data.decode()
-                    outfile_full.symlink_to(target)
+                    meta_directory.unpack_symlink(file_path, target)
                 except UnicodeDecodeError:
+                    # TODO: give warning?
                     continue
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
-
-        return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['d-link', 'filesystem']
-        metadata = {}
+    labels = ['d-link', 'filesystem']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

@@ -39,7 +39,6 @@ class Grub2fontUnpackParser(UnpackParser):
     pretty_name = 'grub2font'
 
     def parse(self):
-        self.file_size = self.fileresult.filesize
         try:
             self.data = grub2_font.Grub2Font.from_io(self.infile)
             for i in self.data.sections:
@@ -54,10 +53,6 @@ class Grub2fontUnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['font', 'resource', 'grub2']
-        metadata = {}
+    labels = ['font', 'resource', 'grub2']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

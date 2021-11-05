@@ -46,19 +46,14 @@ class Nb0UnpackParser(UnpackParser):
                 len_data = len(self.data.partitions[entry].body)
         except (Exception, ValidationNotEqualError, ValidationLessThanError, ValidationGreaterThanError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.unpacked_size <= self.fileresult.filesize,
+        check_condition(self.unpacked_size <= self.infile.size,
                         "partitions cannot be outside of file")
-
-    # no need to carve from the file
-    def carve(self):
-        pass
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
         seen_partitions = set()
         for i in range(0, self.data.num_entries):
             out_labels = []
@@ -78,23 +73,16 @@ class Nb0UnpackParser(UnpackParser):
                         break
                     counter += 1
 
-            file_path = partition_name
-            outfile_rel = self.rel_unpack_dir / file_path
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            outfile.write(self.data.partitions[i].body)
+            file_path = pathlib.Path(partition_name)
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(self.data.partitions[i].body)
+                with unpacked_md.open(open_file=False):
+                    # TODO: store original filename in unpacked_md info if renamed
+                    unpacked_md.info['labels'] = out_labels
+                yield unpacked_md
 
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
             seen_partitions.add(partition_name)
 
-        return unpacked_files
+    labels = ['android', 'nb0', 'nxp']
+    metadata = {}
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'nb0', 'nxp']
-        metadata = {}
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

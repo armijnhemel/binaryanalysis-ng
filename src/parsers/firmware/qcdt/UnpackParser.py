@@ -44,49 +44,40 @@ class QcdtUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
             raise UnpackParserException(e.args)
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
         offset_to_entry = {}
         ctr = 1
         for entry in self.data.device_entries:
-            out_labels = []
             dtb_name = pathlib.Path("dtb-%d" % ctr)
-            outfile_rel = self.rel_unpack_dir / dtb_name
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
             if entry.ofs_dtb not in offset_to_entry:
-                outfile = open(outfile_full, 'wb')
-                outfile.write(entry.data)
-                outfile.close()
-                fr = FileResult(self.fileresult, outfile_rel, set([]))
+                with meta_directory.unpack_regular_file(dtb_name) as (unpacked_md, outfile):
+                    outfile.write(entry.data)
+                    yield unpacked_md
                 offset_to_entry[entry.ofs_dtb] = dtb_name
             else:
-                outfile_full.symlink_to(offset_to_entry[entry.ofs_dtb])
-                fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
-            unpacked_files.append(fr)
+                meta_directory.unpack_symlink(dtb_name, offset_to_entry[entry.ofs_dtb])
+                # unpack symlink does not get a meta directory
             ctr += 1
-        return unpacked_files
 
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
         for entry in self.data.device_entries:
             self.unpacked_size = max(self.unpacked_size, entry.ofs_dtb + entry.len_dtb)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'qcdt']
+    labels = ['android', 'qcdt']
+
+    @property
+    def metadata(self):
         metadata = {}
         metadata['device'] = {}
         ctr = 1
         for entry in self.data.device_entries:
-            metadata['device'][ctr] = {}
-            metadata['device'][ctr]['platform_id'] = entry.platform_id.name
-            metadata['device'][ctr]['variant_id'] = entry.variant_id
-            metadata['device'][ctr]['soc_revision'] = entry.soc_revision
+            metadata['device'][ctr] = {
+                'platform_id': entry.platform_id.name,
+                'variant_id': entry.variant_id,
+                'soc_revision': entry.soc_revision
+            }
+
             if self.data.version > 1:
                 metadata['device'][ctr]['subtype_id'] = entry.subtype_id
             if self.data.version > 2:
@@ -95,6 +86,5 @@ class QcdtUnpackParser(UnpackParser):
                 metadata['device'][ctr]['pmic2'] = entry.pmic2
                 metadata['device'][ctr]['pmic3'] = entry.pmic3
             ctr += 1
+        return metadata
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

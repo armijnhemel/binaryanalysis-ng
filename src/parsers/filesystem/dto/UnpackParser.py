@@ -56,27 +56,15 @@ class AndroidDtoUnpacker(UnpackParser):
         for i in self.data.entries:
             self.unpacked_size = max(self.unpacked_size, i.dt_offset + i.dt_size)
 
-    # no need to carve the DTBO from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
         dtb_counter = 1
         for i in self.data.entries:
-            out_labels = []
             file_path = pathlib.Path("unpacked-%d.dtb" % dtb_counter)
-            self.extract_to_file(self.rel_unpack_dir / file_path, i.dt_offset, i.dt_size)
-            dtb_counter += 1
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
-        return unpacked_files
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
+                os.sendfile(f.fileno(), self.infile.fileno(), i.dt_offset, i.dt_size)
+                dtb_counter += 1
+                yield unpacked_md
 
+    labels = [ 'android', 'dto' ]
+    metadata = {}
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'android', 'dto' ]
-        metadata = {}
-
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

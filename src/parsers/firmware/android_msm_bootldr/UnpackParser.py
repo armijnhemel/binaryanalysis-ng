@@ -43,7 +43,6 @@ class AndroidMsmBootldrUnpackParser(UnpackParser):
     pretty_name = 'androidmsmboot'
 
     def parse(self):
-        file_size = self.fileresult.filesize
         try:
             self.data = android_bootldr_qcom.AndroidBootldrQcom.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
@@ -51,15 +50,9 @@ class AndroidMsmBootldrUnpackParser(UnpackParser):
         self.unpacked_size = self.data.ofs_img_bodies
         for entry in self.data.img_headers:
             self.unpacked_size += entry.len_body
-        check_condition(file_size >= self.unpacked_size, "not enough data")
-
-
-    # no need to carve from the file
-    def carve(self):
-        pass
+        check_condition(self.infile.size >= self.unpacked_size, "not enough data")
 
     def unpack(self, unpack_directory):
-        unpacked_files = []
         cur_offset = self.data.ofs_img_bodies
         for entry in self.data.img_headers:
             if entry.len_body == 0:
@@ -68,26 +61,26 @@ class AndroidMsmBootldrUnpackParser(UnpackParser):
                 cur_offset += entry.len_body
                 continue
 
-            out_labels = []
             file_path = pathlib.Path(entry.name)
-            self.extract_to_file(self.rel_unpack_dir / file_path, cur_offset, entry.len_body)
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
+                os.sendfile(f.fileno(), self.infile.fileno(), cur_offset, entry.len_body)
+                yield unpacked_md
             cur_offset += entry.len_body
-        return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'bootloader', 'qualcomm']
+    labels = ['android', 'bootloader', 'qualcomm']
+
+    @property
+    def metadata(self):
         metadata = {}
 
         metadata['chipset'] = 'snapdragon'
         metadata['partitions'] = []
         cur_offset = self.data.ofs_img_bodies
+        # TODO: we can put this info on the unpacked_md info too?
         for entry in self.data.img_headers:
             if entry.len_body == 0:
                 continue
@@ -96,5 +89,5 @@ class AndroidMsmBootldrUnpackParser(UnpackParser):
                                            'size': entry.len_body})
             cur_offset += entry.len_body
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)
+        return metadata
+

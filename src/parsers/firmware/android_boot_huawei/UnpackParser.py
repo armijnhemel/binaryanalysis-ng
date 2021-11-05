@@ -38,7 +38,6 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
     pretty_name = 'androidboothuawei'
 
     def parse(self):
-        file_size = self.fileresult.filesize
         try:
             self.data = android_bootldr_huawei.AndroidBootldrHuawei.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
@@ -47,15 +46,10 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
         self.unpacked_size = 0
         for entry in self.data.image_header.entries:
             self.unpacked_size = max(self.unpacked_size, entry.ofs_body + entry.len_body)
-        check_condition(file_size >= self.unpacked_size, "not enough data")
+        check_condition(self.infile.size >= self.unpacked_size, "not enough data")
 
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
         for entry in self.data.image_header.entries:
             if entry.len_body == 0:
                 continue
@@ -64,20 +58,19 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
 
             out_labels = []
             file_path = pathlib.Path(entry.name)
-            self.extract_to_file(self.rel_unpack_dir / file_path, entry.ofs_body, entry.len_body)
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
-        return unpacked_files
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
+                os.sendfile(f.fileno(), self.infile.fileno(), entry.ofs_body, entry.len_body)
+                yield unpacked_md
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'bootloader', 'huawei']
-        metadata = {}
+    labels = ['android', 'bootloader', 'huawei']
 
+    @property
+    def metadata(self):
+        metadata = {}
         metadata['partitions'] = []
         for entry in self.data.image_header.entries:
             if entry.len_body == 0:
@@ -85,6 +78,4 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
             metadata['partitions'].append({'name': entry.name,
                                            'offset': entry.ofs_body,
                                            'size': entry.len_body})
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)
+        return metadata

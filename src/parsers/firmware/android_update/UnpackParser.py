@@ -56,25 +56,8 @@ class AndroidUpdateUnpackParser(UnpackParser):
             self.data = android_update.AndroidUpdate.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.img_header.len_image + self.offset <= self.fileresult.filesize, "not enough data")
+        check_condition(self.data.img_header.len_image + self.offset <= self.infile.size, "not enough data")
 
+    labels = ['allwinner']
+    metadata = {}
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    #def unpack(self):
-        #unpacked_files = []
-        #return unpacked_files
-
-    # make sure that self.unpacked_size is not overwritten
-    #def calculate_unpacked_size(self):
-        #pass
-
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['allwinner']
-        metadata = {}
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

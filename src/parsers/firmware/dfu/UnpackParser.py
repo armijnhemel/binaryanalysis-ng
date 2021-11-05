@@ -43,12 +43,7 @@ class DfuUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
         target_counter = 1
         for target in self.data.targets:
             out_labels = []
@@ -57,30 +52,22 @@ class DfuUnpackParser(UnpackParser):
             else:
                 target_name = pathlib.Path(target.name)
 
-            outfile_rel = self.rel_unpack_dir / target_name
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            for elem in target.elements:
-                outfile.write(elem.data)
-            outfile.close()
+            with meta_directory.unpack_regular_file(target_name) as (unpacked_md, outfile):
+                for elem in target.elements:
+                    outfile.write(elem.data)
 
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / target_name, set(out_labels))
-            unpacked_files.append(fr)
+                yield unpacked_md
             target_counter += 1
-        return unpacked_files
 
-    # make sure that self.unpacked_size is not overwritten
-    #def calculate_unpacked_size(self):
-        #pass
+    labels = ['dfu', 'firmware']
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['dfu', 'firmware']
-        metadata = {}
-        metadata['hardare'] = {}
-        metadata['hardare']['product_id'] = self.data.product
-        metadata['hardare']['vendor_id'] = self.data.vendor
+    @property
+    def metadata(self):
+        metadata = {
+            'hardare' : {
+                'product_id': self.data.product,
+                'vendor_id': self.data.vendor
+            }
+        }
+        return metadata
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

@@ -56,14 +56,9 @@ class RockchipUnpackParser(UnpackParser):
                     continue
                 self.unpacked_size = max(self.unpacked_size, entry.ofs_image + entry.len_image)
 
-        check_condition(self.fileresult.filesize >= self.unpacked_size, "not enough data")
+        check_condition(self.infile.size >= self.unpacked_size, "not enough data")
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
 
         if self.data.magic == 'RKFW':
             entries = self.data.rockchip.rkaf.rockchip_files
@@ -96,26 +91,17 @@ class RockchipUnpackParser(UnpackParser):
             else:
                 file_path = pathlib.Path(entry.path)
 
-            outfile_rel = self.rel_unpack_dir / file_path
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            outfile.write(entry.data)
-            outfile.close()
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(entry.data)
+                with unpacked_md.open(open_file=False):
+                    unpacked_md.info['labels'] = out_labels
+                yield unpacked_md
             seen_paths.add(entry.path)
-        return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['rockchip']
+    labels = ['rockchip']
+    metadata = {}
 
-        metadata = {}
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

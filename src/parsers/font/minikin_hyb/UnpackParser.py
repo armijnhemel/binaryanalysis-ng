@@ -37,7 +37,7 @@ class MinikinHybUnpackParser(UnpackParser):
     pretty_name = 'minikin_hyb'
 
     def parse(self):
-        file_size = self.fileresult.filesize
+        file_size = self.infile.size
         try:
             self.data = minikin_hyb.MinikinHyb.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
@@ -55,10 +55,6 @@ class MinikinHybUnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.file_size
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'resource']
-        metadata = {}
+    labels = ['android', 'resource']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

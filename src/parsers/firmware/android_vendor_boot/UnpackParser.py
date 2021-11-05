@@ -43,40 +43,23 @@ class AndroidVendorBootUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    # no need to carve from the file
-    def carve(self):
-        pass
+    def unpack(self, meta_directory):
+        file_path = pathlib.Path('vendor_ramdisk')
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.vendor_ramdisk)
+            yield unpacked_md
 
-    def unpack(self, unpack_directory):
-        unpacked_files = []
-        out_labels = []
+        file_path = pathlib.Path('dtb')
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.dtb)
+            yield unpacked_md
 
-        file_path = 'vendor_ramdisk'
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        outfile.write(self.data.vendor_ramdisk)
+    labels = ['android vendor boot', 'android']
 
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-        unpacked_files.append(fr)
+    @property
+    def metadata(self):
+        metadata = {
+            'commandline': self.data.header.commandline
+        }
+        return metadata
 
-        file_path = 'dtb'
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        outfile.write(self.data.dtb)
-
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-        unpacked_files.append(fr)
-        return unpacked_files
-
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android vendor boot', 'android']
-        metadata = {}
-        metadata['commandline'] = self.data.header.commandline
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

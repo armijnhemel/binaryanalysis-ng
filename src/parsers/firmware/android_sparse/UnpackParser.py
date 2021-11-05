@@ -49,7 +49,6 @@ class AndroidSparseUnpackParser(UnpackParser):
     pretty_name = 'androidsparse'
 
     def parse(self):
-        self.file_size = self.fileresult.filesize
         try:
             self.data = android_sparse.AndroidSparse.from_io(self.infile)
             self.unpacked_size = self.data.header.len_header
@@ -66,47 +65,37 @@ class AndroidSparseUnpackParser(UnpackParser):
                 self.unpacked_size += chunk.header.len_chunk
         except (Exception, ValidationNotEqualError, ValidationExprError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.file_size >= self.unpacked_size, "not enough data")
+        check_condition(self.infile.size >= self.unpacked_size, "not enough data")
         check_condition(self.data.header.version.major == 1, "unsupported major version")
         check_condition(self.data.header.block_size % 4 == 0, "unsupported block size")
 
-    def unpack(self, unpack_directory):
+    def unpack(self, meta_directory):
         # there is only one file that needs to be unpacked/created
-        unpacked_files = []
 
         # this is a temporary name. In case there is an ext2/3/4
         # file system (a typical use case on Android) it might be
         # that there is a volume name embedded in the file.
-        file_path = "sparse.out"
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        for chunk in self.data.chunks:
-            if chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.raw:
-                outfile.write(chunk.body)
-            elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.fill:
-                # Fill data, always length 4
-                for c in range(0, chunk.header.num_body_blocks):
-                    # It has already been checked that blk_sz
-                    # is divisible by 4.
-                   outfile.write(chunk.body*(self.data.header.block_size//4))
-            elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.dont_care:
-                for c in range(0, chunk.header.num_body_blocks):
-                   outfile.write(b'\x00' * self.data.header.block_size)
-        outfile.close()
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set())
-        unpacked_files.append(fr)
-        return unpacked_files
+        file_path = pathlib.Path("sparse.out")
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            for chunk in self.data.chunks:
+                if chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.raw:
+                    outfile.write(chunk.body)
+                elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.fill:
+                    # Fill data, always length 4
+                    for c in range(0, chunk.header.num_body_blocks):
+                        # It has already been checked that blk_sz
+                        # is divisible by 4.
+                       outfile.write(chunk.body*(self.data.header.block_size//4))
+                elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.dont_care:
+                    for c in range(0, chunk.header.num_body_blocks):
+                       outfile.write(b'\x00' * self.data.header.block_size)
+
+            yield unpacked_md
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'androidsparse']
-        metadata = {}
+    labels = ['android', 'androidsparse']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)
