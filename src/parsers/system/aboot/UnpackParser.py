@@ -36,17 +36,12 @@ class AbootUnpackParser(UnpackParser):
     pretty_name = 'aboot'
 
     def parse(self):
-        file_size = self.fileresult.filesize
         try:
             self.data = aboot.Aboot.from_io(self.infile)
             certificate_chain = ssl.DER_cert_to_PEM_cert(self.data.image.certificate_chain)
         except (Exception, ValidationNotEqualError, ValidationGreaterThanError, ssl.SSLError) as e:
             raise UnpackParserException(e.args)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['aboot', 'android']
-        metadata = {}
+    labels = ['aboot', 'android']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

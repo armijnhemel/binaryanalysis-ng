@@ -38,17 +38,12 @@ class SystemdJournal(UnpackParser):
     pretty_name = 'systemd_journal'
 
     def parse(self):
-        file_size = self.fileresult.filesize
         try:
             self.data = systemd_journal.SystemdJournal.from_io(self.infile)
         except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
             raise UnpackParserException(e.args)
 
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['systemd', 'resource']
-        metadata = {}
+    labels = ['systemd', 'resource']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

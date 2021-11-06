@@ -44,7 +44,7 @@ class GnuMessageCatalogUnpackParser(UnpackParser):
     pretty_name = 'gnu_message_catalog'
 
     def parse(self):
-        file_size = self.fileresult.filesize
+        file_size = self.infile.size
         try:
             self.data = gettext_mo.GettextMo.from_io(self.infile)
             # this is a bit of an ugly hack as the Kaitai parser is
@@ -78,10 +78,6 @@ class GnuMessageCatalogUnpackParser(UnpackParser):
         for i in self.data.mo.translations:
             self.unpacked_size = max(self.unpacked_size, i.ofs_str + i.len_str + 1)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'resource', 'GNU message catalog']
-        metadata = {}
+    labels = [ 'resource', 'GNU message catalog']
+    metadata = {}
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)
