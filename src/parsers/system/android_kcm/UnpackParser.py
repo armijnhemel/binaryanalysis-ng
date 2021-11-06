@@ -35,16 +35,11 @@ class KcmUnpackParser(UnpackParser):
     pretty_name = 'kcm'
 
     def parse(self):
-        file_size = self.fileresult.filesize
         try:
             self.data = kcm.Kcm.from_io(self.infile)
         except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
             raise UnpackParserException(e.args)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['kcm', 'android']
-        metadata = {}
+    labels = ['kcm', 'android']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

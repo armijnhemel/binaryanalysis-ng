@@ -51,12 +51,7 @@ class UbifsUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    # no need to carve from the file
-    #def carve(self):
-    #    pass
-
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
 
         # store the highest inode number
         highest_inum = self.data.master_1.node_header.highest_inum
@@ -112,14 +107,10 @@ class UbifsUnpackParser(UnpackParser):
         # create the directories
         for inode in inode_to_path:
             if inode_to_type[inode] == ubifs.Ubifs.InodeTypes.directory:
-                outfile_rel = self.rel_unpack_dir / inode_to_path[inode]
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                outfile_full.mkdir(exist_ok=True)
+                meta_directory.unpack_directory(pathlib.Path(inode_to_path[inode]))
             else:
                 # create the directory of the parent
-                outfile_rel = self.rel_unpack_dir / inode_to_path[inode]
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                outfile_full.parent.mkdir(exist_ok=True)
+                meta_directory.unpack_directory(pathlib.Path(inode_to_path[inode]).parent)
 
         # now that there is a mapping of inodes to names of files
         # the nodes can be traversed again to find the extra metadata
@@ -127,6 +118,7 @@ class UbifsUnpackParser(UnpackParser):
         node_blocks = collections.deque()
         node_blocks.append(self.data.index_root)
 
+        unpacked_mds = {}
         while True:
             try:
                 process_node = node_blocks.popleft()
@@ -135,27 +127,23 @@ class UbifsUnpackParser(UnpackParser):
                         node_blocks.append(branch.branch_target)
                 elif type(process_node.node_header) == ubifs.Ubifs.InodeHeader:
                     inode = process_node.node_header.key.inode_number
+                    file_path = pathlib.Path(inode_to_path[inode])
                     if inode in inode_to_type:
-                        outfile_rel = self.rel_unpack_dir / inode_to_path[inode]
                         if inode_to_type[inode] == ubifs.Ubifs.InodeTypes.regular:
                             # write a stub file
-                            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                            outfile = open(outfile_full, 'wb')
-                            outfile.close()
-                            fr = FileResult(self.fileresult, outfile_rel, set())
-                            unpacked_files.append(fr)
+                            # empty file
+                            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
+                                unpacked_mds[inode] = unpacked_md
                         elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.directory:
                             # directories have already been processed, so skip
                             pass
                         elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.link:
-                            outfile_full = self.scan_environment.unpack_path(outfile_rel)
                             try:
                                  target = process_node.node_header.data.decode()
-                                 outfile_full.symlink_to(target)
+                                 meta_directory.unpack_symlink(file_path, target)
+                                 # No meta directory for symlinks
                             except Exception as e:
                                  continue
-                            fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
-                            unpacked_files.append(fr)
                         elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.block_device:
                             # skip block devices
                             pass
@@ -164,40 +152,40 @@ class UbifsUnpackParser(UnpackParser):
                             pass
                         elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.fifo:
                             # create fifo
-                            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                            os.mkfifo(outfile_full)
-                            fr = FileResult(self.fileresult, outfile_rel, set(['fifo']))
-                            unpacked_files.append(fr)
+                            # TODO: let meta_directory create fifo
+                            # No meta directory for fifo
+                            pass
+                            #outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                            #os.mkfifo(outfile_full)
+                            #fr = FileResult(self.fileresult, outfile_rel, set(['fifo']))
+                            #unpacked_files.append(fr)
                         elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.socket:
                             # create socket
-                            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                            ubi_socket = socket.socket(socket.AF_UNIX)
-                            ubi_socket.bind(outfile_full)
-                            fr = FileResult(self.fileresult, outfile_rel, set(['socket']))
-                            unpacked_files.append(fr)
+                            # TODO: let meta_directory create socket
+                            # No meta directory for socket
+                            #outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                            #ubi_socket = socket.socket(socket.AF_UNIX)
+                            #ubi_socket.bind(outfile_full)
+                            #fr = FileResult(self.fileresult, outfile_rel, set(['socket']))
+                            #unpacked_files.append(fr)
                 elif type(process_node.node_header) == ubifs.Ubifs.DataHeader:
                     inode = process_node.node_header.key.inode_number
-                    outfile_rel = self.rel_unpack_dir / inode_to_path[inode]
-                    outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                    outfile = open(outfile_full, 'ab')
-                    if process_node.node_header.compression == ubifs.Ubifs.Compression.no_compression:
-                        outfile.write(process_node.node_header.data)
-                    elif process_node.node_header.compression == ubifs.Ubifs.Compression.zlib:
-                        outfile.write(zlib.decompress(process_node.node_header.data, -zlib.MAX_WBITS))
-                    elif process_node.node_header.compression == ubifs.Ubifs.Compression.lzo:
-                        outfile.write(lzo.decompress(process_node.node_header.data, False, process_node.node_header.len_uncompressed))
-                    elif process_node.node_header.compression == ubifs.Ubifs.Compression.zstd:
-                        outfile.write(zstd.decompress(process_node.node_header.data))
-                    outfile.close()
+                    unpacked_md = unpacked_mds[inode]
+                    with open(unpacked_md.abs_file_path, 'ab') as outfile:
+                        if process_node.node_header.compression == ubifs.Ubifs.Compression.no_compression:
+                            outfile.write(process_node.node_header.data)
+                        elif process_node.node_header.compression == ubifs.Ubifs.Compression.zlib:
+                            outfile.write(zlib.decompress(process_node.node_header.data, -zlib.MAX_WBITS))
+                        elif process_node.node_header.compression == ubifs.Ubifs.Compression.lzo:
+                            outfile.write(lzo.decompress(process_node.node_header.data, False, process_node.node_header.len_uncompressed))
+                        elif process_node.node_header.compression == ubifs.Ubifs.Compression.zstd:
+                            outfile.write(zstd.decompress(process_node.node_header.data))
             except IndexError:
                 break
+        for unpacked_md in unpacked_mds.values():
+            yield unpacked_md
 
-        return unpacked_files
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['ubifs', 'filesystem']
-        metadata = {}
+    labels = ['ubifs', 'filesystem']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

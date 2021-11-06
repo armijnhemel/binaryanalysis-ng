@@ -38,17 +38,12 @@ class OggUnpackParser(UnpackParser):
     pretty_name = 'ogg'
 
     def parse(self):
-        file_size = self.fileresult.filesize
         try:
             self.data = ogg.Ogg.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['audio', 'ogg']
-        metadata = {}
+    labels = ['audio', 'ogg']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

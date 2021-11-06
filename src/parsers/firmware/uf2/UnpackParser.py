@@ -45,39 +45,25 @@ class Uf2UnpackParser(UnpackParser):
         check_condition(self.data.uf2_block_start.block_number == 0,
                         'invalid start block')
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
-    def unpack(self, unpack_directory):
-        unpacked_files = []
-        out_labels = []
-
+    def unpack(self, meta_directory):
         # cut .uf2 from the path name if it is there
-        if self.fileresult.filename.suffix == '.uf2':
-            file_path = pathlib.Path(self.fileresult.filename.stem)
+        if meta_directory.file_path.suffix == '.uf2':
+            file_path = pathlib.Path(meta_directory.file_path.stem)
         # else anonymous file
         else:
             file_path = pathlib.Path("unpacked_from_uf2")
 
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        outfile.write(self.data.uf2_block_start.data)
+        with meta_directory.unpack_regular_file(file_path) as (unpack_md, outfile):
+            outfile.write(self.data.uf2_block_start.data)
+            for uf2_block in self.data.uf2_blocks:
+                outfile.write(uf2_block.data)
+            yield unpacked_md
 
-        for uf2_block in self.data.uf2_blocks:
-            outfile.write(uf2_block.data)
-        outfile.close()
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-        unpacked_files.append(fr)
-        return unpacked_files
+    labels = ['uf2', 'firmware']
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['uf2', 'firmware']
-        metadata = {}
-        metadata['platform'] = self.data.uf2_block_start.family_id.name
+    @property
+    def metadata(self):
+        return {
+            'platform': self.data.uf2_block_start.family_id.name
+        }
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

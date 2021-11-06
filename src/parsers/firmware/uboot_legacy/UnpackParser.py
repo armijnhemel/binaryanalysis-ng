@@ -85,47 +85,44 @@ class UbootLegacyUnpackParser(UnpackParser):
         except:
             pass
 
-    def unpack(self, unpack_directory):
-        unpacked_files = []
+    def unpack(self, meta_directory):
         # set the name of the image. If the name of the image is
         # an empty string hardcode a name based
         # on the image type of the U-Boot file.
-
 
         if self.is_asus_device or self.data.header.name == '':
             imagename = self.data.header.image_type.name
         else:
             imagename = self.data.header.name
 
-        outfile_rel = self.rel_unpack_dir / imagename
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        outfile.write(self.data.data)
-        outfile.close()
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / imagename, set())
-        unpacked_files.append(fr)
-        return unpacked_files
+        file_path = pathlib.Path(imagename)
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.data)
+            yield unpacked_md
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
+    @property
+    def labels(self):
         labels = ['u-boot']
-
-        metadata = {}
-        metadata['header_crc'] = self.data.header.header_crc
-        metadata['timestamp'] = self.data.header.timestamp
-        metadata['load_address'] = self.data.header.load_address
-        metadata['entry_point_address'] = self.data.header.entry_address
-        metadata['image_data_crc'] = self.data.header.data_crc
-        metadata['os'] = self.data.header.os_type.name
-        metadata['architecture'] = self.data.header.architecture.name
-        metadata['image_type'] = self.data.header.image_type.name
-
         if self.is_asus_device:
             labels.append('asus')
+        return labels
+
+    @property
+    def metadata(self):
+        metadata = {
+            'header_crc': self.data.header.header_crc,
+            'timestamp': self.data.header.timestamp,
+            'load_address': self.data.header.load_address,
+            'entry_point_address': self.data.header.entry_address,
+            'image_data_crc': self.data.header.data_crc,
+            'os': self.data.header.os_type.name,
+            'architecture': self.data.header.architecture.name,
+            'image_type': self.data.header.image_type.name
+        }
+
+        if self.is_asus_device:
             asus_product_id = self.data.header.asus_info.product_id
             metadata['vendor'] = 'ASUS'
             metadata['product_id'] = asus_product_id
+        return metadata
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

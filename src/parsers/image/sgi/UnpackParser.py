@@ -53,7 +53,7 @@ class SgiUnpackParser(WrappedUnpackParser):
                 for scanline in self.data.body.scanlines:
                     # read data because Kaitai Struct evaluates instances lazily
                     len_data = len(scanline.data)
-                check_condition(self.unpacked_size <= self.fileresult.filesize,
+                check_condition(self.unpacked_size <= self.infile.size,
                             "data cannot be outside of file")
             else:
                 self.unpacked_size = self.infile.tell()
@@ -68,10 +68,6 @@ class SgiUnpackParser(WrappedUnpackParser):
     #def unpack(self):
     #    unpacked_files = []
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['graphics', 'sgi']
-        metadata = {}
+    labels = ['graphics', 'sgi']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

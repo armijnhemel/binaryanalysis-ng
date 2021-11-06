@@ -37,18 +37,13 @@ class OpenFst(UnpackParser):
     pretty_name = 'openfst'
 
     def parse(self):
-        file_size = self.fileresult.filesize
         try:
             self.data = openfst.Openfst.from_io(self.infile)
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['openfst']
-        metadata = {}
+    labels = ['openfst']
+    metadata = {
+        'partitions': []
+    }
 
-        metadata['partitions'] = []
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)
