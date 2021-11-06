@@ -51,7 +51,7 @@ class AndroidImgUnpacker(WrappedUnpackParser):
         file_size = self.infile.size
         try:
             self.data = android_img.AndroidImg.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ZeroDivisionError, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
         # right now only look at version < 3
@@ -92,27 +92,27 @@ class AndroidImgUnpacker(WrappedUnpackParser):
 
         unpacked_files = []
 
-        with meta_directory.unpack_regular_file(pathlib.Path(kernel_name) as (unpacked_md, f):
+        with meta_directory.unpack_regular_file(pathlib.Path(kernel_name)) as (unpacked_md, f):
             f.write(self.data.kernel_img)
             yield unpacked_md
 
         if self.data.ramdisk.size > 0:
-            with meta_directory.unpack_regular_file(pathlib.Path(ramdisk_name) as (unpacked_md,f):
+            with meta_directory.unpack_regular_file(pathlib.Path(ramdisk_name)) as (unpacked_md,f):
                 f.write(self.data.ramdisk_img)
                 yield unpacked_md
 
         if self.data.second.size > 0:
-            with meta_directory.unpack_regular_file(pathlib.Path(secondstage_name) as (unpacked_md,f):
+            with meta_directory.unpack_regular_file(pathlib.Path(secondstage_name)) as (unpacked_md,f):
                 f.write(self.data.second_img)
                 yield unpacked_md
 
         if self.data.header_version > 0 and self.data.recovery_dtbo.size > 0:
-            with meta_directory.unpack_regular_file(pathlib.Path(recovery_name) as (unpacked_md,f):
+            with meta_directory.unpack_regular_file(pathlib.Path(recovery_name)) as (unpacked_md,f):
                 f.write(self.data.recovery_dtbo_img)
                 yield unpacked_md
 
         if self.data.header_version > 1 and self.data.dtb.size > 0:
-            with meta_directory.unpack_regular_file(pathlib.Path(dtb_name) as (unpacked_md,f):
+            with meta_directory.unpack_regular_file(pathlib.Path(dtb_name)) as (unpacked_md,f):
                 f.write(self.data.dtb_img)
                 yield unpacked_md
 
