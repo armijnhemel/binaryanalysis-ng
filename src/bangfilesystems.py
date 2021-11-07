@@ -2613,7 +2613,7 @@ def unpack_vdi(fileresult, scanenvironment, offset, unpackdir):
             labels.append('vdi')
             labels.append('filesystem')
             unpackedfilesandlabels.append((outputfile_rel, []))
-            return {'status': True, 'length': unpackedsize, 'labels': labels,
+            return {'status': True, 'length': filesize, 'labels': labels,
                     'filesandlabels': unpackedfilesandlabels}
 
     # TODO: snapshots and carving
