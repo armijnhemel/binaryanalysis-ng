@@ -45,7 +45,8 @@ class RomfsUnpackParser(WrappedUnpackParser):
     def parse(self):
         try:
             self.data = romfs.Romfs.from_io(self.infile)
-        except (UnicodeDecodeError, ValidationFailedError) as e:
+        except (UnicodeDecodeError, ValueError, ValidationFailedError) as e:
+            # TODO: ValueError should be caught in .ksy? (len_file - _io.pos cannot be negative)
             raise UnpackParserException(e.args)
         for f in self.data.files.files:
             check_condition(f.next_fileheader <= self.data.len_file, "invalid next file header")

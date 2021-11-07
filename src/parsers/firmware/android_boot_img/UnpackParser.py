@@ -52,11 +52,14 @@ class AndroidImgUnpacker(WrappedUnpackParser):
         try:
             self.data = android_img.AndroidImg.from_io(self.infile)
         except (Exception, ZeroDivisionError, ValidationNotEqualError) as e:
+            # TODO: ZeroDivisionError check should go in the .ksy
             raise UnpackParserException(e.args)
 
         # right now only look at version < 3
         check_condition(self.data.header_version != 3, "version 3 not suppprted")
 
+        # TODO: this check should go in the .ksy
+        check_condition(self.data.page_size > 0, "page size cannot be zero")
         # compute the size and check against the file size
         # take padding into account
         page_size = self.data.page_size
