@@ -1,11 +1,11 @@
 import pytest
 
 from .util import *
-from UnpackParserException import UnpackParserException
-from UnpackParser import UnpackParser
-from bangsignatures import get_unpackers, get_unpacker_by_pretty_name
-from parsers.database.sqlite.UnpackParser import SqliteUnpackParser
-from parsers.image.gif.UnpackParser import GifUnpackParser
+from bang.UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser
+from bang.bangsignatures import get_unpackers, get_unpacker_by_pretty_name
+from bang.parsers.database.sqlite.UnpackParser import SqliteUnpackParser
+from bang.parsers.image.gif.UnpackParser import GifUnpackParser
 
 class InvalidUnpackParser(UnpackParser):
     pass

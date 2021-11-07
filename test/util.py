@@ -4,17 +4,17 @@ import pathlib
 import pytest
 import shutil
 
-from meta_directory import *
+from bang.meta_directory import *
 from FileResult import *
-from ScanEnvironment import *
-from bangsignatures import maxsignaturesoffset
-import bangsignatures
+from bang.ScanEnvironment import *
+from bang.bangsignatures import maxsignaturesoffset
+from bang import bangsignatures
 
 from .mock_queue import *
 from .mock_db import *
 
-from UnpackParser import UnpackParser
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser
+from bang.UnpackParserException import UnpackParserException
 from UnpackResults import UnpackResults
 
 _scriptdir = os.path.dirname(__file__)

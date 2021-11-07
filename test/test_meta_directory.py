@@ -1,6 +1,5 @@
 from .util import *
-from meta_directory import MetaDirectory
-from FileResult import FileResult
+from bang.meta_directory import MetaDirectory
 
 
 def test_create_unpack_directory_for_root_file(scan_environment):

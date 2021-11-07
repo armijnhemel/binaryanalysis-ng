@@ -1,9 +1,9 @@
 import logging
 from .util import *
-from meta_directory import *
-from scan_job import *
+from bang.meta_directory import *
+from bang.scan_job import *
 from .mock_queue import *
-from UnpackParser import PaddingParser
+from bang.UnpackParser import PaddingParser
 
 class UnpackParserUnpacksBase(UnpackParser):
     pretty_name = 'UnpackParserUnpacksRelative'
@@ -124,7 +124,7 @@ def test_detect_empty_file(scan_environment):
 
 # Tests for extracting during an extension based scan
 
-from parsers.image.gif.UnpackParser import GifUnpackParser
+from bang.parsers.image.gif.UnpackParser import GifUnpackParser
 
 class ExtensionOnlyGifUnpackParser(GifUnpackParser):
     signatures = []

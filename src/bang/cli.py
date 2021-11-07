@@ -55,6 +55,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
 
     # set the unpack_parsers
     # TODO: use config to enable/disable parsers
+    logging.debug(f' finding unpack_parsers ')
     unpack_parsers = bangsignatures.get_unpackers()
     scan_environment.set_unpackparsers(unpack_parsers)
     logging.debug(f'{unpack_parsers =}')
