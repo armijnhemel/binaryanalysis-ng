@@ -1,8 +1,6 @@
 import os
 
-from UnpackParserException import UnpackParserException
-from UnpackResults import UnpackResults
-from FileResult import FileResult
+from .UnpackParserException import UnpackParserException
 
 import os
 import pathlib
@@ -172,16 +170,6 @@ class WrappedUnpackParser(UnpackParser):
         pass
     def carve(self):
         pass
-    def get_unpack_results_from_dictionary(self,r):
-        unpack_results = UnpackResults()
-        unpack_results.set_length(r['length'])
-        frs = [ FileResult(self.fileresult, pathlib.Path(x[0]), set(x[1]))
-                for x in r['filesandlabels'] ]
-        unpack_results.set_unpacked_files(frs)
-        unpack_results.set_offset(r.get('offset'))
-        unpack_results.set_labels(r.get('labels', []))
-        unpack_results.set_metadata(r.get('metadata', {}))
-        return unpack_results
 
 class SynthesizingParser(UnpackParser):
 

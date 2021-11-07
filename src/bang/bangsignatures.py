@@ -392,7 +392,7 @@ import importlib
 import inspect
 import parsers
 import pathlib
-from UnpackParser import UnpackParser, WrappedUnpackParser
+from .UnpackParser import UnpackParser, WrappedUnpackParser
 
 def _get_unpackers_recursive(unpackers_root, parent_module_path):
     unpackers = []

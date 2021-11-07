@@ -5,7 +5,7 @@ import logging
 from .ScanEnvironment import *
 from .scan_job import ScanJob, process_jobs
 from .meta_directory import MetaDirectory
-import bangsignatures
+import bang.bangsignatures
 
 def create_scan_environment_from_config(config):
     e = ScanEnvironment(
