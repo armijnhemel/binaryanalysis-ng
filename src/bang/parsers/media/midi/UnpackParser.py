@@ -49,13 +49,12 @@ class MidiUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'midi', 'audio' ]
+    labels = [ 'midi', 'audio' ]
+
+    @property
+    def metadata(self):
         metadata = {}
         pngtexts = []
-
         # TODO: extract meta information from MIDI file
+        return metadata
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)
