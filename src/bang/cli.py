@@ -5,7 +5,7 @@ import logging
 from .ScanEnvironment import *
 from .scan_job import ScanJob, process_jobs
 from .meta_directory import MetaDirectory
-import bang.bangsignatures
+from . import bangsignatures
 
 def create_scan_environment_from_config(config):
     e = ScanEnvironment(
@@ -39,15 +39,15 @@ def app():
 @app.command()
 @click.option('-c', '--config')
 @click.option('-v', '--verbose', is_flag=True)
-@click.option('-u', '--unpack-directory', default=pathlib.Path('/tmp'))
-@click.option('-t', '--temporary-directory', default=pathlib.Path('/tmp'))
+@click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'))
+@click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'))
 @click.option('-j', '--jobs', default=1, type=int)
 @click.argument('path', type=click.Path())
 def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
-    scan_environment.temporarydirectory = temporary_directory
-    scan_environment.unpackdirectory = unpack_directory
+    scan_environment.temporarydirectory = temporary_directory.absolute()
+    scan_environment.unpackdirectory = unpack_directory.absolute()
 
     if verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -57,6 +57,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     # TODO: use config to enable/disable parsers
     unpack_parsers = bangsignatures.get_unpackers()
     scan_environment.set_unpackparsers(unpack_parsers)
+    logging.debug(f'{unpack_parsers =}')
 
     # set up the jobs
     process_manager = multiprocessing.Manager()
