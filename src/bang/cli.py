@@ -2,9 +2,9 @@ import multiprocessing
 import click
 import pathlib
 import logging
-from ScanEnvironment import *
-from scan_job import ScanJob, process_jobs
-from meta_directory import MetaDirectory
+from .ScanEnvironment import *
+from .scan_job import ScanJob, process_jobs
+from .meta_directory import MetaDirectory
 import bangsignatures
 
 def create_scan_environment_from_config(config):

@@ -4,9 +4,9 @@ import mmap
 import queue
 import logging
 from operator import itemgetter
-from meta_directory import *
-from UnpackParser import SynthesizingParser, ExtractingParser, PaddingParser
-from UnpackParserException import UnpackParserException
+from .meta_directory import *
+from .UnpackParser import SynthesizingParser, ExtractingParser, PaddingParser
+from .UnpackParserException import UnpackParserException
 import bangsignatures
 
 class ScanJob:
