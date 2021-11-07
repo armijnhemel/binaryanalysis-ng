@@ -1,9 +1,9 @@
 import sys, os
 import hashlib
-from test.util import *
-from test.mock_metadirectory import *
+from util import *
+from mock_metadirectory import *
 
-from .UnpackParser import VfatUnpackParser
+from bang.parsers.filesystem.vfat.UnpackParser import VfatUnpackParser
 
 def test_fat12_single_file_unpacked_correctly(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'fat' / 'test.fat'

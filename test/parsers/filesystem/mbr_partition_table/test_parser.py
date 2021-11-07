@@ -1,9 +1,9 @@
 import sys, os
-from test.util import *
-from test.mock_metadirectory import *
-from UnpackParserException import UnpackParserException
+from util import *
+from mock_metadirectory import *
+from bang.UnpackParserException import UnpackParserException
 
-from .UnpackParser import MbrPartitionTableUnpackParser
+from bang.parsers.filesystem.mbr_partition_table.UnpackParser import MbrPartitionTableUnpackParser
 
 def test_load_standard_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'download' / 'filesystem' / 'mbr_partition_table' / 'openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img'

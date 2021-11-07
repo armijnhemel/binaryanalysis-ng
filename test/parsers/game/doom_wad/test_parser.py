@@ -1,9 +1,9 @@
 import sys, os
-from test.util import *
-from test.mock_metadirectory import *
+from util import *
+from mock_metadirectory import *
 
-from UnpackParserException import UnpackParserException
-from .UnpackParser import DoomWadUnpackParser
+from bang.UnpackParserException import UnpackParserException
+from bang.parsers.game.doom_wad.UnpackParser import DoomWadUnpackParser
 
 def test_load_standard_wad_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'download' / 'game' / 'doom_wad' / 'doom1.wad'

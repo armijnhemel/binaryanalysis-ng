@@ -1,8 +1,8 @@
 import logging
-from .util import *
+from util import *
 from bang.meta_directory import *
 from bang.scan_job import *
-from .mock_queue import *
+from mock_queue import *
 from bang.UnpackParser import PaddingParser
 
 class UnpackParserUnpacksBase(UnpackParser):

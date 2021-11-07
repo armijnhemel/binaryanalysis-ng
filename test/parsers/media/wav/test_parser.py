@@ -1,9 +1,9 @@
 import sys, os
-from test.util import *
-from test.mock_metadirectory import *
+from util import *
+from mock_metadirectory import *
 
-from UnpackParserException import UnpackParserException
-from .UnpackParser import WavUnpackParser
+from bang.UnpackParserException import UnpackParserException
+from bang.parsers.media.wav.UnpackParser import WavUnpackParser
 
 def test_load_standard_wav_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'wav' / 'test.wav'

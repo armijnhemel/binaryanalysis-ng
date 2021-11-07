@@ -1,9 +1,9 @@
 import sys, os
 import pytest
-from test.util import *
-from test.mock_metadirectory import *
+from util import *
+from mock_metadirectory import *
 
-from .UnpackParser import RarUnpackParser
+from bang.parsers.archivers.rar.UnpackParser import RarUnpackParser
 
 def test_load_standard_file(scan_environment):
     rel_testfile = pathlib.Path('download') / 'archivers' / 'rar' / 'hachoir-core.rar'

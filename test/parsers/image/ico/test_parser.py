@@ -1,8 +1,8 @@
 import sys, os
-from test.util import *
-from test.mock_metadirectory import *
+from util import *
+from mock_metadirectory import *
 
-from .UnpackParser import IcoUnpackParser
+from bang.parsers.image.ico.UnpackParser import IcoUnpackParser
 
 def test_load_standard_ico_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'ico' / 'test.ico'

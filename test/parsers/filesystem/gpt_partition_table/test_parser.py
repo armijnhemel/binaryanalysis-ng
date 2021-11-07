@@ -1,8 +1,8 @@
 import sys, os
-from test.util import *
-from test.mock_metadirectory import *
+from util import *
+from mock_metadirectory import *
 
-from .UnpackParser import GptPartitionTableUnpackParser
+from bang.parsers.filesystem.gpt_partition_table.UnpackParser import GptPartitionTableUnpackParser
 
 def test_load_standard_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'download' / 'filesystem' / 'gpt_partition_table' / 'OPNsense-21.7.1-OpenSSL-vga-amd64.img'

@@ -1,9 +1,8 @@
 import sys, os
-from test.util import *
-from test.mock_metadirectory import *
+from util import *
 
-from UnpackParserException import UnpackParserException
-from .UnpackParser import GifUnpackParser
+from bang.UnpackParserException import UnpackParserException
+from bang.parsers.image.gif.UnpackParser import GifUnpackParser
 
 def test_load_standard_gif_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'gif' / 'test.gif'

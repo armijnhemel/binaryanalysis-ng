@@ -1,8 +1,8 @@
 import sys, os
-from test.util import *
-from test.mock_metadirectory import *
+from util import *
+from mock_metadirectory import *
 
-from .UnpackParser import CpioNewAsciiUnpackParser, \
+from bang.parsers.archivers.cpio.UnpackParser import CpioNewAsciiUnpackParser, \
     CpioNewCrcUnpackParser, CpioPortableAsciiUnpackParser
 
 def test_load_cpio_file_new_ascii(scan_environment):

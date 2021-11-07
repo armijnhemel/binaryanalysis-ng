@@ -1,8 +1,8 @@
 import sys, os
-from test.util import *
-from test.mock_metadirectory import *
+from util import *
+from mock_metadirectory import *
 
-from .UnpackParser import MozillaMar
+from bang.parsers.archivers.mozilla_mar.UnpackParser import MozillaMar
 
 def test_load_mozilla_mar_file(scan_environment):
     rel_testfile = pathlib.Path('download') / 'archivers' / 'mozilla_mar' / 'test-xz.mar'

@@ -5,13 +5,13 @@ import pytest
 import shutil
 
 from bang.meta_directory import *
-from FileResult import *
+# from FileResult import *
 from bang.ScanEnvironment import *
 from bang.bangsignatures import maxsignaturesoffset
 from bang import bangsignatures
 
-from .mock_queue import *
-from .mock_db import *
+from mock_queue import *
+from mock_db import *
 
 from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException

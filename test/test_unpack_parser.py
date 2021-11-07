@@ -1,6 +1,6 @@
 import pytest
 
-from .util import *
+from util import *
 from bang.UnpackParserException import UnpackParserException
 from bang.UnpackParser import UnpackParser
 from bang.bangsignatures import get_unpackers, get_unpacker_by_pretty_name

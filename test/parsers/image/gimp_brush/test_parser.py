@@ -1,9 +1,9 @@
 import sys, os
-from test.util import *
-from test.mock_metadirectory import *
+from util import *
+from mock_metadirectory import *
 
-from UnpackParserException import UnpackParserException
-from .UnpackParser import GimpBrushUnpackParser
+from bang.UnpackParserException import UnpackParserException
+from bang.parsers.image.gimp_brush.UnpackParser import GimpBrushUnpackParser
 
 def test_load_standard_gbr_file(scan_environment):
     testfile = testdir_base / 'testdata' / 'unpackers' / 'gimpbrush' / 'test.gbr'

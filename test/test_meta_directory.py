@@ -1,4 +1,4 @@
-from .util import *
+from util import *
 from bang.meta_directory import MetaDirectory
 
 
