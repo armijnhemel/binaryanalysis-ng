@@ -7,7 +7,7 @@ from operator import itemgetter
 from .meta_directory import *
 from .UnpackParser import SynthesizingParser, ExtractingParser, PaddingParser
 from .UnpackParserException import UnpackParserException
-import bang.bangsignatures
+from bang import bangsignatures
 
 class ScanJob:
     def __init__(self, path):
