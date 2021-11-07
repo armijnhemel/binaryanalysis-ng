@@ -67,6 +67,34 @@ def test_fat12_subdirectories_unpacked_correctly(scan_environment):
         unpacked_path_abs = scan_environment.unpackdirectory / unpacked_path_rel
         assert unpacked_path_abs.exists()
 
-# test FAT12, FAT16, FAT32
-# test LFN (long filenames)
+
+def test_fat_with_volume_name(scan_environment):
+    # test file: partition 0 of download/filesystem/gpt_partition_table/OPNsense-21.7.1-OpenSSL-vga-amd64.img
+    testfile = testdir_base / 'testdata' / 'unpackers' / 'fat' / 'unpacked.gpt-partition0.part'
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open() as opened_md:
+        p = VfatUnpackParser(opened_md, 0)
+        p.parse_from_offset()
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+    with reopen_md(md).open(open_file=False) as unpacked_md:
+
+        assert len(unpacked_md.unpacked_files) == 2
+
+        unpacked_path_rel = unpacked_md.unpacked_path(pathlib.Path('efi/boot/startup.nsh'))
+        unpacked_path_abs = scan_environment.unpackdirectory / unpacked_path_rel
+        assert unpacked_path_abs.exists()
+
+        unpacked_path_rel = unpacked_md.unpacked_path(pathlib.Path('efi/boot/BOOTx64.efi'))
+        unpacked_path_abs = scan_environment.unpackdirectory / unpacked_path_rel
+        assert unpacked_path_abs.exists()
+
+        # TODO: volume name should not be unpacked
+        unpacked_path_rel = unpacked_md.unpacked_path(pathlib.Path('efisys'))
+        unpacked_path_abs = scan_environment.unpackdirectory / unpacked_path_rel
+        assert not unpacked_path_abs.exists()
+
+
+# TODO: test all of FAT12, FAT16, FAT32
+# TODO: test LFN (long filenames)
 
