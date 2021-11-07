@@ -5,20 +5,17 @@ from mock_metadirectory import *
 from bang.parsers.archivers.mozilla_mar.UnpackParser import MozillaMar
 
 def test_load_mozilla_mar_file(scan_environment):
-    rel_testfile = pathlib.Path('download') / 'archivers' / 'mozilla_mar' / 'test-xz.mar'
-    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
-    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
-    filesize = fr.filesize
-    data_unpack_dir = rel_testfile.parent / ('unpack-'+rel_testfile.name + "-1")
-    p = MozillaMar(fr, scan_environment, data_unpack_dir, 0)
-    p.open()
-    r = p.parse_and_unpack()
-    p.close()
-    assert r.get_length() <= filesize
-    extracted_fn = data_unpack_dir / 'Contents' / 'MacOS' / 'defaults' / 'pref' / 'channel-prefs.js'
-    assert r.get_unpacked_files()[0].filename == extracted_fn
-    assert r.get_unpacked_files()[0].labels == set()
-    assertUnpackedPathExists(scan_environment, extracted_fn)
-    extracted_fn_abs = pathlib.Path(scan_environment.unpackdirectory) / extracted_fn
-    with open(extracted_fn_abs,"rb") as f:
-        assert f.read(2) == b'\xfd\x37'
+    testfile = testdir_base / 'testdata' / 'download' / 'archivers' / 'mozilla_mar' / 'test-xz.mar'
+    md = create_meta_directory_for_path(scan_environment, testfile, True)
+    with md.open() as opened_md:
+        p = MozillaMar(opened_md, 0)
+        p.parse_from_offset()
+        p.write_info(opened_md)
+        for _ in p.unpack(opened_md): pass
+    with reopen_md(md).open() as unpacked_md:
+        unpacked_fn = unpacked_md.unpacked_path(pathlib.Path('Contents') / 'MacOS' / 'defaults' / 'pref' / 'channel-prefs.js')
+        assert unpacked_fn in unpacked_md.unpacked_files
+        unpacked_fn_abs = scan_environment.unpackdirectory / unpacked_fn
+        with open(unpacked_fn_abs, 'rb') as f:
+            assert f.read(2) == b'\xfd\x37'
+

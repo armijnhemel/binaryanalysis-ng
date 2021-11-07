@@ -25,6 +25,7 @@ Unpacker for Mozilla ARchive files.
 '''
 
 import os
+import pathlib
 from FileResult import FileResult
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
@@ -59,7 +60,7 @@ class MozillaMar(UnpackParser):
             if entry.file_name == '':
                 continue
 
-            with meta_directory.unpack_regular_file(entry.file_name) as (unpacked_md, f):
+            with meta_directory.unpack_regular_file(pathlib.Path(entry.file_name)) as (unpacked_md, f):
                 f.write(entry.content)
                 yield unpacked_md
 
