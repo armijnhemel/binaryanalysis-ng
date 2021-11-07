@@ -1,6 +1,6 @@
 
 import os
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_squashfs
 
 class SquashfsUnpackParser(WrappedUnpackParser):

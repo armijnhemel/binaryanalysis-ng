@@ -1,6 +1,6 @@
 
 import os
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_vim_swapfile
 
 class VimSwapfileUnpackParser(WrappedUnpackParser):

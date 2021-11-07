@@ -1,8 +1,8 @@
 import os
 from . import windows_shell_items
 from . import windows_lnk_file
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
 
 class WindowsLinkUnpackParser(UnpackParser):

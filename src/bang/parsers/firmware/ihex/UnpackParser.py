@@ -2,7 +2,7 @@
 import os
 import pathlib
 import logging
-from UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser, check_condition
 from bangtext import unpack_ihex
 
 def parse_ihex_line(line):

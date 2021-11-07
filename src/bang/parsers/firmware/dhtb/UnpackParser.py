@@ -1,6 +1,6 @@
 
 import os
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 from bangandroid import unpack_dhtb
 
 class DhtbUnpackParser(WrappedUnpackParser):

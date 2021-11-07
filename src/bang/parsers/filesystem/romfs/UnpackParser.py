@@ -22,11 +22,11 @@
 
 
 import os
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_romfs
 
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import romfs
 

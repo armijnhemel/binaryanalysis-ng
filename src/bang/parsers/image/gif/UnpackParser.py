@@ -23,8 +23,8 @@
 import os
 import defusedxml.minidom
 from . import gif
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 
 class GifUnpackParser(UnpackParser):

@@ -24,12 +24,12 @@ import os
 import pathlib
 from FileResult import FileResult
 
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import odex
 
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 from bangandroid import unpack_odex
 
 #class OdexUnpackParser(UnpackParser):

@@ -27,13 +27,13 @@ Unpacker for Android images.
 import os
 import pathlib
 from FileResult import FileResult
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import android_img
 
 from bangandroid import unpack_android_boot_img
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 
 #class AndroidImgUnpacker(UnpackParser):
 class AndroidImgUnpacker(WrappedUnpackParser):

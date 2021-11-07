@@ -26,7 +26,7 @@ Parse and unpack RPM files.
 
 
 import os
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_rpm
 from bangunpack import unpack_gzip
 from bangunpack import unpack_bzip2
@@ -34,8 +34,8 @@ from bangunpack import unpack_xz
 from bangunpack import unpack_lzma
 from bangunpack import unpack_zstd
 
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import rpm
 

@@ -4,8 +4,8 @@ import pathlib
 import logging
 from . import vfat
 from . import vfat_directory
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from FileResult import FileResult
 from kaitaistruct import ValidationNotEqualError
 

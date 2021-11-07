@@ -32,8 +32,8 @@ Section 5 describes the structure of a PNG file
 import os
 import binascii
 
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError, ValidationExprError, ValidationGreaterThanError, ValidationLessThanError
 from . import png_chunk
 

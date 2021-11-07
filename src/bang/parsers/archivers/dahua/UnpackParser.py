@@ -1,6 +1,6 @@
 
 import os
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 from bangunpack import unpack_dahua
 
 class DahuaUnpackParser(WrappedUnpackParser):

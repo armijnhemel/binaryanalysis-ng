@@ -1,6 +1,6 @@
 
 import os
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_mng
 
 class MngUnpackParser(WrappedUnpackParser):

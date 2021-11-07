@@ -1,6 +1,6 @@
 
 import os
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 from bangandroid import unpack_android_sparse_data
 
 class AndroidSparseDataUnpackParser(WrappedUnpackParser):

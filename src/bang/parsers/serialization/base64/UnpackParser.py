@@ -1,6 +1,6 @@
 
 import os
-from UnpackParser import WrappedUnpackParser
+from bang.UnpackParser import WrappedUnpackParser
 from bangtext import unpack_base64
 
 class Base64UnpackParser(WrappedUnpackParser):

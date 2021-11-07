@@ -32,8 +32,8 @@ Files starting with ._ are likely AppleDouble encoded
 '''
 
 import os
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 from . import apple_single_double
 

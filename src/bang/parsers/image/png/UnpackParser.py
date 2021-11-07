@@ -39,8 +39,8 @@ from xml.parsers.expat import ExpatError
 import defusedxml.minidom
 import PIL.Image
 
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError, ValidationExprError, ValidationLessThanError
 from . import png
 

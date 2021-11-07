@@ -24,8 +24,8 @@ import os
 import uuid
 import pathlib
 from . import gpt_partition_table
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from FileResult import FileResult
 
 class GptPartitionTableUnpackParser(UnpackParser):

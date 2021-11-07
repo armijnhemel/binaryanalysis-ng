@@ -40,8 +40,8 @@ from . import cpio_new_ascii
 from . import cpio_new_crc
 from . import cpio_portable_ascii
 from . import cpio_old_binary
-from UnpackParser import UnpackParser
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser
+from bang.UnpackParserException import UnpackParserException
 from FileResult import FileResult
 from kaitaistruct import ValidationNotEqualError
 

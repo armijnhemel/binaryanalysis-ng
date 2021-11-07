@@ -2,8 +2,8 @@ import os
 import re
 import subprocess
 from . import rar
-from UnpackParser import UnpackParser
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
 
 

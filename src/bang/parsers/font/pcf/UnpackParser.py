@@ -32,8 +32,8 @@ https://github.com/kaitai-io/kaitai_struct_formats/issues/437
 '''
 
 import os
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError, ValidationLessThanError
 from . import pcf_font
 

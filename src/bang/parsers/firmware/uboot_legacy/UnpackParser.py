@@ -26,8 +26,8 @@ import binascii
 import pathlib
 
 from FileResult import FileResult
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError, ValidationLessThanError, ValidationNotAnyOfError, ValidationGreaterThanError
 from . import uimage
 
