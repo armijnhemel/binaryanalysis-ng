@@ -52,8 +52,6 @@ import sqlite3
 
 # some external packages that are needed
 import defusedxml.minidom
-import lz4
-import lz4.frame
 import mutf8
 import pyaxmlparser
 
