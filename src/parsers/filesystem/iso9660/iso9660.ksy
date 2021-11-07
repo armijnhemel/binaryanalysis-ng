@@ -26,17 +26,19 @@ doc-ref:
   - rrip https://web.archive.org/web/20170404043745/http://www.ymi.com/ymi/sites/default/files/pdf/Rockridge.pdf
   - rras http://www.estamos.de/makecd/Rock_Ridge_Amiga_Specific
   - rrzf https://dev.lovelyhq.com/libburnia/web/wikis/Zisofs
-instances:
-  sector_size:
-    doc-ref: ecma-119 6.1.2
-    value: 0x800
-  volume_descriptor_set:
-    io: _root._io
-    pos: _root.sector_size * 0x10
+seq:
+  - id: system_area
+    size: 16 * sector_size
+    doc-ref: ecma-119 6.2.1
+  - id: data_area
     type: volume_descriptor
     size: sector_size
     repeat: until
     repeat-until: _.type == volume_type::volume_descriptor_set_terminator
+instances:
+  sector_size:
+    doc-ref: ecma-119 6.1.2
+    value: 0x800
 enums:
   volume_type:
     0x00: boot_record_volume_descriptor
@@ -392,8 +394,8 @@ types:
                 type: directory_record
       directory_records:
         doc: |
-          First item "." it points to it self
-          Second item ".." it points to the parent, or also to self if it the root
+          First item "." points to it self
+          Second item ".." points to the parent, or also to self if it is the root
         seq:
           - id: directory_record
             type: directory_record
