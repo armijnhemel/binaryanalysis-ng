@@ -16,18 +16,19 @@ def unpackparser(request):
 
 def parsers_and_test_files():
     return [
-        (get_unpacker_by_pretty_name('cpio-new-ascii'), testdir_base / 'testdata' / 'unpackers' / 'cpio' / 'test-new.cpio'),
-        (get_unpacker_by_pretty_name('gif'), testdir_base / 'testdata' / 'unpackers' / 'gif' / 'test.gif'),
-        (get_unpacker_by_pretty_name('png'), testdir_base / 'testdata' / 'unpackers' / 'png' / 'test.png'),
-        (get_unpacker_by_pretty_name('fat'), testdir_base / 'testdata' / 'unpackers' / 'fat' / 'test.fat'),
-        (get_unpacker_by_pretty_name('fat'), testdir_base / 'testdata' / 'unpackers' / 'fat' / 'test-fat12-multidirfile.fat'),
-        (get_unpacker_by_pretty_name('gimpbrush'), testdir_base / 'testdata' / 'unpackers' / 'gimpbrush' / 'test.gbr'),
-        (get_unpacker_by_pretty_name('ico'), testdir_base / 'testdata' / 'unpackers' / 'ico' / 'test.ico'),
-        (get_unpacker_by_pretty_name('ihex'), testdir_base / 'testdata' / 'unpackers' / 'ihex' / 'example.hex'),
+        ('cpio-new-ascii', pathlib.Path('unpackers') / 'cpio' / 'test-new.cpio'),
+        ('gif', pathlib.Path('unpackers') / 'gif' / 'test.gif'),
+        ('png', pathlib.Path('unpackers') / 'png' / 'test.png'),
+        ('fat', pathlib.Path('unpackers') / 'fat' / 'test.fat'),
+        ('fat', pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'),
+        ('gimpbrush', pathlib.Path('unpackers') / 'gimpbrush' / 'test.gbr'),
+        ('ico', pathlib.Path('unpackers') / 'ico' / 'test.ico'),
+        ('ihex', pathlib.Path('unpackers') / 'ihex' / 'example.hex'),
     ]
 
 
-@pytest.fixture(params = parsers_and_test_files())
+@pytest.fixture(params = [ (get_unpacker_by_pretty_name(x[0]), testdir_base / 'testdata' / x[1]) for x in parsers_and_test_files()],
+        ids = [f'{get_unpacker_by_pretty_name(x[0]).__name__} on {x[1]}' for x in parsers_and_test_files()])
 def parser_and_test_file(request):
     return request.param
 
