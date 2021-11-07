@@ -390,36 +390,33 @@ import os
 import pkgutil
 import importlib
 import inspect
-import parsers
+from . import parsers
 import pathlib
 from .UnpackParser import UnpackParser, WrappedUnpackParser
 
 def _get_unpackers_recursive(unpackers_root, parent_module_path):
-    unpackers = []
     abs_module_path = unpackers_root / parent_module_path
     for m in pkgutil.iter_modules([abs_module_path]):
         full_module_path = parent_module_path / m.name
         if (unpackers_root / full_module_path).is_dir():
             try:
-                full_module_name = ".".join(full_module_path.parts)
-                module_name = 'parsers.{}.UnpackParser'.format(full_module_name)
-                module = importlib.import_module(module_name)
+                full_module_name = '.'.join(full_module_path.parts)
+                module_name = f'.{full_module_name}.UnpackParser'
+                module = importlib.import_module(module_name, package='bang.parsers')
                 for name, member in inspect.getmembers(module):
                     if inspect.isclass(member) and issubclass(member, UnpackParser) \
                         and member != UnpackParser \
                         and member != WrappedUnpackParser:
-                        unpackers.append(member)
+                        # unpackers.append(member)
+                        yield member
             except ModuleNotFoundError as e:
                 pass
-            unpackers.extend(_get_unpackers_recursive(
-                unpackers_root, full_module_path ))
-    return unpackers
-
+            yield from _get_unpackers_recursive(unpackers_root, full_module_path )
 
 def get_unpackers():
     unpackers = _get_unpackers_recursive(
             pathlib.Path(os.path.dirname(parsers.__file__)), pathlib.Path('.'))
-    return unpackers
+    return list(unpackers)
 
 def get_unpackers_for_extensions():
     d = {}
