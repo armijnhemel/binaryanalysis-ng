@@ -304,6 +304,7 @@ def process_job(scanjob):
                 md.write_info_with_unpack_parser()
             return # skip padding file by returning
 
+        # TODO: skip for synthesized files
         for md in check_by_extension(scanjob.scan_environment, meta_directory):
             logging.debug(f'[scanjob.meta_directory.md_path]process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
             for unpacked_md in md.unpack_with_unpack_parser():
@@ -317,6 +318,7 @@ def process_job(scanjob):
         if meta_directory.is_scanned():
             return
 
+        # TODO: skip for synthesized files
         for md in check_by_signature(scanjob.scan_environment, meta_directory):
             logging.debug(f'[scanjob.meta_directory.md_path]process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
             # if md is synthesized, queue it for extra checks?
@@ -331,7 +333,6 @@ def process_job(scanjob):
             return
 
         # if extension and signature did not give any results, try other things
-        # TODO: try featureless parsers
         logging.debug(f'[scanjob.meta_directory.md_path]process_job: trying featureless parsers')
 
         for md in check_featureless(scanjob.scan_environment, meta_directory):
