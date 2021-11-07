@@ -4,8 +4,8 @@ import os
 import sys
 import pathlib
 
-from ScanEnvironment import ScanEnvironment
-from UnpackParser import UnpackParser
+from bang.ScanEnvironment import ScanEnvironment
+from bang.UnpackParser import UnpackParser
 from FileResult import FileResult
 
 
