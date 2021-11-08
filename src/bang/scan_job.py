@@ -127,21 +127,6 @@ def check_by_extension(scan_environment, checking_meta_directory):
                 logging.debug(f'[{checking_meta_directory.md_path}]check_by_extension: parser exception: {e}')
 
 
-#####
-#
-# Iterator that yields all combinations of offsets and UnpackParsers for a specific signature
-# found in mapped_file.
-#
-def find_offsets_for_signature(signature, unpack_parsers, mapped_file):
-    s_offset, s_text = signature
-    for r in re.finditer(re.escape(s_text), mapped_file):
-        logging.debug(f'find_offsets_for_signature: match for {s_text!r} at {r.start()}, offset={s_offset}, {unpack_parsers=}')
-        if r.start() < s_offset:
-            continue
-        # TODO: prescan? or let the unpack_parser.parse() handle that?
-        for u in unpack_parsers:
-            yield r.start() - s_offset, u
-
 class FileScanState:
     def __init__(self):
         self.scanned_until = 0
@@ -150,16 +135,16 @@ class FileScanState:
 #####
 #
 # Iterator that yields all combinations of offsets and UnpackParsers for all signatures
-# found in mapped_file.
+# found in open_file.
 #
-def find_signature_parsers(scan_environment, mapped_file, file_scan_state, file_size):
+def find_signature_parsers(scan_environment, open_file, file_scan_state, file_size):
     # yield all matching signatures
     file_scan_state.chunk_start = file_scan_state.scanned_until
     chunk_size = scan_environment.signature_chunk_size
     chunk_overlap = scan_environment.longest_signature_length - 1
     while file_scan_state.chunk_start < file_size:
-        mapped_file.seek(file_scan_state.chunk_start)
-        s = mapped_file.read(chunk_size)
+        open_file.seek(file_scan_state.chunk_start)
+        s = open_file.read(chunk_size)
         logging.debug(f'find_signature_parsers: read [{file_scan_state.chunk_start}:+{len(s)}]')
         for end_index, (end_difference, unpack_parser_cls) in scan_environment.automaton.iter(s):
             offset = file_scan_state.chunk_start + end_index - end_difference
@@ -179,27 +164,15 @@ def find_signature_parsers(scan_environment, mapped_file, file_scan_state, file_
         # unless the unpackparser advanced us
         file_scan_state.chunk_start = max(file_scan_state.chunk_start, file_scan_state.scanned_until)
 
-def x_find_signature_parsers(scan_environment, mapped_file):
-    for s, unpack_parsers in scan_environment.get_unpackparsers_for_signatures().items():
-        logging.debug(f'find_signature_parsers: {s} parsed by {unpack_parsers}')
-        # find offsets for signature
-        for offset, unpack_parser in find_offsets_for_signature(s, unpack_parsers, mapped_file):
-            yield offset, unpack_parser
-
 #####
 #
-# Iterator that yields succesfully parsed parts in meta_directory.mapped_file and the parts
-# that are not
-# parsed, in order. It chooses the first signature that it parses successfully, and will not
-# yield any overlapping results. In case of the same offset, the order of the signature
-# parsers as configured in the scan_environment determines the order in which it tries
-# parsing with UnpackParsers. If you want a different order, change the way
-# find_signature_parsers is sorted, perhaps with parser priorities.
+# Iterator that yields succesfully parsed parts in meta_directory.open_file and the parts
+# that are not parsed, in order. It chooses the first signature that it parses successfully,
+# and will not yield any overlapping results.
 #
 def scan_signatures(scan_environment, meta_directory):
     file_scan_state = FileScanState()
     file_scan_state.scanned_until = 0
-    #for offset, unpack_parser_cls in sorted(find_signature_parsers(scan_environment, meta_directory.mapped_file), key=itemgetter(0)):
     for offset, unpack_parser_cls in find_signature_parsers(scan_environment, meta_directory.open_file, file_scan_state, meta_directory.size):
         logging.debug(f'[{meta_directory.md_path}]scan_signatures: at {file_scan_state.scanned_until}, found parser at {offset}, {unpack_parser_cls}')
         if offset < file_scan_state.scanned_until: # we have passed this point in the file, ignore the result

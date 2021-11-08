@@ -8,7 +8,6 @@ import pathlib
 class OffsetInputFile:
     def __init__(self, from_meta_directory, offset):
         self.infile = from_meta_directory.open_file
-        self.mapped_file = from_meta_directory.mapped_file
         self.offset = offset
         self._size = from_meta_directory.size
 

@@ -34,7 +34,6 @@ class MetaDirectory:
         self._size = None
         self._unpack_parser = None
         self._open_file = None
-        self._mapped_file = None
         self.info = {}
 
     @classmethod
@@ -116,10 +115,6 @@ class MetaDirectory:
         open_file = open_file or (self._open_file is None)
         if open_file:
                 self._open_file = self.abs_file_path.open('rb')
-                try:
-                    self._mapped_file = mmap.mmap(self._open_file.fileno(),0, access=mmap.ACCESS_READ)
-                except ValueError as e:
-                    logging.warning(f'[{self.md_path}]open: error mmapping {self.abs_file_path}: {e}')
         if self.info == {}:
             self.info = self._read_info()
             logging.debug(f'[{self.md_path}]open: opening context, reading info {self.info}')
@@ -129,7 +124,6 @@ class MetaDirectory:
             if open_file:
                 self._open_file.close()
                 self._open_file = None
-                self._mapped_file = None
             logging.debug(f'[{self.md_path}]open: closing context, writing info {self.info}')
             self._write_info(self.info)
 
@@ -138,12 +132,6 @@ class MetaDirectory:
         '''Returns a file object for the opened file that this MetaDirectory represents.
         '''
         return self._open_file
-
-    @property
-    def mapped_file(self):
-        '''Returns an mmap object for the opened file that this MetaDirectory represents.
-        '''
-        return self._mapped_file
 
     def _read_info(self):
         '''Reads the file information stored in the MetaDirectory.'''
