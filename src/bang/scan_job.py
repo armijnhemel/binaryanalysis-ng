@@ -142,32 +142,42 @@ def find_offsets_for_signature(signature, unpack_parsers, mapped_file):
         for u in unpack_parsers:
             yield r.start() - s_offset, u
 
+class FileScanState:
+    def __init__(self):
+        self.scanned_until = 0
+        self.chunk_start = 0
+
 #####
 #
 # Iterator that yields all combinations of offsets and UnpackParsers for all signatures
 # found in mapped_file.
 #
-def find_signature_parsers(scan_environment, mapped_file, file_size):
+def find_signature_parsers(scan_environment, mapped_file, file_scan_state, file_size):
     # yield all matching signatures
-    chunk_start = 0
+    file_scan_state.chunk_start = file_scan_state.scanned_until
     chunk_size = scan_environment.signature_chunk_size
     chunk_overlap = scan_environment.longest_signature_length - 1
-    while chunk_start < file_size:
-        mapped_file.seek(chunk_start)
+    while file_scan_state.chunk_start < file_size:
+        mapped_file.seek(file_scan_state.chunk_start)
         s = mapped_file.read(chunk_size)
-        logging.debug(f'scan_signatures: read [{chunk_start}:{len(s)}]')
+        logging.debug(f'find_signature_parsers: read [{file_scan_state.chunk_start}:+{len(s)}]')
         for end_index, (end_difference, unpack_parser_cls) in scan_environment.automaton.iter(s):
-            logging.debug(f'scan_signatures: match ended at {end_index}')
-            offset = chunk_start + end_index - end_difference
-            logging.debug(f'scan_signatures: match at [{offset}:{end_index}]')
-            if end_index >= chunk_overlap:
+            offset = file_scan_state.chunk_start + end_index - end_difference
+            logging.debug(f'find_signature_parsers: got match at [{offset}:{file_scan_state.chunk_start+end_index}]')
+            if offset < file_scan_state.scanned_until:
+                logging.debug(f'find_signature_parsers: {offset=} < {file_scan_state.scanned_until=}')
+            elif file_scan_state.chunk_start > file_scan_state.scanned_until and end_index < chunk_overlap:
+                logging.debug(f'find_signature_parsers: match falls within overlap: {end_index=} < {chunk_overlap=}')
+            else:
                 yield offset, unpack_parser_cls
-        if chunk_start + len(s) >= file_size:
+        if file_scan_state.chunk_start + len(s) >= file_size:
             # this was the last chunk
-            chunk_start += len(s)
+            file_scan_state.chunk_start += len(s)
         else:
             # set chunk_start to before the actual chunk to detect overlapping patterns in the next chunk
-            chunk_start += len(s) - chunk_overlap
+            file_scan_state.chunk_start += len(s) - chunk_overlap
+        # unless the unpackparser advanced us
+        file_scan_state.chunk_start = max(file_scan_state.chunk_start, file_scan_state.scanned_until)
 
 def x_find_signature_parsers(scan_environment, mapped_file):
     for s, unpack_parsers in scan_environment.get_unpackparsers_for_signatures().items():
@@ -187,12 +197,13 @@ def x_find_signature_parsers(scan_environment, mapped_file):
 # find_signature_parsers is sorted, perhaps with parser priorities.
 #
 def scan_signatures(scan_environment, meta_directory):
-    scan_offset = 0
+    file_scan_state = FileScanState()
+    file_scan_state.scanned_until = 0
     #for offset, unpack_parser_cls in sorted(find_signature_parsers(scan_environment, meta_directory.mapped_file), key=itemgetter(0)):
-    for offset, unpack_parser_cls in find_signature_parsers(scan_environment, meta_directory.open_file, meta_directory.size):
-        logging.debug(f'[{meta_directory.md_path}]scan_signatures: at {scan_offset}, found parser at {offset}, {unpack_parser_cls}')
-        if offset < scan_offset: # we have passed this point in the file, ignore the result
-            logging.debug(f'[{meta_directory.md_path}]scan_signatures: skipping [{offset}:{scan_offset}]')
+    for offset, unpack_parser_cls in find_signature_parsers(scan_environment, meta_directory.open_file, file_scan_state, meta_directory.size):
+        logging.debug(f'[{meta_directory.md_path}]scan_signatures: at {file_scan_state.scanned_until}, found parser at {offset}, {unpack_parser_cls}')
+        if offset < file_scan_state.scanned_until: # we have passed this point in the file, ignore the result
+            logging.debug(f'[{meta_directory.md_path}]scan_signatures: skipping [{offset}:{file_scan_state.scanned_until}]')
             continue
         # try if the unpackparser works
         try:
@@ -200,23 +211,23 @@ def scan_signatures(scan_environment, meta_directory):
             unpack_parser = unpack_parser_cls(meta_directory, offset)
             unpack_parser.parse_from_offset()
             if offset == 0 and unpack_parser.parsed_size == meta_directory.size:
-                logging.debug(f'[{meta_directory.md_path}]scan_signatures: skipping [{scan_offset}:{unpack_parser.parsed_size}], covers entire file, yielding {unpack_parser} and return')
+                logging.debug(f'[{meta_directory.md_path}]scan_signatures: skipping [{file_scan_state.scanned_until}:{unpack_parser.parsed_size}], covers entire file, yielding {unpack_parser} and return')
                 yield 0, unpack_parser
                 return
-            if offset > scan_offset:
+            if offset > file_scan_state.scanned_until:
                 # if it does, yield a synthesizing parser for the padding before the file
-                logging.debug(f'[{meta_directory.md_path}]scan_signatures: [{scan_offset}:{offset}] yields SynthesizingParser, length {offset - scan_offset}')
-                yield scan_offset, SynthesizingParser.with_size(meta_directory, offset, offset - scan_offset)
+                logging.debug(f'[{meta_directory.md_path}]scan_signatures: [{file_scan_state.scanned_until}:{offset}] yields SynthesizingParser, length {offset - file_scan_state.scanned_until}')
+                yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, offset - file_scan_state.scanned_until)
             # yield the part that the unpackparser parsed
             logging.debug(f'[{meta_directory.md_path}]scan_signatures: [{offset}:{offset+unpack_parser.parsed_size}] yields {unpack_parser}, length {unpack_parser.parsed_size}')
             yield offset, unpack_parser
-            scan_offset = offset + unpack_parser.parsed_size
+            file_scan_state.scanned_until = offset + unpack_parser.parsed_size
         except UnpackParserException as e:
             logging.debug(f'[{meta_directory.md_path}]scan_signatures: parser exception in {unpack_parser}: {e}')
     # yield the trailing part
-    if 0 < scan_offset < meta_directory.size:
-        logging.debug(f'[{meta_directory.md_path}]scan_signatures: [{scan_offset}:{meta_directory.size}] yields SynthesizingParser, length {meta_directory.size - scan_offset}')
-        yield scan_offset, SynthesizingParser.with_size(meta_directory, offset, meta_directory.size - scan_offset)
+    if 0 < file_scan_state.scanned_until < meta_directory.size:
+        logging.debug(f'[{meta_directory.md_path}]scan_signatures: [{file_scan_state.scanned_until}:{meta_directory.size}] yields SynthesizingParser, length {meta_directory.size - file_scan_state.scanned_until}')
+        yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, meta_directory.size - file_scan_state.scanned_until)
 
 
 #####
