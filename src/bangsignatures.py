@@ -260,7 +260,6 @@ signaturetofunction = {
     'zstd_08': bangunpack.unpack_zstd,
     'vmdk': bangfilesystems.unpack_vmdk,
     'qcow2': bangfilesystems.unpack_qcow2,
-    'vdi': bangfilesystems.unpack_vdi,
     'javaclass': bangunpack.unpack_java_class,
     'swf': bangmedia.unpack_swf,
     'swf_zlib': bangmedia.unpack_swf,
