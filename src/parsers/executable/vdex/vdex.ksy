@@ -98,6 +98,8 @@ types:
     seq:
       - id: num_sections
         type: u4
+        valid: 4
+        doc: kNumberOfSections = 4
       - id: sections
         type: section_027
         repeat: expr

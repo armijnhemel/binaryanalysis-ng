@@ -39,8 +39,20 @@ class VdexUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = vdex.Vdex.from_io(self.infile)
+
+            # calculate the length of vdex 027 sections, plus force
+            # read the lazily evaluated data
+            if self.data.version == '027':
+                self.unpacked_size = 0
+                for section in self.data.dex_header.sections:
+                    if section.len_section != 0:
+                        self.unpacked_size = max(self.unpacked_size, section.ofs_section + len(section.section))
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
+
+    def calculate_unpacked_size(self):
+        if self.data.version != '027':
+            self.unpacked_size = self.infile.tell()
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
