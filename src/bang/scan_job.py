@@ -312,28 +312,30 @@ def process_job(scanjob):
             return # skip padding file by returning
 
         # TODO: skip for synthesized files
-        for md in check_by_extension(scanjob.scan_environment, meta_directory):
-            logging.debug(f'[scanjob.meta_directory.md_path]process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
-            for unpacked_md in md.unpack_with_unpack_parser():
-                logging.debug(f'[scanjob.meta_directory.md_path]process_job: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
-                job = ScanJob(unpacked_md.md_path)
-                scanjob.scan_environment.scanfilequeue.put(job)
-            with md.open(open_file=False):
-                md.write_info_with_unpack_parser()
+        if 'synthesized' not in meta_directory.info.get('labels',[]):
+            for md in check_by_extension(scanjob.scan_environment, meta_directory):
+                logging.debug(f'[scanjob.meta_directory.md_path]process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
+                for unpacked_md in md.unpack_with_unpack_parser():
+                    logging.debug(f'[scanjob.meta_directory.md_path]process_job: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
+                    job = ScanJob(unpacked_md.md_path)
+                    scanjob.scan_environment.scanfilequeue.put(job)
+                with md.open(open_file=False):
+                    md.write_info_with_unpack_parser()
 
         # stop after first successful unpack (TODO: make configurable?)
         if meta_directory.is_scanned():
             return
 
         # TODO: skip for synthesized files
-        for md in check_by_signature(scanjob.scan_environment, meta_directory):
-            logging.debug(f'[scanjob.meta_directory.md_path]process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
-            # if md is synthesized, queue it for extra checks?
-            for unpacked_md in md.unpack_with_unpack_parser():
-                job = ScanJob(unpacked_md.md_path)
-                scanjob.scan_environment.scanfilequeue.put(job)
-            with md.open(open_file=False):
-                md.write_info_with_unpack_parser()
+        if 'synthesized' not in meta_directory.info.get('labels',[]):
+            for md in check_by_signature(scanjob.scan_environment, meta_directory):
+                logging.debug(f'[scanjob.meta_directory.md_path]process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
+                # if md is synthesized, queue it for extra checks?
+                for unpacked_md in md.unpack_with_unpack_parser():
+                    job = ScanJob(unpacked_md.md_path)
+                    scanjob.scan_environment.scanfilequeue.put(job)
+                with md.open(open_file=False):
+                    md.write_info_with_unpack_parser()
 
         # stop after first successful scan for this file (TODO: make configurable?)
         if meta_directory.is_scanned():
