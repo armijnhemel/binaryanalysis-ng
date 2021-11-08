@@ -59,6 +59,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     unpack_parsers = bangsignatures.get_unpackers()
     scan_environment.set_unpackparsers(unpack_parsers)
     logging.debug(f'{unpack_parsers =}')
+    scan_environment.build_automaton()
 
     # set up the jobs
     process_manager = multiprocessing.Manager()

@@ -21,9 +21,15 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
+import logging
+import ahocorasick
 from ByteCountReporter import *
 from PickleReporter import *
 from JsonReporter import *
+
+class EmptyAutomaton:
+    def iter(self, *args, **kwargs):
+        return []
 
 class ScanEnvironment:
     tlshlabelsignore = set([
@@ -69,6 +75,7 @@ class ScanEnvironment:
         if self.createbytecounter: self.reporters.append(ByteCountReporter)
         self.reporters.append(PickleReporter)
         if self.createjson: self.reporters.append(JsonReporter)
+        self._longest_signature_length = None
 
     def get_readsize(self):
         return self.readsize
@@ -156,3 +163,29 @@ class ScanEnvironment:
     def get_unpackparsers_for_featureless_files(self):
         return self.unpackparsers_for_featureless_files
 
+    @property
+    def longest_signature_length(self):
+        if self._longest_signature_length is None:
+            self._longest_signature_length = max([len(s[1]) for u in self.unpackparsers for s in u.signatures]+[0])
+        return self._longest_signature_length
+
+    @property
+    def signature_chunk_size(self):
+        return 1024
+
+    def build_automaton(self):
+        if ahocorasick.unicode != 0:
+            raise ImportError('ahocorasick module must be compiled in bytes mode')
+        self._automaton = ahocorasick.Automaton()
+        for u in self.unpackparsers:
+            for s in u.signatures:
+                logging.debug(f'build_automaton: ({s},{u}, {s[0]+len(s[1])-1=}')
+                self._automaton.add_word(s[1], (s[0]+len(s[1])-1, u))
+        if len(self._automaton) > 0:
+            self._automaton.make_automaton()
+        else:
+            self._automaton = EmptyAutomaton()
+
+    @property
+    def automaton(self):
+        return self._automaton

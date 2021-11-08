@@ -147,7 +147,29 @@ def find_offsets_for_signature(signature, unpack_parsers, mapped_file):
 # Iterator that yields all combinations of offsets and UnpackParsers for all signatures
 # found in mapped_file.
 #
-def find_signature_parsers(scan_environment, mapped_file):
+def find_signature_parsers(scan_environment, mapped_file, file_size):
+    # yield all matching signatures
+    chunk_start = 0
+    chunk_size = scan_environment.signature_chunk_size
+    chunk_overlap = scan_environment.longest_signature_length - 1
+    while chunk_start < file_size:
+        mapped_file.seek(chunk_start)
+        s = mapped_file.read(chunk_size)
+        logging.debug(f'scan_signatures: read [{chunk_start}:{len(s)}]')
+        for end_index, (end_difference, unpack_parser_cls) in scan_environment.automaton.iter(s):
+            logging.debug(f'scan_signatures: match ended at {end_index}')
+            offset = chunk_start + end_index - end_difference
+            logging.debug(f'scan_signatures: match at [{offset}:{end_index}]')
+            if end_index >= chunk_overlap:
+                yield offset, unpack_parser_cls
+        if chunk_start + len(s) >= file_size:
+            # this was the last chunk
+            chunk_start += len(s)
+        else:
+            # set chunk_start to before the actual chunk to detect overlapping patterns in the next chunk
+            chunk_start += len(s) - chunk_overlap
+
+def x_find_signature_parsers(scan_environment, mapped_file):
     for s, unpack_parsers in scan_environment.get_unpackparsers_for_signatures().items():
         logging.debug(f'find_signature_parsers: {s} parsed by {unpack_parsers}')
         # find offsets for signature
@@ -166,7 +188,8 @@ def find_signature_parsers(scan_environment, mapped_file):
 #
 def scan_signatures(scan_environment, meta_directory):
     scan_offset = 0
-    for offset, unpack_parser_cls in sorted(find_signature_parsers(scan_environment, meta_directory.mapped_file), key=itemgetter(0)):
+    #for offset, unpack_parser_cls in sorted(find_signature_parsers(scan_environment, meta_directory.mapped_file), key=itemgetter(0)):
+    for offset, unpack_parser_cls in find_signature_parsers(scan_environment, meta_directory.open_file, meta_directory.size):
         logging.debug(f'[{meta_directory.md_path}]scan_signatures: at {scan_offset}, found parser at {offset}, {unpack_parser_cls}')
         if offset < scan_offset: # we have passed this point in the file, ignore the result
             logging.debug(f'[{meta_directory.md_path}]scan_signatures: skipping [{offset}:{scan_offset}]')
