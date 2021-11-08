@@ -16,7 +16,7 @@ seq:
   - id: extensions
     type: extension
     repeat: until
-    repeat-until: _io.pos <= _io.size - len_hash
+    repeat-until: _io.pos >= _io.size - len_hash
   - id: checksum
     size: len_hash
 instances:
@@ -109,7 +109,7 @@ types:
             - git_extensions::resolve_undo
             - git_extensions::split_index
             - git_extensions::untracked_cache
-            - git_extensions::file_system_minitor
+            - git_extensions::file_system_monitor
             - git_extensions::end_of_index_entry
             - git_extensions::index_entry_offset_table
             - git_extensions::sparse_directory_entries
