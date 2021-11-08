@@ -265,7 +265,6 @@ signaturetofunction = {
     'swf_zlib': bangmedia.unpack_swf,
     'swf_lzma': bangmedia.unpack_swf,
     'certificate': bangunpack.unpack_certificate,
-    'git_index': bangunpack.unpack_git_index,
     'flv': bangmedia.unpack_flv,
     'pdf': bangmedia.unpack_pdf,
     'pack200': bangunpack.unpack_pack200,
