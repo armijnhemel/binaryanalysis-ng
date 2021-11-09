@@ -252,7 +252,6 @@ signaturetofunction = {
     'rzip': bangunpack.unpack_rzip,
     'jffs2_little_endian': bangfilesystems.unpack_jffs2,
     'jffs2_big_endian': bangfilesystems.unpack_jffs2,
-    'chm': bangunpack.unpack_chm,
     'mswim': bangunpack.unpack_wim,
     'sunraster': bangmedia.unpack_sunraster,
     'ext2': bangfilesystems.unpack_ext2,
