@@ -1,5 +1,7 @@
 import os
 import re
+import sys
+import traceback
 import mmap
 import queue
 #import logging
@@ -397,6 +399,14 @@ def process_jobs(scan_environment):
                 scan_environment.scanfilequeue.task_done()
             except queue.Empty as e:
                 logging.debug(f'process_jobs: scan queue is empty')
+            except Exception as e:
+                logging.error(f'process_jobs: caught exception {e}')
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                exc_trace = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                logging.error(f'process_jobs:\n{"".join(exc_trace)}')
+                scan_environment.scanfilequeue.task_done()
+                scan_environment.scan_semaphore.acquire(blocking=False)
+                break
         else: # all scanjobs are waiting
             break
     logging.debug(f'process_jobs: exiting')
