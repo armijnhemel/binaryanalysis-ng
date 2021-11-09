@@ -255,7 +255,6 @@ signaturetofunction = {
     'mswim': bangunpack.unpack_wim,
     'sunraster': bangmedia.unpack_sunraster,
     'ext2': bangfilesystems.unpack_ext2,
-    'rpm': bangunpack.unpack_rpm,
     'zstd_08': bangunpack.unpack_zstd,
     'vmdk': bangfilesystems.unpack_vmdk,
     'qcow2': bangfilesystems.unpack_qcow2,
