@@ -70,14 +70,17 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     scan_environment.scanfilequeue = scan_queue
 
     processes = [ multiprocessing.Process(target = process_jobs, args = (scan_environment,)) for i in range(jobs)]
-    log.debug(f'cli: starting processes...')
-    for p in processes: p.start()
+
 
     # queue the file
     md = MetaDirectory(scan_environment.unpackdirectory, None, True)
     md.file_path = pathlib.Path(path).absolute()
     j = ScanJob(md.md_path)
     scan_queue.put(j)
+
+    # start processes
+    log.debug(f'cli: starting processes...')
+    for p in processes: p.start()
 
     log.debug(f'cli: waiting for all processes to finish...')
     scan_queue.join()
