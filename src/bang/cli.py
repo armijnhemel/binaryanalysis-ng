@@ -51,7 +51,6 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
 
     if verbose:
         scan_environment.logger.setLevel(logging.DEBUG)
-        #logging.basicConfig(level=logging.DEBUG)
     log = scan_environment.logger
 
 
