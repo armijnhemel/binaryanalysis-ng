@@ -60,19 +60,19 @@ def extract_file(checking_meta_directory, in_file, offset, file_size):
 def check_for_padding(checking_meta_directory):
     try:
         unpack_parser = PaddingParser(checking_meta_directory, 0)
-        logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls}')
+        logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__}')
         unpack_parser.parse_from_offset()
-        logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser_cls}')
+        logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__}')
         logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
         if unpack_parser.parsed_size == checking_meta_directory.size:
             logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: yield {unpack_parser} for {checking_meta_directory.file_path}')
             checking_meta_directory.unpack_parser = unpack_parser
             yield checking_meta_directory
         else:
-            logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser_cls}')
+            logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser.__class__}')
             logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {checking_meta_directory.file_path} is not a padding file')
     except UnpackParserException as e:
-        logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {unpack_parser} parser exception: {e}')
+        logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {unpack_parser.__class__} parser exception: {e}')
 
 
 #####
@@ -211,7 +211,7 @@ def scan_signatures(scan_environment, meta_directory):
             file_scan_state.scanned_until = offset + unpack_parser.parsed_size
         except UnpackParserException as e:
             logging.debug(f'scan_signatures[{meta_directory.md_path}]: failed parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls}')
-            logging.debug(f'scan_signatures[{meta_directory.md_path}]: {unpack_parser} parser exception: {e}')
+            logging.debug(f'scan_signatures[{meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
     # yield the trailing part
     if 0 < file_scan_state.scanned_until < meta_directory.size:
         logging.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{meta_directory.size}] yields SynthesizingParser, length {meta_directory.size - file_scan_state.scanned_until}')
@@ -283,7 +283,7 @@ def check_featureless(scan_environment, checking_meta_directory):
 
         except UnpackParserException as e:
             logging.debug(f'check_featureless[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser_cls}')
-            logging.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser} parser exception: {e}')
+            logging.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
 
 
 
