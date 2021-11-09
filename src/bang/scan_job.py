@@ -2,9 +2,8 @@ import os
 import re
 import sys
 import traceback
-import mmap
+import time
 import queue
-#import logging
 import multiprocessing
 from operator import itemgetter
 from .meta_directory import *
