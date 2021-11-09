@@ -4,7 +4,6 @@
 * default-jdk
 * e2tools
 * liblz4-tool
-* libxml2-utils
 * lzop
 * ncompress
 * p7zip-full
@@ -23,7 +22,7 @@
 
 or, in a single line:
 
-    apt-get install cabextract default-jdk e2tools liblz4-tool libxml2-utils \
+    apt-get install cabextract default-jdk e2tools liblz4-tool \
     lzop ncompress p7zip-full python3-psycopg2 python3-elasticsearch \
     python3-defusedxml python3-lz4 python3-pil python3-icalendar \
     python3-snappy python3-tlsh qemu-utils rzip squashfs-tools zstd
