@@ -42,7 +42,6 @@ described in the file `doc/kaitai-struct.md`.
 * dockerfile-parse (possibly named python3-dockerfile-parse)
 * openssl
 * rzip
-* libxml2 (for 'xmllint')
 * mailcap (for mime.types)
 * lzop
 * OpenJDK (for 'unpack200')
