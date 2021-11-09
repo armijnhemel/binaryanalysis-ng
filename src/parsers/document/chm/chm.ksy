@@ -157,7 +157,7 @@ types:
         size-eos: true
   entries_and_quickref:
     seq:
-      - id: bla
+      - id: entry_quickref
         size-eos: true
 enums:
   chunk_magic:
