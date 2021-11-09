@@ -2,8 +2,11 @@ import uuid
 import mmap
 import pickle
 import pathlib
-import logging
+#import logging
+import multiprocessing
 from contextlib import contextmanager
+
+logging = multiprocessing.get_logger()
 
 # The MetaDirectory caches the info field, to avoid unnecessary disk access. This means
 # that at most one MetaDirectory object should exist for a given meta directory. Aliases to

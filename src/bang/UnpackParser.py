@@ -188,7 +188,7 @@ class SynthesizingParser(UnpackParser):
         to_meta_directory.info.setdefault('labels', []).append('synthesized')
 
     def unpack(self, to_meta_directory):
-        # synthesize files must be scanned again, so let them unpack themselves
+        # synthesize files must be scanned again (with featureless parsers), so let them unpack themselves
         yield to_meta_directory
 
 

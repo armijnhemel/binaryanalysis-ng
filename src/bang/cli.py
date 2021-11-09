@@ -50,23 +50,27 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     scan_environment.unpackdirectory = unpack_directory.absolute()
 
     if verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        scan_environment.logger.setLevel(logging.DEBUG)
+        #logging.basicConfig(level=logging.DEBUG)
+    log = scan_environment.logger
 
 
     # set the unpack_parsers
     # TODO: use config to enable/disable parsers
-    logging.debug(f' finding unpack_parsers ')
+    log.debug(f' finding unpack_parsers ')
     unpack_parsers = bangsignatures.get_unpackers()
     scan_environment.set_unpackparsers(unpack_parsers)
-    logging.debug(f'{unpack_parsers =}')
+    log.debug(f'{unpack_parsers =}')
     scan_environment.build_automaton()
 
     # set up the jobs
     process_manager = multiprocessing.Manager()
     scan_queue = process_manager.JoinableQueue(maxsize=0)
+    scan_environment.scan_semaphore = process_manager.Semaphore(jobs)
     scan_environment.scanfilequeue = scan_queue
-    processes = [ multiprocessing.Process(target = process_jobs, args = (scan_environment,)) ]
-    logging.debug(f'cli: starting processes...')
+
+    processes = [ multiprocessing.Process(target = process_jobs, args = (scan_environment,)) for i in range(jobs)]
+    log.debug(f'cli: starting processes...')
     for p in processes: p.start()
 
     # queue the file
@@ -75,14 +79,14 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     j = ScanJob(md.md_path)
     scan_queue.put(j)
 
-    logging.debug(f'cli: waiting for all processes to finish...')
+    log.debug(f'cli: waiting for all processes to finish...')
     scan_queue.join()
-    logging.debug(f'cli: all processes in queue finished')
+    log.debug(f'cli: all processes in queue finished')
 
-    logging.debug(f'cli: terminating processes...')
+    log.debug(f'cli: terminating processes...')
     for p in processes:
         p.terminate()
-    logging.debug(f'cli: done.')
+    log.debug(f'cli: done.')
 
 if __name__=="__main__":
     app()

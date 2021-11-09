@@ -22,6 +22,7 @@
 
 import os
 import logging
+import multiprocessing
 import ahocorasick
 from ByteCountReporter import *
 from PickleReporter import *
@@ -64,6 +65,7 @@ class ScanEnvironment:
         self.temporarydirectory = temporarydirectory
         self.resultsdirectory = resultsdirectory
         self.scanfilequeue = scanfilequeue
+        self.scan_semaphore = None
         self.resultqueue = resultqueue
         self.processlock = processlock
         self.checksumdict = checksumdict
@@ -76,6 +78,7 @@ class ScanEnvironment:
         self.reporters.append(PickleReporter)
         if self.createjson: self.reporters.append(JsonReporter)
         self._longest_signature_length = None
+        self.logger = multiprocessing.log_to_stderr()
 
     def get_readsize(self):
         return self.readsize
