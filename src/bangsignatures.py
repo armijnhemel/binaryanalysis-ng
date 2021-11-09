@@ -361,7 +361,6 @@ extensiontofunction = {
     'resources.arsc': bangandroid.unpack_android_resource,
     '.rsa': bangunpack.unpack_certificate,
     '.pem': bangunpack.unpack_certificate,
-    '.json': bangunpack.unpack_json,
 }
 
 import os

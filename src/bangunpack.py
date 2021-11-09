@@ -44,7 +44,6 @@ import zipfile
 import bz2
 import stat
 import subprocess
-import json
 import xml.dom
 import hashlib
 import pathlib
@@ -5662,50 +5661,6 @@ def extract_certificate(filename_full, scanenvironment, offset):
     unpackingerror = {'offset': offset, 'fatal': False,
                       'reason': 'not a valid certificate'}
     return {'status': False, 'error': unpackingerror}
-
-
-def unpack_json(fileresult, scanenvironment, offset, unpackdir):
-    '''Verify a JSON file'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-
-    # open the file
-    checkfile = open(filename_full, 'rb')
-
-    # try to read the contents of the file as JSON
-    try:
-        json.load(checkfile)
-    except json.JSONDecodeError as e:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'invalid JSON'}
-        return {'status': False, 'error': unpackingerror}
-    except UnicodeError as e:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'invalid JSON'}
-        return {'status': False, 'error': unpackingerror}
-    except RecursionError:
-        checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'recursion limit exceeded'}
-        return {'status': False, 'error': unpackingerror}
-
-    checkfile.close()
-
-    # whole file is JSON
-    unpackedsize = filesize
-
-    labels.append('json')
-    return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_json.extensions = ['.json']
-unpack_json.pretty = 'json'
 
 
 # Transform a pack200 file to a JAR file using the unpack200 tool.
