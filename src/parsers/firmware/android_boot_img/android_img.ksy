@@ -20,6 +20,9 @@ seq:
         2: header012
         3: header34
         4: header34
+  - id: boot_signature
+    size: header.as<header34>.header.len_signature
+    if: header_version == 4
 instances:
   header_version:
     pos: 40
@@ -153,9 +156,6 @@ types:
         size: header.len_ramdisk
       - id: padding2
         size: -header.len_ramdisk % 4096
-      - id: boot_signature
-        size: header.len_signature
-        if: _root.header_version == 4
     instances:
       name:
         value: '""'

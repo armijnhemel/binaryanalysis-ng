@@ -32,16 +32,13 @@ from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import android_img
 
-from bangandroid import unpack_android_boot_img
-from UnpackParser import WrappedUnpackParser
 
-class AndroidImgUnpacker(UnpackParser):
-#class AndroidImgUnpacker(WrappedUnpackParser):
+class AndroidBootImgUnpacker(UnpackParser):
     extensions = []
     signatures = [
         (0, b'ANDROID!')
     ]
-    pretty_name = 'android_img'
+    pretty_name = 'android_boot_img'
 
 
     def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
@@ -54,26 +51,30 @@ class AndroidImgUnpacker(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
+        self.unpacked_size = self.infile.tell()
+
         # compute the size and check against the file size
         # take padding into account
         if self.data.header_version < 3:
             page_size = self.data.header.page_size
-            self.unpacked_size = ((page_size + self.data.header.kernel.size + page_size - 1)//page_size) * page_size
+            unpacked_size = ((page_size + self.data.header.kernel.size + page_size - 1)//page_size) * page_size
             if self.data.header.ramdisk.size > 0:
-                self.unpacked_size = ((self.unpacked_size + self.data.header.ramdisk.size + page_size - 1)//page_size) * page_size
+                unpacked_size = ((unpacked_size + self.data.header.ramdisk.size + page_size - 1)//page_size) * page_size
             if self.data.header.second.size > 0:
-                self.unpacked_size = ((self.unpacked_size + self.data.header.second.size + page_size - 1)//page_size) * page_size
+                unpacked_size = ((unpacked_size + self.data.header.second.size + page_size - 1)//page_size) * page_size
             if self.data.header_version > 0:
                 if self.data.header.recovery_dtbo.size > 0:
-                    self.unpacked_size = ((self.data.header.recovery_dtbo.offset + self.data.header.recovery_dtbo.size + page_size - 1)//page_size) * page_size
+                    unpacked_size = ((self.data.header.recovery_dtbo.offset + self.data.header.recovery_dtbo.size + page_size - 1)//page_size) * page_size
             if self.data.header_version > 1:
                 if self.data.header.dtb.size > 0:
-                    self.unpacked_size = ((self.unpacked_size + self.data.header.dtb.size + page_size - 1)//page_size) * page_size
+                    unpacked_size = ((unpacked_size + self.data.header.dtb.size + page_size - 1)//page_size) * page_size
+            self.unpacked_size = max(self.unpacked_size, unpacked_size)
             check_condition(file_size >= self.unpacked_size, "not enough data")
         else:
-            self.unpacked_size = 4096 + len(self.data.header.kernel_img) + \
+            unpacked_size = 4096 + len(self.data.header.kernel_img) + \
                 len(self.data.header.padding1) + len(self.data.header.ramdisk_img) + \
                 len(self.data.header.padding2)
+            self.unpacked_size = max(self.unpacked_size, unpacked_size)
 
     # no need to carve from the file
     def carve(self):
