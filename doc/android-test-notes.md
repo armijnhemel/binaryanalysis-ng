@@ -14,7 +14,7 @@ image websites:
 ## angler-mda89d-factory-9f001626.zip
 
 The Nexus 6P (codename "angler") was made by Huawei. Firmware uses the
-`androidboothuawei` format.
+`androidboothuawei` format and the `android_boot_img` version 0 format.
 
 ## barbet-ota-rd2a.210605.006-e56baaf5.zip
 
@@ -24,12 +24,14 @@ is not yet supported. It uses Dex 039, Vdex 021 and Oat 183.
 ## fugu-lrx21m-factory-e012394c.zip
 
 The Nexus Player (codename "fugu") was made by ASUS. The firmware uses
-the `androidasusboot` format. Uses OAT 039.
+the `androidasusboot` format and the `android_boot_img` version 0 format.
+Uses OAT 039.
 
 ## hammerhead-krt16m-factory-fb4041cc.zip
 
 The Nexus 5 (codename "hammerhead") was made by LG. The firmware uses the
-`androidmsmboot` format. Uses Odex 036 and regular Dex 035.
+`androidmsmboot` format and the `android_boot_img` version 0 format. Uses
+Odex 036 and regular Dex 035.
 
 ## raven-sd1a.210817.015.a4-factory-bd6cb030.zip
 
