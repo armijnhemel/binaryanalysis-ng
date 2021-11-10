@@ -42,10 +42,6 @@ class VdexUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError, ValidationLessThanError, ValidationNotAnyOfError) as e:
             raise UnpackParserException(e.args)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'vdex']
-        metadata = {}
+    labels = ['android', 'vdex']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

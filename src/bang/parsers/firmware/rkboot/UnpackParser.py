@@ -55,20 +55,10 @@ class RockchipUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-
-    # no need to carve from the file
-    #def carve(self):
-    #    pass
-
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['rockchip']
+    labels = ['rockchip']
+    metadata = {}
 
-        metadata = {}
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

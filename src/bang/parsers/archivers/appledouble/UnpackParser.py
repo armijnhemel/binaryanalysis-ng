@@ -62,10 +62,6 @@ class AppledoubleUnpackParser(UnpackParser):
         for i in self.data.entries:
             self.unpacked_size = max(self.unpacked_size, i.ofs_body, i.len_body)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'resource', 'appledouble' ]
-        metadata = {}
+    labels = [ 'resource', 'appledouble' ]
+    metadata = {}
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

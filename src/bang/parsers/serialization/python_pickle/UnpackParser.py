@@ -37,10 +37,6 @@ class PythonPickleUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['python pickle']
-        metadata = {}
+    labels = ['python pickle']
+    metadata = {}
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

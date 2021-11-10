@@ -58,10 +58,6 @@ class DdsUnpackParser(UnpackParser):
         except:
             pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['dds', 'graphics']
-        metadata = {}
+    labels = ['dds', 'graphics']
+    metadata = {}
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

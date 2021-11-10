@@ -47,9 +47,10 @@ class JavaClassUnpackParser(WrappedUnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'java class' ]
+    labels = [ 'java class' ]
+
+    @property
+    def metadata(self):
         metadata = {}
 
         # store the results for Java:
@@ -78,5 +79,5 @@ class JavaClassUnpackParser(WrappedUnpackParser):
         for i in self.data.methods:
             javaresults['methods'].append(i.name_as_str)
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)
+        return metadata
+

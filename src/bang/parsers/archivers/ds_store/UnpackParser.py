@@ -53,10 +53,6 @@ class DS_Store(UnpackParser):
         self.unpacked_size = self.data.buddy_allocator_header.ofs_bookkeeping_info_block + \
                             self.data.buddy_allocator_header.len_bookkeeping_info_block + 4
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'resource', 'ds_store' ]
-        metadata = {}
+    labels = [ 'resource', 'ds_store' ]
+    metadata = {}
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

@@ -144,9 +144,17 @@ class RpmUnpackParser(WrappedUnpackParser):
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.payload_offset + self.payload_size
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
+    @property
+    def labels(self):
         labels = [ 'rpm' ]
+        if self.payload_format == 'drpm':
+            payloadfile_rel = scanenvironment.rel_unpack_path(payloadfile)
+            labels.append('delta rpm')
+        return labels
+
+    @property
+    def metadata(self):
+        """sets metadata and labels for the unpackresults"""
         metadata = {}
 
         # store RPM version
@@ -170,9 +178,5 @@ class RpmUnpackParser(WrappedUnpackParser):
         for i in self.data.header.index_records:
             metadata['header_tags'][i.tag.value] = i.body.values
 
-        if self.payload_format == 'drpm':
-            payloadfile_rel = scanenvironment.rel_unpack_path(payloadfile)
-            labels.append('delta rpm')
+        return metadata
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

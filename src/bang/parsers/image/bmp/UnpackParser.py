@@ -44,10 +44,6 @@ class BmpUnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.file_hdr.len_file
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'bmp', 'graphics' ]
-        metadata = {}
+    labels = [ 'bmp', 'graphics' ]
+    metadata = {}
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

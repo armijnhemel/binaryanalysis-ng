@@ -55,9 +55,10 @@ class MinidumpUnpackParser(UnpackParser):
         for i in self.data.streams:
             self.unpacked_size = max(self.unpacked_size, i.ofs_data + i.len_data)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['minidump']
+    labels = ['minidump']
+
+    @property
+    def metadata(self):
         metadata = {}
 
         '''
@@ -66,6 +67,5 @@ class MinidumpUnpackParser(UnpackParser):
              if type(i.data) == windows_minidump.WindowsMinidump.SystemInfo:
                  pass
         '''
+        return metadata
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

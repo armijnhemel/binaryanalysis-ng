@@ -71,10 +71,6 @@ class RomfsUnpackParser(WrappedUnpackParser):
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.len_file
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'romfs', 'filesystem' ]
-        metadata = {}
+    labels = [ 'romfs', 'filesystem' ]
+    metadata = {}
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

@@ -37,10 +37,6 @@ class UtmpUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
             raise UnpackParserException(e.args)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['utmp']
-        metadata = {}
+    labels = ['utmp']
+    metadata = {}
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

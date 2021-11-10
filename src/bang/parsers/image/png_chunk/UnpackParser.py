@@ -70,11 +70,11 @@ class PngUnpackParser(UnpackParser):
         check_condition(computed_crc == int.from_bytes(self.data.chunk.crc, byteorder='big'),
                 "invalid CRC")
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = [ 'png_chunk', 'partial']
+    labels = [ 'png_chunk', 'partial']
+
+    @property
+    def metadata(self):
         metadata = {}
         metadata['name'] = self.data.chunk.type
+        return metadata
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

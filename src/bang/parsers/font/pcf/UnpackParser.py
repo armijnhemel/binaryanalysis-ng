@@ -56,19 +56,11 @@ class PcfUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError, ValidationNotAnyOfError, ValidationLessThanError) as e:
             raise UnpackParserException(e.args)
 
-    # no need to carve the PCF font from the file
-    def carve(self):
-        pass
-
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
         for t in self.data.tables:
             self.unpacked_size = max(self.unpacked_size, t.len_body + t.ofs_body)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['pcf', 'font']
-        metadata = {}
+    labels = ['pcf', 'font']
+    metadata = {}
 
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)

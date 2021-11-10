@@ -43,12 +43,12 @@ class SercommUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['sercomm', 'firmware']
+    labels = ['sercomm', 'firmware']
+
+    @property
+    def metadata(self):
         metadata = {}
         metadata['hardware_id'] = self.data.hardware_id
         metadata['hardware_version'] = self.data.hardware_version
+        return metadata
 
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)

@@ -41,14 +41,6 @@ class AppleIconUnpackParser(UnpackParser):
         except (Exception, ValidationNotEqualError) as e:
             raise UnpackParserException(e.args)
 
-    def unpack(self, unpack_directory):
-        """extract any files from the input file"""
-        return []
+    labels = ['apple', 'apple icon', 'graphics', 'resource']
+    metadata = {}
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['apple', 'apple icon', 'graphics', 'resource']
-        metadata = {}
-
-        self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels(labels)
