@@ -336,7 +336,7 @@ def process_job(scanjob):
                 for unpacked_md in md.unpack_with_unpack_parser():
                     logging.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
                     job = ScanJob(unpacked_md.md_path)
-                    scanjob.scan_environment.scanfilequeue.put(job)
+                    scanjob.scan_environment.scan_queue.put(job)
                     logging.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
                 with md.open(open_file=False):
                     md.write_info_with_unpack_parser()
@@ -355,7 +355,7 @@ def process_job(scanjob):
                     job = ScanJob(unpacked_md.md_path)
                     logging.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
                     # TODO: if unpacked_md == md, postpone queuing
-                    scanjob.scan_environment.scanfilequeue.put(job)
+                    scanjob.scan_environment.scan_queue.put(job)
                     logging.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
 
         # stop after first successful scan for this file (TODO: make configurable?)
@@ -372,7 +372,7 @@ def process_job(scanjob):
             for unpacked_md in md.unpack_with_unpack_parser():
                 logging.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
                 job = ScanJob(unpacked_md.md_path)
-                scanjob.scan_environment.scanfilequeue.put(job)
+                scanjob.scan_environment.scan_queue.put(job)
                 logging.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
 
 
@@ -390,15 +390,15 @@ def process_jobs(scan_environment):
         s = scan_environment.scan_semaphore.acquire(blocking=False)
         if s == True: # at least one scan job is running
             try:
-                #scanjob = scan_environment.scanfilequeue.get(timeout=86400)
-                scanjob = scan_environment.scanfilequeue.get(timeout=60)
+                #scanjob = scan_environment.scan_queue.get(timeout=86400)
+                scanjob = scan_environment.scan_queue.get(timeout=60)
                 logging.debug(f'process_jobs: {scanjob=}')
                 scan_environment.scan_semaphore.release()
                 scanjob.scan_environment = scan_environment
                 logging.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
                 process_job(scanjob)
                 logging.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
-                scan_environment.scanfilequeue.task_done()
+                scan_environment.scan_queue.task_done()
             except queue.Empty as e:
                 logging.debug(f'process_jobs: scan queue is empty')
             except Exception as e:
@@ -406,11 +406,11 @@ def process_jobs(scan_environment):
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 exc_trace = traceback.format_exception(exc_type, exc_value, exc_traceback)
                 logging.error(f'process_jobs:\n{"".join(exc_trace)}')
-                scan_environment.scanfilequeue.task_done()
+                scan_environment.scan_queue.task_done()
                 scan_environment.scan_semaphore.acquire(blocking=False)
                 break
         else: # all scanjobs are waiting
             break
     logging.debug(f'process_jobs: exiting')
-    # scan_environment.scanfilequeue.join()
+    # scan_environment.scan_queue.join()
 

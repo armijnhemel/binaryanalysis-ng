@@ -91,12 +91,12 @@ class TestScanEnvironment(unittest.TestCase):
                 paddingname = 'PADDING', unpackdirectory = pathlib.Path('.'),
                 temporarydirectory = pathlib.Path('.'),
                 resultsdirectory = pathlib.Path('.'),
-                scanfilequeue = None, resultqueue = None,
+                scan_queue = None, resultqueue = None,
                 processlock = None, checksumdict = None):
         return ScanEnvironment(maxbytes, readsize, createbytecounter,
                 createjson, tlshmaximum, synthesizedminimum,
                 logging, paddingname, unpackdirectory, temporarydirectory,
-                 resultsdirectory, scanfilequeue, resultqueue, processlock,
+                 resultsdirectory, scan_queue, resultqueue, processlock,
                  checksumdict)
 
 

@@ -72,7 +72,7 @@ parser_pass_BB_0_5 = create_unpackparser('ParserPassBB_0_5',
 
 def queue_file_job(scan_environment, md):
     scanjob = ScanJob(md.md_path) # TODO: add context and parent? or are they in the md?
-    scan_environment.scanfilequeue.put(scanjob)
+    scan_environment.scan_queue.put(scanjob)
     return scanjob
 
 def run_scan_loop(scan_environment):
@@ -481,7 +481,7 @@ def test_extracted_file_is_queued(scan_environment):
     run_scan_loop(scan_environment)
     # b'xAAyBBbb'
     #   | ||   |
-    jobs_queued = [x for x in scan_environment.scanfilequeue.history if x != -1]
+    jobs_queued = [x for x in scan_environment.scan_queue.history if x != -1]
     assert len(jobs_queued) == 2
 
 def test_unpacked_file_is_queued(scan_environment):
@@ -493,7 +493,7 @@ def test_unpacked_file_is_queued(scan_environment):
     scan_environment.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
-    jobs_queued = [x for x in scan_environment.scanfilequeue.history if x != -1]
+    jobs_queued = [x for x in scan_environment.scan_queue.history if x != -1]
     assert len(jobs_queued) == 3
 
 

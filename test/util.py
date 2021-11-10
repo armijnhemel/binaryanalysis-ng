@@ -61,7 +61,7 @@ def scan_environment(tmp_path_factory):
         unpackdirectory = tmp_dir / 'unpack',
         temporarydirectory = tmp_dir / 'tmp',
         resultsdirectory = tmp_dir / 'results',
-        scanfilequeue = MockQueue(),
+        scan_queue = MockQueue(),
         resultqueue = MockQueue(),
         processlock = MockLock(),
         checksumdict = {},

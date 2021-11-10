@@ -41,12 +41,12 @@ class ScanEnvironment:
     def __init__(self, maxbytes, readsize, createbytecounter, createjson,
                  tlshmaximum, synthesizedminimum, logging,
                  paddingname, unpackdirectory, temporarydirectory,
-                 resultsdirectory, scanfilequeue, resultqueue,
+                 resultsdirectory, scan_queue, resultqueue,
                  processlock, checksumdict,
                 ):
         """unpackdirectory: a Path object, absolute
            temporarydirectory: a Path object, absolute
-           scanfilequeue: a Queue where files to scan will be fetched from
+           scan_queue: a Queue where files to scan will be fetched from
            resultqueue: a Queue where results will be written to
            processlock: a Lock object that guards access to shared objects
            checksumdict: a shared dictionary to store hashes of files to
@@ -64,7 +64,7 @@ class ScanEnvironment:
         self.unpackdirectory = unpackdirectory
         self.temporarydirectory = temporarydirectory
         self.resultsdirectory = resultsdirectory
-        self.scanfilequeue = scanfilequeue
+        self.scan_queue = scan_queue
         self.scan_semaphore = None
         self.resultqueue = resultqueue
         self.processlock = processlock

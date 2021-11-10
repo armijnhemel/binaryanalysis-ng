@@ -169,7 +169,7 @@ def main(argv):
     processmanager = multiprocessing.Manager()
 
     # first create a queues for analyzing files
-    scanfilequeue = processmanager.JoinableQueue(maxsize=0)
+    scan_queue = processmanager.JoinableQueue(maxsize=0)
     processes = []
 
     # create a lock to control access to any shared data structures
@@ -182,7 +182,7 @@ def main(argv):
     scanenvironment = AnalysisEnvironment(
         runfilescans = options.runfilescans,
         logging = banglogging.uselogging,
-        scanfilequeue = scanfilequeue,
+        scan_queue = scan_queue,
         processlock = processlock,
         checksumdict = checksumdict,
         )
@@ -229,14 +229,14 @@ def main(argv):
         if 'root' in scanresult['scantree'][fileresult]['labels']:
             root_element = scanresult['scantree'][fileresult]
         #j = AnalysisJob(FileResult(scanresult['scantree'][fileresult]))
-        #scanfilequeue.put(j)
+        #scan_queue.put(j)
 
     # then start all the processes
     for process in processes:
         process.start()
 
     # wait for the queues to be empty.
-    scanfilequeue.join()
+    scan_queue.join()
 
     # Done processing, terminate processes that were created
     for process in processes:

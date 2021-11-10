@@ -22,7 +22,7 @@ def create_scan_environment_from_config(config):
             unpackdirectory = '',
             temporarydirectory = '',
             resultsdirectory = '',
-            scanfilequeue = None,
+            scan_queue = None,
             resultqueue = None,
             processlock = None,
             checksumdict = None,
@@ -66,7 +66,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     process_manager = multiprocessing.Manager()
     scan_queue = process_manager.JoinableQueue(maxsize=0)
     scan_environment.scan_semaphore = process_manager.Semaphore(jobs)
-    scan_environment.scanfilequeue = scan_queue
+    scan_environment.scan_queue = scan_queue
 
     processes = [ multiprocessing.Process(target = process_jobs, args = (scan_environment,)) for i in range(jobs)]
 
