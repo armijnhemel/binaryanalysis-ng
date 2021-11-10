@@ -24,6 +24,12 @@
 Unpacker for Android images.
 '''
 
+# TODO: there is a variation of this format that is like
+# version 0 but which uses dtb. This is not yet supported
+# because of lack of test files.
+#
+# https://github.com/M1cha/android_bootable_bootloader_lk/blob/condor/app/aboot/bootimg.h
+
 import os
 import pathlib
 from FileResult import FileResult
@@ -40,9 +46,6 @@ class AndroidBootImgUnpacker(UnpackParser):
     ]
     pretty_name = 'android_boot_img'
 
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_android_boot_img(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         file_size = self.fileresult.filesize
