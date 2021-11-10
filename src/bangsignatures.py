@@ -268,7 +268,6 @@ signaturetofunction = {
     'pack200': bangunpack.unpack_pack200,
     'zim': bangunpack.unpack_zim,
     'xg3d': bangmedia.unpack_xg3d,
-    'acdb': bangunpack.unpack_acdb,
     'sqlite3': bangunpack.unpack_sqlite,
     'trx': bangunpack.unpack_trx,
     'ppm': bangmedia.unpack_pnm,
