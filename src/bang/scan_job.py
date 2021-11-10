@@ -311,7 +311,7 @@ def check_featureless(scan_environment, checking_meta_directory):
 def process_job(scanjob):
     # scanjob has: path, meta_directory object and context
     meta_directory = scanjob.meta_directory
-    logging.debug(f'[{scanjob.meta_directory.md_path}]process_job: enter')
+    logging.debug(f'process_job[{scanjob.meta_directory.md_path}]: enter')
 
     # TODO: if we want to record meta data for unscannable files, change
     # this into an iterator pattern where you will get MetaDirectories with an
@@ -332,11 +332,12 @@ def process_job(scanjob):
         # TODO: skip for synthesized files
         if 'synthesized' not in meta_directory.info.get('labels',[]):
             for md in check_by_extension(scanjob.scan_environment, meta_directory):
-                logging.debug(f'[{scanjob.meta_directory.md_path}]process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
+                logging.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
                 for unpacked_md in md.unpack_with_unpack_parser():
-                    logging.debug(f'[{scanjob.meta_directory.md_path}]process_job: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
+                    logging.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
                     job = ScanJob(unpacked_md.md_path)
                     scanjob.scan_environment.scanfilequeue.put(job)
+                    logging.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
                 with md.open(open_file=False):
                     md.write_info_with_unpack_parser()
 
@@ -347,30 +348,32 @@ def process_job(scanjob):
         # TODO: skip for synthesized files
         if 'synthesized' not in meta_directory.info.get('labels',[]):
             for md in check_by_signature(scanjob.scan_environment, meta_directory):
-                logging.debug(f'[{scanjob.meta_directory.md_path}]process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
+                logging.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
                 with md.open(open_file=False):
                     md.write_info_with_unpack_parser()
                 for unpacked_md in md.unpack_with_unpack_parser():
                     job = ScanJob(unpacked_md.md_path)
-                    logging.debug(f'[{scanjob.meta_directory.md_path}]process_job(sig): queue unpacked {unpacked_md.md_path}')
+                    logging.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
                     # TODO: if unpacked_md == md, postpone queuing
                     scanjob.scan_environment.scanfilequeue.put(job)
-                    logging.debug(f'[{scanjob.meta_directory.md_path}]process_job(sig): queued unpacked {unpacked_md.md_path}')
+                    logging.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
 
         # stop after first successful scan for this file (TODO: make configurable?)
         if meta_directory.is_scanned():
             return
 
         # if extension and signature did not give any results, try other things
-        logging.debug(f'[{scanjob.meta_directory.md_path}]process_job: trying featureless parsers')
+        logging.debug(f'process_job[{scanjob.meta_directory.md_path}]: trying featureless parsers')
 
         for md in check_featureless(scanjob.scan_environment, meta_directory):
-            logging.debug(f'[{scanjob.meta_directory.md_path}]process_job: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
+            logging.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser}')
             with md.open(open_file=False):
                 md.write_info_with_unpack_parser()
             for unpacked_md in md.unpack_with_unpack_parser():
+                logging.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
                 job = ScanJob(unpacked_md.md_path)
                 scanjob.scan_environment.scanfilequeue.put(job)
+                logging.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
 
 
 ####
@@ -392,9 +395,9 @@ def process_jobs(scan_environment):
                 logging.debug(f'process_jobs: {scanjob=}')
                 scan_environment.scan_semaphore.release()
                 scanjob.scan_environment = scan_environment
-                logging.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.process_time_ns()}]')
+                logging.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
                 process_job(scanjob)
-                logging.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.process_time_ns()}]')
+                logging.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
                 scan_environment.scanfilequeue.task_done()
             except queue.Empty as e:
                 logging.debug(f'process_jobs: scan queue is empty')
