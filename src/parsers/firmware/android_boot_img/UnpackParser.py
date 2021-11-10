@@ -55,7 +55,6 @@ class AndroidBootImgUnpacker(UnpackParser):
                 self.is_variant = True
             except (Exception, ValidationFailedError) as e:
                 raise UnpackParserException(e.args)
-        print(self.data.header_version, self.is_variant)
 
         self.unpacked_size = self.infile.tell()
 
@@ -178,8 +177,8 @@ class AndroidBootImgUnpacker(UnpackParser):
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'android', "android boot image"]
-        if self.variant:
-            labels.add('lk variant')
+        if self.is_variant:
+            labels.append('lk variant')
         metadata = {'version': self.data.header_version}
 
         if self.data.header.name != '':
