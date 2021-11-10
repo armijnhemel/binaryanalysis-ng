@@ -192,10 +192,11 @@ types:
     seq:
       - id: str_len
         type: u2
-      - id: value
-        type: str
+      - id: raw_value
         size: str_len
-        encoding: UTF-8
+    instances:
+      value:
+        value: raw_value.to_s("UTF-8")
   method_handle_cp_info:
     doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.8'
     seq:
