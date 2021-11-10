@@ -7,6 +7,8 @@ from .scan_job import ScanJob, process_jobs
 from .meta_directory import MetaDirectory
 from . import bangsignatures
 
+BANG_VERSION = "0.0.1"
+
 def create_scan_environment_from_config(config):
     e = ScanEnvironment(
             # set the maximum size for the amount of bytes to be read
@@ -53,6 +55,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
         scan_environment.logger.setLevel(logging.DEBUG)
     log = scan_environment.logger
 
+    log.info(f'cli:scan: BANG version {BANG_VERSION}')
 
     # set the unpack_parsers
     # TODO: use config to enable/disable parsers
