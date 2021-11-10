@@ -14,6 +14,7 @@ seq:
    type: header
    size: 32
  - id: data
+   type: data
    size: header.filesize1
 types:
   header:
@@ -38,3 +39,17 @@ types:
         type: u4
       - id: filesize2
         type: u4
+  data:
+    seq:
+      - id: entries
+        type: entry
+        repeat: eos
+  entry:
+    seq:
+      - id: name
+        type: str
+        size: 8
+      - id: len_data
+        type: u4
+      - id: data
+        size: len_data
