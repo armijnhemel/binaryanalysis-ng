@@ -56,11 +56,6 @@ import pyaxmlparser
 from FileResult import *
 from UnpackParserException import UnpackParserException
 
-encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
-                        'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
-                        'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
-                        'iso2022_jp_ext', 'iso2022_kr', 'shift_jis',
-                        'shift_jis_2004', 'shift_jisx0213']
 
 # Each unpacker has a specific interface:
 #
