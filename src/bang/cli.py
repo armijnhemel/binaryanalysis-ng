@@ -2,6 +2,7 @@ import multiprocessing
 import click
 import pathlib
 import logging
+import time
 from .ScanEnvironment import *
 from .scan_job import ScanJob, process_jobs
 from .meta_directory import MetaDirectory
@@ -56,13 +57,14 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     log = scan_environment.logger
 
     log.info(f'cli:scan: BANG version {BANG_VERSION}')
+    log.info(f'cli:scan: start [{time.time_ns()}]')
 
     # set the unpack_parsers
     # TODO: use config to enable/disable parsers
-    log.debug(f' finding unpack_parsers ')
+    #log.debug(f' finding unpack_parsers ')
     unpack_parsers = bangsignatures.get_unpackers()
     scan_environment.set_unpackparsers(unpack_parsers)
-    log.debug(f'{unpack_parsers =}')
+    #log.debug(f'{unpack_parsers =}')
     scan_environment.build_automaton()
 
     # set up the jobs
@@ -77,21 +79,22 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     # queue the file
     md = MetaDirectory(scan_environment.unpackdirectory, None, True)
     md.file_path = pathlib.Path(path).absolute()
+    log.debug(f'cli:scan[{md.md_path}]: queued job [{time.time_ns()}]')
     j = ScanJob(md.md_path)
     scan_queue.put(j)
 
     # start processes
-    log.debug(f'cli: starting processes...')
+    log.debug(f'cli:scan: starting processes...')
     for p in processes: p.start()
 
-    log.debug(f'cli: waiting for all processes to finish...')
+    log.debug(f'cli:scan: waiting for all processes to finish...')
     scan_queue.join()
-    log.debug(f'cli: all processes in queue finished')
+    log.debug(f'cli:scan: all processes in queue finished')
 
-    log.debug(f'cli: terminating processes...')
+    log.debug(f'cli:scan: terminating processes...')
     for p in processes:
         p.terminate()
-    log.debug(f'cli: done.')
+    log.debug(f'cli:scan: done.')
 
 if __name__=="__main__":
     app()
