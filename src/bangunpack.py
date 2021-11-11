@@ -53,8 +53,6 @@ import sqlite3
 import defusedxml.minidom
 import pyaxmlparser
 
-from parsers.archivers.cpio import UnpackParser as cpio_unpack
-
 from FileResult import *
 from UnpackParserException import UnpackParserException
 
