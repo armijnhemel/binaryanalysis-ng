@@ -24,7 +24,7 @@
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
+from kaitaistruct import ValidationFailedError
 from . import pcp
 
 class PcpUnpackParser(UnpackParser):
@@ -35,7 +35,7 @@ class PcpUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = pcp.Pcp.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

@@ -17,7 +17,7 @@
 # License, version 3, along with BANG.  If not, see
 # <http://www.gnu.org/licenses/>
 #
-# Copyright 2018-2019 - Armijn Hemel
+# Copyright 2018-2021 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
@@ -368,6 +368,9 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
     haverockridge = False
     havezisofs = False
 
+    # http://fileformats.archiveteam.org/wiki/Apple_ISO_9660_extensions
+    is_apple_iso = False
+
     isobuffer = bytearray(2048)
 
     # create the unpacking directory
@@ -706,6 +709,9 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
                             suversion = system_use[suoffset+3]
                             sudata = system_use[suoffset+4:suoffset+4+sulength]
 
+                            if signatureword == b'AA':
+                                is_apple_iso = True
+
                             # the 'SP' entry can only appear once per
                             # directory hierarchy and has to be the
                             # very first entry of the first directory
@@ -721,7 +727,7 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
                                 havesusp = True
                                 suspskip = system_use[suoffset+6]
                             else:
-                                if not havesusp:
+                                if not havesusp and not is_apple_iso:
                                     checkfile.close()
                                     unpackingerror = {'offset': offset+unpackedsize,
                                                       'fatal': False,
@@ -2400,221 +2406,6 @@ def unpack_qcow2(fileresult, scanenvironment, offset, unpackdir):
 
     unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                       'reason': 'Not a valid qcow2 file or cannot unpack'}
-    return {'status': False, 'error': unpackingerror}
-
-
-# VirtualBox VDI
-#
-# https://forums.virtualbox.org/viewtopic.php?t=8046
-def unpack_vdi(fileresult, scanenvironment, offset, unpackdir):
-    '''Convert a VirtualBox VDI file.'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackedsize = 0
-    unpackingerror = {}
-
-    if filesize - offset < 512:
-        unpackingerror = {'offset': offset,
-                          'fatal': False,
-                          'reason': 'File too small (less than 512 bytes'}
-        return {'status': False, 'error': unpackingerror}
-
-    if shutil.which('qemu-img') is None:
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'qemu-img program not found'}
-        return {'status': False, 'error': unpackingerror}
-
-    # open the file skip over the magic header bytes
-    checkfile = open(filename_full, 'rb')
-
-    # This assumes the Oracle flavour of VDI. There have been
-    # others in the past.
-    checkfile.seek(offset+40)
-    unpackedsize = 40
-
-    # 24 NUL bytes
-    checkbytes = checkfile.read(24)
-    if checkbytes != b'\x00' * 24:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'wrong value for padding bytes'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 24
-
-    # then the image signature
-    checkbytes = checkfile.read(4)
-    if checkbytes != b'\x7f\x10\xda\xbe':
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'wrong value for image signature'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 4
-
-    # major version
-    checkbytes = checkfile.read(2)
-    majorversion = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 2
-
-    # minor version
-    checkbytes = checkfile.read(2)
-    minorversion = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 2
-
-    # size of header, should be 0x190
-    checkbytes = checkfile.read(4)
-    headersize = int.from_bytes(checkbytes, byteorder='little')
-    if headersize != 0x190:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'wrong value for header size'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 4
-
-    # image type
-    checkbytes = checkfile.read(4)
-    imagetype = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # image flags
-    checkbytes = checkfile.read(4)
-    imageflags = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # image description, unclear how big it is
-    #checkbytes = checkfile.read(32)
-    #unpackedsize += 32
-
-    # skip to 0x154
-    checkfile.seek(offset + 0x154)
-    unpackedsize = 0x154
-
-    # offset blocks
-    checkbytes = checkfile.read(4)
-    offsetblocks = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # offset data
-    checkbytes = checkfile.read(4)
-    offsetdata = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # cylinders
-    checkbytes = checkfile.read(4)
-    cylinders = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # heads
-    checkbytes = checkfile.read(4)
-    heads = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # sectors
-    checkbytes = checkfile.read(4)
-    sectors = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # sector size (should be 512)
-    checkbytes = checkfile.read(4)
-    sectorsize = int.from_bytes(checkbytes, byteorder='little')
-    if sectorsize != 512:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'wrong value for sector size'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 4
-
-    # skip unused bytes
-    checkfile.seek(4, os.SEEK_CUR)
-
-    # disk size (uncompressed)
-    checkbytes = checkfile.read(8)
-    disksize = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 8
-
-    # block size
-    checkbytes = checkfile.read(4)
-    blocksize = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # block extra data
-    checkbytes = checkfile.read(4)
-    blockextradata = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # blocks in hdd
-    checkbytes = checkfile.read(4)
-    blocksinhdd = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # blocks allocated
-    checkbytes = checkfile.read(4)
-    blocksallocated = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 4
-
-    # now there is enough information to do some sanity checks
-    # First see if the file is large enough
-    if offset + (2+blocksallocated) * blocksize > filesize:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize,
-                          'fatal': False,
-                          'reason': 'data cannot be outside of file'}
-        return {'status': False, 'error': unpackingerror}
-
-    # check to see if the VDI is the entire file. If so unpack it.
-    if offset == 0 and (2+blocksallocated) * blocksize == filesize:
-        p = subprocess.Popen(['qemu-img', 'info', '--output=json', filename_full],
-                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-
-        (standardout, standarderror) = p.communicate()
-        if p.returncode == 0:
-            # extra sanity check to see if it is valid JSON
-            try:
-                vmdkjson = json.loads(standardout)
-            except:
-                unpackingerror = {'offset': offset+unpackedsize,
-                                  'fatal': False,
-                                  'reason': 'no valid JSON output from qemu-img'}
-                return {'status': False, 'error': unpackingerror}
-            if filename_full.suffix.lower() == '.vdi':
-                outputfile_rel = os.path.join(unpackdir, filename_full.stem)
-            else:
-                outputfile_rel = os.path.join(unpackdir, 'unpacked-from-vdi')
-
-            outputfile_full = scanenvironment.unpack_path(outputfile_rel)
-            # now convert it to a raw file
-            p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', filename_full, outputfile_full],
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-
-            (standardout, standarderror) = p.communicate()
-            if p.returncode != 0:
-                if os.path.exists(outputfile_full):
-                    os.unlink(outputfile_full)
-                unpackingerror = {'offset': offset+unpackedsize,
-                                  'fatal': False,
-                                  'reason': 'cannot convert file'}
-                return {'status': False, 'error': unpackingerror}
-
-            labels.append('virtualbox')
-            labels.append('vdi')
-            labels.append('filesystem')
-            unpackedfilesandlabels.append((outputfile_rel, []))
-            return {'status': True, 'length': unpackedsize, 'labels': labels,
-                    'filesandlabels': unpackedfilesandlabels}
-
-    # TODO: snapshots and carving
-
-    checkfile.close()
-    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                      'reason': 'Not a valid VDI file or cannot unpack'}
     return {'status': False, 'error': unpackingerror}
 
 

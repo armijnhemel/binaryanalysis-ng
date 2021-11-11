@@ -41,7 +41,7 @@ import PIL.Image
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationExprError, ValidationLessThanError
+from kaitaistruct import ValidationFailedError
 from . import png
 
 # a list of known chunks
@@ -67,7 +67,7 @@ class PngUnpackParser(UnpackParser):
         self.chunknames = set()
         try:
             self.data = png.Png.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationExprError, ValidationLessThanError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.ihdr.bit_depth in [1, 2, 4, 8, 16],
                 "invalid bit depth")

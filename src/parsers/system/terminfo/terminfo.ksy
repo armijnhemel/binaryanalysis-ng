@@ -2,7 +2,7 @@ meta:
   id: terminfo
   title: terminfo
   license: CC0-1.0
-  encoding: UTF-8
+  encoding: ASCII
   endian: le
 doc: |
   terminfo files, format described in the Linux man page for terminfo files
@@ -14,6 +14,7 @@ seq:
   - id: len_names_section
     type: u2
     valid:
+      min: 1
       max: 128
     doc: the size, in bytes, of the names section
   - id: len_boolean_section
@@ -75,5 +76,5 @@ types:
   string_table:
     seq:
       - id: strings
-        type: strz
+        terminator: 0x00
         repeat: eos

@@ -21,7 +21,7 @@ types:
        terminator: 0
        # Unlike the old binary format, there is no additional padding after the pathname or file contents.
      - id: filedata
-       type: skip_and_ignore_type
+       #type: skip_and_ignore_type
        size: header.fsize
   cpio_portable_ascii_header:
     seq:

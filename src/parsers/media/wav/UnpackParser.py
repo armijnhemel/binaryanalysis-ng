@@ -22,40 +22,51 @@
 
 
 import os
-from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_wav
 
+from xml.parsers.expat import ExpatError
+
+import defusedxml.minidom
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import riff
 from . import wav
 
-#class WavUnpackParser(UnpackParser):
-class WavUnpackParser(WrappedUnpackParser):
+class WavUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (8, b'WAVE')
     ]
     pretty_name = 'wav'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_wav(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = wav.Wav.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+            # force reading of data because of Kaitai's lazy evaluation
+            for c in self.data.subchunks:
+                chunk_id = c.chunk.id
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-    def unpack(self):
-        """extract any files from the input file"""
-        return []
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'wav', 'audio' ]
         metadata = {}
+        xmptags = []
+
+        # extract metadata
+        for chunk in self.data.subchunks:
+            if type(chunk.chunk_id) == wav.Wav.Fourcc:
+                if chunk.chunk_id == wav.Wav.Fourcc.pmx:
+                    try:
+                        # XMP should be valid XML
+                        xmpdom = defusedxml.minidom.parseString(chunk.chunk_data.data)
+                        xmptags.append(chunk.chunk_data.data)
+                    except ExpatError:
+                        # TODO: what to do here?
+                        pass
+        metadata['xmp'] = xmptags
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)

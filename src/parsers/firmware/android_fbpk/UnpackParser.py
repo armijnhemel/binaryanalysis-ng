@@ -26,11 +26,12 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import android_fbpk
 
 
-# test file: redfin-rd1a.200810.020-factory-c3ea1715.zip
+# v1 test file: redfin-rd1a.200810.020-factory-c3ea1715.zip
+# v2 test file: raven-sd1a.210817.015.a4-factory-bd6cb030.zip
 class AndroidFbpkUnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -41,19 +42,31 @@ class AndroidFbpkUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = android_fbpk.AndroidFbpk.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+            # version 2 needs some extra sanity checks
+            # read data to trigger evaluation
+            if self.data.header.version == 2:
+                for entry in self.data.body.entries:
+                    # read the parsed partition to trigger
+                    # parsing for FBPT entries
+                    data = entry.partition_parsed
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
+        self.unpacked_size = self.data.body.total_file_size
 
     # no need to carve from the file
     def carve(self):
         pass
 
+    # make sure that self.unpacked_size is not overwritten
+    def calculate_unpacked_size(self):
+        pass
+
     def unpack(self):
         unpacked_files = []
         seen_partitions = set()
-        for entry in self.data.entries:
+        for entry in self.data.body.entries:
             out_labels = []
-            # only consider "real" partitions, not partition tables
+            # only consider "real" partitions
             if entry.type == 0:
                 continue
             partition_name = entry.partition_name

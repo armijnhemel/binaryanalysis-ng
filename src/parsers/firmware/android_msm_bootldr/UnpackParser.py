@@ -31,7 +31,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import android_bootldr_qcom
 
 
@@ -46,7 +46,7 @@ class AndroidMsmBootldrUnpackParser(UnpackParser):
         file_size = self.fileresult.filesize
         try:
             self.data = android_bootldr_qcom.AndroidBootldrQcom.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         self.unpacked_size = self.data.ofs_img_bodies
         for entry in self.data.img_headers:

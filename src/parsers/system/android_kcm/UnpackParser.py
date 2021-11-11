@@ -24,7 +24,7 @@ import os
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError
+from kaitaistruct import ValidationFailedError
 from . import kcm
 
 class KcmUnpackParser(UnpackParser):
@@ -38,7 +38,7 @@ class KcmUnpackParser(UnpackParser):
         file_size = self.fileresult.filesize
         try:
             self.data = kcm.Kcm.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

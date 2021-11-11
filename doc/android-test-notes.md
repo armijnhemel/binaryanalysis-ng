@@ -14,7 +14,7 @@ image websites:
 ## angler-mda89d-factory-9f001626.zip
 
 The Nexus 6P (codename "angler") was made by Huawei. Firmware uses the
-`androidboothuawei` format.
+`androidboothuawei` format and the `android_boot_img` version 0 format.
 
 ## barbet-ota-rd2a.210605.006-e56baaf5.zip
 
@@ -24,12 +24,21 @@ is not yet supported. It uses Dex 039, Vdex 021 and Oat 183.
 ## fugu-lrx21m-factory-e012394c.zip
 
 The Nexus Player (codename "fugu") was made by ASUS. The firmware uses
-the `androidasusboot` format. Uses OAT 039.
+the `androidasusboot` format and the `android_boot_img` version 0 format.
+Uses OAT 039.
 
 ## hammerhead-krt16m-factory-fb4041cc.zip
 
 The Nexus 5 (codename "hammerhead") was made by LG. The firmware uses the
-`androidmsmboot` format. Uses Odex 036 and regular Dex 035.
+`androidmsmboot` format and the `android_boot_img` version 0 format. Uses
+Odex 036 and regular Dex 035.
+
+## raven-sd1a.210817.015.a4-factory-bd6cb030.zip
+
+The Pixel 6 Pro uses the `android_fbpk` version 1 and version 2 format
+(currently unsupported), `android_vendor_boot` version 4 and
+`android_boot_img` version 4. It uses Art 099, Oat 195, Vdex 027, Dex 035,
+Dex 038 and Dex 039.
 
 ## razorg-JLS36C-factory-834eab41.zip
 
@@ -39,9 +48,10 @@ uses `androidasusboot` format. It uses Odex 036 and regular Dex 035.
 ## redfin-rd1a.200810.020-factory-c3ea1715.zip
 
 The Pixel 5 (codename "redfin") was made by Google based on a Qualcomm chip.
-It uses the `android_fbpk` format and the `android_vendor_boot` format. It
-uses Dex 039, Vdex 021, Art 085 and Oat 183. It contains Android verified
-boot (`avb`) images.
+It uses the `android_fbpk` version 1 format, the `android_vendor_boot`
+format and the `android_boot_img` version 3. It uses Dex 039, Vdex 021,
+Art 085 and Oat 183. It contains Android verified boot (`avb`) images.
+Contains `acdb` files.
 
 ## sailfish-nde63h-factory-43ba5f81.zip
 
@@ -51,12 +61,12 @@ format. It uses Oat 079, Dex 035 and Dex 037.
 ## shamu-lrx21o-factory-ef423ec5.zip
 
 The Nexus 6 (codename "shamu") was made by Motorola Mobility. It uses the
-`android_img` format. It uses Oat 039.
+`android_boot_img` version 0 format. It uses Oat 039.
 
 ## soju-grk39f-factory-8e283784.zip
 
-The Nexus S (codename "crespo") was made by Samsung. It uses the `android_img`
-format and Dex 035 and Odex 036.
+The Nexus S (codename "crespo") was made by Samsung. It uses the `android_boot_img`
+version 0 format and Dex 035 and Odex 036.
 
 ## walleye-opm1.171019.011-factory-f74dd4fd.zip
 
@@ -74,23 +84,25 @@ Some test files are from ROM rebuilds
 
 ## omni-7.1.2-20171120-flounder-WEEKLY.zip
 
-From <https://dl.omnirom.org/flounder/>. Uses the `android_img` format. It uses
-Dex 035 and Dex 037.
+From <https://dl.omnirom.org/flounder/>. Uses the `android_boot_img`
+version 0 format. It uses Dex 035 and Dex 037.
 
 ## twrp-3.3.1-0-h870.img
 
-From <https://dl.twrp.me/h870/>. Uses the `android_img` format and Dex 035.
+From <https://dl.twrp.me/h870/>. Uses the `android_boot_img` version 0 format
+and Dex 035.
 
 ## twrp-3.3.1-0-marlin.img
 
-From <https://dl.twrp.me/marlin/>. Uses the `android_img` format and Dex 035.
+From <https://dl.twrp.me/marlin/>. Uses the `android_boot_img` version 0 format
+and Dex 035.
 
 # Official firmware files
 
 ## htc_d027_9_7inch_wm3732_phonesdk_gc2035_gc0308_de_201210122.img
 
-Rockchip based, uses `rk_crc`, `rockchip` and `android_img` formats.
-Uses Dex 035 and Dex 036 (which officially doesn't exist).
+Rockchip based, uses `rk_crc`, `rockchip` and `android_boot_img` version 0
+formats. Uses Dex 035 and Dex 036 (which officially doesn't exist).
 
 ## I9300XXUFMB3_I9300OJKFMB3_ILO.zip
 
@@ -114,9 +126,21 @@ Most of the files below were downloaded from obscure firmware download sites,
 which I will not link to. Some of these were repacked from the original and
 might have been modified.
 
+## Alcatel_OneTouch_991D_MT6573_Arabic_150415.zip
+
+Uses `yaffs2`, `android_boot_img` version 0, Dex 035.
+
+## Allfine10 Joy RK3066.zip
+
+Uses `rockchip`, `rk_crc`, `android_boot_img` version 0, Dex 035 and (withdrawn) Dex 036
+
 ## Allwinner_A23_T739_Mainboard_V2.2_JTX.zip
 
-Uses `android_img`, but `extra_cmdline` isn't asciiz.
+Uses `android_boot_img` version 0, but `extra_cmdline` isn't asciiz.
+
+## BQ_Aquaris_E4.5_2.0.1_20150623_1900_MT6582.zip
+
+Mediatek MT6582 based, uses `mtk_bootrom`, `android_boot_img` version 0, `androidsparse`, Dex 035.
 
 ## Dimo_Soren_2S_MT6572_20140108_4.2.2.zip
 
@@ -132,7 +156,7 @@ Qualcomm MSM8916 based, uses `android_sparse_data` with Brotli compression.
 
 ## Gretel_A6_MT6737M_6.0.zip
 
-Mediatek MT6737M based device. Uses `android_img`, Dex 035 and Oat 064.
+Mediatek MT6737M based device. Uses `android_boot_img` version 0, Dex 035 and Oat 064.
 
 ## LYF_Jio_F271i_000-01-09-230818_SPD.zip
 
@@ -149,7 +173,7 @@ bsdiff and imgdiff.
 
 ## Odys_Loox_Update_1205.zip
 
-Rockchip based, uses cramfs. Uses `rk_crc` format, Dex 036 and Odex 036.
+Rockchip based, uses cramfs. Uses `rk_crc` format, Dex 035 and Odex 036.
 
 ## Okapia_Shopno_SP7731GEA_V05_20160331_5.1_SPD.zip
 

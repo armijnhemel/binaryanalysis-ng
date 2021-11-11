@@ -28,7 +28,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import zchunk
 
 
@@ -44,7 +44,7 @@ class ZchunkUnpackParser(UnpackParser):
             raise UnpackParserException("unzck not installed")
         try:
             self.data = zchunk.Zchunk.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     # no need to carve from the file

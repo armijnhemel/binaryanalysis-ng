@@ -1,6 +1,6 @@
 meta:
   id: dfu
-  title: dfu
+  title: Device Firmware Upgrade
   file-extension: dfu
   license: CC0-1.0
   endian: le
