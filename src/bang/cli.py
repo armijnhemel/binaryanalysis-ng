@@ -3,6 +3,7 @@ import click
 import pathlib
 import logging
 import time
+import pprint
 from .ScanEnvironment import *
 from .scan_job import ScanJob, process_jobs
 from .meta_directory import MetaDirectory
@@ -95,6 +96,40 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     for p in processes:
         p.terminate()
     log.debug(f'cli:scan: done.')
+
+
+@app.command()
+@click.option('-a', '--all', is_flag=True)
+@click.argument('metadir', type=click.Path(path_type=pathlib.Path))
+def show(all, metadir):
+    md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
+    print(f'{md.md_path} ({md.file_path}):')
+    with md.open(open_file=False):
+        print(f'Labels: {", ".join(md.info.get("labels",[]))}')
+        print(f'Metadata:')
+        pprint.pprint(md.info.get('metadata'))
+        if all:
+            for k,v in md.info.get('extracted_files', {}).items():
+                print(f'{k}\t{v}')
+            for k,v in md.info.get('unpacked_absolute_files', {}).items():
+                print(f'{k}\t{v}')
+            for k,v in md.info.get('unpacked_relative_files', {}).items():
+                print(f'{k}\t{v}')
+
+
+@app.command()
+@click.argument('metadir', type=click.Path(path_type=pathlib.Path))
+def ls(metadir):
+    md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
+    with md.open(open_file=False):
+        for k,v in md.info.get('extracted_files', {}).items():
+            print(f'{k}\t{v}')
+        for k,v in md.info.get('unpacked_absolute_files', {}).items():
+            print(f'{k}\t{v}')
+        for k,v in md.info.get('unpacked_relative_files', {}).items():
+            print(f'{k}\t{v}')
+
+
 
 if __name__=="__main__":
     app()
