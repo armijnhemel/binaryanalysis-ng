@@ -291,7 +291,6 @@ signaturetofunction = {
     'yaffs_le_2': bangfilesystems.unpack_yaffs2,
     'yaffs_be_1': bangfilesystems.unpack_yaffs2,
     'yaffs_be_2': bangfilesystems.unpack_yaffs2,
-    'crx': bangunpack.unpack_crx,
 }
 
 # a lookup table to map signatures to a name for
