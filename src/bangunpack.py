@@ -4506,9 +4506,9 @@ def unpack_zim(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'cluster outside file'}
             return {'status': False, 'error': unpackingerror}
 
-        compressed = False
-        if ord(checkbytes) & 15 == 4:
-            compressed = True
+        compressed = True
+        if ord(checkbytes) & 15 in [0,1]:
+            compressed = False
 
         offsetsize = 4
         if (ord(checkbytes) >> 4) & 1 == 1:
