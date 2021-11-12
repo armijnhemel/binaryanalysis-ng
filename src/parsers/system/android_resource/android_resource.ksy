@@ -8,7 +8,7 @@ meta:
 doc-ref:
   https://android.googlesource.com/platform/frameworks/base.git/+/2fedba9a32d9e92344eaf6e9faf5b43e1bc2ae70/libs/androidfw/include/androidfw/ResourceTypes.h#202
 seq:
-  - id: main
+  - id: resource
     type: chunk
 types:
   chunk:
@@ -21,6 +21,45 @@ types:
           switch-on: header.type
           cases:
             resource_types::string_pool: string_pool
+            resource_types::table: table
+  header:
+    seq:
+      - id: type
+        type: u2
+        enum: resource_types
+        valid:
+          any-of:
+            - resource_types::null_type
+            - resource_types::string_pool
+            - resource_types::table
+            - resource_types::xml
+      - id: len_header
+        type: u2
+      - id: len_chunk
+        type: u4
+
+  # Table
+  table:
+    seq:
+      - id: header
+        type: table_header
+        size: _parent.header.len_header - _parent.header._sizeof
+      - id: body
+        type: table_body
+        size-eos: true
+    instances:
+      len_header:
+        value: _parent.header.len_header
+  table_header:
+    seq:
+      - id: num_table_package
+        type: u4
+  table_body:
+    seq:
+      - id: string_pool
+        type: chunk
+
+  # String pool
   string_pool:
     seq:
       - id: header
@@ -32,15 +71,6 @@ types:
     instances:
       len_header:
         value: _parent.header.len_header
-  header:
-    seq:
-      - id: type
-        type: u2
-        enum: resource_types
-      - id: len_header
-        type: u2
-      - id: len_chunk
-        type: u4
   string_pool_body:
     seq:
       - id: string_offsets
@@ -64,6 +94,25 @@ types:
         value: _parent.header.ofs_strings - _parent.len_header
       ofs_styles:
         value: _parent.header.ofs_styles - _parent.len_header
+  string_pool_header:
+    seq:
+      - id: num_strings
+        type: u4
+      - id: num_styles
+        type: u4
+      - id: flags
+        type: u4
+      - id: ofs_strings
+        type: u4
+        doc: Index from header of the string data.
+      - id: ofs_styles
+        type: u4
+        doc: Index from header of the style data.
+    instances:
+      is_sorted:
+        value: flags & 0x1 == 0x1
+      is_utf8:
+        value: flags & 0x100 == 0x100
   pool_string:
     params:
       - id: i
@@ -88,25 +137,6 @@ types:
         pos: ofs_styles + _parent.style_offsets[i]
         type: string_pool_span_array
         io: _parent._io
-  string_pool_header:
-    seq:
-      - id: num_strings
-        type: u4
-      - id: num_styles
-        type: u4
-      - id: flags
-        type: u4
-      - id: ofs_strings
-        type: u4
-        doc: Index from header of the string data.
-      - id: ofs_styles
-        type: u4
-        doc: Index from header of the style data.
-    instances:
-      is_sorted:
-        value: flags & 0x1 == 0x1
-      is_utf8:
-        value: flags & 0x100 == 0x100
   string_pool_span_array:
     seq:
       - id: string_pool_span
@@ -123,6 +153,7 @@ types:
       - id: last_char
         type: u4
         if: reference != 0xffffffff
+
 enums:
   resource_types:
     0: null_type
