@@ -12,7 +12,26 @@ seq:
   - id: header
     type: header
     size: 64
+instances:
+  text:
+    pos: header.ofs_entry
+    size: header.ofs_data_start - header.ofs_entry
+    if: not header.gzip
+  data:
+    pos: header.ofs_data_start
+    size: header.ofs_data_end - header.ofs_data_start
+    if: not (header.gzip or header.gzdata)
+  relocations:
+    pos: header.ofs_reloc_start
+    type: relocations
+    if: not (header.gzip or header.gzdata)
 types:
+  relocations:
+    seq:
+      - id: relocation
+        type: u4
+        repeat: expr
+        repeat-expr: _root.header.reloc_count
   header:
     seq:
       - id: magic
@@ -52,7 +71,16 @@ types:
     instances:
       load_into_ram:
         value: flags & 0x1 == 1
+        doc: load program entirely into RAM
       got_pic:
         value: flags & 0x2 == 2
-      gzip_compressed:
+        doc: program is PIC with GOT
+      gzip:
         value: flags & 0x4 == 4
+        doc: all but the header is compressed
+      gzdata:
+        value: flags & 0x8 == 8
+        doc: only data/relocs are compressed (for XIP)
+      ktrace:
+        value: flags & 0x10 == 0x10
+        doc: output useful kernel trace for debugging

@@ -28,7 +28,7 @@ from bangunpack import unpack_bflt
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-#from . import bflt
+from . import bflt
 
 
 class BfltUnpackParser(WrappedUnpackParser):
@@ -45,11 +45,28 @@ class BfltUnpackParser(WrappedUnpackParser):
     def parse(self):
         try:
             self.data = bflt.Bflt.from_io(self.infile)
+            self.unpacked_size = self.infile.tell()
+
+            if self.data.header.gzip:
+                pass
+            else:
+               self.unpacked_size = self.data.header.ofs_entry + len(self.data.data)
+
+               if self.data.header.gzdata:
+                   pass
+               else:
+                  self.unpacked_size = self.data.header.ofs_reloc_start
+                  for r in self.data.relocations.relocation:
+                      self.unpacked_size += 4
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     # no need to carve from the file
-    def carve(self):
+    #def carve(self):
+        #pass
+
+    # make sure that self.unpacked_size is not overwritten
+    def calculate_unpacked_size(self):
         pass
 
     def set_metadata_and_labels(self):
