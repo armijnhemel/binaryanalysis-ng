@@ -284,7 +284,6 @@ signaturetofunction = {
     'pcap_be': bangunpack.unpack_pcap,
     'pcap_le_nano': bangunpack.unpack_pcap,
     'pcap_be_nano': bangunpack.unpack_pcap,
-    'android_binary_xml': bangandroid.unpack_android_resource,
     'plf': bangfilesystems.unpack_plf,
     'pfs': bangfilesystems.unpack_pfs,
     'yaffs_le_1': bangfilesystems.unpack_yaffs2,
@@ -345,7 +344,6 @@ extensiontofunction = {
     '.hex': bangtext.unpack_ihex,
     '.srec': bangtext.unpack_srec,
     '.tar': bangunpack.unpack_tar,
-    'resources.arsc': bangandroid.unpack_android_resource,
     '.rsa': bangunpack.unpack_certificate,
     '.pem': bangunpack.unpack_certificate,
 }

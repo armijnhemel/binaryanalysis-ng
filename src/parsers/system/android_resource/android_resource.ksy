@@ -15,7 +15,7 @@ types:
     seq:
       - id: header
         type: header
-      - id: rest_of_chunk
+      - id: body
         size: header.len_chunk - header._sizeof
         type:
           switch-on: header.type
@@ -23,6 +23,7 @@ types:
             resource_types::string_pool: string_pool
             resource_types::table: table
             resource_types::table_package: table_package
+            resource_types::xml: xml
   header:
     seq:
       - id: type
@@ -205,6 +206,20 @@ types:
       - id: last_char
         type: u4
         if: reference != 0xffffffff
+
+  # XML
+  xml:
+    seq:
+      - id: header
+        size: _parent.header.len_header - _parent.header._sizeof
+      - id: body
+        type: xml_body
+        size-eos: true
+  xml_body:
+    seq:
+      - id: nodes
+        type: chunk
+        repeat: eos
 
 enums:
   resource_types:
