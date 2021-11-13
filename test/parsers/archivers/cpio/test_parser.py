@@ -1,6 +1,7 @@
 import sys, os
 from util import *
 from mock_metadirectory import *
+from bang.log import log
 
 from bang.parsers.archivers.cpio.UnpackParser import CpioNewAsciiUnpackParser, \
     CpioNewCrcUnpackParser, CpioPortableAsciiUnpackParser
@@ -47,7 +48,7 @@ def test_unpack_different_filetypes(scan_environment):
         p.parse_from_offset()
         p.write_info(opened_md)
         for _ in p.unpack(opened_md): pass
-        logging.debug(f'--> info = {opened_md.info}')
+        log.debug(f'--> info = {opened_md.info}')
 
     with reopen_md(md).open(open_file=False) as unpacked_md:
         unpacked_fn = unpacked_md.unpacked_path(pathlib.Path('etc'))

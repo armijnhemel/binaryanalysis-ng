@@ -1,9 +1,9 @@
-import logging
 from util import *
 from bang.meta_directory import *
 from bang.scan_job import *
 from mock_queue import *
 from bang.UnpackParser import PaddingParser
+from bang.log import log
 
 class UnpackParserUnpacksBase(UnpackParser):
     pretty_name = 'UnpackParserUnpacksRelative'
@@ -23,11 +23,11 @@ class UnpackParserUnpacksBase(UnpackParser):
         self.unpacked_size = self.length
 
     def unpack(self, meta_directory):
-        logging.debug(f'UnpackParserUnpacksRelative::unpack: unpacking')
+        log.debug(f'UnpackParserUnpacksRelative::unpack: unpacking')
         for fn in self.filenames:
-            logging.debug(f'UnpackParserUnpacksRelative::unpack: unpacking {fn!r}')
+            log.debug(f'UnpackParserUnpacksRelative::unpack: unpacking {fn!r}')
             with meta_directory.unpack_regular_file(pathlib.Path(fn)) as (unpacked_md, f):
-                logging.debug(f'UnpackParserUnpacksRelative::unpack: write')
+                log.debug(f'UnpackParserUnpacksRelative::unpack: write')
                 f.write(b'x')
                 yield unpacked_md
 
