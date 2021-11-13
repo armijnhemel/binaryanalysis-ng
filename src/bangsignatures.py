@@ -237,7 +237,6 @@ signaturetofunction = {
     'icc': bangunpack.unpack_icc,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
-    'bzip2': bangunpack.unpack_bzip2,
     'xar': bangunpack.unpack_xar,
     'iso9660': bangfilesystems.unpack_iso9660,
     'lzip': bangunpack.unpack_lzip,
