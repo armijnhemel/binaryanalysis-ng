@@ -38,10 +38,8 @@ import math
 import lzma
 import zlib
 import re
-import datetime
 
 # some external packages that are needed
-import defusedxml.minidom
 import PIL.Image
 
 
