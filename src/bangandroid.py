@@ -27,7 +27,6 @@ certain formats such as APK, which are with other unpackers).'''
 
 import os
 import tempfile
-import struct
 import zlib
 import re
 import pathlib
