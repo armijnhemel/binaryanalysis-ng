@@ -39,7 +39,7 @@ class ScanEnvironment:
         'database'])
 
     def __init__(self, maxbytes, readsize, createbytecounter, createjson,
-                 tlshmaximum, synthesizedminimum, logging,
+                 tlshmaximum, synthesizedminimum,
                  paddingname, unpackdirectory, temporarydirectory,
                  resultsdirectory, scan_queue, resultqueue,
                  processlock, checksumdict,
@@ -59,7 +59,6 @@ class ScanEnvironment:
         self.createjson = createjson
         self.tlshmaximum = tlshmaximum
         self.synthesizedminimum = synthesizedminimum
-        self.logging = logging
         self.paddingname = paddingname
         self.unpackdirectory = unpackdirectory
         self.temporarydirectory = temporarydirectory

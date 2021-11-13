@@ -87,7 +87,7 @@ class TestScanEnvironment(unittest.TestCase):
     def create_scan_environment(self,
                 maxbytes = 0, readsize = 0, createbytecounter = False,
                 createjson = False, tlshmaximum = 1024,
-                synthesizedminimum = 200, logging = False,
+                synthesizedminimum = 200,
                 paddingname = 'PADDING', unpackdirectory = pathlib.Path('.'),
                 temporarydirectory = pathlib.Path('.'),
                 resultsdirectory = pathlib.Path('.'),
@@ -95,7 +95,7 @@ class TestScanEnvironment(unittest.TestCase):
                 processlock = None, checksumdict = None):
         return ScanEnvironment(maxbytes, readsize, createbytecounter,
                 createjson, tlshmaximum, synthesizedminimum,
-                logging, paddingname, unpackdirectory, temporarydirectory,
+                paddingname, unpackdirectory, temporarydirectory,
                  resultsdirectory, scan_queue, resultqueue, processlock,
                  checksumdict)
 

@@ -22,7 +22,6 @@ def create_scan_environment_from_config(config):
             createjson = False,
             tlshmaximum = False,
             synthesizedminimum = 10,
-            logging = False,
             paddingname = 'PADDING',
             unpackdirectory = '',
             temporarydirectory = '',
@@ -55,9 +54,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     scan_environment.unpackdirectory = unpack_directory.absolute()
 
     if verbose:
-        # scan_environment.logger.setLevel(logging.DEBUG)
         log.setLevel(logging.DEBUG)
-    # log = scan_environment.logger
 
     log.info(f'cli:scan: BANG version {BANG_VERSION}')
     log.info(f'cli:scan: start [{time.time_ns()}]')

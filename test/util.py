@@ -57,7 +57,6 @@ def scan_environment(tmp_path_factory):
         createjson = True,
         tlshmaximum = sys.maxsize,
         synthesizedminimum = 10,
-        logging = False,
         paddingname = 'PADDING',
         unpackdirectory = tmp_dir / 'unpack',
         temporarydirectory = tmp_dir / 'tmp',
