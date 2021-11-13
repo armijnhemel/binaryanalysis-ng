@@ -230,7 +230,8 @@ def test_sigscan_extract_overlapping_both_successful(scan_environment):
 
 
 # 3. same offset, different unpackers: one extracts, the other does not
-def test_sigscan_extract_same_offset_first_successful(scan_environment):
+# Note: disables, because order really depends on the automaton.
+def x_test_sigscan_extract_same_offset_first_successful(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -248,7 +249,7 @@ def test_sigscan_extract_same_offset_first_successful(scan_environment):
             md.extracted_filename(8,len(s)-8)
         ]
 
-def test_sigscan_extract_same_offset_second_successful(scan_environment):
+def x_test_sigscan_extract_same_offset_second_successful(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -286,7 +287,7 @@ def test_sigscan_extract_overlapping_different_offset_both_successful(scan_envir
 # 4. same offset, different unpackers that both unpack (polyglot)
 # e.g. iso image containing an image in the first block
 # -> first parser wins
-def test_sigscan_extract_same_offset_both_successful(scan_environment):
+def x_test_sigscan_extract_same_offset_both_successful(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
@@ -304,7 +305,7 @@ def test_sigscan_extract_same_offset_both_successful(scan_environment):
             md.extracted_filename(8,len(s)-8)
         ]
 
-def test_sigscan_extract_same_offset_both_successful_reversed_order(scan_environment):
+def x_test_sigscan_extract_same_offset_both_successful_reversed_order(scan_environment):
     s = b'xAAyBBxxxxxxxxxxx'
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
