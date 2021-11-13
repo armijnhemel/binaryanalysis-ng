@@ -24,7 +24,6 @@
 
 import math
 
-import bangandroid
 import bangfilesystems
 import bangmedia
 import bangtext
@@ -246,7 +245,7 @@ signaturetofunction = {
     'opentype': bangunpack.unpack_opentype_font,
     'ttc': bangunpack.unpack_opentype_font_collection,
     'truetype': bangunpack.unpack_truetype_font,
-    'android_backup': bangandroid.unpack_android_backup,
+    'android_backup': bangunpack.unpack_android_backup,
     'sgi': bangmedia.unpack_sgi,
     'aiff': bangmedia.unpack_aiff,
     'rzip': bangunpack.unpack_rzip,
@@ -339,7 +338,7 @@ signatureprettyprint = {
 # One example is the Android sparse data format.
 # These extensions should be lower case
 extensiontofunction = {
-    '.new.dat': bangandroid.unpack_android_sparse_data,
+    '.new.dat': bangunpack.unpack_android_sparse_data,
     '.ihex': bangtext.unpack_ihex,
     '.hex': bangtext.unpack_ihex,
     '.srec': bangtext.unpack_srec,
