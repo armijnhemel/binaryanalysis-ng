@@ -8,6 +8,7 @@ from .ScanEnvironment import *
 from .scan_job import ScanJob, process_jobs
 from .meta_directory import MetaDirectory
 from . import bangsignatures
+from .log import log
 
 BANG_VERSION = "0.0.1"
 
@@ -54,8 +55,9 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     scan_environment.unpackdirectory = unpack_directory.absolute()
 
     if verbose:
-        scan_environment.logger.setLevel(logging.DEBUG)
-    log = scan_environment.logger
+        # scan_environment.logger.setLevel(logging.DEBUG)
+        log.setLevel(logging.DEBUG)
+    # log = scan_environment.logger
 
     log.info(f'cli:scan: BANG version {BANG_VERSION}')
     log.info(f'cli:scan: start [{time.time_ns()}]')

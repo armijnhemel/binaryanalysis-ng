@@ -4,8 +4,8 @@ import pickle
 import pathlib
 import multiprocessing
 from contextlib import contextmanager
+from .log import log
 
-logging = multiprocessing.get_logger()
 
 # The MetaDirectory caches the info field, to avoid unnecessary disk access. This means
 # that at most one MetaDirectory object should exist for a given meta directory. Aliases to
@@ -119,14 +119,14 @@ class MetaDirectory:
                 self._open_file = self.abs_file_path.open('rb')
         if self.info == {}:
             self.info = self._read_info()
-            logging.debug(f'[{self.md_path}]open: opening context, reading info {self.info}')
+            log.debug(f'[{self.md_path}]open: opening context, reading info {self.info}')
         try:
             yield self
         finally:
             if open_file:
                 self._open_file.close()
                 self._open_file = None
-            logging.debug(f'[{self.md_path}]open: closing context, writing info {self.info}')
+            log.debug(f'[{self.md_path}]open: closing context, writing info {self.info}')
             self._write_info(self.info)
 
     @property
@@ -138,7 +138,7 @@ class MetaDirectory:
     def _read_info(self):
         '''Reads the file information stored in the MetaDirectory.'''
         path = self.abs_md_path / 'info.pkl'
-        logging.debug(f'[{self.md_path}]_read_info: reading from {path}')
+        log.debug(f'[{self.md_path}]_read_info: reading from {path}')
         try:
             with path.open('rb') as f:
                 return pickle.load(f)
@@ -148,13 +148,13 @@ class MetaDirectory:
     def _write_info(self, data):
         '''Set the info property to data. Note: this will overwrite everything!
         '''
-        logging.debug(f'[{self.md_path}]_write_info: set info = {data}')
+        log.debug(f'[{self.md_path}]_write_info: set info = {data}')
         path = self.abs_md_path / 'info.pkl'
         path.parent.mkdir(parents=True, exist_ok=True)
-        logging.debug(f'[{self.md_path}]_write_info: writing to {path}')
+        log.debug(f'[{self.md_path}]_write_info: writing to {path}')
         with path.open('wb') as f:
             pickle.dump(data, f)
-            logging.debug(f'[{self.md_path}]_write_info: wrote info')
+            log.debug(f'[{self.md_path}]_write_info: wrote info')
 
     @property
     def unpacked_abs_root(self):
@@ -211,7 +211,7 @@ class MetaDirectory:
             self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
         else:
             self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
-        logging.debug(f'[{self.md_path}]unpack_regular_file: update info to {self.info}')
+        log.debug(f'[{self.md_path}]unpack_regular_file: update info to {self.info}')
 
     def unpack_directory(self, path):
         '''Unpack a directory with path path into the MetaDirectory.
@@ -232,7 +232,7 @@ class MetaDirectory:
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.symlink_to(target)
         self.info.setdefault('unpacked_symlinks', {})[unpacked_path] = target
-        logging.debug(f'[{self.md_path}]unpack_symlink: update info to {self.info}')
+        log.debug(f'[{self.md_path}]unpack_symlink: update info to {self.info}')
         return unpacked_path
 
     @property
@@ -246,13 +246,13 @@ class MetaDirectory:
     @property
     def unpacked_relative_files(self):
         files =  self.info.get('unpacked_relative_files',{})
-        logging.debug(f'[{self.md_path}]unpacked_relative_files: got {files}')
+        log.debug(f'[{self.md_path}]unpacked_relative_files: got {files}')
         return files
 
     @property
     def unpacked_absolute_files(self):
         files =  self.info.get('unpacked_absolute_files',{})
-        logging.debug(f'[{self.md_path}]unpacked_absolute_files: got {files}')
+        log.debug(f'[{self.md_path}]unpacked_absolute_files: got {files}')
         return files
 
     @contextmanager
@@ -272,10 +272,10 @@ class MetaDirectory:
         '''Adds a MetaDirectory for an extracted file to this MetaDirectory and sets its
         parent.
         '''
-        logging.debug(f'[{self.md_path}]add_extracted_file: adding {meta_dir.md_path} for {meta_dir.file_path}')
+        log.debug(f'[{self.md_path}]add_extracted_file: adding {meta_dir.md_path} for {meta_dir.file_path}')
         self.info.setdefault('extracted_files', {})[meta_dir.file_path] = meta_dir.md_path
-        logging.debug(f'[{self.md_path}]add_extracted_file: set info {self.info} for {self.md_path}')
-        logging.debug(f'[{self.md_path}]add_extracted_file: setting parent for {meta_dir.md_path} to {self.md_path}')
+        log.debug(f'[{self.md_path}]add_extracted_file: set info {self.info} for {self.md_path}')
+        log.debug(f'[{self.md_path}]add_extracted_file: setting parent for {meta_dir.md_path} to {self.md_path}')
         with meta_dir.open(open_file=False):
             meta_dir.info['parent_md'] = self.md_path
 

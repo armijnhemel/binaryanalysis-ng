@@ -1,11 +1,11 @@
 import os
 import struct
 import pathlib
-import logging
 from . import vfat
 from . import vfat_directory
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
+from bang.log import log
 from FileResult import FileResult
 from kaitaistruct import ValidationNotEqualError
 
@@ -94,8 +94,8 @@ class VfatUnpackParser(UnpackParser):
         lfn = False
         fn = ''
         for record in directory_records:
-            logging.debug(f'vfat_parser: {record=} {record.attributes=}')
-            # logging.debug(f'{get_lfn_part(record)=!r} {get_short_filename(record)=!r} {record.start_clus=} {record.file_size=}')
+            log.debug(f'vfat_parser: {record=} {record.attributes=}')
+            # log.debug(f'{get_lfn_part(record)=!r} {get_short_filename(record)=!r} {record.start_clus=} {record.file_size=}')
             if not lfn:
                 if record.attributes == 0x0f: # is lfn_entry
                     lfn = True
@@ -110,19 +110,19 @@ class VfatUnpackParser(UnpackParser):
                 else:
                     lfn = False
                     pass # keep long filename
-            logging.debug(f'vfat_parser: {fn=} {lfn=}')
+            log.debug(f'vfat_parser: {fn=} {lfn=}')
             if not lfn:
                 if fn[0] == '\0': continue
-                logging.debug(f'vfat_parser: {record.attr_subdirectory=}')
+                log.debug(f'vfat_parser: {record.attr_subdirectory=}')
                 # get other attributes
                 if record.attr_subdirectory:
                     if fn != '.' and fn != '..':
-                        logging.debug(f'vfat:unpack_directory: get dir_entries')
+                        log.debug(f'vfat:unpack_directory: get dir_entries')
                         dir_entries = self.get_dir_entries(record.start_clus)
                         # We are just extracting the directory, not creating a
                         # MetaDirectory for it.
-                        logging.debug(f'vfat:unpack_directory: {dir_entries=}')
-                        logging.debug(f'vfat:unpack_directory: {prefix!r} / {fn!r}')
+                        log.debug(f'vfat:unpack_directory: {dir_entries=}')
+                        log.debug(f'vfat:unpack_directory: {prefix!r} / {fn!r}')
                         meta_directory.unpack_directory(prefix / fn)
                         # parse dir_entries for subdir
                         subdir = vfat_directory.VfatDirectory.from_bytes(dir_entries)

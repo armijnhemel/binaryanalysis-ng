@@ -10,8 +10,7 @@ from .meta_directory import *
 from .UnpackParser import SynthesizingParser, ExtractingParser, PaddingParser
 from .UnpackParserException import UnpackParserException
 from bang import bangsignatures
-
-logging = multiprocessing.get_logger()
+from .log import log
 
 class ScanJob:
     def __init__(self, path):
@@ -60,19 +59,19 @@ def extract_file(checking_meta_directory, in_file, offset, file_size):
 def check_for_padding(checking_meta_directory):
     try:
         unpack_parser = PaddingParser(checking_meta_directory, 0)
-        logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
         unpack_parser.parse_from_offset()
-        logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
-        logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
+        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
         if unpack_parser.parsed_size == checking_meta_directory.size:
-            logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: yield {unpack_parser.__class__} for {checking_meta_directory.file_path}')
+            log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: yield {unpack_parser.__class__} for {checking_meta_directory.file_path}')
             checking_meta_directory.unpack_parser = unpack_parser
             yield checking_meta_directory
         else:
-            logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
-            logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {checking_meta_directory.file_path} is not a padding file')
+            log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+            log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {checking_meta_directory.file_path} is not a padding file')
     except UnpackParserException as e:
-        logging.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {unpack_parser.__class__} parser exception: {e}')
+        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {unpack_parser.__class__} parser exception: {e}')
 
 
 #####
@@ -85,7 +84,7 @@ def check_for_padding(checking_meta_directory):
 def find_extension_parsers(scan_environment):
     for ext, unpack_parsers in scan_environment.get_unpackparsers_for_extensions().items():
         for unpack_parser_cls in unpack_parsers:
-            #logging.debug(f'find_extension_parser: {ext!r} parsed by {unpack_parser_cls}')
+            #log.debug(f'find_extension_parser: {ext!r} parsed by {unpack_parser_cls}')
             yield ext, unpack_parser_cls
 
 #####
@@ -98,18 +97,18 @@ def find_extension_parsers(scan_environment):
 def check_by_extension(scan_environment, checking_meta_directory):
     for ext, unpack_parser_cls in find_extension_parsers(scan_environment):
         if bangsignatures.matches_file_pattern(checking_meta_directory.file_path, ext):
-            logging.debug(f'check_by_extension[{checking_meta_directory.md_path}]: {unpack_parser_cls} parses extension {ext} in {checking_meta_directory.file_path}')
+            log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: {unpack_parser_cls} parses extension {ext} in {checking_meta_directory.file_path}')
             try:
                 unpack_parser = unpack_parser_cls(checking_meta_directory, 0)
-                logging.debug(f'check_by_extension[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
+                log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
                 unpack_parser.parse_from_offset()
-                logging.debug(f'check_by_extension[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
+                log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
                 if unpack_parser.parsed_size == checking_meta_directory.size:
-                    logging.debug(f'check_by_extension[{checking_meta_directory.md_path}]: parser parsed entire file')
+                    log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: parser parsed entire file')
                     checking_meta_directory.unpack_parser = unpack_parser
                     yield checking_meta_directory
                 else:
-                    logging.debug(f'check_by_extension[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size}] ({checking_meta_directory.size - unpack_parser.parsed_size} bytes)')
+                    log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size}] ({checking_meta_directory.size - unpack_parser.parsed_size} bytes)')
                     # yield the checking_meta_directory with a ExtractingUnpackParser, in
                     # case we want to record metadata about it.
                     checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
@@ -134,8 +133,8 @@ def check_by_extension(scan_environment, checking_meta_directory):
                     return
 
             except UnpackParserException as e:
-                logging.debug(f'check_by_extension[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
-                logging.debug(f'check_by_extension[{checking_meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
+                log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
+                log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
 
 
 class FileScanState:
@@ -156,15 +155,15 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
     while file_scan_state.chunk_start < file_size:
         open_file.seek(file_scan_state.chunk_start)
         s = open_file.read(chunk_size)
-        #logging.debug(f'find_signature_parsers: read [{file_scan_state.chunk_start}:+{len(s)}]')
+        #log.debug(f'find_signature_parsers: read [{file_scan_state.chunk_start}:+{len(s)}]')
         for end_index, (end_difference, unpack_parser_cls) in scan_environment.automaton.iter(s):
             offset = file_scan_state.chunk_start + end_index - end_difference
-            #logging.debug(f'find_signature_parsers: got match at [{offset}:{file_scan_state.chunk_start+end_index}]')
+            #log.debug(f'find_signature_parsers: got match at [{offset}:{file_scan_state.chunk_start+end_index}]')
             if offset < file_scan_state.scanned_until:
-                #logging.debug(f'find_signature_parsers: {offset=} < {file_scan_state.scanned_until=}')
+                #log.debug(f'find_signature_parsers: {offset=} < {file_scan_state.scanned_until=}')
                 pass
             elif file_scan_state.chunk_start > file_scan_state.scanned_until and end_index < chunk_overlap:
-                #logging.debug(f'find_signature_parsers: match falls within overlap: {end_index=} < {chunk_overlap=}')
+                #log.debug(f'find_signature_parsers: match falls within overlap: {end_index=} < {chunk_overlap=}')
                 pass
             else:
                 yield offset, unpack_parser_cls
@@ -187,34 +186,34 @@ def scan_signatures(scan_environment, meta_directory):
     file_scan_state = FileScanState()
     file_scan_state.scanned_until = 0
     for offset, unpack_parser_cls in find_signature_parsers(scan_environment, meta_directory.open_file, file_scan_state, meta_directory.size):
-        logging.debug(f'scan_signatures[{meta_directory.md_path}]: wait at {file_scan_state.scanned_until}, found parser at {offset}: {unpack_parser_cls}')
+        log.debug(f'scan_signatures[{meta_directory.md_path}]: wait at {file_scan_state.scanned_until}, found parser at {offset}: {unpack_parser_cls}')
         if offset < file_scan_state.scanned_until: # we have passed this point in the file, ignore the result
-            logging.debug(f'scan_signatures[{meta_directory.md_path}]: skipping [{offset}:{file_scan_state.scanned_until}]')
+            log.debug(f'scan_signatures[{meta_directory.md_path}]: skipping [{offset}:{file_scan_state.scanned_until}]')
             continue
         # try if the unpackparser works
         try:
             unpack_parser = unpack_parser_cls(meta_directory, offset)
-            logging.debug(f'scan_signatures[{meta_directory.md_path}]: trying parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
+            log.debug(f'scan_signatures[{meta_directory.md_path}]: trying parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
             unpack_parser.parse_from_offset()
-            logging.debug(f'scan_signatures[{meta_directory.md_path}]: successful parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
+            log.debug(f'scan_signatures[{meta_directory.md_path}]: successful parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
             if offset == 0 and unpack_parser.parsed_size == meta_directory.size:
-                logging.debug(f'scan_signatures[{meta_directory.md_path}]: skipping [{file_scan_state.scanned_until}:{unpack_parser.parsed_size}], covers entire file, yielding {unpack_parser_cls} and return')
+                log.debug(f'scan_signatures[{meta_directory.md_path}]: skipping [{file_scan_state.scanned_until}:{unpack_parser.parsed_size}], covers entire file, yielding {unpack_parser_cls} and return')
                 yield 0, unpack_parser
                 return
             if offset > file_scan_state.scanned_until:
                 # if it does, yield a synthesizing parser for the padding before the file
-                logging.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{offset}] yields SynthesizingParser, length {offset - file_scan_state.scanned_until}')
+                log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{offset}] yields SynthesizingParser, length {offset - file_scan_state.scanned_until}')
                 yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, offset - file_scan_state.scanned_until)
             # yield the part that the unpackparser parsed
-            logging.debug(f'scan_signatures[{meta_directory.md_path}]: [{offset}:{offset+unpack_parser.parsed_size}] yields {unpack_parser_cls}, length {unpack_parser.parsed_size}')
+            log.debug(f'scan_signatures[{meta_directory.md_path}]: [{offset}:{offset+unpack_parser.parsed_size}] yields {unpack_parser_cls}, length {unpack_parser.parsed_size}')
             yield offset, unpack_parser
             file_scan_state.scanned_until = offset + unpack_parser.parsed_size
         except UnpackParserException as e:
-            logging.debug(f'scan_signatures[{meta_directory.md_path}]: failed parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
-            logging.debug(f'scan_signatures[{meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
+            log.debug(f'scan_signatures[{meta_directory.md_path}]: failed parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
+            log.debug(f'scan_signatures[{meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
     # yield the trailing part
     if 0 < file_scan_state.scanned_until < meta_directory.size:
-        logging.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{meta_directory.size}] yields SynthesizingParser, length {meta_directory.size - file_scan_state.scanned_until}')
+        log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{meta_directory.size}] yields SynthesizingParser, length {meta_directory.size - file_scan_state.scanned_until}')
         yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, meta_directory.size - file_scan_state.scanned_until)
 
 
@@ -229,7 +228,7 @@ def check_by_signature(scan_environment, checking_meta_directory):
     # find offsets
     parts = [] # record the parts for the ExtractingParser
     for offset, unpack_parser in scan_signatures(scan_environment, checking_meta_directory):
-        logging.debug(f'check_by_signature[{checking_meta_directory.md_path}]check_by_signature: got match at {offset}: {unpack_parser.__class__} length {unpack_parser.parsed_size}')
+        log.debug(f'check_by_signature[{checking_meta_directory.md_path}]check_by_signature: got match at {offset}: {unpack_parser.__class__} length {unpack_parser.parsed_size}')
         if offset == 0 and unpack_parser.parsed_size == checking_meta_directory.size:
             # no need to extract a subfile
             checking_meta_directory.unpack_parser = unpack_parser
@@ -246,18 +245,18 @@ def check_by_signature(scan_environment, checking_meta_directory):
 
 def check_featureless(scan_environment, checking_meta_directory):
     for unpack_parser_cls in scan_environment.get_unpackparsers_for_featureless_files():
-        logging.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser_cls}')
+        log.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser_cls}')
         try:
             unpack_parser = unpack_parser_cls(checking_meta_directory, 0)
-            logging.debug(f'check_featureless[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
+            log.debug(f'check_featureless[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
             unpack_parser.parse_from_offset()
-            logging.debug(f'check_featureless[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
+            log.debug(f'check_featureless[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
             if unpack_parser.parsed_size == checking_meta_directory.size:
-                logging.debug(f'check_featureless[{checking_meta_directory.md_path}]: parser parsed entire file')
+                log.debug(f'check_featureless[{checking_meta_directory.md_path}]: parser parsed entire file')
                 checking_meta_directory.unpack_parser = unpack_parser
                 yield checking_meta_directory
             else:
-                logging.debug(f'check_featureless[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size - unpack_parser.parsed_size} bytes')
+                log.debug(f'check_featureless[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size - unpack_parser.parsed_size} bytes')
                 # yield the checking_meta_directory with a ExtractingUnpackParser, in
                 # case we want to record metadata about it.
                 checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
@@ -282,8 +281,8 @@ def check_featureless(scan_environment, checking_meta_directory):
                 return
 
         except UnpackParserException as e:
-            logging.debug(f'check_featureless[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
-            logging.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
+            log.debug(f'check_featureless[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
+            log.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
 
 
 
@@ -311,7 +310,7 @@ def check_featureless(scan_environment, checking_meta_directory):
 def process_job(scanjob):
     # scanjob has: path, meta_directory object and context
     meta_directory = scanjob.meta_directory
-    logging.debug(f'process_job[{scanjob.meta_directory.md_path}]: enter')
+    log.debug(f'process_job[{scanjob.meta_directory.md_path}]: enter')
 
     # TODO: if we want to record meta data for unscannable files, change
     # this into an iterator pattern where you will get MetaDirectories with an
@@ -332,16 +331,16 @@ def process_job(scanjob):
         # TODO: skip for synthesized files
         if 'synthesized' not in meta_directory.info.get('labels',[]):
             for md in check_by_extension(scanjob.scan_environment, meta_directory):
-                logging.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
                 with md.open(open_file=False):
                     md.write_info_with_unpack_parser()
-                logging.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
                 for unpacked_md in md.unpack_with_unpack_parser():
-                    logging.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
+                    log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
                     job = ScanJob(unpacked_md.md_path)
                     scanjob.scan_environment.scan_queue.put(job)
-                    logging.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
-                logging.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                    log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
+                log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
 
         # stop after first successful unpack (TODO: make configurable?)
         if meta_directory.is_scanned():
@@ -350,36 +349,36 @@ def process_job(scanjob):
         # TODO: skip for synthesized files
         if 'synthesized' not in meta_directory.info.get('labels',[]):
             for md in check_by_signature(scanjob.scan_environment, meta_directory):
-                logging.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
                 with md.open(open_file=False):
                     md.write_info_with_unpack_parser()
-                logging.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
                 for unpacked_md in md.unpack_with_unpack_parser():
                     job = ScanJob(unpacked_md.md_path)
-                    logging.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
+                    log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
                     # TODO: if unpacked_md == md, postpone queuing
                     scanjob.scan_environment.scan_queue.put(job)
-                    logging.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
-                logging.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                    log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
+                log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
 
         # stop after first successful scan for this file (TODO: make configurable?)
         if meta_directory.is_scanned():
             return
 
         # if extension and signature did not give any results, try other things
-        logging.debug(f'process_job[{scanjob.meta_directory.md_path}]: trying featureless parsers')
+        log.debug(f'process_job[{scanjob.meta_directory.md_path}]: trying featureless parsers')
 
         for md in check_featureless(scanjob.scan_environment, meta_directory):
-            logging.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+            log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
             with md.open(open_file=False):
                 md.write_info_with_unpack_parser()
-            logging.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+            log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
             for unpacked_md in md.unpack_with_unpack_parser():
-                logging.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
+                log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
                 job = ScanJob(unpacked_md.md_path)
                 scanjob.scan_environment.scan_queue.put(job)
-                logging.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
-            logging.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
+            log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
 
 
 ####
@@ -392,31 +391,31 @@ def process_jobs(scan_environment):
 
     while True:
         # TODO: check if timeout long enough
-        logging.debug(f'process_jobs: getting scanjob')
+        log.debug(f'process_jobs: getting scanjob')
         s = scan_environment.scan_semaphore.acquire(blocking=False)
         if s == True: # at least one scan job is running
             try:
                 #scanjob = scan_environment.scan_queue.get(timeout=86400)
                 scanjob = scan_environment.scan_queue.get(timeout=60)
-                logging.debug(f'process_jobs: {scanjob=}')
+                log.debug(f'process_jobs: {scanjob=}')
                 scan_environment.scan_semaphore.release()
                 scanjob.scan_environment = scan_environment
-                logging.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
+                log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
                 process_job(scanjob)
-                logging.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
+                log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
                 scan_environment.scan_queue.task_done()
             except queue.Empty as e:
-                logging.debug(f'process_jobs: scan queue is empty')
+                log.debug(f'process_jobs: scan queue is empty')
             except Exception as e:
-                logging.error(f'process_jobs: caught exception {e}')
+                log.error(f'process_jobs: caught exception {e}')
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 exc_trace = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                logging.error(f'process_jobs:\n{"".join(exc_trace)}')
+                log.error(f'process_jobs:\n{"".join(exc_trace)}')
                 scan_environment.scan_queue.task_done()
                 scan_environment.scan_semaphore.acquire(blocking=False)
                 break
         else: # all scanjobs are waiting
             break
-    logging.debug(f'process_jobs: exiting')
+    log.debug(f'process_jobs: exiting')
     # scan_environment.scan_queue.join()
 

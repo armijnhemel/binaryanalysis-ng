@@ -35,13 +35,13 @@
 import os
 import stat
 import pathlib
-import logging
 from . import cpio_new_ascii
 from . import cpio_new_crc
 from . import cpio_portable_ascii
 from . import cpio_old_binary
 from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
+from bang.log import log
 from FileResult import FileResult
 from kaitaistruct import ValidationNotEqualError
 
@@ -75,7 +75,7 @@ class CpioBaseUnpackParser(UnpackParser):
     def unpack_link(self, meta_directory, path, target, rewrite=False):
         # symlinks are not rewritten.
         meta_directory.unpack_symlink(path, target)
-        logging.debug(f'unpack_link: {path} -> {target}')
+        log.debug(f'unpack_link: {path} -> {target}')
         return []
 
     def unpack(self, meta_directory):
@@ -83,12 +83,12 @@ class CpioBaseUnpackParser(UnpackParser):
         pos = 0
         for e in self.data.entries:
             out_labels = []
-            logging.debug(f'unpack: got entry {e.filename}')
+            log.debug(f'unpack: got entry {e.filename}')
             if e.filename != self.data.trailing_filename:
                 file_path = pathlib.Path(e.filename)
 
                 mode = e.header.cpio_mode
-                logging.debug(f'unpack: entry has mode {mode}')
+                log.debug(f'unpack: entry has mode {mode}')
 
                 if stat.S_ISDIR(mode):
                     yield from self.unpack_directory(meta_directory, file_path)
@@ -99,7 +99,7 @@ class CpioBaseUnpackParser(UnpackParser):
                     pos += e.header.bsize
                     continue
                 elif stat.S_ISREG(mode):
-                    logging.debug(f'unpack: regular file')
+                    log.debug(f'unpack: regular file')
 
                     filedata_start = e.header.hsize + e.header.nsize + e.header.npaddingsize
                     yield from self.unpack_regular(meta_directory, file_path, pos + filedata_start, e.header.fsize)

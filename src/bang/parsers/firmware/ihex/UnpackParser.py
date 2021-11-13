@@ -1,22 +1,22 @@
 
 import os
 import pathlib
-import logging
 from bang.UnpackParser import UnpackParser, check_condition
+from bang.log import log
 from bangtext import unpack_ihex
 
 def parse_ihex_line(line):
-    logging.debug(f'parse_ihex_line: {line!r}, {len(line)=}')
+    log.debug(f'parse_ihex_line: {line!r}, {len(line)=}')
     if len(line) < 11 or len(line) % 2 == 0:
         # invalid format
         return None, None
     bytes_count = int.from_bytes(bytes.fromhex(line[1:3].decode('ascii')), byteorder='big')
-    logging.debug(f'parse_ihex_line: {bytes_count=}')
+    log.debug(f'parse_ihex_line: {bytes_count=}')
     if len(line) < 3 + bytes_count + 2:
         # invalid format
         return None, None
     record_type = int.from_bytes(bytes.fromhex(line[7:9].decode('ascii')), byteorder='big')
-    logging.debug(f'parse_ihex_line: {record_type=}')
+    log.debug(f'parse_ihex_line: {record_type=}')
     if record_type > 5:
         # invalid format
         return None, None
@@ -41,7 +41,7 @@ class IhexUnpackParser(UnpackParser):
 
         line = self.infile.readline()
         while line != b'':
-            logging.debug(f'ihex_parse: {line!r}')
+            log.debug(f'ihex_parse: {line!r}')
             sline = line.strip()
             if line.startswith(b':'):
                 try:
@@ -58,7 +58,7 @@ class IhexUnpackParser(UnpackParser):
                         # invalid format
                         break
                 except ValueError as e:
-                    logging.debug(f'ihex_parse: exception {e}')
+                    log.debug(f'ihex_parse: exception {e}')
                     # invalid format
                     break
             elif line.startswith(b'#'):

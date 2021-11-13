@@ -21,12 +21,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
-import logging
 import multiprocessing
 import ahocorasick
 from ByteCountReporter import *
 from PickleReporter import *
 from JsonReporter import *
+from .log import log
 
 class EmptyAutomaton:
     def iter(self, *args, **kwargs):
@@ -182,7 +182,7 @@ class ScanEnvironment:
         self._automaton = ahocorasick.Automaton()
         for u in self.unpackparsers:
             for s in u.signatures:
-                logging.debug(f'build_automaton: ({s},{u}, {s[0]+len(s[1])-1=}')
+                log.debug(f'build_automaton: ({s},{u}, {s[0]+len(s[1])-1=}')
                 self._automaton.add_word(s[1], (s[0]+len(s[1])-1, u))
         if len(self._automaton) > 0:
             self._automaton.make_automaton()
