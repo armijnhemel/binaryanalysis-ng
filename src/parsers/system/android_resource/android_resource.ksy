@@ -22,6 +22,7 @@ types:
           cases:
             resource_types::string_pool: string_pool
             resource_types::table: table
+            resource_types::table_package: table_package
   header:
     seq:
       - id: type
@@ -33,6 +34,20 @@ types:
             - resource_types::string_pool
             - resource_types::table
             - resource_types::xml
+            - resource_types::xml_start_namespace
+            - resource_types::xml_end_namespace
+            - resource_types::xml_start_element
+            - resource_types::xml_end_element
+            - resource_types::xml_cdata
+            - resource_types::xml_last_chunk
+            - resource_types::xml_resource_map
+            - resource_types::table_package
+            - resource_types::table_type
+            - resource_types::table_type_spec
+            - resource_types::table_library
+            - resource_types::table_overlayable
+            - resource_types::table_overlayable_policy
+            - resource_types::table_staged_alias
       - id: len_header
         type: u2
       - id: len_chunk
@@ -58,6 +73,40 @@ types:
     seq:
       - id: string_pool
         type: chunk
+      - id: res_tables
+        type: chunk
+        repeat: expr
+        repeat-expr: _parent.header.num_table_package
+
+  # Table package
+  table_package:
+    seq:
+      - id: header
+        type: table_package_header
+        #size: _parent.header.len_header - _parent.header._sizeof
+      - id: body
+        #type: table_package_body
+        size-eos: true
+    instances:
+      len_header:
+        value: _parent.header.len_header
+  table_package_header:
+    seq:
+      - id: package_id
+        type: u4
+      - id: name
+        size: 256
+        # utf-16
+      - id: type_strings
+        type: u4
+      - id: last_public_type
+        type: u4
+      - id: key_strings
+        type: u4
+      - id: last_public_key
+        type: u4
+      - id: type_id_offset
+        type: u4
 
   # String pool
   string_pool:
@@ -71,6 +120,8 @@ types:
     instances:
       len_header:
         value: _parent.header.len_header
+      strings:
+        value: body.strings
   string_pool_body:
     seq:
       - id: string_offsets
@@ -126,6 +177,7 @@ types:
         pos: ofs_strings + _parent.string_offsets[i]
         type: strz
         io: _parent._io
+        if: is_utf8
   pool_style:
     params:
       - id: i
@@ -161,22 +213,20 @@ enums:
     2: table
     3: xml
 
-  xml_types:
     # Chunk types in RES_XML_TYPE
-    0x100: start_namespace  # also: first_chunk
-    0x101: end_namespace
-    0x102: start_element
-    0x103: end_element
-    0x104: cdata
-    0x17f: last_chunk
-    0x180: resource_map
+    0x100: xml_start_namespace  # also: first_chunk
+    0x101: xml_end_namespace
+    0x102: xml_start_element
+    0x103: xml_end_element
+    0x104: xml_cdata
+    0x17f: xml_last_chunk
+    0x180: xml_resource_map
 
-  table_types:
     # Chunk types in RES_TABLE_TYPE
-    0x200: package
-    0x201: type
-    0x202: type_spec
-    0x203: library
-    0x204: overlayable
-    0x205: overlayable_policy
-    0x206: staged_alias
+    0x200: table_package
+    0x201: table_type
+    0x202: table_type_spec
+    0x203: table_library
+    0x204: table_overlayable
+    0x205: table_overlayable_policy
+    0x206: table_staged_alias
