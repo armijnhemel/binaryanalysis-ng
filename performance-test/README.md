@@ -74,7 +74,7 @@ Success  Fail     Try      TimeSuccess  TimeFail     TimeAnalyse  TimeUnpack    
 ```
 
 The analyzed file would never contain 21 GPT partitions, which means that the `GptPartitionTableUnpackParser` recognizes GPT partitions where it shouldn't! Reducing the number of
-false successes would save some time from `TimeAnalyse` and `TimeUnpack`, but we cannot tell how much.
+false successes would save some time from `TimeAnalyse` and `TimeUnpack`, but we cannot tell how much. But more importantly, it will give the correct result.
 
 Another example:
 
