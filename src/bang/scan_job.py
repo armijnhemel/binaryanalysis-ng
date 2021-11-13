@@ -403,7 +403,6 @@ def process_jobs(scan_environment):
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
                 process_job(scanjob)
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
-                scan_environment.scan_queue.task_done()
             except queue.Empty as e:
                 log.debug(f'process_jobs: scan queue is empty')
             except Exception as e:
@@ -411,10 +410,10 @@ def process_jobs(scan_environment):
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 exc_trace = traceback.format_exception(exc_type, exc_value, exc_traceback)
                 log.error(f'process_jobs:\n{"".join(exc_trace)}')
-                scan_environment.scan_queue.task_done()
                 scan_environment.scan_semaphore.acquire(blocking=False)
                 break
         else: # all scanjobs are waiting
+            log.debug(f'process_jobs: all scanjobs are waiting')
             break
     log.debug(f'process_jobs: exiting')
     # scan_environment.scan_queue.join()

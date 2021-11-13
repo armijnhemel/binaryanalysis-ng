@@ -69,7 +69,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
 
     # set up the jobs
     process_manager = multiprocessing.Manager()
-    scan_queue = process_manager.JoinableQueue(maxsize=0)
+    scan_queue = process_manager.Queue(maxsize=0)
     scan_environment.scan_semaphore = process_manager.Semaphore(jobs)
     scan_environment.scan_queue = scan_queue
 
@@ -88,7 +88,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     for p in processes: p.start()
 
     log.debug(f'cli:scan: waiting for all processes to finish...')
-    scan_queue.join()
+    for p in processes: p.join()
     log.debug(f'cli:scan: all processes in queue finished')
 
     log.debug(f'cli:scan: terminating processes...')
