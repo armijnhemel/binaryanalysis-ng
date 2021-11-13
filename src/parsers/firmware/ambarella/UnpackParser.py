@@ -26,7 +26,7 @@ import binascii
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import ambarella
 
 
@@ -46,7 +46,7 @@ class AmbarellaUnpackParser(UnpackParser):
             for section in self.data.sections:
                 if section.body is None:
                     continue
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         self.unpacked_size = 256

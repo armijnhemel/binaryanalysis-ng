@@ -28,7 +28,6 @@ pkgs.mkShell {
     apkid
     binutils
     cve-bin-tool
-    libxml2
     openjdk8
     openssl
     my-python

@@ -1,5 +1,5 @@
 meta:
-  id: file_contexts
+  id: selinux_file_contexts
   title: SELinux file_contexts.bin
   file-extension: bin
   license: CC0-1.0

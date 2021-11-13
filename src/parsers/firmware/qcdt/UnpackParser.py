@@ -27,7 +27,7 @@ from FileResult import FileResult
 from UnpackParser import WrappedUnpackParser
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationNotAnyOfError
+from kaitaistruct import ValidationFailedError
 from . import qcdt
 
 
@@ -41,7 +41,7 @@ class QcdtUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = qcdt.Qcdt.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationNotAnyOfError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     # no need to carve from the file

@@ -23,13 +23,14 @@
 
 import os
 import binascii
+import json
 
 import telfhash
 
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from kaitaistruct import UndecidedEndiannessError
 from . import elf
 
@@ -83,7 +84,10 @@ class ElfUnpackParser(UnpackParser):
             # evaluation, which normally happens lazily for instances in
             # kaitai struct.
             names = self.data.header.section_names
-        except (Exception, ValidationNotEqualError, UndecidedEndiannessError) as e:
+
+            # TODO linux kernel module signatures
+            # see scripts/sign-file.c in Linux kernel
+        except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):
@@ -464,6 +468,13 @@ class ElfUnpackParser(UnpackParser):
                                 pass
                         elif entry.type == 0x101:
                             # LINUX_ELFNOTE_LTO_INFO
+                            pass
+                    elif entry.name == b'FDO' and entry.type == 0xcafe1a7e:
+                        # https://fedoraproject.org/wiki/Changes/Package_information_on_ELF_objects
+                        # extract JSON and store it
+                        try:
+                            metadata['package note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
+                        except:
                             pass
                     elif entry.name == b'FreeBSD':
                         labels.append('freebsd')

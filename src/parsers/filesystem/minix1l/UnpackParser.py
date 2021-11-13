@@ -134,6 +134,7 @@ class Minix1lUnpackParser(UnpackParser):
                 check_condition(len(zones) != 0, "no valid zones found")
 
             inode_counter += 1
+        check_condition(not is_root_inode, "no valid root inode found")
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.superblock.num_zones * self.data.block_size

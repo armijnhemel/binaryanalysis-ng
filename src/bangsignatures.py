@@ -17,14 +17,13 @@
 # License, version 3, along with BANG.  If not, see
 # <http://www.gnu.org/licenses/>
 #
-# Copyright 2018-2019 - Armijn Hemel
+# Copyright 2018-2021 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import math
 
-import bangandroid
 import bangfilesystems
 import bangmedia
 import bangtext
@@ -218,7 +217,6 @@ signaturesoffset = {
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
     'webp': bangmedia.unpack_webp,
-    'wav': bangmedia.unpack_wav,
     'ani': bangmedia.unpack_ani,
     'mng': bangmedia.unpack_mng,
     'gzip': bangunpack.unpack_gzip,
@@ -239,55 +237,38 @@ signaturetofunction = {
     'icc': bangunpack.unpack_icc,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
-    'bzip2': bangunpack.unpack_bzip2,
     'xar': bangunpack.unpack_xar,
     'iso9660': bangfilesystems.unpack_iso9660,
     'lzip': bangunpack.unpack_lzip,
     'jpeg': bangmedia.unpack_jpeg,
-    'woff': bangunpack.unpack_woff,
     'opentype': bangunpack.unpack_opentype_font,
     'ttc': bangunpack.unpack_opentype_font_collection,
     'truetype': bangunpack.unpack_truetype_font,
-    'android_backup': bangandroid.unpack_android_backup,
-    'cab': bangunpack.unpack_cab,
+    'android_backup': bangunpack.unpack_android_backup,
     'sgi': bangmedia.unpack_sgi,
     'aiff': bangmedia.unpack_aiff,
-    'terminfo': bangunpack.unpack_terminfo,
     'rzip': bangunpack.unpack_rzip,
     'jffs2_little_endian': bangfilesystems.unpack_jffs2,
     'jffs2_big_endian': bangfilesystems.unpack_jffs2,
-    '7z': bangunpack.unpack_7z,
-    'chm': bangunpack.unpack_chm,
     'mswim': bangunpack.unpack_wim,
     'sunraster': bangmedia.unpack_sunraster,
     'ext2': bangfilesystems.unpack_ext2,
-    'rpm': bangunpack.unpack_rpm,
     'zstd_08': bangunpack.unpack_zstd,
-    'lz4': bangunpack.unpack_lz4,
-    'lz4_legacy': bangunpack.unpack_lz4legacy,
     'vmdk': bangfilesystems.unpack_vmdk,
     'qcow2': bangfilesystems.unpack_qcow2,
-    'vdi': bangfilesystems.unpack_vdi,
-    'javaclass': bangunpack.unpack_java_class,
-    'snappy_framed': bangunpack.unpack_snappy,
     'swf': bangmedia.unpack_swf,
     'swf_zlib': bangmedia.unpack_swf,
     'swf_lzma': bangmedia.unpack_swf,
     'certificate': bangunpack.unpack_certificate,
-    'git_index': bangunpack.unpack_git_index,
     'flv': bangmedia.unpack_flv,
     'pdf': bangmedia.unpack_pdf,
     'pack200': bangunpack.unpack_pack200,
     'zim': bangunpack.unpack_zim,
-    'xg3d': bangmedia.unpack_xg3d,
-    'acdb': bangunpack.unpack_acdb,
-    'ktx11': bangmedia.unpack_ktx11,
     'sqlite3': bangunpack.unpack_sqlite,
     'trx': bangunpack.unpack_trx,
     'ppm': bangmedia.unpack_pnm,
     'pgm': bangmedia.unpack_pnm,
     'pbm': bangmedia.unpack_pnm,
-    'androidbootimg': bangandroid.unpack_android_boot_img,
     'fat': bangfilesystems.unpack_fat,
     'cbfs': bangfilesystems.unpack_cbfs,
     'compress': bangunpack.unpack_compress,
@@ -296,22 +277,17 @@ signaturetofunction = {
     'cramfs_be': bangfilesystems.unpack_cramfs,
     'bflt': bangunpack.unpack_bflt,
     'ubi': bangfilesystems.unpack_ubi,
-    'bittorrent': bangunpack.unpack_bittorrent,
     'pcapng': bangunpack.unpack_pcapng,
     'pcap_le': bangunpack.unpack_pcap,
     'pcap_be': bangunpack.unpack_pcap,
     'pcap_le_nano': bangunpack.unpack_pcap,
     'pcap_be_nano': bangunpack.unpack_pcap,
-    'android_binary_xml': bangandroid.unpack_android_resource,
-    'serialized_java': bangunpack.unpack_serialized_java,
-    'mapsforge': bangmedia.unpack_mapsforge,
     'plf': bangfilesystems.unpack_plf,
     'pfs': bangfilesystems.unpack_pfs,
     'yaffs_le_1': bangfilesystems.unpack_yaffs2,
     'yaffs_le_2': bangfilesystems.unpack_yaffs2,
     'yaffs_be_1': bangfilesystems.unpack_yaffs2,
     'yaffs_be_2': bangfilesystems.unpack_yaffs2,
-    'crx': bangunpack.unpack_crx,
 }
 
 # a lookup table to map signatures to a name for
@@ -361,21 +337,13 @@ signatureprettyprint = {
 # One example is the Android sparse data format.
 # These extensions should be lower case
 extensiontofunction = {
-    '.swp': bangunpack.unpack_vim_swapfile,
-    '.new.dat': bangandroid.unpack_android_sparse_data,
+    '.new.dat': bangunpack.unpack_android_sparse_data,
     '.ihex': bangtext.unpack_ihex,
     '.hex': bangtext.unpack_ihex,
     '.srec': bangtext.unpack_srec,
-    '.xml': bangunpack.unpack_xml,
-    '.xsd': bangunpack.unpack_xml,
-    '.ncx': bangunpack.unpack_xml,
-    '.opf': bangunpack.unpack_xml,
-    '.svg': bangunpack.unpack_xml,
     '.tar': bangunpack.unpack_tar,
-    'resources.arsc': bangandroid.unpack_android_resource,
     '.rsa': bangunpack.unpack_certificate,
     '.pem': bangunpack.unpack_certificate,
-    '.json': bangunpack.unpack_json,
 }
 
 import os

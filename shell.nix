@@ -25,6 +25,7 @@ let
     pyyaml
     telfhash
     tlsh
+    xxhash
     zstd
   ]);
     
@@ -35,7 +36,6 @@ pkgs.mkShell {
     cabextract
     e2tools
     innoextract
-    libxml2
     lz4
     mailcap
     ncompress

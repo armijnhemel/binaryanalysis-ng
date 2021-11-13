@@ -48,7 +48,7 @@ class PsdUnpackParser(UnpackParser):
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = [ 'psd', 'graphics' ]
+        labels = ['psd', 'graphics']
         metadata = {}
 
         self.unpack_results.set_metadata(metadata)
