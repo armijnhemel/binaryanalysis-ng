@@ -387,6 +387,7 @@ def process_job(scanjob):
 #
 def process_jobs(scan_environment):
     # TODO: code smell, should not be needed if unpackparsers behave
+    current_dir = os.getcwd()
     os.chdir(scan_environment.unpackdirectory)
 
     while True:
@@ -417,4 +418,5 @@ def process_jobs(scan_environment):
             break
     log.debug(f'process_jobs: exiting')
     # scan_environment.scan_queue.join()
+    os.chdir(current_dir)
 
