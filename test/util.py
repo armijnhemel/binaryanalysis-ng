@@ -3,6 +3,7 @@ import sys
 import pathlib
 import pytest
 import shutil
+import threading
 
 from bang.meta_directory import *
 # from FileResult import *
@@ -67,6 +68,7 @@ def scan_environment(tmp_path_factory):
         checksumdict = {},
     )
     se.set_unpackparsers(bangsignatures.get_unpackers())
+    se.scan_semaphore = threading.Semaphore(1)
     return se
 
 def fileresult(basedir, rel_path, labels, calculate_size = True):
