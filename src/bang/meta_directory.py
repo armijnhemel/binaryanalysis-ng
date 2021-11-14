@@ -37,6 +37,8 @@ class MetaDirectory:
         self._unpack_parser = None
         self._open_file = None
         self.info = {}
+        self._refcount = 0
+        self._mode_write = False
 
     @classmethod
     def from_md_path(cls, meta_root, name):
@@ -98,7 +100,7 @@ class MetaDirectory:
         return self._size
 
     @contextmanager
-    def open(self, open_file=True):
+    def open(self, open_file=True, mode_write=True):
         '''Context manager to "open" the MetaDirectory. Yields itself.
         It opens the file, mmaps the file and reads the information stored in the
         metadirectory. When exiting the context, it will save the information to the
@@ -114,20 +116,25 @@ class MetaDirectory:
         write the information upon leaving the context. This works well as long as the
         references to the MetaDirectory are all in the same thread.
         '''
+        self._mode_write = self._mode_write or mode_write
         open_file = open_file or (self._open_file is None)
         if open_file:
                 self._open_file = self.abs_file_path.open('rb')
-        if self.info == {}:
+        if self._refcount == 0:
             self.info = self._read_info()
             log.debug(f'[{self.md_path}]open: opening context, reading info {self.info}')
+        self._refcount += 1
         try:
             yield self
         finally:
             if open_file:
                 self._open_file.close()
                 self._open_file = None
-            log.debug(f'[{self.md_path}]open: closing context, writing info {self.info}')
-            self._write_info(self.info)
+            self._refcount -= 1
+            log.debug(f'[{self.md_path}]open: closing context {self._refcount=}')
+            if self._refcount == 0 and self._mode_write:
+                log.debug(f'[{self.md_path}]open: writing info {self.info}')
+                self._write_info(self.info)
 
     @property
     def open_file(self):
