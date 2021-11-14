@@ -12,7 +12,7 @@ Some intended uses:
 
 ## Requirements
 
-The recommended way to use [Nix](https://nixos.org/nix), run
+The recommended way is to use [Nix](https://nixos.org/nix), run
 `nix-shell` to load all the dependencies for the unpacker,
 `nix-shell maintenance.nix` for the maintenance scripts and
 `nix-shell analysis.nix` for the maintenance scripts.
