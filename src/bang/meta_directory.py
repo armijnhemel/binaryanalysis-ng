@@ -163,6 +163,15 @@ class MetaDirectory:
             pickle.dump(data, f)
             log.debug(f'[{self.md_path}]_write_info: wrote info')
 
+    def write_ahead(self):
+        '''force a write of the current information to disk. Decreases the refcount, so that leaving
+        the open() context will not write again. If you call this method, be aware of what you are
+        doing!
+        '''
+        log.debug(f'[{self.md_path}]write_ahead: setting refcount to 0 and write info to disk') 
+        self._refcount = 0
+        self._write_info(self.info)
+
     @property
     def unpacked_abs_root(self):
         return self.md_path / self.ABS_UNPACK_DIR

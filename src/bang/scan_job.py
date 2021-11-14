@@ -334,13 +334,13 @@ def process_job(scanjob):
                 log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
                 with md.open(open_file=False):
                     md.write_info_with_unpack_parser()
-                log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-                for unpacked_md in md.unpack_with_unpack_parser():
-                    log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
-                    job = ScanJob(unpacked_md.md_path)
-                    scanjob.scan_environment.scan_queue.put(job)
-                    log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
-                log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                    log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                    for unpacked_md in md.unpack_with_unpack_parser():
+                        log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
+                        job = ScanJob(unpacked_md.md_path)
+                        scanjob.scan_environment.scan_queue.put(job)
+                        log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
+                    log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
 
         # stop after first successful unpack (TODO: make configurable?)
         if meta_directory.is_scanned():
@@ -352,14 +352,14 @@ def process_job(scanjob):
                 log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
                 with md.open(open_file=False):
                     md.write_info_with_unpack_parser()
-                log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-                for unpacked_md in md.unpack_with_unpack_parser():
-                    job = ScanJob(unpacked_md.md_path)
-                    log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
-                    # TODO: if unpacked_md == md, postpone queuing
-                    scanjob.scan_environment.scan_queue.put(job)
-                    log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
-                log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                    log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                    for unpacked_md in md.unpack_with_unpack_parser():
+                        job = ScanJob(unpacked_md.md_path)
+                        log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
+                        # TODO: if unpacked_md == md, postpone queuing
+                        scanjob.scan_environment.scan_queue.put(job)
+                        log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
+                    log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
 
         # stop after first successful scan for this file (TODO: make configurable?)
         if meta_directory.is_scanned():
@@ -372,13 +372,13 @@ def process_job(scanjob):
             log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
             with md.open(open_file=False):
                 md.write_info_with_unpack_parser()
-            log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-            for unpacked_md in md.unpack_with_unpack_parser():
-                log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
-                job = ScanJob(unpacked_md.md_path)
-                scanjob.scan_environment.scan_queue.put(job)
-                log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
-            log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                for unpacked_md in md.unpack_with_unpack_parser():
+                    log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
+                    job = ScanJob(unpacked_md.md_path)
+                    scanjob.scan_environment.scan_queue.put(job)
+                    log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
+                log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
 
 
 ####
