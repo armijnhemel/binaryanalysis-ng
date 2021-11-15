@@ -338,8 +338,6 @@ signatureprettyprint = {
 # These extensions should be lower case
 extensiontofunction = {
     '.new.dat': bangunpack.unpack_android_sparse_data,
-    '.ihex': bangtext.unpack_ihex,
-    '.hex': bangtext.unpack_ihex,
     '.srec': bangtext.unpack_srec,
     '.tar': bangunpack.unpack_tar,
     '.rsa': bangunpack.unpack_certificate,
@@ -452,7 +450,6 @@ def matches_file_pattern(filename, extension):
 
 # certain unpacking functions if the whole file is text
 textonlyfunctions = {
-    'ihex': bangtext.unpack_ihex,
     'srec': bangtext.unpack_srec,
     'base64': bangtext.unpack_base64,
 }
