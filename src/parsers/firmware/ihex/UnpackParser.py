@@ -209,7 +209,7 @@ class IhexUnpackParser(UnpackParser):
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['data uri']
+        labels = ['ihex']
 
         metadata = {}
 
