@@ -26,8 +26,7 @@
 
 import os
 import pathlib
-import base64
-import binascii
+
 from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
