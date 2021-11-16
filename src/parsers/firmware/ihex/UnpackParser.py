@@ -78,7 +78,7 @@ class IhexUnpackParser(UnpackParser):
             if not line.startswith(':'):
                 # There could be comments
                 if line.startswith('#'):
-                    unpacked += len(hex_line)
+                    unpacked += len(line) + len(ihex_file.newlines)
                     continue
                 break
 
@@ -111,7 +111,7 @@ class IhexUnpackParser(UnpackParser):
                     error_msg = 'invalid byte counts for record type 01'
                     break
                 end_of_ihex = True
-                unpacked += len(hex_line)
+                unpacked += len(line) + len(ihex_file.newlines)
                 break
             elif record_type == 0:
                 try:
@@ -136,7 +136,7 @@ class IhexUnpackParser(UnpackParser):
                         error_msg = 'invalid byte counts for record type 05'
                         break
                 record_types.add(record_type)
-            unpacked += len(hex_line)
+            unpacked += len(line) + len(ihex_file.newlines)
 
         ihex_file.close()
 
