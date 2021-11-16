@@ -401,6 +401,8 @@ class ElfUnpackParser(UnpackParser):
                     pass
                 elif header.name == '.VTGPrLc':
                     pass
+                elif header.name == '.rol4re_elf_aux':
+                    labels.append('l4')
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
                 for entry in header.body.entries:
