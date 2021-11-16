@@ -78,7 +78,10 @@ class IhexUnpackParser(UnpackParser):
             if not line.startswith(':'):
                 # There could be comments
                 if line.startswith('#'):
-                    unpacked += len(line) + len(ihex_file.newlines)
+                    if ihex_file.newlines is not None:
+                        unpacked += len(line) + len(ihex_file.newlines)
+                    else:
+                        unpacked += len(line)
                     continue
                 break
 

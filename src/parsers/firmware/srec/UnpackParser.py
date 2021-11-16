@@ -80,7 +80,10 @@ class SrecUnpackParser(UnpackParser):
                 # There could be comments starting with ';',
                 # although this is discouraged.
                 if line.startswith(';'):
-                    unpacked += len(line) + len(srec_file.newlines)
+                    if srec_file.newlines is not None:
+                        unpacked += len(line) + len(srec_file.newlines)
+                    else:
+                        unpacked += len(line)
                     continue
                 break
 
