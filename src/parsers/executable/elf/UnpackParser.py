@@ -384,7 +384,7 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == '.qtmetadata':
                     pass
                 elif header.name == '.qtmimedatabase':
-                    # data, in possibly zstd/gzip compressed
+                    # data, possibly zstd/gzip compressed
                     pass
                 elif header.name == '.qtversion':
                     pass
