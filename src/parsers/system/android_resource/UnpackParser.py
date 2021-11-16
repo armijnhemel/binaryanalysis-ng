@@ -45,6 +45,8 @@ class AndroidResourceUnpackParser(UnpackParser):
             # walk to see if the XML is actually correct
             elem_count = 0
             namespace_count = 0
+            check_condition(self.data.resource.body.body.nodes != [],
+                            "no elements found")
             for node in self.data.resource.body.body.nodes:
                 if node.header.type == android_resource.AndroidResource.ResourceTypes.xml_start_element:
                     elem_count += 1
