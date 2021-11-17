@@ -76,12 +76,6 @@ class Base64UnpackParser(UnpackParser):
 
         check_condition(line_counter >= 1, "no base64 bytes in file")
 
-        if line_counter == 1:
-            # a few sanity checks: there are frequently false positives
-            # for MD5, SHA1, SHA256, etc.
-            if len(base64_bytes) in [32, 40, 64]:
-                raise UnpackParserException("likely MD5/SHA1/SHA256, not base64")
-
         # now read 'unpacked' bytes for more sanity checks and
         # finding out which decoder is used.
         base64_bytes = self.infile.read(unpacked)
@@ -91,6 +85,12 @@ class Base64UnpackParser(UnpackParser):
         # translates CRLF encoded files.
         base64_bytes = base64_bytes.replace(b'\n', b'')
         base64_bytes = base64_bytes.replace(b'\r', b'')
+
+        if line_counter == 1:
+            # a few sanity checks: there are frequently false positives
+            # for MD5, SHA1, SHA256, etc.
+            if len(base64_bytes) in [32, 40, 64]:
+                raise UnpackParserException("likely MD5/SHA1/SHA256, not base64")
 
         decoded = False
 
