@@ -32,7 +32,7 @@ types:
         repeat-expr: _root.header.num_entries
   entry:
     seq:
-      - id: path
+      - id: name
         type: strz
         size: 40
       - id: unknown
@@ -52,6 +52,10 @@ types:
       - id: root_pos
         type: u4
     instances:
+      name:
+        value: _root.entries.entries[index].name
       data:
-        pos: _root.entries.entries[index].ofs_file + root_pos
+        pos: pos
         size: _root.entries.entries[index].len_file
+      pos:
+        value: _root.entries.entries[index].ofs_file + root_pos
