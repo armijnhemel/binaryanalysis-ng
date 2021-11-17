@@ -26,7 +26,6 @@ import math
 
 import bangfilesystems
 import bangmedia
-import bangtext
 import bangunpack
 
 # store a few standard signatures
