@@ -448,9 +448,7 @@ def matches_file_pattern(filename, extension):
     return filename.name.lower().endswith(extension)
 
 # certain unpacking functions if the whole file is text
-textonlyfunctions = {
-    'base64': bangtext.unpack_base64,
-}
+textonlyfunctions = {}
 
 # The result of the scan is a dictionary with the
 # following data, depending on the status of the scan
