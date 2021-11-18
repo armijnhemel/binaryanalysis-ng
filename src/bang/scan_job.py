@@ -47,6 +47,7 @@ def is_unscannable(path):
 # Extracts in_file[offset:offset+file_size] in checking_meta_directory.
 #
 def extract_file(checking_meta_directory, in_file, offset, file_size):
+    # TODO: check if offset and file_size parameters are still needed in next line
     with checking_meta_directory.extract_file(offset, file_size) as (extracted_md, extracted_file):
         os.sendfile(extracted_file.fileno(), in_file.fileno(), offset, file_size)
     return extracted_md
@@ -125,7 +126,7 @@ def check_by_extension(scan_environment, checking_meta_directory):
 
                     # yield a synthesized file
                     extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
-                    extracted_md.unpack_parser = SynthesizingParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
+                    extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
                     yield extracted_md
 
                     # stop after first successful extension parse
@@ -273,7 +274,7 @@ def check_featureless(scan_environment, checking_meta_directory):
 
                 # yield a synthesized file
                 extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
-                extracted_md.unpack_parser = SynthesizingParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
+                extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
                 yield extracted_md
 
                 # stop after first successful extension parse
@@ -284,11 +285,6 @@ def check_featureless(scan_environment, checking_meta_directory):
             log.debug(f'check_featureless[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
             log.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
 
-
-
-
-
-    pass
 
 #####
 #

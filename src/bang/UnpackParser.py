@@ -170,6 +170,34 @@ class WrappedUnpackParser(UnpackParser):
     def carve(self):
         pass
 
+class ExtractedParser(UnpackParser):
+
+    @classmethod
+    def with_size(cls, from_meta_directory, offset, size):
+        o = cls(from_meta_directory, offset)
+        o.unpacked_size = size
+        return o
+
+    def parse_from_offset(self):
+        pass
+
+    def parse(self):
+        pass
+
+    pretty_name = 'extractedparser'
+    labels = []
+    metadata = {}
+
+    def unpack(self, to_meta_directory):
+        # synthesize files must be scanned again (with featureless parsers), so let them unpack themselves
+        # but first, write the info data before the meta directory is queued.
+        to_meta_directory.write_ahead()
+        yield to_meta_directory
+
+
+
+
+
 class SynthesizingParser(UnpackParser):
 
     @classmethod
@@ -184,8 +212,9 @@ class SynthesizingParser(UnpackParser):
     def parse(self):
         pass
 
-    def write_info(self, to_meta_directory):
-        to_meta_directory.info.setdefault('labels', []).append('synthesized')
+    pretty_name = 'synthesizingparser'
+    labels = ['synthesized']
+    metadata = {}
 
     def unpack(self, to_meta_directory):
         # synthesize files must be scanned again (with featureless parsers), so let them unpack themselves
