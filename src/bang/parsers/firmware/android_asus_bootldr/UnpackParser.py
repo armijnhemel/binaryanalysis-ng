@@ -26,7 +26,6 @@ Extract bootloader files as found on some Android devices made by ASUS.
 
 import os
 import pathlib
-from FileResult import FileResult
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException

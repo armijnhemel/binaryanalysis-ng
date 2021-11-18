@@ -34,7 +34,6 @@ Note: this is different to the Android sparse data image format.
 
 import os
 import pathlib
-from FileResult import FileResult
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException

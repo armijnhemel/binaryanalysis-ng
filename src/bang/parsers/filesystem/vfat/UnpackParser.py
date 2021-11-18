@@ -6,7 +6,6 @@ from . import vfat_directory
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from bang.log import log
-from FileResult import FileResult
 from kaitaistruct import ValidationNotEqualError
 
 def get_lfn_part(record):

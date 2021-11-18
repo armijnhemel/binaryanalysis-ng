@@ -42,7 +42,6 @@ from . import cpio_old_binary
 from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from bang.log import log
-from FileResult import FileResult
 from kaitaistruct import ValidationNotEqualError
 
 class CpioBaseUnpackParser(UnpackParser):

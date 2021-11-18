@@ -3,7 +3,6 @@ import os
 import pathlib
 from bang.UnpackParser import UnpackParser, WrappedUnpackParser
 from bang.UnpackParserException import UnpackParserException
-from FileResult import FileResult
 from bangunpack import unpack_tar
 import tarfile
 

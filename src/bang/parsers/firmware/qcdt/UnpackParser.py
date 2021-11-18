@@ -22,7 +22,6 @@
 
 import os
 import pathlib
-from FileResult import FileResult
 
 from bang.UnpackParser import WrappedUnpackParser
 from bang.UnpackParser import UnpackParser, check_condition

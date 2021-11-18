@@ -26,7 +26,6 @@ Unpacker for Android images.
 
 import os
 import pathlib
-from FileResult import FileResult
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
