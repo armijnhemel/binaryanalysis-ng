@@ -62,7 +62,7 @@ class LzopUnpackParser(UnpackParser):
         if self.data.name != '':
             file_path = pathlib.Path(self.data.name)
         else:
-            file_path = 'unpacked-from-lzo'
+            file_path = pathlib.Path('unpacked_from_lzo')
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
             counter = 1

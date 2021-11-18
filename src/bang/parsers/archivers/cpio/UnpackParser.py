@@ -62,7 +62,7 @@ class CpioBaseUnpackParser(UnpackParser):
         meta_directory.unpack_directory(path)
         # outfile_full = self.scan_environment.unpack_path(filename)
         #os.makedirs(outfile_full, exist_ok=True)
-        if False: yield None
+        return []
 
     def unpack_regular(self, meta_directory, path, start, length):
         with meta_directory.unpack_regular_file(path) as (unpacked_md, f):
@@ -70,7 +70,7 @@ class CpioBaseUnpackParser(UnpackParser):
             yield unpacked_md
 
     def unpack_device(self, meta_directory, filename):
-        if False: yield None
+        return []
 
     def unpack_link(self, meta_directory, path, target, rewrite=False):
         # symlinks are not rewritten.
@@ -79,10 +79,8 @@ class CpioBaseUnpackParser(UnpackParser):
         return []
 
     def unpack(self, meta_directory):
-        unpacked_files = []
         pos = 0
         for e in self.data.entries:
-            out_labels = []
             log.debug(f'unpack: got entry {e.filename}')
             if e.filename != self.data.trailing_filename:
                 file_path = pathlib.Path(e.filename)

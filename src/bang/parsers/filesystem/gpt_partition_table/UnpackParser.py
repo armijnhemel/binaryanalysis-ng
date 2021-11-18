@@ -72,7 +72,6 @@ class GptPartitionTableUnpackParser(UnpackParser):
                 "partition bigger than file")
 
     def unpack(self, meta_directory):
-        unpacked_files = []
         partition_number = 0
         for e in self.data.primary.entries:
             partition_start = e.first_lba * self.data.sector_size

@@ -48,9 +48,6 @@ class ZchunkUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-        out_labels = []
-
         # determine the name of the output file
         if meta_directory.file_path.suffix.lower() == '.zck':
             file_path = pathlib.Path(meta_directory.file_path.stem)
@@ -58,6 +55,7 @@ class ZchunkUnpackParser(UnpackParser):
             file_path = pathlib.Path("unpacked_from_zchunk")
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            # TODO: find a way to deal with offsets in input file
             p = subprocess.Popen(['unzck', '-c', meta_directory.file_path], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
 
             (outputmsg, errormsg) = p.communicate()

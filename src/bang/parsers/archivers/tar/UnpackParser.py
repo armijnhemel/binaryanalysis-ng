@@ -37,17 +37,17 @@ class TarUnpackParser(UnpackParser):
             yield unpacked_md
 
     def unpack(self, meta_directory):
-        unpacked_files = []
         for tarinfo in self.tarinfos:
             file_path = pathlib.Path(tarinfo.name)
             if tarinfo.isfile(): # normal file
-                for unpacked_md in self.tar_unpack_regular(meta_directory, file_path, tarinfo): yield unpacked_md
+                yield from self.tar_unpack_regular(meta_directory, file_path, tarinfo)
             elif tarinfo.issym(): # symlink
+                # meta_directory.unpack_symlink(tarinfo.name, ...)
                 pass
             elif tarinfo.islnk(): # hard link
                 pass
             elif tarinfo.isdir(): # directory
-                pass
+                meta_directory.unpack_directory(pathlib.Path(tarinfo.name))
 
     def parse(self):
         try:
