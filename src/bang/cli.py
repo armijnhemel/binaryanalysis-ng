@@ -21,15 +21,9 @@ def create_scan_environment_from_config(config):
             createbytecounter = False,
             createjson = False,
             tlshmaximum = False,
-            synthesizedminimum = 10,
-            paddingname = 'PADDING',
             unpackdirectory = '',
             temporarydirectory = '',
-            resultsdirectory = '',
             scan_queue = None,
-            resultqueue = None,
-            processlock = None,
-            checksumdict = None,
             )
     return e
 
@@ -63,9 +57,9 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     # TODO: use config to enable/disable parsers
     #log.debug(f' finding unpack_parsers ')
     unpack_parsers = bangsignatures.get_unpackers()
-    scan_environment.set_unpackparsers(unpack_parsers)
+    scan_environment.parsers.unpackparsers = unpack_parsers
     #log.debug(f'{unpack_parsers =}')
-    scan_environment.build_automaton()
+    scan_environment.parsers.build_automaton()
 
     # set up the jobs
     process_manager = multiprocessing.Manager()

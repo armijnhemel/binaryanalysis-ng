@@ -23,6 +23,8 @@
 import os
 import multiprocessing
 import ahocorasick
+import pathlib
+from dataclasses import dataclass
 from ByteCountReporter import *
 from PickleReporter import *
 from JsonReporter import *
@@ -32,157 +34,59 @@ class EmptyAutomaton:
     def iter(self, *args, **kwargs):
         return []
 
-class ScanEnvironment:
-    tlshlabelsignore = set([
-        'compressed', 'graphics', 'audio', 'archive',
-        'filesystem', 'srec', 'ihex', 'padding',
-        'database'])
+class ParserCollection:
 
-    def __init__(self, maxbytes, readsize, createbytecounter, createjson,
-                 tlshmaximum, synthesizedminimum,
-                 paddingname, unpackdirectory, temporarydirectory,
-                 resultsdirectory, scan_queue, resultqueue,
-                 processlock, checksumdict,
-                ):
-        """unpackdirectory: a Path object, absolute
-           temporarydirectory: a Path object, absolute
-           scan_queue: a Queue where files to scan will be fetched from
-           resultqueue: a Queue where results will be written to
-           processlock: a Lock object that guards access to shared objects
-           checksumdict: a shared dictionary to store hashes of files to
-                         prevent scans of duplicate files.
-        """
-        # TODO: init from options object
-        self.maxbytes = maxbytes
-        self.readsize = readsize
-        self.createbytecounter = createbytecounter
-        self.createjson = createjson
-        self.tlshmaximum = tlshmaximum
-        self.synthesizedminimum = synthesizedminimum
-        self.paddingname = paddingname
-        self.unpackdirectory = unpackdirectory
-        self.temporarydirectory = temporarydirectory
-        self.resultsdirectory = resultsdirectory
-        self.scan_queue = scan_queue
-        self.scan_semaphore = None
-        self.resultqueue = resultqueue
-        self.processlock = processlock
-        self.checksumdict = checksumdict
-        self.unpackparsers = []
-        self.unpackparsers_for_extensions = {}
-        self.unpackparsers_for_signatures = {}
-        self.unpackparsers_for_featureless_files = []
-        self.reporters = []
-        if self.createbytecounter: self.reporters.append(ByteCountReporter)
-        self.reporters.append(PickleReporter)
-        if self.createjson: self.reporters.append(JsonReporter)
-        self._longest_signature_length = None
-        self.logger = multiprocessing.log_to_stderr()
+    def __init__(self):
+        self.clear()
 
-    def get_readsize(self):
-        return self.readsize
+    def clear(self):
+        self._unpackparsers = []
+        self._unpackparsers_for_extensions = {}
+        self._unpackparsers_for_signatures = {}
+        self._unpackparsers_for_featureless_files = []
+        self.longest_signature_length = 0
 
-    def get_createbytecounter(self):
-        return self.createbytecounter
-
-    def get_createjson(self):
-        return self.createjson
-
-    def get_tlshmaximum(self):
-        return self.tlshmaximum
-
-    def use_tlsh(self, filesize, labels):
-        """check whether tlsh is useful here, based on file size and labels."""
-        return (256 <= filesize <= self.tlshmaximum) and self.tlshlabelsignore.isdisjoint(labels)
-
-    def get_synthesizedminimum(self):
-        return self.synthesizedminimum
-
-    def get_paddingname(self):
-        return self.paddingname
-
-    def get_maxbytes(self):
-        return self.maxbytes
-
-    def unpack_path(self, fn):
-        """Returns a path object containing the absolute path of the file in
-        the unpack directory root.
-        If fn is an absolute path, then fn will be returned.
-        """
-        return self.unpackdirectory / fn
-
-    def get_unpack_path_for_fileresult(self, fr):
-        """Returns the absolute path of the file in fileresult fr."""
-        if fr.has_parent():
-            return self.unpackdirectory / fr.filename
-        else:
-            return fr.filename
-
-    def rel_unpack_path(self, fn):
-        # TODO: check if fn starts with unpackdirectory to catch path traversal
-        # in that case, return absolute path? but what about:
-        # >>> os.path.relpath('xa/b/c/d/e',root)
-        # '../../../home/tim/binaryanalysis-ng/src/xa/b/c/d/e'
-        return os.path.relpath(fn, self.unpackdirectory)
-
-    def tmp_path(self, fn):
-        return os.path.join(self.temporarydirectory, fn)
-
-    def rel_tmp_path(self, fn):
-        return os.path.relpath(fn, self.temporarydirectory)
-
-    def clear_unpackparsers(self):
-        self.unpackparsers = []
-        self.unpackparsers_for_extensions = {}
-        self.unpackparsers_for_signatures = {}
-        self.unpackparsers_for_featureless_files = []
-
-    def set_unpackparsers(self, iterable):
-        self.clear_unpackparsers()
-        for up in iterable:
-            self.add_unpackparser(up)
-
-    def add_unpackparser(self, unpackparser):
-        self.unpackparsers.append(unpackparser)
+    def add(self, unpackparser):
+        self._unpackparsers.append(unpackparser)
         for ext in unpackparser.extensions:
-            self.unpackparsers_for_extensions.setdefault(ext,[])
-            self.unpackparsers_for_extensions[ext].append(unpackparser)
+            self._unpackparsers_for_extensions.setdefault(ext,[]).append(unpackparser)
         for signature in unpackparser.signatures:
-            self.unpackparsers_for_signatures.setdefault(signature,[])
-            self.unpackparsers_for_signatures[signature].append(unpackparser)
+            self._unpackparsers_for_signatures.setdefault(signature,[]).append(unpackparser)
         if unpackparser.scan_if_featureless:
-            self.unpackparsers_for_featureless_files.append(unpackparser)
-
-    def get_unpackparsers(self):
-        return self.unpackparsers
-
-    def get_unpackparsers_for_extensions(self):
-        return self.unpackparsers_for_extensions
-
-    def get_unpackparsers_for_signatures(self):
-        return self.unpackparsers_for_signatures
-
-    def get_unpackparsers_for_featureless_files(self):
-        return self.unpackparsers_for_featureless_files
+            self._unpackparsers_for_featureless_files.append(unpackparser)
 
     @property
-    def longest_signature_length(self):
-        if self._longest_signature_length is None:
-            self._longest_signature_length = max([len(s[1]) for u in self.unpackparsers for s in u.signatures]+[0])
-        return self._longest_signature_length
+    def unpackparsers(self):
+        return self._unpackparsers
+
+    @unpackparsers.setter
+    def unpackparsers(self, iterable):
+        self.clear()
+        for up in iterable:
+            self.add(up)
 
     @property
-    def signature_chunk_size(self):
-        return 1024
+    def unpackparsers_for_extensions(self):
+        return self._unpackparsers_for_extensions
+
+    @property
+    def unpackparsers_for_signatures(self):
+        return self._unpackparsers_for_signatures
+
+    @property
+    def unpackparsers_for_featureless_files(self):
+        return self._unpackparsers_for_featureless_files
 
     def build_automaton(self):
         if ahocorasick.unicode != 0:
             raise ImportError('ahocorasick module must be compiled in bytes mode')
         self._automaton = ahocorasick.Automaton()
+        self.longest_signature_length = 0
         for u in self.unpackparsers:
             for s in u.signatures:
                 log.debug(f'build_automaton: ({s},{u}, {s[0]+len(s[1])-1=}')
                 self._automaton.add_word(s[1], (s[0]+len(s[1])-1, u))
+                self.longest_signature_length = max(self.longest_signature_length, len(s))
         if len(self._automaton) > 0:
             self._automaton.make_automaton()
         else:
@@ -191,3 +95,20 @@ class ScanEnvironment:
     @property
     def automaton(self):
         return self._automaton
+
+@dataclass
+class ScanEnvironment:
+    maxbytes: int
+    readsize: int
+    createbytecounter: bool
+    createjson: bool
+    tlshmaximum: int
+    unpackdirectory: pathlib.Path
+    temporarydirectory: pathlib.Path
+    scan_queue: None
+    parsers: ParserCollection = ParserCollection()
+    # resultqueue:bool
+    # processlock:bool
+    # checksumdict:bool
+    signature_chunk_size: int = 1024
+

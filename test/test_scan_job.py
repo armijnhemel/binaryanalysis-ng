@@ -94,7 +94,7 @@ def test_detect_padding_file(scan_environment):
     fn = pathlib.Path('test_padding.data')
     create_test_file(scan_environment, fn, b'\xff'*300)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.build_automaton()
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     with reopen_md(path_md).open(open_file=False) as md:
@@ -105,7 +105,7 @@ def test_detect_non_padding_file(scan_environment):
     fn = pathlib.Path('test_padding.data')
     create_test_file(scan_environment, fn, b'\xff'*299 + b'A')
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.build_automaton()
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     with reopen_md(path_md).open(open_file=False) as md:
@@ -115,7 +115,7 @@ def test_detect_empty_file(scan_environment):
     fn = pathlib.Path('test_empty.data')
     create_test_file(scan_environment, fn, b'')
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.build_automaton()
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     with reopen_md(path_md).open(open_file=False) as md:
@@ -136,8 +136,8 @@ class ExtensionOnlyGifUnpackParser(GifUnpackParser):
 def test_extscan_extract_gif_file_full_file(scan_environment):
     fn = testdir_base / 'testdata' / pathlib.Path('unpackers') / 'gif' / 'test.gif'
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([ExtensionOnlyGifUnpackParser])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [ExtensionOnlyGifUnpackParser]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     with reopen_md(path_md).open(open_file=False) as md:
@@ -153,8 +153,8 @@ def test_extscan_extract_gif_file_prepended_data(scan_environment):
     fn = pathlib.Path('test_gif_prepended.gif')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([ExtensionOnlyGifUnpackParser])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [ExtensionOnlyGifUnpackParser]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     assert not path_md.is_scanned()
@@ -168,8 +168,8 @@ def test_extscan_extract_gif_file_appended_data(scan_environment):
     fn = pathlib.Path('test_gif_appended.gif')
     abs_fn = create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([ExtensionOnlyGifUnpackParser])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [ExtensionOnlyGifUnpackParser]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     with reopen_md(path_md).open(open_file=False) as md:
@@ -192,8 +192,8 @@ def test_sigscan_extract_non_overlapping_both_successful(scan_environment):
     fn = pathlib.Path('test_unpack1.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_pass_AA_1_5, parser_pass_BB_1_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_pass_AA_1_5, parser_pass_BB_1_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAxxxxxxxxxxxxyBBxxxxxxxxxxx'
@@ -216,8 +216,8 @@ def test_sigscan_extract_overlapping_both_successful(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_pass_AA_1_5, parser_pass_BB_1_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_pass_AA_1_5, parser_pass_BB_1_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
@@ -236,8 +236,8 @@ def x_test_sigscan_extract_same_offset_first_successful(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_pass_BB_1_5, parser_fail_BB_1])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_pass_BB_1_5, parser_fail_BB_1]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
@@ -254,8 +254,8 @@ def x_test_sigscan_extract_same_offset_second_successful(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_fail_BB_1, parser_pass_BB_1_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_fail_BB_1, parser_pass_BB_1_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
@@ -272,8 +272,8 @@ def test_sigscan_extract_overlapping_different_offset_both_successful(scan_envir
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_pass_AA_1_5, parser_pass_BB_8_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_pass_AA_1_5, parser_pass_BB_8_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAyyyyyyBBxxxxxxxxxxx'
@@ -292,8 +292,8 @@ def x_test_sigscan_extract_same_offset_both_successful(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_pass_BB_1_5, parser_pass_BB_1_7])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_pass_BB_1_5, parser_pass_BB_1_7]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
@@ -310,8 +310,8 @@ def x_test_sigscan_extract_same_offset_both_successful_reversed_order(scan_envir
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_pass_BB_1_7, parser_pass_BB_1_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_pass_BB_1_7, parser_pass_BB_1_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
@@ -329,8 +329,8 @@ def test_sigscan_extract_overlapping_none_successful(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_fail_AA_1, parser_fail_BB_1])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_fail_AA_1, parser_fail_BB_1]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAyBBxxxxxxxxxxx'
@@ -343,8 +343,8 @@ def test_sigscan_extract_parse_successful_at_end(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_fail_BB_1, parser_pass_BB_1_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_fail_BB_1, parser_pass_BB_1_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAyBBbb'
@@ -360,9 +360,9 @@ def test_sigscan_extracting_overlapping_successful_parsers(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_pass_AA_1_5,
-        parser_pass_BB_1_5, parser_pass_CC_0_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_pass_AA_1_5,
+        parser_pass_BB_1_5, parser_pass_CC_0_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'--xAAyBBbCCxxxxxxxx'
@@ -381,8 +381,8 @@ def test_sigscan_extracting_parses_whole_string(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_fail_BB_1, parser_pass_BB_1_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_fail_BB_1, parser_pass_BB_1_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'--xAAyBBbCCxxxxxxxx'
@@ -396,8 +396,8 @@ def test_sigscan_extract_with_zero_length_parser(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([UnpackParserZeroLength, parser_pass_BB_0_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [UnpackParserZeroLength, parser_pass_BB_0_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xBBxx12345'
@@ -419,8 +419,8 @@ def test_extracted_file_has_parent(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_fail_BB_1, parser_pass_BB_1_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_fail_BB_1, parser_pass_BB_1_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAyBBbb'
@@ -442,8 +442,8 @@ def test_unpacking_parser_unpacks_relative_files(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([UnpackParserUnpacksRelative])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [UnpackParserUnpacksRelative]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     with reopen_md(path_md).open(open_file=False) as md:
@@ -457,8 +457,8 @@ def test_unpacking_parser_unpacks_absolute_files(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([UnpackParserUnpacksAbsolute])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [UnpackParserUnpacksAbsolute]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     with reopen_md(path_md).open(open_file=False) as md:
@@ -476,8 +476,8 @@ def test_extracted_file_is_queued(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([parser_fail_BB_1, parser_pass_BB_1_5])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [parser_fail_BB_1, parser_pass_BB_1_5]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     # b'xAAyBBbb'
@@ -490,8 +490,8 @@ def test_unpacked_file_is_queued(scan_environment):
     fn = pathlib.Path('test_unpack2.data')
     create_test_file(scan_environment, fn, s)
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.set_unpackparsers([UnpackParserUnpacksAbsolute])
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = [UnpackParserUnpacksAbsolute]
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     jobs_queued = [x for x in scan_environment.scan_queue.history if x != -1]
@@ -511,7 +511,7 @@ def test_sigscan_extract_gif_file_from_prepended_file(scan_environment):
     create_test_file(scan_environment, fn, s)
 
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.build_automaton()
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     with reopen_md(path_md).open(open_file=False) as md:
@@ -527,7 +527,7 @@ def test_sigscan_extract_gif_file_from_prepended_file(scan_environment):
 def test_parse_featureless_file(scan_environment):
     fn = testdir_base / 'testdata' / pathlib.Path("unpackers") / "ihex" / "example.txt"
     path_md = create_meta_directory_for_path(scan_environment, fn, True)
-    scan_environment.build_automaton()
+    scan_environment.parsers.build_automaton()
     scanjob = queue_file_job(scan_environment, path_md)
     run_scan_loop(scan_environment)
     with reopen_md(path_md).open(open_file=False) as md:

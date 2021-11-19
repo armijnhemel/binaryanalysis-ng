@@ -56,17 +56,11 @@ def scan_environment(tmp_path_factory):
         createbytecounter = False,
         createjson = True,
         tlshmaximum = sys.maxsize,
-        synthesizedminimum = 10,
-        paddingname = 'PADDING',
         unpackdirectory = tmp_dir / 'unpack',
         temporarydirectory = tmp_dir / 'tmp',
-        resultsdirectory = tmp_dir / 'results',
         scan_queue = MockQueue(),
-        resultqueue = MockQueue(),
-        processlock = MockLock(),
-        checksumdict = {},
     )
-    se.set_unpackparsers(bangsignatures.get_unpackers())
+    se.parsers.unpackparsers = bangsignatures.get_unpackers()
     se.scan_semaphore = threading.Semaphore(1)
     return se
 

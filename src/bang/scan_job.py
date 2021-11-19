@@ -5,6 +5,7 @@ import traceback
 import time
 import queue
 import multiprocessing
+from dataclasses import dataclass
 from operator import itemgetter
 from .meta_directory import *
 from .UnpackParser import SynthesizingParser, ExtractingParser, PaddingParser
@@ -83,7 +84,8 @@ def check_for_padding(checking_meta_directory):
 # speed to be more flexible.
 #
 def find_extension_parsers(scan_environment):
-    for ext, unpack_parsers in scan_environment.get_unpackparsers_for_extensions().items():
+    log.debug(f'{scan_environment.parsers.unpackparsers_for_extensions}')
+    for ext, unpack_parsers in scan_environment.parsers.unpackparsers_for_extensions.items():
         for unpack_parser_cls in unpack_parsers:
             #log.debug(f'find_extension_parser: {ext!r} parsed by {unpack_parser_cls}')
             yield ext, unpack_parser_cls
@@ -138,10 +140,10 @@ def check_by_extension(scan_environment, checking_meta_directory):
                 log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
 
 
+@dataclass
 class FileScanState:
-    def __init__(self):
-        self.scanned_until = 0
-        self.chunk_start = 0
+    scanned_until: int
+    chunk_start: int
 
 #####
 #
@@ -152,12 +154,12 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
     # yield all matching signatures
     file_scan_state.chunk_start = file_scan_state.scanned_until
     chunk_size = scan_environment.signature_chunk_size
-    chunk_overlap = scan_environment.longest_signature_length - 1
+    chunk_overlap = scan_environment.parsers.longest_signature_length - 1
     while file_scan_state.chunk_start < file_size:
         open_file.seek(file_scan_state.chunk_start)
         s = open_file.read(chunk_size)
         #log.debug(f'find_signature_parsers: read [{file_scan_state.chunk_start}:+{len(s)}]')
-        for end_index, (end_difference, unpack_parser_cls) in scan_environment.automaton.iter(s):
+        for end_index, (end_difference, unpack_parser_cls) in scan_environment.parsers.automaton.iter(s):
             offset = file_scan_state.chunk_start + end_index - end_difference
             #log.debug(f'find_signature_parsers: got match at [{offset}:{file_scan_state.chunk_start+end_index}]')
             if offset < file_scan_state.scanned_until:
@@ -184,8 +186,7 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
 # and will not yield any overlapping results.
 #
 def scan_signatures(scan_environment, meta_directory):
-    file_scan_state = FileScanState()
-    file_scan_state.scanned_until = 0
+    file_scan_state = FileScanState(0,0)
     for offset, unpack_parser_cls in find_signature_parsers(scan_environment, meta_directory.open_file, file_scan_state, meta_directory.size):
         log.debug(f'scan_signatures[{meta_directory.md_path}]: wait at {file_scan_state.scanned_until}, found parser at {offset}: {unpack_parser_cls}')
         if offset < file_scan_state.scanned_until: # we have passed this point in the file, ignore the result
@@ -245,7 +246,7 @@ def check_by_signature(scan_environment, checking_meta_directory):
             yield checking_meta_directory
 
 def check_featureless(scan_environment, checking_meta_directory):
-    for unpack_parser_cls in scan_environment.get_unpackparsers_for_featureless_files():
+    for unpack_parser_cls in scan_environment.parsers.unpackparsers_for_featureless_files:
         log.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser_cls}')
         try:
             unpack_parser = unpack_parser_cls(checking_meta_directory, 0)

@@ -5,8 +5,8 @@ import threading
 import logging
 from bang.meta_directory import *
 from bang.scan_job import *
-from bang.ScanEnvironment import ScanEnvironment
 from bang.log import log
+from bang.ScanEnvironment import ScanEnvironment
 
 def create_scan_environment_from_config(config):
     e = ScanEnvironment(
@@ -17,15 +17,9 @@ def create_scan_environment_from_config(config):
             createbytecounter = False,
             createjson = False,
             tlshmaximum = False,
-            synthesizedminimum = 10,
-            paddingname = 'PADDING',
             unpackdirectory = '',
             temporarydirectory = '',
-            resultsdirectory = '',
             scan_queue = None,
-            resultqueue = None,
-            processlock = None,
-            checksumdict = None,
             )
     return e
 
@@ -53,8 +47,8 @@ def _scan_file(scan_file, temporary_directory, unpack_directory):
     scan_environment.scan_queue = queue.Queue(maxsize=0)
     scan_environment.scan_semaphore = MockSemaphore(scan_environment.scan_queue, 1)
     unpack_parsers = bangsignatures.get_unpackers()
-    scan_environment.set_unpackparsers(unpack_parsers)
-    scan_environment.build_automaton()
+    scan_environment.parsers.unpackparsers = unpack_parsers
+    scan_environment.parsers.build_automaton()
 
     md = MetaDirectory(scan_environment.unpackdirectory, None, True)
     md.file_path = pathlib.Path(scan_file).absolute()
