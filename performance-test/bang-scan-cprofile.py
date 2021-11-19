@@ -85,7 +85,7 @@ def run(quiet, verbose, unpack_directory, temporary_directory, stats_file, scan_
     elif stats_file is not None:
         p = pstats.Stats(str(stats_file))
     else:
-        click.error('Missing option: either specify -s, -f or both')
+        raise click.ClickException('Missing option: either specify -s, -f or both')
 
     if not quiet:
         p.sort_stats('cumulative')
