@@ -95,11 +95,11 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     log.debug(f'cli:scan: done.')
 
 
-@app.command(short_help='Show bang analysis results')
+@app.command(short_help='Show bang scan results')
 @click.option('-a', '--all', is_flag=True, help='Show all information, including extracted/unpacked files')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
 def show(all, metadir):
-    '''Shows bang analysis results stored in METADIR.
+    '''Shows bang scan results stored in METADIR.
     '''
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     print(f'{md.md_path} ({md.file_path}):')
