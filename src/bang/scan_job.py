@@ -30,7 +30,6 @@ class ScanJob:
 # Returns if a path is an unscannable file, i.e. not a regular file or empty.
 #
 def is_unscannable(path):
-    # TODO: do we want labels on unscannable files?
     return not path.is_file() or path.stat().st_size == 0
     # return path.is_dir() or path.is_fifo() or path.is_socket() or path.is_block_device() or path.is_char_device() or path.is_symlink()
 
