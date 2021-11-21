@@ -77,7 +77,7 @@ def queue_file_job(scan_environment, md):
 
 def run_scan_loop(scan_environment):
     try:
-        process_jobs(scan_environment)
+        process_jobs(make_scan_pipeline(), scan_environment)
     except queue.Empty:
         pass
 

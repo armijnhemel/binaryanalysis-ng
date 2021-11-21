@@ -5,7 +5,7 @@ import logging
 import time
 import pprint
 from .scan_environment import *
-from .scan_job import ScanJob, process_jobs
+from .scan_job import ScanJob, process_jobs, make_scan_pipeline
 from .meta_directory import MetaDirectory
 from . import signatures
 from .log import log
@@ -64,7 +64,9 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     scan_environment.scan_semaphore = process_manager.Semaphore(jobs)
     scan_environment.scan_queue = scan_queue
 
-    processes = [ multiprocessing.Process(target = process_jobs, args = (scan_environment,)) for i in range(jobs)]
+    scan_pipeline = make_scan_pipeline()
+
+    processes = [ multiprocessing.Process(target = process_jobs, args = (scan_pipeline, scan_environment,)) for i in range(jobs)]
 
 
     # queue the file

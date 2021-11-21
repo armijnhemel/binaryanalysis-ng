@@ -295,6 +295,9 @@ def check_featureless(scan_environment, checking_meta_directory):
 # False = continue).
 #
 
+def cond_unscannable(scan_environment, meta_directory):
+    return is_unscannable(meta_directory.file_path)
+
 def cond_not_synthesized(scan_environment, meta_directory):
     '''returns whether a file is NOT synthesized.'''
     return 'synthesize' not in meta_directory.info.get('labels',[])
@@ -320,10 +323,16 @@ def pipe_iter(checking_iterator):
         return False
     return _check
 
-def pipe_null():
+def pipe_pass():
     '''this pipe does nothing.'''
     def _check(scan_environment, meta_directory):
         return False
+    return _check
+
+def pipe_fail():
+    '''this pipe makes the pipeline stop.'''
+    def _check(scan_environment, meta_directory):
+        return True
     return _check
 
 def pipe_cond(predicate, pipe_if_true, pipe_if_false):
@@ -349,6 +358,35 @@ def pipe_seq(*pipes):
         return False
     return _check
 
+def pipe_with_open_md_for_writing(pipe):
+    def _check(scan_environment, meta_directory):
+        with meta_directory.open():
+            return pipe(scan_environment, meta_directory)
+    return _check
+
+def make_scan_pipeline():
+    pipe_padding = pipe_seq(pipe_iter(check_for_padding), stop_if_scanned)
+    pipe_if_synthesized = pipe_cond(
+            cond_not_synthesized,
+            pipe_seq(
+                pipe_iter(check_by_extension), stop_if_scanned,
+                pipe_iter(check_by_signature), stop_if_scanned
+            ),
+            pipe_pass
+        )
+    pipe_scannable = pipe_seq(
+            pipe_padding,
+            pipe_if_synthesized,
+            pipe_iter(check_featureless)
+        )
+    # TODO: if we want to record meta data for unscannable files,
+    # make sure to add a pipe_with to open the meta_directory with open_file=False.
+    pipe_root = pipe_cond(
+        cond_unscannable,
+        pipe_fail,
+        pipe_with_open_md_for_writing(pipe_scannable)
+    )
+    return pipe_root
 
 #####
 #
@@ -367,41 +405,18 @@ def pipe_seq(*pipes):
 # a MetaDirectory object for every unpacked file. The code will create a new ScanJob for each
 # unpacked MetaDirectory and queue it.
 #
-def process_job(scanjob):
+def process_job(pipeline, scanjob):
     # scanjob has: path, meta_directory object and context
     meta_directory = scanjob.meta_directory
     log.debug(f'process_job[{scanjob.meta_directory.md_path}]: enter')
-
-    # TODO: if we want to record meta data for unscannable files, change
-    # this into an iterator pattern where you will get MetaDirectories with an
-    # assigned parser to write the meta data. Be aware that we may not be able to
-    # open unscannable files, so this parser must be special.
-    if is_unscannable(meta_directory.file_path):
-        return
-
-    with meta_directory.open():
-        pipe_padding = pipe_seq(pipe_iter(check_for_padding), stop_if_scanned)
-        pipe_if_synthesized = pipe_cond(
-                cond_not_synthesized,
-                pipe_seq(
-                    pipe_iter(check_by_extension), stop_if_scanned,
-                    pipe_iter(check_by_signature), stop_if_scanned
-                ),
-                pipe_null
-            )
-        pipe_root = pipe_seq(
-                pipe_padding,
-                pipe_if_synthesized,
-                pipe_iter(check_featureless)
-            )
-        pipe_root(scanjob.scan_environment, meta_directory)
+    pipeline(scanjob.scan_environment, meta_directory)
 
 
 ####
 #
 # Process all jobs on the scan queue in the scan_environment.
 #
-def process_jobs(scan_environment):
+def process_jobs(pipeline, scan_environment):
     # TODO: code smell, should not be needed if unpackparsers behave
     current_dir = os.getcwd()
     os.chdir(scan_environment.unpackdirectory)
@@ -418,7 +433,7 @@ def process_jobs(scan_environment):
                 scan_environment.scan_semaphore.release()
                 scanjob.scan_environment = scan_environment
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
-                process_job(scanjob)
+                process_job(pipeline, scanjob)
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
             except queue.Empty as e:
                 log.debug(f'process_jobs: scan queue is empty')
