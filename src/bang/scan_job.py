@@ -286,22 +286,68 @@ def check_featureless(scan_environment, checking_meta_directory):
             log.debug(f'check_featureless[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
             log.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
 
+#####
+#
+# Pipelines: dynamically create a series of steps in the scanning or analysis.
+#
+# A pipe is a function that for a scan_environment and meta_directory, does something
+# and returns a boolean that indicates whether we should stop (True = stop,
+# False = continue).
+#
 
-def check_with_iterator(scan_environment, meta_directory, checking_iterator):
-    for md in checking_iterator(scan_environment, meta_directory):
-        log.debug(f'check_with_iterator({checking_iterator})[{meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-        with md.open(open_file=False):
-            md.write_info_with_unpack_parser()
-            log.debug(f'check_with_iterator({checking_iterator})[{meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-            for unpacked_md in md.unpack_with_unpack_parser():
-                log.debug(f'check_with_iterator({checking_iterator})[{meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
-                job = ScanJob(unpacked_md.md_path)
-                scan_environment.scan_queue.put(job)
-                log.debug(f'check_with_iterator({checking_iterator})[{meta_directory.md_path}]: queued job [{time.time_ns()}]')
-            log.debug(f'check_with_iterator({checking_iterator})[{meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+def cond_not_synthesized(scan_environment, meta_directory):
+    '''returns whether a file is NOT synthesized.'''
+    return 'synthesize' not in meta_directory.info.get('labels',[])
 
+def stop_if_scanned(scan_environment, meta_directory):
+    '''this pipe tells the pipeline to stop if the meta_directory is scanned.'''
+    return meta_directory.is_scanned()
 
+def pipe_iter(checking_iterator):
+    '''this pipe runs checking_iterator on the scan_environment and meta_directory.'''
+    def _check(scan_environment, meta_directory):
+        for md in checking_iterator(scan_environment, meta_directory):
+            log.debug(f'pipe_iter({checking_iterator})[{meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+            with md.open(open_file=False):
+                md.write_info_with_unpack_parser()
+                log.debug(f'pipe_iter({checking_iterator})[{meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                for unpacked_md in md.unpack_with_unpack_parser():
+                    log.debug(f'pipe_iter({checking_iterator})[{meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
+                    job = ScanJob(unpacked_md.md_path)
+                    scan_environment.scan_queue.put(job)
+                    log.debug(f'pipe_iter({checking_iterator})[{meta_directory.md_path}]: queued job [{time.time_ns()}]')
+                log.debug(f'pipe_iter({checking_iterator})[{meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+        return False
+    return _check
 
+def pipe_null():
+    '''this pipe does nothing.'''
+    def _check(scan_environment, meta_directory):
+        return False
+    return _check
+
+def pipe_cond(predicate, pipe_if_true, pipe_if_false):
+    '''conditional pipe: runs pipe_if_true if predicate is true on scan_environment and meta_directory,
+    and pipe_if_false otherwise.
+    '''
+    def _check(scan_environment, meta_directory):
+        if predicate(scan_environment, meta_directory):
+            return pipe_if_true(scan_environment, meta_directory)
+        else:
+            return pipe_if_false(scan_environment, meta_directory)
+    return _check
+
+def pipe_seq(*pipes):
+    '''run a series of pipes until we are told to stop.'''
+    def _check(scan_environment, meta_directory):
+        for pipe in pipes:
+            log.debug(f'pipe_seq: running {pipe}')
+            r = pipe(scan_environment, meta_directory)
+            log.debug(f'pipe_seq: {pipe} returned {r}')
+            if r:
+                return r
+        return False
+    return _check
 
 
 #####
@@ -334,23 +380,21 @@ def process_job(scanjob):
         return
 
     with meta_directory.open():
-
-        check_with_iterator(scanjob.scan_environment, meta_directory, check_for_padding)
-        if meta_directory.is_scanned():
-            return
-
-        if 'synthesized' not in meta_directory.info.get('labels',[]):
-            check_with_iterator(scanjob.scan_environment, meta_directory, check_by_extension)
-            # stop after first successful unpack (TODO: make configurable?)
-            if meta_directory.is_scanned():
-                return
-
-            check_with_iterator(scanjob.scan_environment, meta_directory, check_by_signature)
-            # stop after first successful scan for this file (TODO: make configurable?)
-            if meta_directory.is_scanned():
-                return
-
-        check_with_iterator(scanjob.scan_environment, meta_directory, check_featureless)
+        pipe_padding = pipe_seq(pipe_iter(check_for_padding), stop_if_scanned)
+        pipe_if_synthesized = pipe_cond(
+                cond_not_synthesized,
+                pipe_seq(
+                    pipe_iter(check_by_extension), stop_if_scanned,
+                    pipe_iter(check_by_signature), stop_if_scanned
+                ),
+                pipe_null
+            )
+        pipe_root = pipe_seq(
+                pipe_padding,
+                pipe_if_synthesized,
+                pipe_iter(check_featureless)
+            )
+        pipe_root(scanjob.scan_environment, meta_directory)
 
 
 ####
