@@ -17,15 +17,7 @@ class ScanJob:
     def __init__(self, path):
         self._path = path
         self._meta_directory = None
-        self._scan_environment = None
-
-    @property
-    def scan_environment(self):
-        return self._scan_environment
-
-    @scan_environment.setter
-    def scan_environment(self, scan_environment):
-        self._scan_environment = scan_environment
+        self.scan_environment = None
 
     @property
     def meta_directory(self):
