@@ -3,7 +3,7 @@ import pytest
 from util import *
 from bang.UnpackParserException import UnpackParserException
 from bang.UnpackParser import UnpackParser
-from bang.bangsignatures import get_unpackers, get_unpacker_by_pretty_name
+from bang.signatures import get_unpackers, get_unpacker_by_pretty_name
 from bang.parsers.database.sqlite.UnpackParser import SqliteUnpackParser
 from bang.parsers.image.gif.UnpackParser import GifUnpackParser
 

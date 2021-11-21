@@ -7,6 +7,7 @@ from bang.meta_directory import *
 from bang.scan_job import *
 from bang.log import log
 from bang.scan_environment import ScanEnvironment
+import bang.signatures
 
 def create_scan_environment_from_config(config):
     e = ScanEnvironment(
@@ -46,7 +47,7 @@ def _scan_file(scan_file, temporary_directory, unpack_directory):
     scan_environment.unpackdirectory = unpack_directory.absolute()
     scan_environment.scan_queue = queue.Queue(maxsize=0)
     scan_environment.scan_semaphore = MockSemaphore(scan_environment.scan_queue, 1)
-    unpack_parsers = bangsignatures.get_unpackers()
+    unpack_parsers = bang.signatures.get_unpackers()
     scan_environment.parsers.unpackparsers = unpack_parsers
     scan_environment.parsers.build_automaton()
 

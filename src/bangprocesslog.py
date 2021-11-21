@@ -34,7 +34,7 @@ import argparse
 import pathlib
 
 # import own modules
-import bangsignatures
+import bang.signatures
 
 
 def main():

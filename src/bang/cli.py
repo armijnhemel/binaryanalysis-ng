@@ -7,7 +7,7 @@ import pprint
 from .scan_environment import *
 from .scan_job import ScanJob, process_jobs
 from .meta_directory import MetaDirectory
-from . import bangsignatures
+from . import signatures
 from .log import log
 
 BANG_VERSION = "0.0.1"
@@ -60,7 +60,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     # set the unpack_parsers
     # TODO: use config to enable/disable parsers
     #log.debug(f' finding unpack_parsers ')
-    unpack_parsers = bangsignatures.get_unpackers()
+    unpack_parsers = signatures.get_unpackers()
     scan_environment.parsers.unpackparsers = unpack_parsers
     #log.debug(f'{unpack_parsers =}')
     scan_environment.parsers.build_automaton()

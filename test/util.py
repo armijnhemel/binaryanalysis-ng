@@ -8,8 +8,8 @@ import threading
 from bang.meta_directory import *
 # from FileResult import *
 from bang.scan_environment import *
-from bang.bangsignatures import maxsignaturesoffset
-from bang import bangsignatures
+from bang.signatures import maxsignaturesoffset
+from bang import signatures
 
 from mock_queue import *
 from mock_db import *
@@ -60,7 +60,7 @@ def scan_environment(tmp_path_factory):
         temporarydirectory = tmp_dir / 'tmp',
         scan_queue = MockQueue(),
     )
-    se.parsers.unpackparsers = bangsignatures.get_unpackers()
+    se.parsers.unpackparsers = signatures.get_unpackers()
     se.scan_semaphore = threading.Semaphore(1)
     return se
 

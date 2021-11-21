@@ -10,7 +10,7 @@ from operator import itemgetter
 from .meta_directory import *
 from .UnpackParser import SynthesizingParser, ExtractingParser, PaddingParser
 from .UnpackParserException import UnpackParserException
-from bang import bangsignatures
+from bang import signatures
 from .log import log
 
 class ScanJob:
@@ -99,7 +99,7 @@ def find_extension_parsers(scan_environment):
 #
 def check_by_extension(scan_environment, checking_meta_directory):
     for ext, unpack_parser_cls in find_extension_parsers(scan_environment):
-        if bangsignatures.matches_file_pattern(checking_meta_directory.file_path, ext):
+        if signatures.matches_file_pattern(checking_meta_directory.file_path, ext):
             log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: {unpack_parser_cls} parses extension {ext} in {checking_meta_directory.file_path}')
             try:
                 unpack_parser = unpack_parser_cls(checking_meta_directory, 0)
