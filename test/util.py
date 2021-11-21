@@ -12,7 +12,6 @@ from bang.signatures import maxsignaturesoffset
 from bang import signatures
 
 from mock_queue import *
-from mock_db import *
 
 from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
