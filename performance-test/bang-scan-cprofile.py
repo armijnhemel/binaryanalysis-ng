@@ -6,7 +6,7 @@ import logging
 from bang.meta_directory import *
 from bang.scan_job import *
 from bang.log import log
-from bang.ScanEnvironment import ScanEnvironment
+from bang.scan_environment import ScanEnvironment
 
 def create_scan_environment_from_config(config):
     e = ScanEnvironment(

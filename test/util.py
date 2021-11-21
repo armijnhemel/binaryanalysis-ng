@@ -7,7 +7,7 @@ import threading
 
 from bang.meta_directory import *
 # from FileResult import *
-from bang.ScanEnvironment import *
+from bang.scan_environment import *
 from bang.bangsignatures import maxsignaturesoffset
 from bang import bangsignatures
 

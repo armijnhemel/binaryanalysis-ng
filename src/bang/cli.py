@@ -4,7 +4,7 @@ import pathlib
 import logging
 import time
 import pprint
-from .ScanEnvironment import *
+from .scan_environment import *
 from .scan_job import ScanJob, process_jobs
 from .meta_directory import MetaDirectory
 from . import bangsignatures
