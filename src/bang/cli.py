@@ -34,16 +34,20 @@ def app():
 
 
 # bang scan <input file>
-@app.command()
+@app.command(short_help='Scan a file')
 @click.option('-c', '--config')
-@click.option('-v', '--verbose', is_flag=True)
-@click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'))
-@click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'))
-@click.option('-j', '--jobs', default=1, type=int)
+@click.option('-v', '--verbose', is_flag=True, help='Enable debug logging')
+@click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
+@click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Temporary directory')
+@click.option('-j', '--jobs', default=1, type=int, help='Number of jobs running simultaneously')
+@click.option('--job-wait-time', default=10, type=int, help='Time to wait for a new job')
 @click.argument('path', type=click.Path())
-def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
+def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_time, path):
+    '''Scans PATH and unpacks its files to UNPACK_DIRECTORY.
+    '''
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
+    scan_environment.job_wait_time = job_wait_time
     scan_environment.temporarydirectory = temporary_directory.absolute()
     scan_environment.unpackdirectory = unpack_directory.absolute()
 
@@ -91,13 +95,16 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, path):
     log.debug(f'cli:scan: done.')
 
 
-@app.command()
-@click.option('-a', '--all', is_flag=True)
+@app.command(short_help='Show bang analysis results')
+@click.option('-a', '--all', is_flag=True, help='Show all information, including extracted/unpacked files')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
 def show(all, metadir):
+    '''Shows bang analysis results stored in METADIR.
+    '''
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     print(f'{md.md_path} ({md.file_path}):')
     with md.open(open_file=False, mode_write=False):
+        print(f'Parser: {md.info.get("unpack_parser")}')
         print(f'Labels: {", ".join(md.info.get("labels",[]))}')
         print(f'Metadata:')
         pprint.pprint(md.info.get('metadata'))
@@ -110,9 +117,11 @@ def show(all, metadir):
                 print(f'{k}\t{v}')
 
 
-@app.command()
+@app.command(short_help='Lists extracted and unpacked files')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
 def ls(metadir):
+    '''Lists extracted and unpacked files stored in METADIR.
+    '''
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     with md.open(open_file=False, mode_write=False):
         for k,v in md.info.get('extracted_files', {}).items():

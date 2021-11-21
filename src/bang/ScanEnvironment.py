@@ -25,6 +25,7 @@ import multiprocessing
 import ahocorasick
 import pathlib
 from dataclasses import dataclass
+from typing import Any
 from ByteCountReporter import *
 from PickleReporter import *
 from JsonReporter import *
@@ -105,7 +106,8 @@ class ScanEnvironment:
     tlshmaximum: int
     unpackdirectory: pathlib.Path
     temporarydirectory: pathlib.Path
-    scan_queue: None
+    job_wait_time: int = 10
+    scan_queue: Any = None
     parsers: ParserCollection = ParserCollection()
     # resultqueue:bool
     # processlock:bool

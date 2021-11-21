@@ -394,7 +394,7 @@ def process_jobs(scan_environment):
         if s == True: # at least one scan job is running
             try:
                 #scanjob = scan_environment.scan_queue.get(timeout=86400)
-                scanjob = scan_environment.scan_queue.get(timeout=60)
+                scanjob = scan_environment.scan_queue.get(timeout=scan_environment.job_wait_time)
                 log.debug(f'process_jobs: {scanjob=}')
                 scan_environment.scan_semaphore.release()
                 scanjob.scan_environment = scan_environment
