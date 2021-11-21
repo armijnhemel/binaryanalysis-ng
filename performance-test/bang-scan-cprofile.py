@@ -11,13 +11,6 @@ import bang.signatures
 
 def create_scan_environment_from_config(config):
     e = ScanEnvironment(
-            # set the maximum size for the amount of bytes to be read
-            maxbytes = 0,
-            # set the size of bytes to be read during scanning hashes
-            readsize = 10240,
-            createbytecounter = False,
-            createjson = False,
-            tlshmaximum = False,
             unpackdirectory = '',
             temporarydirectory = '',
             scan_queue = None,

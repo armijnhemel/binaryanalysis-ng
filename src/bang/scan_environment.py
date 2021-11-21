@@ -99,18 +99,10 @@ class ParserCollection:
 
 @dataclass
 class ScanEnvironment:
-    maxbytes: int
-    readsize: int
-    createbytecounter: bool
-    createjson: bool
-    tlshmaximum: int
     unpackdirectory: pathlib.Path
     temporarydirectory: pathlib.Path
-    job_wait_time: int = 10
     scan_queue: Any = None
-    parsers: ParserCollection = ParserCollection()
-    # resultqueue:bool
-    # processlock:bool
-    # checksumdict:bool
+    job_wait_time: int = 10
     signature_chunk_size: int = 1024
+    parsers: ParserCollection = ParserCollection()
 

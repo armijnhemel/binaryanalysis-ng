@@ -1,28 +1,17 @@
 import collections
 import queue
 
-class MockQueue:
+class MockQueue(queue.Queue):
     def __init__(self):
-        self.queue = collections.deque() #[]
-        self._history = []
-    def get(self, timeout=0):
-        try:
-            item = self.queue.popleft()
-            self.history.append(-1)
-            return item
-        except IndexError:
-            raise queue.Empty()
-    def put(self, job):
-        self._history.append(job)
-        self.queue.append(job)
-    def task_done(self):
-        pass
-    @property
-    def history(self):
-        return self._history
+        super().__init__()
+        self.history = []
 
-class MockLock:
-    def acquire(self): pass
-    def release(self): pass
+    def get(self, *args, **kwargs):
+        self.history.append(-1)
+        return super().get(timeout=0)
+
+    def put(self, job):
+        self.history.append(job)
+        return super().put(job)
 
 

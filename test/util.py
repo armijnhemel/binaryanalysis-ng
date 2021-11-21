@@ -46,16 +46,9 @@ def _create_clean_directory(dirpath):
 @pytest.fixture(scope='function')
 def scan_environment(tmp_path_factory):
     tmp_dir = tmp_path_factory.mktemp("bang")
-    print("DEBUG: tmp_dir=", tmp_dir)
     _create_clean_directory(tmp_dir / 'unpack')
     _create_clean_directory(tmp_dir / 'tmp')
-    _create_clean_directory(tmp_dir / 'results')
     se = ScanEnvironment(
-        maxbytes = max(200000, maxsignaturesoffset+1),
-        readsize = 10240,
-        createbytecounter = False,
-        createjson = True,
-        tlshmaximum = sys.maxsize,
         unpackdirectory = tmp_dir / 'unpack',
         temporarydirectory = tmp_dir / 'tmp',
         scan_queue = MockQueue(),

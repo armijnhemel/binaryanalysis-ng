@@ -18,7 +18,6 @@ def test_create_unpackparser():
     assert up.is_valid_extension is not None
 
 def test_get_unpackparsers_from_scan_environment(scan_environment):
-    # se = self.create_scan_environment(unpackdirectory = pathlib.Path('/test'))
     unpackparsers = [
             create_unpackparser('FirstUnpacker', fail = False,
                 extensions = ['.txt'],
@@ -54,24 +53,6 @@ def test_get_unpackparsers_from_scan_environment(scan_environment):
             (10,b'1111'): [ unpackparsers[1] ]
         }
     assert scan_environment.parsers.unpackparsers_for_featureless_files == [ unpackparsers[3] ]
-
-
-
-class TestScanEnvironment(unittest.TestCase):
-    def create_scan_environment(self,
-                maxbytes = 0, readsize = 0, createbytecounter = False,
-                createjson = False, tlshmaximum = 1024,
-                synthesizedminimum = 200,
-                paddingname = 'PADDING', unpackdirectory = pathlib.Path('.'),
-                temporarydirectory = pathlib.Path('.'),
-                resultsdirectory = pathlib.Path('.'),
-                scan_queue = None, resultqueue = None,
-                processlock = None, checksumdict = None):
-        return ScanEnvironment(maxbytes, readsize, createbytecounter,
-                createjson, tlshmaximum, synthesizedminimum,
-                paddingname, unpackdirectory, temporarydirectory,
-                 resultsdirectory, scan_queue, resultqueue, processlock,
-                 checksumdict)
 
 
 if __name__ == "__main__":
