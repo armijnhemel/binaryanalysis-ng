@@ -321,9 +321,18 @@ def process_job(scanjob):
         # TODO: see if we can decide if files are padding from the MetaDirectory context.
         # if scanjob.context_is_padding(meta_directory.context): return
         for md in check_for_padding(meta_directory):
+            log.debug(f'process_job(padding)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
             with md.open(open_file=False):
                 md.write_info_with_unpack_parser()
-            return # skip padding file by returning
+            for unpacked_md in md.unpack_with_unpack_parser():
+                log.debug(f'process_job(padding)[{scanjob.meta_directory.md_path}]: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
+                job = ScanJob(unpacked_md.md_path)
+                scanjob.scan_environment.scan_queue.put(job)
+                log.debug(f'process_job(padding)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
+            log.debug(f'process_job(padding)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+                
+        if meta_directory.is_scanned():
+            return
 
         # TODO: skip for synthesized files
         if 'synthesized' not in meta_directory.info.get('labels',[]):
