@@ -58,7 +58,7 @@ def extract_file(checking_meta_directory, in_file, offset, file_size):
 # Iterator that checks if the file for checking_meta_directory is a padding file. Yields
 # checking_meta_directory if this is the case.
 #
-def check_for_padding(checking_meta_directory):
+def check_for_padding(scan_environment, checking_meta_directory):
     try:
         unpack_parser = PaddingParser(checking_meta_directory, 0)
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
@@ -287,6 +287,23 @@ def check_featureless(scan_environment, checking_meta_directory):
             log.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
 
 
+def check_with_iterator(scan_environment, meta_directory, checking_iterator):
+    for md in checking_iterator(scan_environment, meta_directory):
+        log.debug(f'check_with_iterator({checking_iterator})[{meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+        with md.open(open_file=False):
+            md.write_info_with_unpack_parser()
+            log.debug(f'check_with_iterator({checking_iterator})[{meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+            for unpacked_md in md.unpack_with_unpack_parser():
+                log.debug(f'check_with_iterator({checking_iterator})[{meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
+                job = ScanJob(unpacked_md.md_path)
+                scan_environment.scan_queue.put(job)
+                log.debug(f'check_with_iterator({checking_iterator})[{meta_directory.md_path}]: queued job [{time.time_ns()}]')
+            log.debug(f'check_with_iterator({checking_iterator})[{meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+
+
+
+
+
 #####
 #
 # Processes a ScanJob. The scanjob stores a MetaDirectory path that contains all
@@ -318,73 +335,22 @@ def process_job(scanjob):
 
     with meta_directory.open():
 
-        # TODO: see if we can decide if files are padding from the MetaDirectory context.
-        # if scanjob.context_is_padding(meta_directory.context): return
-        for md in check_for_padding(meta_directory):
-            log.debug(f'process_job(padding)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-            with md.open(open_file=False):
-                md.write_info_with_unpack_parser()
-            for unpacked_md in md.unpack_with_unpack_parser():
-                log.debug(f'process_job(padding)[{scanjob.meta_directory.md_path}]: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
-                job = ScanJob(unpacked_md.md_path)
-                scanjob.scan_environment.scan_queue.put(job)
-                log.debug(f'process_job(padding)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
-            log.debug(f'process_job(padding)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-                
+        check_with_iterator(scanjob.scan_environment, meta_directory, check_for_padding)
         if meta_directory.is_scanned():
             return
 
-        # TODO: skip for synthesized files
         if 'synthesized' not in meta_directory.info.get('labels',[]):
-            for md in check_by_extension(scanjob.scan_environment, meta_directory):
-                log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-                with md.open(open_file=False):
-                    md.write_info_with_unpack_parser()
-                    log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-                    for unpacked_md in md.unpack_with_unpack_parser():
-                        log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {unpacked_md.file_path}, with info in {unpacked_md.md_path}')
-                        job = ScanJob(unpacked_md.md_path)
-                        scanjob.scan_environment.scan_queue.put(job)
-                        log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
-                    log.debug(f'process_job(extension)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+            check_with_iterator(scanjob.scan_environment, meta_directory, check_by_extension)
+            # stop after first successful unpack (TODO: make configurable?)
+            if meta_directory.is_scanned():
+                return
 
-        # stop after first successful unpack (TODO: make configurable?)
-        if meta_directory.is_scanned():
-            return
+            check_with_iterator(scanjob.scan_environment, meta_directory, check_by_signature)
+            # stop after first successful scan for this file (TODO: make configurable?)
+            if meta_directory.is_scanned():
+                return
 
-        # TODO: skip for synthesized files
-        if 'synthesized' not in meta_directory.info.get('labels',[]):
-            for md in check_by_signature(scanjob.scan_environment, meta_directory):
-                log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-                with md.open(open_file=False):
-                    md.write_info_with_unpack_parser()
-                    log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-                    for unpacked_md in md.unpack_with_unpack_parser():
-                        job = ScanJob(unpacked_md.md_path)
-                        log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
-                        # TODO: if unpacked_md == md, postpone queuing
-                        scanjob.scan_environment.scan_queue.put(job)
-                        log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
-                    log.debug(f'process_job(signature)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-
-        # stop after first successful scan for this file (TODO: make configurable?)
-        if meta_directory.is_scanned():
-            return
-
-        # if extension and signature did not give any results, try other things
-        log.debug(f'process_job[{scanjob.meta_directory.md_path}]: trying featureless parsers')
-
-        for md in check_featureless(scanjob.scan_environment, meta_directory):
-            log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-            with md.open(open_file=False):
-                md.write_info_with_unpack_parser()
-                log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
-                for unpacked_md in md.unpack_with_unpack_parser():
-                    log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
-                    job = ScanJob(unpacked_md.md_path)
-                    scanjob.scan_environment.scan_queue.put(job)
-                    log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: queued job [{time.time_ns()}]')
-                log.debug(f'process_job(featureless)[{scanjob.meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+        check_with_iterator(scanjob.scan_environment, meta_directory, check_featureless)
 
 
 ####
