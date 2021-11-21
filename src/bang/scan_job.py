@@ -306,6 +306,23 @@ def stop_if_scanned(scan_environment, meta_directory):
     '''this pipe tells the pipeline to stop if the meta_directory is scanned.'''
     return meta_directory.is_scanned()
 
+#####
+#
+# The checking_iterator is an iterator: for every positive check result, it yields a
+# MetaDirectory (could be the one for the current file, or could be one that is
+# extracted, if the file contains multiple parts).
+#
+# This MetaDirectory object has an unpack_parser property, which this pipe will use to
+# write metadata to the MetaDirectory.
+# There are special parsers for parts that could not be recognized (SynthesizingParser
+# and ExtractedParser), for padding files (PaddingParser), and for a file from which
+# files are extracted (ExtractingParser).
+#
+# This pipe will also call the UnpackParser to unpack any files (for example for archives).
+# The UnpackParser's unpack method will unpack the files into the MetaDirectory, and yield
+# a MetaDirectory object for every unpacked file. The code will create a new ScanJob for each
+# unpacked MetaDirectory and queue it.
+#
 def pipe_iter(checking_iterator):
     '''this pipe runs checking_iterator on the scan_environment and meta_directory.'''
     def _check(scan_environment, meta_directory):
@@ -364,9 +381,14 @@ def pipe_with_open_md_for_writing(pipe):
             return pipe(scan_environment, meta_directory)
     return _check
 
+#####
+#
+# Pipeline for scanning files.
+#
+
 def make_scan_pipeline():
     pipe_padding = pipe_seq(pipe_iter(check_for_padding), stop_if_scanned)
-    pipe_if_synthesized = pipe_cond(
+    pipe_check_synthesized = pipe_cond(
             cond_not_synthesized,
             pipe_seq(
                 pipe_iter(check_by_extension), stop_if_scanned,
@@ -376,7 +398,7 @@ def make_scan_pipeline():
         )
     pipe_scannable = pipe_seq(
             pipe_padding,
-            pipe_if_synthesized,
+            pipe_check_synthesized,
             pipe_iter(check_featureless)
         )
     # TODO: if we want to record meta data for unscannable files,
@@ -390,31 +412,9 @@ def make_scan_pipeline():
 
 #####
 #
-# Processes a ScanJob. The scanjob stores a MetaDirectory path that contains all
-# information needed for processing, such as the path of the file to analyze, and
-# any context.
-# (Most) checks follow the iterator pattern: for every positive check result, the code
-# yields a MetaDirectory (could be the one for the current file, or could be one that is
-# extracted, if the file contains multiple parts). This MetaDirectory object has an
-# unpack_parser property, which the code will use to write metadata to this MetaDirectory.
-# There are special parsers for parts that could not be parsed (SynthesizingParser), for
-# padding files (PaddingParser), and for a file from which files are extracted
-# (ExtractingParser).
-# The code will also call the UnpackParser to unpack any files (for example for archives).
-# The UnpackParser's unpack method will unpack the files into the MetaDirectory, and yield
-# a MetaDirectory object for every unpacked file. The code will create a new ScanJob for each
-# unpacked MetaDirectory and queue it.
-#
-def process_job(pipeline, scanjob):
-    # scanjob has: path, meta_directory object and context
-    meta_directory = scanjob.meta_directory
-    log.debug(f'process_job[{scanjob.meta_directory.md_path}]: enter')
-    pipeline(scanjob.scan_environment, meta_directory)
-
-
-####
-#
 # Process all jobs on the scan queue in the scan_environment.
+# The scanjob stores a MetaDirectory path that contains all information needed for
+# processing, such as the path of the file to analyze, and any context.
 #
 def process_jobs(pipeline, scan_environment):
     # TODO: code smell, should not be needed if unpackparsers behave
@@ -433,7 +433,7 @@ def process_jobs(pipeline, scan_environment):
                 scan_environment.scan_semaphore.release()
                 scanjob.scan_environment = scan_environment
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
-                process_job(pipeline, scanjob)
+                pipeline(scanjob.scan_environment, scanjob.meta_directory)
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
             except queue.Empty as e:
                 log.debug(f'process_jobs: scan queue is empty')
@@ -448,6 +448,6 @@ def process_jobs(pipeline, scan_environment):
             log.debug(f'process_jobs: all scanjobs are waiting')
             break
     log.debug(f'process_jobs: exiting')
-    # scan_environment.scan_queue.join()
+    # TODO: this should not be needed if unpackparsers behave
     os.chdir(current_dir)
 
