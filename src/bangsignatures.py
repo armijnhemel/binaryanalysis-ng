@@ -282,10 +282,6 @@ signaturetofunction = {
     'pcap_le_nano': bangunpack.unpack_pcap,
     'pcap_be_nano': bangunpack.unpack_pcap,
     'plf': bangfilesystems.unpack_plf,
-    'yaffs_le_1': bangfilesystems.unpack_yaffs2,
-    'yaffs_le_2': bangfilesystems.unpack_yaffs2,
-    'yaffs_be_1': bangfilesystems.unpack_yaffs2,
-    'yaffs_be_2': bangfilesystems.unpack_yaffs2,
 }
 
 # a lookup table to map signatures to a name for

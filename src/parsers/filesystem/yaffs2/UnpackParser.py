@@ -20,6 +20,48 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# YAFFS2 is a file system that was at some point popular on Android devices
+# but which seems to have lost its popularity. It can still be found
+# every now and then. The following method unpacks them, but only images
+# created by mkyaffs2image, not any flash dumps from a live device with
+# deleted chunks (TODO).
+#
+# YAFFS2 does not have any magic numbers, so it is not always easy to
+# recognize. There are a few common patterns that can be searched for.
+# These patterns can be found by creating images with mkyaffs2image and
+# analyzing them.
+#
+# Some notes:
+#
+# https://wiki.sleuthkit.org/index.php?title=YAFFS2
+# https://wiki.sleuthkit.org/index.php?title=YAFFS2_Implementation_Notes
+#
+# Presentation (relevant page: 10):
+#
+# http://tree.celinuxforum.org/CelfPubWiki/ELCEurope2007Presentations?action=AttachFile&do=get&target=yaffs.pdf
+#
+# The layout of the spare data can be found in the YAFFS2 header
+# files (LGPL 2.1 licensed):
+#
+# https://android.googlesource.com/platform/external/yaffs2/+/donut-release/yaffs2/yaffs_packedtags2.h
+#
+# Layout of the chunk:
+#
+# https://android.googlesource.com/platform/external/yaffs2/+/donut-release/yaffs2/yaffs_guts.h#290
+#
+# A YAFFS2 file system is basically a concatenation of chunks, with associated
+# metadata which is either stored separately from the data ("out of band")
+# or with the data ("in band").
+#
+# YAFFS2 images can be created using mkyaff2simage, which can be found at
+# git://www.aleph1.co.uk/yaffs2
+#
+# Images with in band tags can be made with yaffs2utils from
+# https://github.com/OpenNuvoton/NUC970_Linux_Applications/tree/master/yaffs2utils
+#
+# Note: it seems that regular images made with the latter yaffs2utils cannot be
+# unpacked.
+
 import os
 import pathlib
 
@@ -61,7 +103,7 @@ EXTRA_OBJECT_TYPE_MASK = 0x0f << EXTRA_OBJECT_TYPE_SHIFT
 # some devices use "in band" tags to save flash space.
 # in band tags always seem to be 16 bytes long
 # (4080, 16) is an example of a common size for inline tags
-# Most common combinations (spare size = chunk size/32)  are first
+# Most common combinations (spare size = chunk size/32) are listed first
 CHUNKS_AND_SPARES = [(512, 16), (1024, 32), (2048, 64), (4196, 128),
                      (8192, 256), (16384, 512), (512, 32), (512, 64),
                      (512, 128), (1024, 16), (1024, 64), (1024, 128),
