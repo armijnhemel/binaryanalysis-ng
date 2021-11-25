@@ -1773,7 +1773,12 @@ def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
                                 outpos += repeat
                     outfile.write(data_out)
                 elif compression_used == COMPR_LZO:
-                    outfile.write(lzo.decompress(checkbytes, False, decompressedsize))
+                    try:
+                        outfile.write(lzo.decompress(checkbytes, False, decompressedsize))
+                    except:
+                        unpackingerror = {'offset': offset, 'fatal': False,
+                                          'reason': 'invalid lzo compressed data'}
+                        return {'status': False, 'error': unpackingerror}
                 else:
                     outfile.close()
                     break
