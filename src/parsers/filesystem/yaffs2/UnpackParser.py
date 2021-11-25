@@ -82,8 +82,9 @@ class Yaffs2UnpackParser(UnpackParser):
         return unpack_yaffs2(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
-        byteorder = 'little'
+        self.byteorder = 'little'
         self.metadata = {}
+        dataunpacked = False
 
         # then try to read the file system for various chunk/spare
         # combinations until either data has been successfully parsed
@@ -101,16 +102,6 @@ class Yaffs2UnpackParser(UnpackParser):
             # keep a mapping of object ids to name
             object_id_to_name = {}
 
-            # keep a mapping of object ids to file size
-            # for sanity checks
-            object_id_to_size = {}
-
-            # store the last open file for an object
-            last_open = None
-            last_open_name = None
-            last_open_size = 0
-            previous_object_id = 0
-
             # store if element with object id 1 has been seen. Most, but not all,
             # YAFFS2 images have this as a separate chunk.
             seen_root_element = False
@@ -118,6 +109,12 @@ class Yaffs2UnpackParser(UnpackParser):
 
             # store if this is an inband image
             inband = False
+
+            # keep some metadata about files, simulate
+            # unpacking, but don't write data
+            last_open_size = 0
+            last_open = None
+            previous_object_id = 0
 
             self.last_valid_offset = self.offset
 
@@ -138,7 +135,7 @@ class Yaffs2UnpackParser(UnpackParser):
 
                 # read the sequence number
                 spare_bytes = self.infile.read(4)
-                sequence_number = int.from_bytes(spare_bytes, byteorder=byteorder)
+                sequence_number = int.from_bytes(spare_bytes, byteorder=self.byteorder)
 
                 # mkyaffs2image uses 0xff for padding. Skip these bytes
                 # and continue reading to determine the real size of the
@@ -149,7 +146,7 @@ class Yaffs2UnpackParser(UnpackParser):
 
                 # read the object id
                 spare_bytes = self.infile.read(4)
-                object_id = int.from_bytes(spare_bytes, byteorder=byteorder)
+                object_id = int.from_bytes(spare_bytes, byteorder=self.byteorder)
 
                 # object id 0 is invalid so likely this is a false positive.
                 if object_id == 0:
@@ -157,7 +154,7 @@ class Yaffs2UnpackParser(UnpackParser):
 
                 # read the chunk id
                 spare_bytes = self.infile.read(4)
-                chunk_id = int.from_bytes(spare_bytes, byteorder=byteorder)
+                chunk_id = int.from_bytes(spare_bytes, byteorder=self.byteorder)
 
                 # first check if the relevant info is stored in an inband tag
                 # or in a normal tag. Inbound tags are described in the YAFFS2
@@ -185,7 +182,7 @@ class Yaffs2UnpackParser(UnpackParser):
 
                 # read the chunk byte count
                 spare_bytes = self.infile.read(4)
-                byte_count = int.from_bytes(spare_bytes, byteorder=byteorder)
+                byte_count = int.from_bytes(spare_bytes, byteorder=self.byteorder)
 
                 # depending on the object_id, chunk_id and object type the
                 # chunk is either a continuation, or a new object.
@@ -210,6 +207,14 @@ class Yaffs2UnpackParser(UnpackParser):
                     dataunpacked = True
 
                 else:
+                    if last_open is not None:
+                        if object_id_to_latest_chunk[previous_object_id] == 0:
+                            if last_open_size != 0:
+                                last_open = None
+                                break
+
+                    last_open = None
+
                     # object id should not have been seen yet
                     if object_id in object_id_to_latest_chunk:
                         break
@@ -222,7 +227,7 @@ class Yaffs2UnpackParser(UnpackParser):
 
                     # object type
                     object_bytes = self.infile.read(4)
-                    chunk_object_type = int.from_bytes(object_bytes, byteorder=byteorder)
+                    chunk_object_type = int.from_bytes(object_bytes, byteorder=self.byteorder)
 
                     # check the object type
                     if chunk_object_type == YAFFS_OBJECT_TYPE_UNKNOWN:
@@ -230,7 +235,7 @@ class Yaffs2UnpackParser(UnpackParser):
 
                     # read the parent object id
                     parent_id_bytes = self.infile.read(4)
-                    parent_object_id = int.from_bytes(parent_id_bytes, byteorder=byteorder)
+                    parent_object_id = int.from_bytes(parent_id_bytes, byteorder=self.byteorder)
 
                     if inband:
                         parent_object_id = orig_chunk_id & ~ALL_EXTRA_FLAG
@@ -253,39 +258,39 @@ class Yaffs2UnpackParser(UnpackParser):
 
                     # yst_mode
                     stat_bytes = self.infile.read(4)
-                    mode = int.from_bytes(stat_bytes, byteorder=byteorder)
+                    mode = int.from_bytes(stat_bytes, byteorder=self.byteorder)
 
                     # stat information: uid, gid, atime, mtime, ctime
                     stat_bytes = self.infile.read(4)
-                    uid = int.from_bytes(stat_bytes, byteorder=byteorder)
+                    uid = int.from_bytes(stat_bytes, byteorder=self.byteorder)
 
                     stat_bytes = self.infile.read(4)
-                    gid = int.from_bytes(stat_bytes, byteorder=byteorder)
+                    gid = int.from_bytes(stat_bytes, byteorder=self.byteorder)
 
                     stat_bytes = self.infile.read(4)
-                    atime = int.from_bytes(stat_bytes, byteorder=byteorder)
+                    atime = int.from_bytes(stat_bytes, byteorder=self.byteorder)
 
                     stat_bytes = self.infile.read(4)
-                    mtime = int.from_bytes(stat_bytes, byteorder=byteorder)
+                    mtime = int.from_bytes(stat_bytes, byteorder=self.byteorder)
 
                     stat_bytes = self.infile.read(4)
-                    ctime = int.from_bytes(stat_bytes, byteorder=byteorder)
+                    ctime = int.from_bytes(stat_bytes, byteorder=self.byteorder)
 
                     # the object size. This only makes sense for files. The real
                     # size depends on the "high" value as well.
                     size_bytes = self.infile.read(4)
-                    object_size_low = int.from_bytes(size_bytes, byteorder=byteorder)
+                    object_size_low = int.from_bytes(size_bytes, byteorder=self.byteorder)
 
                     # equiv_id, only makes sense for hard links
                     equiv_bytes = self.infile.read(4)
-                    equiv_id = int.from_bytes(equiv_bytes, byteorder=byteorder)
+                    equiv_id = int.from_bytes(equiv_bytes, byteorder=self.byteorder)
 
                     # alias, only makes sense for symlinks
                     alias = self.infile.read(YAFFS_MAX_ALIAS_LENGTH + 1)
 
                     # rdev, only for special files (block/char)
                     rdev_bytes = self.infile.read(4)
-                    rdev = int.from_bytes(rdev_bytes, byteorder=byteorder)
+                    rdev = int.from_bytes(rdev_bytes, byteorder=self.byteorder)
 
                     # skip some Windows specific structures
                     self.infile.seek(24, os.SEEK_CUR)
@@ -295,7 +300,7 @@ class Yaffs2UnpackParser(UnpackParser):
 
                     # object size high
                     size_bytes = self.infile.read(4)
-                    object_size_high = int.from_bytes(size_bytes, byteorder=byteorder)
+                    object_size_high = int.from_bytes(size_bytes, byteorder=self.byteorder)
 
                     # element 1 is special, but not every yaffs2 file system
                     # seems to have element 1, so sometimes it needs to be
@@ -326,7 +331,6 @@ class Yaffs2UnpackParser(UnpackParser):
                         break
 
                     # sanity check for individual file types
-
                     if chunk_object_type == YAFFS_OBJECT_TYPE_FILE:
                         # extra sanity check: in case the chunk/spare
                         # combination is not known false positives can happen
@@ -334,6 +338,15 @@ class Yaffs2UnpackParser(UnpackParser):
                         # exist, when it actually doesn't.
                         if object_name == '.':
                             break
+
+                        # first reconstruct the file size.
+                        if object_size_high != 0xffffffff:
+                            object_size = (object_size_high << 32) + object_size_low
+                        else:
+                            object_size = object_size_low
+                        last_open_size = object_size
+                        last_open = ''
+                        previous_object_id = object_id
                     elif chunk_object_type == YAFFS_OBJECT_TYPE_SYMLINK:
                         try:
                             alias = alias.split(b'\x00', 1)[0].decode()
@@ -353,22 +366,290 @@ class Yaffs2UnpackParser(UnpackParser):
                     is_first_element = False
                     dataunpacked = True
 
+                if self.infile.tell() == self.fileresult.filesize:
+                    break
+
                 # skip to the next chunk/spare
                 self.infile.seek(self.last_valid_offset + chunk_size + spare_size)
                 self.last_valid_offset = self.infile.tell()
 
-                if self.infile.tell() == self.fileresult.filesize:
-                    unpackedsize = self.fileresult.filesize - self.offset
-                    break
+            if last_open is not None:
+                if object_id_to_latest_chunk[previous_object_id] == 0:
+                    if last_open_size != 0:
+                        break
 
             if dataunpacked:
+                self.unpackedsize = self.last_valid_offset - self.offset
                 self.metadata['chunk size'] = chunk_size
                 self.metadata['spare size'] = spare_size
-                self.infile.seek(last_valid_offset)
+                self.infile.seek(self.last_valid_offset)
                 break
 
+        check_condition(dataunpacked, "no valid/suppported yaffs2 image found")
 
     def unpack(self):
+        unpacked_files = []
+        unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
+
+        chunk_size = self.metadata['chunk size']
+        spare_size = self.metadata['spare size']
+
+        # seek to the original offset
+        self.infile.seek(self.offset)
+
+        # keep a mapping of object ids to latest chunk id
+        object_id_to_latest_chunk = {}
+
+        # keep a mapping of object ids to type
+        object_id_to_type = {}
+
+        # keep a mapping of object ids to name
+        object_id_to_name = {}
+
+        # keep a mapping of object ids to file size
+        # for sanity checks
+        object_id_to_size = {}
+
+        # store the last open file for an object
+        last_open = None
+        last_open_name = None
+        last_open_size = 0
+        previous_object_id = 0
+
+        # store if element with object id 1 has been seen. Most, but not all,
+        # YAFFS2 images have this as a separate chunk.
+        seen_root_element = False
+        is_first_element = True
+
+        # store if this is an inband image
+        inband = False
+
+        self.last_valid_offset = self.offset
+
+        while True:
+            if self.infile.tell() == self.unpacked_size:
+                break
+
+            self.last_valid_offset = self.infile.tell()
+
+            # read relevant spare data.
+            self.infile.seek(chunk_size, os.SEEK_CUR)
+
+            # read the sequence number
+            spare_bytes = self.infile.read(4)
+            sequence_number = int.from_bytes(spare_bytes, byteorder=self.byteorder)
+
+            # skip padding chunks
+            if sequence_number == 0xffffffff:
+                self.infile.seek(self.last_valid_offset + chunk_size + spare_size)
+                continue
+
+            # read the object id
+            spare_bytes = self.infile.read(4)
+            object_id = int.from_bytes(spare_bytes, byteorder=self.byteorder)
+
+            # read the chunk id
+            spare_bytes = self.infile.read(4)
+            chunk_id = int.from_bytes(spare_bytes, byteorder=self.byteorder)
+
+            # first check if the relevant info is stored in an inband tag
+            # or in a normal tag. Inbound tags are described in the YAFFS2
+            # code in the file yaffs_packedtags2.c
+            #
+            # For inbound tags some data (object id, chunk id) are
+            # mixed with the actual data, so extract them first.
+            if chunk_id & EXTRA_HEADER_INFO_FLAG == EXTRA_HEADER_INFO_FLAG:
+                # store the original chunk_id as it will be needed later
+                orig_chunk_id = chunk_id
+
+                # extract the object_id
+                object_id = object_id & ~EXTRA_OBJECT_TYPE_MASK
+
+                # the chunk_id will have been changed ONLY for
+                # the chunk with id 0 and not for any chunks
+                # with data (files), so it is safe to simply
+                # set the chunk_id to 0 here (new chunk).
+                chunk_id = 0
+                inband = True
+
+            # read the chunk byte count
+            spare_bytes = self.infile.read(4)
+            byte_count = int.from_bytes(spare_bytes, byteorder=self.byteorder)
+
+            # if it is a continuation of an existing object, then the
+            # chunk id cannot be 0, as that is the header.
+            if chunk_id != 0:
+                object_id_to_latest_chunk[object_id] = chunk_id
+
+                # jump to the offset of the chunk and write data
+                os.sendfile(last_open.fileno(), self.infile.fileno(), self.last_valid_offset, byte_count)
+
+            else:
+                # close open file, if any
+                if last_open is not None:
+                    last_open.close()
+                    fr = FileResult(self.fileresult, last_open_name, set())
+                    unpacked_files.append(fr)
+
+                last_open = None
+
+                # store latest chunk id for this object
+                object_id_to_latest_chunk[object_id] = chunk_id
+
+                # jump to the offset of the chunk and analyze
+                self.infile.seek(self.last_valid_offset)
+
+                # object type
+                object_bytes = self.infile.read(4)
+                chunk_object_type = int.from_bytes(object_bytes, byteorder=self.byteorder)
+
+                # read the parent object id
+                parent_id_bytes = self.infile.read(4)
+                parent_object_id = int.from_bytes(parent_id_bytes, byteorder=self.byteorder)
+
+                if inband:
+                    parent_object_id = orig_chunk_id & ~ALL_EXTRA_FLAG
+
+                # skip the name checksum (2 bytes)
+                self.infile.seek(2, os.SEEK_CUR)
+
+                # object name
+                # For some reason 2 extra bytes need to be read that have
+                # been initialized to 0xff
+                checkbytes = self.infile.read(YAFFS_MAX_NAME_LENGTH + 1 + 2)
+                try:
+                    object_name = os.path.normpath(checkbytes.split(b'\x00', 1)[0].decode())
+
+                    # sanity check, needs more TODO
+                    if os.path.isabs(object_name):
+                        object_name = os.path.relpath(object_name, '/')
+                except:
+                    break
+
+                # yst_mode
+                stat_bytes = self.infile.read(4)
+                mode = int.from_bytes(stat_bytes, byteorder=self.byteorder)
+
+                # stat information: uid, gid, atime, mtime, ctime
+                stat_bytes = self.infile.read(4)
+                uid = int.from_bytes(stat_bytes, byteorder=self.byteorder)
+
+                stat_bytes = self.infile.read(4)
+                gid = int.from_bytes(stat_bytes, byteorder=self.byteorder)
+
+                stat_bytes = self.infile.read(4)
+                atime = int.from_bytes(stat_bytes, byteorder=self.byteorder)
+
+                stat_bytes = self.infile.read(4)
+                mtime = int.from_bytes(stat_bytes, byteorder=self.byteorder)
+
+                stat_bytes = self.infile.read(4)
+                ctime = int.from_bytes(stat_bytes, byteorder=self.byteorder)
+
+                # the object size. This only makes sense for files. The real
+                # size depends on the "high" value as well.
+                size_bytes = self.infile.read(4)
+                object_size_low = int.from_bytes(size_bytes, byteorder=self.byteorder)
+
+                # equiv_id, only makes sense for hard links
+                equiv_bytes = self.infile.read(4)
+                equiv_id = int.from_bytes(equiv_bytes, byteorder=self.byteorder)
+
+                # alias, only makes sense for symlinks
+                alias = self.infile.read(YAFFS_MAX_ALIAS_LENGTH + 1)
+
+                # rdev, only for special files (block/char)
+                rdev_bytes = self.infile.read(4)
+                rdev = int.from_bytes(rdev_bytes, byteorder=self.byteorder)
+
+                # skip some Windows specific structures
+                self.infile.seek(24, os.SEEK_CUR)
+
+                # skip some inband related structures
+                self.infile.seek(8, os.SEEK_CUR)
+
+                # object size high
+                size_bytes = self.infile.read(4)
+                object_size_high = int.from_bytes(size_bytes, byteorder=self.byteorder)
+
+                # element 1 is special, but not every yaffs2 file system
+                # seems to have element 1, so sometimes it needs to be
+                # artificially added.
+                if object_id != 1:
+                    if is_first_element:
+                        # artificially add object 1
+                        object_id_to_type[1] = YAFFS_OBJECT_TYPE_DIRECTORY
+                        object_id_to_name[1] = ''
+                else:
+                    # add the root element and skip to the next chunk
+                    object_id_to_type[1] = YAFFS_OBJECT_TYPE_DIRECTORY
+                    object_id_to_name[1] = ''
+                    self.infile.seek(self.last_valid_offset + chunk_size + spare_size)
+                    continue
+
+                full_object_name = os.path.join(object_id_to_name[parent_object_id], object_name)
+                outfile_rel = self.rel_unpack_dir / full_object_name
+                outfile_full = unpackdir_full / full_object_name
+                object_id_to_name[object_id] = full_object_name
+
+                if chunk_object_type == YAFFS_OBJECT_TYPE_FILE:
+                    # first reconstruct the file size.
+                    if object_size_high != 0xffffffff:
+                        object_size = (object_size_high << 32) + object_size_low
+                    else:
+                        object_size = object_size_low
+
+                    last_open = open(outfile_full, 'wb')
+                    last_open_name = outfile_rel
+                    last_open_size = object_size
+                    previous_object_id = object_id
+                elif chunk_object_type == YAFFS_OBJECT_TYPE_SYMLINK:
+                    alias = alias.split(b'\x00', 1)[0].decode()
+
+                    # create the symlink
+                    os.symlink(alias, outfile_full)
+                    fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
+                    unpacked_files.append(fr)
+                elif chunk_object_type == YAFFS_OBJECT_TYPE_DIRECTORY:
+                    # create the directory
+                    os.makedirs(outfile_full, exist_ok=True)
+                    fr = FileResult(self.fileresult, outfile_rel, set(['directory']))
+                    unpacked_files.append(fr)
+                elif chunk_object_type == YAFFS_OBJECT_TYPE_HARDLINK:
+                    linkname = unpackdir_full / object_id_to_name[equiv_id]
+                    os.link(linkname, outfile_full)
+                elif chunk_object_type == YAFFS_OBJECT_TYPE_SPECIAL:
+                    # no permissions to create special files,
+                    # so don't create, but report instead. TODO
+                    pass
+
+                object_id_to_type[object_id] = chunk_object_type
+                is_first_element = False
+                dataunpacked = True
+
+            if self.infile.tell() == self.unpacked_size:
+                break
+
+            # skip to the next chunk/spare
+            self.infile.seek(self.last_valid_offset + chunk_size + spare_size)
+
+        # close any open files
+        if last_open is not None:
+            last_open.close()
+            if object_id_to_latest_chunk[previous_object_id] == 0:
+                if last_open_size != 0:
+                    os.unlink(last_open.name)
+                else:
+                    fr = FileResult(self.fileresult, last_open_name, set())
+                    unpacked_files.append(fr)
+            else:
+                fr = FileResult(self.fileresult, last_open_name, set())
+                unpacked_files.append(fr)
+
+        return unpacked_files
+
+    # no need to carve from the file
+    def carve(self):
         pass
 
     def set_metadata_and_labels(self):
