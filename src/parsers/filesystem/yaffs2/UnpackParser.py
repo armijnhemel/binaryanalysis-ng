@@ -20,12 +20,8 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-
 import os
 import pathlib
-
-from UnpackParser import WrappedUnpackParser
-from bangfilesystems import unpack_yaffs2
 
 from FileResult import FileResult
 
@@ -63,23 +59,30 @@ EXTRA_OBJECT_TYPE_MASK = 0x0f << EXTRA_OBJECT_TYPE_SHIFT
 #
 # Most devices use "out of band" (OOB) tags, but
 # some devices use "in band" tags to save flash space.
+# in band tags always seem to be 16 bytes long
 # (4080, 16) is an example of a common size for inline tags
-CHUNKS_AND_SPARES = [(2048, 64), (1024, 32), (4096, 128), (8192, 256),
-                     (8192, 448), (512, 16), (4096, 16), (4080, 16)]
+# Most common combinations (spare size = chunk size/32)  are first
+CHUNKS_AND_SPARES = [(512, 16), (1024, 32), (2048, 64), (4196, 128),
+                     (8192, 256), (16384, 512), (512, 32), (512, 64),
+                     (512, 128), (1024, 16), (1024, 64), (1024, 128),
+                     (2048, 16), (2048, 32), (2048, 128), (4096, 16),
+                     (4096, 32), (4096, 64), (8192, 16), (8192, 32),
+                     (8192, 64), (8192, 128), (8192, 448), (8192, 512),
+                     (16384, 16), (16384, 32), (16384, 64), (16384, 128),
+                     (16384, 256), (16384, 448), (4080, 16), (8176, 16),
+                     (2032, 16), (496, 16), (16368, 16)]
 
-#class Yaffs2UnpackParser(WrappedUnpackParser):
+
 class Yaffs2UnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x03\x00\x00\x00\x01\x00\x00\x00\xff\xff'),
         (0, b'\x01\x00\x00\x00\x01\x00\x00\x00\xff\xff'),
+        # big endian, do not use right now
         #(0, b'\x00\x00\x00\x03\x00\x00\x00\x01\xff\xff'),
         #(0, b'\x00\x00\x00\x01\x00\x00\x00\x01\xff\xff')
     ]
     pretty_name = 'yaffs2'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_yaffs2(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         self.byteorder = 'little'
@@ -205,7 +208,6 @@ class Yaffs2UnpackParser(UnpackParser):
 
                     object_id_to_latest_chunk[object_id] = chunk_id
                     dataunpacked = True
-
                 else:
                     if last_open is not None:
                         if object_id_to_latest_chunk[previous_object_id] == 0:
@@ -330,6 +332,9 @@ class Yaffs2UnpackParser(UnpackParser):
                     if object_id_to_type[parent_object_id] != YAFFS_OBJECT_TYPE_DIRECTORY:
                         break
 
+                    # record a place holder object so hard links work
+                    object_id_to_name[object_id] = ''
+
                     # sanity check for individual file types
                     if chunk_object_type == YAFFS_OBJECT_TYPE_FILE:
                         # extra sanity check: in case the chunk/spare
@@ -376,6 +381,7 @@ class Yaffs2UnpackParser(UnpackParser):
             if last_open is not None:
                 if object_id_to_latest_chunk[previous_object_id] == 0:
                     if last_open_size != 0:
+                        # something is wrong here
                         break
 
             if dataunpacked:
@@ -386,6 +392,7 @@ class Yaffs2UnpackParser(UnpackParser):
                 break
 
         check_condition(dataunpacked, "no valid/suppported yaffs2 image found")
+        check_condition(self.metadata != {}, "no valid/suppported yaffs2 image found")
 
     def unpack(self):
         unpacked_files = []
