@@ -592,7 +592,7 @@ def download(config, force):
             print("Failed to download: %d files" % len_failed)
 
 
-@main.command(short_help='download a single Debian repository')
+@main.command(short_help='download binaries from a single Debian repository')
 @click.option('--config', required=True, help='path to configuration file', type=click.File('r'))
 @click.option('--repository', required=True, help='repository to download from')
 @click.option('--distribution', required=True, help='specific distribution to download')
@@ -624,6 +624,12 @@ def download_single_version(config, force, repository, distribution):
 
         debian_dirs = create_debian_directories(repo_directory, repo)
 
+        processmanager = multiprocessing.Manager()
+
+        # create a queue for scanning files
+        download_queue = processmanager.JoinableQueue(maxsize=0)
+        fail_queue = processmanager.JoinableQueue(maxsize=0)
+
         # grab the Packages files for the defined architectures per directory
         for d in repo.directories:
             for arch in repo.architectures:
@@ -653,28 +659,36 @@ def download_single_version(config, force, repository, distribution):
                 metadata.write(req.content)
                 metadata.close()
                 packages = Packages(meta_outname, arch)
+                for p in packages.packages:
+                    curdir, filename = p['filename'].rsplit('/', maxsplit=1)
+                    download_queue.put((pathlib.Path(curdir), filename, p['size'], debian_dirs['binary_directory']))
 
-        processmanager = multiprocessing.Manager()
-
-        # create a queue for scanning files
-        download_queue = processmanager.JoinableQueue(maxsize=0)
-        fail_queue = processmanager.JoinableQueue(maxsize=0)
         processes = []
 
-        '''
-        for pkg in packagelist:
-            curdir = pathlib.Path(pkg).parent
-            downloadpath = pathlib.Path(pkg).name
-            if downloadpath.endswith('.deb'):
-                if '-dev_' in downloadpath and not download_dev:
-                    continue
-                for arch in debian_architectures:
-                    if downloadpath.endswith('_%s.deb' % arch):
-                        download_queue.put((curdir, downloadpath, 0, binary_directory))
-                        deb_counter += 1
-                        break
-            download_queue.put((curdir, downloadpath, 0, binary_directory))
-        '''
+        # create processes for unpacking archives
+        for i in range(0, crawler_config.threads):
+            process = multiprocessing.Process(target=downloadfile,
+                                              args=(download_queue, fail_queue, repo.mirror))
+            processes.append(process)
+
+        # start all the processes
+        for process in processes:
+            process.start()
+
+        download_queue.join()
+
+        failed_files = []
+
+        while True:
+            try:
+                failed_files.append(fail_queue.get_nowait())
+                fail_queue.task_done()
+            except queue.Empty:
+                # Queue is empty
+                break
+
+        # block here until the fail_queue is empty
+        fail_queue.join()
 
         # Done processing, terminate processes
         for process in processes:
