@@ -26,12 +26,12 @@ that the information in the configuration file is accurate.
 
 # Automatically downloading
 
-To automatically download from a Debian mirror adapt the configuration file and
-run:
+To automatically download from one or more Debian mirrors adapt the
+configuration file (for example: `debian-config.yaml`) and run:
 
-    $ python3 debiancrawler.py -c crawler.config
+    $ python3 debiancrawler.py download --config=debian-config.yaml
 
-This will download the `ls-lR.gz` file from the Debian mirror, parse it and
+This will download the `ls-lR.gz` file from each Debian mirror, parse it and
 download all packages and architectures that are mentioned in the configuration
 file.
 
