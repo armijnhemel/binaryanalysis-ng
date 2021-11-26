@@ -41,14 +41,14 @@ class ParserCollection:
         self.clear()
 
     def clear(self):
-        self._unpackparsers = []
+        self._unpackparsers = {}
         self._unpackparsers_for_extensions = {}
         self._unpackparsers_for_signatures = {}
         self._unpackparsers_for_featureless_files = []
         self.longest_signature_length = 0
 
     def add(self, unpackparser):
-        self._unpackparsers.append(unpackparser)
+        self._unpackparsers[unpackparser.pretty_name] = unpackparser
         for ext in unpackparser.extensions:
             self._unpackparsers_for_extensions.setdefault(ext,[]).append(unpackparser)
         for signature in unpackparser.signatures:
@@ -58,13 +58,16 @@ class ParserCollection:
 
     @property
     def unpackparsers(self):
-        return self._unpackparsers
+        return self._unpackparsers.values()
 
     @unpackparsers.setter
     def unpackparsers(self, iterable):
         self.clear()
         for up in iterable:
             self.add(up)
+
+    def get(self, key, default=None):
+        return self._unpackparsers.get(key, default)
 
     @property
     def unpackparsers_for_extensions(self):

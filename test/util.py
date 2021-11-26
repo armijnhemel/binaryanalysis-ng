@@ -81,11 +81,13 @@ def parse_fail(self):
 
 def create_unpackparser(name, fail = False,
         extensions = [], signatures = [], length = 0,
-        pretty_name = '', scan_if_featureless = False): 
+        pretty_name = None, scan_if_featureless = False): 
     if fail:
         parse_method = parse_fail
     else:
         parse_method = parse_success
+    if not pretty_name:
+        pretty_name = name
     c = type(name, (UnpackParser,), {
                 'extensions': extensions,
                 'signatures': signatures,

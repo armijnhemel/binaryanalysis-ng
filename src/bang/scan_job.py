@@ -81,6 +81,42 @@ def find_extension_parsers(scan_environment):
             #log.debug(f'find_extension_parser: {ext!r} parsed by {unpack_parser_cls}')
             yield ext, unpack_parser_cls
 
+def check_with_suggested_parsers(scan_environment, checking_meta_directory):
+    for unpack_parser_cls in ( scan_environment.parsers.get(p) for p in checking_meta_directory.info.get('suggested_parsers',[]) ):
+        try:
+            unpack_parser = unpack_parser_cls(checking_meta_directory, 0)
+            log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
+            unpack_parser.parse_from_offset()
+            log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
+            if unpack_parser.parsed_size == checking_meta_directory.size:
+                log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: parser parsed entire file')
+                checking_meta_directory.unpack_parser = unpack_parser
+                yield checking_meta_directory
+            else:
+                log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size}] ({checking_meta_directory.size - unpack_parser.parsed_size} bytes)')
+                # yield the checking_meta_directory with a ExtractingUnpackParser, in
+                # case we want to record metadata about it.
+                checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
+                    checking_meta_directory,
+                    [ (0,unpack_parser.parsed_size),
+                    (unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size) ]
+                    )
+                yield checking_meta_directory
+
+                # yield the matched part of the file
+                extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, 0, unpack_parser.parsed_size)
+                extracted_md.unpack_parser = unpack_parser
+                yield extracted_md
+
+                # yield a synthesized file
+                extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
+                extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
+                yield extracted_md
+
+        except UnpackParserException as e:
+            log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
+            log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
+
 #####
 #
 # Iterator that yields a MetaDirectory for a successfully parsed file by extension. If the
@@ -379,7 +415,7 @@ def pipe_with_open_md_for_writing(pipe):
 
 def make_scan_pipeline():
     pipe_padding = pipe_seq(pipe_iter(check_for_padding), stop_if_scanned)
-    pipe_check_synthesized = pipe_cond(
+    pipe_checks_if_not_synthesized = pipe_cond(
             cond_not_synthesized,
             pipe_seq(
                 pipe_iter(check_by_extension), stop_if_scanned,
@@ -388,8 +424,9 @@ def make_scan_pipeline():
             pipe_pass
         )
     pipe_scannable = pipe_seq(
-            pipe_padding,
-            pipe_check_synthesized,
+            pipe_iter(check_with_suggested_parsers), stop_if_scanned,
+            pipe_padding, stop_if_scanned,
+            pipe_checks_if_not_synthesized,
             pipe_iter(check_featureless)
         )
     # TODO: if we want to record meta data for unscannable files,

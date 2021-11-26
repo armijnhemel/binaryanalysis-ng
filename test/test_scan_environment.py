@@ -38,7 +38,7 @@ def test_get_unpackparsers_from_scan_environment(scan_environment):
             ),
         ]
     scan_environment.parsers.unpackparsers = unpackparsers
-    assert scan_environment.parsers.unpackparsers == unpackparsers
+    assert list(scan_environment.parsers.unpackparsers) == unpackparsers
     maxDiff = None
     assert scan_environment.parsers.unpackparsers_for_extensions == {
             ".txt": [ unpackparsers[0] ],

@@ -37,6 +37,30 @@ class UnpackParserUnpacksRelative(UnpackParserUnpacksBase):
 class UnpackParserUnpacksAbsolute(UnpackParserUnpacksBase):
     filenames = [ '/unpack1', '/unpack2' ]
 
+class UnpackParserPassAlwaysIfSuggested(UnpackParser):
+    extensions = []
+    signatures = []
+    pretty_name = 'parser_pass_always_if_suggested'
+
+    labels = [ 'suggested-test-value' ]
+    metadata = {}
+
+    def parse(self):
+        pass
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.infile.size
+
+class UnpackParserFailAlwaysIfSuggested(UnpackParser):
+    extensions = []
+    signatures = []
+    pretty_name = 'parser_fail_always_if_suggested'
+
+    labels = [ 'suggested-test-value' ]
+    metadata = {}
+
+
+
 parser_pass_AA_1_5 = create_unpackparser('ParserPassAA_1_5',
         signatures = [(1,b'AA')],
         length = 5,
@@ -409,6 +433,47 @@ def test_sigscan_extract_with_zero_length_parser(scan_environment):
             md.extracted_filename(6,len(s)-6)
         ]
 
+
+
+def test_extract_suggested_parser_unpacks(scan_environment):
+    s = b'xBBxx12'
+    fn = pathlib.Path('test_unpack2.data')
+    create_test_file(scan_environment, fn, s)
+    path_md = create_meta_directory_for_path(scan_environment, fn, True)
+    with path_md.open(open_file=False):
+        path_md.info['suggested_parsers'] = [ 'pass-BB-1-7' ]
+    scan_environment.parsers.unpackparsers = [ parser_pass_BB_1_5, parser_pass_BB_1_7 ]
+    scan_environment.parsers.build_automaton()
+    scanjob = queue_file_job(scan_environment, path_md)
+    run_scan_loop(scan_environment)
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert sorted(md.extracted_files.keys()) == []
+        assert md.info['unpack_parser'] == 'pass-BB-1-7'
+
+
+def test_extract_only_suggested_parser_unpacks(scan_environment):
+    fn = testdir_base / 'testdata' / pathlib.Path("unpackers") / "ihex" / "example.txt"
+    path_md = create_meta_directory_for_path(scan_environment, fn, True)
+    with path_md.open(open_file=False):
+        path_md.info['suggested_parsers'] = [ 'parser_pass_always_if_suggested' ]
+    scan_environment.parsers.add(UnpackParserPassAlwaysIfSuggested)
+    scan_environment.parsers.build_automaton()
+    scanjob = queue_file_job(scan_environment, path_md)
+    run_scan_loop(scan_environment)
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert md.info.get('labels') == [ 'suggested-test-value' ]
+
+def test_extract_suggested_parser_failing(scan_environment):
+    fn = testdir_base / 'testdata' / pathlib.Path("unpackers") / "ihex" / "example.txt"
+    path_md = create_meta_directory_for_path(scan_environment, fn, True)
+    with path_md.open(open_file=False):
+        path_md.info['suggested_parsers'] = [ 'parser_fail_always_if_suggested' ]
+    scan_environment.parsers.add(UnpackParserFailAlwaysIfSuggested)
+    scan_environment.parsers.build_automaton()
+    scanjob = queue_file_job(scan_environment, path_md)
+    run_scan_loop(scan_environment)
+    with reopen_md(path_md).open(open_file=False) as md:
+        assert md.unpacked_path(pathlib.Path('unpacked-from-ihex')) in md.unpacked_files
 
 #######
 
