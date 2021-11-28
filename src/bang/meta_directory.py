@@ -38,7 +38,7 @@ class MetaDirectory:
         self._open_file = None
         self.info = {}
         self._refcount = 0
-        self._mode_write = False
+        self._info_write = False
 
     @classmethod
     def from_md_path(cls, meta_root, name):
@@ -100,13 +100,11 @@ class MetaDirectory:
         return self._size
 
     @contextmanager
-    def open(self, open_file=True, mode_write=True):
+    def open(self, open_file=True, info_write=True):
         '''Context manager to "open" the MetaDirectory. Yields itself.
-        It opens the file, mmaps the file and reads the information stored in the
+        It opens the file for reading, and reads the information stored in the
         metadirectory. When exiting the context, it will save the information to the
         MetaDirectory and close the file.
-        We need both the open file and the mmaped file, since sendfile wants an actual
-        file object, and we also want the advantages of mmap.
         If open_file is False, or the file is already open, this context manager will not
         touch the file.
         If the info is not empty, it will not read it from the info file. During the
@@ -115,8 +113,9 @@ class MetaDirectory:
         re-read the information from the info file, any changes would be lost. We always
         write the information upon leaving the context. This works well as long as the
         references to the MetaDirectory are all in the same thread.
+        If info_write is False, the info will only be read.
         '''
-        self._mode_write = self._mode_write or mode_write
+        self._info_write = self._info_write or info_write
         open_file = open_file or (self._open_file is None)
         if open_file:
                 self._open_file = self.abs_file_path.open('rb')
@@ -132,7 +131,7 @@ class MetaDirectory:
                 self._open_file = None
             self._refcount -= 1
             log.debug(f'[{self.md_path}]open: closing context {self._refcount=}')
-            if self._refcount == 0 and self._mode_write:
+            if self._refcount == 0 and self._info_write:
                 log.debug(f'[{self.md_path}]open: writing info {self.info}')
                 self._write_info(self.info)
 
@@ -203,7 +202,10 @@ class MetaDirectory:
         unpacked_path = self.unpacked_path(path)
         return self.md_for_unpacked_path(unpacked_path)
 
-    def make_md_for_file(self, path):
+    def make_new_md_for_file(self, path):
+        '''Creates a metadirectory for a new file at path.
+        Gives a metadirectory and a file object to path, opened for writing.
+        '''
         abs_path = self.meta_root / path
         abs_path.parent.mkdir(parents=True, exist_ok=True)
         md = MetaDirectory(self.meta_root, None, False)
@@ -217,7 +219,7 @@ class MetaDirectory:
         yields a file object, that you can write to, directly or via sendfile().
         '''
         unpacked_path = self.unpacked_path(path)
-        unpacked_md, unpacked_file = self.make_md_for_file(unpacked_path)
+        unpacked_md, unpacked_file = self.make_new_md_for_file(unpacked_path)
         try:
             yield unpacked_md, unpacked_file
         finally:
@@ -277,7 +279,7 @@ class MetaDirectory:
         extracted file.
         '''
         extracted_path = self.extracted_filename(offset, file_size)
-        extracted_md, extracted_file = self.make_md_for_file(extracted_path)
+        extracted_md, extracted_file = self.make_new_md_for_file(extracted_path)
         try:
             yield extracted_md, extracted_file
         finally:

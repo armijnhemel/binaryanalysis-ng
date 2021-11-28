@@ -98,7 +98,7 @@ def show(all, metadir):
     '''
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     print(f'{md.md_path} ({md.file_path}):')
-    with md.open(open_file=False, mode_write=False):
+    with md.open(open_file=False, info_write=False):
         print(f'Parser: {md.info.get("unpack_parser")}')
         print(f'Labels: {", ".join(md.info.get("labels",[]))}')
         print(f'Metadata:')
@@ -118,7 +118,7 @@ def ls(metadir):
     '''Lists extracted and unpacked files stored in METADIR.
     '''
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
-    with md.open(open_file=False, mode_write=False):
+    with md.open(open_file=False, info_write=False):
         for k,v in md.info.get('extracted_files', {}).items():
             print(f'{k}\t{v}')
         for k,v in md.info.get('unpacked_absolute_files', {}).items():
