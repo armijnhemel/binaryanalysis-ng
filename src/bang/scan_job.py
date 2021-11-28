@@ -457,14 +457,25 @@ def make_scan_pipeline():
     # make sure to add a pipe_with to open the meta_directory with open_file=False.
     pipe_root = pipe_cond(
         cond_scannable,
-        # Example: scan file, and if scanned, run analysis pipeline:
-        # pipe_or( pipe_with(ctx_open_md_for_writing, pipe_scan), pipe_cond(cond_if_scanned, pipe_with(ctx_open_md_for_updating, pipe_analysis), pipe_fail) )
-        # pipe_seq( pipe_with(ctx_open_md_for_writing, pipe_scan), stop_if_not_scanned, pipe_with(ctx_open_md_for_updating, pipe_analysis) )
-        # pipe_seq( pipe_with(ctx_open_md_for_writing, pipe_scan), pipe_not(stop_if_scanned), pipe_with(ctx_open_md_for_updating, pipe_analysis) )
         pipe_with(ctx_open_md_for_writing, pipe_scan),
         pipe_fail
     )
     return pipe_root
+
+# Example: resume scan:
+# pipe_seq(
+#   pipe_with(ctx_open_md_readonly,
+#     pipe_cond(cond_if_scanned, pipe_queue_subfiles, pipe_pass),
+#     stop_if_scanned
+#   ),
+#   pipe_root
+# )
+
+# Example: scan file, and if scanned, run analysis pipeline:
+# pipe_or( pipe_with(ctx_open_md_for_writing, pipe_scan), pipe_cond(cond_if_scanned, pipe_with(ctx_open_md_for_updating, pipe_analysis), pipe_fail) )
+# pipe_seq( pipe_with(ctx_open_md_for_writing, pipe_scan), stop_if_not_scanned, pipe_with(ctx_open_md_for_updating, pipe_analysis) )
+# pipe_seq( pipe_with(ctx_open_md_for_writing, pipe_scan), pipe_not(stop_if_scanned), pipe_with(ctx_open_md_for_updating, pipe_analysis) )
+
 
 #####
 #
