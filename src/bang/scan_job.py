@@ -466,8 +466,8 @@ def make_scan_pipeline():
 # pipe_seq(
 #   pipe_with(ctx_open_md_readonly,
 #     pipe_cond(cond_if_scanned, pipe_queue_subfiles, pipe_pass),
-#     stop_if_scanned
 #   ),
+#   stop_if_scanned,
 #   pipe_root
 # )
 
