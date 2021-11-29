@@ -63,7 +63,7 @@ NAME_ESCAPE = str.maketrans({'.': '_',
                              '-': '_'})
 
 
-def generate_yara(yara_directory, metadata, functions, variables, strings, tags):
+def generate_yara(yara_directory, metadata, functions, variables, strings, tags, heuristics):
     generate_date = datetime.datetime.utcnow().isoformat()
     rule_uuid = uuid.uuid4()
     meta = '''
@@ -142,6 +142,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
 def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_output_directory, yara_env):
     '''Unpack a tar archive based on extension and extract identifiers'''
 
+    heuristics = {}
     while True:
         archive = yaraqueue.get()
 
@@ -272,7 +273,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
 
             if not (strings == set() and variables == set() and functions == set()):
                 yara_tags = yara_env['tags'] + [language]
-                yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags)
+                yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics)
 
         unpack_dir.cleanup()
         yaraqueue.task_done()
