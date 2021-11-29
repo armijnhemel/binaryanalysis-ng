@@ -159,7 +159,7 @@ class ElfUnpackParser(UnpackParser):
             metadata['type'] = 'processor specific'
 
         # store the machine type, both numerical and pretty printed
-        if type(self.data.header.machine):
+        if type(self.data.header.machine) == int:
             metadata['machine_name'] = "unknown architecture"
             metadata['machine'] = self.data.header.machine
         else:
