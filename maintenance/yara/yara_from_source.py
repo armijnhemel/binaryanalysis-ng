@@ -91,34 +91,51 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
         p.write(meta)
         p.write('\n    strings:\n')
 
-        # write the strings
-        p.write("\n        // Extracted strings\n\n")
-        counter = 1
-        for s in sorted(strings):
-            try:
-                p.write("        $string%d = \"%s\"\n" % (counter, s))
+        if strings != set():
+            # write the strings
+            p.write("\n        // Extracted strings\n\n")
+            counter = 1
+            for s in sorted(strings):
+                try:
+                    p.write("        $string%d = \"%s\"\n" % (counter, s))
+                    counter += 1
+                except:
+                    pass
+
+        if functions != set():
+            # write the functions
+            p.write("\n        // Extracted functions\n\n")
+            counter = 1
+            for s in sorted(functions):
+                p.write("        $function%d = \"%s\"\n" % (counter, s))
                 counter += 1
-            except:
-                pass
 
-        # write the functions
-        p.write("\n        // Extracted functions\n\n")
-        counter = 1
-        for s in sorted(functions):
-            p.write("        $function%d = \"%s\"\n" % (counter, s))
-            counter += 1
-
-        # write the variable names
-        p.write("\n        // Extracted variables\n\n")
-        counter = 1
-        for s in sorted(variables):
-            p.write("        $variable%d = \"%s\"\n" % (counter, s))
-            counter += 1
+        if variables != set():
+            # write the variable names
+            p.write("\n        // Extracted variables\n\n")
+            counter = 1
+            for s in sorted(variables):
+                p.write("        $variable%d = \"%s\"\n" % (counter, s))
+                counter += 1
 
         # TODO: find good heuristics of how many identifiers should be matched
         p.write('\n    condition:\n')
-        p.write('        all of them\n')
+        if strings != set():
+            p.write('        all of ($string*)')
+            if not (functions == set() and variables == set()):
+                p.write(' and\n')
+            else:
+                p.write('\n')
+        if functions != set():
+            p.write('        all of ($function*)')
+            if variables != set():
+                p.write(' and\n')
+            else:
+                p.write('\n')
+        if variables != set():
+            p.write('        all of ($variable*)\n')
         p.write('\n}')
+
     return yara_file.name
 
 
