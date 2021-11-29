@@ -191,11 +191,6 @@ class SrecUnpackParser(UnpackParser):
             if len(line) < 10 or len(line) % 2 != 0:
                 break
 
-            # next two bytes are the byte count
-            num_bytes = int.from_bytes(bytes.fromhex(line[1:3]), byteorder='big')
-
-            record_type = int.from_bytes(bytes.fromhex(line[7:9]), byteorder='big')
-
             record_type = int(srec_line[1])
 
             if record_type == 4:
