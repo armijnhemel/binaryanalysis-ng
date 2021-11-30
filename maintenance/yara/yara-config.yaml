@@ -60,3 +60,15 @@ yara:
     strings_matched: 1
     functions_matched: 1
     variables_matched: 1
+
+    # minimum amount of strings, functions and variables (if any)
+    # that should be present. Otherwise default to "any of"
+    strings_minimum: 10
+    functions_minimum: 10
+    variables_minimum: 10
+
+    # minimum amount of strings, functions and variables that needs
+    # to have been extracted before generating rules
+    strings_extracted: 5
+    functions_extracted: 5
+    variables_extracted: 5
