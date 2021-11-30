@@ -51,10 +51,23 @@ This makes rules generated from binary `.dex` files not very well suited.
 It is much better to create rules from source code and focus on other
 identifiers, such as the strings embedded in `.dex` files.
 
-## Source code processor (TODO)
+## Source code processor
 
 The script takes source code archives, unpacks them, extracts data using
 `ctags` and `xgettext` and generates YARA rules from them.
+
+The source code script depends on the extension of the file to determine
+the most likely programming language used in the source code file. Current
+focus is on C/C++, Java (including Scala and Kotlin) and Javascript. Support
+for more languages will be added in the future.
+
+The script to process source code can be invoked as follows:
+
+    $ python3 yara_from_source.py -c yara-config.yaml -s /path/to/source
+
+The directory with source code should contain source code archives (currently
+only TAR archives are supported, support for ZIP files will be added in the
+future).
 
 ## Binary processor
 
