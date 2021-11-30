@@ -304,35 +304,6 @@ def downloadfile(download_queue, fail_queue, debian_mirror):
         download_queue.task_done()
 
 
-@click.command()
-@click.option('--packagelist', required=True, help='file with packages')
-def download_from_packagelist(packagelist):
-    #parser.add_argument("-p", "--packagelist", action="store", dest="packagelist",
-    #                    help="file with packages", metavar="FILE")
-
-    '''
-    packagelist = []
-
-    # check if there is a file with packages to download. This overrides
-    # the option of downloading packages in the ls-lR.gz file
-    if args.packagelist is not None:
-        if not os.path.exists(args.packagelist):
-            parser.error("No configuration file provided, exiting")
-        if not stat.S_ISREG(os.stat(args.packagelist).st_mode):
-            parser.error("%s is not a regular file, exiting." % args.packagelist)
-        try:
-            packages = open(args.packagelist, 'r').readlines()
-            for pkg in packages:
-                if not pkg.startswith('Filename: '):
-                    continue
-                packagelist.append(pkg.strip().split(': ', 1)[1])
-        except:
-            pass
-    '''
-
-    pass
-
-
 def create_debian_directories(repo_directory, repository):
     # create directory for the repository (by name)
     if not repo_directory.exists():
