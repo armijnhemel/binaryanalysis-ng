@@ -1,9 +1,12 @@
 # YARA rule generation scripts
 
-This directory contains scripts to generate YARA rules. There are two scripts
+This directory contains scripts to generate YARA rules. There are two scripts:
 
 1. script to generate YARA rules from source code
-2. script to generate YARA rules from BANG results
+2. script to generate YARA rules from BANG results (binary files)
+
+The script to generate YARA rules from binaries currently only supports ELF
+and Android Dex. More formats will be added soon.
 
 ## When to use which processor
 
@@ -15,8 +18,9 @@ have access to the source code to create YARA files. The drawback is that
 not every binary is well suited for this, due to how the binaries are
 created or processed.
 
-It seems to work really well for the vast majority of ELF dynamically
-binaries but not for for example Dalvik `.dex` files.
+Generating rules from binaries seems to work really well for the vast
+majority of dynamically linked ELF binaries but not for for example
+Dalvik `.dex` files.
 
 ### Dynamically linked ELF binaries
 
@@ -43,9 +47,9 @@ such as Android Studio:
 
 which advertises obfuscation of class names and method names as a feature.
 
-This makes rules generated from `.dex` files not suited. It is much better
-to create rules from source code and focus on other identifiers, such as
-strings embedded in `.dex` files.
+This makes rules generated from binary `.dex` files not very well suited.
+It is much better to create rules from source code and focus on other
+identifiers, such as the strings embedded in `.dex` files.
 
 ## Source code processor (TODO)
 
