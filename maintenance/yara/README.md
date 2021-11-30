@@ -16,8 +16,7 @@ not every binary is well suited for this, due to how the binaries are
 created or processed.
 
 It seems to work really well for the vast majority of ELF dynamically
-binaries but not for for example Dalvik `.dex`
-files.
+binaries but not for for example Dalvik `.dex` files.
 
 ### Dynamically linked ELF binaries
 
@@ -105,5 +104,5 @@ false positives in YARA
 <https://en.wikipedia.org/wiki/Weak_symbol>
 
 A prefab list of low quality ELF identifiers can be found in the files
-`low_quality_elf_funcs` and `low_quality_elf_vars`. These were handcrafted by looking
-at all identifiers found in all ELF files in Debian 11.
+`low_quality_elf_funcs` and `low_quality_elf_vars`. These were handcrafted by
+looking at all identifiers found in all ELF files in Debian 11.
