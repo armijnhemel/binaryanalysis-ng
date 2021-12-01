@@ -436,8 +436,8 @@ def main():
    pass
 
 @main.command(short_help='download Debian files')
-@click.option('--config', required=True, help='path to configuration file', type=click.File('r'))
-@click.option('--force', help='run if metadata hasn\'t changed', is_flag=True)
+@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
+@click.option('--force', '-f', help='run if metadata hasn\'t changed', is_flag=True)
 def download(config, force):
     try:
         crawler_config = Config(config)
@@ -564,10 +564,10 @@ def download(config, force):
 
 
 @main.command(short_help='download binaries from a single Debian repository')
-@click.option('--config', required=True, help='path to configuration file', type=click.File('r'))
-@click.option('--repository', required=True, help='repository to download from')
-@click.option('--distribution', required=True, help='specific distribution to download')
-@click.option('--force', help='run if metadata hasn\'t changed', is_flag=True)
+@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
+@click.option('--repository', '-r', required=True, help='repository to download from')
+@click.option('--distribution', '-d', required=True, help='specific distribution to download')
+@click.option('--force', '-f', help='run if metadata hasn\'t changed', is_flag=True)
 def download_single_version(config, force, repository, distribution):
     try:
         crawler_config = Config(config)
