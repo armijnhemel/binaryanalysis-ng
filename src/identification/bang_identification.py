@@ -177,17 +177,20 @@ def main(config, result_directory):
                         variables.add(identifier_name)
 
             # concatenate the strings, functions and variables
-            yara_data = "\n".join(strings)
-            yara_data += "\n".join(functions)
-            yara_data += "\n".join(variables)
+            yara_data = "\n".join(sorted(strings))
+            yara_data += "\n".join(sorted(functions))
+            yara_data += "\n".join(sorted(variables))
             for r in rules:
                 matches = r.match(data=yara_data)
                 if matches == []:
                     continue
                 for match in matches:
                     print('Rule %s matched for %s' % (match.rule, bang_file))
-                    print('  strings matched: %d' % len(match.strings))
-                    #print(match.strings)
+                    print('  number of strings matched: %d' % len(match.strings))
+                    if verbose:
+                        print('\n  Matched strings:\n')
+                        for s in match.strings:
+                            print(s[2].decode())
 
     os.chdir(old_cwd)
 
