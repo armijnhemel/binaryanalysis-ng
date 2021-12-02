@@ -8,6 +8,7 @@ rule debian: forge
 
         $string1 = "git.debian.org"
         $string2 = "anonscm.debian.org"
+        $string3 = "salsa.debian.org/"
 
     condition:
         any of ($string*)
