@@ -6,8 +6,6 @@ rule gpl30_or_later: license
 
     strings:
 
-        // Extracted strings
-
         $string1 = "License GPLv3+: GNU GPL version 3 or later"
         $string2 = "GPLv3+"
 

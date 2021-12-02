@@ -6,8 +6,6 @@ rule lgpl20: license
 
     strings:
 
-        // Extracted strings
-
         $string1 = "gnu.org/licenses/old-licenses/lgpl-2.0"
 
     condition:

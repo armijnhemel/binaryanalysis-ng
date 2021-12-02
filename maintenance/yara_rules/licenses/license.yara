@@ -6,16 +6,10 @@ rule license: license
 
     strings:
 
-        // Extracted strings
-
-        $string1 = "license"
-        $string2 = "License"
-        $string3 = "LICENSE"
-        $string4 = "licensing"
-        $string5 = "licence"
-        $string6 = "Licence"
-        $string7 = "LICENCE"
-        $string8 = "licencing"
+        $string1 = "license" nocase
+        $string2 = "licence" nocase
+        $string3 = "licensing"
+        $string4 = "licencing"
 
     condition:
         any of ($string*)

@@ -6,8 +6,6 @@ rule gpl: license
 
     strings:
 
-        // Extracted strings
-
         $string1 = "gnu.org/licenses/gpl."
         $string2 = "gnu.org/copyleft/gpl."
         $string3 = "www.opensource.org/licenses/gpl-license.php"
