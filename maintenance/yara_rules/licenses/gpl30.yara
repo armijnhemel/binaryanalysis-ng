@@ -8,6 +8,7 @@ rule gpl30: license
 
         $string1 = "opensource.org/licenses/gpl-3.0."
         $string2 = "gnu.org/licenses/gpl-3.0."
+        $string3 = "GPLv3"
 
     condition:
         any of ($string*)
