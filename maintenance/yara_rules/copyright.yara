@@ -1,4 +1,4 @@
-rule copyright:
+rule copyright
 {
     meta:
         description = "Rule for copyright hints"
