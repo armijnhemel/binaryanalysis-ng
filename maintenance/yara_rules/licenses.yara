@@ -1,3 +1,4 @@
+include "./licenses/agpl30.yara"
 include "./licenses/apache.yara"
 include "./licenses/apache11.yara"
 include "./licenses/apache20.yara"
