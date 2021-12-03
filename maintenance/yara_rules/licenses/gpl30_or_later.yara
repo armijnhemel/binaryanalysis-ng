@@ -1,4 +1,4 @@
-rule gpl30_or_later: license
+rule gpl30_or_later: license copyleft
 {
     meta:
         description = "Rule for GPL-3.0-or-later"

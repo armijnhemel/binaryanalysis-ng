@@ -1,4 +1,4 @@
-rule lgpl: license
+rule lgpl: license copyleft
 {
     meta:
         description = "Rule for LGPL"

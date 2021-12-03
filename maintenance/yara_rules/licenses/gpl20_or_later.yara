@@ -1,4 +1,4 @@
-rule gpl20_or_later: license
+rule gpl20_or_later: license copyleft
 {
     meta:
         description = "Rule for GPL2.0-or-later"

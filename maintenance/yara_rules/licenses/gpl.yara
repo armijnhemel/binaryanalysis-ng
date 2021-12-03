@@ -1,4 +1,4 @@
-rule gpl: license
+rule gpl: license copyleft
 {
     meta:
         description = "Rule for GPL"
