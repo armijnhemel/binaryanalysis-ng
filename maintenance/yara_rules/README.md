@@ -162,4 +162,11 @@ for example the tags:
     copyright [] /bin/gettext
     gnu_savannah [forge] /bin/gettext
 
-which makes it easier to filter.
+which makes it easier to filter using the `-t` option, for example:
+
+    $ yara licenses:licenses.yara copyright.yara forges:forges.yara -t license /bin/gettext
+    gnu /bin/gettext
+    gpl /bin/gettext
+    gpl30 /bin/gettext
+    gpl30_or_later /bin/gettext
+    license /bin/gettext
