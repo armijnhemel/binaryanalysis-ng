@@ -9,7 +9,7 @@ rule gpl30_or_later: license copyleft
     strings:
 
         $string1 = "License GPLv3+: GNU GPL version 3 or later"
-        $string2 = "GPLv3+"
+        $string2 = "GPLv3+" fullword
 
         $re1 = /License\sGPLv3\+:\sGNU\sGPL\sversion\s3\sor\slater/
 

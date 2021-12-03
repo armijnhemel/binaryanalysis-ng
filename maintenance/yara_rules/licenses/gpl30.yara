@@ -8,7 +8,7 @@ rule gpl30: license copyleft
 
         $string1 = "opensource.org/licenses/gpl-3.0."
         $string2 = "gnu.org/licenses/gpl-3.0."
-        $string3 = "GPLv3"
+        $string3 = "GPLv3" fullword
 
     condition:
         any of ($string*)
