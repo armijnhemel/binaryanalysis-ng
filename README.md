@@ -245,6 +245,7 @@ larger file, unless stated otherwise.
 147. Performance Co-Pilot metadata files
 148. data URI (png, gif, jpeg only)
 149. DHTB signed files
+150. Android AAPT2 container format
 
 The following text formats can be recognized:
 
