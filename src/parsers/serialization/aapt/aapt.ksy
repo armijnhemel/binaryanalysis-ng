@@ -4,8 +4,6 @@ meta:
   license: CC0
   endian: le
   encoding: UTF-8
-  imports:
-    - /serialization/google_protobuf
 doc-ref:
   - https://android.googlesource.com/platform/frameworks/base/+/0ba2a37eafd802d240e602bfdc74fc4cfe0c07cd/tools/aapt2/formats.md
 seq:
@@ -64,7 +62,6 @@ types:
         doc: The size of the data field.
       - id: header
         size: len_header
-        #type: google_protobuf
         doc: The serialized Protobuf message aapt.pb.internal.CompiledFile.
       - id: padding1
         size: (-len_header % 4)
