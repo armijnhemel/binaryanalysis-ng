@@ -246,6 +246,7 @@ larger file, unless stated otherwise.
 148. data URI (png, gif, jpeg only)
 149. DHTB signed files
 150. Android AAPT2 container format
+151. Android update image (version 2 only, full OTA image only)
 
 The following text formats can be recognized:
 
