@@ -31,7 +31,9 @@ sources. Kaitai Struct is used for the first big sweep and several syntactical
 checks. The Protobuf generated parsers is then used to extract the data.
 '''
 
+import bz2
 import hashlib
+import lzma
 import os
 import pathlib
 from FileResult import FileResult
@@ -70,7 +72,7 @@ class AndroidUpdateUnpackParser(UnpackParser):
         except Exception as e:
             raise UnpackParserException(e.args)
 
-        bytes_read = self.infile.tell()
+        self.start_of_payload = self.infile.tell()
 
         # then the payload_data
         if self.data.major_version == 2:
@@ -79,7 +81,7 @@ class AndroidUpdateUnpackParser(UnpackParser):
             # signatures offset (relative to the start of the payload)
             signatures_offset = self.manifest_data.signatures_offset
             signatures_size = self.manifest_data.signatures_size
-            check_condition(bytes_read + signatures_offset + signatures_size <= self.fileresult.filesize,
+            check_condition(self.start_of_payload + signatures_offset + signatures_size <= self.fileresult.filesize,
                             "not enough data for signatures")
 
             minor_version = self.manifest_data.minor_version
@@ -87,7 +89,7 @@ class AndroidUpdateUnpackParser(UnpackParser):
                 block_counter = 0
                 for operation in partition.operations:
                     # operation offset is relative to the start of the payload
-                    check_condition(bytes_read + operation.data_offset + operation.data_length <= self.fileresult.filesize,
+                    check_condition(self.start_of_payload + operation.data_offset + operation.data_length <= self.fileresult.filesize,
                                     "not enough data for operation")
 
                     # signatures follow the last block
@@ -103,7 +105,7 @@ class AndroidUpdateUnpackParser(UnpackParser):
                     block_counter = operation.dst_extents[0].start_block + operation.dst_extents[0].num_blocks
 
                     # check the sha256 hash of the data block
-                    self.infile.seek(bytes_read + operation.data_offset)
+                    self.infile.seek(self.start_of_payload + operation.data_offset)
                     data = self.infile.read(operation.data_length)
                     data_sha256 = hashlib.new('sha256')
                     data_sha256.update(data)
@@ -112,7 +114,7 @@ class AndroidUpdateUnpackParser(UnpackParser):
 
             # and finally the signatures
             try:
-                self.infile.seek(bytes_read + signatures_offset)
+                self.infile.seek(self.start_of_payload + signatures_offset)
                 signatures = self.infile.read(signatures_size)
                 signatures = update_metadata_pb2.Signatures()
                 signatures.ParseFromString(self.data.manifest_signature)
@@ -124,9 +126,35 @@ class AndroidUpdateUnpackParser(UnpackParser):
     def carve(self):
         pass
 
-    #def unpack(self):
-        #unpacked_files = []
-        #return unpacked_files
+    def unpack(self):
+        unpacked_files = []
+        if self.data.major_version == 2:
+            for partition in self.manifest_data.partitions:
+                out_labels = []
+                file_path = partition.partition_name
+                outfile_rel = self.rel_unpack_dir / file_path
+                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full.parent, exist_ok=True)
+                outfile = open(outfile_full, 'wb')
+
+                for operation in partition.operations:
+                    self.infile.seek(self.start_of_payload + operation.data_offset)
+                    data = self.infile.read(operation.data_length)
+                    if operation.type == update_metadata_pb2.InstallOperation.Type.REPLACE:
+                        outfile.write(data)
+                    elif operation.type == update_metadata_pb2.InstallOperation.Type.REPLACE_BZ:
+                        decompressor = bz2.BZ2Decompressor()
+                        outfile.write(decompressor.decompress(data))
+                    elif operation.type == update_metadata_pb2.InstallOperation.Type.REPLACE_XZ:
+                        decompressor = lzma.LZMADecompressor()
+                        outfile.write(decompressor.decompress(data))
+                        pass
+                    else:
+                        pass
+                outfile.close()
+                fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
+                unpacked_files.append(fr)
+        return unpacked_files
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
