@@ -46,6 +46,7 @@ import json
 import re
 import pathlib
 import lzo
+import logging
 
 encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                         'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
@@ -251,7 +252,11 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
         listoffiles = os.listdir()
         for l in listoffiles:
             try:
-                shutil.move(l, unpackdir_full, copy_function=local_copy2)
+                mode = os.stat(l).st_mode
+                if stat.S_ISDIR(mode) or stat.S_ISREG(mode) or stat.S_ISLNK(mode):
+                    shutil.move(l, unpackdir_full, copy_function=local_copy2)
+                else:
+                    logging.log(logging.INFO, f"File {l} is not extracted as it is no directory, regular file or link. st_mode: {mode}")
             except:
                 # TODO: make exception more specific
                 # TODO: report
