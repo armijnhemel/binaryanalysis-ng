@@ -1,4 +1,4 @@
-FROM mozilla/sbt as builder
+FROM registry.hub.docker.com/mozilla/sbt as builder
 
 # Assume kaitai_struct contains git clone --recursive of https://github.com/kaitai-io/kaitai_struct.git
 COPY kaitai_struct /kaitai_struct
@@ -11,7 +11,7 @@ RUN sbt compilerJVM/universal:packageBin
 RUN ls -l jvm/target/universal/
 RUN unzip -d / jvm/target/universal/kaitai-struct-compiler-0.9.zip
 
-FROM openjdk:jre-slim
+FROM registry.hub.docker.com/library/openjdk:jre-slim
 
 COPY --from=builder /kaitai-struct-compiler-0.9 /kaitai-struct-compiler
 COPY --from=builder /kaitai_struct /kaitai_struct

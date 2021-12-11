@@ -7,7 +7,7 @@ ENV PATH="${PATH}:/kaitai-struct-compiler/bin"
 
 RUN make
 
-FROM fedora:33
+FROM registry.hub.docker.com/library/fedora:33
 
 
 RUN dnf update -y
