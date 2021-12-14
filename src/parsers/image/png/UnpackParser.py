@@ -142,12 +142,12 @@ class PngUnpackParser(UnpackParser):
                         pngtexts.append({'key': i.body.keyword,
                                          'languagetag': i.body.language_tag,
                                          'translatedkey': i.body.translated_keyword,
-                                         'value': i.body.text})
+                                         'value': i.body.text.text})
                 else:
                     pngtexts.append({'key': i.body.keyword,
                                      'languagetag': i.body.language_tag,
                                      'translatedkey': i.body.translated_keyword,
-                                     'value': i.body.text})
+                                     'value': i.body.text.text})
             elif i.type == 'meTa':
                 try:
                     metatags.append(i.body.decode(encoding='utf-16'))
