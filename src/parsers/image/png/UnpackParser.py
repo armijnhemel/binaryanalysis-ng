@@ -69,8 +69,6 @@ class PngUnpackParser(UnpackParser):
             self.data = png.Png.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.ihdr.bit_depth in [1, 2, 4, 8, 16],
-                "invalid bit depth")
         check_condition(self.data.ihdr.width > 0,
                 "invalid width")
         check_condition(self.data.ihdr.height > 0,

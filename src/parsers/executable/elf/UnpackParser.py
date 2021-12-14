@@ -159,7 +159,7 @@ class ElfUnpackParser(UnpackParser):
             metadata['type'] = 'processor specific'
 
         # store the machine type, both numerical and pretty printed
-        if type(self.data.header.machine):
+        if type(self.data.header.machine) == int:
             metadata['machine_name'] = "unknown architecture"
             metadata['machine'] = self.data.header.machine
         else:
@@ -384,7 +384,7 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == '.qtmetadata':
                     pass
                 elif header.name == '.qtmimedatabase':
-                    # data, in possibly zstd/gzip compressed
+                    # data, possibly zstd/gzip compressed
                     pass
                 elif header.name == '.qtversion':
                     pass
@@ -401,6 +401,8 @@ class ElfUnpackParser(UnpackParser):
                     pass
                 elif header.name == '.VTGPrLc':
                     pass
+                elif header.name == '.rol4re_elf_aux':
+                    labels.append('l4')
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
                 for entry in header.body.entries:

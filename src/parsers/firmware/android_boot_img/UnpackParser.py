@@ -65,7 +65,10 @@ class AndroidBootImgUnpacker(UnpackParser):
         else:
             if self.data.header_version < 3:
                 page_size = self.data.header.page_size
-                unpacked_size = ((page_size + self.data.header.kernel.size + page_size - 1)//page_size) * page_size
+                try:
+                    unpacked_size = ((page_size + self.data.header.kernel.size + page_size - 1)//page_size) * page_size
+                except ZeroDivisionError as e:
+                    raise UnpackParserException(e.args)
                 if self.data.header.ramdisk.size > 0:
                     unpacked_size = ((unpacked_size + self.data.header.ramdisk.size + page_size - 1)//page_size) * page_size
                 if self.data.header.second.size > 0:

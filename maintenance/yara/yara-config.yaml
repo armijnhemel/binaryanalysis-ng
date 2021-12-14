@@ -22,22 +22,53 @@ database:
     # postgresql_port: 5432
 general:
     # directory for unpacking. By default this is /tmp or
-    # whatever the default set by the system is (for example
-    # /run/user/$UID/
+    # whatever the default set by the system is (for example:
+    # /run/user/$UID/ )
     # tempdir: /tmp
+
+    # Threads to use. 0 = maximum (dependent on system)
     # threads: 0
     verbose: true
 yara:
     # directory to store generated YARA files
     yara_directory: /home/armijn/yara
+
     # minimal length of strings, recommended to not go below 5
     # string_min_cutoff: 8
+
     # maximal length of strings, recommended to not go above 200
     # string_max_cutoff: 200
+
     # minimal length of functions/variable names, recommended
     # to not go below 2
     # identifier_cutoff: 2
+
     # ignore weak ELF symbols. Recommended to set to 'true'
     ignore_weak_symbols: true
+
     # the maximum amount of identifiers that YARA will consider
     max_identifiers: 10000
+
+    # percentage of strings, functions and variables that need to
+    # be minimally matched from 0 - 100, default 10
+    strings_percentage: 10
+    functions_percentage: 10
+    variables_percentage: 10
+
+    # minimum amount of strings, functions and variables (if any)
+    # that need to be matched, default 1
+    strings_matched: 1
+    functions_matched: 1
+    variables_matched: 1
+
+    # minimum amount of strings, functions and variables (if any)
+    # that should be present. Otherwise default to "any of"
+    strings_minimum: 10
+    functions_minimum: 10
+    variables_minimum: 10
+
+    # minimum amount of strings, functions and variables that needs
+    # to have been extracted before generating rules
+    strings_extracted: 5
+    functions_extracted: 5
+    variables_extracted: 5
