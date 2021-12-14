@@ -1,16 +1,20 @@
 meta:
   id: rpm
-  title: RPM Package Manager files
+  title: RPM package file
+  application: RPM Package Manager
   file-extension:
     - rpm
     - srpm
     - src.rpm
     - drpm
   xref:
+    justsolve: RPM
+    mime: application/x-rpm
     pronom: fmt/795 # v3
     wikidata: Q492650
   license: CC0-1.0
   ks-version: 0.9
+  encoding: UTF-8
   endian: be
 doc: |
   This parser is for the RPM version 3 file format which is the current version
@@ -19,33 +23,76 @@ doc: |
   RPM file format, as well as a currently abandoned fork (rpm5). These formats
   are not covered by this specification.
 doc-ref:
-  - https://github.com/rpm-software-management/rpm/blob/911448/doc/manual/format.md
-  - https://github.com/rpm-software-management/rpm/blob/911448/doc/manual/tags.md
+  - https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/format.md
+  - https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md
   - https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/pkgformat.html
   - http://ftp.rpm.org/max-rpm/
 seq:
   - id: lead
     type: lead
   - id: signature
-    type: signature
-  - id: boundary_padding
+    type: header(true)
+  - id: signature_padding
     size: (- _io.pos) % 8
+  - size: 0
+    if: ofs_header < 0
   - id: header
-    type: header
-  #- id: payload
-    # size: ??
-    # doc: if signature has a SIZE value, then it is:
-    # signature[SIZE][0] - sizeof<header>
+    type: header(false)
+  - size: 0
+    if: ofs_payload < 0
+  - id: signature_tags_steps
+    type: 'signature_tags_step(_index, _index < 1 ? -1 : signature_tags_steps[_index - 1].size_tag_idx)'
+    repeat: expr
+    repeat-expr: signature.header_record.num_index_records
 instances:
-  lead_size:
-    value: lead._sizeof
-  header_size:
-    value: header.header_size
-  payload_offset:
-    value: header._io.pos
+  payload:
+    pos: ofs_payload
+    size: len_payload
+    if: has_signature_size_tag
+  len_payload:
+    value: 'signature_size_tag.body.as<record_type_uint32>.values[0] - len_header'
+    if: has_signature_size_tag
+  len_header:
+    value: ofs_payload - ofs_header
+  ofs_header:
+    value: _io.pos
+  ofs_payload:
+    value: _io.pos
+  has_signature_size_tag:
+    value: signature_tags_steps.last.size_tag_idx != -1
+  signature_size_tag:
+    value: signature.index_records[signature_tags_steps.last.size_tag_idx]
+    if: has_signature_size_tag
 types:
+  signature_tags_step:
+    params:
+      - id: idx
+        type: s4
+      - id: prev_size_tag_idx
+        type: s4
+    instances:
+      size_tag_idx:
+        value: |
+          prev_size_tag_idx != -1 ? prev_size_tag_idx :
+            (_parent.signature.index_records[idx].signature_tag == signature_tags::size
+            and _parent.signature.index_records[idx].record_type == record_types::uint32
+            and _parent.signature.index_records[idx].num_values >= 1 ? idx : -1)
   dummy: {}
   lead:
+    doc: |
+      In 2021, Panu Matilainen (a RPM developer) [described this
+      structure](https://github.com/kaitai-io/kaitai_struct_formats/pull/469#discussion_r718288192)
+      as follows:
+
+      > The lead as a structure is 25 years obsolete, the data there is
+      > meaningless. Seriously. Except to check for the magic to detect that
+      > it's an rpm file in the first place, just ignore everything in it.
+      > Literally everything.
+
+      The fields with `valid` constraints are important, because these are the
+      same validations that RPM does (which means that any valid `.rpm` file
+      must pass them), but otherwise you should not make decisions based on the
+      values given here.
     seq:
       - id: magic
         contents: [0xed, 0xab, 0xee, 0xdb]
@@ -59,9 +106,8 @@ types:
         type: u2
         enum: architectures
       - id: package_name
-        type: strz
-        encoding: UTF-8
         size: 66
+        type: strz
       - id: os
         -orig-id: osnum
         type: u2
@@ -75,159 +121,149 @@ types:
     seq:
       - id: major
         type: u1
-        valid: 0x3
+        valid:
+          min: 3
+          max: 4
+        doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/lib/rpmlead.c#L102
       - id: minor
         type: u1
-  # signature, which is almost identical to header
-  # except that some of the tags have a different
-  # meaning in signature and header.
-  signature:
-    seq:
-      - id: header_record
-        type: header_record
-      - id: index_records
-        type: signature_index_record
-        repeat: expr
-        repeat-expr: header_record.index_record_count
-      - id: storage_section
-        type: dummy
-        size: header_record.index_storage_size
-  signature_index_record:
-    -webide-representation: '{tag}'
-    seq:
-      - id: tag
-        type: u4
-        enum: signature_tags
-      - id: record_type
-        type: u4
-        enum: header_types
-      - id: ofs_record
-        type: u4
-      - id: count
-        type: u4
-    instances:
-      body:
-        io: _parent.storage_section._io
-        pos: ofs_record
-        type:
-          switch-on: record_type
-          cases:
-            header_types::int8: record_type_int8(count)
-            header_types::int16: record_type_int16(count)
-            header_types::int32: record_type_int32(count)
-            header_types::string: record_type_string
-            header_types::bin: record_type_bin(count)
-            header_types::string_array: record_type_string_array(count)
-            header_types::i18nstring: record_type_string_array(count)
-  record_type_int8:
-    params:
-      - id: count
-        type: u4
-    seq:
-      - id: values
-        type: u2
-        repeat: expr
-        repeat-expr: count
-  record_type_int16:
-    params:
-      - id: count
-        type: u4
-    seq:
-      - id: values
-        type: u2
-        repeat: expr
-        repeat-expr: count
-  record_type_int32:
-    params:
-      - id: count
-        type: u4
-    seq:
-      - id: values
-        type: u4
-        repeat: expr
-        repeat-expr: count
-  record_type_string:
-    seq:
-      - id: values
-        type: strz
-        encoding: UTF-8
-        repeat: expr
-        repeat-expr: 1
-  record_type_bin:
-    params:
-      - id: count
-        type: u4
-    seq:
-      - id: values
-        size: count
-        repeat: expr
-        repeat-expr: 1
-  record_type_string_array:
-    params:
-      - id: count
-        type: u4
-    seq:
-      - id: values
-        type: strz
-        encoding: UTF-8
-        repeat: expr
-        repeat-expr: count
-  # header, which is almost identical to signature
-  # except that some of the tags have a different
-  # meaning in signature and header.
   header:
+    doc: |
+      header structure used for both the "header" and "signature", but some tag
+      values have different meanings in signature and header (hence they use
+      different enums)
+    params:
+      - id: is_signature
+        type: bool
     seq:
       - id: header_record
         type: header_record
       - id: index_records
         type: header_index_record
         repeat: expr
-        repeat-expr: header_record.index_record_count
+        repeat-expr: header_record.num_index_records
       - id: storage_section
+        size: header_record.len_storage_section
         type: dummy
-        size: header_record.index_storage_size
     instances:
-      header_size:
-        value: header_record._sizeof + header_record.index_record_count * index_records.first._sizeof + header_record.index_storage_size
+      is_header:
+        value: not is_signature
   header_index_record:
-    -webide-representation: '{tag}'
+    -webide-representation: '{signature_tag} {header_tag} [{record_type}]'
     seq:
-      - id: tag
+      - id: tag_raw
         type: u4
-        enum: header_tags
+        doc: prefer to access `signature_tag` and `header_tag` instead
       - id: record_type
         type: u4
-        enum: header_types
-      - id: record_offset
+        enum: record_types
+      - id: ofs_body
         type: u4
       - id: count
         type: u4
+        doc: internal; access `num_values` and `len_value` instead
     instances:
+      signature_tag:
+        value: tag_raw
+        enum: signature_tags
+        if: _parent.is_signature
+      header_tag:
+        value: tag_raw
+        enum: header_tags
+        if: _parent.is_header
+      num_values:
+        value: count
+        if: record_type != record_types::bin
+      len_value:
+        value: count
+        if: record_type == record_types::bin
       body:
         io: _parent.storage_section._io
-        pos: record_offset
+        pos: ofs_body
         type:
           switch-on: record_type
           cases:
-            header_types::int8: record_type_int8(count)
-            header_types::int16: record_type_int16(count)
-            header_types::int32: record_type_int32(count)
-            header_types::string: record_type_string
-            header_types::bin: record_type_bin(count)
-            header_types::string_array: record_type_string_array(count)
-            header_types::i18nstring: record_type_string_array(count)
+            record_types::char: record_type_uint8(num_values)
+            record_types::uint8: record_type_uint8(num_values)
+            record_types::uint16: record_type_uint16(num_values)
+            record_types::uint32: record_type_uint32(num_values)
+            record_types::uint64: record_type_uint64(num_values)
+            record_types::string: record_type_string
+            record_types::bin: record_type_bin(len_value)
+            record_types::string_array: record_type_string_array(num_values)
+            record_types::i18n_string: record_type_string_array(num_values)
+  record_type_uint8:
+    params:
+      - id: num_values
+        type: u4
+    seq:
+      - id: values
+        type: u1
+        repeat: expr
+        repeat-expr: num_values
+  record_type_uint16:
+    params:
+      - id: num_values
+        type: u4
+    seq:
+      - id: values
+        type: u2
+        repeat: expr
+        repeat-expr: num_values
+  record_type_uint32:
+    params:
+      - id: num_values
+        type: u4
+    seq:
+      - id: values
+        type: u4
+        repeat: expr
+        repeat-expr: num_values
+  record_type_uint64:
+    params:
+      - id: num_values
+        type: u4
+    seq:
+      - id: values
+        type: u8
+        repeat: expr
+        repeat-expr: num_values
+  record_type_string:
+    seq:
+      - id: values
+        type: strz
+        repeat: expr
+        repeat-expr: 1
+  record_type_bin:
+    params:
+      - id: len_value
+        type: u4
+    seq:
+      - id: values
+        size: len_value
+        repeat: expr
+        repeat-expr: 1
+  record_type_string_array:
+    params:
+      - id: num_values
+        type: u4
+    seq:
+      - id: values
+        type: strz
+        repeat: expr
+        repeat-expr: num_values
   header_record:
     seq:
       - id: magic
         contents: [0x8e, 0xad, 0xe8, 0x01]
       - id: reserved
         contents: [0, 0, 0, 0]
-      - id: index_record_count
+      - id: num_index_records
         -orig-id: nindex
         type: u4
         valid:
           min: 1
-      - id: index_storage_size
+      - id: len_storage_section
         -orig-id: hsize
         type: u4
         doc: |
@@ -237,30 +273,97 @@ enums:
   rpm_types:
     0: binary
     1: source
+
+  # these come (mostly) from <https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L159>
+  # (see <https://ftp.osuosl.org/pub/rpm/max-rpm/s1-rpm-multi-build-install-detection.html#S3-RPM-MULTI-XXX-CANON>
+  # for `arch_canon` entry explanation)
+  #
+  # See also
+  #   - <https://github.com/eclipse/packager/blob/51ccdd3/rpm/src/main/java/org/eclipse/packager/rpm/Architecture.java>
+  #   - <https://github.com/craigwblake/redline/blob/15afff5/src/main/java/org/redline_rpm/header/Architecture.java>
+  #   - <https://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch01s03.html>
   architectures:
-    # these come (mostly) from rpmrc.in
-    1: x86
+    1:
+      id: x86
+      doc: x86 or x86_64
+    2:
+      id: alpha
+      doc: Alpha or Sparc64
+      doc-ref:
+        - https://github.com/eclipse/packager/blob/51ccdd3/rpm/src/main/java/org/eclipse/packager/rpm/Architecture.java#L24
+        - https://github.com/file/file/blob/9b2538d/magic/Magdir/rpm#L14
+        - https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L174-L183
     3: sparc
     4: mips
     5: ppc
+    6: m68k
+    7:
+      id: sgi
+      -orig-id: IP
+      doc: SGI Inhouse Processors (IP)
+      doc-ref:
+        - https://github.com/file/file/blob/9b2538d/magic/Magdir/rpm#L19
+        - https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L205
+    8: rs6000
     9: ia64
+    10:
+      id: sparc64
+      doc-ref:
+        - https://github.com/file/file/blob/9b2538d/magic/Magdir/rpm#L22
+        - https://github.com/craigwblake/redline/blob/15afff5/src/main/java/org/redline_rpm/header/Architecture.java#L15
     11: mips64
     12: arm
+    13:
+      id: m68k_mint
+      -orig-id: m68kmint
+      doc-ref:
+        - https://github.com/craigwblake/redline/blob/15afff5/src/main/java/org/redline_rpm/header/Architecture.java#L18
+        - https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L226-L233
     14: s390
     15: s390x
     16: ppc64
     17: sh
     18: xtensa
     19: aarch64
+    20:
+      id: mips_r6
+      -orig-id: mipsr6
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L252-L253
+    21:
+      id: mips64_r6
+      -orig-id: mips64r6
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L254-L255
     22: riscv
-    255: noarch
+    255:
+      id: no_arch
+      -orig-id: noarch
+      doc: can be installed on any architecture
+      doc-ref:
+        - https://github.com/file/file/blob/9b2538d/magic/Magdir/rpm#L31
+        - https://github.com/rpm-software-management/rpm/blob/911448f2/lib/rpmrc.c#L1466
   operating_systems:
-    # these come from rpmrc.in
+    # these come from <https://github.com/rpm-software-management/rpm/blob/911448f2/rpmrc.in#L261>
     # in practice it will almost always be 1
     1: linux
     2: irix
+    255:
+      id: no_os
+      -orig-id: noos
+      doc: |
+        This value is pretty much a guess, based on that `archnum` and `osnum`
+        values are handled by the same function `getMachineInfo()` (see
+        `doc-ref` link) which uses 255 for an unknown value. Value
+        `architectures::no_arch` can be verified with the magic file of
+        `file(1)` and `.rpm` files that have `noarch` in their name, so it seems
+        reasonable that `no_os` (or "`noos`" originally) follows the same
+        pattern.
+
+        Moreover, this value is actually used in practice, see this sample file:
+        <https://github.com/craigwblake/redline/blob/15afff5/src/test/resources/rpm-3-1.0-1.somearch.rpm>
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/lib/rpmrc.c#L1466
+
   signature_tags:
-    # Tags from LSB.
+    # Tags from [lib/rpmtag.h](https://github.com/rpm-software-management/rpm/blob/911448f2/lib/rpmtag.h#L412).
     # the first three are shared with header_tags
     62:
       id: signatures
@@ -269,9 +372,20 @@ enums:
       id: header_immutable
       -orig-id: HEADER_IMMUTABLE
     100:
-      id: i18ntable
+      id: i18n_table
       -orig-id: HEADER_I18NTABLE
     # RPMSIGTAG_*
+    # 256: RPMTAG_SIG_BASE
+    264:
+      id: bad_sha1_1_obsolete
+      -orig-id: RPMSIGTAG_BADSHA1_1
+    265:
+      id: bad_sha1_2_obsolete
+      -orig-id: RPMSIGTAG_BADSHA1_2
+    # 266:
+    #   id: pubkeys_obsolete
+    #   -orig-id: RPMTAG_PUBKEYS
+    #   doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md#deprecated--obsolete
     267:
       id: dsa
       -orig-id: RPMSIGTAG_DSA
@@ -282,19 +396,43 @@ enums:
       id: sha1
       -orig-id: RPMSIGTAG_SHA1
     270:
-      id: long_sig_size
-      -orig-id: RPMTAG_LONGSIGSIZE
+      id: long_size
+      -orig-id: RPMSIGTAG_LONGSIZE
+    271:
+      id: long_archive_size
+      -orig-id: RPMSIGTAG_LONGARCHIVESIZE
+    # 272 - reserved
     273:
       id: sha256
       -orig-id: RPMTAG_SHA256HEADER
+    274:
+      id: file_signatures
+      -orig-id: RPMSIGTAG_FILESIGNATURES
+    275:
+      id: file_signature_length
+      -orig-id: RPMSIGTAG_FILESIGNATURELENGTH
+    276:
+      id: verity_signatures
+      -orig-id: RPMTAG_VERITYSIGNATURES
+    277:
+      id: verity_signature_algo
+      -orig-id: RPMTAG_VERITYSIGNATUREALGO
     1000:
       id: size
       -orig-id: RPMSIGTAG_SIZE
       doc: Header + payload size (32bit) in bytes.
+    1001:
+      id: le_md5_1_obsolete
+      -orig-id: RPMSIGTAG_LEMD5_1
+      doc: MD5 broken on big-endian machines, take 1
     1002:
       id: pgp
       -orig-id: RPMSIGTAG_PGP
       doc: PGP 2.6.3 signature.
+    1003:
+      id: le_md5_2_obsolete
+      -orig-id: RPMSIGTAG_LEMD5_2
+      doc: MD5 broken on big-endian machines, take 2
     1004:
       id: md5
       -orig-id: RPMSIGTAG_MD5
@@ -303,6 +441,9 @@ enums:
       id: gpg
       -orig-id: RPMSIGTAG_GPG
       doc: GnuPG signature
+    1006:
+      id: pgp5_obsolete
+      -orig-id: RPMSIGTAG_PGP5
     1007:
       id: payload_size
       -orig-id: RPMSIGTAG_PAYLOADSIZE
@@ -312,9 +453,10 @@ enums:
       -orig-id: RPMSIGTAG_RESERVEDSPACE
       doc: Space reserved for signatures
   header_tags:
-    # Tags from LSB, some from lib/rpmtag.h
-    # This includes all tags, except obsolete, internal and
-    # unimplemented tags, except when present in LSB
+    # Tags from [lib/rpmtag.h](https://github.com/rpm-software-management/rpm/blob/911448f2/lib/rpmtag.h).
+    # This includes (almost) all tags. Some have `_unimplemented`, `_internal`
+    # or `_obsolete` suffix (if more than one applies, the first applicable in
+    # this order is used).
     62:
       id: signatures
       -orig-id: HEADER_SIGNATURES
@@ -322,7 +464,7 @@ enums:
       id: header_immutable
       -orig-id: HEADER_IMMUTABLE
     100:
-      id: i18ntable
+      id: i18n_table
       -orig-id: HEADER_I18NTABLE
     # RPMTAG_*
     1000:
@@ -355,17 +497,17 @@ enums:
         pointed to by this index record contains a full desription of
         the package.
     1006:
-      id: buildtime
+      id: build_time
       -orig-id: RPMTAG_BUILDTIME
       doc: |
         Specifies the time as seconds since the epoch
         at which the package was built.
     1007:
-      id: buildhost
+      id: build_host
       -orig-id: RPMTAG_BUILDHOST
       doc: Specifies the hostname of the system on which the package was built.
     1008:
-      id: installtime # from lib/rpmtag.h
+      id: install_time # from lib/rpmtag.h
       -orig-id: RPMTAG_INSTALLTIME
     1009:
       id: size
@@ -380,11 +522,13 @@ enums:
       -orig-id: RPMTAG_VENDOR
       doc: Contains the name of the organization that produced the package.
     1012:
-      id: gif # from lib/rpmtag.h
+      id: gif_obsolete
       -orig-id: RPMTAG_GIF
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md#deprecated--obsolete
     1013:
-      id: xpm # from lib/rpmtag.h
+      id: xpm_obsolete
       -orig-id: RPMTAG_XPM
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md#deprecated--obsolete
     1014:
       id: license
       -orig-id: RPMTAG_LICENSE
@@ -397,6 +541,9 @@ enums:
       id: group
       -orig-id: RPMTAG_GROUP
       doc: Specifies the administrative group to which this package belongs.
+    1017:
+      id: changelog_internal
+      -orig-id: RPMTAG_CHANGELOG
     1018:
       id: source # from lib/rpmtag.h
       -orig-id: RPMTAG_SOURCE
@@ -420,28 +567,29 @@ enums:
       -orig-id: RPMTAG_PREIN
       doc: |
         Specifies the preinstall scriptlet. If present, then
-        preinstall_interpreter shall also be present.
+        `::pre_install_interpreter` shall also be present.
     1024:
       id: post_install_scriptlet
       -orig-id: RPMTAG_POSTIN
       doc: |
         Specifies the postinstall scriptlet. If present, then
-        postinstall_interpreter shall also be present.
+        `::post_install_interpreter` shall also be present.
     1025:
       id: pre_uninstall_scriptlet
       -orig-id: RPMTAG_PREUN
       doc: |
         Specifies the preuninstall scriptlet. If present, then
-        preuninstall_interpreter shall also be present.
+        `::pre_uninstall_interpreter` shall also be present.
     1026:
       id: post_uninstall_scriptlet
       -orig-id: RPMTAG_POSTUN
       doc: |
         Specifies the postuninstall scriptlet. If present, then
-        postuninstall_interpreter shall also be present.
+        `::post_uninstall_interpreter` shall also be present.
     1027:
-      id: old_filenames
+      id: old_file_names_obsolete
       -orig-id: RPMTAG_OLDFILENAMES
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md#deprecated--obsolete
     1028:
       id: file_sizes
       -orig-id: RPMTAG_FILESIZES
@@ -453,6 +601,12 @@ enums:
       id: file_modes
       -orig-id: RPMTAG_FILEMODES
       doc: The mode of each file in the archive.
+    1031:
+      id: file_uids_internal
+      -orig-id: RPMTAG_FILEUIDS
+    1032:
+      id: file_gids_internal
+      -orig-id: RPMTAG_FILEGIDS
     1033:
       id: device_number
       -orig-id: RPMTAG_FILERDEVS
@@ -480,6 +634,9 @@ enums:
       doc: |
         Specifies the bit(s) to classify and control how files
         are to be installed.
+    1038:
+      id: root_internal
+      -orig-id: RPMTAG_ROOT
     1039:
       id: file_owner
       -orig-id: RPMTAG_FILEUSERNAME
@@ -488,9 +645,16 @@ enums:
       id: file_group
       -orig-id: RPMTAG_FILEGROUPNAME
       doc: Specifies the group of the corresponding file.
+    1041:
+      id: exclude_internal
+      -orig-id: RPMTAG_EXCLUDE
+    1042:
+      id: exclusive_internal
+      -orig-id: RPMTAG_EXCLUSIVE
     1043:
-      id: icon # from lib/rpmtag.h
+      id: icon_obsolete
       -orig-id: RPMTAG_ICON
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md#deprecated--obsolete
     1044:
       id: source_rpm
       -orig-id: RPMTAG_SOURCERPM
@@ -545,6 +709,15 @@ enums:
       doc: |
         Indicates the versions associated with the
         values found in the conflict_name index.
+    1056:
+      id: default_prefix_internal
+      -orig-id: RPMTAG_DEFAULTPREFIX
+    1057:
+      id: build_root_internal
+      -orig-id: RPMTAG_BUILDROOT
+    1058:
+      id: install_prefix_internal
+      -orig-id: RPMTAG_INSTALLPREFIX
     1059:
       id: exclude_arch # from lib/rpmtag.h
       -orig-id: RPMTAG_EXCLUDEARCH
@@ -554,6 +727,9 @@ enums:
     1061:
       id: exclusive_arch # from lib/rpmtag.h
       -orig-id: RPMTAG_EXCLUSIVEARCH
+    1063:
+      id: autoreqprov_internal
+      -orig-id: RPMTAG_AUTOREQPROV
     1062:
       id: exclusive_os # from lib/rpmtag.h
       -orig-id: RPMTAG_EXCLUSIVEOS
@@ -576,6 +752,7 @@ enums:
     1069:
       id: trigger_index # from lib/rpmtag.h
       -orig-id: RPMTAG_TRIGGERINDEX
+    # 1070..1078 - unassigned (missing in lib/rpmtag.h)
     1079:
       id: verify_script # from lib/rpmtag.h
       -orig-id: RPMTAG_VERIFYSCRIPT
@@ -593,34 +770,40 @@ enums:
       id: changelog_text
       -orig-id: RPMTAG_CHANGELOGTEXT
       doc: Specifies the changes asssociated with a changelog entry.
+    1083:
+      id: broken_md5_internal
+      -orig-id: RPMTAG_BROKENMD5
+    1084:
+      id: prereq_internal
+      -orig-id: RPMTAG_PREREQ
     1085:
-      id: preinstall_interpreter
+      id: pre_install_interpreter
       -orig-id: RPMTAG_PREINPROG
       doc: |
         Specifies the name of the interpreter to which the preinstall
         scriptlet will be passed. The interpreter pointed to by this
-        index record shall be /bin/sh.
+        index record shall be `/bin/sh`.
     1086:
-      id: postinstall_interpreter
+      id: post_install_interpreter
       -orig-id: RPMTAG_POSTINPROG
       doc: |
         Specifies the name of the interpreter to which the postinstall
         scriptlet will be passed. The intepreter pointed to by this
-        index record shall be /bin/sh.
+        index record shall be `/bin/sh`.
     1087:
-      id: preuninstall_interpreter
+      id: pre_uninstall_interpreter
       -orig-id: RPMTAG_PREUNPROG
       doc: |
         Specifies the name of the interpreter to which the preuninstall
         scriptlet will be passed. The interpreter pointed to by this index
-        record shall be /bin/sh.
+        record shall be `/bin/sh`.
     1088:
-      id: postuninstall_interpreter
+      id: post_uninstall_interpreter
       -orig-id: RPMTAG_POSTUNPROG
       doc: |
         Specifies the name of the interpreter to which the postuninstall
         scriptlet will be passed. The interpreter pointed to by this index
-        record shall be /bin/sh.
+        record shall be `/bin/sh`.
     1089:
       id: build_archs # from lib/rpmtag.h
       -orig-id: RPMTAG_BUILDARCHS
@@ -632,8 +815,11 @@ enums:
       id: verify_script_prog # from lib/rpmtag.h
       -orig-id: RPMTAG_VERIFYSCRIPTPROG
     1092:
-      id: trigger_script_prog # lib/rpmtag.h
+      id: trigger_script_prog # from lib/rpmtag.h
       -orig-id: RPMTAG_TRIGGERSCRIPTPROG
+    1093:
+      id: doc_dir_internal
+      -orig-id: RPMTAG_DOCDIR
     1094:
       id: cookie
       -orig-id: RPMTAG_COOKIE
@@ -658,11 +844,44 @@ enums:
       id: prefixes # from lib/rpmtag.h
       -orig-id: RPMTAG_PREFIXES
     1099:
-      id: installation_prefixes # from lib/rpmtag.h
+      id: install_prefixes # from lib/rpmtag.h
       -orig-id: RPMTAG_INSTPREFIXES
+    1100:
+      id: trigger_install_internal
+      -orig-id: RPMTAG_TRIGGERIN
+    1101:
+      id: trigger_uninstall_internal
+      -orig-id: RPMTAG_TRIGGERUN
+    1102:
+      id: trigger_post_uninstall_internal
+      -orig-id: RPMTAG_TRIGGERPOSTUN
+    1103:
+      id: autoreq_internal
+      -orig-id: RPMTAG_AUTOREQ
+    1104:
+      id: autoprov_internal
+      -orig-id: RPMTAG_AUTOPROV
+    1105:
+      id: capability_internal
+      -orig-id: RPMTAG_CAPABILITY
     1106:
       id: source_package # from lib/rpmtag.h
       -orig-id: RPMTAG_SOURCEPACKAGE
+    1107:
+      id: old_orig_filenames_internal
+      -orig-id: RPMTAG_OLDORIGFILENAMES
+    1108:
+      id: build_prereq_internal
+      -orig-id: RPMTAG_BUILDPREREQ
+    1109:
+      id: build_requires_internal
+      -orig-id: RPMTAG_BUILDREQUIRES
+    1110:
+      id: build_conflicts_internal
+      -orig-id: RPMTAG_BUILDCONFLICTS
+    1111:
+      id: build_macros_internal
+      -orig-id: RPMTAG_BUILDMACROS
     1112:
       id: provide_flags
       -orig-id: RPMTAG_PROVIDEFLAGS
@@ -683,10 +902,10 @@ enums:
       id: dir_indexes
       -orig-id: RPMTAG_DIRINDEXES
     1117:
-      id: basenames
+      id: base_names
       -orig-id: RPMTAG_BASENAMES
     1118:
-      id: dirnames
+      id: dir_names
       -orig-id: RPMTAG_DIRNAMES
     1119:
       id: orig_dir_indexes # from lib/rpmtag.h
@@ -698,10 +917,10 @@ enums:
       id: orig_dir_names # from lib/rpmtag.h
       -orig-id: RPMTAG_ORIGDIRNAMES
     1122:
-      id: optflags
+      id: opt_flags
       -orig-id: RPMTAG_OPTFLAGS
     1123:
-      id: disturl
+      id: dist_url
       -orig-id: RPMTAG_DISTURL
     1124:
       id: payload_format
@@ -719,15 +938,40 @@ enums:
       id: install_tid # from lib/rpmtag.h
       -orig-id: RPMTAG_INSTALLTID
     1129:
-      id: remove_tid # from lib/rpmtag.h
+      id: remove_tid_obsolete
       -orig-id: RPMTAG_REMOVETID
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md#deprecated--obsolete
+    1130:
+      id: sha1_rhn_internal
+      -orig-id: RPMTAG_SHA1RHN
     1131:
-      id: rhn_platform
+      id: rhn_platform_internal
       -orig-id: RPMTAG_RHNPLATFORM
     1132:
       id: platform
       -orig-id: RPMTAG_PLATFORM
     # below are all from lib/rpmtag.h
+    1133:
+      id: patches_name_obsolete
+      -orig-id: RPMTAG_PATCHESNAME
+    1134:
+      id: patches_flags_obsolete
+      -orig-id: RPMTAG_PATCHESFLAGS
+    1135:
+      id: patches_version_obsolete
+      -orig-id: RPMTAG_PATCHESVERSION
+    1136:
+      id: cache_ctime_internal
+      -orig-id: RPMTAG_CACHECTIME
+    1137:
+      id: cache_pkg_path_internal
+      -orig-id: RPMTAG_CACHEPKGPATH
+    1138:
+      id: cache_pkg_size_internal
+      -orig-id: RPMTAG_CACHEPKGSIZE
+    1139:
+      id: cache_pkg_mtime_internal
+      -orig-id: RPMTAG_CACHEPKGMTIME
     1140:
       id: file_colors
       -orig-id: RPMTAG_FILECOLORS
@@ -738,47 +982,175 @@ enums:
       id: class_dict
       -orig-id: RPMTAG_CLASSDICT
     1143:
-      id: file_dependsx
+      id: file_depends_idx
       -orig-id: RPMTAG_FILEDEPENDSX
+      doc: Index into `::depends_dict` denoting start of this file's dependencies.
     1144:
-      id: file_dependsn
+      id: file_depends_num
       -orig-id: RPMTAG_FILEDEPENDSN
+      doc: Number of file dependencies in `::depends_dict`, starting from `::file_depends_idx`
     1145:
       id: depends_dict
       -orig-id: RPMTAG_DEPENDSDICT
     1146:
       id: source_pkgid
       -orig-id: RPMTAG_SOURCEPKGID
+    1147:
+      id: file_contexts_obsolete
+      -orig-id: RPMTAG_FILECONTEXTS
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md#deprecated--obsolete
     1148:
-      id: fscontexts
+      id: fs_contexts_obsolete
       -orig-id: RPMTAG_FSCONTEXTS
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md#deprecated--obsolete
     1149:
-      id: recontexts
+      id: re_contexts_obsolete
       -orig-id: RPMTAG_RECONTEXTS
+      doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/doc/manual/tags.md#deprecated--obsolete
     1150:
       id: policies
       -orig-id: RPMTAG_POLICIES
     1151:
-      id: pretrans
+      id: pre_trans
       -orig-id: RPMTAG_PRETRANS
     1152:
-      id: posttrans
+      id: post_trans
       -orig-id: RPMTAG_POSTTRANS
     1153:
-      id: pretrans_prog
+      id: pre_trans_prog
       -orig-id: RPMTAG_PRETRANSPROG
     1154:
-      id: posttrans_prog
+      id: post_trans_prog
       -orig-id: RPMTAG_POSTTRANSPROG
     1155:
       id: dist_tag
       -orig-id: RPMTAG_DISTTAG
+    1156:
+      id: old_suggests_name_obsolete
+      -orig-id: RPMTAG_OLDSUGGESTSNAME
+    1157:
+      id: old_suggests_version_obsolete
+      -orig-id: RPMTAG_OLDSUGGESTSVERSION
+    1158:
+      id: old_suggests_flags_obsolete
+      -orig-id: RPMTAG_OLDSUGGESTSFLAGS
+    1159:
+      id: old_enhances_name_obsolete
+      -orig-id: RPMTAG_OLDENHANCESNAME
+    1160:
+      id: old_enhances_version_obsolete
+      -orig-id: RPMTAG_OLDENHANCESVERSION
+    1161:
+      id: old_enhances_flags_obsolete
+      -orig-id: RPMTAG_OLDENHANCESFLAGS
+    1162:
+      id: priority_unimplemented
+      -orig-id: RPMTAG_PRIORITY
+    1163:
+      id: cvsid_unimplemented
+      -orig-id:
+        - RPMTAG_CVSID
+        - RPMTAG_SVNID
+    1164:
+      id: blink_pkgid_unimplemented
+      -orig-id: RPMTAG_BLINKPKGID
+    1165:
+      id: blink_hdrid_unimplemented
+      -orig-id: RPMTAG_BLINKHDRID
+    1166:
+      id: blink_nevra_unimplemented
+      -orig-id: RPMTAG_BLINKNEVRA
+    1167:
+      id: flink_pkgid_unimplemented
+      -orig-id: RPMTAG_FLINKPKGID
+    1168:
+      id: flink_hdrid_unimplemented
+      -orig-id: RPMTAG_FLINKHDRID
+    1169:
+      id: flink_nevra_unimplemented
+      -orig-id: RPMTAG_FLINKNEVRA
+    1170:
+      id: package_origin_unimplemented
+      -orig-id: RPMTAG_PACKAGEORIGIN
+    1171:
+      id: trigger_pre_install_internal
+      -orig-id: RPMTAG_TRIGGERPREIN
+    1172:
+      id: build_suggests_unimplemented
+      -orig-id: RPMTAG_BUILDSUGGESTS
+    1173:
+      id: build_enhances_unimplemented
+      -orig-id: RPMTAG_BUILDENHANCES
+    1174:
+      id: script_states_unimplemented
+      -orig-id: RPMTAG_SCRIPTSTATES
+    1175:
+      id: script_metrics_unimplemented
+      -orig-id: RPMTAG_SCRIPTMETRICS
+    1176:
+      id: build_cpu_clock_unimplemented
+      -orig-id: RPMTAG_BUILDCPUCLOCK
+    1177:
+      id: file_digest_algos_unimplemented
+      -orig-id: RPMTAG_FILEDIGESTALGOS
+    1178:
+      id: variants_unimplemented
+      -orig-id: RPMTAG_VARIANTS
+    1179:
+      id: xmajor_unimplemented
+      -orig-id: RPMTAG_XMAJOR
+    1180:
+      id: xminor_unimplemented
+      -orig-id: RPMTAG_XMINOR
+    1181:
+      id: repo_tag_unimplemented
+      -orig-id: RPMTAG_REPOTAG
+    1182:
+      id: keywords_unimplemented
+      -orig-id: RPMTAG_KEYWORDS
+    1183:
+      id: build_platforms_unimplemented
+      -orig-id: RPMTAG_BUILDPLATFORMS
+    1184:
+      id: package_color_unimplemented
+      -orig-id: RPMTAG_PACKAGECOLOR
+    1185:
+      id: package_pref_color_unimplemented
+      -orig-id: RPMTAG_PACKAGEPREFCOLOR
+    1186:
+      id: xattrs_dict_unimplemented
+      -orig-id: RPMTAG_XATTRSDICT
+    1187:
+      id: filex_attrsx_unimplemented
+      -orig-id: RPMTAG_FILEXATTRSX
+    1188:
+      id: dep_attrs_dict_unimplemented
+      -orig-id: RPMTAG_DEPATTRSDICT
+    1189:
+      id: conflict_attrsx_unimplemented
+      -orig-id: RPMTAG_CONFLICTATTRSX
+    1190:
+      id: obsolete_attrsx_unimplemented
+      -orig-id: RPMTAG_OBSOLETEATTRSX
+    1191:
+      id: provide_attrsx_unimplemented
+      -orig-id: RPMTAG_PROVIDEATTRSX
+    1192:
+      id: require_attrsx_unimplemented
+      -orig-id: RPMTAG_REQUIREATTRSX
+    1193:
+      id: build_provides_unimplemented
+      -orig-id: RPMTAG_BUILDPROVIDES
+    1194:
+      id: build_obsoletes_unimplemented
+      -orig-id: RPMTAG_BUILDOBSOLETES
     1195:
       id: db_instance
       -orig-id: RPMTAG_DBINSTANCE
     1196:
       id: nvra
       -orig-id: RPMTAG_NVRA
+    # 1997..4999 - reserved
     5000:
       id: file_names
       -orig-id: RPMTAG_FILENAMES
@@ -788,6 +1160,12 @@ enums:
     5002:
       id: file_require
       -orig-id: RPMTAG_FILEREQUIRE
+    5003:
+      id: fs_names_unimplemented
+      -orig-id: RPMTAG_FSNAMES
+    5004:
+      id: fs_sizes_unimplemented
+      -orig-id: RPMTAG_FSSIZES
     5005:
       id: trigger_conds
       -orig-id: RPMTAG_TRIGGERCONDS
@@ -795,7 +1173,7 @@ enums:
       id: trigger_type
       -orig-id: RPMTAG_TRIGGERTYPE
     5007:
-      id: orig_filenames
+      id: orig_file_names
       -orig-id: RPMTAG_ORIGFILENAMES
     5008:
       id: long_file_sizes
@@ -835,16 +1213,16 @@ enums:
       id: epoch_num
       -orig-id: RPMTAG_EPOCHNUM
     5020:
-      id: pre_in_flags
+      id: pre_install_flags
       -orig-id: RPMTAG_PREINFLAGS
     5021:
-      id: post_in_flags
+      id: post_install_flags
       -orig-id: RPMTAG_POSTINFLAGS
     5022:
-      id: pre_un_flags
+      id: pre_uninstall_flags
       -orig-id: RPMTAG_PREUNFLAGS
     5023:
-      id: post_unflags
+      id: post_uninstall_flags
       -orig-id: RPMTAG_POSTUNFLAGS
     5024:
       id: pre_trans_flags
@@ -858,6 +1236,10 @@ enums:
     5027:
       id: trigger_script_flags
       -orig-id: RPMTAG_TRIGGERSCRIPTFLAGS
+    # 5028 - unassigned (removed from lib/rpmtag.h in commit <https://github.com/rpm-software-management/rpm/commit/dc2ee980>)
+    5029:
+      id: collections_unimplemented
+      -orig-id: RPMTAG_COLLECTIONS
     5030:
       id: policy_names
       -orig-id: RPMTAG_POLICYNAMES
@@ -882,8 +1264,14 @@ enums:
     5037:
       id: order_flags
       -orig-id: RPMTAG_ORDERFLAGS
+    5038:
+      id: mssf_manifest_unimplemented
+      -orig-id: RPMTAG_MSSFMANIFEST
+    5039:
+      id: mssf_domain_unimplemented
+      -orig-id: RPMTAG_MSSFDOMAIN
     5040:
-      id: inst_filenames
+      id: inst_file_names
       -orig-id: RPMTAG_INSTFILENAMES
     5041:
       id: require_nevrs
@@ -951,6 +1339,15 @@ enums:
     5062:
       id: encoding
       -orig-id: RPMTAG_ENCODING
+    5063:
+      id: file_trigger_install_internal
+      -orig-id: RPMTAG_FILETRIGGERIN
+    5064:
+      id: file_trigger_uninstall_internal
+      -orig-id: RPMTAG_FILETRIGGERUN
+    5065:
+      id: file_trigger_post_uninstall_internal
+      -orig-id: RPMTAG_FILETRIGGERPOSTUN
     5066:
       id: file_trigger_scripts
       -orig-id: RPMTAG_FILETRIGGERSCRIPTS
@@ -972,6 +1369,15 @@ enums:
     5072:
       id: file_trigger_flags
       -orig-id: RPMTAG_FILETRIGGERFLAGS
+    5073:
+      id: trans_file_trigger_install_internal
+      -orig-id: RPMTAG_TRANSFILETRIGGERIN
+    5074:
+      id: trans_file_trigger_uninstall_internal
+      -orig-id: RPMTAG_TRANSFILETRIGGERUN
+    5075:
+      id: trans_file_trigger_post_uninstall_internal
+      -orig-id: RPMTAG_TRANSFILETRIGGERPOSTUN
     5076:
       id: trans_file_trigger_scripts
       -orig-id: RPMTAG_TRANSFILETRIGGERSCRIPTS
@@ -993,6 +1399,9 @@ enums:
     5082:
       id: trans_file_trigger_flags
       -orig-id: RPMTAG_TRANSFILETRIGGERFLAGS
+    5083:
+      id: remove_path_postfixes_internal
+      -orig-id: RPMTAG_REMOVEPATHPOSTFIXES
     5084:
       id: file_trigger_priorities
       -orig-id: RPMTAG_FILETRIGGERPRIORITIES
@@ -1023,21 +1432,27 @@ enums:
     5093:
       id: payload_digest_algo
       -orig-id: RPMTAG_PAYLOADDIGESTALGO
+    5094:
+      id: auto_installed_unimplemented
+      -orig-id: RPMTAG_AUTOINSTALLED
+    5095:
+      id: identity_unimplemented
+      -orig-id: RPMTAG_IDENTITY
     5096:
       id: modularity_label
       -orig-id: RPMTAG_MODULARITYLABEL
     5097:
       id: payload_digest_alt
       -orig-id: RPMTAG_PAYLOADDIGESTALT
-  header_types:
+  record_types:
     # from LSB
     0: not_implemented
     1: char
-    2: int8
-    3: int16
-    4: int32
-    5: int64 # reserved
+    2: uint8
+    3: uint16
+    4: uint32
+    5: uint64
     6: string # NUL terminated
     7: bin
     8: string_array # NUL terminated strings
-    9: i18nstring # NUL terminated strings
+    9: i18n_string # NUL terminated strings

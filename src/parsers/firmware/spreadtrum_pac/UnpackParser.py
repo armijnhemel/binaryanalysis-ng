@@ -26,23 +26,26 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import spreadtrum_pac
 
 
 class SpreadtrumPacUnpackParser(UnpackParser):
-    extensions = ['.pac']
-    signatures = []
+    #extensions = ['.pac']
+    extensions = []
+    signatures = [(2116, b'\xfa\xff\xfa\xff')]
     pretty_name = 'spreadtrum_pac'
 
     def parse(self):
         try:
             self.data = spreadtrum_pac.SpreadtrumPac.from_io(self.infile)
             self.unpacked_size = self.data.header.len_file
+            product_name = self.data.header.product_name.decode('utf-16-le').split('\x00')[0]
+            firmware_name = self.data.header.firmware_name.decode('utf-16-le').split('\x00')[0]
             for entry in self.data.entries.entries:
                 self.unpacked_size = max(self.unpacked_size, entry.header.ofs_partition + entry.header.len_partition)
                 len_data = len(entry.data)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         check_condition(self.fileresult.filesize >= self.unpacked_size, "not enough data")
@@ -80,6 +83,8 @@ class SpreadtrumPacUnpackParser(UnpackParser):
         labels = ['spreadtrum', 'firmware']
 
         metadata = {}
+        metadata['product_name'] = self.data.header.product_name.decode('utf-16-le').split('\x00')[0]
+        metadata['firmware_name'] = self.data.header.firmware_name.decode('utf-16-le').split('\x00')[0]
 
         self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)

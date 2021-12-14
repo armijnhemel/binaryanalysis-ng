@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import android_vendor_boot
 
 
@@ -40,7 +40,7 @@ class AndroidVendorBootUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = android_vendor_boot.AndroidVendorBoot.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     # no need to carve from the file
@@ -51,15 +51,30 @@ class AndroidVendorBootUnpackParser(UnpackParser):
         unpacked_files = []
         out_labels = []
 
-        file_path = 'vendor_ramdisk'
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        outfile.write(self.data.vendor_ramdisk)
-
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-        unpacked_files.append(fr)
+        if self.data.header.version == 3:
+            file_path = 'vendor_ramdisk'
+            outfile_rel = self.rel_unpack_dir / file_path
+            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+            os.makedirs(outfile_full.parent, exist_ok=True)
+            outfile = open(outfile_full, 'wb')
+            outfile.write(self.data.vendor_ramdisk.data)
+            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
+            unpacked_files.append(fr)
+        elif self.data.header.version == 4:
+            ramdisk_counter = 1
+            for ramdisk in self.data.vendor_ramdisk_table.entries:
+                if ramdisk.name == '':
+                    file_path = "ramdisk-%d" % ramdisk_counter
+                else:
+                    file_path = ramdisk.name
+                ramdisk_counter += 1
+                outfile_rel = self.rel_unpack_dir / file_path
+                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full.parent, exist_ok=True)
+                outfile = open(outfile_full, 'wb')
+                outfile.write(ramdisk.ramdisk)
+                fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
+                unpacked_files.append(fr)
 
         file_path = 'dtb'
         outfile_rel = self.rel_unpack_dir / file_path

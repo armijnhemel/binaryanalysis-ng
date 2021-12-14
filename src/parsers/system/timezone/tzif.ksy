@@ -87,6 +87,8 @@ types:
       - id: num_transition_times
         -orig-id: timecnt
         type: u4
+        valid:
+          max: _root._io.size / 5
         doc: Number of transition times contained in the data block.
       - id: num_local_time_types
         -orig-id: typecnt

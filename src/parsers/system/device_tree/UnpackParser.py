@@ -24,7 +24,7 @@ import os
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError
+from kaitaistruct import ValidationFailedError
 from . import dtb
 
 class DeviceTreeUnpackParser(UnpackParser):
@@ -38,7 +38,7 @@ class DeviceTreeUnpackParser(UnpackParser):
         file_size = self.fileresult.filesize
         try:
             self.data = dtb.Dtb.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(file_size >= self.data.total_size, "not enough data")
         if self.data.version > 16:

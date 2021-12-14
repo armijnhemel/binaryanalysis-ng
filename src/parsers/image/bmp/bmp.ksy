@@ -102,10 +102,23 @@ seq:
   - id: dib_info
     size: file_hdr.ofs_bitmap - file_hdr._sizeof
     type: bitmap_info
+    valid:
+      expr: validate_bitmap_header
   - id: bitmap
     type: bitmap
     size: file_hdr.len_file - file_hdr.ofs_bitmap
+instances:
+  validate_bitmap_header:
+    pos: file_hdr._sizeof
+    size: 4
+    type: valid_bitmap_header
 types:
+  valid_bitmap_header:
+    seq:
+      - id: len_header
+        type: u4
+        valid:
+          any-of: [12, 64, 16, 40, 52, 56, 108, 124]
   bitmap:
     doc: |
       Replace with an opaque type if you care about the pixels.
@@ -122,6 +135,12 @@ types:
       - id: len_file
         -orig-id: bfSize
         type: u4
+        valid:
+          max: _root._io.size
+          # the amount of bytes can never be more than the
+          # amount of bytes in the file.
+          # ugly hack to work around false positives while carving
+          # and to prevent lots of bytes being read.
         doc: not reliable, mostly ignored by BMP decoders
       - id: reserved1
         -orig-id: bfReserved1
@@ -136,13 +155,9 @@ types:
       - id: ofs_bitmap
         -orig-id: bfOffBits
         type: u4
-        doc: Offset to actual raw pixel data of the image
         valid:
-          max: _root._io.size
-          # the amount of bytes can never be more than the
-          # amount of bytes in the file.
-          # ugly hack to work around false positives while carving
-          # and to prevent lots of bytes being read.
+          expr: ofs_bitmap <= len_file
+        doc: Offset to actual raw pixel data of the image
   bitmap_info:
     -orig-id: BITMAPINFO
     doc-ref: https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfo

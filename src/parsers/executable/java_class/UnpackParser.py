@@ -21,62 +21,112 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_java_class
+import mutf8
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import java_class
 
 
-#class JavaClassUnpackParser(UnpackParser):
-class JavaClassUnpackParser(WrappedUnpackParser):
+class JavaClassUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\xca\xfe\xba\xbe')
     ]
     pretty_name = 'javaclass'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_java_class(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = java_class.JavaClass.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
+
+        # TODO: make sure that all the pointers
+        # into the constant pool are actually valid
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'java class' ]
-        metadata = {}
 
         # store the results for Java:
         # * methods
-        # * interfaces
+        # * interfaces (TODO)
         # * fields
         # * source file name
         # * class name
         # * strings
-        javaresults = {}
+        metadata = {}
 
-        # walk and store the constant pool. This is used
-        # later to do lookups.
-        constant_pool = {}
+        # walk the constant pool for information that isn't
+        # available some other way.
+        metadata['strings'] = []
         constant_pool_index = 1
+        for i in self.data.constant_pool:
+            if i.is_prev_two_entries:
+                constant_pool_index += 1
+                continue
+            if self.data.this_class == constant_pool_index:
+                try:
+                    decoded_string = mutf8.decode_modified_utf8(i.cp_info.name_as_str)
+                    metadata['classname'] = decoded_string
+                except UnicodeDecodeError:
+                    # This shouldn't happen and means there
+                    # is an error in the mutf8 package
+                    pass
+            if type(i.cp_info) == java_class.JavaClass.StringCpInfo:
+                try:
+                    decoded_string = mutf8.decode_modified_utf8(i.cp_info.name_as_str)
+                    metadata['strings'].append(decoded_string)
+                except UnicodeDecodeError:
+                    # This shouldn't happen and means there
+                    # is an error in the mutf8 package
+                    pass
+            constant_pool_index += 1
 
-        javaresults['interfaces'] = []
-        for i in self.data.interfaces:
-            javaresults['interfaces'].append(i.name_as_str)
+        #metadata['interfaces'] = []
+        #for i in self.data.interfaces:
+        #    try:
+        #        decoded_string = mutf8.decode_modified_utf8(i.name_as_str)
+        #        metadata['interfaces'].append(decoded_string)
+        #    except (UnicodeDecodeError, AttributeError):
+        #        pass
 
-        javaresults['fields'] = []
+        metadata['fields'] = []
         for i in self.data.fields:
-            javaresults['fields'].append(i.name_as_str)
+            try:
+                decoded_string = mutf8.decode_modified_utf8(i.name_as_str)
+                metadata['fields'].append(decoded_string)
+            except UnicodeDecodeError:
+                # This shouldn't happen and means there
+                # is an error in the mutf8 package
+                pass
 
-        javaresults['methods'] = []
+        metadata['methods'] = []
         for i in self.data.methods:
-            javaresults['methods'].append(i.name_as_str)
+            try:
+                decoded_string = mutf8.decode_modified_utf8(i.name_as_str)
+                metadata['methods'].append(decoded_string)
+            except UnicodeDecodeError:
+                # This shouldn't happen and means there
+                # is an error in the mutf8 package
+                pass
 
+        for i in self.data.attributes:
+            try:
+                name = mutf8.decode_modified_utf8(i.name_as_str)
+            except UnicodeDecodeError:
+                # This shouldn't happen and means there
+                # is an error in the mutf8 package
+                continue
+
+            if name == 'SourceFile':
+                try:
+                    decoded_string = mutf8.decode_modified_utf8(i.info.sourcefile_as_str)
+                    metadata['sourcefile'] = decoded_string
+                except UnicodeDecodeError:
+                    # This shouldn't happen and means there
+                    # is an error in the mutf8 package
+                    continue
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)

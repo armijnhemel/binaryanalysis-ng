@@ -205,7 +205,7 @@ def main():
     csvreader = csv.reader(nsrfile)
 
     # create a few prepared statements
-    preparedmfg = "PREPARE mfg_insert as INSERT INTO nsrl_manufacturer (manufacturercode, manufacturername) values ($1, $2) ON CONFLICT DO NOTHING"
+    preparedmfg = "PREPARE mfg_insert as INSERT INTO nsrl_manufacturer (code, name) values ($1, $2) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedmfg)
 
     counter = 1
@@ -249,7 +249,7 @@ def main():
     csvreader = csv.reader(nsrfile)
 
     # create a few prepared statements
-    preparedos = "PREPARE os_insert as INSERT INTO nsrl_os (oscode, osname, osversion, manufacturercode) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
+    preparedos = "PREPARE os_insert as INSERT INTO nsrl_os (code, name, version, manufacturer_code) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedos)
 
     counter = 1
@@ -296,7 +296,7 @@ def main():
     csvreader = csv.reader(nsrfile)
 
     # create a few prepared statements
-    preparedproduct = "PREPARE product_insert as INSERT INTO nsrl_product (productcode, productname, productversion, manufacturercode, applicationtype) values ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
+    preparedproduct = "PREPARE product_insert as INSERT INTO nsrl_product (code, name, version, manufacturer_code, application_type) values ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedproduct)
 
     # process the lines in the CSV, and then bulk insert them into the database
@@ -346,7 +346,7 @@ def main():
     preparedhash = "PREPARE hash_insert as INSERT INTO nsrl_hash (sha1, md5, crc32, filename) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedhash)
 
-    preparedentry = "PREPARE entry_insert as INSERT INTO nsrl_entry (sha1, productcode) values ($1, $2) ON CONFLICT DO NOTHING"
+    preparedentry = "PREPARE entry_insert as INSERT INTO nsrl_entry (sha1, product_code) values ($1, $2) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedentry)
 
     # temporary data structures

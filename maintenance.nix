@@ -12,7 +12,6 @@ let
     packageurl-python
     psycopg2
     pytest
-    python-ctags3
     pyyaml
     requests
     telfhash

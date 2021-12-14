@@ -48,6 +48,7 @@ class FileResult:
         self.filesize = None
         self.mimetype = None
         self.mimetype_encoding = None
+        self.magic = []
 
         # target, only applicable to symbolic links
         self.target = None
@@ -80,6 +81,9 @@ class FileResult:
         self.mimetype = mimeres[0]
         self.mimetype_encoding = mimeres[1]
 
+    def set_magic(self, magic_res):
+        self.magic = magic_res
+
     def set_metadata(self, metadata):
         self.metadata = metadata
 
@@ -89,6 +93,7 @@ class FileResult:
             'hash': self.hash,
             'labels': list(self.labels),
             'filename': str(self.filename),
+            'magic': self.magic,
         }
         if self.filesize is not None:
             d['filesize'] = self.filesize

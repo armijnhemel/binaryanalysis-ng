@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import tzif
 
 class TimezoneUnpackParser(UnpackParser):
@@ -39,7 +39,7 @@ class TimezoneUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = tzif.Tzif.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

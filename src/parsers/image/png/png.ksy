@@ -57,6 +57,8 @@ types:
     seq:
       - id: len
         type: u4
+        valid:
+          max: _root._io.size
       - id: type
         type: str
         size: 4
@@ -117,6 +119,8 @@ types:
           min: 1
       - id: bit_depth
         type: u1
+        valid:
+          any-of: [1, 2, 4, 8, 16]
       - id: color_type
         type: u1
         enum: color_type

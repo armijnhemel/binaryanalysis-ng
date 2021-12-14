@@ -34,7 +34,7 @@ Files starting with ._ are likely AppleDouble encoded
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import apple_single_double
 
 
@@ -53,7 +53,7 @@ class AppledoubleUnpackParser(UnpackParser):
             # has been truncated.
             for i in self.data.entries:
                 a = type(i.body)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.num_entries > 1, "no apple double entries")
 

@@ -120,6 +120,9 @@ types:
         type: u2
       - id: bit_count
         type: u2
+        valid:
+          any-of: [1, 4, 8, 16, 24, 32]
+        doc: Number of bits per pixel that image buffer uses (1, 4, 8, 16, 24 or 32)
       - id: compression
         type: u4
         valid: 0
@@ -137,7 +140,7 @@ types:
       - id: num_colors_used
         -orig-id: biClrUsed
         type: u4
-        valid: 0
+        #valid: 0
       - id: num_colors_important
         -orig-id: biClrImportant
         type: u4

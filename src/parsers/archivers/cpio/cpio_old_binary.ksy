@@ -23,7 +23,7 @@ types:
       - id: filename_padding
         size: header.npaddingsize
       - id: filedata 
-        type: skip_and_ignore_type
+        #type: skip_and_ignore_type
         #size: header.fsize
         size: header.checked_filesize
       - id: filedata_padding
