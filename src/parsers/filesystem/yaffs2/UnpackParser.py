@@ -533,8 +533,9 @@ class Yaffs2UnpackParser(UnpackParser):
             if chunk_id != 0:
                 object_id_to_latest_chunk[object_id] = chunk_id
 
-                # jump to the offset of the chunk and write data
-                os.sendfile(last_open.fileno(), self.infile.fileno(), self.last_valid_offset, byte_count)
+                # jump to the offset of the chunk and write data. This needs
+                # absolute offsets again. Dirty hack!
+                os.sendfile(last_open.fileno(), self.infile.fileno(), self.last_valid_offset + self.offset, byte_count)
 
             else:
                 # close open file, if any
