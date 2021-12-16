@@ -74,7 +74,7 @@ class UbootLegacyUnpackParser(UnpackParser):
 
         # First try to see if this is perhaps an ASUS device
         self.is_asus_device = False
-        asus_product_families = ['BRT-', 'GS-', 'GT-', 'RP-', 'RT-']
+        asus_product_families = ['4G-', 'BRT-', 'GS-', 'GT-', 'PL-', 'RP-', 'RT-']
         try:
             asus_product_id = self.data.header.asus_info.product_id
             for family in asus_product_families:

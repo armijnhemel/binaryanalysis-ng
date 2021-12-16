@@ -190,7 +190,10 @@ class AndroidBootImgUnpacker(UnpackParser):
             metadata = {'cmdline': self.data.header.cmdline}
         if not self.is_variant:
             if self.data.header.extra_cmdline != '':
-                metadata = {'extra_cmdline': self.data.header.extra_cmdline}
+                try:
+                    metadata = {'extra_cmdline': self.data.header.extra_cmdline.decode()}
+                except:
+                    pass
             metadata['version'] = {'major': self.data.header.os_version.major,
                                    'minor': self.data.header.os_version.minor,
                                    'patch': self.data.header.os_version.patch,

@@ -59,9 +59,12 @@ types:
       - id: sha
         size: 32
       - id: extra_cmdline
-        type: strz
         size: 1024
-        encoding: ASCII
+        #type: strz
+        #encoding: ASCII
+        doc: |
+          Should be NUL terminated ASCII, but there are firmware files where this
+          is not the case and there is some (unknown) binary data instead.
       - id: recovery_dtbo
         type: size_offset
         if: header_version > 0
