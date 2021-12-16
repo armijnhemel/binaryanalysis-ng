@@ -69,10 +69,39 @@ class BfltUnpackParser(WrappedUnpackParser):
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
+    def extract_metadata_and_labels(self):
+        '''Extract metadata from the ELF file and set labels'''
         labels = ['bflt', 'executable']
         metadata = {}
+        data_strings = []
+        string_cutoff_length = 4
 
-        self.unpack_results.set_labels(labels)
+        # translation table for ASCII strings
+        string_translation_table = str.maketrans({'\t': ' '})
+
+        for s in self.data.data.split(b'\x00'):
+            try:
+                decoded_strings = s.decode().splitlines()
+                for decoded_string in decoded_strings:
+                    if len(decoded_string) < string_cutoff_length:
+                        continue
+                    if decoded_string.isspace():
+                        continue
+                    translated_string = decoded_string.translate(string_translation_table)
+                    if decoded_string.isascii():
+                        # test the translated string
+                        if translated_string.isprintable():
+                            data_strings.append(decoded_string)
+                    else:
+                        data_strings.append(decoded_string)
+            except:
+                pass
+
+        metadata['strings'] = data_strings
+        return (labels, metadata)
+
+    def set_metadata_and_labels(self):
+        """sets metadata and labels for the unpackresults"""
+        (labels, metadata) = self.extract_metadata_and_labels()
         self.unpack_results.set_metadata(metadata)
+        self.unpack_results.set_labels(labels)
