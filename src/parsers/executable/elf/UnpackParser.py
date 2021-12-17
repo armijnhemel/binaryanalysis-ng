@@ -477,6 +477,7 @@ class ElfUnpackParser(UnpackParser):
                             pass
                     elif entry.name == b'FDO' and entry.type == 0xcafe1a7e:
                         # https://fedoraproject.org/wiki/Changes/Package_information_on_ELF_objects
+                        # https://systemd.io/COREDUMP_PACKAGE_METADATA/
                         # extract JSON and store it
                         try:
                             metadata['package note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
