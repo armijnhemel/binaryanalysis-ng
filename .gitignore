@@ -5,3 +5,6 @@ src/test/coverage
 src/test/testdata/download
 
 util/kaitai_struct
+.vscode
+src/parsers/**/*.py
+
