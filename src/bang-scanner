@@ -106,8 +106,8 @@ def main(argv):
 
         # remove the standard log handler, as it will be different
         # per scan directory
-        for i in banglogger.handlers:
-            banglogger.removeHandler(i)
+        # for i in banglogger.handlers:
+        #     banglogger.removeHandler(i)
 
     unpackers = bangsignatures.get_unpackers()
 

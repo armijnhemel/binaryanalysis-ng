@@ -1,5 +1,5 @@
 # GNU make file
-
+CONTAINER=yes
 SOURCES = $(shell find parsers -type f -name '*.ksy')
 KAITAI_PARSERS = $(patsubst %.ksy, %.py, $(SOURCES))
 SPACE:=$(EMPTY) $(EMPTY)
@@ -9,12 +9,12 @@ CTR_IMAGE=bang
 CTR_PROGRAM=podman
 # CTR_OPTIONS=-u $$(id -u):$$(id -g) 
 CTR_OPTIONS=
-TMPDIR=$(HOME)/tmp
+TMPDIR=/tmp
 KSPATH=parsers
 
 ifdef CONTAINER
 # KAITAISTRUCT_COMPILER= $(CTR_PROGRAM) container run -it --rm $(CTR_OPTIONS) -v "$(PWD)":/src:z -w /src blacktop/kaitai
-KAITAISTRUCT_COMPILER= $(CTR_PROGRAM) container run -it --rm $(CTR_OPTIONS) -v "$(PWD)":/src:z -w /src kaitai
+KAITAISTRUCT_COMPILER= $(CTR_PROGRAM) container run -it --rm $(CTR_OPTIONS) -v "$(shell pwd)":/src:z -w /src kaitai
 else
 # Assume kaitai-struct-compiler is in $PATH
 KAITAISTRUCT_COMPILER= kaitai-struct-compiler 
@@ -31,7 +31,7 @@ all: $(KAITAI_PARSERS)
 
 TEST_TMP_DIR=$(PWD)/tmp/bangtest
 ifdef CONTAINER
-PYTEST=$(CTR_PROGRAM) container run -it --rm $(CTR_OPTIONS) -v "$(PWD)":/src:z -v $(TEST_TMP_DIR):/bangtmp:z -w /src $(CTR_IMAGE) py.test --basetemp=/bangtmp/t
+PYTEST=$(CTR_PROGRAM) container run -it --rm $(CTR_OPTIONS) -v "$(shell pwd)":/src:z -v $(TEST_TMP_DIR):/bangtmp:z -w /src $(CTR_IMAGE) py.test --basetemp=/bangtmp/t
 else
 PYTEST=py.test --basetemp=$(TEST_TMP_DIR)/t
 endif
@@ -47,7 +47,7 @@ parsertests:
 	$(PYTEST) parsers
 
 ctrshell:
-	$(CTR_PROGRAM) container run -it --rm $(CTR_OPTIONS) -v "$(PWD)":/src:z -v $(TMPDIR):/tmp:z -w /src $(CTR_IMAGE) bash
+	$(CTR_PROGRAM) container run -it --rm $(CTR_OPTIONS) -v "$(shell pwd)":/src:z -v $(TMPDIR):/tmp:z -w /src $(CTR_IMAGE) bash
 
 ctrbuild:
 	$(CTR_PROGRAM) image build -t $(CTR_IMAGE) .
