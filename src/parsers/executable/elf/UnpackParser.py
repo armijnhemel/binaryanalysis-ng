@@ -84,6 +84,17 @@ class ElfUnpackParser(UnpackParser):
                     if header.name == '.symtab':
                         for entry in header.body.entries:
                             name = entry.name
+                if header.type == elf.Elf.ShType.dynamic:
+                    if header.name == '.dynamic':
+                        for entry in header.body.entries:
+                            if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
+                                name = entry.value_str
             # read the names, but don't proces them. This is just to force
             # evaluation, which normally happens lazily for instances in
             # kaitai struct.
