@@ -51,7 +51,7 @@ types:
         size: len_data
   name_table:
     seq:
-      - id: name_table_entries
+      - id: entries
         type: name_table_entry
         repeat: eos
   name_table_entry:
