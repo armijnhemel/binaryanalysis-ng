@@ -1,11 +1,11 @@
 INPUTDIR = ${shell pwd}/../testfiles/
-INPUTFILE = openwrt/openwrt-21.02.1-x86-generic-generic-squashfs-combined-efi.img.gz
+INPUTFILE = openwrt/unpacked.gpt-partition1.part
 INPUTPATH = ${INPUTDIR}${INPUTFILE}
-OUTPUT = ../testfiles/unpack
+OUTPUT = ${shell pwd}/../testfiles/unpack
 SRC = ${shell pwd}/src
 RESULTS = bang-scan-grgcj2k2
 
-PODMANCMD = sudo podman container run -it --rm -v "${OUTPUT}":/unpack -v "${INPUTDIR}":/input -v "${SRC}":/src:z -v /tmp:/tmp:z -w /src bang 
+PODMANCMD = sudo docker run -it --rm -v "${OUTPUT}":/unpack -v "${INPUTDIR}":/input -v "${SRC}":/src:z -v /tmp:/tmp:z -u 0 -w /src bang 
 
 all: base-images bang-container unpack
 
@@ -22,4 +22,5 @@ bash:
 	${PODMANCMD} bash
 
 cve: 
-	${PODMANCMD} python3 /src/cve/cve_finder.py -c /src/cve/cve-config.yaml -r /unpack/${RESULTS}
+	last_result=$(shell ${PODMANCMD} ls -Art1 /unpack | tail -n 1); \
+	${PODMANCMD} python3 /src/cve/cve_finder.py -c /src/cve/cve-config.yaml -r /unpack/$$last_result
