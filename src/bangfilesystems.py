@@ -252,11 +252,7 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
         listoffiles = os.listdir()
         for l in listoffiles:
             try:
-                mode = os.stat(l).st_mode
-                if stat.S_ISDIR(mode) or stat.S_ISREG(mode) or stat.S_ISLNK(mode):
-                    shutil.move(l, unpackdir_full, copy_function=local_copy2)
-                else:
-                    logging.log(logging.INFO, f"File {l} is not extracted as it is no directory, regular file or link. st_mode: {mode}")
+                shutil.move(l, unpackdir_full, copy_function=local_copy2)
             except:
                 # TODO: make exception more specific
                 # TODO: report
@@ -311,7 +307,13 @@ def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
 # unpacking amongst others.
 def local_copy2(src, dest):
     '''Wrapper around shutil.copy2 for squashfs unpacking'''
-    return shutil.copy2(src, dest, follow_symlinks=False)
+    mode = os.stat(src).st_mode
+    if stat.S_ISDIR(mode) or stat.S_ISREG(mode) or stat.S_ISLNK(mode):
+        return shutil.copy2(src, dest, follow_symlinks=False)
+    else:
+        logging.log(logging.INFO, f"File {src} is not extracted as it is no directory, regular file or link. st_mode: {mode}")
+
+    
 
 
 # Derived from public ISO9660 specifications
