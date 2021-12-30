@@ -29,7 +29,7 @@ try:
 except ImportError:
     from yaml import Loader
 
-@click.command(short_help='download binaries from a single Debian repository')
+@click.command(short_help='run YARA rules on a BANG result directory')
 @click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
 @click.option('--result-directory', '-r', required=True, help='path to BANG result directories')
 def main(config, result_directory):
