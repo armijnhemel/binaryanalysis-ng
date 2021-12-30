@@ -25,9 +25,6 @@ import math
 import os
 import pathlib
 
-from UnpackParser import WrappedUnpackParser
-from bangfilesystems import unpack_ubi
-
 from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
@@ -46,16 +43,12 @@ from UnpackParserException import UnpackParserException
 # https://github.com/nlitsme/ubidump
 
 
-class UbiUnpackParser(WrappedUnpackParser):
-#class UbiUnpackParser(UnpackParser):
+class UbiUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0,  b'UBI#')
     ]
     pretty_name = 'ubi'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_ubi(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         # the block size is not known in advance, so just read some
@@ -70,16 +63,16 @@ class UbiUnpackParser(WrappedUnpackParser):
         isfirstblock = True
 
         # store the volume tables from the layout volume per image
-        volume_tables = {}
+        self.volume_tables = {}
 
         # store the number of layout volumes per image
         layout_volumes_per_image = {}
 
         # store some info about each block
-        blocks = {}
+        self.blocks = {}
 
         # store which blocks belong to an image
-        image_to_erase_blocks = {}
+        self.image_to_erase_blocks = {}
 
         # seek to the start of the UBI block
         # note: the offset is already relative, because OffsetInputFile
@@ -160,7 +153,7 @@ class UbiUnpackParser(WrappedUnpackParser):
             # of different images could be interleaved, but that
             # is just asking for trouble, so assume that doesn't
             # happen.
-            if image_sequence not in volume_tables:
+            if image_sequence not in self.volume_tables:
                 isfirstblock = True
             unpackedsize += 4
 
@@ -252,8 +245,8 @@ class UbiUnpackParser(WrappedUnpackParser):
             if volume_id > 0x7fffefff:
                 break
 
-            if image_sequence not in volume_tables:
-                volume_tables[image_sequence] = {}
+            if image_sequence not in self.volume_tables:
+                self.volume_tables[image_sequence] = {}
                 layout_volumes_per_image[image_sequence] = 0
 
             # need layout volume first
@@ -410,6 +403,15 @@ class UbiUnpackParser(WrappedUnpackParser):
                     self.infile.seek(4, os.SEEK_CUR)
                     unpackedsize += 4
 
+                    if phys_erase_blocks != 0:
+                        self.volume_tables[image_sequence][volume_table] = {'name': volume_name,
+                                                       'blocks': phys_erase_blocks,
+                                                       'flags': volume_flags,
+                                                       'alignment': alignment,
+                                                       'padding': data_padding,
+                                                       'marker': update_marker,
+                                                      }
+
                 if broken_volume_table:
                     del layout_volumes_per_image[image_sequence]
                     break
@@ -417,19 +419,90 @@ class UbiUnpackParser(WrappedUnpackParser):
             else:
                 # store the blocks per image, the first two are always
                 # layout volume blocks
-                if image_sequence not in image_to_erase_blocks:
-                    image_to_erase_blocks[image_sequence] = [0, 1]
-                image_to_erase_blocks[image_sequence].append(blockid)
+                if image_sequence not in self.image_to_erase_blocks:
+                    self.image_to_erase_blocks[image_sequence] = [0, 1]
+                self.image_to_erase_blocks[image_sequence].append(blockid)
                 curoffset += self.blocksize
             if curoffset > file_size:
                 break
-            blocks[blockid] = {'offset': data_offset, 'logical': logical_erase_block}
+            self.blocks[blockid] = {'offset': data_offset, 'logical': logical_erase_block}
             blockid += 1
 
+        # sanity checks for actual data
+        data_unpacked = False
 
+        # check the data for each image, without writing
+        for image_sequence in self.volume_tables:
+            image_block_counter = 2
+            for vt in sorted(self.volume_tables[image_sequence].keys()):
+                if image_sequence not in self.image_to_erase_blocks:
+                    continue
+                volume_table = self.volume_tables[image_sequence][vt]
+
+                seen_logical = 0
+                broken_image = False
+                for block in range(image_block_counter, len(self.image_to_erase_blocks[image_sequence])):
+                    erase_block = self.image_to_erase_blocks[image_sequence][block]
+                    if erase_block not in self.blocks:
+                        broken_image = True
+                        break
+                    if self.blocks[erase_block]['logical'] < seen_logical:
+                        image_block_counter = erase_block
+                        break
+                    seen_logical = self.blocks[erase_block]['logical']
+                    readoffset = erase_block * self.blocksize + self.blocks[block]['offset']
+                    blockreadsize = self.blocksize - self.blocks[erase_block]['offset']
+                    unpackedsize = max(unpackedsize, readoffset + blockreadsize)
+
+                check_condition(not broken_image, "not a valid UBI image")
+                data_unpacked = True
+
+        check_condition(data_unpacked, "no data could be unpacked")
+        self.unpacked_size = unpackedsize
+
+    def unpack(self):
+        unpacked_files = []
+
+        # write the data for each image
+        for image_sequence in self.volume_tables:
+            image_block_counter = 2
+            for vt in sorted(self.volume_tables[image_sequence].keys()):
+                if image_sequence not in self.image_to_erase_blocks:
+                    continue
+                volume_table = self.volume_tables[image_sequence][vt]
+
+                # open the output file
+                # TODO: check if there are any duplicate names inside an image
+                outfile_rel = self.rel_unpack_dir / ("image-%d" % image_sequence) / volume_table['name']
+                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
+                outfile = open(outfile_full, 'wb')
+
+                seen_logical = 0
+                for block in range(image_block_counter, len(self.image_to_erase_blocks[image_sequence])):
+                    erase_block = self.image_to_erase_blocks[image_sequence][block]
+                    if erase_block not in self.blocks:
+                        break
+                    if self.blocks[erase_block]['logical'] < seen_logical:
+                        image_block_counter = erase_block
+                        break
+                    seen_logical = self.blocks[erase_block]['logical']
+                    readoffset = erase_block * self.blocksize + self.blocks[block]['offset']
+                    blockreadsize = self.blocksize - self.blocks[erase_block]['offset']
+                    os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset + readoffset, blockreadsize)
+                outfile.close()
+
+                fr = FileResult(self.fileresult, outfile_rel, set())
+                unpacked_files.append(fr)
+
+        return unpacked_files
 
     # no need to carve from the file
     def carve(self):
+        pass
+
+    # make sure that self.unpacked_size is not overwritten
+    def calculate_unpacked_size(self):
         pass
 
     def set_metadata_and_labels(self):
