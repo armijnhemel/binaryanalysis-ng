@@ -12,6 +12,7 @@ seq:
     type: palm_database
 
 types:
+  dummy: {}
   palm_database:
     seq:
       - id: name
@@ -50,15 +51,21 @@ types:
       - id: num_records
         type: u2
       - id: first_record
-        type: record(true)
+        type: record('first')
       - id: records
-        type: record(false)
+        type: record('')
         repeat: expr
-        repeat-expr: num_records - 1
+        repeat-expr: num_records - 2
+      - id: end_of_file
+        type: record('eof')
+  end_of_file_record:
+    seq:
+      - id: end_of_file
+        contents: [0xe9, 0x8e, 0x0d, 0x0a]
   record:
     params:
-      - id: first
-        type: bool
+      - id: type
+        type: str
     seq:
       - id: ofs_record_data
         type: u4
@@ -71,11 +78,15 @@ types:
       record:
         pos: ofs_record_data
         type:
-          switch-on: first
+          switch-on: type
           cases:
-            true: mobi_record
-            false: u1
+            '"first"': mobi_record(ofs_record_data)
+            '"eof"': end_of_file_record
+            _: dummy
   mobi_record:
+    params:
+      - id: ofs
+        type: u4
     seq:
       - id: compression
         type: u2
@@ -103,6 +114,11 @@ types:
       - id: ext_header
         type: exth
         if: mobi_header.rest_of_header.has_exth
+    instances:
+      full_name:
+        pos: ofs + mobi_header.rest_of_header.ofs_full_name
+        size: mobi_header.rest_of_header.len_full_name
+        type: str
   mobi_header:
     seq:
       - id: magic
@@ -241,10 +257,6 @@ types:
     instances:
       has_exth:
         value: exth_flags & 0x40 == 0x40
-      #full_name:
-      #  pos: ofs_full_name
-      #  size: len_full_name
-      #  type: str
   exth:
     seq:
       - id: magic
