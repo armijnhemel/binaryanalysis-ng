@@ -126,3 +126,17 @@ license texts found in source code archives with official license texts is
 presented.
 
 <https://www.tdcommons.org/dpubs_series/4769/>
+
+## Finding version information for binary files with YARA fingerprinting using a multi-layered approach
+
+Detecting provenance of binary files can be done by using the YARA pattern
+matching tool. It is easy to write or generate YARA rules to detect a
+particular version of a binary file, but detection can be time consuming as
+for some packages there are many versions, meaning there are potentially lots
+of different rules that need to be applied, with most of them applied while it
+is already clear that there will never be any successful matches for those
+rules. Using multiple scan phases allows doing a coarse check first to
+determine the overall package using a generic package rule and then zooming
+in to find the particular version using package/version specific rules.
+
+<https://www.tdcommons.org/dpubs_series/4818/>
