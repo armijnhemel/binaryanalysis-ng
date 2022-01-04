@@ -23,6 +23,7 @@
 import os
 import pathlib
 import shutil
+import subprocess
 
 from UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_squashfs
@@ -114,12 +115,47 @@ class SquashfsUnpackParser(WrappedUnpackParser):
             checkbytes = self.infile.read(4)
             check_condition(len(checkbytes) == 4,
                             "not enough data to read squashfs size")
+
         squashfssize = int.from_bytes(checkbytes, byteorder=byteorder)
         check_condition(squashfssize > 0,
                         "cannot determine size of squashfs file system")
 
         check_condition(self.offset + squashfssize <= filesize,
                         "file system cannot extend past file")
+
+        # write the data to a temporary file if the offset != 0
+        # and run unsquashfs or sasquatch
+        if self.offset != 0:
+            check_condition(self.offset == 0, "only offset 0 supported now")
+
+        success = False
+        if have_squashfs:
+            p = subprocess.Popen(['unsquashfs', '-lc', self.infile.name],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (outputmsg, errormsg) = p.communicate()
+            if p.returncode == 0 or b'because you\'re not superuser!' in errormsg:
+                success = True
+
+        if not success:
+            p = subprocess.Popen(['sasquatch', '-lc', '-p', '1', self.infile.name],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (outputmsg, errormsg) = p.communicate()
+
+            if p.returncode == 0 or b'because you\'re not superuser!' in errormsg:
+                success = True
+        check_condition(success, "invalid or unsupported squashfs file system")
+
+        # by default mksquashfs pads to 4K blocks with NUL bytes.
+        # The padding is not counted in squashfssize
+        if squashfssize % 4096 != 0:
+            self.infile.seek(squashfssize)
+            paddingbytes = 4096 - squashfssize % 4096
+            checkbytes = self.infile.read(paddingbytes)
+            if len(checkbytes) == paddingbytes:
+                if checkbytes == paddingbytes * b'\x00':
+                    squashfssize += paddingbytes
+
+        self.unpacked_size = squashfssize
 
     # no need to carve from the file
     def carve(self):
