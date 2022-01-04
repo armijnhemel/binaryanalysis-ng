@@ -716,7 +716,7 @@ types:
                             type: b1
                           - id: current
                             type: b1
-                          - id: continue
+                          - id: continued
                             type: b1
                           - id: name
                             type: str
@@ -820,7 +820,7 @@ types:
                             type: b1
                           - id: current
                             type: b1
-                          - id: continue
+                          - id: continued
                             type: b1
                           - id: content
                             type: str
