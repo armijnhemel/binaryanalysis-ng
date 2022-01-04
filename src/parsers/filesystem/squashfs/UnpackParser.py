@@ -24,6 +24,7 @@ import os
 import pathlib
 import shutil
 import subprocess
+import tempfile
 
 from UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_squashfs
@@ -53,15 +54,15 @@ class SquashfsUnpackParser(WrappedUnpackParser):
 
     def parse(self):
         # first check if the unpacking tools are available
-        have_squashfs = True
+        self.have_squashfs = True
         if shutil.which('unsquashfs') is None:
-            have_squashfs = False
+            self.have_squashfs = False
 
         have_sasquahts = True
         if shutil.which('sasquatch') is None:
-            have_sasquahts = False
+            self.have_sasquatch = False
 
-        check_condition(have_squashfs or have_sasquatch,
+        check_condition(self.have_squashfs or self.have_sasquatch,
                         "unsquashfs and sasquatch not found")
 
         filesize = self.fileresult.filesize
@@ -129,7 +130,7 @@ class SquashfsUnpackParser(WrappedUnpackParser):
             check_condition(self.offset == 0, "only offset 0 supported now")
 
         success = False
-        if have_squashfs:
+        if self.have_squashfs:
             p = subprocess.Popen(['unsquashfs', '-lc', self.infile.name],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
@@ -156,6 +157,27 @@ class SquashfsUnpackParser(WrappedUnpackParser):
                     squashfssize += paddingbytes
 
         self.unpacked_size = squashfssize
+
+    def unpack(self):
+        unpacked_files = []
+
+        squashfs_unpack_directory = tempfile.mkdtemp(dir=self.scan_environment.temporarydirectory)
+
+        success = False
+        if self.have_squashfs:
+            p = subprocess.Popen(['unsquashfs', self.infile.name],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 cwd=squashfs_unpack_directory)
+            (outputmsg, errormsg) = p.communicate()
+            if p.returncode == 0 or b'because you\'re not superuser!' in errormsg:
+                success = True
+
+        if not success:
+            p = subprocess.Popen(['sasquatch', '-p', '1', self.infile.name],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 cwd=squashfs_unpack_directory)
+            (outputmsg, errormsg) = p.communicate()
+        return unpacked_files
 
     # no need to carve from the file
     def carve(self):
