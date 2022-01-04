@@ -55,6 +55,9 @@ types:
       - id: be
         type: u2be
         valid: le
+    instances:
+      value:
+        value: le
   u4bi:
     doc-ref: ecma-119 7.3.3
     seq:
