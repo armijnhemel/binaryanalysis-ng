@@ -63,6 +63,9 @@ types:
       - id: be
         type: u4be
         valid: le
+    instances:
+      value:
+        value: le
   datetime_long:
     doc-ref: ecma-119 8.4.26.1
     seq:
