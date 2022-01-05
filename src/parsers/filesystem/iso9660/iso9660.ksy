@@ -34,18 +34,18 @@ seq:
     type: volume_descriptor
     size: sector_size
     repeat: until
-    repeat-until: _.type == volume_type::volume_descriptor_set_terminator
+    repeat-until: _.type == volume_type::set_terminator
 instances:
   sector_size:
     doc-ref: ecma-119 6.1.2
     value: 0x800
 enums:
   volume_type:
-    0x00: boot_record_volume_descriptor
-    0x01: primary_volume_descriptor
-    0x02: supplementary_volume_descriptor
-    0x03: volume_partition_descriptor
-    0xff: volume_descriptor_set_terminator
+    0x00: boot_record
+    0x01: primary
+    0x02: supplementary
+    0x03: volume_partition
+    0xff: set_terminator
 types:
   u2bi:
     doc-ref: ecma-119 7.2.3
@@ -131,10 +131,10 @@ types:
         type:
           switch-on: type
           cases:
-            'volume_type::boot_record_volume_descriptor': boot_record
-            'volume_type::primary_volume_descriptor': primary
-            'volume_type::supplementary_volume_descriptor': supplementary
-            #'volume_type::volume_partition_descriptor': partition
+            'volume_type::boot_record': boot_record
+            'volume_type::primary': primary
+            'volume_type::supplementary': supplementary
+            #'volume_type::volume_partition': partition
     types:
       text32:
         seq:
