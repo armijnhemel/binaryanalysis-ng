@@ -258,7 +258,7 @@ types:
           path_table:
             io: _root._io
             pos: _root.sector_size * loc_l_path_table
-            size: path_table_size.le
+            size: path_table_size.value
             type: path_table_records
       supplementary:
         doc-ref: ecma-119 8.5
@@ -358,7 +358,7 @@ types:
           path_table:
             io: _root._io
             pos: _root.sector_size * loc_l_path_table
-            size: path_table_size.le
+            size: path_table_size.value
             type: path_table_records
       path_table_records:
         doc-ref: ecma-119 9.4
@@ -493,14 +493,14 @@ types:
             instances:
               directory_records:
                 io: _root._io
-                pos: _root.sector_size * location_of_extent.le
-                size: data_len.le
+                pos: _root.sector_size * location_of_extent.value
+                size: data_len.value
                 type: directory_records
                 if: ( _parent.len_dr > 0x0 ) and file_flags_directory
               file_content:
                 io: _root._io
-                pos: _root.sector_size * location_of_extent.le
-                size: data_len.le
+                pos: _root.sector_size * location_of_extent.value
+                size: data_len.value
                 if: ( _parent.len_dr > 0x0 ) and not file_flags_directory
             types:
               susp:
