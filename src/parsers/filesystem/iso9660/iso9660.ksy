@@ -403,7 +403,7 @@ types:
           First item "." points to it self
           Second item ".." points to the parent, or also to self if it is the root
         seq:
-          - id: directory_record
+          - id: records
             type: directory_record
             repeat: until
             repeat-until: _.len_dr == 0
