@@ -312,7 +312,7 @@ class ElfUnpackParser(UnpackParser):
                 if header.name == '.symtab':
                     for entry in header.body.entries:
                         symbol = {}
-                        if entry.name == None:
+                        if entry.name is None:
                             symbol['name'] = ''
                         else:
                             symbol['name'] = entry.name
@@ -326,7 +326,7 @@ class ElfUnpackParser(UnpackParser):
                 if header.name == '.dynsym':
                     for entry in header.body.entries:
                         symbol = {}
-                        if entry.name == None:
+                        if entry.name is None:
                             symbol['name'] = ''
                         else:
                             symbol['name'] = entry.name
