@@ -211,7 +211,7 @@ types:
           - id: loc_opt_m_path_table
             doc-ref: ecma-119 8.4.17
             type: u4be
-          - id: directory_record_for_root_directory
+          - id: root_directory
             doc-ref: ecma-119 8.4.18
             doc: |
               The root directory_record with body is 34 bytes.
@@ -311,7 +311,7 @@ types:
           - id: loc_opt_m_path_table
             doc-ref: ecma-119 8.5.11
             type: u4be
-          - id: directory_record_for_root_directory
+          - id: root_directory
             doc-ref: ecma-119 8.5.12
             doc: |
               The root directory_record with body is 34 bytes.
@@ -425,7 +425,7 @@ types:
               - id: ext_attr_rec_len
                 doc-ref: ecma-119 9.1.2
                 type: u1
-              - id: location_of_extent
+              - id: extent
                 doc-ref: ecma-119 9.1.3
                 type: u4bi
               - id: data_len
@@ -493,13 +493,13 @@ types:
             instances:
               directory_records:
                 io: _root._io
-                pos: _root.sector_size * location_of_extent.value
+                pos: _root.sector_size * extent.value
                 size: data_len.value
                 type: directory_records
                 if: ( _parent.len_dr > 0x0 ) and file_flags_directory
               file_content:
                 io: _root._io
-                pos: _root.sector_size * location_of_extent.value
+                pos: _root.sector_size * extent.value
                 size: data_len.value
                 if: ( _parent.len_dr > 0x0 ) and not file_flags_directory
             types:
