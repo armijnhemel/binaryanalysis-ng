@@ -505,13 +505,15 @@ types:
             types:
               susp:
                 doc: |
-                  We check if we have at least 2 bytes left.
-                  The SUSP magic is 2 bytes.
+                  We check if we have at least 4 bytes left.
+                  The SUSP magic is 2 bytes. A complete SUSP entry
+                  is at least 4 bytes long.
                 seq:
                   - id: header
                     type: header
-                    if: _io.size - _io.pos >= 2
-                    repeat: eos
+                    if: _io.size - _io.pos >= 4
+                    repeat: until
+                    repeat-until: _io.size - _io.pos < 4
                 types:
                   header:
                     seq:
