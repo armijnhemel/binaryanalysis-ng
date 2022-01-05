@@ -435,6 +435,7 @@ types:
             type: u1
           - id: body
             type: body
+            size: len_dr - len_dr._sizeof
             if: len_dr > 0x0
         types:
           body:
@@ -502,11 +503,8 @@ types:
                 if: len_fi % 2 == 0
               - id: system_use
                 doc-ref: ecma-119 9.1.13
-                doc: |
-                  The size of the system_use is defined as:
-                  ( len_dr - size of directory_record = 33 bytes ) - len_fi
                 type: susp
-                size: ( _parent.len_dr - 33 ) - len_fi
+                size-eos: true
             instances:
               directory_records:
                 io: _root._io
