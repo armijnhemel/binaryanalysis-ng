@@ -72,29 +72,46 @@ types:
   datetime_long:
     doc-ref: ecma-119 8.4.26.1
     seq:
-      - id: year
+      - id: year_string
         type: str
         size: 4
-      - id: month
+      - id: month_string
         type: str
         size: 2
-      - id: day
+      - id: day_string
         type: str
         size: 2
-      - id: hour
+      - id: hour_string
         type: str
         size: 2
-      - id: minute
+      - id: minute_string
         type: str
         size: 2
-      - id: second
+      - id: second_string
         type: str
         size: 2
-      - id: hundredths_second
+      - id: hundredths_second_string
         type: str
         size: 2
       - id: timezone_offset
         type: s1
+    instances:
+      year:
+        value: year_string.to_i
+      month:
+        value: month_string.to_i
+      day:
+        value: day_string.to_i
+      hour:
+        value: hour_string.to_i
+      minute:
+        value: minute_string.to_i
+      second:
+        value: second_string.to_i
+      hundredths_second:
+        value: hundredths_second_string.to_i
+      valid_date:
+        value: month >= 1  and month <= 12 and day >=1 and day <= 31 and hour <= 23 and minute <= 59 and second <= 59
   datetime_short:
     doc-ref: ecma-119 9.1.5
     seq:
