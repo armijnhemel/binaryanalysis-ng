@@ -535,7 +535,13 @@ types:
                       - id: signature
                         type: u2be
                         enum: signature
-                      - id: specific
+                      - id: length
+                        type: u1
+                      - id: version
+                        type: u1
+                        valid: 1
+                      - id: susp_data
+                        size: length - (signature._sizeof + length._sizeof + version._sizeof) # note: this `_sizeof` sum should probably be in a `value` instance
                         type:
                           switch-on: signature
                           cases:
@@ -583,11 +589,6 @@ types:
                       rras_as:
                         doc-ref: rras
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: reserved
                             type: b5
                           - id: flag_continue
@@ -607,7 +608,7 @@ types:
                           - id: comment
                             doc-ref: rras 7b
                             type: str
-                            size: len_comment - 1
+                            size-eos: true
                             if: flag_comment or flag_continue
                         types:
                           flags:
@@ -670,11 +671,6 @@ types:
                       susp_ce:
                         doc-ref: susp 5.1
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: ca_location
                             type: u4bi
                           - id: ca_offset
@@ -684,21 +680,11 @@ types:
                       rrip_cl:
                         doc-ref: rrip 4.1.5.1
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: lba_child
                             type: u4bi
                       susp_er:
                         doc-ref: susp 5.5
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: len_id
                             type: u1
                           - id: len_des
@@ -716,21 +702,11 @@ types:
                       susp_es:
                         doc-ref: susp 5.6
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: ext_seq
                             type: u1
                       rrip_nm:
                         doc-ref: rrip 4.1.4
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: reserved
                             doc: |
                               Grouped all 4x reserved into a single reserved
@@ -743,35 +719,20 @@ types:
                             type: b1
                           - id: name
                             type: str
-                            size: length - 5
+                            size-eos: true
                       susp_pd:
                         doc-ref: susp 5.2
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: padding_area
-                            size: length - 4
+                            size-eos: true
                       rrip_pl:
                         doc-ref: rrip 4.1.5.2
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: lba_parent
                             type: u4bi
                       rrip_pn:
                         doc-ref: rrip 4.1.2
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: dev_t_high
                             type: u4bi
                           - id: dev_t_low
@@ -779,11 +740,6 @@ types:
                       rrip_px:
                         doc-ref: rrip 4.1.1
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: file_mode
                             type: u4bi
                           - id: links
@@ -794,23 +750,12 @@ types:
                             type: u4bi
                           - id: serial
                             type: u4bi
-                            if: length >= 44
-                      rrip_re:
-                        doc-ref: rrip 4.1.5.3
-                        seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
+                            if: _parent.length >= 44
+                      #doc-ref: rrip 4.1.5.3
+                      rrip_re: {}
                       rrip_sf:
                         doc-ref: rrip 4.1.7
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: virtual_file_size_high
                             type: u4bi
                           - id: virtual_file_size_low
@@ -830,11 +775,6 @@ types:
                       susp_sl:
                         doc-ref: susp 4.1.3.1
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: reserved
                             type: b4
                           - id: root
@@ -847,35 +787,19 @@ types:
                             type: b1
                           - id: content
                             type: str
-                            size: length - 5
+                            size-eos: true
                       susp_sp:
                         doc-ref: susp 5.3
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: check_bytes
                             contents: [ 0xbe, 0xef ]
                           - id: len_skp
-                            size: length - 6
-                      susp_st:
-                        doc-ref: susp 5.4
-                        seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
+                            size-eos: true
+                      # doc-ref: susp 5.4
+                      susp_st: {}
                       rrip_tf:
                         doc-ref: rrip 4.6.1
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: long_form
                             type: b1
                           - id: effective
@@ -956,11 +880,6 @@ types:
                       rrzf_zf:
                         doc-ref: rrzf
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
-                            valid: 1
                           - id: algorithm
                             type: u2be
                             enum: algorithm
@@ -982,9 +901,5 @@ types:
                             0x11: bs_128kib
                       susp_unknown: # default for now
                         seq:
-                          - id: length
-                            type: u1
-                          - id: version
-                            type: u1
                           - id: data
-                            size: length - 4
+                            size-eos: true
