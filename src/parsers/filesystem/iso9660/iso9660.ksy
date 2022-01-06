@@ -143,7 +143,8 @@ types:
       - id: version
         doc-ref: ecma-119 8.1.3
         type: u1
-        valid: 1
+        valid:
+          any-of: [1, 2]
       - id: volume
         type:
           switch-on: type
