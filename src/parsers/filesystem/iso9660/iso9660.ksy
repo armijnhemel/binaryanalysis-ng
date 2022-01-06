@@ -424,7 +424,7 @@ types:
           - id: records
             type: directory_record
             repeat: until
-            repeat-until: _.len_dr == 0
+            repeat-until: _io.eof or (_io.size - _io.pos < 34)
       directory_record:
         doc-ref: ecma-119 9.1
         seq:
