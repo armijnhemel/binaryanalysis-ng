@@ -20,11 +20,11 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# https://www.sciencedirect.com/science/article/pii/S1742287610000435
 
 import collections
 import os
 import pathlib
-import sys
 
 from UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_iso9660
@@ -75,6 +75,15 @@ class Iso9660UnpackParser(WrappedUnpackParser):
                     extent_size = descriptor.volume.root_directory.body.extent.value * descriptor.volume.logical_block_size.value
                     check_condition(extent_size <= self.fileresult.filesize,
                                     "extent cannot be outside of file")
+
+                    # process the root directory.
+
+                    # ECMA 119, 7.6: file name for root directory is 0x00
+                    # Some ISO file systems instead set it to 0x01, which
+                    # according to 6.8.2.2 should not be for the first root
+                    # entry.
+                    # Seen in an ISO file included in an ASUS firmware file
+                    # Modem_FW_4G_AC55U_30043808102_M14.zip
 
                     files = collections.deque()
                     if descriptor.volume.root_directory.body.directory_records is not None:
