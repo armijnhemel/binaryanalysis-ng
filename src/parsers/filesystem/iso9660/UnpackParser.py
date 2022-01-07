@@ -125,6 +125,40 @@ class Iso9660UnpackParser(WrappedUnpackParser):
         self.unpacked_size = iso_size
 
 
+    def unpack(self):
+        unpacked_files = []
+
+        # check the contents of the ISO image
+        for descriptor in self.data.data_area:
+            if descriptor.type == iso9660.Iso9660.VolumeType.primary:
+
+                # process the root directory.
+                files = collections.deque()
+                if descriptor.volume.root_directory.body.directory_records is not None:
+                    for record in descriptor.volume.root_directory.body.directory_records.records:
+                        if record.len_dr == 0:
+                            continue
+                        if record.body.file_flags_directory:
+                            if record.body.file_id_dir not in ['\x00', '\x01']:
+                                files.append(record)
+                        else:
+                            files.append(record)
+
+                while(len(files) != 0):
+                    record = files.popleft()
+
+                    if record.body.directory_records is None:
+                        continue
+                    for dir_record in record.body.directory_records.records:
+                        if dir_record.len_dr == 0:
+                            continue
+                        if dir_record.body.file_flags_directory:
+                            if dir_record.body.file_id_dir not in ['\x00', '\x01']:
+                                files.append(dir_record)
+                        else:
+                            files.append(dir_record)
+        return unpacked_files
+
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
