@@ -205,6 +205,9 @@ class PlfUnpackParser(WrappedUnpackParser):
                 except:
                     continue
 
+                if file_path == pathlib.Path('/'):
+                    continue
+
                 outfile_rel = data_dir_rel / file_path
                 outfile_full = self.scan_environment.unpack_path(outfile_rel)
 
