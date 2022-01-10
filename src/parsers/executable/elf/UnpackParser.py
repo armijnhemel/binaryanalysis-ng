@@ -80,6 +80,41 @@ class ElfUnpackParser(UnpackParser):
                         pass
                 # force read the header name
                 name = header.name
+                if header.type == elf.Elf.ShType.symtab:
+                    if header.name == '.symtab':
+                        for entry in header.body.entries:
+                            name = entry.name
+                if header.type == elf.Elf.ShType.dynamic:
+                    if header.name == '.dynamic':
+                        for entry in header.body.entries:
+                            if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
+                                name = entry.value_str
+
+                elif header.type == elf.Elf.ShType.symtab:
+                    if header.name == '.symtab':
+                        for entry in header.body.entries:
+                            name = entry.name
+                            name = entry.type.name
+                            name = entry.bind.name
+                            name = entry.visibility.name
+                            name = entry.sh_idx
+                            name = entry.size
+                elif header.type == elf.Elf.ShType.dynsym:
+                    if header.name == '.dynsym':
+                        for entry in header.body.entries:
+                            name = entry.name
+                            name = entry.type.name
+                            name = entry.bind.name
+                            name = entry.visibility.name
+                            name = entry.sh_idx
+                            name = entry.size
+
             # read the names, but don't proces them. This is just to force
             # evaluation, which normally happens lazily for instances in
             # kaitai struct.
@@ -277,7 +312,7 @@ class ElfUnpackParser(UnpackParser):
                 if header.name == '.symtab':
                     for entry in header.body.entries:
                         symbol = {}
-                        if entry.name == None:
+                        if entry.name is None:
                             symbol['name'] = ''
                         else:
                             symbol['name'] = entry.name
@@ -291,7 +326,7 @@ class ElfUnpackParser(UnpackParser):
                 if header.name == '.dynsym':
                     for entry in header.body.entries:
                         symbol = {}
-                        if entry.name == None:
+                        if entry.name is None:
                             symbol['name'] = ''
                         else:
                             symbol['name'] = entry.name
@@ -473,6 +508,7 @@ class ElfUnpackParser(UnpackParser):
                             pass
                     elif entry.name == b'FDO' and entry.type == 0xcafe1a7e:
                         # https://fedoraproject.org/wiki/Changes/Package_information_on_ELF_objects
+                        # https://systemd.io/COREDUMP_PACKAGE_METADATA/
                         # extract JSON and store it
                         try:
                             metadata['package note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())

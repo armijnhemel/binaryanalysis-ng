@@ -44,7 +44,11 @@ class IhexUnpackParser(UnpackParser):
         bytes_read = 0
 
         # open the file again, but then in text mode
-        ihex_file = open(self.infile.name, 'r')
+        try:
+            ihex_file = open(self.infile.name, 'r')
+        except Exception as e:
+            ihex_file.close()
+            raise UnpackParserException(e.args)
 
         # read the lines of the data, until either EOF
         # or until the end of the ihex data has been reached
@@ -73,75 +77,78 @@ class IhexUnpackParser(UnpackParser):
         # Each byte uses two characters. The start code
         # uses 1 character.
         # That means that each line MUST has an uneven length.
-        for hex_line in ihex_file:
-            line = hex_line.rstrip()
-            if not line.startswith(':'):
-                # There could be comments
-                if line.startswith('#'):
-                    if ihex_file.newlines is not None:
-                        unpacked += len(line) + len(ihex_file.newlines)
-                    else:
-                        unpacked += len(line)
-                    continue
-                break
-
-            if len(line) < 11 or len(line) % 2 != 1:
-                break
-
-            # next two bytes are the byte count
-            try:
-                num_bytes = int.from_bytes(bytes.fromhex(line[1:3]), byteorder='big')
-            except:
-                break
-
-            if len(line) - 11 != num_bytes * 2:
-                 error_msg = 'invalid byte count'
-                 break
-
-            # address can be skipped
-            try:
-                record_type = int.from_bytes(bytes.fromhex(line[7:9]), byteorder='big')
-            except:
-                break
-            if record_type > 5:
-                error_msg = 'invalid record type'
-                break
-
-            # record type 0 is data, record type 1 is end of data
-            # Other record types do not include any actual data.
-            if record_type == 1:
-                if num_bytes != 0:
-                    error_msg = 'invalid byte counts for record type 01'
+        try:
+            for hex_line in ihex_file:
+                line = hex_line.rstrip()
+                if not line.startswith(':'):
+                    # There could be comments
+                    if line.startswith('#'):
+                        if ihex_file.newlines is not None:
+                            unpacked += len(line) + len(ihex_file.newlines)
+                        else:
+                            unpacked += len(line)
+                        continue
                     break
-                end_of_ihex = True
-                unpacked += len(line) + len(ihex_file.newlines)
-                break
-            elif record_type == 0:
+
+                if len(line) < 11 or len(line) % 2 != 1:
+                    break
+
+                # next two bytes are the byte count
                 try:
-                    ihexdata = bytes.fromhex(line[9:9+num_bytes*2])
-                except ValueError:
+                    num_bytes = int.from_bytes(bytes.fromhex(line[1:3]), byteorder='big')
+                except:
                     break
-            else:
-                if record_type == 2:
-                    if num_bytes != 2:
-                        error_msg = 'invalid byte counts for record type 02'
-                        break
-                elif record_type == 3:
-                    if num_bytes != 4:
-                        error_msg = 'invalid byte counts for record type 03'
-                        break
-                if record_type == 4:
-                    if num_bytes != 2:
-                        error_msg = 'invalid byte counts for record type 04'
-                        break
-                elif record_type == 5:
-                    if num_bytes != 4:
-                        error_msg = 'invalid byte counts for record type 05'
-                        break
-                record_types.add(record_type)
-            unpacked += len(line) + len(ihex_file.newlines)
 
-        ihex_file.close()
+                if len(line) - 11 != num_bytes * 2:
+                     error_msg = 'invalid byte count'
+                     break
+
+                # address can be skipped
+                try:
+                    record_type = int.from_bytes(bytes.fromhex(line[7:9]), byteorder='big')
+                except:
+                    break
+                if record_type > 5:
+                    error_msg = 'invalid record type'
+                    break
+
+                # record type 0 is data, record type 1 is end of data
+                # Other record types do not include any actual data.
+                if record_type == 1:
+                    if num_bytes != 0:
+                        error_msg = 'invalid byte counts for record type 01'
+                        break
+                    end_of_ihex = True
+                    unpacked += len(line) + len(ihex_file.newlines)
+                    break
+                elif record_type == 0:
+                    try:
+                        ihexdata = bytes.fromhex(line[9:9+num_bytes*2])
+                    except ValueError:
+                        break
+                else:
+                    if record_type == 2:
+                        if num_bytes != 2:
+                            error_msg = 'invalid byte counts for record type 02'
+                            break
+                    elif record_type == 3:
+                        if num_bytes != 4:
+                            error_msg = 'invalid byte counts for record type 03'
+                            break
+                    if record_type == 4:
+                        if num_bytes != 2:
+                            error_msg = 'invalid byte counts for record type 04'
+                            break
+                    elif record_type == 5:
+                        if num_bytes != 4:
+                            error_msg = 'invalid byte counts for record type 05'
+                            break
+                    record_types.add(record_type)
+                unpacked += len(line) + len(ihex_file.newlines)
+        except Exception as e:
+            raise UnpackParserException(e.args)
+        finally:
+            ihex_file.close()
 
         if error_msg != '':
             raise UnpackParserException(error_msg)
