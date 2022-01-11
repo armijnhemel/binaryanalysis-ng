@@ -11,6 +11,8 @@ seq:
     contents: "AAPT"
   - id: version
     type: u4
+    valid: 1
+    doc: The version of the container format.
   - id: num_entries
     -orig-id: entry_count
     type: u4
