@@ -136,18 +136,18 @@ class PngUnpackParser(UnpackParser):
                     # https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart3.pdf
                     try:
                         # XMP should be valid XML
-                        xmpdom = defusedxml.minidom.parseString(i.body.text)
-                        xmptags.append(i.body.text)
+                        xmpdom = defusedxml.minidom.parseString(i.body.text.text)
+                        xmptags.append(i.body.text.text)
                     except ExpatError:
                         pngtexts.append({'key': i.body.keyword,
                                          'languagetag': i.body.language_tag,
                                          'translatedkey': i.body.translated_keyword,
-                                         'value': i.body.text})
+                                         'value': i.body.text.text})
                 else:
                     pngtexts.append({'key': i.body.keyword,
                                      'languagetag': i.body.language_tag,
                                      'translatedkey': i.body.translated_keyword,
-                                     'value': i.body.text})
+                                     'value': i.body.text.text})
             elif i.type == 'meTa':
                 try:
                     metatags.append(i.body.decode(encoding='utf-16'))

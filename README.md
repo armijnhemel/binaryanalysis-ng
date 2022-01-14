@@ -214,7 +214,7 @@ larger file, unless stated otherwise.
 116. Chrome extensions (.crx)
 117. Windows shell link file (.lnk)
 118. PCF fonts (that actually follow the specification, little endian only)
-119. DS_Store
+119. DS\_Store
 120. Qualcomm Snapdragon MSM bootloader files
 121. Mozilla ARchive (.mar)
 122. OpenFst (subset, identification only)
@@ -247,6 +247,7 @@ larger file, unless stated otherwise.
 149. DHTB signed files
 150. Android AAPT2 container format
 151. Android update image (version 2 only, full OTA image only)
+152. Qt resource files (`.rcc`)
 
 The following text formats can be recognized:
 

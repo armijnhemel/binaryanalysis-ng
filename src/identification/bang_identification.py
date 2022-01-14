@@ -29,19 +29,16 @@ try:
 except ImportError:
     from yaml import Loader
 
-@click.command(short_help='download binaries from a single Debian repository')
+@click.command(short_help='run YARA rules on a BANG result directory')
 @click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', required=True, help='path to BANG result directories')
+@click.option('--result-directory', '-r', required=True, help='path to BANG result directories', type=click.Path(exists=True))
 def main(config, result_directory):
     result_directory = pathlib.Path(result_directory)
 
-    # the result directory should exist ...
-    if not result_directory.exists():
-        parser.error("File %s does not exist, exiting." % result_directory)
-
     # ... and should be a real directory
     if not result_directory.is_dir():
-        parser.error("%s is not a directory, exiting." % result_directory)
+        print("%s is not a directory, exiting." % result_directory, file=sys.stderr)
+        sys.exit(1)
 
     # read the configuration file. This is in YAML format
     try:

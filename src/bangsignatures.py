@@ -275,7 +275,6 @@ signaturetofunction = {
     'cramfs_le': bangfilesystems.unpack_cramfs,
     'cramfs_be': bangfilesystems.unpack_cramfs,
     'bflt': bangunpack.unpack_bflt,
-    'ubi': bangfilesystems.unpack_ubi,
     'pcapng': bangunpack.unpack_pcapng,
     'pcap_le': bangunpack.unpack_pcap,
     'pcap_be': bangunpack.unpack_pcap,
