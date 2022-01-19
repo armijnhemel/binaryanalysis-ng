@@ -40,6 +40,7 @@ types:
             - chunk_names::vp8l
             - chunk_names::vp8
             - chunk_names::vp8x
+            - chunk_names::xmp
       - id: len_data
         type: u4
       - id: data
@@ -47,9 +48,12 @@ types:
         type:
           switch-on: name
           cases:
+            chunk_names::alph: alph
+            chunk_names::anim: anim
+            chunk_names::anmf: anmf
             chunk_names::vp8l: vp8l
             chunk_names::vp8x: vp8x
-            chunk_names::anmf: anmf
+            chunk_names::xmp: xmp
       - id: padding
         size: 1
         if: len_data % 2 != 0
@@ -78,7 +82,8 @@ types:
       - id: reserved2
         type: b1
       - id: reserved3
-        size: 3
+        type: b24
+        valid: 0
       - id: canvas_width
         type: b24le
       - id: canvas_height
@@ -88,6 +93,26 @@ types:
         value: canvas_height + 1
       width:
         value: canvas_width + 1
+  alph:
+    seq:
+      - id: reserved
+        type: b2
+        valid: 0
+      - id: preprocessing
+        type: b2
+        enum: preprocessing
+      - id: filtering
+        type: b2
+        enum: filter_methods
+      - id: compression
+        type: b2
+        enum: compression
+  anim:
+    seq:
+      - id: background
+        type: u4
+      - id: loop_count
+        type: u2
   anmf:
     seq:
       - id: frame_x
@@ -113,6 +138,12 @@ types:
         value: frame_height + 1
       width:
         value: frame_width + 1
+  xmp:
+    seq:
+      - id: data
+        size-eos: true
+        type: str
+        encoding: UTF-8
 enums:
   chunk_names:
     0x48504c41: alph
@@ -124,3 +155,15 @@ enums:
     0x4c385056: vp8l
     0x20385056: vp8
     0x58385056: vp8x
+    0x20504d58: xmp
+  filter_methods:
+    0: no_filter
+    1: horizontal
+    2: vertical
+    3: gradient
+  compression:
+    0: no_compression
+    1: webp_lossless
+  preprocessing:
+    0: no_preprocessing
+    1: level_reduction
