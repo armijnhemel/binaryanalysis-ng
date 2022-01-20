@@ -171,7 +171,6 @@ signatures = {
 
 # some signatures do not start at the beginning of the file
 signaturesoffset = {
-    'webp': 8,
     'wav': 8,
     'ani': 8,
     'tar_posix': 0x101,
@@ -215,7 +214,6 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'webp': bangmedia.unpack_webp,
     'ani': bangmedia.unpack_ani,
     'mng': bangmedia.unpack_mng,
     'gzip': bangunpack.unpack_gzip,

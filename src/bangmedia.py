@@ -43,43 +43,7 @@ import re
 import PIL.Image
 
 
-# A verifier for the WebP file format.
-# Uses the description of the WebP file format as described here:
-#
-# https://developers.google.com/speed/webp/docs/riff_container
-#
-# A blog post describing how this method was implemented can be
-# found here:
-#
-# http://binary-analysis.blogspot.com/2018/06/walkthrough-webp-file-format.html
-def unpack_webp(fileresult, scanenvironment, offset, unpackdir):
-    '''Verify and/or carve a WebP file.'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-
-    # a list of valid WebP chunk FourCC
-    # also contains the deprecated FRGM
-    validchunkfourcc = set([b'ALPH', b'ANIM', b'ANMF', b'EXIF', b'FRGM',
-                            b'ICCP', b'VP8 ', b'VP8L', b'VP8X', b'XMP '])
-    unpackres = unpack_riff(fileresult, scanenvironment, offset, unpackdir, validchunkfourcc, 'WebP', b'WEBP')
-    if unpackres['status']:
-        labels = unpackres['labels']
-        if offset == 0 and unpackres['length'] == filesize:
-            labels += ['webp', 'graphics']
-        for result in unpackres['filesandlabels']:
-            unpackedfilesandlabels.append((result, ['webp', 'graphics', 'unpacked']))
-        return {'status': True, 'length': unpackres['length'],
-                'filesandlabels': unpackedfilesandlabels, 'labels': labels}
-    return {'status': False, 'error': unpackres['error']}
-
-unpack_webp.signatures = {'webp': b'WEBP'}
-unpack_webp.offset = 8
-unpack_webp.minimum_size = 12
-
-
 # An unpacker for RIFF. This is a helper method used by unpackers for:
-# * WebP
 # * WAV
 # * ANI
 # https://en.wikipedia.org/wiki/Resource_Interchange_File_Format
