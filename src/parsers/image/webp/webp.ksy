@@ -21,7 +21,7 @@ seq:
 types:
   chunks:
     seq:
-      - id: chunk
+      - id: chunks
         type: chunk
         repeat: eos
   chunk:
