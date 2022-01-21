@@ -343,7 +343,7 @@ class ScanJob:
                         # files (i.e. it was not a container file or
                         # compressed file).
                         if unpackresult.get_unpacked_files() == []:
-                            unpacker.remove_data_unpack_directory()
+                            unpacker.remove_data_unpack_directory_tree()
 
                     # store the range of the unpacked data
                     unpacker.append_unpacked_range(offset, offset +

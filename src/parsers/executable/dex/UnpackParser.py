@@ -28,7 +28,7 @@ import mutf8
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import dex
 
 # Opcodes for the various versions. The format is:
@@ -129,6 +129,10 @@ class DexUnpackParser(UnpackParser):
             version_str = self.data.header.version_str
         else:
             version_str = opcode_version
+
+        # Dex 036 is officially not supported
+        if version_str == '036':
+            return []
 
         # select the correct opcodes
         opcodes = OPCODES[version_str]
@@ -278,7 +282,7 @@ class DexUnpackParser(UnpackParser):
             self.data = dex.Dex.from_io(self.infile)
             computed_checksum = zlib.adler32(self.data.bytes_for_adler32)
             self.unpacked_size = self.data.header.file_size
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.header.checksum == computed_checksum,
                         "wrong Adler32")

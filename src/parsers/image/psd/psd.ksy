@@ -1,6 +1,6 @@
 meta:
   id: psd
-  title: Photoshop
+  title: Photoshop PSD
   file-extension: psd
   license: CC0-1.0
   ks-version: 0.9

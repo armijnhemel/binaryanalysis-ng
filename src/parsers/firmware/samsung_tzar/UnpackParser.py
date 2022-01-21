@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import samsung_tzar
 
 
@@ -41,7 +41,7 @@ class SamsungTzarUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = samsung_tzar.SamsungTzar.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     # no need to carve from the file
@@ -51,7 +51,7 @@ class SamsungTzarUnpackParser(UnpackParser):
     def unpack(self):
         unpacked_files = []
         out_labels = []
-        for entry in self.data.entries:
+        for entry in self.data.entries.entries:
             file_path = entry.filename
             outfile_rel = self.rel_unpack_dir / file_path
             outfile_full = self.scan_environment.unpack_path(outfile_rel)

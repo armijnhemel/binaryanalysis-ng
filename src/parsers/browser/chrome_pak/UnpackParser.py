@@ -39,7 +39,7 @@ import pathlib
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError
+from kaitaistruct import ValidationFailedError
 from . import chrome_pak
 
 
@@ -55,28 +55,28 @@ class ChromePakUnpackParser(UnpackParser):
         resource_ids = set()
         try:
             self.data = chrome_pak.ChromePak.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.header.resources[-1].id == 0, "wrong resource identifier")
-        check_condition(self.data.header.resources[-1].offset <= self.fileresult.filesize,
+        check_condition(self.data.resources[-1].id == 0, "wrong resource identifier")
+        check_condition(self.data.resources[-1].ofs_body <= self.fileresult.filesize,
                         "not enough data")
 
     def unpack(self):
         unpacked_files = []
         out_labels = []
-        resources = self.data.header.resources
+        resources = self.data.resources
         for i in range(0, len(resources)-1):
-            offset = resources[i].offset
-            offset_next = resources[i+1].offset
-            length = offset_next - offset
             file_path = pathlib.Path("resource-%d" % resources[i].id)
-            self.extract_to_file(self.rel_unpack_dir / file_path, offset, length)
+            outfile_rel = self.rel_unpack_dir / file_path
+            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+            os.makedirs(outfile_full.parent, exist_ok=True)
+            outfile_full.write_bytes(resources[i].body)
             fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
             unpacked_files.append(fr)
         return unpacked_files
 
     def calculate_unpacked_size(self):
-        self.unpacked_size = self.data.header.resources[-1].offset
+        self.unpacked_size = self.data.resources[-1].ofs_body
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""

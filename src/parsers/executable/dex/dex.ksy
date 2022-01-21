@@ -10,7 +10,7 @@ meta:
     - executable
   license: Apache-2.0
   imports:
-    - vlq_base128_le
+    - /common/vlq_base128_le
   endian: le
 doc: |
   Android OS applications executables are typically stored in its own
@@ -147,6 +147,10 @@ instances:
     pos: header.map_off
     type: map_list
 types:
+  dummy:
+    seq:
+      - id: dummy_id
+        type: vlq_base128_le
   header_item:
     seq:
       - id: magic
@@ -763,7 +767,7 @@ types:
       - id: encoded_catch_handler
         type: encoded_catch_handler
         repeat: expr
-        repeat-expr: num_entries.value_signed
+        repeat-expr: num_entries.value
         doc: |
           actual list of handler lists, represented directly
           (not as offsets), and concatenated sequentially

@@ -5,7 +5,7 @@ meta:
   license: Apache-2.0
   ks-version: 0.9
   imports:
-    - /executable/dex
+    - dex
   endian: le
   encoding: UTF-8
 doc-ref: http://web.archive.org/web/20180816094438/https://android.googlesource.com/platform/dalvik.git/+/master/libdex/DexFile.h
