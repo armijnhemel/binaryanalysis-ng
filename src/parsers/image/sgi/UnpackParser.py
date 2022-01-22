@@ -22,32 +22,28 @@
 
 import os
 import pathlib
+import tempfile
+
+import PIL.Image
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import sgi
 
-from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_sgi
 
-
-#class SgiUnpackParser(UnpackParser):
-class SgiUnpackParser(WrappedUnpackParser):
+class SgiUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x01\xda')
     ]
     pretty_name = 'sgi'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_sgi(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.unpacked_size = 0
             self.data = sgi.Sgi.from_io(self.infile)
-            if self.data.header.storage_format != 0:
+            if self.data.header.storage_format == sgi.Sgi.StorageFormat.rle:
                 for i in range(0, len(self.data.body.start_table_entries)):
                     self.unpacked_size = max(self.unpacked_size, self.data.body.start_table_entries[i] + self.data.body.length_table_entries[i])
                 for scanline in self.data.body.scanlines:
@@ -60,18 +56,45 @@ class SgiUnpackParser(WrappedUnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
+        if self.unpacked_size == self.fileresult.filesize:
+            # now load the file using PIL as an extra sanity check
+            # although this doesn't seem to do a lot.
+            try:
+                testimg = PIL.Image.open(self.infile)
+                testimg.load()
+                testimg.close()
+            except OSError as e:
+                raise UnpackParserException(e.args)
+        else:
+            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
+            os.fdopen(temporary_file[0]).close()
+
+            # reopen as read only
+            sgi_file = open(temporary_file[1], 'rb')
+            try:
+                testimg = PIL.Image.open(sgi_file)
+                testimg.load()
+                testimg.close()
+            except OSError as e:
+                raise UnpackParserException(e.args)
+            finally:
+                sgi_file.close()
+                os.unlink(temporary_file[1])
+
+
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
-
-    # TODO: rename carved file, if a name was embedded in the file
-    #def unpack(self):
-    #    unpacked_files = []
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = ['graphics', 'sgi']
         metadata = {}
+
+        # TODO: write the file under the original name if available
+        if self.data.header.name != '' and self.data.header.name != 'no name':
+            metadata['name'] = self.data.header.name
 
         self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)
