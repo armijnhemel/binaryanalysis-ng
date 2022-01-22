@@ -23,6 +23,8 @@
 import os
 import pathlib
 
+import PIL.Image
+
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
@@ -32,8 +34,8 @@ from UnpackParser import WrappedUnpackParser
 from bangmedia import unpack_sgi
 
 
-#class SgiUnpackParser(UnpackParser):
 class SgiUnpackParser(WrappedUnpackParser):
+#class SgiUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x01\xda')
@@ -60,18 +62,28 @@ class SgiUnpackParser(WrappedUnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
+        if self.unpacked_size == self.fileresult.filesize:
+            # now load the file using PIL as an extra sanity check
+            # although this doesn't seem to do a lot.
+            try:
+                testimg = PIL.Image.open(self.infile)
+                testimg.load()
+                testimg.close()
+            except OSError as e:
+                raise UnpackParserException(e.args)
+        else:
+            pass
+
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
-
-    # TODO: rename carved file, if a name was embedded in the file
-    #def unpack(self):
-    #    unpacked_files = []
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = ['graphics', 'sgi']
         metadata = {}
+
+        # TODO: write the file under the original name if available
         if self.data.header.name != '' and self.data.header.name != 'no name':
             metadata['name'] = self.data.header.name
 
