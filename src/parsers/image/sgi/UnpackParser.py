@@ -47,7 +47,7 @@ class SgiUnpackParser(WrappedUnpackParser):
         try:
             self.unpacked_size = 0
             self.data = sgi.Sgi.from_io(self.infile)
-            if self.data.header.storage_format != 0:
+            if self.data.header.storage_format == sgi.Sgi.StorageFormat.rle:
                 for i in range(0, len(self.data.body.start_table_entries)):
                     self.unpacked_size = max(self.unpacked_size, self.data.body.start_table_entries[i] + self.data.body.length_table_entries[i])
                 for scanline in self.data.body.scanlines:
@@ -72,6 +72,8 @@ class SgiUnpackParser(WrappedUnpackParser):
         """sets metadata and labels for the unpackresults"""
         labels = ['graphics', 'sgi']
         metadata = {}
+        if self.data.header.name != '' and self.data.header.name != 'no name':
+            metadata['name'] = self.data.header.name
 
         self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)
