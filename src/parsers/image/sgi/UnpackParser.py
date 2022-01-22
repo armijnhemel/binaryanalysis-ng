@@ -22,6 +22,7 @@
 
 import os
 import pathlib
+import tempfile
 
 import PIL.Image
 
@@ -30,20 +31,13 @@ from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import sgi
 
-from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_sgi
 
-
-class SgiUnpackParser(WrappedUnpackParser):
-#class SgiUnpackParser(UnpackParser):
+class SgiUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x01\xda')
     ]
     pretty_name = 'sgi'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_sgi(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         try:
@@ -72,7 +66,22 @@ class SgiUnpackParser(WrappedUnpackParser):
             except OSError as e:
                 raise UnpackParserException(e.args)
         else:
-            pass
+            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
+            os.fdopen(temporary_file[0]).close()
+
+            # reopen as read only
+            sgi_file = open(temporary_file[1], 'rb')
+            try:
+                testimg = PIL.Image.open(sgi_file)
+                testimg.load()
+                testimg.close()
+            except OSError as e:
+                raise UnpackParserException(e.args)
+            finally:
+                sgi_file.close()
+                os.unlink(temporary_file[1])
+
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

@@ -241,7 +241,6 @@ signaturetofunction = {
     'ttc': bangunpack.unpack_opentype_font_collection,
     'truetype': bangunpack.unpack_truetype_font,
     'android_backup': bangunpack.unpack_android_backup,
-    'sgi': bangmedia.unpack_sgi,
     'aiff': bangmedia.unpack_aiff,
     'rzip': bangunpack.unpack_rzip,
     'jffs2_little_endian': bangfilesystems.unpack_jffs2,
@@ -574,23 +573,6 @@ def prescan_bmp(scanbytes, bytesread, filesize, offset, offsetinfile):
             return False
     return True
 
-def prescan_sgi(scanbytes, bytesread, filesize, offset, offsetinfile):
-    # header of SGI files is 512 bytes
-    if filesize - (offset + offsetinfile) < 512:
-        return False
-    if bytesread - offset > 512:
-        # storage format
-        if not (scanbytes[offset+2] == 0 or scanbytes[offset+2] == 1):
-            return False
-        # BPC
-        if not (scanbytes[offset+3] == 1 or scanbytes[offset+3] == 2):
-            return False
-        # dummy values, last 404 bytes of
-        # the header are 0x00
-        if not scanbytes[offset+108:offset+512] == b'\x00' * 404:
-            return False
-    return True
-
 def prescan_ico(scanbytes, bytesread, filesize, offset, offsetinfile):
     # check the number of images
     if filesize - (offset + offsetinfile) < 22:
@@ -675,7 +657,6 @@ prescan_functions = {
     'bzip2': prescan_bzip2,
     'gzip': prescan_gzip,
     'bmp' : prescan_bmp,
-    'sgi' : prescan_sgi,
     'ico' : prescan_ico,
     'png' : prescan_png,
     'mng' : prescan_mng,
