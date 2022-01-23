@@ -42,6 +42,18 @@ class AiffUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
+        # sanity checks: COMM and SSND chunks are mandatory
+        seen_common = False
+        seen_ssnd = False
+        for chunk in self.data.chunks.chunks:
+            if chunk.fourcc == aiff.Aiff.Fourcc.common:
+                seen_common = True
+            elif chunk.fourcc == aiff.Aiff.Fourcc.ssnd:
+                seen_ssnd = True
+
+        check_condition(seen_common, "COMM chunk missing")
+        check_condition(seen_ssnd, "SSND chunk missing")
+
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
