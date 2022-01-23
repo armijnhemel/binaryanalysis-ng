@@ -34,11 +34,7 @@ import PIL.Image
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
-from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_pnm
 
-
-#class PnmUnpackParser(WrappedUnpackParser):
 class PnmUnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -47,9 +43,6 @@ class PnmUnpackParser(UnpackParser):
         (0, b'P4')
     ]
     pretty_name = 'pnm'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_pnm(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         # read the first few bytes to see which kind of file it possibly is
