@@ -33,7 +33,6 @@
 
 import os
 import binascii
-import string
 import math
 import lzma
 import zlib
