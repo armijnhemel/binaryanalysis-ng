@@ -104,3 +104,39 @@ or from symbols extracted from source code. Fingerprints can be stored in a
 database or turned into rules for the YARA pattern matching tool.
 
 <https://www.tdcommons.org/dpubs_series/4441/>
+
+## Open source license text matching and reporting
+
+When using open source software it is important to find out under which open
+source license the software was released under, as this determines what can
+and cannot be done with the software. There are many open source software
+licenses with different license terms that are not always compatible with each
+other. Different pieces of software released under incompatible software
+licenses cannot be combined with each other. It is therefore necessary to find
+out which licenses are declared in source code and correctly report these.
+Source code repositories or releases that are open source licensed almost
+always contain a text file with the text of the license that the code has been
+released under, such as the GNU General Public License (various versions), the
+Apache License (various versions), and so on. While open source license texts
+are meant to be immutable, they are frequently changed. Many times the changes
+are purely cosmetic, but sometimes the license are changed in such a way that
+the changes could affect the meaning of the license. It is important to be able
+to detect such changes. In this article a very lightweight method for comparing
+license texts found in source code archives with official license texts is
+presented.
+
+<https://www.tdcommons.org/dpubs_series/4769/>
+
+## Finding version information for binary files with YARA fingerprinting using a multi-layered approach
+
+Detecting provenance of binary files can be done by using the YARA pattern
+matching tool. It is easy to write or generate YARA rules to detect a
+particular version of a binary file, but detection can be time consuming as
+for some packages there are many versions, meaning there are potentially lots
+of different rules that need to be applied, with most of them applied while it
+is already clear that there will never be any successful matches for those
+rules. Using multiple scan phases allows doing a coarse check first to
+determine the overall package using a generic package rule and then zooming
+in to find the particular version using package/version specific rules.
+
+<https://www.tdcommons.org/dpubs_series/4818/>

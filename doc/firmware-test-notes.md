@@ -75,6 +75,18 @@ MIPS based (Realtek 83xx). Uses `tar`, `u-boot` (BIX variant)
 
 MIPS based. Uses `u-boot`, `xz`, `cpio`
 
+## FWA119S.bin
+
+Novatek based dashcam firmware, probably using eCos
+
+## IC-9110W_V2_3.03.zip
+
+Edimax camera (IC-9110W v2), using `u-boot`, `cpio`, `lzma`, `xz`.
+
+## BR6435ND_EdimaxOBML_1.12_upg.zip
+
+Edimax device, uses `u-boot`, `squashfs`, `lzma`
+
 ## https://github.com/mrdoob/three.js.git
 
 Contains test files for ktx

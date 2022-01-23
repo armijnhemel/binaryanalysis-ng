@@ -19,6 +19,8 @@ seq:
     doc: only process version 2 for now
   - id: num_key_entries
     type: u4
+    valid:
+      max: _root._io.size
   - id: key_entries
     type: key_entry
     repeat: expr

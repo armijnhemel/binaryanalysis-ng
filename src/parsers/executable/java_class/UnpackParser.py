@@ -42,8 +42,30 @@ class JavaClassUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-        # TODO: make sure that all the pointers
+        # make sure that all the pointers
         # into the constant pool are actually valid
+        constant_pool_index = 1
+        for i in self.data.constant_pool:
+            if i.is_prev_two_entries:
+                constant_pool_index += 1
+                continue
+            if self.data.this_class == constant_pool_index:
+                try:
+                    decoded_string = mutf8.decode_modified_utf8(i.cp_info.name_as_str)
+                except UnicodeDecodeError:
+                    # This shouldn't happen and means there
+                    # is an error in the mutf8 package
+                    pass
+            if type(i.cp_info) == java_class.JavaClass.StringCpInfo:
+                try:
+                    decoded_string = mutf8.decode_modified_utf8(i.cp_info.name_as_str)
+                except UnicodeDecodeError:
+                    # This shouldn't happen and means there
+                    # is an error in the mutf8 package
+                    pass
+                except AttributeError as e:
+                    raise UnpackParserException(e.args)
+            constant_pool_index += 1
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
