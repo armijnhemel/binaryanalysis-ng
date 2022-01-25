@@ -39,9 +39,6 @@ import PIL.Image
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
-from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_jpeg
-
 # DQT, DHT, DAC, DRI, COM
 TABLES_MISC_MARKERS = set([b'\xff\xdb', b'\xff\xc4', b'\xff\xcc',
                            b'\xff\xdd', b'\xff\xfe'])
@@ -70,16 +67,12 @@ START_OF_FRAME_MARKERS = set([b'\xff\xc0', b'\xff\xc1', b'\xff\xc2',
                               b'\xff\xcf'])
 
 
-#class JpegUnpackParser(WrappedUnpackParser):
 class JpegUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\xff\xd8')
     ]
     pretty_name = 'jpeg'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_jpeg(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         # skip the SOI magic
@@ -166,39 +159,15 @@ class JpegUnpackParser(UnpackParser):
             # a valid JPEG according to section B.5, although not
             # all markers would be allowed.
             if checkbytes == b'\xff\xd9':
-                if seen_markers == set():
-                    checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize,
-                                      'fatal': False,
-                                      'reason': 'no tables present, needed for abbreviated syntax'}
-                    return {'status': False, 'error': unpackingerror}
+                check_condition(seen_markers != set(),
+                                "no tables present, needed for abbreviated syntax")
+
                 # according to B.5 DAC and DRI are not allowed in this syntax.
-                if b'\xff\xcc' in seen_markers or b'\xff\xdd' in seen_markers:
-                    checkfile.close()
-                    unpackingerror = {'offset': offset+unpackedsize,
-                                      'fatal': False,
-                                      'reason': 'DAC and/or DRI not allowed in abbreviated syntax'}
-                    return {'status': False, 'error': unpackingerror}
-                if offset == 0 and unpackedsize == self.fileresult.filesize:
-                    checkfile.close()
-                    labels.append('graphics')
-                    labels.append('jpeg')
-                    return {'status': True, 'length': unpackedsize, 'labels': labels,
-                            'filesandlabels': unpackedfilesandlabels}
+                check_condition(b'\xff\xcc' not in seen_markers and b'\xff\xdd' not in seen_markers,
+                                "DAC and/or DRI not allowed in abbreviated syntax")
 
-                # else carve the file
-                outfile_rel = os.path.join(unpackdir, "unpacked.jpg")
-                outfile_full = scanenvironment.unpack_path(outfile_rel)
-
-                # create the unpacking directory
-                os.makedirs(unpackdir_full, exist_ok=True)
-                outfile = open(outfile_full, 'wb')
-                os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-                outfile.close()
-                unpackedfilesandlabels.append((outfile_rel, ['graphics', 'jpeg', 'unpacked']))
-                checkfile.close()
-                return {'status': True, 'length': unpackedsize, 'labels': labels,
-                        'filesandlabels': unpackedfilesandlabels}
+                self.unpacked_size = self.infile.tell()
+                return
         '''
 
         ishierarchical = False
@@ -459,6 +428,7 @@ class JpegUnpackParser(UnpackParser):
             if eofseen:
                 break
 
+        self.unpacked_size = self.infile.tell()
         if self.unpacked_size == self.fileresult.filesize:
             # now load the file using PIL as an extra sanity check
             # although this doesn't seem to do a lot.
