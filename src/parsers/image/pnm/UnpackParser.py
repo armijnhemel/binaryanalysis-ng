@@ -68,7 +68,7 @@ class PnmUnpackParser(UnpackParser):
                 if seenwhitespace:
                     self.infile.seek(-1, os.SEEK_CUR)
                     break
-                raise UnpackerParserException("no whitespace in header")
+                raise UnpackParserException("no whitespace in header")
 
         # width, in ASCII digital, possibly first preceded by a comment
         widthbytes = b''
@@ -93,7 +93,7 @@ class PnmUnpackParser(UnpackParser):
                 if seenint:
                     self.infile.seek(-1, os.SEEK_CUR)
                     break
-                raise UnpackerParserException(e.args)
+                raise UnpackParserException(e.args)
 
         width = int(widthbytes)
 
@@ -109,7 +109,7 @@ class PnmUnpackParser(UnpackParser):
                 if seenwhitespace:
                     self.infile.seek(-1, os.SEEK_CUR)
                     break
-                raise UnpackerParserException("no whitespace in header")
+                raise UnpackParserException("no whitespace in header")
 
         # height, in ASCII digital
         heightbytes = b''
@@ -126,7 +126,7 @@ class PnmUnpackParser(UnpackParser):
                 if seenint:
                     self.infile.seek(-1, os.SEEK_CUR)
                     break
-                raise UnpackerParserException(e.args)
+                raise UnpackParserException(e.args)
         height = int(heightbytes)
 
         if self.pnmtype != 'pbm':
@@ -142,7 +142,7 @@ class PnmUnpackParser(UnpackParser):
                     if seenwhitespace:
                         self.infile.seek(-1, os.SEEK_CUR)
                         break
-                    raise UnpackerParserException("no whitespace in header")
+                    raise UnpackParserException("no whitespace in header")
 
             # maximum color value, in ASCII digital
             maxbytes = b''
@@ -158,7 +158,7 @@ class PnmUnpackParser(UnpackParser):
                     if seenint:
                         self.infile.seek(-1, os.SEEK_CUR)
                         break
-                    raise UnpackerParserException(e.args)
+                    raise UnpackParserException(e.args)
             maxvalue = int(maxbytes)
 
         # single whitespace
