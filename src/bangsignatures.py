@@ -236,7 +236,6 @@ signaturetofunction = {
     'dahua': bangunpack.unpack_dahua,
     'xar': bangunpack.unpack_xar,
     'iso9660': bangfilesystems.unpack_iso9660,
-    'jpeg': bangmedia.unpack_jpeg,
     'opentype': bangunpack.unpack_opentype_font,
     'ttc': bangunpack.unpack_opentype_font_collection,
     'truetype': bangunpack.unpack_truetype_font,
