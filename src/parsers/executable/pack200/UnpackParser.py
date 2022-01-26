@@ -30,10 +30,6 @@ from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_pack200
-
-#class Pack200UnpackParser(WrappedUnpackParser):
 class Pack200UnpackParser(UnpackParser):
     extensions = []
     signatures = [
