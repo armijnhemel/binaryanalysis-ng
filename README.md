@@ -165,7 +165,6 @@ larger file, unless stated otherwise.
 69. BMP (needs PIL)
 70. PDF (simple verification, no object streams, incremental updates
     at end of the file)
-71. pack200 (needs unpack200)
 72. GIMP brush (needs PIL)
 73. ZIM (Wikipedia archive format)
 74. MIDI
