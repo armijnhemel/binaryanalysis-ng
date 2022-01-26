@@ -223,7 +223,6 @@ signaturetofunction = {
     'lzma_var3': bangunpack.unpack_lzma,
     'tar_posix': bangunpack.unpack_tar,
     'tar_gnu': bangunpack.unpack_tar,
-    'ar': bangunpack.unpack_ar,
     'squashfs_var1': bangfilesystems.unpack_squashfs,
     'squashfs_var2': bangfilesystems.unpack_squashfs,
     'squashfs_var3': bangfilesystems.unpack_squashfs,
