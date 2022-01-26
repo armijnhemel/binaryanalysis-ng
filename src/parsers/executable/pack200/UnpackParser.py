@@ -80,7 +80,6 @@ class Pack200UnpackParser(UnpackParser):
 #
 # The header format is described in section 5.2
 def unpack_pack200(fileresult, scanenvironment, offset, unpackdir):
-    '''Convert a pack200 file back into a JAR'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackdir_full = scanenvironment.unpack_path(unpackdir)
