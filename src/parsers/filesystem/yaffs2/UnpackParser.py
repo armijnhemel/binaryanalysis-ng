@@ -135,8 +135,10 @@ class Yaffs2UnpackParser(UnpackParser):
         # combinations until either data has been successfully parsed
         # or it is clear that it is not a yaffs2 image at all.
         for (chunk_size, spare_size) in CHUNKS_AND_SPARES:
-            # seek to the original offset
-            self.infile.seek(self.offset)
+
+            # seek to the start
+            cur_offset = 0
+            self.infile.seek(cur_offset)
 
             # keep a mapping of object ids to latest chunk id
             object_id_to_latest_chunk = {}
@@ -161,7 +163,7 @@ class Yaffs2UnpackParser(UnpackParser):
             last_open = None
             previous_object_id = 0
 
-            self.last_valid_offset = self.offset
+            self.last_valid_offset = cur_offset
 
             # read the chunks and spares until:
             # - end of file
@@ -427,7 +429,7 @@ class Yaffs2UnpackParser(UnpackParser):
                         break
 
             if dataunpacked:
-                self.unpackedsize = self.last_valid_offset - self.offset
+                self.unpackedsize = self.last_valid_offset
                 self.metadata['chunk size'] = chunk_size
                 self.metadata['spare size'] = spare_size
                 self.infile.seek(self.last_valid_offset)
@@ -443,8 +445,9 @@ class Yaffs2UnpackParser(UnpackParser):
         chunk_size = self.metadata['chunk size']
         spare_size = self.metadata['spare size']
 
-        # seek to the original offset
-        self.infile.seek(self.offset)
+        # seek to the start of the data
+        cur_offset = 0
+        self.infile.seek(cur_offset)
 
         # keep a mapping of object ids to latest chunk id
         object_id_to_latest_chunk = {}
@@ -473,7 +476,7 @@ class Yaffs2UnpackParser(UnpackParser):
         # store if this is an inband image
         inband = False
 
-        self.last_valid_offset = self.offset
+        self.last_valid_offset = cur_offset
 
         while True:
             if self.infile.tell() == self.unpacked_size:
@@ -530,8 +533,9 @@ class Yaffs2UnpackParser(UnpackParser):
             if chunk_id != 0:
                 object_id_to_latest_chunk[object_id] = chunk_id
 
-                # jump to the offset of the chunk and write data
-                os.sendfile(last_open.fileno(), self.infile.fileno(), self.last_valid_offset, byte_count)
+                # jump to the offset of the chunk and write data. This needs
+                # absolute offsets again. Dirty hack!
+                os.sendfile(last_open.fileno(), self.infile.fileno(), self.last_valid_offset + self.offset, byte_count)
 
             else:
                 # close open file, if any
