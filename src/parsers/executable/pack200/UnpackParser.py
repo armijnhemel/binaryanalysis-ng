@@ -42,6 +42,7 @@ class Pack200UnpackParser(UnpackParser):
     pretty_name = 'pack200'
 
     def parse(self):
+        check_condition(False, "unsupported")
         check_condition(shutil.which('unpack200') is not None,
                         "pack200 program not found")
 
