@@ -17,8 +17,6 @@ meta:
     - media
   license: CC0-1.0
   endian: le
-#  imports:
-#    - abc_bytecode
 doc: |
   SWF files are used by Adobe Flash (AKA Shockwave Flash, Macromedia
   Flash) to encode rich interactive multimedia content and are,
@@ -40,11 +38,6 @@ seq:
     size: header.len_file - header._sizeof
     type: swf_body
     if: header.compression == compressions::none
-  - id: zlib_body
-    size-eos: true
-    process: zlib
-    type: swf_body
-    if: header.compression == compressions::zlib
 types:
   header:
     seq:
