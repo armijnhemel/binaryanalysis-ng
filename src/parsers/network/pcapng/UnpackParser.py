@@ -22,7 +22,6 @@
 
 
 import os
-import sys
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
