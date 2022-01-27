@@ -35,7 +35,7 @@ types:
       - id: version_major
         type: u2
         valid:
-          max: 2
+          eq: 2
       - id: version_minor
         type: u2
       - id: thiszone
@@ -142,7 +142,7 @@ enums:
     187: bluetooth_hci_h4
     189: usb_linux
     192: ppi
-    195: ieee802_15_4
+    195: ieee802_15_4_withfcs
     196: sita
     197: erf
     201: bluetooth_hci_h4_with_phdr
@@ -211,7 +211,10 @@ enums:
     284: dsa_tag_dsa
     285: dsa_tag_edsa
     286: elee
-    287: zwave_serial
+    287:
+      id: zwave_serial
+      -orig-id: LINKTYPE_Z_WAVE_SERIAL # `Z_WAVE` instead of `ZWAVE` is a name
+                                       # inconsistency (other labels use `ZWAVE`)
     288: usb_2_0
     289: atsc_alp
     290: etw
