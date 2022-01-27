@@ -11,6 +11,8 @@ seq:
     contents: ["QFI", 0xfb]
   - id: version
     type: u4
+    valid:
+      any-of: [2, 3]
   - id: ofs_backing_file
     -orig-id: backing_file_offset
     type: u8
@@ -30,6 +32,7 @@ seq:
       any-of:
         - crypt_methods::no_encryption
         - crypt_methods::aes
+        - crypt_methods::luks
   - id: len_l1
     -orig-id: l1_size
     type: u4
@@ -46,6 +49,24 @@ seq:
   - id: ofs_snapshots
     -orig-id: snapshots_offset
     type: u8
+  - id: v3header
+    type: v3header
+    if: version > 2
+types:
+  v3header:
+    seq:
+      - id: incompatible_features
+        type: u8
+      - id: compatible_features
+        type: u8
+      - id: autoclear_features
+        type: u8
+      - id: refcount_order
+        type: u4
+      - id: len_header
+        type: u4
+        valid:
+          expr: 'len_header >= 104 and len_header % 8 == 0'
 instances:
   l1table:
     pos: ofs_l1_table
@@ -55,3 +76,4 @@ enums:
   crypt_methods:
     0: no_encryption
     1: aes
+    2: luks
