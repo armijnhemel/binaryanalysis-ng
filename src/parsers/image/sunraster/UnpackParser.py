@@ -38,9 +38,6 @@ class SunrasterUnpackParser(UnpackParser):
     ]
     pretty_name = 'sunraster'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_sunraster(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = sunraster.Sunraster.from_io(self.infile)
