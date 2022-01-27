@@ -25,7 +25,6 @@
 import math
 
 import bangfilesystems
-import bangmedia
 import bangunpack
 
 # store a few standard signatures
@@ -214,8 +213,8 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'ani': bangmedia.unpack_ani,
-    'mng': bangmedia.unpack_mng,
+    'ani': bangunpack.unpack_ani,
+    'mng': bangunpack.unpack_mng,
     'gzip': bangunpack.unpack_gzip,
     'xz': bangunpack.unpack_xz,
     'lzma_var1': bangunpack.unpack_lzma,
@@ -248,7 +247,7 @@ signaturetofunction = {
     'vmdk': bangfilesystems.unpack_vmdk,
     'qcow2': bangfilesystems.unpack_qcow2,
     'certificate': bangunpack.unpack_certificate,
-    'pdf': bangmedia.unpack_pdf,
+    'pdf': bangunpack.unpack_pdf,
     'zim': bangunpack.unpack_zim,
     'sqlite3': bangunpack.unpack_sqlite,
     'trx': bangunpack.unpack_trx,
