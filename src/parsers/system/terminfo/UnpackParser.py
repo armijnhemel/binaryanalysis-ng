@@ -46,6 +46,8 @@ class TerminfoUnpackParser(UnpackParser):
                 self.data = terminfo.Terminfo.from_io(self.infile)
             except (Exception, ValidationFailedError) as e:
                 raise UnpackParserException(e.args)
+        check_condition(len(self.data.names_section.names) > 0,
+                        "no name found")
         check_condition(self.data.names_section.names.isprintable(),
                         "invalid names section")
         for string_offset in self.data.strings_section.string_offset:

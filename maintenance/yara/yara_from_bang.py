@@ -43,7 +43,7 @@ NAME_ESCAPE = str.maketrans({'.': '_',
                              '-': '_'})
 
 
-def generate_yara(yara_directory, metadata, functions, variables, strings, tags):
+def generate_yara(yara_directory, metadata, functions, variables, strings, tags, heuristics):
     generate_date = datetime.datetime.utcnow().isoformat()
     rule_uuid = uuid.uuid4()
     meta = '''
@@ -69,33 +69,60 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags)
         p.write(meta)
         p.write('\n    strings:\n')
 
-        # write the strings
-        p.write("\n        // Extracted strings\n\n")
-        counter = 1
-        for s in sorted(strings):
-            try:
-                p.write("        $string%d = \"%s\"\n" % (counter, s))
+        if strings != set():
+            # write the strings
+            p.write("\n        // Extracted strings\n\n")
+            counter = 1
+            for s in sorted(strings):
+                try:
+                    p.write("        $string%d = \"%s\"\n" % (counter, s))
+                    counter += 1
+                except:
+                    pass
+
+        if functions != set():
+            # write the functions
+            p.write("\n        // Extracted functions\n\n")
+            counter = 1
+            for s in sorted(functions):
+                p.write("        $function%d = \"%s\"\n" % (counter, s))
                 counter += 1
-            except:
-                pass
 
-        # write the functions
-        p.write("\n        // Extracted functions\n\n")
-        counter = 1
-        for s in sorted(functions):
-            p.write("        $function%d = \"%s\"\n" % (counter, s))
-            counter += 1
+        if variables != set():
+            # write the variable names
+            p.write("\n        // Extracted variables\n\n")
+            counter = 1
+            for s in sorted(variables):
+                p.write("        $variable%d = \"%s\"\n" % (counter, s))
+                counter += 1
 
-        # write the variable names
-        p.write("\n        // Extracted variables\n\n")
-        counter = 1
-        for s in sorted(variables):
-            p.write("        $variable%d = \"%s\"\n" % (counter, s))
-            counter += 1
-
-        # TODO: find good heuristics of how many identifiers should be matched
         p.write('\n    condition:\n')
-        p.write('        all of them\n')
+        if strings != set():
+            if len(strings) >= heuristics['strings_minimum']:
+                num_strings = max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])
+                p.write('        %d of ($string*)' % num_strings)
+            else:
+                p.write('        any of ($string*)')
+            if not (functions == set() and variables == set()):
+                p.write(' and\n')
+            else:
+                p.write('\n')
+        if functions != set():
+            if len(functions) >= heuristics['functions_minimum']:
+                num_funcs = max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])
+                p.write('        %d of ($function*)' % num_funcs)
+            else:
+                p.write('        any of ($function*)')
+            if variables != set():
+                p.write(' and\n')
+            else:
+                p.write('\n')
+        if variables != set():
+            if len(variables) >= heuristics['variables_minimum']:
+                num_vars = max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])
+                p.write('        %d of ($variable*)\n' % num_vars)
+            else:
+                p.write('        any of ($variable*)\n')
         p.write('\n}')
     return yara_file.name
 
@@ -104,6 +131,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                       processlock, processed_files, yara_env):
 
     generate_identifier_files = False
+    heuristics = yara_env['heuristics']
     while True:
         bang_directory = yaraqueue.get()
         bang_pickle = bang_directory / 'bang.pickle'
@@ -216,6 +244,13 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     elf_to_identifiers['variables'] = variables
                     elf_to_identifiers['functions'] = functions
 
+                if len(strings) < heuristics['strings_extracted']:
+                    strings = set()
+                if len(functions) < heuristics['functions_extracted']:
+                    functions = set()
+                if len(variables) < heuristics['variables_extracted']:
+                    variables = set()
+
                 # do not generate a YARA file if there is no data
                 if strings == set() and variables == set() and functions == set():
                     continue
@@ -226,7 +261,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     pass
 
                 yara_tags = yara_env['tags'] + ['elf']
-                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags)
+                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags, heuristics)
                 yara_files.append(yara_name)
             elif 'dex' in bang_data['scantree'][bang_file]['labels']:
                 sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
@@ -303,7 +338,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     pass
 
                 yara_tags = yara_env['tags'] + ['dex']
-                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags)
+                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags, heuristics)
                 yara_files.append(yara_name)
 
         if yara_files != []:
@@ -451,6 +486,80 @@ def main(argv):
         if isinstance(config['yara']['max_identifiers'], int):
             max_identifiers = config['yara']['max_identifiers']
 
+    heuristics = {}
+
+    strings_percentage = 10
+    if 'strings_percentage' in config['yara']:
+        if isinstance(config['yara']['strings_percentage'], int):
+            strings_percentage = config['yara']['strings_percentage']
+    heuristics['strings_percentage'] = strings_percentage
+
+    functions_percentage = 10
+    if 'functions_percentage' in config['yara']:
+        if isinstance(config['yara']['functions_percentage'], int):
+            functions_percentage = config['yara']['functions_percentage']
+    heuristics['functions_percentage'] = functions_percentage
+
+    variables_percentage = 10
+    if 'variables_percentage' in config['yara']:
+        if isinstance(config['yara']['variables_percentage'], int):
+            variables_percentage = config['yara']['variables_percentage']
+    heuristics['variables_percentage'] = variables_percentage
+
+    strings_matched = 1
+    if 'strings_matched' in config['yara']:
+        if isinstance(config['yara']['strings_matched'], int):
+            strings_matched = config['yara']['strings_matched']
+    heuristics['strings_matched'] = strings_matched
+
+    functions_matched = 1
+    if 'functions_matched' in config['yara']:
+        if isinstance(config['yara']['functions_matched'], int):
+            functions_matched = config['yara']['functions_matched']
+    heuristics['functions_matched'] = functions_matched
+
+    variables_matched = 1
+    if 'variables_matched' in config['yara']:
+        if isinstance(config['yara']['variables_matched'], int):
+            variables_matched = config['yara']['variables_matched']
+    heuristics['variables_matched'] = variables_matched
+
+    strings_minimum = 10
+    if 'strings_minimum' in config['yara']:
+        if isinstance(config['yara']['strings_minimum'], int):
+            strings_minimum = config['yara']['strings_minimum']
+    heuristics['strings_minimum'] = strings_minimum
+
+    functions_minimum = 10
+    if 'functions_minimum' in config['yara']:
+        if isinstance(config['yara']['functions_minimum'], int):
+            functions_minimum = config['yara']['functions_minimum']
+    heuristics['functions_minimum'] = functions_minimum
+
+    variables_minimum = 10
+    if 'variables_minimum' in config['yara']:
+        if isinstance(config['yara']['variables_minimum'], int):
+            variables_minimum = config['yara']['variables_minimum']
+    heuristics['variables_minimum'] = variables_minimum
+
+    strings_extracted = 5
+    if 'strings_extracted' in config['yara']:
+        if isinstance(config['yara']['strings_extracted'], int):
+            strings_extracted = config['yara']['strings_extracted']
+    heuristics['strings_extracted'] = strings_extracted
+
+    functions_extracted = 5
+    if 'functions_extracted' in config['yara']:
+        if isinstance(config['yara']['functions_extracted'], int):
+            functions_extracted = config['yara']['functions_extracted']
+    heuristics['functions_extracted'] = functions_extracted
+
+    variables_extracted = 5
+    if 'variables_extracted' in config['yara']:
+        if isinstance(config['yara']['variables_extracted'], int):
+            variables_extracted = config['yara']['variables_extracted']
+    heuristics['variables_extracted'] = variables_extracted
+
     processmanager = multiprocessing.Manager()
 
     # ignore object files (regular and GHC specific)
@@ -488,7 +597,8 @@ def main(argv):
                 'ignored_suffixes': ignored_suffixes,
                 'ignore_weak_symbols': ignore_weak_symbols,
                 'lq_identifiers': lq_identifiers, 'tags': tags,
-                'max_identifiers': max_identifiers}
+                'max_identifiers': max_identifiers,
+                'heuristics': heuristics}
 
     # create processes for unpacking archives
     for i in range(0, threads):

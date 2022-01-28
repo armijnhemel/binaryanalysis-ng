@@ -12,7 +12,7 @@ Some intended uses:
 
 ## Requirements
 
-The recommended way to use [Nix](https://nixos.org/nix), run
+The recommended way is to use [Nix](https://nixos.org/nix), run
 `nix-shell` to load all the dependencies for the unpacker,
 `nix-shell maintenance.nix` for the maintenance scripts and
 `nix-shell analysis.nix` for the maintenance scripts.
@@ -42,7 +42,6 @@ described in the file `doc/kaitai-struct.md`.
 * dockerfile-parse (possibly named python3-dockerfile-parse)
 * openssl
 * rzip
-* libxml2 (for 'xmllint')
 * mailcap (for mime.types)
 * lzop
 * OpenJDK (for 'unpack200')
@@ -166,7 +165,6 @@ larger file, unless stated otherwise.
 69. BMP (needs PIL)
 70. PDF (simple verification, no object streams, incremental updates
     at end of the file)
-71. pack200 (needs unpack200)
 72. GIMP brush (needs PIL)
 73. ZIM (Wikipedia archive format)
 74. MIDI
@@ -215,7 +213,7 @@ larger file, unless stated otherwise.
 116. Chrome extensions (.crx)
 117. Windows shell link file (.lnk)
 118. PCF fonts (that actually follow the specification, little endian only)
-119. DS_Store
+119. DS\_Store
 120. Qualcomm Snapdragon MSM bootloader files
 121. Mozilla ARchive (.mar)
 122. OpenFst (subset, identification only)
@@ -246,6 +244,9 @@ larger file, unless stated otherwise.
 147. Performance Co-Pilot metadata files
 148. data URI (png, gif, jpeg only)
 149. DHTB signed files
+150. Android AAPT2 container format
+151. Android update image (version 2 only, full OTA image only)
+152. Qt resource files (`.rcc`)
 
 The following text formats can be recognized:
 

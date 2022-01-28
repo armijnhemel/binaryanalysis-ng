@@ -24,6 +24,7 @@ import os
 import pathlib
 
 import lz4
+import lz4.frame
 import xxhash
 
 from FileResult import FileResult

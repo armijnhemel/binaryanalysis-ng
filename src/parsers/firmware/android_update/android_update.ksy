@@ -6,8 +6,6 @@ meta:
     - archive
     - android
   license: Apache-2.0
-  imports:
-    - /serialization/google_protobuf
   endian: be
 doc: |
   Format of payload.bin OTA update files. The payload is in Google Protobuf
@@ -22,13 +20,15 @@ seq:
     contents: "CrAU"
   - id: major_version
     type: u8
+    valid:
+      #any-of: [1, 2]
+      any-of: [2]
   - id: len_manifest
     type: u8
   - id: len_manifest_signature
     type: u4
+    if: major_version == 2
   - id: manifest
-    type: google_protobuf
     size: len_manifest
   - id: manifest_signature
-    type: google_protobuf
     size: len_manifest_signature
