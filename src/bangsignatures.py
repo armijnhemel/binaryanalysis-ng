@@ -245,7 +245,6 @@ signaturetofunction = {
     'ext2': bangfilesystems.unpack_ext2,
     'zstd_08': bangunpack.unpack_zstd,
     'vmdk': bangfilesystems.unpack_vmdk,
-    'qcow2': bangfilesystems.unpack_qcow2,
     'certificate': bangunpack.unpack_certificate,
     'pdf': bangunpack.unpack_pdf,
     'zim': bangunpack.unpack_zim,
