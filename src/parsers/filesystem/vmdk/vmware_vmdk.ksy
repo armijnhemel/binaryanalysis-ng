@@ -56,7 +56,7 @@ types:
       - id: version
         type: u4
         valid:
-          any-of: [1, 2]
+          any-of: [1, 2, 3]
       - id: flags
         type: header_flags
       - id: size_max
@@ -117,9 +117,11 @@ types:
         pos: start_primary_grain * _root.len_sector
         size: size_grain * _root.len_sector
         io: _root._io
-        if: not flags.use_secondary_grain_dir
+        if: not flags.use_secondary_grain_dir and not gd_at_end
       grain_secondary:
         pos: start_secondary_grain * _root.len_sector
         size: size_grain * _root.len_sector
         io: _root._io
         if: not start_secondary_grain == 0
+      gd_at_end:
+        value: start_primary_grain == 0xffffffffffffffff
