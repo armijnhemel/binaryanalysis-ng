@@ -8,43 +8,13 @@ meta:
     wikidata: Q2658179
   license: CC0-1.0
   endian: le
-doc-ref: 'https://github.com/libyal/libvmdk/blob/master/documentation/VMWare%20Virtual%20Disk%20Format%20(VMDK).asciidoc#41-file-header'
+doc-ref:
+ - 'https://github.com/libyal/libvmdk/blob/master/documentation/VMWare%20Virtual%20Disk%20Format%20(VMDK).asciidoc#41-file-header'
+ - https://web.archive.org/web/20210308200012/https://www.vmware.com/support/developer/vddk/vmdk_50_technote.pdf
 seq:
-  - id: magic
-    contents: "KDMV"
-  - id: version
-    type: s4
-  - id: flags
-    type: header_flags
-  - id: size_max
-    type: s8
-    doc: Maximum number of sectors in a given image file (capacity)
-  - id: size_grain
-    type: s8
-  - id: start_descriptor
-    type: s8
-    doc: Embedded descriptor file start sector number (0 if not available)
-  - id: size_descriptor
-    type: s8
-    doc: Number of sectors that embedded descriptor file occupies
-  - id: num_grain_table_entries
-    type: s4
-    doc: Number of grains table entries
-  - id: start_secondary_grain
-    type: s8
-    doc: Secondary (backup) grain directory start sector number
-  - id: start_primary_grain
-    type: s8
-    doc: Primary grain directory start sector number
-  - id: size_metadata
-    type: s8
-  - id: is_dirty
-    type: u1
-  - id: stuff
-    size: 4
-  - id: compression_method
-    type: u2
-    enum: compression_methods
+  - id: header
+    type: header
+    size: len_sector
 enums:
   compression_methods:
     0: none
@@ -52,15 +22,6 @@ enums:
 instances:
   len_sector:
     value: 0x200
-  descriptor:
-    pos: start_descriptor * _root.len_sector
-    size: size_descriptor * _root.len_sector
-  grain_primary:
-    pos: start_primary_grain * _root.len_sector
-    size: size_grain * _root.len_sector
-  grain_secondary:
-    pos: start_secondary_grain * _root.len_sector
-    size: size_grain * _root.len_sector
 types:
   header_flags:
     doc-ref: 'https://github.com/libyal/libvmdk/blob/master/documentation/VMWare%20Virtual%20Disk%20Format%20(VMDK).asciidoc#411-flags'
@@ -88,3 +49,77 @@ types:
         type: b1
       - id: reserved4
         type: u1
+  header:
+    seq:
+      - id: magic
+        contents: "KDMV"
+      - id: version
+        type: u4
+        valid:
+          any-of: [1, 2]
+      - id: flags
+        type: header_flags
+      - id: size_max
+        type: u8
+        doc: Maximum number of sectors in a given image file (capacity)
+      - id: size_grain
+        type: u8
+      - id: start_descriptor
+        type: u8
+        doc: Embedded descriptor file start sector number (0 if not available)
+      - id: size_descriptor
+        type: u8
+        doc: Number of sectors that embedded descriptor file occupies
+      - id: num_grain_table_entries
+        type: u4
+        doc: Number of grains table entries
+      - id: start_secondary_grain
+        type: u8
+        doc: Secondary (backup) grain directory start sector number
+      - id: start_primary_grain
+        type: u8
+        doc: Primary grain directory start sector number
+      - id: size_metadata
+        type: u8
+      - id: is_dirty
+        type: u1
+      - id: error_detection
+        type: error_detection
+      - id: compression_method
+        type: u2
+        enum: compression_methods
+        valid:
+          any-of:
+            - compression_methods::none
+            - compression_methods::deflate
+    types:
+      error_detection:
+        seq:
+          - id: single_end_line_char
+            contents: "\n"
+          - id: non_end_line_char
+            contents: " "
+          - id: double_end_line_char1
+            contents: "\r"
+          - id: double_end_line_char2
+            contents: "\n"
+        doc: |
+          Four entries are used to detect when an extent file has been
+          corrupted by transferring it using FTP in text mode.
+    instances:
+      descriptor:
+        pos: start_descriptor * _root.len_sector
+        size: size_descriptor * _root.len_sector
+        type: str
+        encoding: UTF-8
+        io: _root._io
+      grain_primary:
+        pos: start_primary_grain * _root.len_sector
+        size: size_grain * _root.len_sector
+        io: _root._io
+        if: not flags.use_secondary_grain_dir
+      grain_secondary:
+        pos: start_secondary_grain * _root.len_sector
+        size: size_grain * _root.len_sector
+        io: _root._io
+        if: not start_secondary_grain == 0
