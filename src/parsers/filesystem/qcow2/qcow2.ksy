@@ -11,9 +11,9 @@ seq:
   - id: header_cluster
     type: header
     size: cluster_size
-  - id: clusters
-    size: cluster_size
-    repeat: eos
+  #- id: clusters
+  #  size: cluster_size
+  #  repeat: eos
 instances:
   cluster_size_bits:
     pos: 0x14
