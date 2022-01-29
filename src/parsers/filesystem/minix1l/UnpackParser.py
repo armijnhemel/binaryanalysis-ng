@@ -25,7 +25,6 @@
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/fs/mfs
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/usr.sbin/mkfs.mfs/v1l
 
-
 import os
 import stat
 
@@ -44,9 +43,6 @@ class Minix1lUnpackParser(UnpackParser):
         (0x410, b'\x8f\x13')
     ]
     pretty_name = 'minix'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_minix1l(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         try:

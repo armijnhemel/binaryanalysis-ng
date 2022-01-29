@@ -25,7 +25,6 @@
 import math
 
 import bangfilesystems
-import bangmedia
 import bangunpack
 
 # store a few standard signatures
@@ -214,8 +213,8 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'ani': bangmedia.unpack_ani,
-    'mng': bangmedia.unpack_mng,
+    'ani': bangunpack.unpack_ani,
+    'mng': bangunpack.unpack_mng,
     'gzip': bangunpack.unpack_gzip,
     'xz': bangunpack.unpack_xz,
     'lzma_var1': bangunpack.unpack_lzma,
@@ -223,7 +222,6 @@ signaturetofunction = {
     'lzma_var3': bangunpack.unpack_lzma,
     'tar_posix': bangunpack.unpack_tar,
     'tar_gnu': bangunpack.unpack_tar,
-    'ar': bangunpack.unpack_ar,
     'squashfs_var1': bangfilesystems.unpack_squashfs,
     'squashfs_var2': bangfilesystems.unpack_squashfs,
     'squashfs_var3': bangfilesystems.unpack_squashfs,
@@ -247,14 +245,8 @@ signaturetofunction = {
     'ext2': bangfilesystems.unpack_ext2,
     'zstd_08': bangunpack.unpack_zstd,
     'vmdk': bangfilesystems.unpack_vmdk,
-    'qcow2': bangfilesystems.unpack_qcow2,
-    'swf': bangmedia.unpack_swf,
-    'swf_zlib': bangmedia.unpack_swf,
-    'swf_lzma': bangmedia.unpack_swf,
     'certificate': bangunpack.unpack_certificate,
-    'flv': bangmedia.unpack_flv,
-    'pdf': bangmedia.unpack_pdf,
-    'pack200': bangunpack.unpack_pack200,
+    'pdf': bangunpack.unpack_pdf,
     'zim': bangunpack.unpack_zim,
     'sqlite3': bangunpack.unpack_sqlite,
     'trx': bangunpack.unpack_trx,
@@ -265,7 +257,6 @@ signaturetofunction = {
     'cramfs_le': bangfilesystems.unpack_cramfs,
     'cramfs_be': bangfilesystems.unpack_cramfs,
     'bflt': bangunpack.unpack_bflt,
-    'pcapng': bangunpack.unpack_pcapng,
     'pcap_le': bangunpack.unpack_pcap,
     'pcap_be': bangunpack.unpack_pcap,
     'pcap_le_nano': bangunpack.unpack_pcap,
