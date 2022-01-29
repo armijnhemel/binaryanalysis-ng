@@ -42,12 +42,15 @@ import lzma
 import zlib
 import zipfile
 import bz2
+import re
 import stat
 import subprocess
 import xml.dom
 import hashlib
 import pathlib
 import sqlite3
+import brotli
+
 
 # some external packages that are needed
 import defusedxml.minidom
@@ -821,77 +824,6 @@ unpack_tar.signatures = {'tar_posix': b'ustar\x00',
 unpack_tar.extensions = ['.tar']
 unpack_tar.pretty = 'tar'
 unpack_tar.offset = 0x101
-
-
-# Unix portable archiver
-# https://en.wikipedia.org/wiki/Ar_%28Unix%29
-# https://sourceware.org/binutils/docs/binutils/ar.html
-def unpack_ar(fileresult, scanenvironment, offset, unpackdir):
-    '''Unpack ar concatenated data.'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackdir_full = scanenvironment.unpack_path(unpackdir)
-
-    unpackedsize = 0
-
-    if offset != 0:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'Currently only works on whole files'}
-        return {'status': False, 'error': unpackingerror}
-
-    if shutil.which('ar') is None:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'ar program not found'}
-        return {'status': False, 'error': unpackingerror}
-
-    # first test the file to see if it is a valid file
-    p = subprocess.Popen(['ar', 't', filename_full], stdin=subprocess.PIPE,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (standard_out, standard_error) = p.communicate()
-    if p.returncode != 0:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'Not a valid ar file'}
-        return {'status': False, 'error': unpackingerror}
-
-    # create the unpacking directory
-    os.makedirs(unpackdir_full, exist_ok=True)
-
-    # then extract the file
-    p = subprocess.Popen(['ar', 'x', filename_full], stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE, cwd=unpackdir_full)
-    (outputmsg, errormsg) = p.communicate()
-    if p.returncode != 0:
-        foundfiles = os.listdir(unpackdir_full)
-        # try to remove any files that were left behind
-        for f in foundfiles:
-            if os.path.isdir(os.path.join(unpackdir_full, f)):
-                shutil.rmtree(os.path.join(unpackdir_full, f))
-            else:
-                os.unlink(os.path.join(unpackdir_full, f))
-
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'Not a valid ar file'}
-        return {'status': False, 'error': unpackingerror}
-
-    foundfiles = os.listdir(unpackdir_full)
-    labels += ['archive', 'ar']
-
-    for f in foundfiles:
-        outputfile_rel = os.path.join(unpackdir, f)
-        outputfile_full = os.path.join(unpackdir_full, f)
-        unpackedfilesandlabels.append((outputfile_rel, []))
-        if f == 'debian-binary':
-            if filename_full.suffix.lower() == '.deb' or filename_full.suffix.lower() == '.udeb':
-                labels.append('debian')
-                labels.append('deb')
-
-    return {'status': True, 'length': filesize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_ar.signatures = {'ar': b'!<arch>'}
 
 
 # ICC color profile
@@ -2650,163 +2582,6 @@ unpack_xar.signatures = {'xar': b'\x78\x61\x72\x21'}
 unpack_xar.minimum_size = 28
 
 
-# http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
-def unpack_lzip(fileresult, scanenvironment, offset, unpackdir):
-    '''Unpack lzip compressed data.'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-    unpackdir_full = scanenvironment.unpack_path(unpackdir)
-
-    if filesize < 26:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'not enough data'}
-        return {'status': False, 'error': unpackingerror}
-
-    # open the file and skip the magic
-    checkfile = open(filename_full, 'rb')
-    checkfile.seek(offset+4)
-    unpackedsize += 4
-
-    # then the version number, should be 1
-    lzipversion = ord(checkfile.read(1))
-    if lzipversion != 1:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'unsupported lzip version'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 1
-
-    # then the LZMA dictionary size. The lowest 5 bits are
-    # the dictionary base size.
-    checkbytes = checkfile.read(1)
-    dictionarybasesize = pow(2, ord(checkbytes) & 31)
-    dictionarysize = dictionarybasesize - (int(dictionarybasesize/16)) * (ord(checkbytes) >> 5)
-    unpackedsize += 1
-
-    # create a LZMA decompressor with custom filter, as the data is
-    # stored without LZMA headers. The LZMA properties are hardcoded
-    # for lzip, except the dictionary.
-    lzma_lc = 3
-    lzma_lp = 0
-    lzma_pb = 2
-
-    lzip_filters = [{'id': lzma.FILTER_LZMA1, 'dict_size': dictionarybasesize,
-                     'lc': lzma_lc, 'lp': lzma_lp, 'pb': lzma_pb}]
-
-    decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=lzip_filters)
-    if not filename_full.suffix.lower() == '.lz':
-        outfile_rel = os.path.join(unpackdir, "unpacked-from-lzip")
-    else:
-        outfile_rel = os.path.join(unpackdir, filename_full.stem)
-    outfile_full = scanenvironment.unpack_path(outfile_rel)
-
-    # create the unpacking directory
-    os.makedirs(unpackdir_full, exist_ok=True)
-    outfile = open(outfile_full, 'wb')
-
-    # while decompressing also compute the CRC of the uncompressed
-    # data, as it is stored after the compressed LZMA data in the file
-    crccomputed = binascii.crc32(b'')
-
-    readsize = 1000000
-    lzipbuffer = bytearray(readsize)
-    bytesread = checkfile.readinto(lzipbuffer)
-    checkbytes = lzipbuffer[:bytesread]
-
-    while bytesread != 0:
-        try:
-            unpackeddata = decompressor.decompress(checkbytes)
-        except EOFError as e:
-            break
-        except Exception as e:
-            # clean up
-            outfile.close()
-            os.unlink(outfile_full)
-            checkfile.close()
-            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                              'reason': 'not valid LZMA data'}
-            return {'status': False, 'error': unpackingerror}
-        outfile.write(unpackeddata)
-        crccomputed = binascii.crc32(unpackeddata, crccomputed)
-        # there is no more compressed data
-        unpackedsize += bytesread - len(decompressor.unused_data)
-        if decompressor.unused_data != b'':
-            break
-        bytesread = checkfile.readinto(lzipbuffer)
-        checkbytes = lzipbuffer[:bytesread]
-
-    outfile.close()
-
-    # first reset to the end of the LZMA compressed data
-    checkfile.seek(offset+unpackedsize)
-
-    # then four bytes of CRC32
-    checkbytes = checkfile.read(4)
-    if len(checkbytes) != 4:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'not enough data for CRC'}
-        return {'status': False, 'error': unpackingerror}
-
-    crcstored = int.from_bytes(checkbytes, byteorder='little')
-    # the CRC stored is the CRC of the uncompressed data
-    if crcstored != crccomputed:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'wrong CRC'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 4
-
-    # then the size of the original uncompressed data
-    checkbytes = checkfile.read(8)
-    if len(checkbytes) != 8:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'not enough data for original data size'}
-        return {'status': False, 'error': unpackingerror}
-    originalsize = int.from_bytes(checkbytes, byteorder='little')
-    if originalsize != os.stat(outfile_full).st_size:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'wrong original data size'}
-        return {'status': False, 'error': unpackingerror}
-    unpackedsize += 8
-
-    # then the member size
-    checkbytes = checkfile.read(8)
-    if len(checkbytes) != 8:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'not enough data for member size'}
-        return {'status': False, 'error': unpackingerror}
-    membersize = int.from_bytes(checkbytes, byteorder='little')
-    unpackedsize += 8
-
-    # the member size has to be the same as the unpacked size
-    if membersize != unpackedsize:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'wrong member size'}
-        return {'status': False, 'error': unpackingerror}
-
-    checkfile.close()
-    unpackedfilesandlabels.append((outfile_rel, []))
-    if offset == 0 and unpackedsize == filesize:
-        labels.append('compressed')
-        labels.append('lzip')
-
-    return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-# http://www.nongnu.org/lzip/manual/lzip_manual.html#File-format
-unpack_lzip.signatures = {'lzip': b'LZIP'}
-unpack_lzip.minimum_size = 26
-
-
 # a generic method for unpacking fonts:
 #
 # * TTF
@@ -4188,86 +3963,6 @@ def extract_certificate(filename_full, scanenvironment, offset):
     return {'status': False, 'error': unpackingerror}
 
 
-# Transform a pack200 file to a JAR file using the unpack200 tool.
-# This will not restore the original JAR file, as pack200 performs all kinds
-# of optimizations, such as removing redundant classes, and so on.
-#
-# https://docs.oracle.com/javase/7/docs/technotes/guides/pack200/pack-spec.html
-#
-# The header format is described in section 5.2
-def unpack_pack200(fileresult, scanenvironment, offset, unpackdir):
-    '''Convert a pack200 file back into a JAR'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackdir_full = scanenvironment.unpack_path(unpackdir)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-    unpackdir_full = scanenvironment.unpack_path(unpackdir)
-
-    # first check if the unpack200 program is actually there
-    if shutil.which('unpack200') is None:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'unpack200 program not found'}
-        return {'status': False, 'error': unpackingerror}
-
-    # the unpack200 tool only works on whole files. Finding out
-    # where the file ends is TODO, but if there is data in front
-    # of a valid pack200 file it is not a problem.
-    if offset != 0:
-        # create a temporary file and copy the data into the
-        # temporary file if offset != 0
-        checkfile = open(filename_full, 'rb')
-        temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
-        os.sendfile(temporaryfile[0], checkfile.fileno(), offset, filesize - offset)
-        os.fdopen(temporaryfile[0]).close()
-        checkfile.close()
-
-    # write unpacked data to a JAR file
-    outfile_rel = os.path.join(unpackdir, "unpacked.jar")
-    outfile_full = scanenvironment.unpack_path(outfile_rel)
-
-    # create the unpacking directory
-    os.makedirs(unpackdir_full, exist_ok=True)
-
-    # then extract the file
-    if offset != 0:
-        p = subprocess.Popen(['unpack200', temporaryfile[1], outfile_full],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             cwd=unpackdir_full)
-    else:
-        p = subprocess.Popen(['unpack200', filename_full, outfile_full],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             cwd=unpackdir_full)
-    (outputmsg, errormsg) = p.communicate()
-
-    if offset != 0:
-        os.unlink(temporaryfile[1])
-
-    if p.returncode != 0:
-        # try to remove any files that were possibly left behind
-        try:
-            os.unlink(outfile_full)
-        except:
-            pass
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'Not a valid pack200 file'}
-        return {'status': False, 'error': unpackingerror}
-
-    unpackedsize = filesize - offset
-
-    if offset == 0 and unpackedsize == filesize:
-        labels.append('pack200')
-
-    unpackedfilesandlabels.append((outfile_rel, []))
-
-    return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_pack200.signatures = {'pack200': b'\xca\xfe\xd0\x0d'}
-
-
 # https://wiki.openzim.org/wiki/ZIM_file_format
 # https://wiki.openzim.org/wiki/ZIM_File_Example
 # Test files: https://wiki.kiwix.org/wiki/Content_in_all_languages
@@ -5629,115 +5324,6 @@ unpack_bflt.signatures = {'bflt': b'bFLT'}
 unpack_bflt.minimum_size = 64
 
 
-# https://github.com/pcapng/pcapng
-# only process little endian files
-def unpack_pcapng(fileresult, scanenvironment, offset, unpackdir):
-    '''Verify/carve a pcapng file'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-    unpackdir_full = scanenvironment.unpack_path(unpackdir)
-
-    # standard blocks
-    interface_block = 0x1
-    simple_packet_block = 0x3
-    name_resolution_block = 0x4
-    interface_statistics_block = 0x5
-    enhanced_packet_block = 0x6
-    systemd_journal_export_block = 0x9
-    decryption_secrets_block = 0xa
-    custom_block = 0xbad
-    custom_block2 = 0x40000bad
-    regular_blocks = [interface_block, simple_packet_block,
-                      name_resolution_block, interface_statistics_block,
-                      enhanced_packet_block, systemd_journal_export_block,
-                      decryption_secrets_block, custom_block,
-                      custom_block2]
-
-    # project/vendor specific blocks
-    hone_blocks = [0x101, 0x102]
-    sysdig_blocks = [0x201, 0x202, 0x203, 0x204, 0x205, 0x206, 0x207,
-                     0x208, 0x209, 0x210, 0x211, 0x212, 0x213]
-
-    all_blocks = regular_blocks + hone_blocks + sysdig_blocks
-
-    # open the file
-    checkfile = open(filename_full, 'rb')
-    checkfile.seek(offset)
-
-    # process the blocks
-    sectionheaderseen = False
-    dataprocessed = False
-    byteorder = 'little'
-    while True:
-        # block is at least 12 bytes
-        if filesize - checkfile.tell() < 12:
-            break
-        # first the block type
-        checkbytes = checkfile.read(4)
-        if checkbytes == b'\x0a\x0d\x0d\x0a':
-            sectionheaderseen = True
-        else:
-            if not sectionheaderseen:
-                # section header block is mandatory
-                break
-            block_type = int.from_bytes(checkbytes, byteorder=byteorder)
-
-            # only process blocks defined in the specification
-            if not block_type in all_blocks:
-                break
-
-        # then the block size, which includes the block type
-        # and the two "block total length" blocks
-        checkbytes = checkfile.read(4)
-        block_length = int.from_bytes(checkbytes, byteorder=byteorder)
-        if block_length == 0:
-            break
-        if filesize - checkfile.tell() < block_length-12:
-            break
-
-        # skip the bytes
-        checkfile.seek(block_length-12, os.SEEK_CUR)
-
-        # read block length again
-        checkbytes = checkfile.read(4)
-        block_length2 = int.from_bytes(checkbytes, byteorder=byteorder)
-        if block_length != block_length2:
-            break
-        unpackedsize += block_length
-        dataprocessed = True
-
-    if not dataprocessed:
-        checkfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'no pcapng data processed'}
-        return {'status': False, 'error': unpackingerror}
-
-    if offset == 0 and unpackedsize == filesize:
-        checkfile.close()
-        labels = ['pcapng']
-    else:
-        # else carve the file
-        outfile_rel = os.path.join(unpackdir, "unpacked-from-pcapng")
-        outfile_full = scanenvironment.unpack_path(outfile_rel)
-
-        # create the unpacking directory
-        os.makedirs(unpackdir_full, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
-        outfile.close()
-        unpackedfilesandlabels.append((outfile_rel, ['pcapng', 'unpacked']))
-        checkfile.close()
-
-    return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_pcapng.signatures = {'pcapng': b'\x0a\x0d\x0d\x0a'}
-
-
 # https://wiki.wireshark.org/Development/LibpcapFileFormat
 def unpack_pcap(fileresult, scanenvironment, offset, unpackdir):
     '''Verify/carve a pcap file'''
@@ -5897,3 +5483,1218 @@ unpack_pcap.signatures = {'pcap_le': b'\xd4\xc3\xb2\xa1',
                           'pcap_be_nano': b'\xa1\xb2\x3c\x4d'}
 unpack_pcap.pretty = 'pcap'
 unpack_pcap.minimum_size = 24
+
+'''Built in carvers/verifiers/unpackers for various Android formats (except
+certain formats such as APK, which are with other unpackers).'''
+
+# Some Android firmware updates are distributed as sparse data images.
+# Given a data image and a transfer list data on an Android device is
+# block wise added, replaced, erased, or zeroed.
+#
+# The Android sparse data image format is documented in the Android
+# source code tree:
+#
+# https://android.googlesource.com/platform/bootable/recovery/+/4f81130039f6a312eba2027b3594a2be282f6b3a/updater/blockimg.cpp#1980
+#
+# Test files can be downloaded from LineageOS, for example:
+#
+# lineage-14.1-20180410-nightly-FP2-signed.zip
+#
+# Note: this is different to the Android sparse image format.
+def unpack_android_sparse_data(fileresult, scanenvironment, offset, unpackdir):
+    '''Unpack an Android sparse data file.'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+    # TODO
+    # if the file is compressed with Brotli it should first
+    # be decompressed before it can be processed
+
+    # for each .new.dat file there has to be a corresponding
+    # .transfer.list file as well.
+    transferfile = filename_full.parent / (filename_full.name[:-8] + ".transfer.list")
+    if not transferfile.exists():
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'transfer list not found'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the transfer list in text mode, not in binary mode
+    transferlist = open(transferfile, 'r')
+    transferlistlines = list(map(lambda x: x.strip(), transferlist.readlines()))
+    transferlist.close()
+
+    if len(transferlistlines) < 4:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not enough entries in transer list'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize = 0
+
+    # first line is the version number, see comment here:
+    # https://android.googlesource.com/platform/bootable/recovery/+/master/updater/blockimg.cpp#1628
+    try:
+        versionnumber = int(transferlistlines[0])
+    except ValueError:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid transfer list version number'}
+        return {'status': False, 'error': unpackingerror}
+
+    if versionnumber > 4:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid version number'}
+        return {'status': False, 'error': unpackingerror}
+
+    if versionnumber < 2:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'only transfer list version 2-4 supported'}
+        return {'status': False, 'error': unpackingerror}
+
+    # the next line is the amount of blocks (1 block is 4096 bytes)
+    # that will be copied to the output. This does not necessarily
+    # anything about the size of the output file as it might not include
+    # the blocks such as erase or zero, so it can be safely ignored.
+    try:
+        outputblocks = int(transferlistlines[1])
+    except ValueError:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid number for blocks to be written'}
+        return {'status': False, 'error': unpackingerror}
+
+    # then two lines related to stash entries which are only used by
+    # Android during updates to prevent flash space from overflowing,
+    # so can safely be ignored here.
+    try:
+        stashneeded = int(transferlistlines[2])
+    except ValueError:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid number for simultaneous stash entries needed'}
+        return {'status': False, 'error': unpackingerror}
+
+    try:
+        maxstash = int(transferlistlines[2])
+    except ValueError:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid number for maximum stash entries'}
+        return {'status': False, 'error': unpackingerror}
+
+    # a list of commands recognized
+    validtransfercommands = set(['new', 'zero', 'erase', 'free', 'stash'])
+
+    transfercommands = []
+
+    # store the maximum block number
+    maxblock = 0
+
+    # then parse the rest of the lines to see if they are valid
+    for l in transferlistlines[4:]:
+        transfersplit = l.split(' ')
+        if len(transfersplit) != 2:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid line in transfer list'}
+            return {'status': False, 'error': unpackingerror}
+        (transfercommand, transferblocks) = transfersplit
+        if transfercommand not in validtransfercommands:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'unsupported command in transfer list'}
+            return {'status': False, 'error': unpackingerror}
+        transferblockssplit = transferblocks.split(',')
+        if len(transferblockssplit) % 2 == 0:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid transfer block list in transfer list'}
+            return {'status': False, 'error': unpackingerror}
+        # first entry is the number of blocks on the rest of line
+        try:
+            transferblockcount = int(transferblockssplit[0])
+        except ValueError:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid transfer block list in transfer list'}
+            return {'status': False, 'error': unpackingerror}
+        if not transferblockcount == len(transferblockssplit[1:]):
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid transfer block list in transfer list'}
+            return {'status': False, 'error': unpackingerror}
+        # then check the rest of the numbers
+        try:
+            blocks = []
+            for b in transferblockssplit[1:]:
+                blocknr = int(b)
+                blocks.append(blocknr)
+                maxblock = max(maxblock, blocknr)
+        except ValueError:
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'invalid transfer block list in transfer list'}
+            return {'status': False, 'error': unpackingerror}
+        # store the transfer commands
+        transfercommands.append((transfercommand, blocks))
+
+    # block size is set to 4096 in the Android source code
+    blocksize = 4096
+
+    # cut the extension '.new.dat' from the file name unless the file
+    # name is the extension (as there would be a zero length name).
+    if len(filename_full.stem) == 0:
+        outputfile_rel = os.path.join(unpackdir, "unpacked-from-android-sparse-data")
+    else:
+        outputfile_rel = os.path.join(unpackdir, filename_full.stem)
+    outputfile_full = scanenvironment.unpack_path(outputfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
+    # first create the targetfile
+    targetfile = open(outputfile_full, 'wb')
+
+    # make sure that the target file is large enough.
+    # On Linux truncate() will zero fill the targetfile.
+    targetfile.truncate(maxblock*blocksize)
+
+    # then seek to the beginning of the target file
+    targetfile.seek(0)
+
+    # open the source file
+    checkfile = open(filename_full, 'rb')
+
+    checkfile.seek(0)
+
+    # then process all the commands. "zero" is not interesting as
+    # the underlying file has already been zero filled.
+    # erase is not very interesting either.
+    for c in transfercommands:
+        (transfercommand, blocks) = c
+        if transfercommand == 'new':
+            for b in range(0, len(blocks), 2):
+                targetfile.seek(blocks[b]*blocksize)
+                os.sendfile(targetfile.fileno(), checkfile.fileno(), None, (blocks[b+1] - blocks[b]) * blocksize)
+        else:
+            pass
+
+    targetfile.close()
+    checkfile.close()
+
+    unpackedsize = filesize
+
+    labels += ['androidsparsedata', 'android']
+    unpackedfilesandlabels.append((outputfile_rel, []))
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+unpack_android_sparse_data.extensions = ['.new.dat']
+unpack_android_sparse_data.pretty = 'androidsparsedata'
+
+
+# Android backup files
+#
+# Description of the format here:
+#
+# https://nelenkov.blogspot.nl/2012/06/unpacking-android-backups.html
+# http://web.archive.org/web/20180425072922/https://nelenkov.blogspot.nl/2012/06/unpacking-android-backups.html
+#
+# header + zlib compressed data
+# zlib compressed data contains a POSIX tar file
+def unpack_android_backup(fileresult, scanenvironment, offset, unpackdir):
+    '''Unpack an Android backup file.'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+
+    checkfile = open(filename_full, 'rb')
+
+    # skip over the offset
+    checkfile.seek(offset+15)
+    unpackedsize += 15
+
+    # Then read the version number. Only support version 1 right now.
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes'}
+        return {'status': False, 'error': unpackingerror}
+    if checkbytes != b'1\n':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unsupported Android backup version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # Then read the compression flag.
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes'}
+        return {'status': False, 'error': unpackingerror}
+    if checkbytes != b'1\n':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'unsupported Android backup version'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # Then read the encryption flag. Only "none" is supported,
+    # so read 5 bytes (including newline)
+    checkbytes = checkfile.read(5)
+    if len(checkbytes) != 5:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes'}
+        return {'status': False, 'error': unpackingerror}
+    if checkbytes != b'none\n':
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'decryption not supported'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 5
+
+    # create a temporary file to write the results to
+    # then create a zlib decompression object
+    tempbackupfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
+    decompressobj = zlib.decompressobj()
+
+    # read 1 MB chunks
+    chunksize = 1024*1024
+    checkbytes = checkfile.read(chunksize)
+    try:
+        while checkbytes != b'':
+            # uncompress the data, and write to an output file
+            os.write(tempbackupfile[0], decompressobj.decompress(checkbytes))
+            unpackedsize += len(checkbytes) - len(decompressobj.unused_data)
+            if len(decompressobj.unused_data) != 0:
+                break
+            checkbytes = checkfile.read(chunksize)
+    except Exception as ex:
+        os.fdopen(tempbackupfile[0]).close()
+        os.unlink(tempbackupfile[1])
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid compression'}
+        return {'status': False, 'error': unpackingerror}
+    os.fdopen(tempbackupfile[0]).close()
+    checkfile.close()
+
+    tarfilesize = os.stat(tempbackupfile[1]).st_size
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+
+    # now unpack the tar ball
+    # fr = FileResult( ??? )
+    # TODO: fix this: source file not in unpackdir
+    tarresult = bangunpack.unpack_tar(pathlib.Path(tempbackupfile[1]), scanenvironment, 0, unpackdir)
+
+    # cleanup
+    os.unlink(tempbackupfile[1])
+    if not tarresult['status']:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'corrupt tar inside Android backup file'}
+        return {'status': False, 'error': unpackingerror}
+    if not tarfilesize == tarresult['length']:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'corrupt tar inside Android backup file'}
+        return {'status': False, 'error': unpackingerror}
+
+    # add the labels and pass on the results from the tar unpacking
+    labels.append('androidbackup')
+    labels.append('android')
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': tarresult['filesandlabels']}
+
+unpack_android_backup.signatures = {'android_backup': b'ANDROID BACKUP\n'}
+
+# An unpacker for RIFF. This is a helper method used by unpackers for:
+# * WAV
+# * ANI
+# https://en.wikipedia.org/wiki/Resource_Interchange_File_Format
+def unpack_riff(
+        fileresult, scanenvironment, offset, unpackdir, validchunkfourcc,
+        applicationname, applicationheader, brokenlength=False):
+    '''Helper method to unpack RIFF based files'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    labels = []
+    # First check if the file size is 12 bytes or more. If not, then
+    # it is not a valid RIFF file.
+    if filesize - offset < 12:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'less than 12 bytes'}
+        return {'status': False, 'error': unpackingerror}
+
+    unpackedsize = 0
+    unpackedfilesandlabels = []
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+    chunkstooffsets = {}
+
+    # http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/riffmci.pdf
+    # chapter 2
+    infochunks = set([b'IARL', b'IART', b'ICMS', b'ICMT', b'ICOP', b'ICRD',
+                      b'ICRP', b'IDIM', b'IDPI', b'IENG', b'IGNR', b'IKEY',
+                      b'ILGT', b'IMED', b'INAM', b'IPLT', b'IPRD', b'ISBJ',
+                      b'ISFT', b'ISHP', b'ISRC', b'ISRF', b'ITCH'])
+
+    # Then open the file and read the first four bytes to see if
+    # they are "RIFF".
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset)
+    checkbytes = checkfile.read(4)
+    if checkbytes != b'RIFF':
+        checkfile.close()
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'no valid RIFF header'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # Then read four bytes and check the length (stored
+    # in little endian format)
+    checkbytes = checkfile.read(4)
+    rifflength = int.from_bytes(checkbytes, byteorder='little')
+    # the data cannot go outside of the file. Some cases exist where
+    # a broken length header is recorded (the length of the entire RIFF,
+    # instead of "all following bytes").
+    if not brokenlength:
+        if rifflength + 8 > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'wrong length', 'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+    else:
+        if rifflength > filesize:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'reason': 'wrong length', 'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # Then read four bytes and check if they match the supplied header
+    checkbytes = checkfile.read(4)
+    if checkbytes != applicationheader:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'reason': 'no valid %s header' % applicationname,
+                          'fatal': False}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 4
+
+    # https://resources.oreilly.com/examples/9781565920583/blob/beb34c319e422d01ee485c5d423aad3bc8a69ce0/CDROM/GFF/VENDSPEC/MICRIFF/MS_RIFF.TXT
+    validriffchunks = [b'LIST', b'DISP', b'JUNK', b'PAD']
+
+    # then read chunks
+    while True:
+        if brokenlength:
+            if checkfile.tell() == offset + rifflength:
+                break
+        else:
+            if checkfile.tell() == offset + rifflength + 8:
+                break
+        haspadding = False
+        chunkoffset = checkfile.tell() - offset
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            checkfile.close()
+            unpackingerror = {'offset': offset + unpackedsize,
+                              'reason': 'no valid chunk header',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+        if checkbytes not in validchunkfourcc and checkbytes not in validriffchunks:
+            checkfile.close()
+            unpackingerror = {'offset': offset + unpackedsize,
+                              'reason': 'no valid chunk FourCC %s' % checkbytes,
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+        if checkbytes not in chunkstooffsets:
+            chunkstooffsets[checkbytes] = []
+        chunkname = checkbytes
+        chunkstooffsets[chunkname].append(chunkoffset)
+        unpackedsize += 4
+
+        # then the chunk size
+        checkbytes = checkfile.read(4)
+        chunklength = int.from_bytes(checkbytes, byteorder='little')
+        if chunklength % 2 != 0:
+            chunklength += 1
+            haspadding = True
+        curpos = checkfile.tell()
+        if chunklength > filesize - curpos:
+            checkfile.close()
+            unpackingerror = {'offset': offset + unpackedsize,
+                              'reason': 'wrong chunk length',
+                              'fatal': False}
+            return {'status': False, 'error': unpackingerror}
+        # extra sanity for LIST chunks
+        if chunkname == b'LIST':
+            if chunklength < 4 and chunklength != 0:
+                checkfile.close()
+                unpackingerror = {'offset': offset + unpackedsize,
+                                  'reason': 'wrong chunk length',
+                                  'fatal': False}
+                return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        # finally skip over the bytes in the file
+        if haspadding:
+            checkfile.seek(curpos + chunklength-1)
+            paddingbyte = checkfile.read(1)
+            if not paddingbyte == b'\x00':
+                checkfile.close()
+                unpackingerror = {'offset': offset + unpackedsize,
+                                  'reason': 'wrong value for padding byte length',
+                                  'fatal': False}
+                return {'status': False, 'error': unpackingerror}
+        else:
+            checkfile.seek(curpos + chunklength)
+        unpackedsize += chunklength
+
+    # extra sanity check to see if the size of the unpacked data
+    # matches the declared size from the header.
+    if not brokenlength:
+        if unpackedsize != rifflength + 8:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'unpacked size does not match declared size'}
+            return {'status': False, 'error': unpackingerror}
+    else:
+        if unpackedsize != rifflength:
+            checkfile.close()
+            unpackingerror = {'offset': offset, 'fatal': False,
+                              'reason': 'unpacked size does not match declared size'}
+            return {'status': False, 'error': unpackingerror}
+
+    # if the entire file is the RIFF file, then label it as such
+    if offset == 0 and unpackedsize == filesize:
+        checkfile.close()
+        labels.append('riff')
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels,
+                'offsets': chunkstooffsets}
+
+    # else carve the file. It is anonymous, so just give it a name
+    outfile_rel = os.path.join(unpackdir, "unpacked.%s" % applicationname.lower())
+    outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+    # create the unpacking directory
+    os.makedirs(unpackdir_full, exist_ok=True)
+    outfile = open(outfile_full, 'wb')
+    os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+    outfile.close()
+    checkfile.close()
+    # TODO: missing labels?
+    unpackedfilesandlabels.append(outfile_rel)
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels,
+            'offsets': chunkstooffsets}
+
+
+# test files for ANI: http://www.anicursor.com/diercur.html
+# http://fileformats.archiveteam.org/wiki/Windows_Animated_Cursor#Sample_files
+def unpack_ani(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify and/or carve an ANI file.'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+
+    # a list of valid ANI chunk FourCC
+    validchunkfourcc = set([b'ICON', b'anih', b'rate', b'seq '])
+
+    # Some ANI files have a broken RIFF header, so try to
+    # detect if that is the case. This is not 100% foolproof.
+    brokenlength = False
+
+    # Then read four bytes and check the length (stored
+    # in little endian format)
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset+4)
+    checkbytes = checkfile.read(4)
+    rifflength = int.from_bytes(checkbytes, byteorder='little')
+    if rifflength == filesize:
+        brokenlength = True
+    checkfile.close()
+
+    unpackres = unpack_riff(fileresult, scanenvironment, offset, unpackdir, validchunkfourcc, 'ANI', b'ACON', brokenlength)
+    if unpackres['status']:
+        labels = unpackres['labels']
+        if offset == 0 and unpackres['length'] == filesize:
+            labels += ['ani', 'graphics']
+        for result in unpackres['filesandlabels']:
+            unpackedfilesandlabels.append((result, ['ani', 'graphics', 'unpacked']))
+        return {'status': True, 'length': unpackres['length'],
+                'filesandlabels': unpackedfilesandlabels, 'labels': labels}
+    return {'status': False, 'error': unpackres['error']}
+
+unpack_ani.signatures = {'ani': b'ACON'}
+unpack_ani.offset = 8
+unpack_ani.minimum_size = 12
+
+
+# MNG specifications can be found at:
+#
+# http://www.libpng.org/pub/mng/spec/
+# https://en.wikipedia.org/wiki/Multiple-image_Network_Graphics
+#
+# This format is almost never used and support for it in
+# programs is spotty.
+def unpack_mng(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify and/or carve a MNG file.'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackedsize = 0
+    unpackingerror = {}
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+
+    if filesize - offset < 52:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'File too small (less than 52 bytes'}
+        return {'status': False, 'error': unpackingerror}
+
+    # open the file skip over the magic header bytes
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset+8)
+    unpackedsize = 8
+
+    # Then process the MNG data. All data is in network byte order
+    # (section 1). First read the size of the first chunk, which is
+    # always 28 bytes (section 4.1.1).
+    # Including the header, chunk type and CRC 40 bytes have to be read
+    checkbytes = checkfile.read(40)
+    if checkbytes[0:4] != b'\x00\x00\x00\x1c':
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'no valid chunk length'}
+        checkfile.close()
+        return {'status': False, 'error': unpackingerror}
+
+    # The first chunk *has* to be MHDR
+    if checkbytes[4:8] != b'MHDR':
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'no MHDR header'}
+        checkfile.close()
+        return {'status': False, 'error': unpackingerror}
+
+    # then compute the CRC32 of bytes 4 - 24 (header + data)
+    # and compare it to the CRC in the MNG file
+    crccomputed = binascii.crc32(checkbytes[4:-4])
+    crcstored = int.from_bytes(checkbytes[-4:], byteorder='big')
+    if crccomputed != crcstored:
+        unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                          'reason': 'Wrong CRC'}
+        checkfile.close()
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 40
+
+    # Then move on to the next chunks in similar fashion
+    endoffilereached = False
+    chunknames = set()
+
+    while True:
+        # read the chunk size
+        checkbytes = checkfile.read(4)
+        if len(checkbytes) != 4:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                              'reason': 'Could not read chunk size'}
+            checkfile.close()
+            return {'status': False, 'error': unpackingerror}
+        chunksize = int.from_bytes(checkbytes, byteorder='big')
+        if offset + chunksize > filesize:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                              'reason': 'MNG data bigger than file'}
+            checkfile.close()
+            return {'status': False, 'error': unpackingerror}
+        unpackedsize += 4
+
+        # read the chunk type, plus the chunk data
+        checkbytes = checkfile.read(4+chunksize)
+        chunktype = checkbytes[0:4]
+        if len(checkbytes) != 4+chunksize:
+            unpackingerror = {'offset': offset + unpackedsize, 'fatal': False,
+                              'reason': 'Could not read chunk type'}
+            checkfile.close()
+            return {'status': False, 'error': unpackingerror}
+
+        unpackedsize += 4+chunksize
+
+        # compute the CRC
+        crccomputed = binascii.crc32(checkbytes)
+        checkbytes = checkfile.read(4)
+        crcstored = int.from_bytes(checkbytes, byteorder='big')
+        if crccomputed != crcstored:
+            unpackingerror = {'offset': offset + unpackedsize,
+                              'fatal': False, 'reason': 'Wrong CRC'}
+            checkfile.close()
+            return {'status': False, 'error': unpackingerror}
+
+        # add the name of the chunk to the list of chunk names
+        chunknames.add(chunktype)
+        if chunktype == b'MEND':
+            # MEND indicates the end of the file
+            endoffilereached = True
+            unpackedsize += 4
+            break
+        unpackedsize += 4
+
+    # There has to be exactly 1 MEND chunk
+    if endoffilereached:
+        if offset == 0 and unpackedsize == filesize:
+            checkfile.close()
+            labels += ['mng', 'graphics']
+            return {'status': True, 'length': unpackedsize, 'labels': labels,
+                    'filesandlabels': unpackedfilesandlabels}
+
+        # else carve the file. It is anonymous, so just give it a name
+        outfile_rel = os.path.join(unpackdir, "unpacked.mng")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
+        outfile.close()
+        checkfile.close()
+
+        unpackedfilesandlabels.append((outfile_rel, ['mng', 'graphics', 'unpacked']))
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    # There is no end of file, so it is not a valid MNG.
+    checkfile.close()
+    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                      'reason': 'No MEND found'}
+    return {'status': False, 'error': unpackingerror}
+
+unpack_mng.signatures = {'mng': b'\x8aMNG\x0d\x0a\x1a\x0a'}
+unpack_mng.minimum_size = 52
+
+
+# The specifications for PDF 1.7 are an ISO standard and can be found
+# on the Adobe website:
+#
+# https://www.adobe.com/content/dam/acom/en/devnet/pdf/pdfs/PDF32000_2008.pdf
+#
+# with additional information at:
+#
+# https://www.adobe.com/devnet/pdf/pdf_reference.html
+#
+# The file structure is described in section 7.5.
+#
+# Test files for PDF 2.0 can be found at:
+#
+# https://github.com/pdf-association/pdf20examples
+def unpack_pdf(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify/carve a PDF file'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+    unpackdir_full = scanenvironment.unpack_path(unpackdir)
+
+    pdfinfo = {}
+
+    # open the file and skip the offset
+    checkfile = open(filename_full, 'rb')
+    checkfile.seek(offset+5)
+    unpackedsize += 5
+
+    # read the major version number and '.'
+    checkbytes = checkfile.read(2)
+    if len(checkbytes) != 2:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for version number'}
+        return {'status': False, 'error': unpackingerror}
+    if checkbytes not in [b'1.', b'2.']:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid version number'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 2
+
+    # read the minor version number
+    checkbytes = checkfile.read(1)
+    if len(checkbytes) != 1:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough bytes for version number'}
+        return {'status': False, 'error': unpackingerror}
+
+    # section 7.5.2
+    try:
+        versionnumber = int(checkbytes)
+    except ValueError:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid version number'}
+        return {'status': False, 'error': unpackingerror}
+
+    if versionnumber > 7:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid version number'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    # then either LF, CR, or CRLF (section 7.5.1)
+    # exception: ImageMagick 6.5.8-10 2010-12-17 Q16 (and possibly others)
+    # sometimes included an extra space directly after the PDF version.
+    checkbytes = checkfile.read(1)
+    if checkbytes == b'\x20':
+        unpackedsize += 1
+        checkbytes = checkfile.read(1)
+    if checkbytes not in [b'\x0a', b'\x0d']:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'wrong line ending'}
+        return {'status': False, 'error': unpackingerror}
+    unpackedsize += 1
+
+    # check if the line ending is CRLF
+    if checkbytes == b'\x0d':
+        checkbytes = checkfile.read(1)
+        if checkbytes == b'\x0a':
+            unpackedsize += 1
+        else:
+            checkfile.seek(-1, os.SEEK_CUR)
+
+    validpdf = False
+    validpdfsize = -1
+
+    # keep a list of referencs for the entire document
+    documentobjectreferences = {}
+
+    # The difficulty with PDF is that the body has no fixed structure
+    # but is referenced from a trailer at the end of the PDF, possibly
+    # followed by incremental updates (section 7.5.6). As files might
+    # have been concatenated simply jumping to the end of the file is
+    # not an option (although it would work for most files). Therefore
+    # the file needs to be read until the start of the trailer is found.
+    # As an extra complication sometimes the updates are not appended
+    # to the file, but prepended using forward references instead of
+    # back references and then other parts of the PDF file having back
+    # references, making the PDF file more of a random access file.
+    while True:
+        # continuously look for trailers until there is no
+        # valid trailer anymore.
+        startxrefpos = -1
+        crossoffset = -1
+
+        # keep track of the object references in a single
+        # part of the document (either the original document
+        # or an update to the document)
+        objectreferences = {}
+
+        # first seek to where data had already been read
+        checkfile.seek(offset + unpackedsize)
+        isvalidtrailer = True
+
+        # Sometimes the value for the reference table in startxref is 0.
+        # This typically only happens for some updates, and there should
+        # be a Prev entry in the trailer dictionary.
+        needsprev = False
+
+        while True:
+            # create a new buffer for every read, as buffers are
+            # not flushed and old data might linger.
+            pdfbuffer = bytearray(10240)
+            bytesread = checkfile.readinto(pdfbuffer)
+            if bytesread == 0:
+                break
+
+            pdfpos = pdfbuffer.find(b'startxref')
+            if pdfpos != -1:
+                startxrefpos = unpackedsize + pdfpos
+                # extra sanity checks to check if it is really EOF
+                # (defined in section 7.5.5):
+                # * whitespace
+                # * valid byte offset to last cross reference
+                # * EOF marker
+
+                # skip over 'startxref'
+                checkfile.seek(offset + startxrefpos + 9)
+
+                # then either LF, CR, or CRLF (section 7.5.1)
+                checkbytes = checkfile.read(1)
+                if checkbytes not in [b'\x0a', b'\x0d']:
+                    startxrefpos = -1
+                if checkbytes == b'\x0d':
+                    checkbytes = checkfile.read(1)
+                    if checkbytes != b'\x0a':
+                        checkfile.seek(-1, os.SEEK_CUR)
+                crossbuf = b''
+                seeneol = False
+
+                while True:
+                    checkbytes = checkfile.read(1)
+                    if checkbytes in [b'\x0a', b'\x0d']:
+                        seeneol = True
+                        break
+                    if checkfile.tell() == filesize:
+                        break
+                    crossbuf += checkbytes
+                if not seeneol:
+                    isvalidtrailer = False
+                    break
+
+                # the value should be an integer followed by
+                # LF, CR or CRLF.
+                if crossbuf != b'':
+                    try:
+                        crossoffset = int(crossbuf)
+                    except ValueError:
+                        break
+                if crossoffset != 0:
+                    # the offset for the cross reference cannot
+                    # be outside of the file.
+                    if offset + crossoffset > checkfile.tell():
+                        isvalidtrailer = False
+                        break
+                else:
+                    needsprev = True
+                if checkbytes == b'\x0d':
+                    checkbytes = checkfile.read(1)
+                if checkbytes != b'\x0a':
+                    checkfile.seek(-1, os.SEEK_CUR)
+
+                # now finally check EOF
+                checkbytes = checkfile.read(5)
+                seeneof = False
+                if checkbytes != b'%%EOF':
+                    isvalidtrailer = False
+                    break
+
+                seeneof = True
+
+                # Most likely there are EOL markers, although the PDF
+                # specification is not 100% clear about this:
+                # section 7.5.1 indicates that EOL markers are part of
+                # line by convention.
+                # Section 7.2.3 says that comments should *not*
+                # include "end of line" (but these two do not contradict)
+                # which likely confused people.
+                checkbytes = checkfile.read(1)
+                if checkbytes in [b'\x0a', b'\x0d']:
+                    if checkbytes == b'\x0d':
+                        if checkfile.tell() != filesize:
+                            checkbytes = checkfile.read(1)
+                            if checkbytes != b'\x0a':
+                                checkfile.seek(-1, os.SEEK_CUR)
+
+                if checkfile.tell() == filesize:
+                    break
+                if seeneof:
+                    break
+
+            # check if the end of file was reached, without having
+            # read a valid trailer.
+            if checkfile.tell() == filesize:
+                isvalidtrailer = False
+                break
+
+            # continue searching, with some overlap
+            checkfile.seek(-10, os.SEEK_CUR)
+            unpackedsize = checkfile.tell() - offset
+
+        if not isvalidtrailer:
+            break
+        if startxrefpos == -1 or crossoffset == -1 or not seeneof:
+            break
+
+        unpackedsize = checkfile.tell() - offset
+
+        # extra sanity check: look at the contents of the trailer dictionary
+        checkfile.seek(startxrefpos-5)
+        checkbytes = checkfile.read(5)
+        if b'>>' not in checkbytes:
+            # possibly a cross reference stream (section 7.5.8),
+            # a comment line (iText seems to do this a lot)
+            # or whitespace
+            # TODO
+            break
+
+        endoftrailerpos = checkbytes.find(b'>>') + startxrefpos - 4
+
+        trailerpos = -1
+
+        # search the data backwards for the word "trailer"
+        checkfile.seek(-50, os.SEEK_CUR)
+        isstart = False
+        while True:
+            curpos = checkfile.tell()
+            if curpos <= offset:
+                isstart = True
+            checkbytes = checkfile.read(50)
+            trailerpos = checkbytes.find(b'trailer')
+            if trailerpos != -1:
+                trailerpos = curpos + trailerpos
+                break
+            if isstart:
+                break
+            checkfile.seek(-60, os.SEEK_CUR)
+
+        # read the xref entries (section 7.5.4) as those
+        # might be referenced in the trailer.
+        checkfile.seek(offset+crossoffset+4)
+        validxref = True
+        if trailerpos - crossoffset > 0:
+            checkbytes = checkfile.read(trailerpos - crossoffset - 4).strip()
+            if b'\r\n' in checkbytes:
+                objectdefs = checkbytes.split(b'\r\n')
+            elif b'\r' in checkbytes:
+                objectdefs = checkbytes.split(b'\r')
+            else:
+                objectdefs = checkbytes.split(b'\n')
+            firstlineseen = False
+            xrefseen = 0
+            xrefcount = 0
+            # the cross reference section might have
+            # subsections. The first line is always
+            # two integers
+            for obj in objectdefs:
+                if not firstlineseen:
+                    # first line has to be two integers
+                    linesplits = obj.split()
+                    if len(linesplits) != 2:
+                        validxref = False
+                        break
+                    try:
+                        startxref = int(linesplits[0])
+                        xrefcount = int(linesplits[1])
+                        xrefcounter = int(linesplits[0])
+                    except ValueError:
+                        validxref = False
+                        break
+                    firstlineseen = True
+                    xrefseen = 0
+                    continue
+                linesplits = obj.split()
+                if len(linesplits) != 2 and len(linesplits) != 3:
+                    validxref = False
+                    break
+                if len(linesplits) == 2:
+                    # start of a new subsection, so first
+                    # check if the previous subsection was
+                    # actually valid.
+                    if xrefcount != xrefseen:
+                        validxref = False
+                        break
+                    linesplits = obj.split()
+                    if len(linesplits) != 2:
+                        validxref = False
+                        break
+                    try:
+                        startxref = int(linesplits[0])
+                        xrefcount = int(linesplits[1])
+                        xrefcounter = int(linesplits[0])
+                    except ValueError:
+                        validxref = False
+                        break
+                    xrefseen = 0
+                    continue
+                elif len(linesplits) == 3:
+                    # each of the lines consists of:
+                    # * offset
+                    # * generation number
+                    # * keyword to indicate in use/free
+                    if len(linesplits[0]) != 10:
+                        validxref = False
+                        break
+                    if len(linesplits[1]) != 5:
+                        validxref = False
+                        break
+                    if len(linesplits[2]) != 1:
+                        validxref = False
+                        break
+                    try:
+                        objectoffset = int(linesplits[0])
+                    except ValueError:
+                        validxref = False
+                        break
+                    try:
+                        generation = int(linesplits[1])
+                    except ValueError:
+                        validxref = False
+                        break
+                    if linesplits[2] == b'n':
+                        objectreferences[xrefcounter] = {}
+                        objectreferences[xrefcounter]['offset'] = objectoffset
+                        objectreferences[xrefcounter]['generation'] = generation
+                        objectreferences[xrefcounter]['keyword'] = 'new'
+                    elif linesplits[2] == b'f':
+                        objectreferences[xrefcounter] = {}
+                        objectreferences[xrefcounter]['offset'] = objectoffset
+                        objectreferences[xrefcounter]['generation'] = generation
+                        objectreferences[xrefcounter]['keyword'] = 'free'
+                    else:
+                        validxref = False
+                        break
+                    xrefcounter += 1
+                    xrefseen += 1
+
+            if xrefcount != xrefseen:
+                validxref = False
+
+            if not validxref:
+                break
+
+        # jump to the position where the trailer starts
+        checkfile.seek(trailerpos)
+
+        # and read the trailer, minus '>>'
+        checkbytes = checkfile.read(endoftrailerpos - trailerpos)
+
+        # extra sanity check: see if '<<' is present
+        if b'<<' not in checkbytes:
+            break
+
+        # then split the entries
+        trailersplit = checkbytes.split(b'\x0d\x0a')
+        if len(trailersplit) == 1:
+            trailersplit = checkbytes.split(b'\x0d')
+            if len(trailersplit) == 1:
+                trailersplit = checkbytes.split(b'\x0a')
+
+        seenroot = False
+        correctreference = True
+        seenprev = False
+        for i in trailersplit:
+            if b'/' not in i:
+                continue
+            if b'/Root' in i:
+                seenroot = True
+            if b'/Info' in i:
+                # indirect reference, section 7.3.10
+                # Don't treat errors as fatal right now.
+                infores = re.search(b'/Info\s+(\d+)\s+(\d+)\s+R', i)
+                if infores is None:
+                    continue
+                (objectref, generation) = infores.groups()
+                objectref = int(objectref)
+                generation = int(generation)
+                if objectref in objectreferences:
+                    # seek to the position of the object in the
+                    # file and read the data
+                    checkfile.seek(offset + objectreferences[objectref]['offset'])
+
+                    # first read a few bytes to check if it is
+                    # actually the right object
+                    checkbytes = checkfile.read(len(str(objectref)))
+                    try:
+                        cb = int(checkbytes)
+                    except ValueError:
+                        continue
+                    if cb != objectref:
+                        continue
+
+                    # read a space
+                    checkbytes = checkfile.read(1)
+                    if checkbytes != b' ':
+                        continue
+
+                    # read the generation
+                    checkbytes = checkfile.read(len(str(generation)))
+                    try:
+                        gen = int(checkbytes)
+                    except ValueError:
+                        continue
+                    if gen != generation:
+                        continue
+
+                    # read a space
+                    checkbytes = checkfile.read(1)
+                    if checkbytes != b' ':
+                        continue
+
+                    # then read 'obj'
+                    checkbytes = checkfile.read(3)
+                    if checkbytes != b'obj':
+                        continue
+
+                    # now read until 'endobj' is reached
+                    infobytes = b''
+                    validinfobytes = True
+                    while True:
+                        checkbytes = checkfile.read(20)
+                        infobytes += checkbytes
+                        if infobytes == b'':
+                            validinfobytes = False
+                            break
+                        if b'endobj' in infobytes:
+                            break
+                    if not validinfobytes:
+                        continue
+                    infobytes = infobytes.split(b'endobj', 1)[0].strip()
+                    if b'<<' not in infobytes:
+                        continue
+                    if b'>>' not in infobytes:
+                        continue
+                    if infobytes[0] == b'<<' and infobytes[-1] == b'>>':
+                        infobytes = infobytes[1:-1]
+                    else:
+                        infobytes = infobytes.split(b'>>', 1)[0]
+                        infobytes = infobytes.split(b'<<', 1)[1]
+                    # process according to section 14.3.3
+                    # TODO
+            if b'/Prev' in i:
+                prevres = re.search(b'/Prev\s(\d+)', i)
+                if prevres is not None:
+                    prevxref = int(prevres.groups()[0])
+                    seenprev = True
+                    if offset + prevxref > filesize:
+                        correctreference = False
+                        break
+                    checkfile.seek(offset + prevxref)
+                    checkbytes = checkfile.read(4)
+                    if checkbytes != b'xref':
+                        correctreference = False
+                        break
+                    pdfinfo['updates'] = True
+
+        # /Root element is mandatory
+        if not seenroot:
+            break
+
+        if needsprev and not seenprev:
+            break
+
+        # references should be correct
+        if not correctreference:
+            break
+
+        # so far the PDF file is valid (possibly including updates)
+        # so record it as such and record until where the PDF is
+        # considered valid.
+        validpdf = True
+        validpdfsize = unpackedsize
+
+    if validpdf:
+        if offset == 0 and validpdfsize == filesize:
+            checkfile.close()
+            labels.append('pdf')
+            return {'status': True, 'length': validpdfsize, 'labels': labels,
+                    'filesandlabels': unpackedfilesandlabels}
+
+        # else carve the file
+        outfile_rel = os.path.join(unpackdir, "unpacked.pdf")
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
+
+        # create the unpacking directory
+        os.makedirs(unpackdir_full, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        os.sendfile(outfile.fileno(), checkfile.fileno(), offset, validpdfsize)
+        outfile.close()
+        checkfile.close()
+
+        unpackedfilesandlabels.append((outfile_rel, ['pdf', 'unpacked']))
+        return {'status': True, 'length': unpackedsize, 'labels': labels,
+                'filesandlabels': unpackedfilesandlabels}
+
+    checkfile.close()
+    unpackingerror = {'offset': offset, 'fatal': False,
+                      'reason': 'not a valid PDF'}
+    return {'status': False, 'error': unpackingerror}
+
+unpack_pdf.signatures = {'pdf': b'%PDF-'}

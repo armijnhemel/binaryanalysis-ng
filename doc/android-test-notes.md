@@ -18,8 +18,8 @@ The Nexus 6P (codename "angler") was made by Huawei. Firmware uses the
 
 ## barbet-ota-rd2a.210605.006-e56baaf5.zip
 
-The Pixel 5a (codename "barbet") uses the Chrome update file format, which
-is not yet supported. It uses Dex 039, Vdex 021 and Oat 183.
+The Pixel 5a (codename "barbet") uses the Chrome update file format
+(version 2). It uses Dex 035 and 039, Art 085, Vdex 021 and Oat 183.
 
 ## fugu-lrx21m-factory-e012394c.zip
 

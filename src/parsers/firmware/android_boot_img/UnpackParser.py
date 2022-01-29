@@ -65,7 +65,10 @@ class AndroidBootImgUnpacker(UnpackParser):
         else:
             if self.data.header_version < 3:
                 page_size = self.data.header.page_size
-                unpacked_size = ((page_size + self.data.header.kernel.size + page_size - 1)//page_size) * page_size
+                try:
+                    unpacked_size = ((page_size + self.data.header.kernel.size + page_size - 1)//page_size) * page_size
+                except ZeroDivisionError as e:
+                    raise UnpackParserException(e.args)
                 if self.data.header.ramdisk.size > 0:
                     unpacked_size = ((unpacked_size + self.data.header.ramdisk.size + page_size - 1)//page_size) * page_size
                 if self.data.header.second.size > 0:
@@ -187,7 +190,10 @@ class AndroidBootImgUnpacker(UnpackParser):
             metadata = {'cmdline': self.data.header.cmdline}
         if not self.is_variant:
             if self.data.header.extra_cmdline != '':
-                metadata = {'extra_cmdline': self.data.header.extra_cmdline}
+                try:
+                    metadata = {'extra_cmdline': self.data.header.extra_cmdline.decode()}
+                except:
+                    pass
             metadata['version'] = {'major': self.data.header.os_version.major,
                                    'minor': self.data.header.os_version.minor,
                                    'patch': self.data.header.os_version.patch,

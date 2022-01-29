@@ -44,11 +44,13 @@ class TarUnpackParser(UnpackParser):
     def unpack(self):
         unpacked_files = []
         for tarinfo in self.tarinfos:
+            out_labels = []
             file_path = pathlib.Path(tarinfo.name)
             outfile_rel = self.rel_unpack_dir / file_path
             if tarinfo.isfile(): # normal file
                 self.tar_unpack_regular(outfile_rel, tarinfo)
-                pass
+                fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
+                unpacked_files.append(fr)
             elif tarinfo.issym(): # symlink
                 pass
             elif tarinfo.islnk(): # hard link
@@ -56,9 +58,6 @@ class TarUnpackParser(UnpackParser):
             elif tarinfo.isdir(): # directory
                 pass
 
-            out_labels = []
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
         return unpacked_files
 
     def parse(self):

@@ -15,7 +15,7 @@ seq:
     type: u2
     valid:
       min: 1
-      max: 128
+      #max: 128
     doc: the size, in bytes, of the names section
   - id: len_boolean_section
     type: u2
