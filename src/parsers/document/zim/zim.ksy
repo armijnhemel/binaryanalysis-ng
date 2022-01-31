@@ -183,7 +183,7 @@ types:
         repeat: expr
         repeat-expr: _root.header.num_articles
     instances:
-      url_entry:
+      entries:
         type: url_pointer(_index)
         repeat: expr
         repeat-expr: _root.header.num_articles
@@ -200,7 +200,7 @@ types:
     seq:
       - id: mimetype
         type: u2
-      - id: entry_body
+      - id: body
         type:
           switch-on: mimetype
           cases:
