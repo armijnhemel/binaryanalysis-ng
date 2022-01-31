@@ -75,7 +75,7 @@ types:
         repeat: expr
         repeat-expr: _root.header.num_clusters
     instances:
-      cluster:
+      clusters:
         type: cluster(_index)
         repeat: expr
         repeat-expr: _root.header.num_clusters
