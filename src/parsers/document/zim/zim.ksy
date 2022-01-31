@@ -25,9 +25,9 @@ instances:
   titles:
     pos: header.ofs_title_pointer
     type: titles
-  urls:
+  url_pointers:
     pos: header.ofs_url_pointer
-    type: urls
+    type: url_pointers
 types:
   header:
     seq:
@@ -88,12 +88,21 @@ types:
         pos: _parent.cluster_offsets[i]
         type: cluster_body
         io: _root._io
+        size: ofs_end - ofs_start
+      ofs_end:
+        value: 'i < _parent.cluster_offsets.size  - 2 ?_parent.cluster_offsets[i+1]: _root.header.checksum'
+      ofs_start:
+        value: _parent.cluster_offsets[i]
   cluster_body:
     seq:
       - id: flag
         type: cluster_flag
       - id: body
-        type: u4
+        type:
+          switch-on: flag.compressed
+          cases:
+            compression::no_compression: cluster_pointers(flag.offset_size)
+            compression::no_compression2: cluster_pointers(flag.offset_size)
   cluster_flag:
     meta:
       bit-endian: be
@@ -105,6 +114,56 @@ types:
       - id: compressed
         type: b4
         enum: compression
+    instances:
+      offset_size:
+        value: 'extended ? 8: 4'
+  cluster_pointers:
+    params:
+      - id: offset_size
+        type: u4
+    seq:
+      - id: offsets
+        type:
+          switch-on: offset_size
+          cases:
+            4: u4
+            8: u8
+        repeat: expr
+        repeat-expr: num_blobs
+    instances:
+      first_offset:
+        pos: 1
+        type:
+          switch-on: offset_size
+          cases:
+            4: u4
+            8: u8
+      num_blobs:
+        value: first_offset / offset_size
+        doc: |
+          Since the first offset points to the start of the first data,
+          the number of offsets can be determined by dividing this offset
+          by OFFSET_SIZE.
+      blobs:
+        type: blobs(_index)
+        repeat: expr
+        repeat-expr: num_blobs - 1
+        doc: |
+          The last pointer points to the end of the data area.
+          So there is always one more offset than blobs.
+    types:
+      blobs:
+        params:
+          - id: index
+            type: u4
+        instances:
+          blob:
+            pos: _parent.offsets[index]
+            size: end - start
+          end:
+            value: _parent.offsets[index+1]
+          start:
+            value: _parent.offsets[index]
   mimetypes:
     seq:
       - id: mimetype
@@ -117,12 +176,99 @@ types:
         type: u4
         repeat: expr
         repeat-expr: _root.header.num_articles
-  urls:
+  url_pointers:
     seq:
-      - id: url
+      - id: url_pointers
         type: u8
         repeat: expr
         repeat-expr: _root.header.num_articles
+    instances:
+      url_entry:
+        type: url_pointer(_index)
+        repeat: expr
+        repeat-expr: _root.header.num_articles
+  url_pointer:
+    params:
+      - id: index
+        type: u8
+    instances:
+      entry:
+        pos: _root.url_pointers.url_pointers[index]
+        type: entry
+        io: _root._io
+  entry:
+    seq:
+      - id: mimetype
+        type: u2
+      - id: entry_body
+        type:
+          switch-on: mimetype
+          cases:
+            0xffff: redirect
+            _: content
+  content:
+    seq:
+      - id: len_parameter
+        type: u1
+        valid: 0
+        doc: (not used) length of extra parameters (must be 0)
+      - id: namespace
+        type: u1
+        enum: namespace
+        doc: defines to which namespace this directory entry belongs
+      - id: revision
+        type: u4
+        doc: |
+          (not used) identifies a revision of the contents of this directory
+          entry, needed to identify updates or revisions in the original history
+          (must be 0)
+      - id: cluster_number
+        type: u4
+        doc: cluster number in which the data of this directory entry is stored
+      - id: blob_number
+        type: u4
+        doc: blob number inside the compressed cluster where the contents are stored
+      - id: url
+        type: strz
+        doc: string with the URL as refered in the URL pointer list
+      - id: title
+        type: strz
+        doc: |
+          string with an title as refered in the Title pointer list or empty;
+          in case it is empty, the URL is used as title
+      - id: parameter
+        size: len_parameter
+        doc: (not used) extra parameters
+  redirect:
+    seq:
+      - id: len_parameter
+        type: u1
+        valid: 0
+        doc: (not used) length of extra parameters (must be 0)
+      - id: namespace
+        type: u1
+        enum: namespace
+        doc: defines to which namespace this directory entry belongs
+      - id: revision
+        type: u4
+        doc: |
+          (not used) identifies a revision of the contents of this directory
+          entry, needed to identify updates or revisions in the original history
+          (must be 0)
+      - id: redirect_index
+        type: u4
+        doc: pointer to the directory entry of the redirect target
+      - id: url
+        type: strz
+        doc: string with the URL as refered in the URL pointer list
+      - id: title
+        type: strz
+        doc: |
+          string with an title as refered in the Title pointer list or empty;
+          in case it is empty, the URL is used as title
+      - id: parameter
+        size: len_parameter
+        doc: (not used) extra parameters
 enums:
   namespace:
     # -
