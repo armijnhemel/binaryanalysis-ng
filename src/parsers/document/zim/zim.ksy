@@ -163,7 +163,9 @@ types:
             type: u4
         instances:
           blob:
-            pos: _parent.offsets[index]
+            # needs + 1 because the offset does not include
+            # the cluster flag
+            pos: _parent.offsets[index] + 1
             size: end - start
           end:
             value: _parent.offsets[index+1]

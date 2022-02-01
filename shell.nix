@@ -27,6 +27,7 @@ let
     tlsh
     xxhash
     zstd
+    zstandard
   ]);
     
 in
