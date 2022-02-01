@@ -94,7 +94,7 @@ types:
         io: _root._io
         size: ofs_end - ofs_start
       ofs_end:
-        value: 'i < _parent.cluster_offsets.size  - 2 ?_parent.cluster_offsets[i+1]: _root.header.checksum'
+        value: 'i < _parent.cluster_offsets.size  - 1 ?_parent.cluster_offsets[i+1]: _root.header.checksum'
       ofs_start:
         value: _parent.cluster_offsets[i]
   cluster_body:
