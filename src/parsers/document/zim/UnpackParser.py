@@ -225,6 +225,9 @@ class ZimUnpackParser(UnpackParser):
                 else:
                     continue
 
+                # TODO: both name and target are relative to the root
+                # this means that a relative path from name to target
+                # should be computed first.
                 outfile_rel = self.rel_unpack_dir / name
                 outfile_full = self.scan_environment.unpack_path(outfile_rel)
 
