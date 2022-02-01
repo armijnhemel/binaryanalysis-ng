@@ -21,7 +21,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 
-import sys
 import bz2
 import hashlib
 import lzma
