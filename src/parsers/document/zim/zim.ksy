@@ -29,6 +29,10 @@ instances:
     pos: header.ofs_url_pointer
     type: url_pointers
 types:
+  raw:
+    seq:
+      - id: data
+        size-eos: true
   header:
     seq:
       - id: magic
@@ -103,6 +107,7 @@ types:
           cases:
             compression::no_compression: cluster_pointers(flag.offset_size)
             compression::no_compression2: cluster_pointers(flag.offset_size)
+            _: raw
   cluster_flag:
     meta:
       bit-endian: be
@@ -283,10 +288,15 @@ enums:
     66:
       id: article_meta_data
       doc: article meta data - see Article Format
+      doc-ref: https://wiki.openzim.org/w/index.php?title=Article_Format&oldid=1107
     # C
     67:
       id: user_content_entries
       doc: User content entries - see Article Format
+    # H
+    72:
+      id: unknown
+      doc: unknown namespace
     # I
     73:
       id: images_files
