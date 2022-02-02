@@ -10,9 +10,9 @@ meta:
     wikidata: Q28009435
   license: CC0-1.0
   ks-version: 0.8
-  imports:
-    - /network/ethernet_frame
-    - /network/packet_ppi
+  #imports:
+  #  - /network/ethernet_frame
+  #  - /network/packet_ppi
   endian: le
 doc: |
   PCAP (named after libpcap / winpcap) is a popular format for saving
@@ -75,11 +75,11 @@ types:
         doc: Length of the packet as it appeared on the network when it was captured.
       - id: body
         size: incl_len
-        type:
-          switch-on: _root.hdr.network
-          cases:
-            'linktype::ppi': packet_ppi
-            'linktype::ethernet': ethernet_frame
+        #type:
+        #  switch-on: _root.hdr.network
+        #  cases:
+        #    'linktype::ppi': packet_ppi
+        #    'linktype::ethernet': ethernet_frame
         doc-ref: 'https://wiki.wireshark.org/Development/LibpcapFileFormat#Packet_Data'
 enums:
   linktype:
