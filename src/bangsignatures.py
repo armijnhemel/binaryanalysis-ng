@@ -247,7 +247,6 @@ signaturetofunction = {
     'vmdk': bangfilesystems.unpack_vmdk,
     'certificate': bangunpack.unpack_certificate,
     'pdf': bangunpack.unpack_pdf,
-    'sqlite3': bangunpack.unpack_sqlite,
     'trx': bangunpack.unpack_trx,
     'fat': bangfilesystems.unpack_fat,
     'cbfs': bangfilesystems.unpack_cbfs,
