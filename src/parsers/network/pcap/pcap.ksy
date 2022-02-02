@@ -10,10 +10,9 @@ meta:
     wikidata: Q28009435
   license: CC0-1.0
   ks-version: 0.8
-  imports:
-    - /network/ethernet_frame
-    - /network/packet_ppi
-  endian: le
+  #imports:
+  #  - /network/ethernet_frame
+  #  - /network/packet_ppi
 doc: |
   PCAP (named after libpcap / winpcap) is a popular format for saving
   network traffic grabbed by network sniffers. It is typically
@@ -21,66 +20,85 @@ doc: |
   [Wireshark](https://www.wireshark.org/).
 doc-ref: http://wiki.wireshark.org/Development/LibpcapFileFormat
 seq:
-  - id: hdr
-    type: header
-  - id: packets
-    type: packet
-    repeat: eos
+  - id: capture
+    type: capture
+instances:
+  endian:
+    pos: 0
+    type: u4be
+    enum: endian
+
 types:
-  header:
-    doc-ref: 'https://wiki.wireshark.org/Development/LibpcapFileFormat#Global_Header'
+  capture:
+    meta:
+      endian:
+        switch-on: _root.endian
+        cases:
+          'endian::little': le
+          'endian::little_nano': le
+          'endian::big': be
+          'endian::big_nano': be
     seq:
-      - id: magic_number
-        contents: [0xd4, 0xc3, 0xb2, 0xa1]
-      - id: version_major
-        type: u2
-        valid:
-          eq: 2
-      - id: version_minor
-        type: u2
-      - id: thiszone
-        type: s4
-        doc: |
-          Correction time in seconds between UTC and the local
-          timezone of the following packet header timestamps.
-      - id: sigfigs
-        type: u4
-        doc: |
-          In theory, the accuracy of time stamps in the capture; in
-          practice, all tools set it to 0.
-      - id: snaplen
-        type: u4
-        doc: |
-          The "snapshot length" for the capture (typically 65535 or
-          even more, but might be limited by the user), see: incl_len
-          vs. orig_len.
-      - id: network
-        type: u4
-        enum: linktype
-        doc: |
-          Link-layer header type, specifying the type of headers at
-          the beginning of the packet.
-  packet:
-    doc-ref: 'https://wiki.wireshark.org/Development/LibpcapFileFormat#Record_.28Packet.29_Header'
-    seq:
-      - id: ts_sec
-        type: u4
-      - id: ts_usec
-        type: u4
-      - id: incl_len
-        type: u4
-        doc: Number of bytes of packet data actually captured and saved in the file.
-      - id: orig_len
-        type: u4
-        doc: Length of the packet as it appeared on the network when it was captured.
-      - id: body
-        size: incl_len
-        type:
-          switch-on: _root.hdr.network
-          cases:
-            'linktype::ppi': packet_ppi
-            'linktype::ethernet': ethernet_frame
-        doc-ref: 'https://wiki.wireshark.org/Development/LibpcapFileFormat#Packet_Data'
+      - id: hdr
+        type: header
+      - id: packets
+        type: packet
+        repeat: eos
+    types:
+      header:
+        doc-ref: 'https://wiki.wireshark.org/Development/LibpcapFileFormat#Global_Header'
+        seq:
+          - id: magic_number
+            contents: [0xd4, 0xc3, 0xb2, 0xa1]
+          - id: version_major
+            type: u2
+            valid:
+              eq: 2
+          - id: version_minor
+            type: u2
+          - id: thiszone
+            type: s4
+            doc: |
+              Correction time in seconds between UTC and the local
+              timezone of the following packet header timestamps.
+          - id: sigfigs
+            type: u4
+            doc: |
+              In theory, the accuracy of time stamps in the capture; in
+              practice, all tools set it to 0.
+          - id: snaplen
+            type: u4
+            doc: |
+              The "snapshot length" for the capture (typically 65535 or
+              even more, but might be limited by the user), see: incl_len
+              vs. orig_len.
+          - id: network
+            type: u4
+            enum: linktype
+            doc: |
+              Link-layer header type, specifying the type of headers at
+              the beginning of the packet.
+      packet:
+        doc-ref: 'https://wiki.wireshark.org/Development/LibpcapFileFormat#Record_.28Packet.29_Header'
+        seq:
+          - id: ts_sec
+            type: u4
+          - id: ts_usec
+            type: u4
+          - id: incl_len
+            type: u4
+            doc: Number of bytes of packet data actually captured and saved in the file.
+          - id: orig_len
+            type: u4
+            doc: Length of the packet as it appeared on the network when it was captured.
+          - id: body
+            size: incl_len
+            #type:
+            #  switch-on: _root.hdr.network
+            #  cases:
+            #    'linktype::ppi': packet_ppi
+            #    'linktype::ethernet': ethernet_frame
+            doc-ref: 'https://wiki.wireshark.org/Development/LibpcapFileFormat#Packet_Data'
 enums:
   linktype:
     # https://www.tcpdump.org/linktypes.html
@@ -219,3 +237,8 @@ enums:
     289: atsc_alp
     290: etw
     292: zboss_ncp
+  endian:
+    0xd4c3b2a1: little
+    0x4d3cb2a1: little_nano
+    0xa1b2c3d4: big
+    0xa1b23c4d: big_nano
