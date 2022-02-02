@@ -23,13 +23,14 @@
 
 import os
 import binascii
+import json
 
 import telfhash
 
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from kaitaistruct import UndecidedEndiannessError
 from . import elf
 
@@ -79,6 +80,41 @@ class ElfUnpackParser(UnpackParser):
                         pass
                 # force read the header name
                 name = header.name
+                if header.type == elf.Elf.ShType.symtab:
+                    if header.name == '.symtab':
+                        for entry in header.body.entries:
+                            name = entry.name
+                if header.type == elf.Elf.ShType.dynamic:
+                    if header.name == '.dynamic':
+                        for entry in header.body.entries:
+                            if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
+                                name = entry.value_str
+
+                elif header.type == elf.Elf.ShType.symtab:
+                    if header.name == '.symtab':
+                        for entry in header.body.entries:
+                            name = entry.name
+                            name = entry.type.name
+                            name = entry.bind.name
+                            name = entry.visibility.name
+                            name = entry.sh_idx
+                            name = entry.size
+                elif header.type == elf.Elf.ShType.dynsym:
+                    if header.name == '.dynsym':
+                        for entry in header.body.entries:
+                            name = entry.name
+                            name = entry.type.name
+                            name = entry.bind.name
+                            name = entry.visibility.name
+                            name = entry.sh_idx
+                            name = entry.size
+
             # read the names, but don't proces them. This is just to force
             # evaluation, which normally happens lazily for instances in
             # kaitai struct.
@@ -86,7 +122,7 @@ class ElfUnpackParser(UnpackParser):
 
             # TODO linux kernel module signatures
             # see scripts/sign-file.c in Linux kernel
-        except (Exception, ValidationNotEqualError, UndecidedEndiannessError) as e:
+        except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):
@@ -158,7 +194,7 @@ class ElfUnpackParser(UnpackParser):
             metadata['type'] = 'processor specific'
 
         # store the machine type, both numerical and pretty printed
-        if type(self.data.header.machine):
+        if type(self.data.header.machine) == int:
             metadata['machine_name'] = "unknown architecture"
             metadata['machine'] = self.data.header.machine
         else:
@@ -276,7 +312,7 @@ class ElfUnpackParser(UnpackParser):
                 if header.name == '.symtab':
                     for entry in header.body.entries:
                         symbol = {}
-                        if entry.name == None:
+                        if entry.name is None:
                             symbol['name'] = ''
                         else:
                             symbol['name'] = entry.name
@@ -290,7 +326,7 @@ class ElfUnpackParser(UnpackParser):
                 if header.name == '.dynsym':
                     for entry in header.body.entries:
                         symbol = {}
-                        if entry.name == None:
+                        if entry.name is None:
                             symbol['name'] = ''
                         else:
                             symbol['name'] = entry.name
@@ -383,7 +419,7 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == '.qtmetadata':
                     pass
                 elif header.name == '.qtmimedatabase':
-                    # data, in possibly zstd/gzip compressed
+                    # data, possibly zstd/gzip compressed
                     pass
                 elif header.name == '.qtversion':
                     pass
@@ -400,6 +436,8 @@ class ElfUnpackParser(UnpackParser):
                     pass
                 elif header.name == '.VTGPrLc':
                     pass
+                elif header.name == '.rol4re_elf_aux':
+                    labels.append('l4')
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
                 for entry in header.body.entries:
@@ -468,6 +506,14 @@ class ElfUnpackParser(UnpackParser):
                         elif entry.type == 0x101:
                             # LINUX_ELFNOTE_LTO_INFO
                             pass
+                    elif entry.name == b'FDO' and entry.type == 0xcafe1a7e:
+                        # https://fedoraproject.org/wiki/Changes/Package_information_on_ELF_objects
+                        # https://systemd.io/COREDUMP_PACKAGE_METADATA/
+                        # extract JSON and store it
+                        try:
+                            metadata['package note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
+                        except:
+                            pass
                     elif entry.name == b'FreeBSD':
                         labels.append('freebsd')
                     elif entry.name == b'OpenBSD':
@@ -484,6 +530,8 @@ class ElfUnpackParser(UnpackParser):
                         # .note.Xen in FreeBSD kernel
                         # .notes in Linux kernel)
                         labels.append('xen')
+                    elif entry.name == b'NaCl':
+                        labels.append('Google Native Client')
 
         metadata['dynamic_symbols'] = dynamic_symbols
         metadata['needed'] = needed

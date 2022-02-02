@@ -30,8 +30,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError
-from kaitaistruct import ValidationNotAnyOfError, ValidationLessThanError
+from kaitaistruct import ValidationFailedError
 from . import lzop
 
 
@@ -45,7 +44,7 @@ class LzopUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = lzop.Lzop.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationGreaterThanError, ValidationNotAnyOfError, ValidationLessThanError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         # version, has to be 0x00, 0x10 or 0x20 according
@@ -90,11 +89,11 @@ class LzopUnpackParser(UnpackParser):
                 # 0x1a, 0x1b, 0x2a, 0x2b, 0x2d are NRV related (discontinued library)
                 # 128 is zlib related
                 # In practice LZO ones will be used the most
-                if self.data.method in [1, 2, 3]:
+                if self.data.method.value in [1, 2, 3]:
                     # TODO: catch errors
                     magic = b'\xf0' + int.to_bytes(block.len_decompressed, 4, 'big')
                     outfile.write(lzo.decompress(magic + block.block_type.data))
-                elif self.data.method == 128:
+                elif self.data.method.value == 128:
                     # seemingly not used in practice
                     outfile.write(zlib.decompress(block.block_type.data))
             counter += 1

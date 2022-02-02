@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import llvm_ir_wrapper
 
 class LlvmIrWrapperUnpackParser(UnpackParser):
@@ -40,7 +40,7 @@ class LlvmIrWrapperUnpackParser(UnpackParser):
         self.file_size = self.fileresult.filesize
         try:
             self.data = llvm_ir_wrapper.LlvmIrWrapper.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         self.unpacked_size = self.data.ofs_bytecode + self.data.len_bytecode
         check_condition(self.file_size >= self.unpacked_size, "not enough data")

@@ -72,13 +72,14 @@ class TzdataUnpackParser(UnpackParser):
             outfile.close()
             fr = FileResult(self.fileresult, self.rel_unpack_dir / entry.zonename, set(['tzif', 'resource']))
             unpacked_files.append(fr)
+
         outfile_rel = self.rel_unpack_dir / 'zone.tab'
         outfile_full = self.scan_environment.unpack_path(outfile_rel)
         os.makedirs(outfile_full.parent, exist_ok=True)
         outfile = open(outfile_full, 'wb')
         outfile.write(self.data._raw__m_zonetab)
         outfile.close()
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / entry.zonename, set())
+        fr = FileResult(self.fileresult, self.rel_unpack_dir / 'zone.tab', set())
         unpacked_files.append(fr)
         return unpacked_files
 

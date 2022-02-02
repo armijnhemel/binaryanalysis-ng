@@ -49,6 +49,9 @@ Processing 1471 packages (some with multiple Dex files) from F-Droid:
     --
     (22306668 rows)
 
+Note: when these statistics were made most indexes were so called
+"hash indexes", which were replaced by regular indexes later.
+
 # Database design
 
 There is one table, with the following schema:
@@ -58,8 +61,8 @@ There is one table, with the following schema:
 
 There are three additional indexes:
 
-    CREATE INDEX dex_bytecode_dex_sha256 ON apk_contents USING HASH (dex_sha256);
-    CREATE INDEX dex_bytecode_bytecode_sha256 ON apk_contents USING HASH (bytecode_sha256);
+    CREATE INDEX dex_bytecode_dex_sha256 ON apk_contents(dex_sha256);
+    CREATE INDEX dex_bytecode_bytecode_sha256 ON apk_contents(bytecode_sha256);
     CREATE INDEX dex_bytecode_bytecode_tlsh ON apk_contents (bytecode_tlsh);
 
 In case a lot of data is loaded into a clean database it might be wise to first

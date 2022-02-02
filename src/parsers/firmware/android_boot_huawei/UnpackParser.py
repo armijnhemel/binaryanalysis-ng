@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import android_bootldr_huawei
 
 
@@ -41,7 +41,7 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
         file_size = self.fileresult.filesize
         try:
             self.data = android_bootldr_huawei.AndroidBootldrHuawei.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.meta_header.len_meta_header == 76, "invalid header size")
         self.unpacked_size = 0

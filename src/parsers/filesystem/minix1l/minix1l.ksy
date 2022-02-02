@@ -43,8 +43,12 @@ types:
           min: 1
       - id: num_inode_bitmap_blocks
         type: u2
+        valid:
+          max: _root._io.size / _root.block_size
       - id: num_zone_bitmap_blocks
         type: u2
+        valid:
+          max: _root._io.size / _root.block_size
       - id: first_data_zone
         type: u2
         valid:

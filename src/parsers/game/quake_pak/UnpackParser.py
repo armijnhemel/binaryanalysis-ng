@@ -4,7 +4,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import quake_pak
 
 '''
@@ -33,7 +33,7 @@ class QuakePakUnpackParser(UnpackParser):
             check_condition(len(self.data.index.entries) == self.data.len_index//64,
                            "not enough file entries")
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
