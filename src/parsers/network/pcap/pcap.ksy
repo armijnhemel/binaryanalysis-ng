@@ -49,7 +49,9 @@ types:
         doc-ref: 'https://wiki.wireshark.org/Development/LibpcapFileFormat#Global_Header'
         seq:
           - id: magic_number
-            contents: [0xd4, 0xc3, 0xb2, 0xa1]
+            type: u4
+            valid:
+              any-of: [0xa1b2c3d4, 0xa1b23c4d]
           - id: version_major
             type: u2
             valid:
