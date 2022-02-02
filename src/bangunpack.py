@@ -48,7 +48,6 @@ import subprocess
 import xml.dom
 import hashlib
 import pathlib
-import sqlite3
 import brotli
 
 
