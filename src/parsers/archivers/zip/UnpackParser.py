@@ -42,6 +42,7 @@ http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html
 
 import os
 import pathlib
+import zipfile
 
 import pyaxmlparser
 
@@ -57,16 +58,17 @@ MIN_VERSION = 0
 MAX_VERSION = 90
 
 # several ZIP headers
-ARCHIVE_EXTRA_DATA = b'\x50\x4b\x06\x08'
-CENTRAL_DIRECTORY = b'\x50\x4b\x01\02'
-DIGITAL_SIGNATURE = b'\x50\x4b\x05\x05'
-END_OF_CENTRAL_DIRECTORY = b'\x50\x4b\x05\x06'
-LOCAL_FILE_HEADER = b'\x50\x4b\x03\x04'
-ZIP64_END_OF_CENTRAL_DIRECTORY = b'\x50\x4b\x06\x06'
-ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR = b'\x50\x4b\x06\x07'
+ARCHIVE_EXTRA_DATA = b'PK\x06\x08'
+CENTRAL_DIRECTORY = b'PK\x01\x02'
+DATA_DESCRIPTOR = 'PK\x07\x08'
+DIGITAL_SIGNATURE = b'PK\x05\x05'
+END_OF_CENTRAL_DIRECTORY = b'PK\x05\x06'
+LOCAL_FILE_HEADER = b'PK\x03\x04'
+ZIP64_END_OF_CENTRAL_DIRECTORY = b'PK\x06\x06'
+ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR = b'PK\x06\x07'
 
-#class ZipUnpackParser(WrappedUnpackParser):
-class ZipUnpackParser(UnpackParser):
+class ZipUnpackParser(WrappedUnpackParser):
+#class ZipUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x50\x4b\x03\04'),
@@ -79,6 +81,10 @@ class ZipUnpackParser(UnpackParser):
         return unpack_zip(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
+        # first do a short sanity check for the most common case
+        # where the file is a single ZIP archive. In that case
+        # many checks can be skipped. TODO.
+
         self.encrypted = False
         self.zip64 = False
 
@@ -239,6 +245,382 @@ class ZipUnpackParser(UnpackParser):
 
                 # end of ZIP file reached, so break out of the loop
                 break
+            elif checkbytes == DATA_DESCRIPTOR:
+                check_condition(self.infile.tell() + 12 <= self.fileresult.filesize,
+                                "not enough data for data descriptor")
+
+                # skip the digital signature
+                self.infile.seek(12, os.SEEK_CUR)
+            else:
+                # then check to see if this is possibly an Android
+                # signing block:
+                #
+                # https://source.android.com/security/apksigning/v2
+                #
+                # The Android signing block is squeezed in between the
+                # latest entry and the central directory, despite the
+                # ZIP specification not allowing this. There have been
+                # various versions.
+                #
+                # The following code is triggered under three conditions:
+                #
+                # 1. data descriptors are used and it was already determined
+                #    that there is an Android signing block.
+                # 2. the bytes read are 0x00 0x00 0x00 0x00 which could
+                #    possibly be an APK signing v3 block, as it is possibly
+                #    padded.
+                # 3. no data descriptors are used, meaning it might be a
+                #    length of a signing block.
+                if self.android_signing or checkbytes == b'\x00\x00\x00\x00' or not datadescriptor:
+                    # first go back four bytes
+                    self.infile.seek(-4, os.SEEK_CUR)
+
+                    # then read 8 bytes for the APK signing block size
+                    checkbytes = self.infile.read(8)
+                    check_condition(len(checkbytes) == 8,
+                                    "not enough data for ZIP64 end of Android signing block")
+
+                    androidsigningsize = int.from_bytes(checkbytes, byteorder='little')
+
+                    # as the last 16 bytes are for the Android signing block
+                    # the block has to be at least 16 bytes.
+                    check_condition(androidsigningsize >= 16,
+                                    "wrong size for Android signing block")
+
+                    # the signing block cannot be (partially)
+                    # outside of the file
+                    check_condition(self.infile.tell() + androidsigningsize <= self.fileresult.filesize,
+                                    "not enough data for Android signing block")
+
+                    # then skip over the signing block, except the
+                    # last 16 bytes to have an extra sanity check
+                    self.infile.seek(androidsigningsize - 16, os.SEEK_CUR)
+                    checkbytes = self.infile.read(16)
+                    check_condition(checkbytes == b'APK Sig Block 42',
+                                    "wrong magic for Android signing block")
+                    self.android_signing = True
+                else:
+                    break
+            continue
+
+        # continue with the local file headers instead
+        if checkbytes == localfileheader and not inlocal:
+            # this should totally not happen in a valid
+            # ZIP file: local file headers should not be
+            # interleaved with other headers.
+            break
+
+        # minimal version needed. According to 4.4.3.2 the minimal
+        # version is 1.0 and the latest is 6.3. As new versions of
+        # PKZIP could be released this check should not be too strict.
+        checkbytes = self.infile.read(2)
+        check_condition(len(checkbytes) == 2,
+                        "not enough data for local file header")
+
+        brokenzipversion = False
+        minversion = int.from_bytes(checkbytes, byteorder='little')
+
+        # some files observed in the wild have a weird version
+        if minversion in [0x30a, 0x314]:
+            brokenzipversion = True
+
+        check_condition(minversion >= MIN_VERSION,
+                        "invalid ZIP version %d" % minversion)
+
+        if not brokenzipversion:
+            check_condition(minversion <= MAX_VERSION,
+                            "invalid ZIP version %d" % minversion)
+
+        # then the "general purpose bit flag" (section 4.4.4)
+        checkbytes = self.infile.read(2)
+        check_condition(len(checkbytes) == 2,
+                        "not enough data for general bit flag in local file header")
+        generalbitflag = int.from_bytes(checkbytes, byteorder='little')
+
+        # check if the file is encrypted. If so it should be labeled
+        # as such, but not be unpacked.
+        # generalbitflag & 0x40 == 0x40 would be a check for
+        # strong encryption, but that has different length encryption
+        # headers and right now there are no test files for it, so
+        # leave it for now.
+        if generalbitflag & 0x01 == 0x01:
+            encrypted = True
+
+        datadescriptor = False
+
+        # see if there is a data descriptor for regular files in the
+        # general purpose bit flag. This usually won't be set for
+        # directories although sometimes it is
+        # (example: framework/ext.jar from various Android versions)
+        if generalbitflag & 0x08 == 0x08:
+            datadescriptor = True
+
+        # then the compression method (section 4.4.5)
+        checkbytes = self.infile.read(2)
+        check_condition(len(checkbytes) == 2,
+                        "not enough data for compression method in local file header")
+        compressionmethod = int.from_bytes(checkbytes, byteorder='little')
+
+        # time and date fields (section 4.4.6)
+        checkbytes = self.infile.read(2)
+        check_condition(len(checkbytes) == 2,
+                        "not enough data for last mod time field")
+
+        checkbytes = self.infile.read(2)
+        check_condition(len(checkbytes) == 2,
+                        "not enough data for last mod date field")
+
+        # CRC32 (section 4.4.7)
+        checkbytes = self.infile.read(4)
+        check_condition(len(checkbytes) == 4,
+                        "not enough data for CRC32 in local file header")
+
+        # compressed size (section 4.4.8)
+        checkbytes = self.infile.read(4)
+        check_condition(len(checkbytes) == 4,
+                        "not enough data for compressed size in local file header")
+
+        compressedsize = int.from_bytes(checkbytes, byteorder='little')
+
+        # uncompressed size (section 4.4.9)
+        checkbytes = self.infile.read(4)
+        check_condition(len(checkbytes) == 4,
+                        "not enough data for uncompressed size in local file header")
+        uncompressedsize = int.from_bytes(checkbytes, byteorder='little')
+
+        # then the file name length (section 4.4.10)
+        checkbytes = self.infile.read(2)
+        check_condition(len(checkbytes) == 2,
+                        "not enough data for filename length in local file header")
+        filenamelength = int.from_bytes(checkbytes, byteorder='little')
+
+        # and the extra field length (section 4.4.11)
+        # There does not necessarily have to be any useful data
+        # in the extra field.
+        checkbytes = self.infile.read(2)
+        check_condition(len(checkbytes) == 2,
+                        "not enough data for extra field length in local file header")
+        extrafieldlength = int.from_bytes(checkbytes, byteorder='little')
+
+        localfilename = self.infile.read(filenamelength)
+        check_condition(len(checkbytes) == filenamelength,
+                        "not enough data for file name in local file header")
+        local_files.append(localfilename)
+
+        # then check the extra field. The most important is to check
+        # for any ZIP64 extension, as it contains updated values for
+        # the compressed size and uncompressed size (section 4.5)
+        if extrafieldlength > 0:
+            extrafields = self.infile.read(extrafieldlength)
+
+        # then check the extra field. The most important is to check
+        # for a ZIP64 extension, as it contains updated values for
+        # the compressed size and uncompressed size (section 4.5)
+        if extrafieldlength > 0:
+            extrafields = self.infile.read(extrafieldlength)
+
+        if extrafieldlength > 4:
+            extrafieldcounter = 0
+            while extrafieldcounter + 4 < extrafieldlength:
+                # section 4.6.1
+                extrafieldheaderid = int.from_bytes(extrafields[extrafieldcounter:extrafieldcounter+2], byteorder='little')
+
+                # often found in the first entry in JAR files and
+                # Android APK files, but not mandatory.
+                # http://hg.openjdk.java.net/jdk7/jdk7/jdk/file/00cd9dc3c2b5/src/share/classes/java/util/jar/JarOutputStream.java#l46
+                if extrafieldheaderid == 0xcafe:
+                    pass
+
+                extrafieldheaderlength = int.from_bytes(extrafields[extrafieldcounter+2:extrafieldcounter+4], byteorder='little')
+                extrafieldcounter += 4
+                check_condition(self.infile.tell() + extrafieldheaderlength < self.fileresult.filesize,
+                                "not enough data for extra field")
+
+                if extrafieldheaderid == 0x001:
+                    # ZIP64, section 4.5.3
+                    # according to 4.4.3.2 PKZIP 4.5 or later is
+                    # needed to unpack ZIP64 files.
+                    check_condition(minversion >= 45, "wrong minimal needed version for ZIP64")
+
+                    # according to the official ZIP specifications the length of the
+                    # header should be 28, but there are files where this field is
+                    # 16 bytes long instead, sigh...
+                    check_condition(extrafieldheaderlength in [16, 28],
+                                    "wrong extra field header length for ZIP64")
+
+                    zip64uncompressedsize = int.from_bytes(extrafields[extrafieldcounter:extrafieldcounter+8], byteorder='little')
+                    zip64compressedsize = int.from_bytes(extrafields[extrafieldcounter+8:extrafieldcounter+16], byteorder='little')
+                    if compressedsize == 0xffffffff:
+                        compressedsize = zip64compressedsize
+                    if uncompressedsize == 0xffffffff:
+                        uncompressedsize = zip64uncompressedsize
+                extrafieldcounter += extrafieldheaderlength
+
+        # some sanity checks: file name, extra field and compressed
+        # size cannot extend past the file size
+        locallength = 30 + filenamelength + extrafieldlength + compressedsize
+        if offset + locallength > filesize:
+            self.infile.close()
+            unpackingerror = {'offset': offset+unpackedsize,
+                              'fatal': False,
+                              'reason': 'data cannot be outside file'}
+            return {'status': False, 'error': unpackingerror}
+
+        # Section 4.4.4, bit 3:
+        # "If this bit is set, the fields crc-32, compressed
+        # size and uncompressed size are set to zero in the
+        # local header.  The correct values are put in the
+        # data descriptor immediately following the compressed
+        # data."
+        ddfound = False
+        ddsearched = False
+
+        if (not localfilename.endswith(b'/') and compressedsize == 0) or datadescriptor:
+            # first store where the data possibly starts
+            datastart = self.infile.tell()
+
+            # In case the length is not known it is very difficult
+            # to see where the data ends so it is needed to search for
+            # a specific signature. This can either be:
+            #
+            # * data descriptor header
+            # * local file header
+            # * central directory header
+            #
+            # Whichever appears first in the data will be processed.
+            while True:
+                # store the current position of the pointer in the file
+                curpos = self.infile.tell()
+                tmppos = -1
+
+                # read a number of bytes to be searched for markers
+                checkbytes = self.infile.read(50000)
+                newcurpos = self.infile.tell()
+                if checkbytes == b'':
+                    break
+
+                # first search for the common marker for
+                # data descriptors, but only if the right
+                # flag has been set in the general purpose
+                # bit flag.
+                if datadescriptor:
+                    ddpos = -1
+                    while True:
+                        ddpos = checkbytes.find(DATA_DESCRIPTOR, ddpos+1)
+                        if ddpos != -1:
+                            ddsearched = True
+                            ddfound = True
+                            # sanity check
+                            self.infile.seek(curpos + ddpos + 8)
+                            tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
+                            if curpos + ddpos - datastart == tmpcompressedsize:
+                                tmppos = ddpos
+                                break
+                        else:
+                            break
+
+                # search for a local file header which indicates
+                # the next entry in the ZIP file
+                localheaderpos = checkbytes.find(LOCAL_FILE_HEADER)
+                if localheaderpos != -1 and (localheaderpos < tmppos or tmppos == -1):
+                    # In case the file that is stored is an empty
+                    # file, then there will be no data descriptor field
+                    # so just continue as normal.
+                    if curpos + localheaderpos == datastart:
+                        self.infile.seek(curpos)
+                        break
+
+                    # if there is a data descriptor, then the 12
+                    # bytes preceding the next header are:
+                    # * crc32
+                    # * compressed size
+                    # * uncompressed size
+                    # section 4.3.9
+                    if datadescriptor:
+                        if curpos + localheaderpos - datastart > 12:
+                            self.infile.seek(curpos + localheaderpos - 8)
+                            tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
+                            # and return to the original position
+                            self.infile.seek(newcurpos)
+                            if curpos + localheaderpos - datastart == tmpcompressedsize + 16:
+                                if tmppos == -1:
+                                    tmppos = localheaderpos
+                                else:
+                                    tmppos = min(localheaderpos, tmppos)
+                    else:
+                        if tmppos == -1:
+                            tmppos = localheaderpos
+                        else:
+                            tmppos = min(localheaderpos, tmppos)
+                    self.infile.seek(newcurpos)
+
+                # then search for the start of the central directory
+                centraldirpos = checkbytes.find(CENTRAL_DIRECTORY)
+                if centraldirpos != -1:
+                    # In case the file that is stored is an empty
+                    # file, then there will be no data descriptor field
+                    # so just continue as normal.
+                    if curpos + centraldirpos == datastart:
+                        self.infile.seek(curpos)
+                        break
+
+                    # if there is a data descriptor, then the 12
+                    # bytes preceding the next header are:
+                    # * crc32
+                    # * compressed size
+                    # * uncompressed size
+                    # section 4.3.9
+                    if datadescriptor:
+                        if curpos + centraldirpos - datastart > 12:
+                            self.infile.seek(curpos + centraldirpos - 8)
+                            tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
+                            # and return to the original position
+                            self.infile.seek(newcurpos)
+                            if curpos + centraldirpos - datastart == tmpcompressedsize + 16:
+                                if tmppos == -1:
+                                    tmppos = centraldirpos
+                                else:
+                                    tmppos = min(centraldirpos, tmppos)
+                            else:
+                                if curpos + centraldirpos - datastart > 16:
+                                    self.infile.seek(curpos + centraldirpos - 16)
+                                    tmpbytes = self.infile.read(16)
+                                    if tmpbytes == b'APK Sig Block 42':
+                                        androidsigning = True
+                                    # and (again) return to the
+                                    # original position
+                                    self.infile.seek(newcurpos)
+                    else:
+                        if tmppos == -1:
+                            tmppos = centraldirpos
+                        else:
+                            tmppos = min(centraldirpos, tmppos)
+
+                    self.infile.seek(newcurpos)
+
+                    oldtmppos = tmppos
+
+                    # extra sanity check: see if the
+                    # file names are the same
+                    origpos = self.infile.tell()
+                    self.infile.seek(curpos + tmppos + 42)
+                    checkfn = self.infile.read(filenamelength)
+                    if localfilename != checkfn:
+                        tmppos = oldtmppos
+                    self.infile.seek(origpos)
+                if tmppos != -1:
+                    self.infile.seek(curpos + tmppos)
+                    break
+
+                # have a small overlap the size of a possible header
+                # unless it is the last 4 bytes of the file
+                if self.infile.tell() == filesize:
+                    break
+                self.infile.seek(-4, os.SEEK_CUR)
+        else:
+            check_condition(self.infile.tell() + compressedsize <= self.fileresult.filesize,
+                            "not enough data for compressed data")
+            self.infile.seek(self.infile.tell() + compressedsize)
 
 
 
