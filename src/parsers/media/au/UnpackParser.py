@@ -43,9 +43,6 @@ class AuUnpackParser(UnpackParser):
     ]
     pretty_name = 'au'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_au(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         self.file_size = self.fileresult.filesize
         try:
