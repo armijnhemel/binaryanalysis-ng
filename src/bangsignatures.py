@@ -249,7 +249,6 @@ signaturetofunction = {
     'trx': bangunpack.unpack_trx,
     'fat': bangfilesystems.unpack_fat,
     'cbfs': bangfilesystems.unpack_cbfs,
-    'compress': bangunpack.unpack_compress,
     'romfs': bangfilesystems.unpack_romfs,
     'cramfs_le': bangfilesystems.unpack_cramfs,
     'cramfs_be': bangfilesystems.unpack_cramfs,
