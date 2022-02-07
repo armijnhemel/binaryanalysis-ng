@@ -237,7 +237,6 @@ signaturetofunction = {
     'opentype': bangunpack.unpack_opentype_font,
     'ttc': bangunpack.unpack_opentype_font_collection,
     'truetype': bangunpack.unpack_truetype_font,
-    'android_backup': bangunpack.unpack_android_backup,
     'rzip': bangunpack.unpack_rzip,
     'jffs2_little_endian': bangfilesystems.unpack_jffs2,
     'jffs2_big_endian': bangfilesystems.unpack_jffs2,
