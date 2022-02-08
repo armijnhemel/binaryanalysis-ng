@@ -23,11 +23,12 @@
 
 import os
 import pathlib
+import tarfile
+
 from UnpackParser import UnpackParser, WrappedUnpackParser
 from UnpackParserException import UnpackParserException
 from FileResult import FileResult
 from bangunpack import unpack_tar
-import tarfile
 
 class wTarUnpackParser(WrappedUnpackParser):
     extensions = ['.tar']
@@ -50,23 +51,32 @@ class TarUnpackParser(UnpackParser):
     ]
     pretty_name = 'tar'
 
+    def parse(self):
+        try:
+            self.unpacktar = tarfile.open(fileobj=self.infile, mode='r')
+        except tarfile.TarError as e:
+            raise UnpackParserException(e.args)
+        try:
+            self.tarinfos = self.unpacktar.getmembers()
+        except tarfile.TarError as e:
+            raise UnpackParserException(e.args)
+
     def tar_unpack_regular(self, outfile_rel, tarinfo):
-        # TODO: absolute paths
-        if outfile_rel.is_absolute():
-            raise UnpackParserException("trying to extract to absolute path")
-        else:
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-            outfile = open(outfile_full, 'wb')
-            tar_reader = self.unpacktar.extractfile(tarinfo)
-            outfile.write(tar_reader.read())
-            outfile.close()
+        outfile_full = self.scan_environment.unpack_path(outfile_rel)
+        os.makedirs(outfile_full.parent, exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        tar_reader = self.unpacktar.extractfile(tarinfo)
+        outfile.write(tar_reader.read())
+        outfile.close()
 
     def unpack(self):
         unpacked_files = []
         for tarinfo in self.tarinfos:
             out_labels = []
             file_path = pathlib.Path(tarinfo.name)
+            if file_path.is_absolute():
+                file_path = file_path.relative_to('/')
+                tarinfo.name = file_path
             outfile_rel = self.rel_unpack_dir / file_path
             if tarinfo.isfile(): # normal file
                 self.tar_unpack_regular(outfile_rel, tarinfo)
@@ -81,12 +91,10 @@ class TarUnpackParser(UnpackParser):
 
         return unpacked_files
 
-    def parse(self):
-        try:
-            self.unpacktar = tarfile.open(fileobj=self.infile, mode='r')
-        except tarfile.TarError as e:
-            raise UnpackParserException(e.args)
-        try:
-            self.tarinfos = self.unpacktar.getmembers()
-        except tarfile.TarError as e:
-            raise UnpackParserException(e.args)
+    def set_metadata_and_labels(self):
+        """sets metadata and labels for the unpackresults"""
+        labels = ['tar', 'archive']
+        metadata = {}
+
+        self.unpack_results.set_labels(labels)
+        self.unpack_results.set_metadata(metadata)
