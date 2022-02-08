@@ -23,6 +23,7 @@
 
 import os
 import pathlib
+import stat
 import tarfile
 
 from UnpackParser import UnpackParser, WrappedUnpackParser
@@ -30,6 +31,7 @@ from UnpackParserException import UnpackParserException
 from FileResult import FileResult
 from bangunpack import unpack_tar
 
+'''
 class wTarUnpackParser(WrappedUnpackParser):
     extensions = ['.tar']
     signatures = [
@@ -40,10 +42,11 @@ class wTarUnpackParser(WrappedUnpackParser):
 
     def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
         return unpack_tar(fileresult, scan_environment, offset, unpack_dir)
+'''
 
 
 class TarUnpackParser(UnpackParser):
-    #extensions = ['.tar']
+    extensions = ['.tar']
     extensions = []
     signatures = [
         (0x101, b'ustar\x00'),
@@ -61,14 +64,6 @@ class TarUnpackParser(UnpackParser):
         except tarfile.TarError as e:
             raise UnpackParserException(e.args)
 
-    def tar_unpack_regular(self, outfile_rel, tarinfo):
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        tar_reader = self.unpacktar.extractfile(tarinfo)
-        outfile.write(tar_reader.read())
-        outfile.close()
-
     def unpack(self):
         unpacked_files = []
         for tarinfo in self.tarinfos:
@@ -78,18 +73,34 @@ class TarUnpackParser(UnpackParser):
                 file_path = file_path.relative_to('/')
                 tarinfo.name = file_path
             outfile_rel = self.rel_unpack_dir / file_path
-            if tarinfo.isfile(): # normal file
-                self.tar_unpack_regular(outfile_rel, tarinfo)
+            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+            os.makedirs(outfile_full.parent, exist_ok=True)
+
+            if tarinfo.issym():
+                out_labels.append('symbolic link')
+            elif tarinfo.islnk():
+                out_labels.append('hardlink')
+            elif tarinfo.isdir():
+                out_labels.append('directory')
+
+            if tarinfo.isfile() or tarinfo.issym() or tarinfo.isdir() or tarinfo.islnk():
+                self.unpacktar.extract(tarinfo, path=self.rel_unpack_dir)
+
+                # tar can change permissions after unpacking, so change
+                # them back to something a bit more sensible
+                if tarinfo.isfile() or tarinfo.isdir():
+                    outfile_full.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
                 fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
                 unpacked_files.append(fr)
-            elif tarinfo.issym(): # symlink
-                pass
-            elif tarinfo.islnk(): # hard link
-                pass
-            elif tarinfo.isdir(): # directory
+            else:
+                # block/device characters, sockets, etc. TODO
                 pass
 
         return unpacked_files
+
+    # no need to carve from the file
+    def carve(self):
+        pass
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
