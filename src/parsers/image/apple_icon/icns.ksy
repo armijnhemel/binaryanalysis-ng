@@ -23,7 +23,7 @@ meta:
   license: MIT
   ks-version: "0.9"
   imports:
-    - /common/bytes_with_io
+    - /font/pcf/bytes_with_io
   endian: be
 doc: |
   Icon image format used by Mac OS 8.5 and later,
