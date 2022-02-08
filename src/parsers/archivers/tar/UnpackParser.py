@@ -64,14 +64,23 @@ class TarUnpackParser(UnpackParser):
         except tarfile.TarError as e:
             raise UnpackParserException(e.args)
 
+        tar_filenames = set()
+        for tarinfo in self.tarinfos:
+            file_path = pathlib.Path(tarinfo.name)
+            if file_path.is_absolute():
+                tarinfo.name = file_path.relative_to('/')
+
+            # TODO: rename files properly with minimum chance of clashes
+            if tarinfo.name in tar_filenames:
+                pass
+            tar_filenames.add(tarinfo.name)
+
+
     def unpack(self):
         unpacked_files = []
         for tarinfo in self.tarinfos:
             out_labels = []
             file_path = pathlib.Path(tarinfo.name)
-            if file_path.is_absolute():
-                file_path = file_path.relative_to('/')
-                tarinfo.name = file_path
             outfile_rel = self.rel_unpack_dir / file_path
             outfile_full = self.scan_environment.unpack_path(outfile_rel)
             os.makedirs(outfile_full.parent, exist_ok=True)
