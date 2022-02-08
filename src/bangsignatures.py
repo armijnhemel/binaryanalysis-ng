@@ -220,8 +220,6 @@ signaturetofunction = {
     'lzma_var1': bangunpack.unpack_lzma,
     'lzma_var2': bangunpack.unpack_lzma,
     'lzma_var3': bangunpack.unpack_lzma,
-    'tar_posix': bangunpack.unpack_tar,
-    'tar_gnu': bangunpack.unpack_tar,
     'squashfs_var1': bangfilesystems.unpack_squashfs,
     'squashfs_var2': bangfilesystems.unpack_squashfs,
     'squashfs_var3': bangfilesystems.unpack_squashfs,
@@ -303,7 +301,6 @@ signatureprettyprint = {
 # These extensions should be lower case
 extensiontofunction = {
     '.new.dat': bangunpack.unpack_android_sparse_data,
-    '.tar': bangunpack.unpack_tar,
     '.rsa': bangunpack.unpack_certificate,
     '.pem': bangunpack.unpack_certificate,
 }
