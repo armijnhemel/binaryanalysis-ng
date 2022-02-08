@@ -26,23 +26,9 @@ import pathlib
 import stat
 import tarfile
 
-from UnpackParser import UnpackParser, WrappedUnpackParser
+from UnpackParser import UnpackParser
 from UnpackParserException import UnpackParserException
 from FileResult import FileResult
-from bangunpack import unpack_tar
-
-'''
-class wTarUnpackParser(WrappedUnpackParser):
-    extensions = ['.tar']
-    signatures = [
-        (0x101, b'ustar\x00'),
-        (0x101, b'ustar\x20\x20\x00')
-    ]
-    pretty_name = 'tar'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_tar(fileresult, scan_environment, offset, unpack_dir)
-'''
 
 
 class TarUnpackParser(UnpackParser):
@@ -75,6 +61,30 @@ class TarUnpackParser(UnpackParser):
                 pass
             tar_filenames.add(tarinfo.name)
 
+        # There could be additional padding as some tar implementations
+        # align on blocks.
+        #
+        # Example: GNU tar tends to pad files with up to 20 blocks (512
+        # bytes each) filled with 0x00 although this heavily depends on
+        # the command line settings.
+        #
+        # This can be checked with GNU tar by inspecting the file with the
+        # options "itvRf" to the tar command:
+        #
+        # $ tar itvRf /path/to/tar/file
+        #
+        # These padding bytes are not read by Python's tarfile module and
+        # need to be explicitly checked and flagged as part of the file
+        self.unpacked_size = self.infile.tell()
+
+        if self.unpacked_size % 512 == 0:
+            while self.unpacked_size < self.fileresult.filesize - self.offset:
+                checkbytes = self.infile.read(512)
+                if len(checkbytes) != 512:
+                    break
+                if checkbytes != b'\x00' * 512:
+                    break
+                self.unpacked_size += 512
 
     def unpack(self):
         unpacked_files = []
