@@ -37,7 +37,6 @@ import string
 import tempfile
 import collections
 import math
-import tarfile
 import lzma
 import zlib
 import zipfile
