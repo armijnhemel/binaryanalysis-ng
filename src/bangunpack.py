@@ -33,7 +33,6 @@
 import os
 import shutil
 import binascii
-import string
 import tempfile
 import collections
 import math
