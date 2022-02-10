@@ -119,8 +119,8 @@ class CertificateUnpackParser(UnpackParser):
                         end_of_certificate = self.pos + end_res + 16
                         cert_unpacked = True
                 else:
+                    end_res = buf.find(b'-----', end_pos + 1)
                     if end_res != -1:
-                        end_res = buf.find(b'-----', end_pos + 1)
                         end_of_certificate = self.pos + end_res + 5
                         cert_unpacked = True
                 break
