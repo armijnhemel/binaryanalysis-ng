@@ -23,11 +23,9 @@
 import os
 import pathlib
 import shutil
+import stat
 import subprocess
 import tempfile
-
-from UnpackParser import WrappedUnpackParser
-from bangfilesystems import unpack_squashfs
 
 from FileResult import FileResult
 
@@ -35,8 +33,7 @@ from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
 
-class SquashfsUnpackParser(WrappedUnpackParser):
-#class SquashfsUnpackParser(UnpackParser):
+class SquashfsUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'sqsh'),
@@ -48,9 +45,6 @@ class SquashfsUnpackParser(WrappedUnpackParser):
         (0, b'sqlz')
     ]
     pretty_name = 'squashfs'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_squashfs(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         # first check if the unpacking tools are available
@@ -124,26 +118,23 @@ class SquashfsUnpackParser(WrappedUnpackParser):
         check_condition(self.offset + squashfssize <= filesize,
                         "file system cannot extend past file")
 
-        # write the data to a temporary file if the offset != 0
-        # and run unsquashfs or sasquatch
-        if self.offset != 0:
-            check_condition(self.offset == 0, "only offset 0 supported now")
-
         success = False
         if self.have_squashfs:
-            p = subprocess.Popen(['unsquashfs', '-lc', self.infile.name],
+            p = subprocess.Popen(['unsquashfs', '-o', str(self.offset), '-lc', self.infile.name],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
             if p.returncode == 0 or b'because you\'re not superuser!' in errormsg:
                 success = True
+                self.unpacker = 'unsquashfs'
 
         if not success:
-            p = subprocess.Popen(['sasquatch', '-lc', '-p', '1', self.infile.name],
+            p = subprocess.Popen(['sasquatch', '-o', str(self.offset), '-lc', '-p', '1', self.infile.name],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
 
             if p.returncode == 0 or b'because you\'re not superuser!' in errormsg:
                 success = True
+                self.unpacker = 'sasquatch'
         check_condition(success, "invalid or unsupported squashfs file system")
 
         # by default mksquashfs pads to 4K blocks with NUL bytes.
@@ -161,23 +152,56 @@ class SquashfsUnpackParser(WrappedUnpackParser):
     def unpack(self):
         unpacked_files = []
 
+        # create a temporary directory and remove it again
+        # unsquashfs cannot unpack to an existing directory
+        # and move contents after unpacking.
         squashfs_unpack_directory = tempfile.mkdtemp(dir=self.scan_environment.temporarydirectory)
+        shutil.rmtree(squashfs_unpack_directory)
 
         success = False
-        if self.have_squashfs:
-            p = subprocess.Popen(['unsquashfs', self.infile.name],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 cwd=squashfs_unpack_directory)
+        if self.unpacker == 'unsquashfs':
+            p = subprocess.Popen(['unsquashfs', '-o', str(self.offset), '-d', squashfs_unpack_directory, self.infile.name],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
             if p.returncode == 0 or b'because you\'re not superuser!' in errormsg:
                 success = True
-
-        if not success:
-            p = subprocess.Popen(['sasquatch', '-p', '1', self.infile.name],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 cwd=squashfs_unpack_directory)
+        else:
+            p = subprocess.Popen(['sasquatch', '-o', str(self.offset), '-p', '1', '-d', squashfs_unpack_directory, self.infile.name],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
+
+        # move the unpacked files
+        # move contents of the unpacked file system
+        for result in pathlib.Path(squashfs_unpack_directory).glob('**/*'):
+            relative_result = result.relative_to(squashfs_unpack_directory)
+            outfile_rel = self.rel_unpack_dir / relative_result
+            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+            os.makedirs(outfile_full.parent, exist_ok=True)
+
+            if result.is_symlink():
+                self.local_copy2(result, outfile_full)
+            elif result.is_dir():
+                os.makedirs(outfile_full, exist_ok=True)
+                outfile_full.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            elif result.is_file():
+                self.local_copy2(result, outfile_full)
+                outfile_full.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            else:
+                continue
+
+            # then add the file to the result set
+            fr = FileResult(self.fileresult, outfile_rel, set())
+            unpacked_files.append(fr)
+
+        # clean up the temporary directory
+        shutil.rmtree(squashfs_unpack_directory)
         return unpacked_files
+
+    # a wrapper around shutil.copy2 to copy symbolic links instead of
+    # following them and copying the data.
+    def local_copy2(self, src, dest):
+        '''Wrapper around shutil.copy2 for squashfs unpacking'''
+        return shutil.copy2(src, dest, follow_symlinks=False)
 
     # no need to carve from the file
     def carve(self):
