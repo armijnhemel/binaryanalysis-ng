@@ -530,6 +530,8 @@ class ElfUnpackParser(UnpackParser):
                         # .note.Xen in FreeBSD kernel
                         # .notes in Linux kernel)
                         labels.append('xen')
+                    elif entry.name == b'NaCl':
+                        labels.append('Google Native Client')
 
         metadata['dynamic_symbols'] = dynamic_symbols
         metadata['needed'] = needed
