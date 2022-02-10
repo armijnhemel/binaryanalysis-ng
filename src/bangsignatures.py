@@ -241,7 +241,6 @@ signaturetofunction = {
     'ext2': bangfilesystems.unpack_ext2,
     'zstd_08': bangunpack.unpack_zstd,
     'vmdk': bangfilesystems.unpack_vmdk,
-    'certificate': bangunpack.unpack_certificate,
     'pdf': bangunpack.unpack_pdf,
     'trx': bangunpack.unpack_trx,
     'fat': bangfilesystems.unpack_fat,
@@ -301,8 +300,6 @@ signatureprettyprint = {
 # These extensions should be lower case
 extensiontofunction = {
     '.new.dat': bangunpack.unpack_android_sparse_data,
-    '.rsa': bangunpack.unpack_certificate,
-    '.pem': bangunpack.unpack_certificate,
 }
 
 import os

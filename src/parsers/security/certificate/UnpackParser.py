@@ -35,23 +35,18 @@ from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_certificate
-
-class CertificateUnpackParser(WrappedUnpackParser):
-#class CertificateUnpackParser(UnpackParser):
-    #extensions = ['.rsa', '.pem']
+class CertificateUnpackParser(UnpackParser):
+    #extensions = ['.rsa', '.pem', '.der']
+    extensions = []
     signatures = [
         (0, b'-----BEGIN ')
     ]
     pretty_name = 'certificate'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_certificate(fileresult, scan_environment, offset, unpack_dir)
-
     def extract_certificate(self, cert):
         labels = []
-        # First see if a file is in DER format
+
+        # First see if a file is in DER format # TODO binary .der files
         p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate(cert)
         if p.returncode == 0:
@@ -100,7 +95,7 @@ class CertificateUnpackParser(WrappedUnpackParser):
         elif b'CERTIFICATE' in buf:
             self.certtype = 'certificate'
 
-        # check
+        # try to find the end of the certificate
         end_pos = -1
         self.infile.seek(0)
         self.pos = self.infile.tell()
@@ -142,6 +137,8 @@ class CertificateUnpackParser(WrappedUnpackParser):
         # check the certificate
         self.infile.seek(0)
         cert = self.infile.read(end_of_certificate)
+        check_condition(list(filter(lambda x: chr(x) not in string.printable, cert)) == [],
+                        "text cert can only contain ASCII printable characters")
         (res, self.cert_labels) = self.extract_certificate(cert)
         check_condition(res, "not a valid certificate")
 
