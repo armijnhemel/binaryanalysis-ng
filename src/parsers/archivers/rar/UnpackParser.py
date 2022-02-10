@@ -1,8 +1,11 @@
 import os
 import re
+import subprocess
 from . import rar
 from UnpackParser import UnpackParser
 from UnpackParserException import UnpackParserException
+from kaitaistruct import ValidationFailedError
+
 
 class RarUnpackParser(UnpackParser):
     pretty_name = 'rar'
@@ -10,9 +13,10 @@ class RarUnpackParser(UnpackParser):
             (0, b'Rar!\x1a\x07'),
     ]
     def parse(self):
+        raise UnpackParserException("Rar not supported")
         try:
             self.data = rar.Rar.from_io(self.infile)
-        except BaseException as e:
+        except (BaseException, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
     def unpack(self):
         return []

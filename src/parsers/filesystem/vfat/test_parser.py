@@ -25,6 +25,34 @@ def test_fat12_single_file_unpacked_correctly(scan_environment):
     with open(unpacked_path_abs,"rb") as f:
         assert f.read() == b'hello fat\n'
 
+def test_fat12_single_file_unpacked_correctly_with_offset(scan_environment):
+    padding_length = 5
+    orig_testfile = pathlib.Path('unpackers') / 'fat' / 'test.fat'
+    rel_testfile = pathlib.Path('unpackers') / 'fat' / 'prepend-test.fat'
+    abs_orig_testfile = testdir_base / 'testdata' / orig_testfile
+    abs_testfile = testdir_base / 'testdata' / rel_testfile
+    with open(abs_testfile,"wb") as f:
+        f.write(b"A" * padding_length)
+        with open(abs_orig_testfile,"rb") as g:
+                f.write(g.read())
+    copy_testfile_to_environment(testdir_base / 'testdata', rel_testfile, scan_environment)
+    fr = fileresult(testdir_base / 'testdata', rel_testfile, set())
+    filesize = fr.filesize
+    data_unpack_dir = rel_testfile.parent / 'some_dir'
+    p = VfatUnpackParser(fr, scan_environment, data_unpack_dir, padding_length)
+    p.open()
+    r = p.parse_and_unpack()
+    p.close()
+    assert r.get_length() == filesize - padding_length
+    assert len(r.get_unpacked_files()) == 1
+    unpacked_path_rel = data_unpack_dir / 'hellofat.txt'
+    unpacked_path_abs = scan_environment.unpackdirectory / unpacked_path_rel
+    assert r.get_unpacked_files()[0].filename == unpacked_path_rel
+    assertUnpackedPathExists(scan_environment, unpacked_path_rel)
+    with open(unpacked_path_abs,"rb") as f:
+        assert f.read() == b'hello fat\n'
+
+
 # test if extraction of file of multiple blocks went ok
 def test_fat12_multiple_blocks_unpacked_correctly(scan_environment):
     rel_testfile = pathlib.Path('unpackers') / 'fat' / 'test-fat12-multidirfile.fat'

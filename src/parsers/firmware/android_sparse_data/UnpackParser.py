@@ -4,7 +4,7 @@ from UnpackParser import WrappedUnpackParser
 from bangandroid import unpack_android_sparse_data
 
 class AndroidSparseDataUnpackParser(WrappedUnpackParser):
-    extensions = ['.new.dat']
+    extensions = ['.new.dat', 'new.dat.br']
     signatures = []
     pretty_name = 'androidsparsedata'
 

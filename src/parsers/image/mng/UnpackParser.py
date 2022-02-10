@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_mng
+from bangunpack import unpack_mng
 
 class MngUnpackParser(WrappedUnpackParser):
     extensions = []

@@ -134,6 +134,8 @@ class ScanJob:
                 self.fileresult.set_filesize(0)
                 for hash_algorithm, hash_value in emptyhashresults.items():
                     self.fileresult.set_hashresult(hash_algorithm, hash_value)
+            elif self.type == 'symbolic link':
+                self.fileresult.set_target(self.fileresult.filename.readlink())
             return True
         self.fileresult.set_filesize(self.stat.st_size)
         return False
@@ -149,6 +151,7 @@ class ScanJob:
                 'offset': 0,
                 'size': self.fileresult.filesize,
                 'files': [],
+                'relative_files': [],
             }
             self.fileresult.add_unpackedfile(report)
         else:
@@ -170,6 +173,7 @@ class ScanJob:
                 'offset': 0,
                 'size': self.fileresult.filesize,
                 'files': [],
+                'relative_files': [],
             }
             self.fileresult.add_unpackedfile(report)
 
@@ -222,6 +226,7 @@ class ScanJob:
                         'type': unpackparser.pretty_name,
                         'size': unpackresult.get_length(),
                         'files': [],
+                        'relative_files': [],
                     }
 
                     if unpackresult.get_metadata != {}:
@@ -231,6 +236,7 @@ class ScanJob:
                         j = ScanJob(unpackedfile)
                         self.scanenvironment.scanfilequeue.put(j)
                         report['files'].append(unpackedfile.filename)
+                        report['relative_files'].append(unpackedfile.filename.relative_to(unpacker.get_data_unpack_directory()))
                     self.fileresult.add_unpackedfile(report)
 
     def check_for_signatures(self, unpacker):
@@ -246,10 +252,10 @@ class ScanJob:
             # TODO: check why this is a while true loop
             # instead of:
             # while unpacker.get_current_offset_in_file() != self.fileresult.filesize:
+            sigs_and_unpackers = self.scanenvironment.get_unpackparsers_for_signatures().items()
             while True:
                 candidateoffsetsfound = set()
-                for s, unpackparsers in \
-                    self.scanenvironment.get_unpackparsers_for_signatures().items():
+                for s, unpackparsers in sigs_and_unpackers:
                     offsets = unpacker.find_offsets_for_signature(s,
                             unpackparsers, self.fileresult.filesize)
                     candidateoffsetsfound.update(offsets)
@@ -268,6 +274,7 @@ class ScanJob:
 
                     signaturesfound.append(offset_with_unpackparser)
 
+                    # TODO: this chdir can probably go away
                     # always change to the declared unpacking directory
                     os.chdir(self.scanenvironment.unpackdirectory)
                     # then create an unpacking directory specifically
@@ -336,7 +343,7 @@ class ScanJob:
                         # files (i.e. it was not a container file or
                         # compressed file).
                         if unpackresult.get_unpacked_files() == []:
-                            unpacker.remove_data_unpack_directory()
+                            unpacker.remove_data_unpack_directory_tree()
 
                     # store the range of the unpacked data
                     unpacker.append_unpacked_range(offset, offset +
@@ -350,6 +357,7 @@ class ScanJob:
                         'type': unpackparser.pretty_name,
                         'size': unpackresult.get_length(),
                         'files': [],
+                        'relative_files': [],
                     }
 
                     if unpackresult.get_metadata != {}:
@@ -363,6 +371,7 @@ class ScanJob:
 
                     for unpackedfile in unpackresult.get_unpacked_files():
                         report['files'].append(unpackedfile.filename)
+                        report['relative_files'].append(unpackedfile.filename.relative_to(unpacker.get_data_unpack_directory()))
                         j = ScanJob(unpackedfile)
                         self.scanenvironment.scanfilequeue.put(j)
 
@@ -488,6 +497,7 @@ class ScanJob:
                     'type': 'carved',
                     'size': u_low - carve_index,
                     'files': [ outfile_rel ],
+                    'relative_files': [ outfile_rel.relative_to(unpacker.get_data_unpack_directory()) ],
                 }
                 self.fileresult.add_unpackedfile(report)
 
@@ -583,6 +593,7 @@ class ScanJob:
                     'type': unpack_parser.pretty_name,
                     'size': unpackresult.get_length(),
                     'files': [],
+                    'relative_files': [],
                 }
 
                 if unpackresult.get_metadata != {}:
@@ -593,6 +604,7 @@ class ScanJob:
 
                 for unpackedfile in unpackresult.get_unpacked_files():
                     report['files'].append(unpackedfile.filename)
+                    report['relative_files'].append(unpackedfile.filename.relative_to(unpacker.get_data_unpack_directory()))
                     j = ScanJob(unpackedfile)
                     self.scanenvironment.scanfilequeue.put(j)
 
@@ -606,8 +618,6 @@ class ScanJob:
 # Process a single file.
 # This method has the following parameters:
 #
-# * dbconn :: a PostgreSQL database connection
-# * dbcursor :: a PostgreSQL database cursor
 # * scanenvironment :: a ScanEnvironment object, describing
 #   the environment for the scan
 #
@@ -617,7 +627,7 @@ class ScanJob:
 # 'graphics') will be stored. These labels can be used to feed extra
 # information to the unpacking process, such as preventing scans from
 # running.
-def processfile(dbconn, dbcursor, scanenvironment):
+def processfile(scanenvironment):
 
     scanfilequeue = scanenvironment.scanfilequeue
     resultqueue = scanenvironment.resultqueue
@@ -625,6 +635,8 @@ def processfile(dbconn, dbcursor, scanenvironment):
     checksumdict = scanenvironment.checksumdict
 
     carveunpacked = True
+
+    os.chdir(scanenvironment.unpackdirectory)
 
     while True:
         try:
@@ -650,7 +662,8 @@ def processfile(dbconn, dbcursor, scanenvironment):
                 scanjob.check_for_valid_extension(unpacker)
 
             if unpacker.needs_unpacking():
-                scanjob.check_for_signatures(unpacker)
+                if 'synthesized' not in fileresult.labels:
+                    scanjob.check_for_signatures(unpacker)
 
             if carveunpacked:
                 scanjob.carve_file_data(unpacker)
@@ -670,12 +683,6 @@ def processfile(dbconn, dbcursor, scanenvironment):
             processlock.release()
 
             if not scanjob.fileresult.is_duplicate():
-                if scanenvironment.runfilescans:
-                    for sclass in scanenvironment.filescanners:
-                        s = sclass(dbconn, dbcursor, scanenvironment)
-                        if s.should_scan(scanjob.fileresult):
-                            s.scan(scanjob.fileresult)
-
                 for rclass in scanenvironment.reporters:
                     r = rclass(scanenvironment)
                     r.report(scanjob.fileresult)

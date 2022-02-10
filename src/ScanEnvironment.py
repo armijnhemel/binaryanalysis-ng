@@ -15,14 +15,12 @@
 # License, version 3, along with BANG.  If not, see
 # <http://www.gnu.org/licenses/>
 #
-# Copyright 2018-2019 - Armijn Hemel
+# Copyright 2018-2021 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
-from NSRLHashScanner import *
-from LicenseIdentifierScanner import *
 from ByteCountReporter import *
 from PickleReporter import *
 from JsonReporter import *
@@ -34,7 +32,7 @@ class ScanEnvironment:
         'database'])
 
     def __init__(self, maxbytes, readsize, createbytecounter, createjson,
-                 runfilescans, tlshmaximum, synthesizedminimum, logging,
+                 tlshmaximum, synthesizedminimum, logging,
                  paddingname, unpackdirectory, temporarydirectory,
                  resultsdirectory, scanfilequeue, resultqueue,
                  processlock, checksumdict,
@@ -63,8 +61,6 @@ class ScanEnvironment:
         self.resultqueue = resultqueue
         self.processlock = processlock
         self.checksumdict = checksumdict
-        self.runfilescans = runfilescans
-        self.filescanners = [ NSRLHashScanner, LicenseIdentifierScanner ]
         self.unpackparsers = []
         self.unpackparsers_for_extensions = {}
         self.unpackparsers_for_signatures = {}
@@ -73,9 +69,6 @@ class ScanEnvironment:
         if self.createbytecounter: self.reporters.append(ByteCountReporter)
         self.reporters.append(PickleReporter)
         if self.createjson: self.reporters.append(JsonReporter)
-
-    def get_runfilescans(self):
-        return self.runfilescans
 
     def get_readsize(self):
         return self.readsize

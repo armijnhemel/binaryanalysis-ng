@@ -20,7 +20,7 @@ https://wiki.skullsecurity.org/Passwords
 import sys
 import os
 import argparse
-import stat
+import pathlib
 
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
@@ -47,29 +47,33 @@ def main():
     if args.passwdfile is None:
         parser.error("No file with passwords provided, exiting")
 
+    password_file = pathlib.Path(args.passwdfile)
+
     # the file with passwords should exist ...
-    if not os.path.exists(args.passwdfile):
-        parser.error("File %s does not exist, exiting." % args.passwdfile)
+    if not password_file.exists():
+        parser.error("File %s does not exist, exiting." % password_file)
 
     # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.passwdfile).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.passwdfile)
+    if not password_file.is_file():
+        parser.error("%s is not a regular file, exiting." % password_file)
 
     # sanity checks for the configuration file
     if args.cfg is None:
         parser.error("No configuration file provided, exiting")
 
+    cfg = pathlib.Path(args.cfg)
+
     # the configuration file should exist ...
-    if not os.path.exists(args.cfg):
-        parser.error("File %s does not exist, exiting." % args.cfg)
+    if not cfg.exists():
+        parser.error("File %s does not exist, exiting." % cfg)
 
     # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.cfg).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.cfg)
+    if not cfg.is_file():
+        parser.error("%s is not a regular file, exiting." % cfg)
 
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(args.cfg, 'r')
+        configfile = cfg.open()
         config = load(configfile, Loader=Loader)
     except (YAMLError, PermissionError):
         print("Cannot open configuration file, exiting", file=sys.stderr)
@@ -118,7 +122,7 @@ def main():
     # for the phpbb-withmd5.txt file this is latin-1
     encoding = 'latin-1'
     try:
-        passwdfile = open(args.passwdfile, 'r', encoding=encoding)
+        passwdfile = open(password_file, 'r', encoding=encoding)
     except:
         print("Cannot open file with passwords",
               file=sys.stderr)

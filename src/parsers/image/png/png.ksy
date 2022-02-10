@@ -1,24 +1,37 @@
 meta:
   id: png
   title: PNG (Portable Network Graphics) file
-  file-extension: png
+  file-extension:
+    - png
+    - apng
   xref:
     forensicswiki: Portable_Network_Graphics_(PNG)
     iso: 15948:2004
-    justsolve: PNG
+    justsolve:
+      - PNG
+      - APNG
     loc: fdd000153
     mime:
       - image/png
       - image/apng
+      - image/vnd.mozilla.apng
     pronom:
       - fmt/11 # PNG 1.0
       - fmt/12 # PNG 1.1
       - fmt/13 # PNG 1.2
+      - fmt/935 # APNG
     rfc: 2083
-    wikidata: Q178051
+    wikidata:
+      - Q178051 # PNG
+      - Q433224 # APNG
   license: CC0-1.0
   ks-version: 0.9
   endian: be
+doc: |
+  Test files for APNG can be found at the following locations:
+
+    * <https://philip.html5.org/tests/apng/tests.html>
+    * <http://littlesvr.ca/apng/>
 seq:
   # https://www.w3.org/TR/PNG/#5PNG-file-signature
   - id: magic
@@ -26,7 +39,8 @@ seq:
   # https://www.w3.org/TR/PNG/#11IHDR
   # Always appears first, stores values referenced by other chunks
   - id: ihdr_len
-    contents: [0, 0, 0, 13]
+    type: u4
+    valid: 13
   - id: ihdr_type
     contents: "IHDR"
   - id: ihdr
@@ -43,10 +57,14 @@ types:
     seq:
       - id: len
         type: u4
+        valid:
+          max: _root._io.size
       - id: type
         type: str
         size: 4
         encoding: UTF-8
+        valid:
+          expr: type != "\0\0\0\0"
       - id: body
         size: len
         type:
@@ -78,6 +96,14 @@ types:
             '"acTL"': animation_control_chunk
             '"fcTL"': frame_control_chunk
             '"fdAT"': frame_data_chunk
+
+            # Adobe Fireworks chunks
+            '"mkBS"': adobe_fireworks_chunk
+            '"mkTS"': adobe_fireworks_chunk
+            '"prVW"': adobe_fireworks_chunk
+
+            # evernote/skitch chunks
+            '"skRf"': evernote_skrf_chunk
       - id: crc
         size: 4
   ihdr_chunk:
@@ -85,10 +111,16 @@ types:
     seq:
       - id: width
         type: u4
+        valid:
+          min: 1
       - id: height
         type: u4
+        valid:
+          min: 1
       - id: bit_depth
         type: u1
+        valid:
+          any-of: [1, 2, 4, 8, 16]
       - id: color_type
         type: u1
         enum: color_type
@@ -239,6 +271,8 @@ types:
         doc: Indicates purpose of the following text data.
       - id: compression_flag
         type: u1
+        valid:
+          any-of: [0, 1]
         doc: |
           0 = text is uncompressed, 1 = text is compressed with a
           method specified in `compression_method`.
@@ -259,12 +293,34 @@ types:
           Keyword translated into language specified in
           `language_tag`. Line breaks are not allowed.
       - id: text
+        type:
+          switch-on: compression_flag
+          cases:
+            0: international_text
+            1: international_text_compressed
+        size-eos: true
+        doc: |
+          Text contents ("value" of this key-value pair), written in
+          language specified in `language_tag`. Line breaks are
+          allowed.
+  international_text:
+    seq:
+      - id: text
         type: str
         encoding: UTF-8
         size-eos: true
         doc: |
           Text contents ("value" of this key-value pair), written in
-          language specified in `language_tag`. Linke breaks are
+          language specified in `language_tag`. Line breaks are
+          allowed.
+  international_text_compressed:
+    seq:
+      - id: text
+        size-eos: true
+        process: zlib
+        doc: |
+          Text contents ("value" of this key-value pair), written in
+          language specified in `language_tag`. Line breaks are
           allowed.
   text_chunk:
     doc: |
@@ -304,7 +360,7 @@ types:
     seq:
       - id: num_frames
         type: u4
-        doc: Number of frames
+        doc: Number of frames, must be equal to the number of `frame_control_chunk`s
       - id: num_plays
         type: u4
         doc: Number of times to loop, 0 indicates infinite looping.
@@ -316,19 +372,25 @@ types:
         doc: Sequence number of the animation chunk
       - id: width
         type: u4
+        valid:
+          min: 1
+          max: _root.ihdr.width
         doc: Width of the following frame
       - id: height
         type: u4
+        valid:
+          min: 1
+          max: _root.ihdr.height
         doc: Height of the following frame
       - id: x_offset
         type: u4
         valid:
-          max: _root.ihdr.width
+          max: _root.ihdr.width - width
         doc: X position at which to render the following frame
       - id: y_offset
         type: u4
         valid:
-          max: _root.ihdr.height
+          max: _root.ihdr.height - height
         doc: Y position at which to render the following frame
       - id: delay_num
         type: u2
@@ -344,15 +406,39 @@ types:
         type: u1
         enum: blend_op_values
         doc: Type of frame area rendering for this frame
+    instances:
+      delay:
+        value: 'delay_num / (delay_den == 0 ? 100.0 : delay_den)'
+        doc: Time to display this frame, in seconds
   frame_data_chunk:
     doc-ref: https://wiki.mozilla.org/APNG_Specification#.60fdAT.60:_The_Frame_Data_Chunk
     seq:
       - id: sequence_number
         type: u4
-        doc: Sequence number of the animation chunk
+        doc: |
+          Sequence number of the animation chunk. The fcTL and fdAT chunks
+          have a 4 byte sequence number. Both chunk types share the sequence.
+          The first fcTL chunk must contain sequence number 0, and the sequence
+          numbers in the remaining fcTL and fdAT chunks must be in order, with
+          no gaps or duplicates.
       - id: frame_data
         size-eos: true
-        doc: Frame data for the frame
+        doc: |
+          Frame data for the frame. At least one fdAT chunk is required for
+          each frame. The compressed datastream is the concatenation of the
+          contents of the data fields of all the fdAT chunks within a frame.
+  adobe_fireworks_chunk:
+    doc-ref: https://stackoverflow.com/questions/4242402/the-fireworks-png-format-any-insight-any-libs/51683285#51683285
+    seq:
+      - id: preview_data
+        process: zlib
+        size-eos: true
+  evernote_skrf_chunk:
+    seq:
+      - id: uuid
+        size: 16
+      - id: data
+        size-eos: true
 enums:
   color_type:
     0: greyscale

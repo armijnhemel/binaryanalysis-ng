@@ -15,7 +15,7 @@
 # License, version 3, along with BANG.  If not, see
 # <http://www.gnu.org/licenses/>
 #
-# Copyright 2019 - Armijn Hemel
+# Copyright 2019-2021 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
@@ -26,6 +26,7 @@ import elasticsearch
 class ElasticsearchReporter:
     def __init__(self, environment):
         self.environment = environment
+
     def report(self, scanresult):
         '''Put results into Elasticsearch'''
         # copy scanresult because json cannot serialize datetime objects by itself
@@ -81,3 +82,6 @@ class ElasticsearchReporter:
             scannode_res = result['scantree'][scannode]
             scannode_res['uuid'] = uuid
             es.index(index=elastic_index, doc_type='_doc', body=scannode_res)
+
+    def update(self, scanresult):
+        pass

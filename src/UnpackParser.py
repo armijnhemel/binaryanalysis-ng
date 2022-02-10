@@ -79,6 +79,7 @@ class UnpackParser:
         self.infile.seek(0)
         self.parse()
         self.calculate_unpacked_size()
+        check_condition(self.unpacked_size > 0, 'Parser resulted in zero length file')
     def open(self):
         filename_full = self.scan_environment.get_unpack_path_for_fileresult(
                     self.fileresult)
@@ -162,7 +163,7 @@ class UnpackParser:
         outfile_full = self.scan_environment.unpack_path(filename)
         os.makedirs(outfile_full.parent, exist_ok=True)
         outfile = open(outfile_full, 'wb')
-        os.sendfile(outfile.fileno(), self.infile.fileno(), start, length)
+        os.sendfile(outfile.fileno(), self.infile.fileno(), self.infile.offset + start, length)
         outfile.close()
 
 class WrappedUnpackParser(UnpackParser):

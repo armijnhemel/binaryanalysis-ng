@@ -60,8 +60,12 @@ types:
     seq:
       - id: screen_width
         type: u2
+        valid:
+          min: 1
       - id: screen_height
         type: u2
+        valid:
+          min: 1
       - id: flags
         type: u1
       - id: bg_color_index
@@ -92,6 +96,11 @@ types:
       - id: block_type
         type: u1
         enum: block_type
+        valid:
+          any-of:
+            - block_type::extension
+            - block_type::local_image_descriptor
+            - block_type::end_of_file
       - id: body
         type:
           switch-on: block_type
@@ -106,8 +115,12 @@ types:
         type: u2
       - id: width
         type: u2
+        valid:
+          min: 1
       - id: height
         type: u2
+        valid:
+          min: 1
       - id: flags
         type: u1
       - id: local_color_table
@@ -148,7 +161,7 @@ types:
   ext_application:
     seq:
       - id: application_id
-        type: subblock
+        type: application_id
       - id: subblocks
         type: subblock
         repeat: until
@@ -183,6 +196,17 @@ types:
         type: u1
       - id: bytes
         size: len_bytes
+  application_id:
+    seq:
+      - id: len_bytes
+        type: u1
+        valid: 11
+      - id: application_identifier
+        type: str
+        encoding: ASCII
+        size: 8
+      - id: application_auth_code
+        size: 3
 enums:
   block_type:
     0x21: extension

@@ -17,18 +17,14 @@
 # License, version 3, along with BANG.  If not, see
 # <http://www.gnu.org/licenses/>
 #
-# Copyright 2018-2019 - Armijn Hemel
+# Copyright 2018-2021 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import math
 
-import bangandroid
 import bangfilesystems
-import banggames
-import bangmedia
-import bangtext
 import bangunpack
 
 # store a few standard signatures
@@ -174,7 +170,6 @@ signatures = {
 
 # some signatures do not start at the beginning of the file
 signaturesoffset = {
-    'webp': 8,
     'wav': 8,
     'ani': 8,
     'tar_posix': 0x101,
@@ -218,139 +213,36 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'webp': bangmedia.unpack_webp,
-    'wav': bangmedia.unpack_wav,
-    'ani': bangmedia.unpack_ani,
-    'png': bangmedia.unpack_png,
-    'mng': bangmedia.unpack_mng,
+    'ani': bangunpack.unpack_ani,
+    'mng': bangunpack.unpack_mng,
     'gzip': bangunpack.unpack_gzip,
-    'bmp': bangmedia.unpack_bmp,
     'xz': bangunpack.unpack_xz,
     'lzma_var1': bangunpack.unpack_lzma,
     'lzma_var2': bangunpack.unpack_lzma,
     'lzma_var3': bangunpack.unpack_lzma,
-    'timezone': bangunpack.unpack_timezone,
-    'tar_posix': bangunpack.unpack_tar,
-    'tar_gnu': bangunpack.unpack_tar,
-    'ar': bangunpack.unpack_ar,
-    'squashfs_var1': bangfilesystems.unpack_squashfs,
-    'squashfs_var2': bangfilesystems.unpack_squashfs,
-    'squashfs_var3': bangfilesystems.unpack_squashfs,
-    'squashfs_var4': bangfilesystems.unpack_squashfs,
-    'squashfs_var5': bangfilesystems.unpack_squashfs,
-    'squashfs_var6': bangfilesystems.unpack_squashfs,
-    'squashfs_var7': bangfilesystems.unpack_squashfs,
-    'appledouble': bangunpack.unpack_appledouble,
     'icc': bangunpack.unpack_icc,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
-    'bzip2': bangunpack.unpack_bzip2,
     'xar': bangunpack.unpack_xar,
-    'gif87': bangmedia.unpack_gif,
-    'gif89': bangmedia.unpack_gif,
     'iso9660': bangfilesystems.unpack_iso9660,
-    'lzip': bangunpack.unpack_lzip,
-    'jpeg': bangmedia.unpack_jpeg,
-    'woff': bangunpack.unpack_woff,
     'opentype': bangunpack.unpack_opentype_font,
     'ttc': bangunpack.unpack_opentype_font_collection,
     'truetype': bangunpack.unpack_truetype_font,
-    'android_backup': bangandroid.unpack_android_backup,
-    'ico': bangmedia.unpack_ico,
-    'gnu_message_catalog_le': bangunpack.unpack_gnu_message_catalog,
-    'gnu_message_catalog_be': bangunpack.unpack_gnu_message_catalog,
-    'cab': bangunpack.unpack_cab,
-    'sgi': bangmedia.unpack_sgi,
-    'aiff': bangmedia.unpack_aiff,
-    'terminfo': bangunpack.unpack_terminfo,
     'rzip': bangunpack.unpack_rzip,
-    'au': bangmedia.unpack_au,
     'jffs2_little_endian': bangfilesystems.unpack_jffs2,
     'jffs2_big_endian': bangfilesystems.unpack_jffs2,
-    'cpio_old': bangunpack.unpack_cpio,
-    'cpio_portable': bangunpack.unpack_cpio,
-    'cpio_newascii': bangunpack.unpack_cpio,
-    'cpio_newcrc': bangunpack.unpack_cpio,
-    '7z': bangunpack.unpack_7z,
-    'chm': bangunpack.unpack_chm,
-    'mswim': bangunpack.unpack_wim,
-    'sunraster': bangmedia.unpack_sunraster,
     'ext2': bangfilesystems.unpack_ext2,
-    'rpm': bangunpack.unpack_rpm,
     'zstd_08': bangunpack.unpack_zstd,
-    'apple_icon': bangmedia.unpack_apple_icon,
-    'androidsparse': bangandroid.unpack_android_sparse,
-    'lz4': bangunpack.unpack_lz4,
-    'lz4_legacy': bangunpack.unpack_lz4legacy,
     'vmdk': bangfilesystems.unpack_vmdk,
-    'qcow2': bangfilesystems.unpack_qcow2,
-    'vdi': bangfilesystems.unpack_vdi,
-    'javaclass': bangunpack.unpack_java_class,
-    'dex': bangandroid.unpack_dex,
-    'odex': bangandroid.unpack_odex,
-    'snappy_framed': bangunpack.unpack_snappy,
-    'elf': bangunpack.unpack_elf,
-    'swf': bangmedia.unpack_swf,
-    'swf_zlib': bangmedia.unpack_swf,
-    'swf_lzma': bangmedia.unpack_swf,
-    'ubootlegacy': bangunpack.unpack_uboot_legacy,
-    'certificate': bangunpack.unpack_certificate,
-    'git_index': bangunpack.unpack_git_index,
-    'flv': bangmedia.unpack_flv,
-    'lzop': bangunpack.unpack_lzop,
-    'dlinkromfs': bangfilesystems.unpack_dlink_romfs,
-    'pdf': bangmedia.unpack_pdf,
-    'pack200': bangunpack.unpack_pack200,
-    'zim': bangunpack.unpack_zim,
-    'midi': bangmedia.unpack_midi,
-    'javakeystore': bangunpack.unpack_java_keystore,
-    'xg3d': bangmedia.unpack_xg3d,
-    'acdb': bangunpack.unpack_acdb,
-    'dds': bangmedia.unpack_dds,
-    'ktx11': bangmedia.unpack_ktx11,
-    'avb': bangandroid.unpack_avb,
-    'sqlite3': bangunpack.unpack_sqlite,
-    'dtb': bangunpack.unpack_device_tree,
+    'pdf': bangunpack.unpack_pdf,
     'trx': bangunpack.unpack_trx,
-    'psd': bangmedia.unpack_psd,
-    'minidump': bangunpack.unpack_minidump,
-    'ppm': bangmedia.unpack_pnm,
-    'pgm': bangmedia.unpack_pnm,
-    'pbm': bangmedia.unpack_pnm,
-    'androidbootmsm': bangandroid.unpack_android_boot_msm,
-    'androidbootimg': bangandroid.unpack_android_boot_img,
-    'androidboothuawei': bangandroid.unpack_android_boot_huawei,
     'fat': bangfilesystems.unpack_fat,
     'cbfs': bangfilesystems.unpack_cbfs,
-    'minix_1l': bangfilesystems.unpack_minix1l,
-    'compress': bangunpack.unpack_compress,
     'romfs': bangfilesystems.unpack_romfs,
     'cramfs_le': bangfilesystems.unpack_cramfs,
     'cramfs_be': bangfilesystems.unpack_cramfs,
-    'doomwad': banggames.unpack_doom_wad,
-    'ambarella': bangunpack.unpack_ambarella,
-    'romfs_ambarella': bangunpack.unpack_romfs_ambarella,
     'bflt': bangunpack.unpack_bflt,
-    'ubi': bangfilesystems.unpack_ubi,
-    'grub2font': bangunpack.unpack_grub2font,
-    'bittorrent': bangunpack.unpack_bittorrent,
-    'pcapng': bangunpack.unpack_pcapng,
-    'pcap_le': bangunpack.unpack_pcap,
-    'pcap_be': bangunpack.unpack_pcap,
-    'pcap_le_nano': bangunpack.unpack_pcap,
-    'pcap_be_nano': bangunpack.unpack_pcap,
-    'android_binary_xml': bangandroid.unpack_android_resource,
-    'serialized_java': bangunpack.unpack_serialized_java,
-    'mapsforge': bangmedia.unpack_mapsforge,
     'plf': bangfilesystems.unpack_plf,
-    'pfs': bangfilesystems.unpack_pfs,
-    'yaffs_le_1': bangfilesystems.unpack_yaffs2,
-    'yaffs_le_2': bangfilesystems.unpack_yaffs2,
-    'yaffs_be_1': bangfilesystems.unpack_yaffs2,
-    'yaffs_be_2': bangfilesystems.unpack_yaffs2,
-    'qcdt': bangunpack.unpack_qcdt,
-    #'dhtb': bangandroid.unpack_dhtb,
-    'crx': bangunpack.unpack_crx,
 }
 
 # a lookup table to map signatures to a name for
@@ -400,43 +292,7 @@ signatureprettyprint = {
 # One example is the Android sparse data format.
 # These extensions should be lower case
 extensiontofunction = {
-    '.swp': bangunpack.unpack_vim_swapfile,
-    '.new.dat': bangandroid.unpack_android_sparse_data,
-    '.pak': bangandroid.unpack_chrome_pak,
-    '.ihex': bangtext.unpack_ihex,
-    '.hex': bangtext.unpack_ihex,
-    '.srec': bangtext.unpack_srec,
-    '.xml': bangunpack.unpack_xml,
-    '.xsd': bangunpack.unpack_xml,
-    '.ncx': bangunpack.unpack_xml,
-    '.opf': bangunpack.unpack_xml,
-    '.svg': bangunpack.unpack_xml,
-    '.tar': bangunpack.unpack_tar,
-    'resources.arsc': bangandroid.unpack_android_resource,
-    'manifest.mf': bangtext.unpack_java_manifest,
-    '.sf': bangtext.unpack_java_manifest,
-    'dockerfile': bangtext.unpack_dockerfile,
-    '.dockerfile': bangtext.unpack_dockerfile,
-    'pkg-info': bangtext.unpack_python_pkginfo,
-    'known_hosts': bangtext.unpack_ssh_known_hosts,
-    'ssh_known_hosts': bangtext.unpack_ssh_known_hosts,
-    '.rsa': bangunpack.unpack_certificate,
-    '.pem': bangunpack.unpack_certificate,
-    '.lsm': bangtext.unpack_lsm,
-    '.json': bangunpack.unpack_json,
-    'passwd': bangtext.unpack_passwd,
-    'shadow': bangtext.unpack_shadow,
-    'group': bangtext.unpack_group,
-    '.css': bangtext.unpack_css,
-    'tzdata': bangandroid.unpack_android_tzdata,
-    'fstab': bangtext.unpack_fstab,
-    '.pc': bangtext.unpack_pkg_config,
-    '.ics': bangtext.unpack_ics,
-    'trans.tbl': bangtext.unpack_trans_tbl,
-    '.nb0': bangandroid.unpack_nb0,
-    'smbpasswd': bangtext.unpack_smbpasswd,
-    '.ini': bangtext.unpack_ini,
-    'wcprops': bangtext.unpack_subversion_hash,
+    '.new.dat': bangunpack.unpack_android_sparse_data,
 }
 
 import os
@@ -535,7 +391,6 @@ extensionprettyprint = {
     '.pc': 'pc',
     '.ics': 'ics',
     'trans.tbl': 'trans.tbl',
-    '.nb0': 'nb0',
     'smbpasswd': 'smbpasswd',
     '.ini': 'ini',
     'wcprops': 'subversion_hash',
@@ -545,14 +400,7 @@ def matches_file_pattern(filename, extension):
     return filename.name.lower().endswith(extension)
 
 # certain unpacking functions if the whole file is text
-textonlyfunctions = {
-    'ihex': bangtext.unpack_ihex,
-    'srec': bangtext.unpack_srec,
-    'kernelconfig': bangtext.unpack_kernel_config,
-    #'dockerfile': bangtext.unpack_dockerfile,
-    'base64': bangtext.unpack_base64,
-    'script': bangtext.unpack_script,
-}
+textonlyfunctions = {}
 
 # The result of the scan is a dictionary with the
 # following data, depending on the status of the scan
@@ -689,23 +537,6 @@ def prescan_bmp(scanbytes, bytesread, filesize, offset, offsetinfile):
             return False
     return True
 
-def prescan_sgi(scanbytes, bytesread, filesize, offset, offsetinfile):
-    # header of SGI files is 512 bytes
-    if filesize - (offset + offsetinfile) < 512:
-        return False
-    if bytesread - offset > 512:
-        # storage format
-        if not (scanbytes[offset+2] == 0 or scanbytes[offset+2] == 1):
-            return False
-        # BPC
-        if not (scanbytes[offset+3] == 1 or scanbytes[offset+3] == 2):
-            return False
-        # dummy values, last 404 bytes of
-        # the header are 0x00
-        if not scanbytes[offset+108:offset+512] == b'\x00' * 404:
-            return False
-    return True
-
 def prescan_ico(scanbytes, bytesread, filesize, offset, offsetinfile):
     # check the number of images
     if filesize - (offset + offsetinfile) < 22:
@@ -790,7 +621,6 @@ prescan_functions = {
     'bzip2': prescan_bzip2,
     'gzip': prescan_gzip,
     'bmp' : prescan_bmp,
-    'sgi' : prescan_sgi,
     'ico' : prescan_ico,
     'png' : prescan_png,
     'mng' : prescan_mng,
@@ -802,241 +632,6 @@ prescan_functions = {
 def prescan(s, scanbytes, bytesread, filesize, offset, offsetinfile):
     f = prescan_functions.get(s, prescan_true)
     return f(scanbytes, bytesread, filesize, offset, offsetinfile)
-
-# license references extracted from a Fedora 28 system:
-# $ cd /usr/share/doc
-# $ grep -r license | grep http
-#
-# Keys are SPDX compatible as far as possible. Included are
-# references for both software and data. http://, https://,
-# www are removed, as are some extensions to avoid duplication.
-# Some of these URLs are no longer valid, or redirect to other
-# pages, but are still used in code.
-licensereferences = {}
-
-# generic license reference
-licensereferences['license'] = ["license", "License", "LICENSE", "licensing",
-                                "licence", "Licence", "LICENCE", "licencing"]
-
-# GNU (licenses, URLs, e-mail)
-licensereferences['GNU'] = ["gnu.org/licenses/", "gnu.org/gethelp/",
-                            "gnu.org/software/", "@gnu.org"]
-
-# GNU GPL license family
-licensereferences['GPL family'] = ["General Public License"]
-
-# GNU GPL
-licensereferences['GPL'] = ["gnu.org/licenses/gpl."
-                            "gnu.org/copyleft/gpl."
-                            "gnu.org/copyleft/gpl.",
-                            "www.opensource.org/licenses/gpl-license.php",
-                            "www.fsf.org/copyleft/gpl.html"]
-licensereferences['GPL-2.0'] = ["gnu.org/licenses/gpl-2.0.",
-                                "gnu.org/licenses/old-licenses/gpl-2.0",
-                                "creativecommons.org/licenses/GPL/2.0/",
-                                "opensource.org/licenses/GPL-2.0"]
-licensereferences['GPL-3.0'] = ["opensource.org/licenses/gpl-3.0."]
-
-# GNU LGPL
-licensereferences['LGPL'] = ["www.fsf.org/copyleft/lesser.html",
-                             "www.fsf.org/licenses/lgpl.html",
-                             "gnu.org/licenses/lgpl.html",
-                             "opensource.org/licenses/lgpl-license"]
-licensereferences['LGPL-2.0'] = ["gnu.org/licenses/old-licenses/lgpl-2.0"]
-licensereferences['LGPL-2.1'] = ["gnu.org/licenses/old-licenses/lgpl-2.1",
-                                 "creativecommons.org/licenses/LGPL/2.1/",
-                                 "opensource.org/licenses/LGPL-2.1"]
-licensereferences['LGPL-3.0'] = ["opensource.org/licenses/lgpl-3.0."]
-
-# GNU FDL
-licensereferences['GFDL'] = ["gnu.org/copyleft/fdl.html",
-                             "www.fsf.org/licensing/licenses/fdl.html"]
-licensereferences['GFDL-1.3'] = ["gnu.org/licenses/fdl-1.3.html"]
-
-# SISSL
-licensereferences['SISSL'] = ["www.openoffice.org/licenses/sissl_license.html"]
-
-# Apache licenses
-licensereferences['Apache'] = ["apache.org/licenses/"]
-licensereferences['Apache-1.1'] = ["apache.org/licenses/LICENSE-1.1",
-                                   "opensource.org/licenses/Apache-1.1"]
-licensereferences['Apache-2.0'] = ["apache.org/licenses/LICENSE-2.0",
-                                   "opensource.org/licenses/apache2.0.php"]
-
-# Creative Commons
-licensereferences['CC-SA-1.0'] = ["creativecommons.org/licenses/sa/1.0"]
-licensereferences['CC-BY-2.0'] = ["creativecommons.org/licenses/by/2.0/"]
-licensereferences['CC-BY-SA-2.0'] = ["creativecommons.org/licenses/by-sa/2.0/"]
-licensereferences['CC-BY-SA-2.5'] = ["creativecommons.org/licenses/by-sa/2.5/"]
-licensereferences['CC-BY-SA-3.0'] = ["creativecommons.org/licenses/by-sa/3.0/"]
-licensereferences['CC-BY-3.0'] = ["creativecommons.org/licenses/by/3.0/"]
-licensereferences['CC-BY-4.0'] = ["creativecommons.org/licenses/by/4.0/"]
-licensereferences['CC-BY-SA-4.0'] = ["creativecommons.org/licenses/by-sa/4.0/"]
-
-# Unlicense
-licensereferences['Unlicense'] = ["unlicense.org"]
-
-# ODbL
-licensereferences['ODbL'] = ["opendatacommons.org/licenses/odbl/"]
-
-# LaTeX
-licensereferences['LaTeX'] = ["latex-project.org/lppl.txt"]
-
-# ImageMagick
-licensereferences['ImageMagick'] = ["www.imagemagick.org/script/license.php"]
-
-# Open LDAP
-licensereferences['OLDAP'] = ["www.OpenLDAP.org/license.html"]
-
-# infozip
-licensereferences['infozip'] = ["www.info-zip.org/pub/infozip/license.html"]
-
-# Perl
-licensereferences['Perl'] = ["dev.perl.org/licenses/"]
-
-# SIL Open Font License
-licensereferences['OFL'] = ["scripts.sil.org/OFL"]
-
-# font awesome
-licensereferences['fontawesome'] = ["fontawesome.io/license"]
-
-# GUST font license
-licensereferences["gust font license"] = ["www.gust.org.pl/fonts/licenses/GUST-FONT-LICENSE.txt"]
-
-# MTX licensing
-licensereferences['MTX'] = ["www.monotype.com/legal/mtx-licensing-statement/",
-                            "monotypeimaging.com/aboutus/mtx-license.aspx"]
-
-# MPL licenses
-licensereferences['MPL'] = ["mozilla.org/MPL"]
-licensereferences['MPL-1.0'] = ["opensource.org/licenses/MPL-1.0",
-                                "opensource.org/licenses/mozilla1.0.php"]
-licensereferences['MPL-1.1'] = ["mozilla.org/MPL/MPL-1.1.html",
-                                "opensource.org/licenses/MPL-1.1",
-                                "opensource.org/licenses/mozilla1.1.php"]
-licensereferences['MPL-2.0'] = ["mozilla.org/MPL/2.0/"]
-
-# MIT license
-licensereferences['MIT'] = ["opensource.org/licenses/mit-license",
-                            "opensource.org/licenses/MIT"]
-
-# lodash
-licensereferences['lodash'] = ["lodash.com/license"]
-
-# ncurses
-licensereferences['ncurses'] = ["invisible-island.net/ncurses/ncurses-license.html"]
-
-# BSD licenses
-licensereferences['BSD'] = ["opensource.org/licenses/bsd-license",
-                            "creativecommons.org/licenses/BSD/"]
-licensereferences['BSD-2-Clause'] = ["nmap.org/svn/docs/licenses/BSD-simplified"]
-licensereferences['BSD-3-Clause'] = ["opensource.org/licenses/BSD-3-Clause"]
-
-# FreeBSD
-licensereferences['freebsd'] = ['www.freebsd.org/copyright/freebsd-license.html']
-
-# Artistic
-licensereferences['Artistic'] = ["opensource.org/licenses/artistic-license.php"]
-licensereferences['Artistic-1.0'] = ["opensource.org/licenses/Artistic-1.0",
-                                     "opensource.org/licenses/Artistic-Perl-1.0",
-                                     "www.perlfoundation.org/artistic_license_1_0"]
-licensereferences['Artistic-2.0'] = ["www.perlfoundation.org/artistic_license_2_0",
-                                     "opensource.org/licenses/artistic-license-2.0.php"]
-
-# OpenSSL
-licensereferences['openssl'] = ["www.openssl.org/source/license.html"]
-
-# WTFPL
-licensereferences['WTFPL'] = ['sam.zoy.org/wtfpl/']
-
-# OpenOffice
-licensereferences['OpenOffice'] = ["www.openoffice.org/license.html"]
-
-# BitTorrent
-licensereferences['BitTorrent'] = ["www.bittorrent.com/license/"]
-
-# Tizen
-licensereferences['Tizen'] = ["www.tizenopensource.org/license"]
-
-# OpenSSL
-licensereferences['OpenSSL'] = ["www.openssl.org/source/license.html"]
-
-# Boost
-licensereferences['BSL-1.0'] = ["www.boost.org/LICENSE_1_0.txt",
-                                "pocoproject.org/license.html"]
-
-# zlib
-licensereferences['Zlib'] = ["www.zlib.net/zlib_license.html"]
-
-# jQuery
-licensereferences['jQuery'] = ["jquery.org/license"]
-
-# libxml
-licensereferences['libxml'] = ["xmlsoft.org/FAQ.html#License"]
-
-# ICU
-licensereferences['ICU'] = ["source.icu-project.org/repos/icu/icu/trunk/license.html",
-                            "source.icu-project.org/repos/icu/trunk/icu4c/LICENSE"]
-
-# Yui3
-licensereferences['yui'] = ["developer.yahoo.com/yui/license.html"]
-
-# Lua
-licensereferences['lua'] = ["www.lua.org/license.html"]
-
-# IETF
-licensereferences['IETF'] = ["trustee.ietf.org/license-info/"]
-
-# libstemmer
-licensereferences['libstemmer'] = ["snowball.tartarus.org/license.php"]
-
-# espeak
-licensereferences['espeak'] = ["espeak.sf.net/license.html"]
-
-# webm
-licensereferences['webm'] = ["www.webmproject.org/license/software/"]
-
-# firebird sql
-licensereferences['firebird'] = ["firebirdsql.org/en/licensing/"]
-
-# W3
-licensereferences['W3'] = ["www.w3.org/Consortium/Legal/copyright-software-19980720"]
-
-# PLOS
-licensereferences['PLOS'] = ["www.ploscompbiol.org/static/license"]
-
-# forge references extracted from various sources Wikipedia:
-#
-# https://en.wikipedia.org/wiki/Forge_(software)
-#
-# and quite a few from Fedora 28:
-#
-# $ cd /usr/share/doc
-# $ grep -r git  | grep http
-forgereferences = {}
-forgereferences['GitHub'] = ["github.com", "github.io",
-                             "raw.githubusercontent.com"]
-forgereferences['GitLab'] = ["gitlab.com", "gitlab.io"]
-forgereferences['Gitorious'] = ["gitorious.org"]
-forgereferences['Bitbucket'] = ["bitbucket.org"]
-forgereferences['SourceForge'] = ["sourceforge.net"]
-forgereferences['GNOME'] = ["git.gnome.org", "gitlab.gnome.org"]
-forgereferences['Perl'] = ["git.perl.org"]
-forgereferences['Fedora'] = ["git.fedorahosted.org",
-                             "src.fedoraproject.org/cgit/",
-                             "pkgs.fedoraproject.org/cgit/"]
-forgereferences['Debian'] = ["git.debian.org", "anonscm.debian.org"]
-forgereferences['LibreOffice'] = ["gerrit.libreoffice.org"]
-forgereferences['kernel.org'] = ["git.kernel.org"]
-forgereferences['freedesktop.org'] = ["cvs.freedesktop.org",
-                                      "git.freedesktop.org"]
-forgereferences['Google Code'] = ["code.google.com", "googlecode.com"]
-forgereferences['savannah.gnu.org'] = ["savannah.gnu.org", "git.sv.gnu.org"]
-forgereferences['bitbucket.org'] = ["bitbucket.org"]
-forgereferences['tigris.org'] = ["tigris.org"]
-forgereferences['svn.apache.org'] = ["svn.apache.org"]
-forgereferences['launchpad.net'] = ["git.launchpad.net", "launchpad.net"]
-forgereferences['sourceware.org'] = ["sourceware.org/git/"]
 
 # store the maximum look ahead window. This is unlikely to matter, but
 # just in case.
