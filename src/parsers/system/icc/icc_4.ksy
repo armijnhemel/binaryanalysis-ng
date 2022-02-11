@@ -17,6 +17,10 @@ seq:
   - id: tag_table
     type: tag_table
 types:
+  padding_byte:
+    seq:
+      - id: padding_byte
+        contents: [0x00]
   profile_header:
     seq:
       - id: size
@@ -1151,7 +1155,7 @@ types:
                   - id: name
                     type: strz
                   - id: padding
-                    contents: [0x00]
+                    type: padding_byte
                     repeat: expr
                     repeat-expr: 32 - name.length
                   - id: pcs_values
@@ -1326,9 +1330,11 @@ types:
               record:
                 seq:
                   - id: language_code
-                    type: u2
+                    size: 2
+                    type: str
                   - id: country_code
-                    type: u2
+                    size: 2
+                    type: str
                   - id: string_length
                     type: u4
                   - id: string_offset
@@ -1368,13 +1374,13 @@ types:
               - id: prefix_for_each_colour_name
                 type: strz
               - id: prefix_for_each_colour_name_padding
-                contents: [0x00]
+                type: padding_byte
                 repeat: expr
                 repeat-expr: 32 - prefix_for_each_colour_name.length
               - id: suffix_for_each_colour_name
                 type: strz
               - id: suffix_for_each_colour_name_padding
-                contents: [0x00]
+                type: padding_byte
                 repeat: expr
                 repeat-expr: 32 - suffix_for_each_colour_name.length
               - id: named_colour_definitions
@@ -1387,7 +1393,7 @@ types:
                   - id: root_name
                     type: strz
                   - id: root_name_padding
-                    contents: [0x00]
+                    type: padding_byte
                     repeat: expr
                     repeat-expr: 32 - root_name.length
                   - id: pcs_coordinates

@@ -819,7 +819,7 @@ def unpack_icc(fileresult, scanenvironment, offset, unpackdir):
         checkfile.close()
         labels.append('icc')
         labels.append('resource')
-        return {'status': True, 'length': unpackedsize, 'labels': labels,
+        return {'status': True, 'length': maxtagoffset, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # else carve the file. It is anonymous, so just give it a name

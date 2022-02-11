@@ -38,7 +38,7 @@ from bangunpack import unpack_icc
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationNotEqualError
-from . import icc_v4
+from . import icc_4
 
 
 #class IccUnpackParser(UnpackParser):
