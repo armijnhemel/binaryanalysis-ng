@@ -832,6 +832,7 @@ def unpack_icc(fileresult, scanenvironment, offset, unpackdir):
     os.sendfile(outfile.fileno(), checkfile.fileno(), offset, maxtagoffset - offset)
     outfile.close()
     checkfile.close()
+    unpackedsize = maxtagoffset - offset
     unpackedfilesandlabels.append((outfile_rel, ['icc', 'resource', 'unpacked']))
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
