@@ -25,7 +25,7 @@ doc-ref:
   - susp https://web.archive.org/web/20170404132301/http://www.ymi.com/ymi/sites/default/files/pdf/Systems%20Use%20P1281.pdf
   - rrip https://web.archive.org/web/20170404043745/http://www.ymi.com/ymi/sites/default/files/pdf/Rockridge.pdf
   - rras http://www.estamos.de/makecd/Rock_Ridge_Amiga_Specific
-  - rrzf https://dev.lovelyhq.com/libburnia/web/wikis/Zisofs
+  - rrzf https://web.archive.org/web/20200612093441/https://dev.lovelyhq.com/libburnia/web/-/wikis/zisofs
   - aaip http://fileformats.archiveteam.org/wiki/AAIP
   - apple extensions http://fileformats.archiveteam.org/wiki/Apple_ISO_9660_extensions
 seq:
@@ -113,7 +113,7 @@ types:
       hundredths_second:
         value: hundredths_second_string.to_i
       valid_date:
-        value: month >= 1  and month <= 12 and day >=1 and day <= 31 and hour <= 23 and minute <= 59 and second <= 59
+        value: month >= 1 and month <= 12 and day >=1 and day <= 31 and hour <= 23 and minute <= 59 and second <= 59
   datetime_short:
     doc-ref: ecma-119 9.1.5
     seq:
@@ -542,7 +542,7 @@ types:
                         type: u1
                       - id: version
                         type: u1
-                        valid: 1
+                        #valid: 1
                       - id: susp_data
                         size: length - (signature._sizeof + length._sizeof + version._sizeof) # note: this `_sizeof` sum should probably be in a `value` instance
                         type:
