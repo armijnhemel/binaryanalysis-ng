@@ -64,9 +64,6 @@ class Iso9660UnpackParser(WrappedUnpackParser):
                                     "invalid creation date")
                     check_condition(descriptor.volume.volume_modification_date_and_time.valid_date,
                                     "invalid modification date")
-                    check_condition(descriptor.volume.volume_effective_date_and_time.valid_date,
-                                    "invalid effective date")
-
                     has_primary = True
                     iso_size = descriptor.volume.volume_space_size.value * descriptor.volume.logical_block_size.value
                     check_condition(iso_size <= self.fileresult.filesize,
