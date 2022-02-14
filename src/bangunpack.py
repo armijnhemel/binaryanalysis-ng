@@ -2656,12 +2656,11 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
         computedsum = computedsum & 4294967295
         if tablename != b'head':
             if tablechecksum != computedsum:
-                pass
-                #checkfile.close()
-                #unpackingerror = {'offset': offset+unpackedsize,
-                                  #'fatal': False,
-                                  #'reason': 'checksum for table %s incorrect' % tablename}
-                #return {'status': False, 'error': unpackingerror}
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize,
+                                  'fatal': False,
+                                  'reason': 'checksum for table %s incorrect' % tablename}
+                return {'status': False, 'error': unpackingerror}
         else:
             # the head table checksum is different and uses a
             # checksum adjustment, which is documented here:
