@@ -56,6 +56,10 @@ types:
       - id: length
         type: u4
     instances:
+      raw_value:
+        io: _root._io
+        pos: offset
+        size: length
       value:
         io: _root._io
         pos: offset
