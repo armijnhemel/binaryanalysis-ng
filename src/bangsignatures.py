@@ -215,7 +215,6 @@ signaturesoffset = {
 signaturetofunction = {
     'ani': bangunpack.unpack_ani,
     'mng': bangunpack.unpack_mng,
-    'gzip': bangunpack.unpack_gzip,
     'xz': bangunpack.unpack_xz,
     'lzma_var1': bangunpack.unpack_lzma,
     'lzma_var2': bangunpack.unpack_lzma,
