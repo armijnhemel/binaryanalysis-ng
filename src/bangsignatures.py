@@ -220,15 +220,6 @@ signaturetofunction = {
     'lzma_var1': bangunpack.unpack_lzma,
     'lzma_var2': bangunpack.unpack_lzma,
     'lzma_var3': bangunpack.unpack_lzma,
-    'tar_posix': bangunpack.unpack_tar,
-    'tar_gnu': bangunpack.unpack_tar,
-    'squashfs_var1': bangfilesystems.unpack_squashfs,
-    'squashfs_var2': bangfilesystems.unpack_squashfs,
-    'squashfs_var3': bangfilesystems.unpack_squashfs,
-    'squashfs_var4': bangfilesystems.unpack_squashfs,
-    'squashfs_var5': bangfilesystems.unpack_squashfs,
-    'squashfs_var6': bangfilesystems.unpack_squashfs,
-    'squashfs_var7': bangfilesystems.unpack_squashfs,
     'icc': bangunpack.unpack_icc,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
@@ -237,16 +228,12 @@ signaturetofunction = {
     'opentype': bangunpack.unpack_opentype_font,
     'ttc': bangunpack.unpack_opentype_font_collection,
     'truetype': bangunpack.unpack_truetype_font,
-    'android_backup': bangunpack.unpack_android_backup,
-    'rzip': bangunpack.unpack_rzip,
     'jffs2_little_endian': bangfilesystems.unpack_jffs2,
     'jffs2_big_endian': bangfilesystems.unpack_jffs2,
     'ext2': bangfilesystems.unpack_ext2,
     'zstd_08': bangunpack.unpack_zstd,
     'vmdk': bangfilesystems.unpack_vmdk,
-    'certificate': bangunpack.unpack_certificate,
     'pdf': bangunpack.unpack_pdf,
-    'trx': bangunpack.unpack_trx,
     'fat': bangfilesystems.unpack_fat,
     'cbfs': bangfilesystems.unpack_cbfs,
     'romfs': bangfilesystems.unpack_romfs,
@@ -304,9 +291,6 @@ signatureprettyprint = {
 # These extensions should be lower case
 extensiontofunction = {
     '.new.dat': bangunpack.unpack_android_sparse_data,
-    '.tar': bangunpack.unpack_tar,
-    '.rsa': bangunpack.unpack_certificate,
-    '.pem': bangunpack.unpack_certificate,
 }
 
 import os
