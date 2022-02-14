@@ -2571,6 +2571,7 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
         # tables are 4 byte aligned (long)
         if tablelength % 4 != 0:
             padding = 4 - tablelength % 4
+            print("padding", padding, tablename)
 
         bytesadded = False
 
@@ -2655,11 +2656,12 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
         computedsum = computedsum & 4294967295
         if tablename != b'head':
             if tablechecksum != computedsum:
-                checkfile.close()
-                unpackingerror = {'offset': offset+unpackedsize,
-                                  'fatal': False,
-                                  'reason': 'checksum for table incorrect'}
-                return {'status': False, 'error': unpackingerror}
+                pass
+                #checkfile.close()
+                #unpackingerror = {'offset': offset+unpackedsize,
+                                  #'fatal': False,
+                                  #'reason': 'checksum for table %s incorrect' % tablename}
+                #return {'status': False, 'error': unpackingerror}
         else:
             # the head table checksum is different and uses a
             # checksum adjustment, which is documented here:
@@ -2690,6 +2692,7 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
         checkfile.seek(oldoffset)
 
     unpackedsize = maxoffset - offset
+    print(unpackedsize)
 
     if not seenhead:
         checkfile.close()
@@ -2761,102 +2764,6 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
     checkfile.close()
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels, 'tablesseen': tablesseen}
-
-
-# https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html
-def unpack_truetype_font(fileresult, scanenvironment, offset, unpackdir):
-    '''Verify and/or carve a TrueType font file.'''
-    filesize = fileresult.filesize
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-
-    # font header is at least 12 bytes
-    if filesize - offset < 12:
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not a valid font file'}
-        return {'status': False, 'error': unpackingerror}
-
-    # https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html
-    # (table 2)
-    # the following tables are required for a TrueType font:
-    requiredtables = set([b'cmap', b'glyf', b'head', b'hhea', b'hmtx',
-                          b'loca', b'maxp', b'name', b'post'])
-
-    fontres = unpack_font(fileresult, scanenvironment, offset, unpackdir, 'ttf')
-    if not fontres['status']:
-        return fontres
-
-    labels = fontres['labels']
-    unpackedfilesandlabels = fontres['filesandlabels']
-
-    # first check if all the required tables are there.
-    # It could be that the font is actually a "sfnt-housed font" and
-    # then not all the tables need to be there.
-    if not fontres['tablesseen'].intersection(requiredtables) == requiredtables:
-        if offset == 0 and fontres['length'] == filesize:
-            labels.append('sfnt')
-        else:
-            # fix labels for the carved file
-            unpackedfilesandlabels[0][1].append('sfnt')
-    else:
-        if offset == 0 and fontres['length'] == filesize:
-            labels.append('TrueType')
-        else:
-            # fix labels for the carved file
-            unpackedfilesandlabels[0][1].append('TrueType')
-    return {'status': True, 'length': fontres['length'], 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_truetype_font.signatures = {'truetype': b'\x00\x01\x00\x00'}
-unpack_truetype_font.minimum_size = 12
-
-
-# https://docs.microsoft.com/en-us/typography/opentype/spec/otff
-def unpack_opentype_font(fileresult, scanenvironment, offset, unpackdir):
-    '''Verify and/or carve an OpenType font file.'''
-    filesize = fileresult.filesize
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-
-    # font header is at least 12 bytes
-    if filesize - offset < 12:
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not a valid font file'}
-        return {'status': False, 'error': unpackingerror}
-
-    # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
-    # (section 'Font Tables')
-    # the following tables are required in a font:
-    requiredtables = set([b'cmap', b'head', b'hhea', b'hmtx',
-                          b'maxp', b'name', b'OS/2', b'post'])
-
-    fontres = unpack_font(fileresult, scanenvironment, offset, unpackdir, 'otf')
-    if not fontres['status']:
-        return fontres
-
-    # first check if all the required tables are there.
-    if not fontres['tablesseen'].intersection(requiredtables) == requiredtables:
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'not all required tables present'}
-        return {'status': False, 'error': unpackingerror}
-
-    labels = fontres['labels']
-    unpackedfilesandlabels = fontres['filesandlabels']
-    if offset == 0 and fontres['length'] == filesize:
-        labels.append('OpenType')
-    else:
-        # fix labels for the carved file
-        unpackedfilesandlabels[0][1].append('OpenType')
-    return {'status': True, 'length': fontres['length'], 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_opentype_font.signatures = {'opentype': b'OTTO'}
-unpack_opentype_font.minimum_size = 12
-
 
 # Multiple fonts can be stored in font collections. The offsets
 # recorded in the fonts are relative to the start of the collection
