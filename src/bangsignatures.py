@@ -234,7 +234,6 @@ signaturetofunction = {
     'zstd_08': bangunpack.unpack_zstd,
     'vmdk': bangfilesystems.unpack_vmdk,
     'pdf': bangunpack.unpack_pdf,
-    'trx': bangunpack.unpack_trx,
     'fat': bangfilesystems.unpack_fat,
     'cbfs': bangfilesystems.unpack_cbfs,
     'romfs': bangfilesystems.unpack_romfs,
