@@ -2692,7 +2692,6 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
         checkfile.seek(oldoffset)
 
     unpackedsize = maxoffset - offset
-    print(unpackedsize)
 
     if not seenhead:
         checkfile.close()
