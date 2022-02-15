@@ -59,13 +59,19 @@ class RpmUnpackParser(UnpackParser):
                         self.data.lead.type == rpm.Rpm.RpmTypes.source,
                         "invalid RPM type")
 
+        # The default compressor is either gzip or XZ (on Fedora). Other
+        # supported compressors are bzip2, LZMA and zstd (recent addition).
+        # The default compressor is gzip.
+        self.compressor = 'gzip'
+
+        # at most one compressor and payload format can be defined
         self.compressor_seen = False
         self.payload_format = ''
-        # at most one compressor can be defined
         for i in self.data.header.index_records:
             if i.header_tag == rpm.Rpm.HeaderTags.payload_compressor:
                 check_condition(not self.compressor_seen, "duplicate compressor defined")
                 self.compressor_seen = True
+                self.compressor = i.body.values[0]
             if i.header_tag == rpm.Rpm.HeaderTags.payload_format:
                 check_condition(self.payload_format == '', "duplicate compressor defined")
                 self.payload_format = i.body.values[0]
@@ -76,19 +82,6 @@ class RpmUnpackParser(UnpackParser):
         if self.payload_format not in ['cpio', 'drpm']:
             return unpacked_files
 
-        # then unpack the file. This depends on the compressor and the
-        # payload format.  The default compressor is either gzip or XZ
-        # (on Fedora). Other supported compressors are bzip2, LZMA and
-        # zstd (recent addition).
-        if not self.compressor_seen:
-            # if not defined fall back to gzip
-            compressor = 'gzip'
-        else:
-            for i in self.data.header.index_records:
-                if i.header_tag == rpm.Rpm.HeaderTags.payload_compressor:
-                    compressor = i.body.values[0]
-                    break
-
         # write the payload to a temporary file first
         temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
         os.write(temporary_file[0], self.data.payload)
@@ -97,13 +90,13 @@ class RpmUnpackParser(UnpackParser):
         fr = FileResult(None, temporary_file[1], set([]))
         fr.set_filesize(len(self.data.payload))
 
-        if compressor == 'bzip2':
+        if self.compressor == 'bzip2':
             unpackresult = unpack_bzip2(fr, self.scan_environment, 0, self.rel_unpack_dir)
-        elif compressor == 'xz':
+        elif self.compressor == 'xz':
             unpackresult = unpack_xz(fr, self.scan_environment, 0, self.rel_unpack_dir)
-        elif compressor == 'lzma':
+        elif self.compressor == 'lzma':
             unpackresult = unpack_lzma(fr, self.scan_environment, 0, self.rel_unpack_dir)
-        elif compressor == 'zstd':
+        elif self.compressor == 'zstd':
             unpackresult = unpack_zstd(fr, self.scan_environment, 0, self.rel_unpack_dir)
         else:
             # gzip is default
