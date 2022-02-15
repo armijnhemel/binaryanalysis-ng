@@ -97,9 +97,7 @@ class RpmUnpackParser(UnpackParser):
         fr = FileResult(None, temporary_file[1], set([]))
         fr.set_filesize(len(self.data.payload))
 
-        if compressor == 'gzip':
-            unpackresult = unpack_gzip(fr, self.scan_environment, 0, self.rel_unpack_dir)
-        elif compressor == 'bzip2':
+        if compressor == 'bzip2':
             unpackresult = unpack_bzip2(fr, self.scan_environment, 0, self.rel_unpack_dir)
         elif compressor == 'xz':
             unpackresult = unpack_xz(fr, self.scan_environment, 0, self.rel_unpack_dir)
