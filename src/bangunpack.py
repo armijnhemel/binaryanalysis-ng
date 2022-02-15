@@ -3393,7 +3393,6 @@ unpack_android_sparse_data.pretty = 'androidsparsedata'
 
 
 # An unpacker for RIFF. This is a helper method used by unpackers for:
-# * WAV
 # * ANI
 # https://en.wikipedia.org/wiki/Resource_Interchange_File_Format
 def unpack_riff(
