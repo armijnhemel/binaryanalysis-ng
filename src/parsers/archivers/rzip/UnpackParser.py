@@ -112,7 +112,7 @@ class RzipUnpackParser(UnpackParser):
 
             self.infile.seek(bz2pos + bz2size)
 
-            self.unpacked_size = self.infile.tell() - self.offset
+            self.unpacked_size = self.infile.tell()
 
             # check if there could be another block with bzip2 data
             # the data between the bzip2 blocks is 13 bytes, see
