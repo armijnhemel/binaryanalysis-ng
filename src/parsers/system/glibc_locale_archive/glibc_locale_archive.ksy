@@ -135,6 +135,11 @@ types:
         io: _root._io
         pos: ofs_locrec
         size: len_locrec
+      loc_rec_type:
+        io: _root._io
+        pos: ofs_locrec
+        type: u4
+        enum: category
   sum_hash_entry:
     seq:
       - id: md5
@@ -149,3 +154,19 @@ types:
         #pos: ofs_entry
         #size: 4 # no idea what this size should be
         #if: ofs_entry != 0
+enums:
+  category:
+    # /usr/share/magic
+    0x20090720: ctype
+    0x20031114: numeric
+    0x20031117: time
+    0x20051017: collate
+    0x20031111: monetary
+    0x20031110: messages
+    0x20031113: all
+    0x20031112: paper
+    0x2003111d: name
+    0x2003111c: address
+    0x2003111f: telephone
+    0x2003111e: measurement
+    0x20031119: identification
