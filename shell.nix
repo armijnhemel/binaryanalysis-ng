@@ -27,6 +27,7 @@ let
     tlsh
     xxhash
     zstd
+    zstandard
   ]);
     
 in
@@ -39,7 +40,6 @@ pkgs.mkShell {
     lz4
     mailcap
     ncompress
-    openjdk8
     openssl
     my-python
     protobuf
@@ -51,6 +51,5 @@ pkgs.mkShell {
     unshield
     utillinux
     zchunk
-    zstd
   ];
 }

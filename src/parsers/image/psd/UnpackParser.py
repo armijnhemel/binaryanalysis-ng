@@ -36,9 +36,6 @@ class PsdUnpackParser(UnpackParser):
     ]
     pretty_name = 'psd'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_psd(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = psd.Psd.from_io(self.infile)
