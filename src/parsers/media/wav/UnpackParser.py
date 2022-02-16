@@ -29,7 +29,7 @@ import defusedxml.minidom
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import riff
 from . import wav
 
@@ -46,7 +46,7 @@ class WavUnpackParser(UnpackParser):
             # force reading of data because of Kaitai's lazy evaluation
             for c in self.data.subchunks:
                 chunk_id = c.chunk.id
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

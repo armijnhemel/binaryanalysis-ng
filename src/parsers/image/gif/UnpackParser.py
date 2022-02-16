@@ -25,7 +25,7 @@ import defusedxml.minidom
 from . import gif
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 
 class GifUnpackParser(UnpackParser):
     extensions = ['.gif']
@@ -39,7 +39,7 @@ class GifUnpackParser(UnpackParser):
         try:
             self.data = gif.Gif.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)

@@ -24,7 +24,7 @@ import os
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationFailedError
+from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from . import ktx11
 
 
@@ -38,7 +38,7 @@ class Ktx11UnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = ktx11.Ktx11.from_io(self.infile)
-        except (Exception, ValidationFailedError) as e:
+        except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

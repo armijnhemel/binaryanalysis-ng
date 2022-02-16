@@ -38,7 +38,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationExprError
+from kaitaistruct import ValidationFailedError
 from . import android_sparse
 
 class AndroidSparseUnpackParser(UnpackParser):
@@ -64,7 +64,7 @@ class AndroidSparseUnpackParser(UnpackParser):
                 elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.dont_care:
                     check_condition(len(chunk.body) == 0, "wrong body length")
                 self.unpacked_size += chunk.header.len_chunk
-        except (Exception, ValidationNotEqualError, ValidationExprError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.file_size >= self.unpacked_size, "not enough data")
         check_condition(self.data.header.version.major == 1, "unsupported major version")

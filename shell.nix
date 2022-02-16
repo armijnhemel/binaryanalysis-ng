@@ -25,7 +25,9 @@ let
     pyyaml
     telfhash
     tlsh
+    xxhash
     zstd
+    zstandard
   ]);
     
 in
@@ -35,11 +37,9 @@ pkgs.mkShell {
     cabextract
     e2tools
     innoextract
-    libxml2
     lz4
     mailcap
     ncompress
-    openjdk8
     openssl
     my-python
     protobuf
@@ -51,6 +51,5 @@ pkgs.mkShell {
     unshield
     utillinux
     zchunk
-    zstd
   ];
 }

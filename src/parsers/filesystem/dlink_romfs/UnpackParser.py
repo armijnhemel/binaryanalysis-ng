@@ -27,7 +27,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import dlink_romfs
 
 class DlinkRomfsUnpackParser(UnpackParser):
@@ -40,7 +40,7 @@ class DlinkRomfsUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = dlink_romfs.DlinkRomfs.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         self.unpacked_size = 0

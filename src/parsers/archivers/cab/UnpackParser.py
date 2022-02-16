@@ -84,7 +84,7 @@ class CabUnpackParser(UnpackParser):
             return unpacked_files
 
         # walk the results directory
-        for result in unpackdir_full.iterdir():
+        for result in unpackdir_full.glob('**/*'):
             # first change the permissions
             result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 

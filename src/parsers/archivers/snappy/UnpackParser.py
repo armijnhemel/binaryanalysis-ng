@@ -72,10 +72,8 @@ class SnappyUnpackParser(UnpackParser):
         unpacked_files = []
 
         # check if the file starts at offset 0. If not, carve the
-        # file first, as cabextract tries to be smart and unpack
-        # all cab data in a file, like concatenated cab files,
-        # even if there is other data in between the individual
-        # cab files
+        # file first, as snappy tries to be smart and unpack
+        # all concatenated snappy data in a file.
         havetmpfile = False
 
         if not (self.offset == 0 and self.fileresult.filesize == self.unpacked_size):
@@ -84,7 +82,12 @@ class SnappyUnpackParser(UnpackParser):
             os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
             os.fdopen(temporary_file[0]).close()
 
-        file_path = "unpacked_from_snappy"
+        # determine the name of the output file
+        if self.fileresult.filename.suffix.lower() == '.sz':
+            file_path = pathlib.Path(self.fileresult.filename.stem)
+        else:
+            file_path = pathlib.Path("unpacked_from_snappy")
+
         outfile_rel = self.rel_unpack_dir / file_path
         outfile_full = self.scan_environment.unpack_path(outfile_rel)
         os.makedirs(outfile_full.parent, exist_ok=True)
@@ -104,7 +107,8 @@ class SnappyUnpackParser(UnpackParser):
             if havetmpfile:
                 infile.close()
                 os.unlink(temporary_file[1])
-            return unpacked_files
+            raise UnpackParserException(e.args)
+            #return unpacked_files
         if havetmpfile:
             os.unlink(temporary_file[1])
 

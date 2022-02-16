@@ -20,130 +20,145 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-'''
-Parse and unpack RPM files.
-'''
-
-
+import bz2
+import gzip
+import lzma
 import os
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_rpm
-from bangunpack import unpack_gzip
-from bangunpack import unpack_bzip2
-from bangunpack import unpack_xz
-from bangunpack import unpack_lzma
-from bangunpack import unpack_zstd
+import pathlib
+import shutil
+import tempfile
+import zstandard
+
+from parsers.archivers.cpio import UnpackParser as cpio_unpack
+
+from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import rpm
 
-#class RpmUnpackParser(UnpackParser):
-class RpmUnpackParser(WrappedUnpackParser):
+class RpmUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\xed\xab\xee\xdb')
     ]
     pretty_name = 'rpm'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_rpm(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         file_size = self.fileresult.filename.stat().st_size
         try:
             self.data = rpm.Rpm.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         check_condition(self.data.lead.type == rpm.Rpm.RpmTypes.binary or
                         self.data.lead.type == rpm.Rpm.RpmTypes.source,
                         "invalid RPM type")
 
-        # extract the header + payload size, calculate the payload size
-        rpmsize = 0
-        for i in self.data.signature.index_records:
-            if i.tag == rpm.Rpm.SignatureTags.size:
-                rpmsize = i.body.values[0]
-        self.payload_size = rpmsize - self.data.header.header_size
-        check_condition(self.data.payload_offset + self.payload_size <= file_size,
-                        "payload cannot be outside of file")
+        # The default compressor is either gzip or XZ (on Fedora). Other
+        # supported compressors are bzip2, LZMA and zstd (recent addition).
+        # The default compressor is gzip.
+        self.compressor = 'gzip'
 
+        # at most one compressor and payload format can be defined
         self.compressor_seen = False
         self.payload_format = ''
-        # at most one compressor can be defined
         for i in self.data.header.index_records:
-            if i.tag == rpm.Rpm.HeaderTags.payload_compressor:
+            if i.header_tag == rpm.Rpm.HeaderTags.payload_compressor:
                 check_condition(not self.compressor_seen, "duplicate compressor defined")
                 self.compressor_seen = True
-            if i.tag == rpm.Rpm.HeaderTags.payload_format:
+                self.compressor = i.body.values[0]
+            if i.header_tag == rpm.Rpm.HeaderTags.payload_format:
                 check_condition(self.payload_format == '', "duplicate compressor defined")
                 self.payload_format = i.body.values[0]
 
+        # test decompress the payload
+        if self.compressor == 'bzip2':
+            decompressor = bz2.BZ2Decompressor()
+            try:
+                payload = decompressor.decompress(self.data.payload)
+            except Exception as e:
+                raise UnpackParserException(e.args)
+        elif self.compressor == 'xz' or self.compressor == 'lzma':
+            try:
+                payload = lzma.decompress(self.data.payload)
+            except Exception as e:
+                raise UnpackParserException(e.args)
+        elif self.compressor == 'zstd':
+            try:
+                reader = zstandard.ZstdDecompressor().stream_reader(self.data.payload)
+                payload = reader.read()
+            except Exception as e:
+                raise UnpackParserException(e.args)
+        else:
+            try:
+                payload = gzip.decompress(self.data.payload)
+            except Exception as e:
+                raise UnpackParserException(e.args)
 
     def unpack(self):
         unpacked_files = []
-        if self.payload_format != 'cpio':
-            return(unpacked_files)
+        if self.payload_format not in ['cpio', 'drpm']:
+            return unpacked_files
 
-        # then unpack the file. This depends on the compressor and the
-        # payload format.  The default compressor is either gzip or XZ
-        # (on Fedora). Other supported compressors are bzip2, LZMA and
-        # zstd (recent addition).
-        if not self.compressor_seen:
-            # if not defined fall back to gzip
-            compressor = 'gzip'
+        if self.compressor == 'bzip2':
+            decompressor = bz2.BZ2Decompressor()
+            payload = decompressor.decompress(self.data.payload)
+        elif self.compressor == 'xz' or self.compressor == 'lzma':
+            payload = lzma.decompress(self.data.payload)
+        elif self.compressor == 'zstd':
+            reader = zstandard.ZstdDecompressor().stream_reader(self.data.payload)
+            payload = reader.read()
         else:
-            for i in self.data.header.index_records:
-                if i.tag == rpm.Rpm.HeaderTags.payload_compressor:
-                    compressor = i.body.values[0]
-                    break
-        offset = self.offset + self.data.payload_offset
-        if compressor == 'gzip':
-            unpackresult = unpack_gzip(self.fileresult, self.scan_environment, offset, self.rel_unpack_dir)
-        elif compressor == 'bzip2':
-            unpackresult = unpack_bzip2(self.fileresult, self.scan_environment, offset, self.rel_unpack_dir)
-        elif compressor == 'xz':
-            unpackresult = unpack_xz(self.fileresult, self.scan_environment, offset, self.rel_unpack_dir)
-        elif compressor == 'lzma':
-            unpackresult = unpack_lzma(self.fileresult, self.scan_environment, offset, self.rel_unpack_dir)
-        elif compressor == 'zstd':
-            unpackresult = unpack_zstd(self.fileresult, self.scan_environment, offset, self.rel_unpack_dir)
+            payload = gzip.decompress(self.data.payload)
+
+        if self.payload_format == 'drpm':
+            out_labels = []
+            file_path = pathlib.Path('drpm')
+            outfile_rel = self.rel_unpack_dir / file_path
+            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+            os.makedirs(outfile_full.parent, exist_ok=True)
+            outfile = open(outfile_full, 'wb')
+            outfile.write(payload)
+            outfile.close()
+            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
+            unpacked_files.append(fr)
         else:
-            # gzip is default
-            unpackresult = unpack_gzip(self.fileresult, self.scan_environment, offset, self.rel_unpack_dir)
+            # write the payload to a temporary file first
+            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            os.write(temporary_file[0], payload)
+            os.fdopen(temporary_file[0]).close()
 
-        payloadfile = rpmunpackfiles[0][0]
-        payloadfile_full = scanenvironment.unpack_path(payloadfile)
+            payloadfile = temporary_file[1]
+            payloadfile_full = self.scan_environment.unpack_path(payloadfile)
 
-        # first move the payload file to a different location
-        # to avoid any potential name clashes
-        payloadsize = payloadfile_full.stat().st_size
-        payloaddir = pathlib.Path(tempfile.mkdtemp(dir=scanenvironment.temporarydirectory))
-        shutil.move(str(payloadfile_full), payloaddir)
+            # create a file result object and pass it to the CPIO unpacker
+            fr = FileResult(self.fileresult,
+                    payloadfile,
+                    set([]))
+            fr.set_filesize(len(payload))
 
-        # create a file result object and pass it to the CPIO unpacker
-        fr = FileResult(fileresult,
-                payloaddir / os.path.basename(payloadfile),
-                set([]))
-        fr.set_filesize(payloadsize)
-        unpackresult = unpack_cpio(fr, scanenvironment, 0, unpackdir)
-        # cleanup
-        shutil.rmtree(payloaddir)
-        if not unpackresult['status']:
-            checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'could not unpack CPIO payload'}
-            return {'status': False, 'error': unpackingerror}
-        for i in unpackresult['filesandlabels']:
-            # TODO: is normpath necessary now that we use relative paths?
-            unpackedfilesandlabels.append((os.path.normpath(i[0]), i[1]))
+            # assuming that the CPIO data is always in "new ascii" format
+            cpio_parser = cpio_unpack.CpioNewAsciiUnpackParser(fr, self.scan_environment, self.rel_unpack_dir, 0)
+            try:
+                cpio_parser.open()
+                unpackresult = cpio_parser.parse_and_unpack()
+            except UnpackParserException as e:
+                raise UnpackParserException(e.args)
+            finally:
+                cpio_parser.close()
 
-        return unpacked_files
+            # walk the results and add them.
+            for i in unpackresult.unpacked_files:
+                i.parent_path = self.fileresult.filename
+                unpacked_files.append(i)
+
+        return(unpacked_files)
+
 
     def calculate_unpacked_size(self):
-        self.unpacked_size = self.data.payload_offset + self.payload_size
+        self.unpacked_size = self.data.ofs_payload + len(self.data.payload)
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
@@ -164,15 +179,14 @@ class RpmUnpackParser(WrappedUnpackParser):
         # store signature tags
         metadata['signature_tags'] = {}
         for i in self.data.signature.index_records:
-            metadata['signature_tags'][i.tag.value] = i.body.values
+            metadata['signature_tags'][i.signature_tag.value] = i.body.values
 
         # store header tags
         metadata['header_tags'] = {}
         for i in self.data.header.index_records:
-            metadata['header_tags'][i.tag.value] = i.body.values
+            metadata['header_tags'][i.header_tag.value] = i.body.values
 
         if self.payload_format == 'drpm':
-            payloadfile_rel = scanenvironment.rel_unpack_path(payloadfile)
             labels.append('delta rpm')
 
         self.unpack_results.set_metadata(metadata)

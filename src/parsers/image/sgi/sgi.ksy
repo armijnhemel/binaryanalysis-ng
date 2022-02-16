@@ -26,8 +26,8 @@ seq:
     type:
       switch-on: header.storage_format
       cases:
-        0: verbatim
-        _: rle
+        storage_format::verbatim: verbatim
+        storage_format::rle: rle
 types:
   header:
     seq:
@@ -35,6 +35,7 @@ types:
         contents: [0x01, 0xda]
       - id: storage_format
         type: u1
+        enum: storage_format
       - id: bytes_per_pixel
         type: u1
       - id: num_dimensions
@@ -58,8 +59,13 @@ types:
         size: 80
       - id: colormap
         type: u4
+        enum: colormap
         valid:
-          any-of: [0, 1, 2, 3]
+          any-of:
+            - colormap::normal
+            - colormap::dithered
+            - colormap::screen
+            - colormap::colormap
       - id: ignored
         type: padding(404)
   padding:
@@ -103,3 +109,12 @@ types:
         pos: _parent.start_table_entries[i]
         size: _parent.length_table_entries[i]
         io: _root._io
+enums:
+  storage_format:
+    0: verbatim
+    1: rle
+  colormap:
+    0: normal
+    1: dithered
+    2: screen
+    3: colormap

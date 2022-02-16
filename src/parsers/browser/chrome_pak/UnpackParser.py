@@ -39,7 +39,7 @@ import pathlib
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError
+from kaitaistruct import ValidationFailedError
 from . import chrome_pak
 
 
@@ -55,7 +55,7 @@ class ChromePakUnpackParser(UnpackParser):
         resource_ids = set()
         try:
             self.data = chrome_pak.ChromePak.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.resources[-1].id == 0, "wrong resource identifier")
         check_condition(self.data.resources[-1].ofs_body <= self.fileresult.filesize,

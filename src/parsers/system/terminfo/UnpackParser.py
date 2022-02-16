@@ -46,6 +46,15 @@ class TerminfoUnpackParser(UnpackParser):
                 self.data = terminfo.Terminfo.from_io(self.infile)
             except (Exception, ValidationFailedError) as e:
                 raise UnpackParserException(e.args)
+        check_condition(len(self.data.names_section.names) > 0,
+                        "no name found")
+        check_condition(self.data.names_section.names.isprintable(),
+                        "invalid names section")
+        for string_offset in self.data.strings_section.string_offset:
+            if string_offset == 0xffff or string_offset == 0xfffe:
+                continue
+            check_condition(string_offset <= self.data.len_string_table,
+                            "invalid offset into string table")
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""

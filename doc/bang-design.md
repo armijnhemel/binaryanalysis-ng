@@ -6,7 +6,7 @@ use is to able to find out the provenance of the unpacked files and
 classify/label files, making them available for further analysis.
 
 This file explains the design of the program and how to write new unpackers
-for certain file types. But first something about why a new tool was needed.
+for certain file types.
 
 ## Why BANG?
 
@@ -77,7 +77,8 @@ There are two types of unpackers:
 1. legacy unpackers, where parsing and unpacking are combined
 2. modern unpackers, where parsing and unpacking have been split
 
-The former are still supported, but slowly being replaced by the latter.
+The former are currently still supported, but are being replaced by the
+latter. In a future rewrite the legacy unpackers will no longer be supported.
 
 #### Legacy unpackers
 
