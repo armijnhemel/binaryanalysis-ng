@@ -41,20 +41,13 @@ import zlib
 import zipfile
 import bz2
 import re
-import stat
-import subprocess
 import xml.dom
 import hashlib
-import pathlib
 import brotli
-
 
 # some external packages that are needed
 import defusedxml.minidom
 import pyaxmlparser
-
-from FileResult import *
-from UnpackParserException import UnpackParserException
 
 
 # Each unpacker has a specific interface:
