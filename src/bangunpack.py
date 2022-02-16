@@ -2224,7 +2224,6 @@ def unpack_font(fileresult, scanenvironment, offset, unpackdir,
         # tables are 4 byte aligned (long)
         if tablelength % 4 != 0:
             padding = 4 - tablelength % 4
-            print("padding", padding, tablename)
 
         bytesadded = False
 
