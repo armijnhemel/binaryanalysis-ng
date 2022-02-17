@@ -10,7 +10,7 @@ meta:
     - executable
   license: Apache-2.0
   imports:
-    - vlq_base128_le
+    - /common/vlq_base128_le
   endian: le
 doc: |
   Android OS applications executables are typically stored in its own
@@ -147,6 +147,10 @@ instances:
     pos: header.map_off
     type: map_list
 types:
+  dummy:
+    seq:
+      - id: dummy_id
+        type: vlq_base128_le
   header_item:
     seq:
       - id: magic
@@ -285,9 +289,10 @@ types:
           - id: utf16_size
             type: vlq_base128_le
           - id: data
-            size: utf16_size.value
-            type: str
-            encoding: ascii
+            terminator: 0
+            #size: utf16_size.value
+            #type: str
+            #encoding: ascii
     instances:
       value:
         pos: string_data_off
@@ -485,6 +490,8 @@ types:
       sourcefile_name:
         value: _root.string_ids[source_file_idx].value.data
         -webide-parse-mode: eager
+        if: source_file_idx != 0xffffffff
+        doc-ref: https://source.android.com/devices/tech/dalvik/dex-format#no-index
       static_values:
         pos: static_values_off
         type: encoded_array_item
@@ -760,7 +767,7 @@ types:
       - id: encoded_catch_handler
         type: encoded_catch_handler
         repeat: expr
-        repeat-expr: num_entries.value_signed
+        repeat-expr: num_entries.value
         doc: |
           actual list of handler lists, represented directly
           (not as offsets), and concatenated sequentially
@@ -786,7 +793,7 @@ types:
           the order that the types should be tested.
       - id: catch_all_addr
         type: vlq_base128_le
-        if: num_catch_types.value < 1
+        if: num_catch_types.value_signed < 1
         doc: |
           bytecode address of the catch-all handler. This element is only
           present if size is non-positive.

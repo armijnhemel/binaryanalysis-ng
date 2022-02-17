@@ -26,7 +26,7 @@ import ssl
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError
+from kaitaistruct import ValidationFailedError
 from . import aboot
 
 
@@ -40,7 +40,7 @@ class AbootUnpackParser(UnpackParser):
         try:
             self.data = aboot.Aboot.from_io(self.infile)
             certificate_chain = ssl.DER_cert_to_PEM_cert(self.data.image.certificate_chain)
-        except (Exception, ValidationNotEqualError, ValidationGreaterThanError, ssl.SSLError) as e:
+        except (Exception, ValidationFailedError, ssl.SSLError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

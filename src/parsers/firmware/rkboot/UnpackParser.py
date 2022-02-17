@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import rkboot
 
 
@@ -52,7 +52,7 @@ class RockchipUnpackParser(UnpackParser):
             # crc32 at the end of the file
             crc = self.data.crc
             self.unpacked_size += 4
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
 

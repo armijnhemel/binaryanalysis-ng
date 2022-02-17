@@ -1,17 +1,32 @@
 # binaryanalysis-ng
 Binary Analysis Next Generation (BANG)
 
-BANG is a framework for unpacking files (like firmware) recursively and running
-checks on the unpacked files. Its intended use is to be able to find out the
-provenance of the unpacked files and classify/label files, making them available
-for further analysis.
+BANG is a framework for processing binary files (like firmware). It consists of
+an unpacker that recursively unpacks and classifies/labels files and separate
+analysis programs that work on the results of the unpacker.
+
+Some intended uses:
+
+* provenance detection ("what is inside this file")
+* security scans ("are there any known security risks associated with this file")
 
 ## Requirements
 
-* a recent Linux distribution (Fedora 33 or higher, or equivalent), or NixOS
-* Python 3.8.x or higher
-* for maintenance scripts: Python 3.9.x or higher (as some Python 3.9 specific features are used in the maintenance scripts)
-* pillow (possibly named python3-pillow), a drop in replacement for PIL ( http://python-pillow.github.io/ )
+The recommended way is to use [Nix](https://nixos.org/nix), run
+`nix-shell` to load all the dependencies for the unpacker,
+`nix-shell maintenance.nix` for the maintenance scripts and
+`nix-shell analysis.nix` for the maintenance scripts.
+
+`nix` will make sure that everything is downloaded and installed to run BANG.
+
+In addition you will need to install the Kaitai Struct compiler. This is
+described in the file `doc/kaitai-struct.md`.
+
+### Other distributions without Nix
+
+* a recent Linux distribution (Fedora 33 or higher, or equivalent)
+* Python 3.9.x or higher
+* pillow (possibly named python3-pillow), a drop in replacement for PIL ( <http://python-pillow.github.io/> )
 * GNU binutils (for 'ar')
 * squashfs-tools (for 'unsquashfs')
 * cabextract
@@ -27,7 +42,6 @@ for further analysis.
 * dockerfile-parse (possibly named python3-dockerfile-parse)
 * openssl
 * rzip
-* libxml2 (for 'xmllint')
 * mailcap (for mime.types)
 * lzop
 * OpenJDK (for 'unpack200')
@@ -39,12 +53,12 @@ for further analysis.
 * lz4 (for 'lz4c')
 * elasticsearch (possibly named python3-elasticsearch)
 
-or if you are fortunate enough to be using [nix](https://nixos.org/nix), run
-`nix-shell` to load all the dependencies during development.
+and many others (see `shell.nix`, `maintenance.nix` and `analysis.nix` for a
+full list).
 
-Additionally install "sasquatch"
+Additionally install `sasquatch`:
 
-https://github.com/devttys0/sasquatch
+<https://github.com/devttys0/sasquatch>
 
 ## Supported hardware
 
@@ -55,7 +69,7 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 * Fedora 32 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
-## Docker container
+## Docker container (recently untested, assume broken)
 
 ```
 docker image build -t bang .
@@ -101,10 +115,10 @@ larger file, unless stated otherwise.
 24. GNU message catalog
 25. RPM (gzip, XZ, bzip2, LZMA, zstd, not: delta RPM)
 26. AIFF/AIFF-C
-27. terminfo (little endian, including ncurses extension, does not
-    recognize some wide character versions)
+27. terminfo (little endian, regular and extended storage format, not
+    extended number format)
 28. AU (Sun/NeXT audio)
-29. JFFS2 (uncompressed, zlib, LZMA from OpenWrt)
+29. JFFS2 (uncompressed, zlib, rtime, lzo, LZMA from OpenWrt)
 30. CPIO (various flavours, little endian)
 31. Sun Raster files (standard type only)
 32. Intel Hex (text files only)
@@ -151,7 +165,6 @@ larger file, unless stated otherwise.
 69. BMP (needs PIL)
 70. PDF (simple verification, no object streams, incremental updates
     at end of the file)
-71. pack200 (needs unpack200)
 72. GIMP brush (needs PIL)
 73. ZIM (Wikipedia archive format)
 74. MIDI
@@ -186,7 +199,7 @@ larger file, unless stated otherwise.
 102. Ambarella firmware files
 103. Ambarella romfs (used in Ambarella firmware files)
 104. bFLT
-105. UBI (not UBIFS!), fastmap not supported
+105. UBI, fastmap not supported
 106. GRUB2 font files
 107. BitTorrent files (subset)
 108. pcapng (carving, structural checks, little endian only)
@@ -199,8 +212,8 @@ larger file, unless stated otherwise.
 115. Qualcomm QCDT files
 116. Chrome extensions (.crx)
 117. Windows shell link file (.lnk)
-118. PCF fonts (that actually follow the specification)
-119. DS_Store
+118. PCF fonts (that actually follow the specification, little endian only)
+119. DS\_Store
 120. Qualcomm Snapdragon MSM bootloader files
 121. Mozilla ARchive (.mar)
 122. OpenFst (subset, identification only)
@@ -226,6 +239,16 @@ larger file, unless stated otherwise.
 142. Qualcomm aboot (version 3 only, no unified boot)
 143. Rockchip resource files
 144. Socionext Milbeaut firmware files
+145. zchunk
+146. ubifs
+147. Performance Co-Pilot metadata files
+148. data URI (png, gif, jpeg only)
+149. DHTB signed files
+150. Android AAPT2 container format
+151. Android update image (version 2 only, full OTA image only)
+152. Qt resource files (`.rcc`)
+153. glibc locale archive file detection
+154. Sunplus BRN firmware
 
 The following text formats can be recognized:
 
@@ -252,16 +275,22 @@ The following text formats can be recognized:
 
 ## Invocation
 
+To unpack a file run:
+
     $ python3 bang-scanner -c bang.config -f /path/to/binary
+
+This will output a directory with inside a number of files and directories.
+The output directory can serve as input to the analysis scripts (and some
+knowledgebase scripts).
 
 ## License
 
 GNU Affero General Public License, version 3 (AGPL-3.0)
 
 The code for verifying and labeling Android Verified Boot images was heavily
-inspired by code from Android (avbtool) found at:
+inspired by code from Android (`avbtool`) found at:
 
-https://android.googlesource.com/platform/external/avb/+/master/avbtool
+<https://android.googlesource.com/platform/external/avb/+/master/avbtool>
 
 The original license for avbtool:
 
@@ -290,7 +319,7 @@ The original license for avbtool:
 
 The code for rtime decompression was copied from:
 
-https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py
+<https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py>
 
 The original license for jefferson:
 
@@ -320,12 +349,12 @@ The original license for jefferson:
 
 The recommended coding style is described in PEP 8:
 
-https://www.python.org/dev/peps/pep-0008/
+<https://www.python.org/dev/peps/pep-0008/>
 
 It is recommended to run PEP 8 verification tools, for example
 python3-flake8 (on Fedora).
 
-Another tool that is highly recommended is pylint.
+Another tool that is highly recommended is `pylint`.
 
 # Acknowledgement
 

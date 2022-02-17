@@ -12,17 +12,22 @@ let
     kaitaistruct
     leb128
     lz4
+    mutf8
     python-lzo
     parameterized
     pdfminer
     pefile
     pillow
     protobuf
+    pyaxmlparser
     pytest
     python-snappy
     pyyaml
     telfhash
     tlsh
+    xxhash
+    zstd
+    zstandard
   ]);
     
 in
@@ -32,11 +37,9 @@ pkgs.mkShell {
     cabextract
     e2tools
     innoextract
-    libxml2
     lz4
     mailcap
     ncompress
-    openjdk8
     openssl
     my-python
     protobuf
@@ -47,6 +50,6 @@ pkgs.mkShell {
     unrar
     unshield
     utillinux
-    zstd
+    zchunk
   ];
 }

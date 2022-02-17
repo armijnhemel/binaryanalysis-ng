@@ -48,12 +48,22 @@ class FileResult:
         self.filesize = None
         self.mimetype = None
         self.mimetype_encoding = None
+        self.magic = []
+
+        # target, only applicable to symbolic links
+        self.target = None
 
     def set_filesize(self, size):
         self.filesize = size
 
     def has_parent(self):
         return self.parent_path is not None
+
+    def has_target(self):
+        return self.target is not None
+
+    def set_target(self, target):
+        self.target = target
 
     def get_hashresult(self):
         return self.hash
@@ -71,6 +81,9 @@ class FileResult:
         self.mimetype = mimeres[0]
         self.mimetype_encoding = mimeres[1]
 
+    def set_magic(self, magic_res):
+        self.magic = magic_res
+
     def set_metadata(self, metadata):
         self.metadata = metadata
 
@@ -80,6 +93,7 @@ class FileResult:
             'hash': self.hash,
             'labels': list(self.labels),
             'filename': str(self.filename),
+            'magic': self.magic,
         }
         if self.filesize is not None:
             d['filesize'] = self.filesize
@@ -87,6 +101,8 @@ class FileResult:
             d['unpackedfiles'] = self.unpackedfiles
         if self.has_parent():
             d['parent'] = str(self.parent_path)
+        if self.has_target():
+            d['target'] = self.target
         if self.mimetype is not None:
             d['mimetype'] = self.mimetype
             if self.mimetype_encoding is not None:

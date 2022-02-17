@@ -1,7 +1,7 @@
 
 import os
 from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_ani
+from bangunpack import unpack_ani
 
 class AniUnpackParser(WrappedUnpackParser):
     extensions = []

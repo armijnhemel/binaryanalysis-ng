@@ -30,7 +30,7 @@ https://www.gnu.org/software/gettext/manual/gettext.html#index-file-format_002c-
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from . import gettext_mo
 
 
@@ -62,7 +62,7 @@ class GnuMessageCatalogUnpackParser(UnpackParser):
                 a = type(i.str)
             # it could be that the file has been truncated and
             # that the last NUL is missing. TODO.
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.mo.version.major in [0,1],
                         "unknown GNU message catalog version number")

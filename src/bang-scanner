@@ -109,6 +109,8 @@ def main(argv):
         for i in banglogger.handlers:
             banglogger.removeHandler(i)
 
+    unpackers = bangsignatures.get_unpackers()
+
     # scan each individual file that needs to be scanned in
     # alphabetical sort order (Python default)
     for checkfile in sorted(checkfiles):
@@ -192,8 +194,7 @@ def main(argv):
         # Create a scanjob for the first file to be scanned
         fileresult = FileResult(
                 None,
-                #pathlib.Path(os.path.basename(checkfile)),
-                pathlib.Path(os.path.abspath(checkfile)),
+                pathlib.Path(os.path.basename(checkfile)),
                 set(labels))
         j = ScanJob(fileresult)
         scanfilequeue.put(j)
@@ -224,7 +225,7 @@ def main(argv):
             processlock = processlock,
             checksumdict = checksumdict,
             )
-        scanenvironment.set_unpackparsers(bangsignatures.get_unpackers())
+        scanenvironment.set_unpackparsers(unpackers)
 
         # create processes for unpacking archives
         for i in range(0, options.bangthreads):
@@ -333,6 +334,10 @@ def main(argv):
             # remove the log file from the system logger
             banglogger.removeHandler(bangloghandler)
             bangloghandler.close()
+
+        # optionally remove the unpack directory
+        if options.removescandata:
+            shutil.rmtree(unpackdirectory)
 
         # optionally remove the entire scan directory
         if options.removescandirectory:

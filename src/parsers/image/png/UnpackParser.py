@@ -21,7 +21,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-Parse and unpack PNG files. The specification of the PNG can be found at:
+Parse and unpack PNG files. The specification of the PNG format can be found
+at:
 
 https://www.w3.org/TR/PNG/
 
@@ -40,7 +41,7 @@ import PIL.Image
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import png
 
 # a list of known chunks
@@ -66,10 +67,8 @@ class PngUnpackParser(UnpackParser):
         self.chunknames = set()
         try:
             self.data = png.Png.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.ihdr.bit_depth in [1, 2, 4, 8, 16],
-                "invalid bit depth")
         check_condition(self.data.ihdr.width > 0,
                 "invalid width")
         check_condition(self.data.ihdr.height > 0,
@@ -137,18 +136,18 @@ class PngUnpackParser(UnpackParser):
                     # https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart3.pdf
                     try:
                         # XMP should be valid XML
-                        xmpdom = defusedxml.minidom.parseString(i.body.text)
-                        xmptags.append(i.body.text)
+                        xmpdom = defusedxml.minidom.parseString(i.body.text.text)
+                        xmptags.append(i.body.text.text)
                     except ExpatError:
                         pngtexts.append({'key': i.body.keyword,
                                          'languagetag': i.body.language_tag,
                                          'translatedkey': i.body.translated_keyword,
-                                         'value': i.body.text})
+                                         'value': i.body.text.text})
                 else:
                     pngtexts.append({'key': i.body.keyword,
                                      'languagetag': i.body.language_tag,
                                      'translatedkey': i.body.translated_keyword,
-                                     'value': i.body.text})
+                                     'value': i.body.text.text})
             elif i.type == 'meTa':
                 try:
                     metatags.append(i.body.decode(encoding='utf-16'))

@@ -16,7 +16,7 @@
 import sys
 import os
 import argparse
-import stat
+import pathlib
 import csv
 
 # import some modules for dependencies, requires psycopg2 2.7+
@@ -55,12 +55,14 @@ def main():
     if args.nsrldir is None:
         parser.error("No NSRL directory provided, exiting")
 
+    nsrldir = pathlib.Path(args.nsrldir)
+
     # the configuration file should exist ...
-    if not os.path.exists(args.nsrldir):
+    if not nsrldir.exists():
         parser.error("Directory %s does not exist, exiting." % args.nsrldir)
 
     # ... and should be a real directory
-    if not stat.S_ISDIR(os.stat(args.nsrldir).st_mode):
+    if not nsrldir.is_dir():
         parser.error("%s is not a regular file, exiting." % args.nsrldir)
 
     nsrlfiles = os.listdir(args.nsrldir)
@@ -74,12 +76,14 @@ def main():
     if args.cfg is None:
         parser.error("No configuration file provided, exiting")
 
+    cfg = pathlib.Path(args.cfg)
+
     # the configuration file should exist ...
-    if not os.path.exists(args.cfg):
+    if not cfg.exists():
         parser.error("File %s does not exist, exiting." % args.cfg)
 
     # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.cfg).st_mode):
+    if not cfg.is_file():
         parser.error("%s is not a regular file, exiting." % args.cfg)
 
     # read the configuration file. This is in YAML format
@@ -201,7 +205,7 @@ def main():
     csvreader = csv.reader(nsrfile)
 
     # create a few prepared statements
-    preparedmfg = "PREPARE mfg_insert as INSERT INTO nsrl_manufacturer (manufacturercode, manufacturername) values ($1, $2) ON CONFLICT DO NOTHING"
+    preparedmfg = "PREPARE mfg_insert as INSERT INTO nsrl_manufacturer (code, name) values ($1, $2) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedmfg)
 
     counter = 1
@@ -245,7 +249,7 @@ def main():
     csvreader = csv.reader(nsrfile)
 
     # create a few prepared statements
-    preparedos = "PREPARE os_insert as INSERT INTO nsrl_os (oscode, osname, osversion, manufacturercode) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
+    preparedos = "PREPARE os_insert as INSERT INTO nsrl_os (code, name, version, manufacturer_code) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedos)
 
     counter = 1
@@ -292,7 +296,7 @@ def main():
     csvreader = csv.reader(nsrfile)
 
     # create a few prepared statements
-    preparedproduct = "PREPARE product_insert as INSERT INTO nsrl_product (productcode, productname, productversion, manufacturercode, applicationtype) values ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
+    preparedproduct = "PREPARE product_insert as INSERT INTO nsrl_product (code, name, version, manufacturer_code, application_type) values ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedproduct)
 
     # process the lines in the CSV, and then bulk insert them into the database
@@ -342,7 +346,7 @@ def main():
     preparedhash = "PREPARE hash_insert as INSERT INTO nsrl_hash (sha1, md5, crc32, filename) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedhash)
 
-    preparedentry = "PREPARE entry_insert as INSERT INTO nsrl_entry (sha1, productcode) values ($1, $2) ON CONFLICT DO NOTHING"
+    preparedentry = "PREPARE entry_insert as INSERT INTO nsrl_entry (sha1, product_code) values ($1, $2) ON CONFLICT DO NOTHING"
     dbcursor.execute(preparedentry)
 
     # temporary data structures

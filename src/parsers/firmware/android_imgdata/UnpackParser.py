@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import android_imgdata
 
 
@@ -44,7 +44,7 @@ class AndroidImgdataUnpackParser(UnpackParser):
             self.data = android_imgdata.AndroidImgdata.from_io(self.infile)
             for image in self.data.images:
                 self.unpacked_size = max(self.unpacked_size, image.ofs_image + image.len_image)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.unpacked_size <= self.fileresult.filesize, "data outside file")
 
