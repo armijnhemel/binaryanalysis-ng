@@ -149,9 +149,11 @@ types:
         valid:
           any-of:
             - category::ctype
+            - category::ctype_variant
             - category::numeric
             - category::time
             - category::collate
+            - category::collate_variant
             - category::monetary
             - category::messages
             - category::all
@@ -179,9 +181,11 @@ enums:
   category:
     # /usr/share/magic
     0x20090720: ctype
+    0x20031115: ctype_variant
     0x20031114: numeric
     0x20031117: time
     0x20051017: collate
+    0x20031116: collate_variant
     0x20031111: monetary
     0x20031110: messages
     0x20031113: all
