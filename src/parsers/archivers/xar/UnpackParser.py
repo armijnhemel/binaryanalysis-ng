@@ -67,17 +67,17 @@ class XarUnpackParser(WrappedUnpackParser):
 
         # there should be one single node called "toc". If not, it
         # is a malformed XAR table of contents.
-        havevalidtoc = False
+        have_valid_toc = False
         for i in tocdom.documentElement.childNodes:
             # the childnodes of the element could also
             # include text nodes, which are not interesting
             if i.nodeType == xml.dom.Node.ELEMENT_NODE:
                 if i.tagName == 'toc':
-                    havevalidtoc = True
+                    have_valid_toc = True
                     tocnode = i
                     break
 
-        check_condition(havevalidtoc, "invalid TOC, \"toc\" element not found")
+        check_condition(have_valid_toc, "invalid TOC, \"toc\" element not found")
 
         # Then further traverse the DOM for sanity checks.
         # The offsets are relative to the end of the header
