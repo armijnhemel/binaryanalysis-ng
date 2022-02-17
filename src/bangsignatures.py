@@ -231,7 +231,6 @@ signaturetofunction = {
     'romfs': bangfilesystems.unpack_romfs,
     'cramfs_le': bangfilesystems.unpack_cramfs,
     'cramfs_be': bangfilesystems.unpack_cramfs,
-    'bflt': bangunpack.unpack_bflt,
     'plf': bangfilesystems.unpack_plf,
 }
 
