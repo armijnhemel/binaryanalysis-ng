@@ -15,12 +15,16 @@ seq:
 instances:
   text:
     pos: header.ofs_entry
-    size: header.ofs_data_start - header.ofs_entry
+    size: len_text
     if: not header.gzip
+  len_text:
+    value: header.ofs_data_start - header.ofs_entry
   data:
     pos: header.ofs_data_start
-    size: header.ofs_data_end - header.ofs_data_start
+    size: len_data
     if: not (header.gzip or header.gzdata)
+  len_data:
+    value: header.ofs_data_end - header.ofs_data_start
   relocations:
     pos: header.ofs_reloc_start
     type: relocations
