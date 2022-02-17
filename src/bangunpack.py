@@ -31,7 +31,6 @@
 # https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
 
 import os
-import shutil
 import binascii
 import tempfile
 import collections
