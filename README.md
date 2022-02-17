@@ -247,6 +247,7 @@ larger file, unless stated otherwise.
 150. Android AAPT2 container format
 151. Android update image (version 2 only, full OTA image only)
 152. Qt resource files (`.rcc`)
+153. glibc locale archive file detection
 
 The following text formats can be recognized:
 
