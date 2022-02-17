@@ -30,7 +30,7 @@ seq:
     type: u4
 
     # Table with locale records
-  - id: ofs_locrectab
+  - id: ofs_locrec_table
     type: u4
   - id: locrectab_used
     type: u4
@@ -50,15 +50,21 @@ instances:
     value: 13
   name_hash_table:
     pos: ofs_namehash
-    size: ofs_string - ofs_namehash
+    size: len_name_hash_table
     type: name_hash_table(num_namehash)
+  len_name_hash_table:
+    value: ofs_string - ofs_namehash
   string_table:
     pos: ofs_string
-    size: ofs_locrectab - ofs_string
+    size: len_string_table
     type: string_table(namehash_used)
+  len_string_table:
+    value: ofs_locrec_table - ofs_string
   locrec_table:
-    pos: ofs_locrectab
-    size: ofs_sumhash - ofs_locrectab
+    pos: ofs_locrec_table
+    size: len_locrec_table
+  len_locrec_table:
+    value: ofs_sumhash - ofs_locrec_table
   md5_table:
     pos: ofs_sumhash
     type: md5_table(num_sumhash)
@@ -140,6 +146,21 @@ types:
         pos: ofs_locrec
         type: u4
         enum: category
+        valid:
+          any-of:
+            - category::ctype
+            - category::numeric
+            - category::time
+            - category::collate
+            - category::monetary
+            - category::messages
+            - category::all
+            - category::paper
+            - category::name
+            - category::address
+            - category::telephone
+            - category::measurement
+            - category::identification
   sum_hash_entry:
     seq:
       - id: md5
