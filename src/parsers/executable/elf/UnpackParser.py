@@ -78,6 +78,10 @@ class ElfUnpackParser(UnpackParser):
                 if header.type == elf.Elf.ShType.note:
                     for entry in header.body.entries:
                         pass
+                elif header.type == elf.Elf.ShType.strtab:
+                    for entry in header.body.entries:
+                        pass
+
                 # force read the header name
                 name = header.name
                 if header.type == elf.Elf.ShType.symtab:
