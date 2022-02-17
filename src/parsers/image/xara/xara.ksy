@@ -3,6 +3,7 @@ meta:
   title: XARA
   license: CC0-1.0
   ks-version: 0.9
+  encoding: ascii
   endian: le
 doc-ref:
  - https://en.wikipedia.org/wiki/Xar_(graphics)
@@ -12,7 +13,8 @@ seq:
     type: header
   - id: records
     type: record
-    repeat: eos
+    repeat: until
+    repeat-until: _.tag == tags::end_of_file or _.tag == tags::start_compression
 types:
   header:
     seq:
@@ -29,6 +31,54 @@ types:
         type: u4
       - id: data
         size: len_data
+        type:
+          switch-on: tag
+          cases:
+            tags::file_header: file_header
+            tags::document_nudge: document_nudge
+            tags::document_bitmap_smoothing: document_bitmap_smoothing
+            tags::duplication_offset: duplication_offset
+            tags::start_compression: start_compression
+  file_header:
+    seq:
+      - id: filetype
+        size: 3
+      - id: len_file
+        type: u4
+      - id: weblink
+        type: u4
+      - id: refinement_flags
+        type: u4
+      - id: producer
+        type: strz
+      - id: producer_version
+        type: strz
+      - id: producer_build
+        type: strz
+  document_nudge:
+    seq:
+      - id: millipoint
+        type: u4
+  document_bitmap_smoothing:
+    seq:
+      - id: flags
+        type: u1
+      - id: reserved
+        contents: [0, 0, 0, 0]
+    instances:
+      enable_bitmap_smoothing:
+        value: flags & 0x1
+  duplication_offset:
+    seq:
+      - id: coords
+        size: 8
+  start_compression:
+    seq:
+      - id: version
+        size: 3
+      - id: format
+        type: u1
+        enum: compression
 enums:
   tags:
     0: up
@@ -333,3 +383,5 @@ enums:
     4212: text_extra_font_info
     4213: text_extra_tt_font_def
     4214: text_extra_atm_font_def
+  compression:
+    0: zlib
