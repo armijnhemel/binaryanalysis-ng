@@ -58,6 +58,8 @@ class BfltUnpackParser(WrappedUnpackParser):
                   self.unpacked_size = self.data.header.ofs_reloc_start
                   for r in self.data.relocations.relocation:
                       self.unpacked_size += 4
+                      check_condition(r <= self.fileresult.filesize,
+                                      "relocation cannot be outside of file")
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
@@ -79,23 +81,43 @@ class BfltUnpackParser(WrappedUnpackParser):
         # translation table for ASCII strings
         string_translation_table = str.maketrans({'\t': ' '})
 
-        for s in self.data.data.split(b'\x00'):
-            try:
-                decoded_strings = s.decode().splitlines()
-                for decoded_string in decoded_strings:
-                    if len(decoded_string) < string_cutoff_length:
-                        continue
-                    if decoded_string.isspace():
-                        continue
-                    translated_string = decoded_string.translate(string_translation_table)
-                    if decoded_string.isascii():
-                        # test the translated string
-                        if translated_string.isprintable():
+        if self.data.data is not None:
+            for s in self.data.data.split(b'\x00'):
+                try:
+                    decoded_strings = s.decode().splitlines()
+                    for decoded_string in decoded_strings:
+                        if len(decoded_string) < string_cutoff_length:
+                            continue
+                        if decoded_string.isspace():
+                            continue
+                        translated_string = decoded_string.translate(string_translation_table)
+                        if decoded_string.isascii():
+                            # test the translated string
+                            if translated_string.isprintable():
+                                data_strings.append(decoded_string)
+                        else:
                             data_strings.append(decoded_string)
-                    else:
-                        data_strings.append(decoded_string)
-            except:
-                pass
+                except:
+                    pass
+
+        if self.data.text is not None:
+            for s in self.data.text.split(b'\x00'):
+                try:
+                    decoded_strings = s.decode().splitlines()
+                    for decoded_string in decoded_strings:
+                        if len(decoded_string) < string_cutoff_length:
+                            continue
+                        if decoded_string.isspace():
+                            continue
+                        translated_string = decoded_string.translate(string_translation_table)
+                        if decoded_string.isascii():
+                            # test the translated string
+                            if translated_string.isprintable():
+                                data_strings.append(decoded_string)
+                        else:
+                            data_strings.append(decoded_string)
+                except:
+                    pass
 
         metadata['strings'] = data_strings
         return (labels, metadata)
