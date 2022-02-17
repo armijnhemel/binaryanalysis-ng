@@ -70,6 +70,8 @@ class SunplusUnpackParser(UnpackParser):
             fr = FileResult(self.fileresult, outfile_rel, set([]))
             unpacked_files.append(fr)
 
+        # TODO: split this further into two FAT images
+        # see https://github.com/Linouth/iCatch-V50-Playground
         if self.data.len_bimg != 0:
             outfile_rel = self.rel_unpack_dir / 'bimg'
             outfile_full = self.scan_environment.unpack_path(outfile_rel)
