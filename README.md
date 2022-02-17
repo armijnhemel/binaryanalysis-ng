@@ -248,6 +248,7 @@ larger file, unless stated otherwise.
 151. Android update image (version 2 only, full OTA image only)
 152. Qt resource files (`.rcc`)
 153. glibc locale archive file detection
+154. Sunplus BRN firmware
 
 The following text formats can be recognized:
 
