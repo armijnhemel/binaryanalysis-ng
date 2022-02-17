@@ -26,6 +26,9 @@ seq:
   - id: dram
     size: len_dram
 instances:
+  raw_header:
+    pos: 0
+    size: 1024
   len_aimg:
     value: header.ofs_bimg - header.ofs_aimg
   len_bimg:
