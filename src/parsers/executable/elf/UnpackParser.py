@@ -43,6 +43,11 @@ FORTIFY_NAMES = ['cpy_chk', 'printf_chk', 'cat_chk', 'poll_chk',
                  '__realpath_chk', '__explicit_bzero_chk', '__recv_chk',
                  '__getdomainname_chk', '__gethostname_chk']
 
+# road only data sections. This should be expanded.
+RODATA_SECTIONS = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
+                   '.rodata.str1.8', '.rodata.cst4', '.rodata.cst8',
+                   '.rodata.cst16', 'rodata']
+
 class ElfUnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -118,6 +123,9 @@ class ElfUnpackParser(UnpackParser):
                             name = entry.visibility.name
                             name = entry.sh_idx
                             name = entry.size
+                elif header.type == elf.Elf.ShType.progbits:
+                    if header.name in RODATA_SECTIONS:
+                        body = header.body
 
             # read the names, but don't proces them. This is just to force
             # evaluation, which normally happens lazily for instances in
@@ -254,11 +262,6 @@ class ElfUnpackParser(UnpackParser):
         # module name (for Linux kernel modules)
         self.module_name = ''
 
-        # only look at a few interesting sections. This should be expanded.
-        rodata_sections = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
-                           '.rodata.str1.8', '.rodata.cst4', '.rodata.cst8',
-                           '.rodata.cst16', 'rodata']
-
         # process the various section headers
         is_dynamic_elf = False
         for header in self.data.header.section_headers:
@@ -377,7 +380,7 @@ class ElfUnpackParser(UnpackParser):
                     link_name = header.body.split(b'\x00', 1)[0].decode()
                     link_crc = header.body[-4:]
                     metadata['gnu debuglink'] = link_name
-                elif header.name in rodata_sections:
+                elif header.name in RODATA_SECTIONS:
                     for s in header.body.split(b'\x00'):
                         try:
                             decoded_strings = s.decode().splitlines()
