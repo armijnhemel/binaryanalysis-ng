@@ -249,6 +249,7 @@ larger file, unless stated otherwise.
 152. Qt resource files (`.rcc`)
 153. glibc locale archive file detection
 154. Sunplus BRN firmware
+155. xo65 object files
 
 The following text formats can be recognized:
 
