@@ -59,6 +59,8 @@ class TarUnpackParser(UnpackParser):
             # TODO: rename files properly with minimum chance of clashes
             if tarinfo.name in tar_filenames:
                 pass
+            if tarinfo.name == '':
+                pass
             tar_filenames.add(tarinfo.name)
 
         # There could be additional padding as some tar implementations
