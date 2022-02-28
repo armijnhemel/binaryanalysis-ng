@@ -103,6 +103,10 @@ class TarUnpackParser(UnpackParser):
                 out_labels.append('directory')
 
             if tarinfo.isfile() or tarinfo.issym() or tarinfo.isdir() or tarinfo.islnk():
+                if tarinfo.name == '':
+                    # empty name, TODO
+                    # test file pax-global-records.tar from golang-1.15-src_1.15.9-6_amd64.deb
+                    continue
                 self.unpacktar.extract(tarinfo, path=self.rel_unpack_dir)
 
                 # tar can change permissions after unpacking, so change
