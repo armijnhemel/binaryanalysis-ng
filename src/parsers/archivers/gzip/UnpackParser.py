@@ -109,18 +109,25 @@ class GzipUnpackParser(UnpackParser):
         unpacked_files = []
         out_labels = []
 
+        file_path = pathlib.Path("unpacked_from_gzip")
+        renamed = False
+
         # determine the name of the output file
         if self.data.flags.has_name:
-            file_path = pathlib.Path(self.data.name.decode())
-            if file_path.is_absolute():
-                file_path = file_path.relative_to('/')
-        else:
+            decoded_name = self.data.name.decode()
+            if decoded_name != '':
+                file_path = pathlib.Path(decoded_name)
+                if file_path.is_absolute():
+                    file_path = file_path.relative_to('/')
+                renamed = True
+
+        if not renamed:
             if self.fileresult.filename.suffix.lower() == '.gz':
                 file_path = pathlib.Path(self.fileresult.filename.stem)
             elif self.fileresult.filename.suffix.lower() == '.tgz':
                 file_path = pathlib.Path(self.fileresult.filename.stem + ".tar")
-            else:
-                file_path = pathlib.Path("unpacked_from_gzip")
+            elif self.fileresult.filename.suffix.lower() == '.svgz':
+                file_path = pathlib.Path(self.fileresult.filename.stem + ".svg")
 
         # open the output file
         outfile_rel = self.rel_unpack_dir / file_path

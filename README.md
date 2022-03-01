@@ -165,90 +165,91 @@ larger file, unless stated otherwise.
 69. BMP (needs PIL)
 70. PDF (simple verification, no object streams, incremental updates
     at end of the file)
-72. GIMP brush (needs PIL)
-73. ZIM (Wikipedia archive format)
-74. MIDI
-75. Android tzdata
-76. Java key store (version 2 only)
-77. XG3D (proprietary file format from 3D Studio Max, labeling only)
-78. ACDB (audio callibration database, proprietary file format from Qualcomm, labeling only)
-79. Microsoft DirectDraw Surface (structure checks and very limited sanity checking)
-80. Khronos KTX files (version 1)
-81. Android verified boot image
-82. SQLite 3
-83. Linux flattened device tree
-84. Broadcom TRX
-85. Photoshop PSD (raw bytes and RLE encoding only)
-86. minidump files
-87. PPM files ('raw' PPM only)
-88. PGM files ('raw' PGM only)
-89. PBM files ('raw' PBM only)
-90. Android bootloader for Qualcomm Snapdragon
-91. Android bootloader image (also a Lttle Kernel based variant)
-92. Android bootloader for Huawei devices
-93. FAT16 file systems (8.3 file names)
-94. Coreboot images
-95. Minix V1 file system (Linux variant)
-96. Unix compress (needs 'uncompress'), only if end
+71. GIMP brush (needs PIL)
+72. ZIM (Wikipedia archive format)
+73. MIDI
+74. Android tzdata
+75. Java key store (version 2 only)
+76. XG3D (proprietary file format from 3D Studio Max, labeling only)
+77. ACDB (audio callibration database, proprietary file format from Qualcomm, labeling only)
+78. Microsoft DirectDraw Surface (structure checks and very limited sanity checking)
+79. Khronos KTX files (version 1)
+80. Android verified boot image
+81. SQLite 3
+82. Linux flattened device tree
+83. Broadcom TRX
+84. Photoshop PSD (raw bytes and RLE encoding only)
+85. minidump files
+86. PPM files ('raw' PPM only)
+87. PGM files ('raw' PGM only)
+88. PBM files ('raw' PBM only)
+89. Android bootloader for Qualcomm Snapdragon
+90. Android bootloader image (also a Lttle Kernel based variant)
+91. Android bootloader for Huawei devices
+92. FAT16 file systems (8.3 file names)
+93. Coreboot images
+94. Minix V1 file system (Linux variant)
+95. Unix compress (needs 'uncompress'), only if end
      of the file is compress'd data
-97. romfs
-98. cramfs (version 2 only)
-99. nb0 Android updates
-100. Quake PAK files
-101. Doom WAD files (IWAD only)
-102. Ambarella firmware files
-103. Ambarella romfs (used in Ambarella firmware files)
-104. bFLT
-105. UBI, fastmap not supported
-106. GRUB2 font files
-107. BitTorrent files (subset)
-108. pcapng (carving, structural checks, little endian only)
-109. pcap (carving, structural checks)
-110. serialized Java (block data only, carving, structural checks)
-111. mapsforge map files (very basic structural checks)
-112. Parrot PLF files
-113. PFS file system
-114. YAFFS2 (including inband tags)
-115. Qualcomm QCDT files
-116. Chrome extensions (.crx)
-117. Windows shell link file (.lnk)
-118. PCF fonts (that actually follow the specification, little endian only)
-119. DS\_Store
-120. Qualcomm Snapdragon MSM bootloader files
-121. Mozilla ARchive (.mar)
-122. OpenFst (subset, identification only)
-123. SELinux file context
-124. Ogg
-125. Allwinner images
-126. DFU (Device Firmware Upgrade)
-127. Key Character Map binary files
-128. USB Flashing Format (UF2)
-129. Android VDEX (identification only)
-130. SEAMA firmware files
-131. LLVM IR wrapper format (identification only)
-132. OpenWrt LXL firmware header
-133. Mediatek BootROM (header only)
-134. Rockchip RKFW and RKAF
-135. systemd journal files
-136. Rockchip rkboot
-137. Python pickle
-138. glibc utmp/wtmp
-139. Android vendor boot
-140. Android FBPK
-141. Samsung Tzar
-142. Qualcomm aboot (version 3 only, no unified boot)
-143. Rockchip resource files
-144. Socionext Milbeaut firmware files
-145. zchunk
-146. ubifs
-147. Performance Co-Pilot metadata files
-148. data URI (png, gif, jpeg only)
-149. DHTB signed files
-150. Android AAPT2 container format
-151. Android update image (version 2 only, full OTA image only)
-152. Qt resource files (`.rcc`)
-153. glibc locale archive file detection
-154. Sunplus BRN firmware
+96. romfs
+97. cramfs (version 2 only)
+98. nb0 Android updates
+99. Quake PAK files
+100. Doom WAD files (IWAD only)
+101. Ambarella firmware files
+102. Ambarella romfs (used in Ambarella firmware files)
+103. bFLT
+104. UBI, fastmap not supported
+105. GRUB2 font files
+106. BitTorrent files (subset)
+107. pcapng (carving, structural checks, little endian only)
+108. pcap (carving, structural checks)
+109. serialized Java (block data only, carving, structural checks)
+110. mapsforge map files (very basic structural checks)
+111. Parrot PLF files
+112. PFS file system
+113. YAFFS2 (including inband tags)
+114. Qualcomm QCDT files
+115. Chrome extensions (.crx)
+116. Windows shell link file (.lnk)
+117. PCF fonts (that actually follow the specification, little endian only)
+118. DS\_Store
+119. Qualcomm Snapdragon MSM bootloader files
+120. Mozilla ARchive (.mar)
+121. OpenFst (subset, identification only)
+122. SELinux file context
+123. Ogg
+124. Allwinner images
+125. DFU (Device Firmware Upgrade)
+126. Key Character Map binary files
+127. USB Flashing Format (UF2)
+128. Android VDEX (identification only)
+129. SEAMA firmware files
+130. LLVM IR wrapper format (identification only)
+131. OpenWrt LXL firmware header
+132. Mediatek BootROM (header only)
+133. Rockchip RKFW and RKAF
+134. systemd journal files
+135. Rockchip rkboot
+136. Python pickle
+137. glibc utmp/wtmp
+138. Android vendor boot
+139. Android FBPK
+140. Samsung Tzar
+141. Qualcomm aboot (version 3 only, no unified boot)
+142. Rockchip resource files
+143. Socionext Milbeaut firmware files
+144. zchunk
+145. ubifs
+146. Performance Co-Pilot metadata files
+147. data URI (png, gif, jpeg only)
+148. DHTB signed files
+149. Android AAPT2 container format
+150. Android update image (version 2 only, full OTA image only)
+151. Qt resource files (`.rcc`)
+152. glibc locale archive file detection
+153. Sunplus BRN firmware
+154. xo65 object files
 
 The following text formats can be recognized:
 
