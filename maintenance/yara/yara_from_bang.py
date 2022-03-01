@@ -11,19 +11,19 @@ This script processes BANG results and generates YARA rules for
 dynamically linked ELF files.
 '''
 
-import sys
-import os
-import argparse
-import pathlib
-import tempfile
 import datetime
-import pickle
-import re
-import uuid
 import multiprocessing
+import os
+import pathlib
+import pickle
 import queue
+import re
+import sys
+import tempfile
+import uuid
 
 import packageurl
+import click
 
 # import YAML module for the configuration
 from yaml import load
@@ -364,58 +364,32 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
         yaraqueue.task_done()
 
 
-def main(argv):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    parser.add_argument("-r", "--result-directory", action="store", dest="result_directory",
-                        help="path to BANG result directories", metavar="DIR")
-    parser.add_argument("-i", "--identifiers", action="store", dest="identifiers",
-                        help="path to pickle with low quality identifiers", metavar="FILE")
-    args = parser.parse_args()
+@click.command(short_help='process BANG result files and output YARA')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.option('--result-directory', '-r', help='BANG result directories', type=click.Path(exists=True), required=True)
+@click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
+def main(config_file, result_directory, identifiers):
 
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    cfg = pathlib.Path(args.cfg)
-
-    # the configuration file should exist ...
-    if not cfg.exists():
-        parser.error("File %s does not exist, exiting." % args.cfg)
-
-    # ... and should be a real file
-    if not cfg.is_file():
-        parser.error("%s is not a regular file, exiting." % args.cfg)
-
-    # sanity checks for the result directory
-    if args.result_directory is None:
-        parser.error("No result directory provided, exiting")
-
-    result_directory = pathlib.Path(args.result_directory)
-
-    # the result directory should exist ...
-    if not result_directory.exists():
-        parser.error("File %s does not exist, exiting." % args.result_directory)
+    result_directory = pathlib.Path(result_directory)
 
     # ... and should be a real directory
     if not result_directory.is_dir():
-        parser.error("%s is not a directory, exiting." % args.result_directory)
+        print("Error: %s is not a directory, exiting." % result_directory, file=sys.stderr)
+        sys.exit(1)
 
     lq_identifiers = {'elf': {'functions': [], 'variables': []},
                       'dex': {'functions': [], 'variables': []}}
 
     # read the pickle with identifiers
-    if args.identifiers is not None:
+    if identifiers is not None:
         try:
-            lq_identifiers = pickle.load(open(args.identifiers, 'rb'))
+            lq_identifiers = pickle.load(identifiers)
         except:
             pass
 
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(args.cfg, 'r')
-        config = load(configfile, Loader=Loader)
+        config = load(config_file, Loader=Loader)
     except (YAMLError, PermissionError):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
@@ -620,4 +594,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
