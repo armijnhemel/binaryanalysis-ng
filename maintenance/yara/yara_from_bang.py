@@ -130,8 +130,8 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
 def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                       processlock, processed_files, yara_env):
 
-    generate_identifier_files = False
     heuristics = yara_env['heuristics']
+    generate_identifier_files = yara_env['generate_identifier_files']
     while True:
         bang_directory = yaraqueue.get()
         bang_pickle = bang_directory / 'bang.pickle'
@@ -565,6 +565,8 @@ def main(config_file, result_directory, identifiers):
     # tags = ['debian', 'debian11']
     tags = []
 
+    generate_identifier_files = False
+
     yara_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
                 'string_max_cutoff': string_max_cutoff,
                 'identifier_cutoff': identifier_cutoff,
@@ -572,7 +574,8 @@ def main(config_file, result_directory, identifiers):
                 'ignore_weak_symbols': ignore_weak_symbols,
                 'lq_identifiers': lq_identifiers, 'tags': tags,
                 'max_identifiers': max_identifiers,
-                'heuristics': heuristics}
+                'heuristics': heuristics,
+                'generate_identifier_files': generate_identifier_files}
 
     # create processes for unpacking archives
     for i in range(0, threads):
