@@ -10,26 +10,22 @@
 This script processes source code archives and generates YARA rules
 '''
 
-import sys
-import os
-import re
-import uuid
 import argparse
+import datetime
+import hashlib
+import json
+import multiprocessing
+import os
 import pathlib
-import zipfile
+import queue
+import re
+import shutil
+import subprocess
+import sys
 import tarfile
 import tempfile
-import shutil
-import hashlib
-import subprocess
-import datetime
-import multiprocessing
-import queue
-import json
-
-# import some modules for dependencies, requires psycopg2 2.7+
-import psycopg2
-import psycopg2.extras
+import uuid
+import zipfile
 
 import packageurl
 
@@ -380,10 +376,6 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
-    yara_output_directory = yara_directory / 'binary'
-
-    yara_output_directory.mkdir(exist_ok=True)
-
     # test if ctags is available. This should be "universal ctags".
     if shutil.which('ctags') is None:
         print("ctags program not found, exiting",
@@ -395,6 +387,10 @@ def main():
         print("xgettext program not found, exiting",
               file=sys.stderr)
         sys.exit(1)
+
+    yara_output_directory = yara_directory / 'binary'
+
+    yara_output_directory.mkdir(exist_ok=True)
 
     threads = multiprocessing.cpu_count()
     if 'threads' in config['general']:
