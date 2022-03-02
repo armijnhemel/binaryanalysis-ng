@@ -226,7 +226,6 @@ signaturetofunction = {
     'ext2': bangfilesystems.unpack_ext2,
     'vmdk': bangfilesystems.unpack_vmdk,
     'pdf': bangunpack.unpack_pdf,
-    'fat': bangfilesystems.unpack_fat,
     'cbfs': bangfilesystems.unpack_cbfs,
     'romfs': bangfilesystems.unpack_romfs,
     'cramfs_le': bangfilesystems.unpack_cramfs,
