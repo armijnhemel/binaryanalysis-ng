@@ -88,6 +88,8 @@ types:
       - id: ls_per_clus
         -orig-id: BPB_SecPerClus
         type: u1
+        valid:
+          any-of: [1, 2, 4, 8, 16, 32, 64, 128]
         doc: Logical sectors per cluster
       - id: num_reserved_ls
         -orig-id: BPB_RsvdSecCnt
