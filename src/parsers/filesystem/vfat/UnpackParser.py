@@ -136,7 +136,7 @@ class VfatUnpackParser(UnpackParser):
         for cluster in self.cluster_chain(start_cluster):
             start = self.pos_data + (cluster-2) * cluster_size
             check_condition(start+cluster_size <= self.fileresult.filesize,
-                    "file data outside file")
+                    "directory data outside file")
             self.infile.seek(start)
             dir_entries += self.infile.read(cluster_size)
         return dir_entries
