@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021 - Armijn Hemel
+# Copyright 2021-2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
