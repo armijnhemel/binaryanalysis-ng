@@ -22,36 +22,33 @@
 
 
 import os
+import zlib
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import pcap
+from . import xara
 
 
-class PcapUnpackParser(UnpackParser):
+class XaraUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (0, b'\xd4\xc3\xb2\xa1'),
-        (0, b'\xa1\xb2\xc3\xd4'),
-        (0, b'\x4d\x3c\xb2\xa1'),
-        (0, b'\xa1\xb2\x3c\x4d')
+        (0, b'XARA')
     ]
-    pretty_name = 'pcap'
+    pretty_name = 'xara'
 
     def parse(self):
+        raise UnpackParserException('disabled')
         try:
-            self.data = pcap.Pcap.from_io(self.infile)
+            self.data = xara.Xara.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['pcap']
-
+        labels = ['xara', 'graphics']
         metadata = {}
-        metadata['count'] = len(self.data.capture.packets)
 
-        self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)
+        self.unpack_results.set_labels(labels)
