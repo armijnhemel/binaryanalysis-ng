@@ -122,8 +122,8 @@ class OpentypeFontCollectionUnpackParser(UnpackParser):
 
 
     # no need to carve from the file
-    def carve(self):
-        pass
+    #def carve(self):
+        #pass
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
