@@ -43,14 +43,24 @@ types:
           any-of: [1, 2]
       - id: ofs_partition0
         type: u4
+        valid:
+          expr: _ == 0 or _ >= len_header
       - id: ofs_partition1
         type: u4
+        valid:
+          expr: _ == 0 or _ >= len_header
       - id: ofs_partition2
         type: u4
+        valid:
+          expr: _ == 0 or _ >= len_header
       - id: offset_partition3
         type: u4
         if: version > 1
+        valid:
+          expr: _ == 0 or _ >= len_header
     instances:
+      len_header:
+        value: 'version == 1 ? 28 : 32'
       partition0:
         pos: ofs_partition0
         size: 'ofs_partition1 == 0 ? _root.preheader.len_trx - ofs_partition0 : ofs_partition1 - ofs_partition0'
