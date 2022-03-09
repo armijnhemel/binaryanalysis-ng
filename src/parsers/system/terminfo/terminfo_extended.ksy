@@ -57,6 +57,8 @@ types:
     seq:
       - id: names
         type: strz
+        valid:
+          expr: 'names.length > 0'
   boolean_section:
     seq:
       - id: flags

@@ -5,7 +5,7 @@ meta:
   ks-version: 0.9
   encoding: utf-8
   endian: le
-doc-ref: https://github.com/google/snappy/blob/master/framing_format.txt
+doc-ref: https://github.com/google/snappy/blob/main/framing_format.txt
 doc: |
   snappy's framing2 format
   
