@@ -48,16 +48,16 @@ types:
       - id: ofs_partition1
         type: u4
         valid:
-          expr: _ == 0 or _ >= len_header
+          expr: _ == 0 or (_ >= len_header and _ >= ofs_partition0)
       - id: ofs_partition2
         type: u4
         valid:
-          expr: _ == 0 or _ >= len_header
+          expr: _ == 0 or (_ >= len_header and _ >= ofs_partition1)
       - id: offset_partition3
         type: u4
         if: version > 1
         valid:
-          expr: _ == 0 or _ >= len_header
+          expr: _ == 0 or (_ >= len_header and _ >= ofs_partition2)
     instances:
       len_header:
         value: 'version == 1 ? 28 : 32'
