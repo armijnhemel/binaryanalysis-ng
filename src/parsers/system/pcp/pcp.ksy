@@ -7,7 +7,9 @@ meta:
   license: CC0-1.0
   encoding: UTF-8
   endian: be
-doc-ref: https://github.com/performancecopilot/pcp/blob/main/man/man5/LOGARCHIVE.5
+doc-ref:
+  - https://github.com/performancecopilot/pcp/blob/main/man/man5/LOGARCHIVE.5
+  - https://man7.org/linux/man-pages/man5/LOGARCHIVE.5.html
 seq:
   - id: len_record1
     type: u4

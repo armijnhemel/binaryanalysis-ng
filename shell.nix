@@ -51,6 +51,5 @@ pkgs.mkShell {
     unshield
     utillinux
     zchunk
-    zstd
   ];
 }

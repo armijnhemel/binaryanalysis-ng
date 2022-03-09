@@ -198,6 +198,8 @@ class PnmUnpackParser(UnpackParser):
                 testimg.close()
             except OSError as e:
                 raise UnpackParserException(e.args)
+            except ValueError as e:
+                raise UnpackParserException(e.args)
         else:
             temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
             os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
@@ -210,6 +212,8 @@ class PnmUnpackParser(UnpackParser):
                 testimg.load()
                 testimg.close()
             except OSError as e:
+                raise UnpackParserException(e.args)
+            except ValueError as e:
                 raise UnpackParserException(e.args)
             finally:
                 pnm_file.close()

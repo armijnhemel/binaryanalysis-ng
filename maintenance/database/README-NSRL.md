@@ -5,7 +5,7 @@ The NSRL forensics data sets can be found at:
 https://www.nist.gov/software-quality-group/national-software-reference-library-nsrl
 
 The main contents of NSRL are published as multiple ISO images, each containing
-CSV files. NSRL version 2.74 (September 2021) has the following sets:
+CSV files. NSRL version 2.76 (March 2022) has the following sets:
 
 * modern (microcomputer applications from 2010 to present)
 * android (modern Android applications)
