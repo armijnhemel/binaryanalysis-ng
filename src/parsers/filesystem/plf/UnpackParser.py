@@ -24,8 +24,6 @@
 import os
 import pathlib
 import gzip
-from UnpackParser import WrappedUnpackParser
-from bangfilesystems import unpack_plf
 
 from FileResult import FileResult
 
@@ -51,8 +49,7 @@ SECTION_TO_NAMES = {'executable': {0: 'zimage',
                                 12: 'installer.plf'}
                    }
 
-class PlfUnpackParser(WrappedUnpackParser):
-#class PlfUnpackParser(UnpackParser):
+class PlfUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'PLF!')
