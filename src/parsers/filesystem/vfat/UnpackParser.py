@@ -1,3 +1,25 @@
+# Binary Analysis Next Generation (BANG!)
+#
+# This file is part of BANG.
+#
+# BANG is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License, version 3,
+# as published by the Free Software Foundation.
+#
+# BANG is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License, version 3, along with BANG.  If not, see
+# <http://www.gnu.org/licenses/>
+#
+# Copyright Armijn Hemel
+# Licensed under the terms of the GNU Affero General Public License
+# version 3
+# SPDX-License-Identifier: AGPL-3.0-only
+
 import os
 import struct
 from . import vfat
@@ -6,6 +28,10 @@ from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from FileResult import FileResult
 from kaitaistruct import ValidationFailedError
+
+# https://en.wikipedia.org/wiki/File_Allocation_Table
+# https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system
+
 
 def get_lfn_part(record):
     # note: because python lacks a ucs-2 decoder, we use utf-16. In almost all
