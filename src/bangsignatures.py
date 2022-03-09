@@ -229,7 +229,6 @@ signaturetofunction = {
     'romfs': bangfilesystems.unpack_romfs,
     'cramfs_le': bangfilesystems.unpack_cramfs,
     'cramfs_be': bangfilesystems.unpack_cramfs,
-    'plf': bangfilesystems.unpack_plf,
 }
 
 # a lookup table to map signatures to a name for
