@@ -220,7 +220,6 @@ signaturetofunction = {
     'dahua': bangunpack.unpack_dahua,
     'xar': bangunpack.unpack_xar,
     'iso9660': bangfilesystems.unpack_iso9660,
-    'ttc': bangunpack.unpack_opentype_font_collection,
     'jffs2_little_endian': bangfilesystems.unpack_jffs2,
     'jffs2_big_endian': bangfilesystems.unpack_jffs2,
     'ext2': bangfilesystems.unpack_ext2,

@@ -7,6 +7,8 @@ meta:
 doc: |
   An open type font file collection contains data, in table format, that comprises
   multiple outline fonts.
+
+  Test files can be found in google-noto-sans-cjk-ttc-fonts (name of Fedora package)
 doc-ref:
   - https://docs.microsoft.com/en-us/typography/opentype/spec/otff#collections
 seq:
@@ -51,7 +53,7 @@ types:
       - id: index
         type: u4
     instances:
-      font:
+      offset_table:
         pos: _root.ofs_tables[index]
         type: offset_table
   offset_table:
