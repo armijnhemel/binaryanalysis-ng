@@ -34,7 +34,6 @@ import os
 import binascii
 import tempfile
 import collections
-import math
 import lzma
 import zlib
 import zipfile
