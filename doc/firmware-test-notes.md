@@ -90,3 +90,13 @@ Edimax device, uses `u-boot`, `squashfs`, `lzma`
 ## https://github.com/mrdoob/three.js.git
 
 Contains test files for ktx
+
+## 20080929182630500_MX10_Firmware.zip
+
+Contains `bflt` test files.
+
+## productattachments_files_f_i_fi8908w_firmware_11.14.1.46.zip
+
+From <https://www.foscam.nl/attachments/FI8908W_Firmware>
+
+Contains `bflt` test files (including `gzip` compressed).

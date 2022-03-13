@@ -27,6 +27,7 @@ let
     tlsh
     xxhash
     zstd
+    zstandard
   ]);
     
 in
@@ -50,6 +51,5 @@ pkgs.mkShell {
     unshield
     utillinux
     zchunk
-    zstd
   ];
 }
