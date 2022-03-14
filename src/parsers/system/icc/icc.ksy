@@ -1374,17 +1374,11 @@ types:
               - id: number_of_device_coordinates_for_each_named_colour
                 type: u4
               - id: prefix_for_each_colour_name
+                size: 32
                 type: strz
-              - id: prefix_for_each_colour_name_padding
-                type: padding_byte
-                repeat: expr
-                repeat-expr: 32 - prefix_for_each_colour_name.length
               - id: suffix_for_each_colour_name
+                size: 32
                 type: strz
-              - id: suffix_for_each_colour_name_padding
-                type: padding_byte
-                repeat: expr
-                repeat-expr: 32 - suffix_for_each_colour_name.length
               - id: named_colour_definitions
                 type: named_colour_definition
                 repeat: expr
@@ -1393,17 +1387,14 @@ types:
               named_colour_definition:
                 seq:
                   - id: root_name
+                    size: 32
                     type: strz
-                  - id: root_name_padding
-                    type: padding_byte
-                    repeat: expr
-                    repeat-expr: 32 - root_name.length
                   - id: pcs_coordinates
                     size: 6
                   - id: device_coordinates
                     type: u2
                     repeat: expr
-                    repeat-expr: _parent.count_of_named_colours
+                    repeat-expr: _parent.number_of_device_coordinates_for_each_named_colour
                     if: _parent.number_of_device_coordinates_for_each_named_colour > 0
           parametric_curve_type:
             seq:
