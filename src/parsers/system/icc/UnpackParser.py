@@ -35,8 +35,6 @@ Test files in package "colord" on for example Fedora
 
 
 import os
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_icc
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
@@ -44,16 +42,12 @@ from kaitaistruct import ValidationFailedError
 from . import icc
 
 
-#class IccUnpackParser(UnpackParser):
-class IccUnpackParser(WrappedUnpackParser):
+class IccUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (36, b'acsp')
     ]
     pretty_name = 'icc'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_icc(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         try:
