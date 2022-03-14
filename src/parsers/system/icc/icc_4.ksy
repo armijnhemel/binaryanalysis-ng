@@ -1649,6 +1649,7 @@ types:
             0x6C756D69: luminance #lumi
             0x6D656173: measurement #meas
             0x77747074: media_white_point #wtpt
+            0x6d657461: meta
             0x6E636C32: named_color_2 #ncl2
             0x72657370: output_response #resp
             0x72696730: perceptual_rendering_intent_gamut #rig0
