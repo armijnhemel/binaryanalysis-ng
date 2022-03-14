@@ -1,6 +1,6 @@
 meta:
-  id: icc_4
-  title: ICC profile, version 4
+  id: icc
+  title: ICC profile
   file-extension:
     - icc
     - icm
@@ -70,7 +70,9 @@ types:
       version_field:
         seq:
           - id: major
-            contents: [0x04]
+            type: u1
+            valid:
+              any-of: [2, 4]
           - id: minor
             type: b4
           - id: bug_fix_level
@@ -1167,7 +1169,7 @@ types:
               - id: number_of_entries
                 type: u4
               - id: curve_values
-                type: u4
+                type: u2
                 repeat: expr
                 repeat-expr: number_of_entries
                 if: number_of_entries > 1
@@ -1618,6 +1620,7 @@ types:
             0x41324230: a_to_b_0 #A2B0
             0x41324231: a_to_b_1 #A2B1
             0x41324232: a_to_b_2 #A2B2
+            0x626b7074: black_point #bkpt
             0x6258595A: blue_matrix_column #bXYZ
             0x62545243: blue_trc #bTRC
             0x42324130: b_to_a_0 #B2A0
