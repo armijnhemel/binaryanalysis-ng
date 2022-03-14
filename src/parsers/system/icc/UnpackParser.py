@@ -25,6 +25,8 @@ ICC color profile
 Specifications: www.color.org/specification/ICC1v43_2010-12.pdf
 chapter 7.
 
+Errata: https://www.color.org/specification/ICC1-2010_Cumulative_Errata_List_2020-10-14.pdf
+
 Older specifications: http://www.color.org/icc_specs2.xalter
 https://www.color.org/icc32.pdf
 

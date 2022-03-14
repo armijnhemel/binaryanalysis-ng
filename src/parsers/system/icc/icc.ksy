@@ -1155,11 +1155,8 @@ types:
               colorant:
                 seq:
                   - id: name
+                    size: 32
                     type: strz
-                  - id: padding
-                    type: padding_byte
-                    repeat: expr
-                    repeat-expr: 32 - name.length
                   - id: pcs_values
                     size: 6
           curve_type:
