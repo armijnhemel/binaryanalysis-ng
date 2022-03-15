@@ -45,6 +45,8 @@ class Ext2UnpackParser(WrappedUnpackParser):
         check_condition(shutil.which('e2ls') is not None, "e2ls program not found")
         check_condition(shutil.which('e2cp') is not None, "e2cp program not found")
 
+        # parse the superblock
+
     # no need to carve from the file
     def carve(self):
         pass
