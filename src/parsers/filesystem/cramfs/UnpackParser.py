@@ -33,10 +33,6 @@ from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
-from UnpackParser import WrappedUnpackParser
-from bangfilesystems import unpack_cramfs
-
-#class CramfsUnpackParser(WrappedUnpackParser):
 class CramfsUnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -44,9 +40,6 @@ class CramfsUnpackParser(UnpackParser):
         (0, b'\x28\xcd\x3d\x45')
     ]
     pretty_name = 'cramfs'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_cramfs(fileresult, scan_environment, offset, unpack_dir)
 
     # a wrapper around shutil.copy2 to copy symbolic links instead of
     # following them and copying the data.
