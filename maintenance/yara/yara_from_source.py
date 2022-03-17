@@ -93,7 +93,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             counter = 1
             for s in sorted(strings):
                 try:
-                    p.write("        $string%d = \"%s\"\n" % (counter, s))
+                    p.write("        $string%d = \"%s\" fullword\n" % (counter, s))
                     counter += 1
                 except:
                     pass
@@ -103,7 +103,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             p.write("\n        // Extracted functions\n\n")
             counter = 1
             for s in sorted(functions):
-                p.write("        $function%d = \"%s\"\n" % (counter, s))
+                p.write("        $function%d = \"%s\" fullword\n" % (counter, s))
                 counter += 1
 
         if variables != set():
@@ -111,7 +111,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             p.write("\n        // Extracted variables\n\n")
             counter = 1
             for s in sorted(variables):
-                p.write("        $variable%d = \"%s\"\n" % (counter, s))
+                p.write("        $variable%d = \"%s\" fullword\n" % (counter, s))
                 counter += 1
 
         # TODO: find good heuristics of how many identifiers should be matched
