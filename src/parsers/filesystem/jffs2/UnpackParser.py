@@ -314,11 +314,11 @@ class Jffs2UnpackParser(UnpackParser):
                 buf = self.infile.read(inodenamelength)
                 if len(buf) != inodenamelength:
                     break
-
                 try:
                     inode_name = buf.decode()
                 except UnicodeDecodeError:
                     break
+
                 # compute the CRC of the name
                 computedcrc = (zlib.crc32(buf, -1) ^ -1) & 0xffffffff
                 if namecrc != computedcrc:
@@ -517,7 +517,7 @@ class Jffs2UnpackParser(UnpackParser):
                     else:
                         break
 
-                    # flush any remaining data
+                    # record how much data was read and use for sanity checks
                     inode_to_write_offset[inode_number] = writeoffset + decompressed_size
 
             self.infile.seek(cur_offset + inode_size)
@@ -707,7 +707,7 @@ class Jffs2UnpackParser(UnpackParser):
                         unpackedsize = self.infile.tell() - self.offset
                     continue
 
-                # version number, should not be a duplicate
+                # version number
                 buf = self.infile.read(4)
                 inodeversion = int.from_bytes(buf, byteorder=self.byteorder)
 
