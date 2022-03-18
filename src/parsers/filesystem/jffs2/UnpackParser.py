@@ -78,7 +78,6 @@ LZMA_LP = 0
 LZMA_LC = 0
 
 
-
 #class Jffs2UnpackParser(WrappedUnpackParser):
 class Jffs2UnpackParser(UnpackParser):
     extensions = []
@@ -464,9 +463,9 @@ class Jffs2UnpackParser(UnpackParser):
                         # LZMA decompressor with custom filter, as the data
                         # is stored without LZMA headers.
                         jffs_filters = [{'id': lzma.FILTER_LZMA1,
-                                         'dict_size': lzma_dict_size,
-                                         'lc': lzma_lc, 'lp': lzma_lp,
-                                         'pb': lzma_pb}]
+                                         'dict_size': LZMA_DICT_SIZE,
+                                         'lc': LZMA_LC, 'lp': LZMA_LP,
+                                         'pb': LZMA_PB}]
 
                         decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=jffs_filters)
 
@@ -808,9 +807,9 @@ class Jffs2UnpackParser(UnpackParser):
                         # LZMA decompressor with custom filter, as the data
                         # is stored without LZMA headers.
                         jffs_filters = [{'id': lzma.FILTER_LZMA1,
-                                         'dict_size': lzma_dict_size,
-                                         'lc': lzma_lc, 'lp': lzma_lp,
-                                         'pb': lzma_pb}]
+                                         'dict_size': LZMA_DICT_SIZE,
+                                         'lc': LZMA_LC, 'lp': LZMA_LP,
+                                         'pb': LZMA_PB}]
 
                         decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=jffs_filters)
                         outfile.write(decompressor.decompress(buf))
