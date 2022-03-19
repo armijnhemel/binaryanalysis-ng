@@ -9,19 +9,20 @@
 #
 # https://www.nist.gov/software-quality-group/national-software-reference-library-nsrl
 #
-# Copyright 2018 - 2021 - Armijn Hemel
+# Copyright 2018-2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import sys
-import os
-import argparse
-import pathlib
 import csv
+import os
+import pathlib
+import sys
 
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
 import psycopg2.extras
+
+import click
 
 # import YAML module for the configuration
 from yaml import load
@@ -40,56 +41,29 @@ encodings_translate = ['utf-8', 'latin-1', 'euc_jp', 'euc_jis_2004',
                        'shift_jis_2004', 'shift_jisx0213']
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    parser.add_argument("-d", "--directory", action="store", dest="nsrldir",
-                        help="path to directory with NSRL directory files",
-                        metavar="DIR")
-    parser.add_argument("-t", "--no-decode", action="store_false", dest="decode",
-                        help="disable decoding files")
-    args = parser.parse_args()
-
+@click.command(short_help='process NSRL files and store results in a database')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.option('--directory', '-d', 'nsrldir', required=True, help='NSRL files directory', type=click.Path(exists=True))
+@click.option('--no-decode', '-t', 'decode', help='disable decoding files', default=True, flag_value=False, is_flag=True)
+def main(config_file, nsrldir, decode):
     # sanity checks for the directory
-    if args.nsrldir is None:
-        parser.error("No NSRL directory provided, exiting")
-
-    nsrldir = pathlib.Path(args.nsrldir)
-
-    # the configuration file should exist ...
-    if not nsrldir.exists():
-        parser.error("Directory %s does not exist, exiting." % args.nsrldir)
+    nsrldir = pathlib.Path(nsrldir)
 
     # ... and should be a real directory
     if not nsrldir.is_dir():
-        parser.error("%s is not a regular file, exiting." % args.nsrldir)
+        print("%s is not a regular file, exiting." % nsrldir, file=sys.stderr)
+        sys.exit(1)
 
-    nsrlfiles = os.listdir(args.nsrldir)
+    nsrlfiles = os.listdir(nsrldir)
 
     for i in ['NSRLFile.txt', 'NSRLMfg.txt', 'NSRLOS.txt', 'NSRLProd.txt']:
         if i not in nsrlfiles:
-            print("Mandatory file %s not found in %s, exiting" % (i, args.nsrldir), file=sys.stderr)
+            print("Mandatory file %s not found in %s, exiting" % (i, nsrldir), file=sys.stderr)
             sys.exit(1)
-
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    cfg = pathlib.Path(args.cfg)
-
-    # the configuration file should exist ...
-    if not cfg.exists():
-        parser.error("File %s does not exist, exiting." % args.cfg)
-
-    # ... and should be a real file
-    if not cfg.is_file():
-        parser.error("%s is not a regular file, exiting." % args.cfg)
 
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(args.cfg, 'r')
-        config = load(configfile, Loader=Loader)
+        config = load(config_file, Loader=Loader)
     except:
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
@@ -143,10 +117,10 @@ def main():
     # 3. decode all the data to UTF-8
     # 4. write the decode data
 
-    if args.decode:
+    if decode:
         for i in ['NSRLFile.txt', 'NSRLMfg.txt', 'NSRLOS.txt', 'NSRLProd.txt']:
-            checkfile = open(os.path.join(args.nsrldir, i), 'rb')
-            decodedfilename = os.path.join(args.nsrldir, '%s-translated' % i)
+            checkfile = open(os.path.join(nsrldir, i), 'rb')
+            decodedfilename = os.path.join(nsrldir, '%s-translated' % i)
             decodedfile = open(decodedfilename, 'w')
 
             # read chunks of 10 million bytes
@@ -194,7 +168,7 @@ def main():
         nsrlfile = 'NSRLFile.txt'
 
     # then process all the (translated files), start with NSRLMfg
-    decodedfilename = os.path.join(args.nsrldir, nsrlmfg)
+    decodedfilename = os.path.join(nsrldir, nsrlmfg)
     nsrfile = open(decodedfilename, 'r')
 
     # skip the first line
@@ -238,7 +212,7 @@ def main():
     nsrfile.close()
 
     # then NSRLOS.txt
-    decodedfilename = os.path.join(args.nsrldir, nsrlos)
+    decodedfilename = os.path.join(nsrldir, nsrlos)
     nsrfile = open(decodedfilename, 'r')
 
     # skip the first line
@@ -285,7 +259,7 @@ def main():
     nsrfile.close()
 
     # then NSRLProd.txt
-    decodedfilename = os.path.join(args.nsrldir, nsrlprod)
+    decodedfilename = os.path.join(nsrldir, nsrlprod)
     nsrfile = open(decodedfilename, 'r')
 
     # skip the first line
@@ -332,7 +306,7 @@ def main():
     nsrfile.close()
 
     # finally NSRLFile.txt
-    decodedfilename = os.path.join(args.nsrldir, nsrlfile)
+    decodedfilename = os.path.join(nsrldir, nsrlfile)
     nsrfile = open(decodedfilename, 'r')
 
     # skip the first line

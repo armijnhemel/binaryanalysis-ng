@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021 - Armijn Hemel
+# Copyright 2021-2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -11,19 +11,19 @@ This script processes BANG results and generates YARA rules for
 dynamically linked ELF files.
 '''
 
-import sys
-import os
-import argparse
-import pathlib
-import tempfile
 import datetime
-import pickle
-import re
-import uuid
 import multiprocessing
+import os
+import pathlib
+import pickle
 import queue
+import re
+import sys
+import tempfile
+import uuid
 
 import packageurl
+import click
 
 # import YAML module for the configuration
 from yaml import load
@@ -75,7 +75,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             counter = 1
             for s in sorted(strings):
                 try:
-                    p.write("        $string%d = \"%s\"\n" % (counter, s))
+                    p.write("        $string%d = \"%s\" fullword\n" % (counter, s))
                     counter += 1
                 except:
                     pass
@@ -85,7 +85,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             p.write("\n        // Extracted functions\n\n")
             counter = 1
             for s in sorted(functions):
-                p.write("        $function%d = \"%s\"\n" % (counter, s))
+                p.write("        $function%d = \"%s\" fullword\n" % (counter, s))
                 counter += 1
 
         if variables != set():
@@ -93,7 +93,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             p.write("\n        // Extracted variables\n\n")
             counter = 1
             for s in sorted(variables):
-                p.write("        $variable%d = \"%s\"\n" % (counter, s))
+                p.write("        $variable%d = \"%s\" fullword\n" % (counter, s))
                 counter += 1
 
         p.write('\n    condition:\n')
@@ -130,8 +130,8 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
 def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                       processlock, processed_files, yara_env):
 
-    generate_identifier_files = False
     heuristics = yara_env['heuristics']
+    generate_identifier_files = yara_env['generate_identifier_files']
     while True:
         bang_directory = yaraqueue.get()
         bang_pickle = bang_directory / 'bang.pickle'
@@ -364,58 +364,32 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
         yaraqueue.task_done()
 
 
-def main(argv):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    parser.add_argument("-r", "--result-directory", action="store", dest="result_directory",
-                        help="path to BANG result directories", metavar="DIR")
-    parser.add_argument("-i", "--identifiers", action="store", dest="identifiers",
-                        help="path to pickle with low quality identifiers", metavar="FILE")
-    args = parser.parse_args()
+@click.command(short_help='process BANG result files and output YARA')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.option('--result-directory', '-r', help='BANG result directories', type=click.Path(exists=True), required=True)
+@click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
+def main(config_file, result_directory, identifiers):
 
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    cfg = pathlib.Path(args.cfg)
-
-    # the configuration file should exist ...
-    if not cfg.exists():
-        parser.error("File %s does not exist, exiting." % args.cfg)
-
-    # ... and should be a real file
-    if not cfg.is_file():
-        parser.error("%s is not a regular file, exiting." % args.cfg)
-
-    # sanity checks for the result directory
-    if args.result_directory is None:
-        parser.error("No result directory provided, exiting")
-
-    result_directory = pathlib.Path(args.result_directory)
-
-    # the result directory should exist ...
-    if not result_directory.exists():
-        parser.error("File %s does not exist, exiting." % args.result_directory)
+    result_directory = pathlib.Path(result_directory)
 
     # ... and should be a real directory
     if not result_directory.is_dir():
-        parser.error("%s is not a directory, exiting." % args.result_directory)
+        print("Error: %s is not a directory, exiting." % result_directory, file=sys.stderr)
+        sys.exit(1)
 
     lq_identifiers = {'elf': {'functions': [], 'variables': []},
                       'dex': {'functions': [], 'variables': []}}
 
     # read the pickle with identifiers
-    if args.identifiers is not None:
+    if identifiers is not None:
         try:
-            lq_identifiers = pickle.load(open(args.identifiers, 'rb'))
+            lq_identifiers = pickle.load(identifiers)
         except:
             pass
 
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(args.cfg, 'r')
-        config = load(configfile, Loader=Loader)
+        config = load(config_file, Loader=Loader)
     except (YAMLError, PermissionError):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
@@ -591,6 +565,8 @@ def main(argv):
     # tags = ['debian', 'debian11']
     tags = []
 
+    generate_identifier_files = False
+
     yara_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
                 'string_max_cutoff': string_max_cutoff,
                 'identifier_cutoff': identifier_cutoff,
@@ -598,7 +574,8 @@ def main(argv):
                 'ignore_weak_symbols': ignore_weak_symbols,
                 'lq_identifiers': lq_identifiers, 'tags': tags,
                 'max_identifiers': max_identifiers,
-                'heuristics': heuristics}
+                'heuristics': heuristics,
+                'generate_identifier_files': generate_identifier_files}
 
     # create processes for unpacking archives
     for i in range(0, threads):
@@ -620,4 +597,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()

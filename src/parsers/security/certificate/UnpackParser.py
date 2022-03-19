@@ -126,7 +126,7 @@ class CertificateUnpackParser(UnpackParser):
                 break
 
             # make sure there is a little bit of overlap
-            if self.infile.tell() == self.fileresult.filesize:
+            if self.infile.tell() + self.offset == self.fileresult.filesize:
                 break
             self.infile.seek(-15, os.SEEK_CUR)
             self.pos = self.infile.tell()

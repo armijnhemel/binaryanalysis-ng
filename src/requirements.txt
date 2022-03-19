@@ -2,7 +2,7 @@ deepdiff
 pytest
 kaitaistruct==0.9
 parameterized
-python-tlsh
+py-tlsh
 tinycss2
 python-snappy
 Pillow

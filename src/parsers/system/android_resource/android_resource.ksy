@@ -53,6 +53,8 @@ types:
         type: u2
       - id: len_chunk
         type: u4
+        valid:
+          max: _root._io.size
 
   # Table
   table:
@@ -150,15 +152,23 @@ types:
     seq:
       - id: num_strings
         type: u4
+        valid:
+          max: _root._io.size / 4
       - id: num_styles
         type: u4
+        valid:
+          max: _root._io.size / 4
       - id: flags
         type: u4
       - id: ofs_strings
         type: u4
+        valid:
+          max: _root._io.size
         doc: Index from header of the string data.
       - id: ofs_styles
         type: u4
+        valid:
+          max: _root._io.size
         doc: Index from header of the style data.
     instances:
       is_sorted:

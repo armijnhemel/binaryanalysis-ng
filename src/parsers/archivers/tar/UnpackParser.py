@@ -59,6 +59,10 @@ class TarUnpackParser(UnpackParser):
             # TODO: rename files properly with minimum chance of clashes
             if tarinfo.name in tar_filenames:
                 pass
+            if tarinfo.name == '':
+                pass
+            if '\x00' in tarinfo.name:
+                pass
             tar_filenames.add(tarinfo.name)
 
         # There could be additional padding as some tar implementations
@@ -103,7 +107,15 @@ class TarUnpackParser(UnpackParser):
                 out_labels.append('directory')
 
             if tarinfo.isfile() or tarinfo.issym() or tarinfo.isdir() or tarinfo.islnk():
-                self.unpacktar.extract(tarinfo, path=self.rel_unpack_dir)
+                if tarinfo.name == '':
+                    # empty name, TODO
+                    # test file pax-global-records.tar from golang-1.15-src_1.15.9-6_amd64.deb
+                    continue
+                try:
+                    self.unpacktar.extract(tarinfo, path=self.rel_unpack_dir)
+                except ValueError:
+                    # embedded NUL bytes could cause the extractor to fail
+                    continue
 
                 # tar can change permissions after unpacking, so change
                 # them back to something a bit more sensible
