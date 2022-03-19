@@ -21,6 +21,9 @@ seq:
   - id: files
     size: len_file - _io.pos
     type: files
+instances:
+  files_offset:
+    value: magic._sizeof + len_file._sizeof + checksum._sizeof + volume_name.length + 1 + padding.length
 types:
   files:
     seq:
