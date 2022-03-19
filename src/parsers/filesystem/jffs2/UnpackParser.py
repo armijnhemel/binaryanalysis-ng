@@ -20,6 +20,12 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# JFFS2 https://en.wikipedia.org/wiki/JFFS2
+# JFFS2 is a file system that was used on earlier embedded Linux
+# system, although it is no longer the first choice for modern systems,
+# where for example UBI/UBIFS are chosen.
+
+
 import lzma
 import os
 import pathlib
