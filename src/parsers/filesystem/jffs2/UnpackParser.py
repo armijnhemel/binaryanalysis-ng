@@ -33,9 +33,6 @@ from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
-from UnpackParser import WrappedUnpackParser
-from bangfilesystems import unpack_jffs2
-
 # the various node types in JFFS2 are:
 #
 # * directory entry
@@ -78,7 +75,6 @@ LZMA_LP = 0
 LZMA_LC = 0
 
 
-#class Jffs2UnpackParser(WrappedUnpackParser):
 class Jffs2UnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -86,9 +82,6 @@ class Jffs2UnpackParser(UnpackParser):
         (0, b'\x19\x85')
     ]
     pretty_name = 'jffs2'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_jffs2(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         # read the magic of the first inode to see if it is a little endian
@@ -801,7 +794,11 @@ class Jffs2UnpackParser(UnpackParser):
                     elif compression_used == COMPR_ZLIB:
                         # the data is zlib compressed, so first decompress
                         # before writing
-                        outfile.write(zlib.decompress(buf))
+                        uncompressed_data = zlib.decompress(buf)
+                        if len(uncompressed_data) > decompressed_size:
+                            outfile.write(uncompressed_data[:decompressed_size])
+                        else:
+                            outfile.write(uncompressed_data)
                     elif compression_used == COMPR_LZMA:
                         # The data is LZMA compressed, so create a
                         # LZMA decompressor with custom filter, as the data
@@ -812,7 +809,11 @@ class Jffs2UnpackParser(UnpackParser):
                                          'pb': LZMA_PB}]
 
                         decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=jffs_filters)
-                        outfile.write(decompressor.decompress(buf))
+                        uncompressed_data = decompressor.decompress(buf)
+                        if len(uncompressed_data) > decompressed_size:
+                            outfile.write(uncompressed_data[:decompressed_size])
+                        else:
+                            outfile.write(uncompressed_data)
                     elif compression_used == COMPR_RTIME:
                         # From: https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py
                         # First initialize the positions, set to 0
