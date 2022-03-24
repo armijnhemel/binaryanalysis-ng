@@ -8,7 +8,6 @@
 
 '''
 This script processes Debian Packages.gz files
-dynamically linked ELF files.
 '''
 
 import json
@@ -26,11 +25,7 @@ except ImportError:
 
 
 
-class DebPackage():
-    def __init__(self):
-        pass
-
-@click.command(short_help='process Debian Packages.gz and store in Meilisearch')
+@click.command(short_help='process Debian Packages and store in Meilisearch')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
 @click.option('--packages-file', '-p', required=True, help='Debian Package (uncompressed)', type=click.File('r'))
 def main(config_file, packages_file):
@@ -62,7 +57,6 @@ def main(config_file, packages_file):
         for i in packages_file:
             if i.startswith('Package:'):
                 # store the old package
-                # TODO: store as DebPackage object
                 if cur_pkg != '':
                     deb_pkg = {'package': cur_pkg, 'description': cur_description,
                                'section': cur_section, 'homepage': cur_homepage,
@@ -93,9 +87,7 @@ def main(config_file, packages_file):
 
     deb_packages.append(deb_pkg)
 
-    # TODO: make configurable
-    with open('/tmp/deb.json', 'w') as deb_json:
-        json.dump(deb_packages, deb_json)
+    print(json.dumps(deb_packages, indent=4))
 
 if __name__ == "__main__":
     main()
