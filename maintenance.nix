@@ -9,6 +9,7 @@ let
     click
     cxxfilt
     defusedxml
+    meilisearch
     packageurl-python
     psycopg2
     pytest
