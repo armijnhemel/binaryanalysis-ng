@@ -115,6 +115,7 @@ types:
       - id: media_code
         -orig-id: BPB_Media
         type: u1
+        enum: media_descriptor
         doc: Media descriptor
       - id: ls_per_fat
         -orig-id: BPB_FATSz16
@@ -290,4 +291,20 @@ types:
         size: 32
         repeat: expr
         repeat-expr: _root.boot_sector.bpb.max_root_dir_rec
-
+enums:
+  media_descriptor:
+    0xe5: drdos_8inch
+    0xed: tandy2000_525inch
+    0xee: drdos_nonstandard
+    0xef: drdos_superfloppy
+    0xf0: standard_35inch
+    0xf4: altos_double_density
+    0xf5: altos_fixed_disk
+    0xf8: media_f8
+    0xf9: media_f9
+    0xfa: media_fa
+    0xfb: double_sided_640k
+    0xfc: single_sided_180k
+    0xfd: media_fd
+    0xfe: media_fe
+    0xff: media_ff
