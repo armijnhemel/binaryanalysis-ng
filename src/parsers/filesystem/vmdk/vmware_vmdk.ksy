@@ -64,6 +64,8 @@ types:
         doc: Maximum number of sectors in a given image file (capacity)
       - id: size_grain
         type: u8
+        valid:
+          min: 8
       - id: start_descriptor
         type: u8
         doc: Embedded descriptor file start sector number (0 if not available)
@@ -113,6 +115,7 @@ types:
         type: str
         encoding: UTF-8
         io: _root._io
+        if: not start_descriptor == 0
       grain_primary:
         pos: start_primary_grain * _root.len_sector
         size: size_grain * _root.len_sector
