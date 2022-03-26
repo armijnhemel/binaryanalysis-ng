@@ -83,6 +83,82 @@ class RomfsUnpackParser(WrappedUnpackParser):
         # now go back to the start of the files and parse again
         self.infile.seek(self.data.files_offset)
 
+        # keep a mapping from offsets to parent names
+        offset_to_parent = {}
+
+        # and a mapping from offsets to current names (used for hard links)
+        offset_to_name = {}
+
+        # keep a deque with which offset/parent directory pairs
+        offsets = collections.deque()
+
+        # then the file headers, with data
+        curoffset = self.infile.tell() - offset
+        curcwd = ''
+        offsets.append((curoffset, curcwd))
+
+        # now keep processing offsets, until none
+        # are left to process.
+        maxoffset = self.infile.tell() - offset
+        while True:
+            try:
+                (curoffset, curcwd) = offsets.popleft()
+            except:
+                break
+            self.infile.seek(offset + curoffset)
+            buf = self.infile.read(4)
+            check_condition(len(buf) == 4, "not enough data for file data")
+
+            # flag to see if the file is executable, can be ignored for now
+            execflag = int.from_bytes(buf, byteorder='big') & 8
+
+            # mode info, ignore for now
+            modeinfo = int.from_bytes(buf, byteorder='big') & 7
+
+            # spec.info
+            buf = self.infile.read(4)
+            check_condition(len(buf) == 4, "not enough data for file special info")
+
+            specinfo = int.from_bytes(buf, byteorder='big')
+
+            # sanity checks
+            if modeinfo == 1:
+                pass
+
+            # read the file size
+            buf = self.infile.read(4)
+            check_condition(len(buf) == 4, "not enough data for file size")
+
+            inode_size = int.from_bytes(buf, byteorder='big')
+
+            # checksum, not used
+            buf = self.infile.read(4)
+            check_condition(len(buf) == 4, "not enough data for file checksum")
+
+            # file name, 16 byte boundary, padded
+            inodename = b''
+            while True:
+                buf = self.infile.read(16)
+                check_condition(len(buf) == 16, "not enough data for file name")
+                inodename += buf
+                if b'\x00' in buf:
+                    break
+
+            try:
+                inodename = inodename.split(b'\x00', 1)[0].decode()
+            except:
+                raise UnpackParserException('invalid file name')
+
+            # the file data cannot be outside of the file
+            check_condition(self.infile.tell() + inode_size <= self.fileresult.filesize,
+                            "file cannot be outside of file")
+
+            if inodename != '.' and inodename != '..':
+                offsettoname[curoffset] = inodename
+
+
+
+
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.len_file
 
