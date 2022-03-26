@@ -11,6 +11,7 @@ meta:
 doc-ref:
  - 'https://github.com/libyal/libvmdk/blob/master/documentation/VMWare%20Virtual%20Disk%20Format%20(VMDK).asciidoc#41-file-header'
  - https://web.archive.org/web/20210308200012/https://www.vmware.com/support/developer/vddk/vmdk_50_technote.pdf
+ - 'https://www.vmware.com/app/vmdk/?src=vmdk'
 seq:
   - id: header
     type: header
