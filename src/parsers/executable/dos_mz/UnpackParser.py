@@ -63,7 +63,7 @@ class DosMzClassUnpackParser(UnpackParser):
         # DOS MZ header and payload, example: many FreeDOS programs
         self.has_coff = False
         if self.end_of_data + self.offset != self.fileresult.filesize:
-            if self.data.body.startswith(b'go32stub, v 2.04'):
+            if self.data.body.startswith(b'go32stub, v 2.0'):
                 self.extender = 'DJGPP go32'
                 self.has_coff = True
 
