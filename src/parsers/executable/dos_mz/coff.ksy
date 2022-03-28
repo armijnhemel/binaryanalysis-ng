@@ -22,6 +22,7 @@ instances:
   symbol_table_and_string_table:
     pos: header.ofs_symbol_table
     type: symbol_table_and_string_table(header.num_symbols)
+    if: header.ofs_symbol_table != 0
 types:
   header:
     seq:
