@@ -42,6 +42,18 @@ types:
           any-of: [0, 28]
       - id: flags
         type: u2
+    instances:
+      # http://www.delorie.com/djgpp/doc/coff/filhdr.html
+      has_relocation_information:
+        value: flags & 0x01 != 0x01
+      is_executable:
+        value: flags & 0x02 == 0x02
+      line_numbers_removed:
+        value: flags & 0x04 == 0x04
+      local_symbols_removed:
+        value: flags & 0x08 == 0x08
+      is_32_bit:
+        value: flags & 0x100 == 0x100
   optional_header:
     seq:
       - id: magic
