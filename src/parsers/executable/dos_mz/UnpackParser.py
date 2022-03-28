@@ -63,7 +63,7 @@ class DosMzClassUnpackParser(UnpackParser):
         # DOS MZ header and payload, example: many FreeDOS programs
         self.has_coff = False
         if self.end_of_data + self.offset != self.fileresult.filesize:
-            if self.data.body.startswith(b'go32stub, v 2.04'):
+            if self.data.body.startswith(b'go32stub, v 2.0'):
                 self.extender = 'DJGPP go32'
                 self.has_coff = True
 
@@ -88,12 +88,13 @@ class DosMzClassUnpackParser(UnpackParser):
                                         "section data outside of file")
                         self.coff_size = max(self.coff_size, section.ofs_line_number_table)
 
-                symbol_size = self.coff.header.num_symbols * 18 + self.coff.symbol_table_and_string_table.len_string_table
+                if self.coff.symbol_table_and_string_table is not None:
+                    symbol_size = self.coff.header.num_symbols * 18 + self.coff.symbol_table_and_string_table.len_string_table
 
-                # force read symbols
-                for s in self.coff.symbol_table_and_string_table.string_table.strings:
-                    pass
-                self.coff_size = max(self.coff_size, self.coff.header.ofs_symbol_table + symbol_size)
+                    # force read symbols
+                    for s in self.coff.symbol_table_and_string_table.string_table.strings:
+                        pass
+                    self.coff_size = max(self.coff_size, self.coff.header.ofs_symbol_table + symbol_size)
             except (Exception, ValidationFailedError) as e:
                 self.has_coff = False
 
@@ -111,7 +112,8 @@ class DosMzClassUnpackParser(UnpackParser):
         if self.has_coff:
             labels.append('coff')
             labels.append('DOS extender')
-            metadata['symbol_strings'] = self.coff.symbol_table_and_string_table.string_table.strings
+            if self.coff.symbol_table_and_string_table is not None:
+                metadata['symbol_strings'] = self.coff.symbol_table_and_string_table.string_table.strings
             metadata['extender'] = self.extender
 
         self.unpack_results.set_metadata(metadata)
