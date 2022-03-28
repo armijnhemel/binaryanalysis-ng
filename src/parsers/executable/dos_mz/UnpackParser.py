@@ -96,7 +96,6 @@ class DosMzClassUnpackParser(UnpackParser):
                         pass
                     self.coff_size = max(self.coff_size, self.coff.header.ofs_symbol_table + symbol_size)
             except (Exception, ValidationFailedError) as e:
-                print(e)
                 self.has_coff = False
 
     def calculate_unpacked_size(self):
