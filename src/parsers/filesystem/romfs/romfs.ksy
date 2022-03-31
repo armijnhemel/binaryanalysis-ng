@@ -13,7 +13,7 @@ seq:
     doc: The number of accessible bytes in this fs.
   - id: checksum
     type: u4
-    doc: The checksum of the FIRST 512 BYTES.
+    doc: The checksum of the first 512 bytes.
   - id: volume_name
     type: strz
   - id: padding
