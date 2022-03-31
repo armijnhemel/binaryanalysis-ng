@@ -1,0 +1,6 @@
+click
+Flask
+gevent
+gunicorn
+redis
+celery

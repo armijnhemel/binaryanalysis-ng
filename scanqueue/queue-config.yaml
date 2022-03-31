@@ -1,0 +1,7 @@
+---
+config:
+    # directory for uploads
+    uploads: /home/armijn/uploads
+redis:
+    host: 127.0.0.1
+    port: 6379
