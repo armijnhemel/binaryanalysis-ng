@@ -45,7 +45,7 @@ types:
       - id: checksum
         type: u4
         doc: Covering the meta data, including the file name, and padding
-      - id: file_name
+      - id: name
         type: strz
       - id: padding1
         size: -_io.pos % 16
