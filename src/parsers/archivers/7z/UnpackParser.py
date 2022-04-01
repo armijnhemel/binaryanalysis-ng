@@ -70,12 +70,43 @@ class SevenzipUnpackParser(UnpackParser):
         check_condition(self.data.header.start_header_crc == computed_crc,
                         "invalid start header CRC")
 
+        self.encrypted = False
+
         # header is 32 bytes
         self.unpacked_size = 32
 
         # then add the next header offset and length
         self.unpacked_size += self.data.header.start_header.ofs_next_header
         self.unpacked_size += self.data.header.start_header.len_next_header
+
+        # check if the file starts at offset 0. If not, carve the
+        # file first, as 7z tries to be smart and look at
+        # all data in a file
+        havetmpfile = False
+        if not (self.offset == 0 and self.fileresult.filesize == self.unpacked_size):
+            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            havetmpfile = True
+            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
+            os.fdopen(temporary_file[0]).close()
+
+        if havetmpfile:
+            p = subprocess.Popen(['7z', 'l', '-y', '-p', '', temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            p = subprocess.Popen(['7z', 'l', '-y', '-p', '', self.fileresult.filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        (outputmsg, errormsg) = p.communicate()
+
+        if havetmpfile:
+            os.unlink(temporary_file[1])
+
+        if p.returncode != 0:
+            if p.returncode == 2:
+                if b'password' in errormsg:
+                    self.encrypted = True
+                else:
+                    raise UnpackParserException("Cannot unpack 7z")
+            else:
+                raise UnpackParserException("Cannot unpack 7z")
 
     # no need to carve from the file
     def carve(self):
@@ -87,46 +118,49 @@ class SevenzipUnpackParser(UnpackParser):
 
     def unpack(self):
         unpacked_files = []
-        unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
+        if not self.encrypted:
+            unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
 
-        # check if the file starts at offset 0. If not, carve the
-        # file first, as 7z tries to be smart and unpack
-        # all data in a file
-        havetmpfile = False
-        if not (self.offset == 0 and self.fileresult.filesize == self.unpacked_size):
-            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
-            havetmpfile = True
-            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
-            os.fdopen(temporary_file[0]).close()
+            # check if the file starts at offset 0. If not, carve the
+            # file first, as 7z tries to be smart and unpack
+            # all data in a file
+            havetmpfile = False
+            if not (self.offset == 0 and self.fileresult.filesize == self.unpacked_size):
+                temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+                havetmpfile = True
+                os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
+                os.fdopen(temporary_file[0]).close()
 
-        if havetmpfile:
-            p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        else:
-            p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', self.fileresult.filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if havetmpfile:
+                p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', self.fileresult.filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        (outputmsg, errormsg) = p.communicate()
+            (outputmsg, errormsg) = p.communicate()
 
-        if havetmpfile:
-            os.unlink(temporary_file[1])
+            if havetmpfile:
+                os.unlink(temporary_file[1])
 
-        if p.returncode != 0:
-            return unpacked_files
+            if p.returncode != 0:
+                return unpacked_files
 
-        # walk the results directory
-        for result in unpackdir_full.glob('**/*'):
-            # first change the permissions
-            result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            # walk the results directory
+            for result in unpackdir_full.glob('**/*'):
+                # first change the permissions
+                result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
-            # then add the file to the result set
-            file_path = result.relative_to(unpackdir_full)
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set())
-            unpacked_files.append(fr)
+                # then add the file to the result set
+                file_path = result.relative_to(unpackdir_full)
+                fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set())
+                unpacked_files.append(fr)
 
         return unpacked_files
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = ['7z', 'compressed', 'archive']
+        if self.encrypted:
+            labels.append('encrypted')
         metadata = {}
 
         self.unpack_results.set_metadata(metadata)

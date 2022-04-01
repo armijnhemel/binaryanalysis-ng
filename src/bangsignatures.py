@@ -220,7 +220,6 @@ signaturetofunction = {
     'xar': bangunpack.unpack_xar,
     'iso9660': bangfilesystems.unpack_iso9660,
     'ext2': bangfilesystems.unpack_ext2,
-    'vmdk': bangfilesystems.unpack_vmdk,
     'pdf': bangunpack.unpack_pdf,
     'romfs': bangfilesystems.unpack_romfs,
 }
