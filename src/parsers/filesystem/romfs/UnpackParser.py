@@ -27,25 +27,19 @@ import pathlib
 
 from FileResult import FileResult
 
-from UnpackParser import WrappedUnpackParser
-from bangfilesystems import unpack_romfs
-
 from UnpackParser import UnpackParser, check_condition
+from UnpackParser import OffsetInputFile
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import romfs
 
 
-#class RomfsUnpackParser(UnpackParser):
-class RomfsUnpackParser(WrappedUnpackParser):
+class RomfsUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'-rom1fs-')
     ]
     pretty_name = 'romfs'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_romfs(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         # first parse with Kaitai Struct, then with a regular parser.
@@ -83,84 +77,160 @@ class RomfsUnpackParser(WrappedUnpackParser):
         # now go back to the start of the files and parse again
         self.infile.seek(self.data.files_offset)
 
-        # keep a mapping from offsets to parent names
-        offset_to_parent = {}
-
         # and a mapping from offsets to current names (used for hard links)
-        offset_to_name = {}
+        self.offset_to_name = {}
 
         # keep a deque with which offset/parent directory pairs
         offsets = collections.deque()
 
         # then the file headers, with data
-        curoffset = self.infile.tell() - offset
-        curcwd = ''
+        curoffset = self.infile.tell()
+        curcwd = pathlib.Path('')
         offsets.append((curoffset, curcwd))
 
         # now keep processing offsets, until none
         # are left to process.
-        maxoffset = self.infile.tell() - offset
         while True:
+            # wrap, parse single kaitaistruct.from_io()
             try:
                 (curoffset, curcwd) = offsets.popleft()
             except:
                 break
-            self.infile.seek(offset + curoffset)
-            buf = self.infile.read(4)
-            check_condition(len(buf) == 4, "not enough data for file data")
+            romfs_fileheader = OffsetInputFile(self.infile.infile, curoffset + self.offset)
+            romfs_fileheader.seek(0)
+            file_header = romfs.Romfs.Fileheader.from_io(romfs_fileheader)
+            check_condition(romfs_fileheader.tell() + curoffset <= self.data.len_file,
+                            "file cannot be outside of romfs")
 
-            # flag to see if the file is executable, can be ignored for now
-            execflag = int.from_bytes(buf, byteorder='big') & 8
+            if file_header.name != '.' and file_header.name != '..':
+                self.offset_to_name[curoffset] = curcwd / file_header.name
 
-            # mode info, ignore for now
-            modeinfo = int.from_bytes(buf, byteorder='big') & 7
-
-            # spec.info
-            buf = self.infile.read(4)
-            check_condition(len(buf) == 4, "not enough data for file special info")
-
-            specinfo = int.from_bytes(buf, byteorder='big')
-
-            # sanity checks
-            if modeinfo == 1:
+            if file_header.filetype == romfs.Romfs.Filetypes.hardlink:
+                # hard link, target is in spec.info
+                if file_header.name != '.' and file_header.name != '..':
+                    check_condition(file_header.spec_info in self.offset_to_name, "invalid link")
+            elif file_header.filetype == romfs.Romfs.Filetypes.directory:
+                # directory: the next header points to the first file header.
+                if file_header.name != '.' and file_header.name != '..':
+                    offsets.append((file_header.spec_info, curcwd / file_header.name))
+            elif file_header.filetype == romfs.Romfs.Filetypes.regular_file:
+                pass
+            elif file_header.filetype == romfs.Romfs.Filetypes.symbolic_link:
+                try:
+                    file_header.data.decode()
+                except UnicodeDecodeError as e:
+                    raise UnpackParserException(e.args)
+            elif file_header.filetype == romfs.Romfs.Filetypes.block_device:
+                pass
+            elif file_header.filetype == romfs.Romfs.Filetypes.character_device:
+                pass
+            elif file_header.filetype == romfs.Romfs.Filetypes.socket:
+                pass
+            elif file_header.filetype == romfs.Romfs.Filetypes.fifo:
                 pass
 
-            # read the file size
-            buf = self.infile.read(4)
-            check_condition(len(buf) == 4, "not enough data for file size")
+            if file_header.next_fileheader != 0:
+                offsets.append((file_header.next_fileheader, curcwd))
 
-            inode_size = int.from_bytes(buf, byteorder='big')
+    def unpack(self):
+        unpacked_files = []
 
-            # checksum, not used
-            buf = self.infile.read(4)
-            check_condition(len(buf) == 4, "not enough data for file checksum")
+        # now go back to the start of the files and unpack
+        self.infile.seek(self.data.files_offset)
 
-            # file name, 16 byte boundary, padded
-            inodename = b''
-            while True:
-                buf = self.infile.read(16)
-                check_condition(len(buf) == 16, "not enough data for file name")
-                inodename += buf
-                if b'\x00' in buf:
-                    break
+        # keep a deque with which offset/parent directory pairs
+        offsets = collections.deque()
 
+        # then the file headers, with data
+        curoffset = self.infile.tell()
+        curcwd = pathlib.Path('')
+        offsets.append((curoffset, curcwd))
+
+        # now keep processing offsets, until none
+        # are left to process.
+        while True:
+            # wrap, parse single kaitaistruct.from_io()
             try:
-                inodename = inodename.split(b'\x00', 1)[0].decode()
+                (curoffset, curcwd) = offsets.popleft()
             except:
-                raise UnpackParserException('invalid file name')
+                break
+            romfs_fileheader = OffsetInputFile(self.infile.infile, curoffset + self.offset)
+            romfs_fileheader.seek(0)
+            file_header = romfs.Romfs.Fileheader.from_io(romfs_fileheader)
 
-            # the file data cannot be outside of the file
-            check_condition(self.infile.tell() + inode_size <= self.fileresult.filesize,
-                            "file cannot be outside of file")
+            if file_header.filetype == romfs.Romfs.Filetypes.hardlink:
+                # hard link, target is in spec.info
+                if file_header.name != '.' and file_header.name != '..':
 
-            if inodename != '.' and inodename != '..':
-                offsettoname[curoffset] = inodename
+                    # grab the name of the target, turn it into a full path
+                    source_target_name = self.offset_to_name[file_header.spec_info]
+                    if source_target_name.is_absolute():
+                        source_target_name = source_target_name.relative_to('/')
 
+                    source_target_name = self.scan_environment.unpack_path(self.rel_unpack_dir / source_target_name)
 
+                    outfile_rel = self.rel_unpack_dir / curcwd / file_header.name
+                    outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                    os.makedirs(outfile_full.parent, exist_ok=True)
 
+                    # link source and target
+                    source_target_name.link_to(outfile_full)
+                    fr = FileResult(self.fileresult, outfile_rel, set(['hardlink']))
+                    unpacked_files.append(fr)
+
+            elif file_header.filetype == romfs.Romfs.Filetypes.directory:
+                if file_header.name != '.' and file_header.name != '..':
+                    outfile_rel = self.rel_unpack_dir / curcwd / file_header.name
+                    outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                    os.makedirs(outfile_full, exist_ok=True)
+                    offsets.append((file_header.spec_info, curcwd / file_header.name))
+            elif file_header.filetype == romfs.Romfs.Filetypes.regular_file:
+                outfile_rel = self.rel_unpack_dir / curcwd / file_header.name
+                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full.parent, exist_ok=True)
+                outfile = open(outfile_full, 'wb')
+                outfile.write(file_header.data)
+                outfile.close()
+                fr = FileResult(self.fileresult, outfile_rel, set())
+                unpacked_files.append(fr)
+            elif file_header.filetype == romfs.Romfs.Filetypes.symbolic_link:
+                target = file_header.data.decode()
+                outfile_rel = self.rel_unpack_dir / curcwd / file_header.name
+                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full.parent, exist_ok=True)
+
+                outfile_full.symlink_to(target)
+                fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
+                unpacked_files.append(fr)
+            elif file_header.filetype == romfs.Romfs.Filetypes.block_device:
+                pass
+            elif file_header.filetype == romfs.Romfs.Filetypes.character_device:
+                pass
+            elif file_header.filetype == romfs.Romfs.Filetypes.socket:
+                pass
+            elif file_header.filetype == romfs.Romfs.Filetypes.fifo:
+                pass
+
+            if file_header.next_fileheader != 0:
+                offsets.append((file_header.next_fileheader, curcwd))
+
+        return unpacked_files
+
+    def carve(self):
+        pass
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.len_file
+
+        # romfs file systems are aligned on a 1024 byte boundary
+        if self.data.len_file % 1024 != 0:
+            len_padding = 1024 - self.data.len_file % 1024
+
+            # verify that the padding bytes are actually padding
+            self.infile.seek(self.data.len_file)
+            padding = self.infile.read(len_padding)
+            if padding == b'\x00' * len_padding:
+                self.unpacked_size += len_padding
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
