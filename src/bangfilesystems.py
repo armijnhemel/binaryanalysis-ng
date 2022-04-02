@@ -37,15 +37,11 @@ import binascii
 import tempfile
 import collections
 import math
-import lzma
 import zlib
-import gzip
 import stat
 import subprocess
-import json
 import re
 import pathlib
-import lzo
 
 encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                         'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
