@@ -58,6 +58,8 @@ types:
             - '"ZM"'
       - id: last_page_extra_bytes
         type: u2
+        valid:
+          max: 511
       - id: num_pages
         type: u2
       - id: num_relocations
