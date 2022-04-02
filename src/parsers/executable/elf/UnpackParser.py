@@ -48,6 +48,9 @@ RODATA_SECTIONS = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
                    '.rodata.str1.8', '.rodata.cst4', '.rodata.cst8',
                    '.rodata.cst16', 'rodata']
 
+# sections with interesting data found in guile programs
+GUILE_STRTAB_SECTIONS = ['.guile.arities.strtab', '.guile.docstrs.strtab']
+
 class ElfUnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -244,6 +247,9 @@ class ElfUnpackParser(UnpackParser):
 
         # store dynamic symbols (empty for statically linked binaries)
         dynamic_symbols = []
+
+        # guile symbols (empty for non-Guile programs)
+        guile_symbols = []
 
         # store information about notes
         notes = []
@@ -445,13 +451,18 @@ class ElfUnpackParser(UnpackParser):
                     pass
                 elif header.name == '.rol4re_elf_aux':
                     labels.append('l4')
+
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
                 for entry in header.body.entries:
                     pass
             elif header.type == elf.Elf.ShType.strtab:
-                for entry in header.body.entries:
-                    pass
+                if header.name in GUILE_STRTAB_SECTIONS:
+                    for entry in header.body.entries:
+                        pass
+                else:
+                    for entry in header.body.entries:
+                        pass
             elif header.type == elf.Elf.ShType.dynsym:
                 for entry in header.body.entries:
                     pass
@@ -541,6 +552,7 @@ class ElfUnpackParser(UnpackParser):
                         labels.append('Google Native Client')
 
         metadata['dynamic_symbols'] = dynamic_symbols
+        metadata['guile_symbols'] = guile_symbols
         metadata['needed'] = needed
         metadata['notes'] = notes
         metadata['rpath'] = rpath

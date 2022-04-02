@@ -13,7 +13,7 @@ seq:
     doc: The number of accessible bytes in this fs.
   - id: checksum
     type: u4
-    doc: The checksum of the FIRST 512 BYTES.
+    doc: The checksum of the first 512 bytes.
   - id: volume_name
     type: strz
   - id: padding
@@ -21,6 +21,9 @@ seq:
   - id: files
     size: len_file - _io.pos
     type: files
+instances:
+  files_offset:
+    value: magic._sizeof + len_file._sizeof + checksum._sizeof + volume_name.length + 1 + padding.length
 types:
   files:
     seq:
@@ -42,7 +45,7 @@ types:
       - id: checksum
         type: u4
         doc: Covering the meta data, including the file name, and padding
-      - id: file_name
+      - id: name
         type: strz
       - id: padding1
         size: -_io.pos % 16

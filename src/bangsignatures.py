@@ -215,23 +215,12 @@ signaturesoffset = {
 signaturetofunction = {
     'ani': bangunpack.unpack_ani,
     'mng': bangunpack.unpack_mng,
-    'icc': bangunpack.unpack_icc,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
     'xar': bangunpack.unpack_xar,
     'iso9660': bangfilesystems.unpack_iso9660,
-    'ttc': bangunpack.unpack_opentype_font_collection,
-    'jffs2_little_endian': bangfilesystems.unpack_jffs2,
-    'jffs2_big_endian': bangfilesystems.unpack_jffs2,
     'ext2': bangfilesystems.unpack_ext2,
-    'vmdk': bangfilesystems.unpack_vmdk,
     'pdf': bangunpack.unpack_pdf,
-    'fat': bangfilesystems.unpack_fat,
-    'cbfs': bangfilesystems.unpack_cbfs,
-    'romfs': bangfilesystems.unpack_romfs,
-    'cramfs_le': bangfilesystems.unpack_cramfs,
-    'cramfs_be': bangfilesystems.unpack_cramfs,
-    'plf': bangfilesystems.unpack_plf,
 }
 
 # a lookup table to map signatures to a name for
