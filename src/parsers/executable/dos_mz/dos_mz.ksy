@@ -84,6 +84,7 @@ types:
         type: u2
       - id: overlay_id
         type: u2
+        valid: 0
     instances:
       len_header:
         value: header_size * 16
