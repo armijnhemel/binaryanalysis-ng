@@ -79,6 +79,7 @@ class UnpackParser:
         self.infile.seek(0)
         self.parse()
         self.calculate_unpacked_size()
+        check_condition(self.unpacked_size > 0, 'Parser resulted in zero length file')
     def open(self):
         filename_full = self.scan_environment.get_unpack_path_for_fileresult(
                     self.fileresult)

@@ -39,7 +39,6 @@ def scan_environment(tmp_path_factory):
         readsize = 10240,
         createbytecounter = False,
         createjson = True,
-        runfilescans = True, # TODO: is this the correct value?
         tlshmaximum = sys.maxsize,
         synthesizedminimum = 10,
         logging = False,
@@ -179,6 +178,17 @@ class UnpackParserExtractSig1Fail(UnpackParser):
     pretty_name = "sig1_extract_fail"
     extensions = []
     signatures = [(2,b'AA')]
+
+class UnpackParserZeroLength(UnpackParser):
+
+    pretty_name = "zero_length"
+    extensions = []
+    signatures = [(1,b'BB')]
+
+    def parse(self):
+        return
+    def calculate_unpacked_size(self):
+        return 0
 
 
 

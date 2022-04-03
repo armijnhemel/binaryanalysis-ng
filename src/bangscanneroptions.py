@@ -51,26 +51,11 @@ class BangScannerOptions:
                 os.path.join(os.path.dirname(sys.argv[0]), 'bang.config'),
             'baseunpackdirectory': '',
             'temporarydirectory': None,
+            'removescandata': False,
             'removescandirectory': False,
             'createbytecounter': False,
             'createjson': True,
-            'runfilescans': True,
             'tlshmaximum': sys.maxsize,
-            'postgresql_enabled': True,
-            'postgresql_host': None,
-            'postgresql_port': None,
-            'postgresql_user': None,
-            'postgresql_password': None,
-            'postgresql_db': None,
-            'usedatabase': True,
-            'postgresql_error_fatal': False,
-            'elastic_enabled': False,
-            'elastic_user': None,
-            'elastic_password': None,
-            'elastic_index': None,
-            'elastic_connectionerrorfatal': False,
-            'elastic_port': None,
-            'elastic_host': None,
             'writereport': True,
             'uselogging': True,
             'bangthreads': multiprocessing.cpu_count(),
@@ -189,39 +174,20 @@ class BangScannerOptions:
                 section='configuration')
         self._set_integer_option_from_config('bangthreads',
                 section='configuration', option='threads')
+        self._set_boolean_option_from_config('removescandata',
+                section='configuration')
         self._set_boolean_option_from_config('removescandirectory',
                 section='configuration')
         self._set_boolean_option_from_config('createbytecounter',
                 section='configuration', option='bytecounter')
         self._set_boolean_option_from_config('createjson',
                 section='configuration', option='json')
-        self._set_boolean_option_from_config('runfilescans',
-                section='configuration', option='runfilescans')
         self._set_integer_option_from_config('tlshmaximum',
                 section='configuration')
         self._set_boolean_option_from_config('writereport',
                 section='configuration', option='report')
         self._set_boolean_option_from_config('uselogging',
                 section='configuration', option='logging')
-        self._set_boolean_option_from_config('postgresql_error_fatal',
-                section='database')
-        self._set_boolean_option_from_config('postgresql_enabled',
-                section='database')
-        self._set_string_option_from_config('postgresql_user', section='database')
-        self._set_string_option_from_config('postgresql_password',
-                section='database')
-        self._set_string_option_from_config('postgresql_db', section='database')
-        self._set_string_option_from_config('postgresql_host', section='database')
-        self._set_integer_option_from_config('postgresql_port', section='database')
-        self._set_boolean_option_from_config('elastic_enabled',
-                section='elasticsearch', option='elastic_enabled')
-        self._set_string_option_from_config('elastic_user', section='elasticsearch')
-        self._set_string_option_from_config('elastic_password', section='elasticsearch')
-        self._set_string_option_from_config('elastic_index', section='elasticsearch')
-        self._set_boolean_option_from_config('elastic_connectionerrorfatal',
-                section='elasticsearch')
-        self._set_string_option_from_config('elastic_host', section='elasticsearch')
-        self._set_integer_option_from_config('elastic_port', section='elasticsearchs')
 
     def _set_options_from_arguments(self):
         self.options.checkpath = self.args.checkpath
@@ -234,15 +200,6 @@ class BangScannerOptions:
         # bangthreads >= 1
         if self.options.bangthreads < 1:
             self.options.bangthreads = self.defaults['bangthreads']
-        # option usedatabase true if db parameters set
-        self.options.usedatabase = self.options.postgresql_enabled and \
-            self.options.postgresql_db and \
-            self.options.postgresql_user and \
-            self.options.postgresql_password
-        # if postgresql_error_fatal, db parameters must be set
-        if self.options.postgresql_error_fatal and \
-                self.options.usedatabase is False:
-            self._error('Missing or invalid database information')
 
         # baseunpackdirectory must be declared
         if not self.options.baseunpackdirectory:

@@ -260,7 +260,7 @@ class UnpackManager:
         # result and didn't contain any files (it was not a
         # container or compresed file)
         if unpackresult.get_unpacked_files() == []:
-            self.remove_data_unpack_directory()
+            self.remove_data_unpack_directory_tree()
 
         # whole file has already been unpacked, so no need for
         # further scanning.

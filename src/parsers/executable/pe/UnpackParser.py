@@ -27,7 +27,7 @@ Parse and unpack PE files.
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import microsoft_pe
 
 
@@ -39,8 +39,7 @@ class PeClassUnpackParser(UnpackParser):
     pretty_name = 'pe'
 
     def parse(self):
-        self.file_size = self.fileresult.filename.stat().st_size
-        self.chunknames = set()
+        self.file_size = self.fileresult.filesize
         try:
             self.data = microsoft_pe.MicrosoftPe.from_io(self.infile)
             # this is a bit of an ugly hack to detect if the file
@@ -48,7 +47,9 @@ class PeClassUnpackParser(UnpackParser):
             # with the values of the PE headers
             for s in self.data.pe.sections:
                 pass
-        except (Exception, ValidationNotEqualError) as e:
+            if self.data.pe.certificate_table is not None:
+                certificate = self.data.pe.optional_hdr.data_dirs.certificate_table
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.mz.ofs_pe <= self.file_size,
                 "invalid offset")

@@ -59,8 +59,12 @@ types:
         enum: types
       - id: ofs_body
         type: u4
+        valid:
+          max: _root._io.size
       - id: len_body
         type: u4
+        valid:
+          max: _root._io.size - ofs_body
     instances:
       body:
         pos: ofs_body
