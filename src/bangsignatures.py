@@ -270,7 +270,6 @@ signatureprettyprint = {
 # One example is the Android sparse data format.
 # These extensions should be lower case
 extensiontofunction = {
-    '.new.dat': bangunpack.unpack_android_sparse_data,
 }
 
 import os
