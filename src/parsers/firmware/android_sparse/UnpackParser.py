@@ -38,7 +38,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import android_sparse
 
 class AndroidSparseUnpackParser(UnpackParser):
@@ -48,30 +48,27 @@ class AndroidSparseUnpackParser(UnpackParser):
     ]
     pretty_name = 'androidsparse'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_android_sparse(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         self.file_size = self.fileresult.filesize
         try:
             self.data = android_sparse.AndroidSparse.from_io(self.infile)
-            self.unpacked_size = self.data.img_header.file_header_size
-            for entry in self.data.img_header_entries:
-                check_condition(entry.header.chunk_type in android_sparse.AndroidSparse.ChunkTypes,
+            self.unpacked_size = self.data.header.len_header
+            for chunk in self.data.chunks:
+                check_condition(chunk.header.chunk_type in android_sparse.AndroidSparse.ChunkTypes,
                                 "invalid chunk type")
-                if entry.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.raw:
-                    check_condition(entry.header.chunk_size * self.data.img_header.block_size == len(entry.body),
+                if chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.raw:
+                    check_condition(chunk.header.num_body_blocks * self.data.header.block_size == len(chunk.body),
                                     "not enough data in body")
-                elif entry.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.fill:
-                    check_condition(len(entry.body) == 4, "wrong body length")
-                elif entry.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.dont_care:
-                    check_condition(len(entry.body) == 0, "wrong body length")
-                self.unpacked_size += entry.header.total_size
-        except (Exception, ValidationNotEqualError) as e:
+                elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.fill:
+                    check_condition(len(chunk.body) == 4, "wrong body length")
+                elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.dont_care:
+                    check_condition(len(chunk.body) == 0, "wrong body length")
+                self.unpacked_size += chunk.header.len_chunk
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.file_size >= self.unpacked_size, "not enough data")
-        check_condition(self.data.img_header.version.major == 1, "unsupported major version")
-        check_condition(self.data.img_header.block_size % 4 == 0, "unsupported block size")
+        check_condition(self.data.header.version.major == 1, "unsupported major version")
+        check_condition(self.data.header.block_size % 4 == 0, "unsupported block size")
 
     def unpack(self):
         # there is only one file that needs to be unpacked/created
@@ -85,18 +82,18 @@ class AndroidSparseUnpackParser(UnpackParser):
         outfile_full = self.scan_environment.unpack_path(outfile_rel)
         os.makedirs(outfile_full.parent, exist_ok=True)
         outfile = open(outfile_full, 'wb')
-        for entry in self.data.img_header_entries:
-            if entry.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.raw:
-                outfile.write(entry.body)
-            elif entry.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.fill:
+        for chunk in self.data.chunks:
+            if chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.raw:
+                outfile.write(chunk.body)
+            elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.fill:
                 # Fill data, always length 4
-                for c in range(0, entry.header.chunk_size):
+                for c in range(0, chunk.header.num_body_blocks):
                     # It has already been checked that blk_sz
                     # is divisible by 4.
-                   outfile.write(entry.body*(self.data.img_header.block_size//4))
-            elif entry.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.dont_care:
-                for c in range(0, entry.header.chunk_size):
-                   outfile.write(b'\x00' * self.data.img_header.block_size)
+                   outfile.write(chunk.body*(self.data.header.block_size//4))
+            elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.dont_care:
+                for c in range(0, chunk.header.num_body_blocks):
+                   outfile.write(b'\x00' * self.data.header.block_size)
         outfile.close()
         fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set())
         unpacked_files.append(fr)

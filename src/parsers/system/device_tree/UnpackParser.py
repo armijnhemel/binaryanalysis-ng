@@ -24,7 +24,7 @@ import os
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError
+from kaitaistruct import ValidationFailedError
 from . import dtb
 
 class DeviceTreeUnpackParser(UnpackParser):
@@ -38,11 +38,11 @@ class DeviceTreeUnpackParser(UnpackParser):
         file_size = self.fileresult.filesize
         try:
             self.data = dtb.Dtb.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(file_size >= self.data.total_size, "not enough data")
         if self.data.version > 16:
-            check_condition(self.data.last_compatible_version, "invalid compatible version")
+            check_condition(self.data.min_compatible_version, "invalid compatible version")
         # check some offsets
         check_condition(self.data.ofs_memory_reservation_block > 36,
                         "invalid offset for memory reservation block")
@@ -57,7 +57,7 @@ class DeviceTreeUnpackParser(UnpackParser):
 
         # sanity check: the fdt nodes are actually a tree, not a list
         property_level = 0
-        for node in self.data.structure_block.fdt_nodes:
+        for node in self.data.structure_block.nodes:
             if node.type == dtb.Dtb.Fdt.begin_node:
                 property_level += 1
             elif node.type == dtb.Dtb.Fdt.end_node:
@@ -78,7 +78,7 @@ class DeviceTreeUnpackParser(UnpackParser):
         has_images = False
         level_to_name = ['']
         is_fit = False
-        for node in self.data.structure_block.fdt_nodes:
+        for node in self.data.structure_block.nodes:
             if node.type == dtb.Dtb.Fdt.begin_node:
                 property_level += 1
                 if has_images:

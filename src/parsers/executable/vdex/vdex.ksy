@@ -13,6 +13,7 @@ doc: |
   version 010: Android 8.1 (verified: walleye-opm1.171019.011-factory-f74dd4fd.zip )
   version 019: Android 9 (verified: walleye-ppr1.180610.009-factory-4149f7e5.zip )
   version 021: Android 10 & 11
+  version 027: Android 12 (verified: raven-sd1a.210817.015.a4-factory-bd6cb030.zip )
 doc-ref: https://android.googlesource.com/platform/art/+/master/runtime/vdex_file.h
 seq:
   - id: magic
@@ -20,6 +21,8 @@ seq:
   - id: version
     type: strz
     size: 4
+    valid:
+      any-of: ['"006"', '"010"', '"019"', '"021"', '"027"'] # update whenever there is a new Android
   - id: dex_header
     type:
       switch-on: version
@@ -28,6 +31,7 @@ seq:
         '"010"': header_006_010
         '"019"': header_019_021(version)
         '"021"': header_019_021(version)
+        '"027"': header_027
 types:
   header_006_010:
     seq:
@@ -90,6 +94,31 @@ types:
         type: u4
       - id: quicken_and_dex
         size: len_dex + len_dex_shared_data
+  header_027:
+    seq:
+      - id: num_sections
+        type: u4
+        valid: 4
+        doc: kNumberOfSections = 4
+      - id: sections
+        type: section_027
+        repeat: expr
+        repeat-expr: num_sections
+  section_027:
+    seq:
+      - id: section_kind
+        type: u4
+        enum: vdex_section
+      - id: ofs_section
+        type: u4
+      - id: len_section
+        type: u4
+    instances:
+      section:
+        pos: ofs_section
+        size: len_section
+        io: _root._io
+        if: ofs_section != 0
   cdex_header:
     seq:
       - id: magic

@@ -42,7 +42,7 @@ from . import cpio_old_binary
 from UnpackParser import UnpackParser
 from UnpackParserException import UnpackParserException
 from FileResult import FileResult
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 
 def rewrite_symlink(file_path, target_path):
     """rewrites a symlink of target_path, relative to file_path.
@@ -68,12 +68,13 @@ class CpioBaseUnpackParser(UnpackParser):
     signatures = []
     pretty_name = 'cpio'
 
-    def calculate_unpacked_size(self):
-        self.unpacked_size = self.infile.tell() - self.offset
+    #def calculate_unpacked_size(self):
+        #self.unpacked_size = self.infile.tell() - self.offset
         # the cpio(5) man page is unclear about the padding at the end of
         # the file. It looks like the file is padded to make the total
         # file size a multiple of 16, but more research is needed. For
         # now, we ignore the padding and accept a wrong size.
+
     def unpack_directory(self, filename):
         outfile_full = self.scan_environment.unpack_path(filename)
         os.makedirs(outfile_full, exist_ok=True)
@@ -130,6 +131,7 @@ class CpioBaseUnpackParser(UnpackParser):
                 unpacked_files.append( fr )
             pos += e.header.bsize
         return unpacked_files
+
     def set_metadata_and_labels(self):
         return
 
@@ -141,7 +143,7 @@ class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
         try:
             self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
@@ -155,7 +157,7 @@ class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
         try:
             self.data = cpio_new_crc.CpioNewCrc.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
@@ -169,7 +171,7 @@ class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
         try:
             self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
@@ -183,7 +185,7 @@ class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
         try:
             self.data = cpio_old_binary.CpioOldBinary.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)

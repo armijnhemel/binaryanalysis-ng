@@ -33,7 +33,7 @@ Overview page at : https://www.gutenberg.org/ebooks/6130
 
 YAFFS2 images were created using mkyaff2simage, which can be found in git://www.aleph1.co.uk/yaffs2
 
-As yaffs2 can have various sizes for "chunks" and "spares" (for this myaffs2image.c needs to be changed) the following test files were made. The 
+As yaffs2 can have various sizes for "chunks" and "spares" (for this mkyaffs2image.c needs to be changed) the following test files were made.
 
 chunk/spare 1024/32:
 
@@ -89,7 +89,7 @@ chunk/spare 8192/256:
 * yaffs2-8192-256-le-dir-with-file.img : little endian, dir "test" with file "test.ico"
 * yaffs2-8192-256-be-dir-with-file.img : big endian, dir "test" with file "test.ico"
 
+Images with in band tags were made with yaffs2utils from https://github.com/OpenNuvoton/NUC970_Linux_Applications/tree/master/yaffs2utils
+
 ihex/example.hex, ihex/example.txt: CC-BY-SA-3.0, https://en.wikipedia.org/wiki/Intel_HEX
 srec/helloworld.srec: GPL-3.0, srec_motorola(5) man page at http://srecord.sourceforge.net/man/man5/srec_motorola.html
-
-

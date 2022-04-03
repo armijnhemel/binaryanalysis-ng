@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2018-2021 - Armijn Hemel
+# Copyright 2018-2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -22,23 +22,23 @@ Note: this script only crawls the "repo/" part of F-Droid, not the
 older "archive/" part!
 '''
 
-import sys
-import os
-import argparse
 import datetime
-import stat
 import hashlib
-import tempfile
 import multiprocessing
-import queue
+import os
 import pathlib
+import queue
+import sys
+import tempfile
 import urllib
 
 # import defusedxml module to guard against XML attacks
 import defusedxml.minidom
 
-# import the requests module for downloading the XML
+# import the requests module for downloading data
 import requests
+
+import click
 
 # import YAML module
 from yaml import load
@@ -109,30 +109,13 @@ def downloadfile(downloadqueue, failqueue, mirror, verbose):
         downloadqueue.task_done()
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    parser.add_argument("-f", "--force", action="store_true", dest="force",
-                        help="run if metadata hasn't changed")
-    args = parser.parse_args()
-
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    # the configuration file should exist ...
-    if not os.path.exists(args.cfg):
-        parser.error("File %s does not exist, exiting." % args.cfg)
-
-    # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.cfg).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.cfg)
-
+@click.command(short_help='crawl F-Droid repositories')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.option('--force', '-f', help='run if metadata hasn\'t changed', is_flag=True)
+def main(config_file, force):
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(args.cfg, 'r')
-        config = load(configfile, Loader=Loader)
+        config = load(config_file, Loader=Loader)
     except:
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
@@ -268,7 +251,7 @@ def main():
         hashfile = open(hashfilename, 'r')
         oldhashdata = hashfile.read()
         hashfile.close()
-        if oldhashdata == filehash and not args.force:
+        if oldhashdata == filehash and not force:
             print("Metadata has not changed, exiting.")
             os.unlink(xmloutname)
             sys.exit(0)

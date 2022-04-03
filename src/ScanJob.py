@@ -134,6 +134,8 @@ class ScanJob:
                 self.fileresult.set_filesize(0)
                 for hash_algorithm, hash_value in emptyhashresults.items():
                     self.fileresult.set_hashresult(hash_algorithm, hash_value)
+            elif self.type == 'symbolic link':
+                self.fileresult.set_target(self.fileresult.filename.readlink())
             return True
         self.fileresult.set_filesize(self.stat.st_size)
         return False
@@ -149,6 +151,7 @@ class ScanJob:
                 'offset': 0,
                 'size': self.fileresult.filesize,
                 'files': [],
+                'relative_files': [],
             }
             self.fileresult.add_unpackedfile(report)
         else:
@@ -170,6 +173,7 @@ class ScanJob:
                 'offset': 0,
                 'size': self.fileresult.filesize,
                 'files': [],
+                'relative_files': [],
             }
             self.fileresult.add_unpackedfile(report)
 
@@ -222,6 +226,7 @@ class ScanJob:
                         'type': unpackparser.pretty_name,
                         'size': unpackresult.get_length(),
                         'files': [],
+                        'relative_files': [],
                     }
 
                     if unpackresult.get_metadata != {}:
@@ -231,6 +236,7 @@ class ScanJob:
                         j = ScanJob(unpackedfile)
                         self.scanenvironment.scanfilequeue.put(j)
                         report['files'].append(unpackedfile.filename)
+                        report['relative_files'].append(unpackedfile.filename.relative_to(unpacker.get_data_unpack_directory()))
                     self.fileresult.add_unpackedfile(report)
 
     def check_for_signatures(self, unpacker):
@@ -337,7 +343,7 @@ class ScanJob:
                         # files (i.e. it was not a container file or
                         # compressed file).
                         if unpackresult.get_unpacked_files() == []:
-                            unpacker.remove_data_unpack_directory()
+                            unpacker.remove_data_unpack_directory_tree()
 
                     # store the range of the unpacked data
                     unpacker.append_unpacked_range(offset, offset +
@@ -351,6 +357,7 @@ class ScanJob:
                         'type': unpackparser.pretty_name,
                         'size': unpackresult.get_length(),
                         'files': [],
+                        'relative_files': [],
                     }
 
                     if unpackresult.get_metadata != {}:
@@ -364,6 +371,7 @@ class ScanJob:
 
                     for unpackedfile in unpackresult.get_unpacked_files():
                         report['files'].append(unpackedfile.filename)
+                        report['relative_files'].append(unpackedfile.filename.relative_to(unpacker.get_data_unpack_directory()))
                         j = ScanJob(unpackedfile)
                         self.scanenvironment.scanfilequeue.put(j)
 
@@ -489,6 +497,7 @@ class ScanJob:
                     'type': 'carved',
                     'size': u_low - carve_index,
                     'files': [ outfile_rel ],
+                    'relative_files': [ outfile_rel.relative_to(unpacker.get_data_unpack_directory()) ],
                 }
                 self.fileresult.add_unpackedfile(report)
 
@@ -584,6 +593,7 @@ class ScanJob:
                     'type': unpack_parser.pretty_name,
                     'size': unpackresult.get_length(),
                     'files': [],
+                    'relative_files': [],
                 }
 
                 if unpackresult.get_metadata != {}:
@@ -594,6 +604,7 @@ class ScanJob:
 
                 for unpackedfile in unpackresult.get_unpacked_files():
                     report['files'].append(unpackedfile.filename)
+                    report['relative_files'].append(unpackedfile.filename.relative_to(unpacker.get_data_unpack_directory()))
                     j = ScanJob(unpackedfile)
                     self.scanenvironment.scanfilequeue.put(j)
 
@@ -624,6 +635,8 @@ def processfile(scanenvironment):
     checksumdict = scanenvironment.checksumdict
 
     carveunpacked = True
+
+    os.chdir(scanenvironment.unpackdirectory)
 
     while True:
         try:

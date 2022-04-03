@@ -22,7 +22,7 @@ meta:
   license: CC0-1.0
   ks-version: 0.9
 doc-ref:
-  - https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=HEAD
+  - https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=0f62fe0532
   - https://refspecs.linuxfoundation.org/elf/gabi4+/contents.html
   - https://docs.oracle.com/cd/E37838_01/html/E36783/glcfv.html
 seq:
@@ -47,6 +47,7 @@ seq:
   - id: ei_version
     -orig-id: e_ident[EI_VERSION]
     type: u1
+    valid: 1
     doc: ELF header version.
   - id: abi
     -orig-id: e_ident[EI_OSABI]
@@ -56,12 +57,14 @@ seq:
       Specifies which OS- and ABI-related extensions will be used
       in this ELF file.
   - id: abi_version
+    -orig-id: e_ident[EI_ABIVERSION]
     type: u1
     doc: |
       Version of ABI targeted by this ELF file. Interpretation
       depends on `abi` attribute.
   - id: pad
-    size: 7
+    -orig-id: e_ident[EI_PAD]..e_ident[EI_NIDENT - 1]
+    contents: [0, 0, 0, 0, 0, 0, 0]
   - id: header
     type: endian_elf
 instances:
@@ -144,6 +147,32 @@ types:
       mask_proc:
         value: value & 0xf0000000 != 0
         doc: "Processor-specific"
+  dt_flag_values:
+    doc-ref:
+      - 'https://refspecs.linuxbase.org/elf/gabi4+/ch5.dynamic.html Figure 5-11: DT_FLAGS values'
+      - https://github.com/golang/go/blob/48dfddbab3/src/debug/elf/elf.go#L1079-L1095
+      - https://docs.oracle.com/cd/E37838_01/html/E36783/chapter6-42444.html#OSLLGchapter7-tbl-5
+    params:
+      - id: value
+        type: u4
+    instances:
+      origin:
+        value: value & 0x00000001 != 0
+        doc: object may reference the $ORIGIN substitution string
+      symbolic:
+        value: value & 0x00000002 != 0
+        doc: symbolic linking
+      textrel:
+        value: value & 0x00000004 != 0
+        doc: relocation entries might request modifications to a non-writable segment
+      bind_now:
+        value: value & 0x00000008 != 0
+        doc: |
+          all relocations for this object must be processed before returning
+          control to the program
+      static_tls:
+        value: value & 0x00000010 != 0
+        doc: object uses static thread-local storage scheme
   dt_flag_1_values:
     params:
       - id: value
@@ -424,6 +453,9 @@ types:
                 'sh_type::note': note_section
                 'sh_type::rel': relocation_section(false)
                 'sh_type::rela': relocation_section(true)
+                'sh_type::arm_attributes': arm_attributes_section
+                'sh_type::gnu_versym': versym_section
+            if: type != sh_type::nobits
           linked_section:
             value: _root.header.section_headers[linked_section_idx]
             if: |
@@ -446,7 +478,9 @@ types:
           - id: entries
             type: strz
             repeat: eos
-            encoding: ASCII
+            # For an explanation of why UTF-8 instead of ASCII, see the comment
+            # on the `name` attribute in the `dynsym_section_entry` type.
+            encoding: UTF-8
       dynamic_section:
         seq:
           - id: entries
@@ -477,6 +511,10 @@ types:
           tag_enum:
             value: tag
             enum: dynamic_array_tags
+          flag_values:
+            type: dt_flag_values(value_or_ptr)
+            if: "tag_enum == dynamic_array_tags::flags"
+            -webide-parse-mode: eager
           flag_1_values:
             type: dt_flag_1_values(value_or_ptr)
             if: "tag_enum == dynamic_array_tags::flags_1"
@@ -568,7 +606,15 @@ types:
             io: _parent._parent.linked_section.body.as<strings_struct>._io
             pos: ofs_name
             type: strz
-            encoding: ASCII
+            # UTF-8 is used (instead of ASCII) because Golang binaries may
+            # contain specific Unicode code points in symbol identifiers.
+            #
+            # See
+            # * <https://golang.org/doc/asm#symbols>: "the assembler allows the
+            #   middle dot character U+00B7 and the division slash U+2215 in
+            #   identifiers"
+            # * <https://github.com/kaitai-io/kaitai_struct_formats/issues/520>
+            encoding: UTF-8
             if: ofs_name != 0 and _parent.is_string_table_linked
             -webide-parse-mode: eager
           visibility:
@@ -656,6 +702,34 @@ types:
                 'bits::b32': s4
                 'bits::b64': s8
             if: _parent.has_addend
+      arm_attributes_section:
+        seq:
+          - id: version
+            type: u1
+          - id: sections
+            type: arm_attributes_section_entry
+            repeat: eos
+            doc-ref: https://developer.arm.com/documentation/ihi0044/h/?lang=en
+      arm_attributes_section_entry:
+        seq:
+          - id: len_section
+            type: u4
+          - id: rest_of_entry
+            type: arm_attributes_section_entry_rest
+            size: len_section - len_section._sizeof
+      arm_attributes_section_entry_rest:
+        seq:
+          - id: vendor_name
+            type: strz
+            encoding: ASCII
+          - id: attribute_tags
+            size-eos: true
+      versym_section:
+        seq:
+          - id: symbol_versions
+            type: u2
+            repeat: eos
+            doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
     instances:
       program_headers:
         pos: program_header_offset
@@ -707,6 +781,9 @@ enums:
     0x10: fenixos # The FenixOS highly scalable multi-core OS
     0x11: cloudabi # Nuxi CloudABI
     0x12: openvos # Stratus Technologies OpenVOS
+    0x40: arm_eabi # ARM EABI
+    0x61: arm # ARM
+    0xff: standalone # Standalone (embedded) application
   # e_type
   obj_type:
     # ET_NONE
@@ -719,41 +796,780 @@ enums:
     3: shared
     # ET_CORE
     4: core
+  # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
+  # https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=0f62fe0532
+  # https://github.com/NationalSecurityAgency/ghidra/blob/f5615aa240/Ghidra/Features/Base/src/main/java/ghidra/app/util/bin/format/elf/ElfConstants.java#L158-L510
+  # https://github.com/llvm/llvm-project/blob/f6928cf45516/llvm/include/llvm/BinaryFormat/ELF.h#L130
   machine:
-    0x00: no_machine
-    # EM_M32
-    0x01: m32
-    # EM_SPARC
-    0x02: sparc
-    # EM_386
-    0x03: x86
-    # EM_68K
-    0x04: m68k
-    # EM_88K
-    0x05: m88k
-    0x08: mips
-    0x14: powerpc
-    # EM_PPC64
-    0x15: powerpc64
-    # EM_S390
-    0x16: s390
-    # EM_ARM
-    0x28: arm
-    # EM_SH
-    0x2a: superh
-    # EM_SPARCV9
-    0x2b: sparcv9
-    0x32: ia_64
-    # EM_X86_64
-    0x3e: x86_64
-    0x53: avr
-    0xa4: qdsp6
-    0xb9: avr32
-    0xb7: aarch64
-    0xe0: amdgpu
-    0xf3: riscv
-    0xf7: bpf
-    0xfc: csky
+    0:
+      id: no_machine
+      -orig-id: EM_NONE
+      doc: No machine
+    1:
+      id: m32
+      doc: AT&T WE 32100
+    2:
+      id: sparc
+      doc: Sun SPARC
+    3:
+      id: x86
+      -orig-id: EM_386
+      doc: Intel 80386
+    4:
+      id: m68k
+      -orig-id: EM_68K
+      doc: Motorola m68k family
+    5:
+      id: m88k
+      -orig-id: EM_88K
+      doc: Motorola m88k family
+    6:
+      id: iamcu
+      doc: |
+        Intel MCU
+
+        was assigned to `EM_486` (for Intel i486), but that value was deprecated
+        and replaced with this one
+      doc-ref:
+        - https://sourceware.org/bugzilla/show_bug.cgi?id=18404
+        - https://gcc.gnu.org/legacy-ml/gcc/2015-05/msg00090.html
+        - https://github.com/gcc-mirror/gcc/blob/240f07805d/libgo/go/debug/elf/elf.go#L389
+    7:
+      id: i860
+      -orig-id: EM_860
+      doc: Intel 80860
+    8:
+      id: mips
+      doc: MIPS R3000 big-endian
+    9:
+      id: s370
+      doc: IBM System/370
+    10:
+      id: mips_rs3_le
+      doc: MIPS R3000 little-endian
+    15:
+      id: parisc
+      doc: Hewlett-Packard PA-RISC
+    17:
+      id: vpp500
+      doc: Fujitsu VPP500
+    18:
+      id: sparc32plus
+      doc: Sun's "v8plus"
+    19:
+      id: i960
+      -orig-id: EM_960
+      doc: Intel 80960
+    20:
+      id: powerpc
+      -orig-id: EM_PPC
+      doc: PowerPC
+    21:
+      id: powerpc64
+      -orig-id: EM_PPC64
+      doc: PowerPC 64-bit
+    22:
+      id: s390
+      doc: IBM System/390
+    23:
+      id: spu
+      doc: IBM SPU/SPC
+    36:
+      id: v800
+      doc: NEC V800 series
+    37:
+      id: fr20
+      doc: Fujitsu FR20
+    38:
+      id: rh32
+      doc: TRW RH-32
+    39:
+      id: rce
+      doc: Motorola RCE
+    40:
+      id: arm
+      doc: ARM
+    41:
+      id: old_alpha
+      -orig-id: EM_FAKE_ALPHA
+      doc: DEC Alpha
+    42:
+      id: superh
+      -orig-id: EM_SH
+      doc: Hitachi SH
+    43:
+      id: sparc_v9
+      -orig-id: EM_SPARCV9
+      doc: SPARC v9 64-bit
+    44:
+      id: tricore
+      doc: Siemens TriCore
+    45:
+      id: arc
+      doc: Argonaut RISC Core
+    46:
+      id: h8_300
+      doc: Hitachi H8/300
+    47:
+      id: h8_300h
+      doc: Hitachi H8/300H
+    48:
+      id: h8s
+      doc: Hitachi H8S
+    49:
+      id: h8_500
+      doc: Hitachi H8/500
+    50:
+      id: ia_64
+      doc: Intel IA-64 processor architecture
+    51:
+      id: mips_x
+      doc: Stanford MIPS-X
+    52:
+      id: coldfire
+      doc: Motorola ColdFire
+    53:
+      id: m68hc12
+      -orig-id: EM_68HC12
+      doc: Motorola M68HC12
+    54:
+      id: mma
+      doc: Fujitsu MMA Multimedia Accelerator
+    55:
+      id: pcp
+      doc: Siemens PCP
+    56:
+      id: ncpu
+      doc: Sony nCPU embedded RISC processor
+    57:
+      id: ndr1
+      doc: Denso NDR1 microprocessor
+    58:
+      id: starcore
+      doc: Motorola Star*Core processor
+    59:
+      id: me16
+      doc: Toyota ME16 processor
+    60:
+      id: st100
+      doc: STMicroelectronics ST100 processor
+    61:
+      id: tinyj
+      doc: Advanced Logic Corp. TinyJ embedded processor family
+    62:
+      id: x86_64
+      doc: AMD x86-64 architecture
+    63:
+      id: pdsp
+      doc: Sony DSP Processor
+    64:
+      id: pdp10
+      doc: Digital Equipment Corp. PDP-10
+    65:
+      id: pdp11
+      doc: Digital Equipment Corp. PDP-11
+    66:
+      id: fx66
+      doc: Siemens FX66 microcontroller
+    67:
+      id: st9plus
+      doc: STMicroelectronics ST9+ 8/16 bit microcontroller
+    68:
+      id: st7
+      doc: STMicroelectronics ST7 8-bit microcontroller
+    69:
+      id: mc68hc16
+      -orig-id: EM_68HC16
+      doc: Motorola MC68HC16 microcontroller
+    70:
+      id: mc68hc11
+      -orig-id: EM_68HC11
+      doc: Motorola MC68HC11 microcontroller
+    71:
+      id: mc68hc08
+      -orig-id: EM_68HC08
+      doc: Motorola MC68HC08 microcontroller
+    72:
+      id: mc68hc05
+      -orig-id: EM_68HC05
+      doc: Motorola MC68HC05 microcontroller
+    73:
+      id: svx
+      doc: Silicon Graphics SVx
+    74:
+      id: st19
+      doc: STMicroelectronics ST19 8-bit microcontroller
+    75:
+      id: vax
+      doc: Digital VAX
+    76:
+      id: cris
+      doc: Axis Communications 32-bit embedded processor
+    77:
+      id: javelin
+      doc: Infineon Technologies 32-bit embedded processor
+    78:
+      id: firepath
+      doc: Element 14 64-bit DSP Processor
+    79:
+      id: zsp
+      doc: LSI Logic 16-bit DSP Processor
+    80:
+      id: mmix
+      doc: Donald Knuth's educational 64-bit processor
+    81:
+      id: huany
+      doc: Harvard University machine-independent object files
+    82:
+      id: prism
+      doc: SiTera Prism
+    83:
+      id: avr
+      doc: Atmel AVR 8-bit microcontroller
+    84:
+      id: fr30
+      doc: Fujitsu FR30
+    85:
+      id: d10v
+      doc: Mitsubishi D10V
+    86:
+      id: d30v
+      doc: Mitsubishi D30V
+    87:
+      id: v850
+      doc: NEC v850
+    88:
+      id: m32r
+      doc: Mitsubishi M32R
+    89:
+      id: mn10300
+      doc: Matsushita MN10300
+    90:
+      id: mn10200
+      doc: Matsushita MN10200
+    91:
+      id: picojava
+      -orig-id: EM_PJ
+      doc: picoJava
+    92:
+      id: openrisc
+      doc: OpenRISC 32-bit embedded processor
+    93:
+      id: arc_compact
+      doc: 'ARC International ARCompact processor (old spelling/synonym: EM_ARC_A5)'
+    94:
+      id: xtensa
+      doc: Tensilica Xtensa Architecture
+    95:
+      id: videocore
+      doc: Alphamosaic VideoCore processor
+    96:
+      id: tmm_gpp
+      doc: Thompson Multimedia General Purpose Processor
+    97:
+      id: ns32k
+      doc: National Semiconductor 32000 series
+    98:
+      id: tpc
+      doc: Tenor Network TPC processor
+    99:
+      id: snp1k
+      doc: Trebia SNP 1000 processor
+    100:
+      id: st200
+      doc: STMicroelectronics ST200
+    101:
+      id: ip2k
+      doc: Ubicom IP2xxx microcontroller family
+    102:
+      id: max
+      doc: MAX processor
+    103:
+      id: compact_risc
+      -orig-id: EM_CR
+      doc: National Semiconductor CompactRISC microprocessor
+    104:
+      id: f2mc16
+      doc: Fujitsu F2MC16
+    105:
+      id: msp430
+      doc: Texas Instruments embedded microcontroller MSP430
+    106:
+      id: blackfin
+      doc: Analog Devices Blackfin (DSP) processor
+    107:
+      id: se_c33
+      doc: Seiko Epson S1C33 family
+    108:
+      id: sep
+      doc: Sharp embedded microprocessor
+    109:
+      id: arca
+      doc: Arca RISC microprocessor
+    110:
+      id: unicore
+      doc: microprocessor series from PKU-Unity Ltd. and MPRC of Peking University
+    111:
+      id: excess
+      doc: 'eXcess: 16/32/64-bit configurable embedded CPU'
+    112:
+      id: dxp
+      doc: Icera Semiconductor Inc. Deep Execution Processor
+    113:
+      id: altera_nios2
+      doc: Altera Nios II soft-core processor
+    114:
+      id: crx
+      doc: National Semiconductor CompactRISC CRX microprocessor
+    115:
+      id: xgate
+      doc: Motorola XGATE embedded processor
+    116:
+      id: c166
+      doc: Infineon C16x/XC16x processor
+    117:
+      id: m16c
+      doc: Renesas M16C series microprocessors
+    118:
+      id: dspic30f
+      doc: Microchip Technology dsPIC30F Digital Signal Controller
+    119:
+      id: freescale_ce
+      -orig-id: EM_CE
+      doc: Freescale Communication Engine RISC core
+    120:
+      id: m32c
+      doc: Renesas M32C series microprocessors
+    131:
+      id: tsk3000
+      doc: Altium TSK3000 core
+    132:
+      id: rs08
+      doc: Freescale RS08 embedded processor
+    133:
+      id: sharc
+      doc: Analog Devices SHARC family of 32-bit DSP processors
+    134:
+      id: ecog2
+      doc: Cyan Technology eCOG2 microprocessor
+    135:
+      id: score7
+      doc: Sunplus S+core7 RISC processor
+    136:
+      id: dsp24
+      doc: New Japan Radio (NJR) 24-bit DSP Processor
+    137:
+      id: videocore3
+      doc: Broadcom VideoCore III processor
+    138:
+      id: latticemico32
+      doc: RISC processor for Lattice FPGA architecture
+    139:
+      id: se_c17
+      doc: Seiko Epson C17 family
+    140:
+      id: ti_c6000
+      doc: Texas Instruments TMS320C6000 DSP family
+    141:
+      id: ti_c2000
+      doc: Texas Instruments TMS320C2000 DSP family
+    142:
+      id: ti_c5500
+      doc: Texas Instruments TMS320C55x DSP family
+    143:
+      id: ti_arp32
+      doc: Texas Instruments Application Specific RISC Processor, 32bit fetch
+    144:
+      id: ti_pru
+      doc: Texas Instruments Programmable Realtime Unit
+    160:
+      id: mmdsp_plus
+      doc: STMicroelectronics 64bit VLIW Data Signal Processor
+    161:
+      id: cypress_m8c
+      doc: Cypress M8C microprocessor
+    162:
+      id: r32c
+      doc: Renesas R32C series microprocessors
+    163:
+      id: trimedia
+      doc: NXP Semiconductors TriMedia architecture family
+    164:
+      id: qdsp6
+      doc: Qualcomm Hexagon processor
+    165:
+      id: i8051
+      -orig-id: EM_8051
+      doc: Intel 8051 and variants
+    166:
+      id: stxp7x
+      doc: STMicroelectronics STxP7x family of configurable and extensible RISC processors
+    167:
+      id: nds32
+      doc: Andes Technology compact code size embedded RISC processor family
+    168:
+      id: ecog1x
+      doc: Cyan Technology eCOG1X family
+    169:
+      id: maxq30
+      doc: Dallas Semiconductor MAXQ30 Core Micro-controllers
+    170:
+      id: ximo16
+      doc: New Japan Radio (NJR) 16-bit DSP Processor
+    171:
+      id: manik
+      doc: M2000 Reconfigurable RISC Microprocessor
+    172:
+      id: craynv2
+      doc: Cray Inc. NV2 vector architecture
+    173:
+      id: rx
+      doc: Renesas RX family
+    174:
+      id: metag
+      doc: Imagination Technologies META processor architecture
+    175:
+      id: mcst_elbrus
+      doc: MCST Elbrus general purpose hardware architecture
+    176:
+      id: ecog16
+      doc: Cyan Technology eCOG16 family
+    177:
+      id: cr16
+      doc: National Semiconductor CompactRISC CR16 16-bit microprocessor
+    178:
+      id: etpu
+      doc: Freescale Extended Time Processing Unit
+    179:
+      id: sle9x
+      doc: Infineon Technologies SLE9X core
+    180:
+      id: l10m
+      doc: Intel L10M
+    181:
+      id: k10m
+      doc: Intel K10M
+    183:
+      id: aarch64
+      doc: ARM AArch64
+    185:
+      id: avr32
+      doc: Atmel Corporation 32-bit microprocessor family
+    186:
+      id: stm8
+      doc: STMicroeletronics STM8 8-bit microcontroller
+    187:
+      id: tile64
+      doc: Tilera TILE64 multicore architecture family
+    188:
+      id: tilepro
+      doc: Tilera TILEPro multicore architecture family
+    189:
+      id: microblaze
+      doc: Xilinx MicroBlaze 32-bit RISC soft processor core
+    190:
+      id: cuda
+      doc: NVIDIA CUDA architecture
+    191:
+      id: tilegx
+      doc: Tilera TILE-Gx multicore architecture family
+    192:
+      id: cloudshield
+      doc: CloudShield architecture family
+    193:
+      id: corea_1st
+      doc: KIPO-KAIST Core-A 1st generation processor family
+    194:
+      id: corea_2nd
+      doc: KIPO-KAIST Core-A 2nd generation processor family
+    195:
+      id: arcv2
+      doc: Synopsys ARCv2 ISA
+    196:
+      id: open8
+      doc: Open8 8-bit RISC soft processor core
+    197:
+      id: rl78
+      doc: Renesas RL78 family
+    198:
+      id: videocore5
+      doc: Broadcom VideoCore V processor
+    199:
+      id: renesas_78kor
+      -orig-id: EM_78KOR
+      doc: Renesas 78KOR family
+    200:
+      id: freescale_56800ex
+      -orig-id: EM_56800EX
+      doc: Freescale 56800EX Digital Signal Controller (DSC)
+    201:
+      id: ba1
+      doc: Beyond BA1 CPU architecture
+    202:
+      id: ba2
+      doc: Beyond BA2 CPU architecture
+    203:
+      id: xcore
+      doc: XMOS xCORE processor family
+    204:
+      id: mchp_pic
+      doc: Microchip 8-bit PIC(r) family
+    205:
+      id: intelgt
+      doc: Intel Graphics Technology
+      doc-ref: https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=0f62fe0532#l339
+    206:
+      id: intel206
+      doc: Reserved by Intel
+    207:
+      id: intel207
+      doc: Reserved by Intel
+    208:
+      id: intel208
+      doc: Reserved by Intel
+    209:
+      id: intel209
+      doc: Reserved by Intel
+    210:
+      id: km32
+      doc: KM211 KM32 32-bit processor
+    211:
+      id: kmx32
+      doc: KM211 KMX32 32-bit processor
+    212:
+      id: kmx16
+      -orig-id: EM_EMX16
+      doc: KM211 KMX16 16-bit processor
+    213:
+      id: kmx8
+      -orig-id: EM_EMX8
+      doc: KM211 KMX8 8-bit processor
+    214:
+      id: kvarc
+      doc: KM211 KVARC processor
+    215:
+      id: cdp
+      doc: Paneve CDP architecture family
+    216:
+      id: coge
+      doc: Cognitive Smart Memory Processor
+    217:
+      id: cool
+      doc: Bluechip Systems CoolEngine
+    218:
+      id: norc
+      doc: Nanoradio Optimized RISC
+    219:
+      id: csr_kalimba
+      doc: CSR Kalimba architecture family
+    220:
+      id: z80
+      doc: Zilog Z80
+    221:
+      id: visium
+      doc: Controls and Data Services VISIUMcore
+    222:
+      id: ft32
+      doc: FTDI Chip FT32
+    223:
+      id: moxie
+      doc: Moxie processor
+    224:
+      id: amd_gpu
+      -orig-id: EM_AMDGPU
+      doc: AMD GPU architecture
+    243:
+      id: riscv
+      doc: RISC-V
+    244:
+      id: lanai
+      doc: Lanai 32-bit processor
+      doc-ref: https://github.com/llvm/llvm-project/blob/f6928cf45516/llvm/include/llvm/BinaryFormat/ELF.h#L319
+    245:
+      id: ceva
+      doc: CEVA Processor Architecture Family
+      doc-ref: https://groups.google.com/g/generic-abi/c/cmq1LFFpWqU
+    246:
+      id: ceva_x2
+      doc: CEVA X2 Processor Family
+      doc-ref: https://groups.google.com/g/generic-abi/c/cmq1LFFpWqU
+    247:
+      id: bpf
+      doc: Linux BPF - in-kernel virtual machine
+    248:
+      id: graphcore_ipu
+      doc: Graphcore Intelligent Processing Unit
+      doc-ref: https://groups.google.com/g/generic-abi/c/cmq1LFFpWqU
+    249:
+      id: img1
+      doc: Imagination Technologies
+      doc-ref: https://groups.google.com/g/generic-abi/c/cmq1LFFpWqU
+    250:
+      id: nfp
+      doc: Netronome Flow Processor (NFP)
+      doc-ref: https://groups.google.com/g/generic-abi/c/cmq1LFFpWqU
+    251:
+      id: ve
+      doc: NEC SX-Aurora Vector Engine (VE) processor
+      doc-ref: https://github.com/llvm/llvm-project/blob/f6928cf45516/llvm/include/llvm/BinaryFormat/ELF.h#L321
+    252:
+      id: csky
+      doc: C-SKY 32-bit processor
+    253:
+      id: arc_compact3_64
+      -orig-id: EM_ARC_COMPACT3_64
+      doc: Synopsys ARCv3 64-bit ISA/HS6x cores
+      doc-ref:
+        - https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L350
+        - https://github.com/file/file/blob/9b2538d/magic/Magdir/elf#L301
+        - https://bugs.astron.com/view.php?id=251
+    254:
+      id: mcs6502
+      doc: MOS Technology MCS 6502 processor
+      doc-ref: https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L351
+    255:
+      id: arc_compact3
+      -orig-id: EM_ARC_COMPACT3
+      doc: Synopsys ARCv3 32-bit
+      doc-ref:
+        - https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L352
+        - https://github.com/file/file/blob/9b2538d/magic/Magdir/elf#L303
+        - https://bugs.astron.com/view.php?id=251
+    256:
+      id: kvx
+      doc: Kalray VLIW core of the MPPA processor family
+      doc-ref: https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L353
+    257:
+      id: wdc65816
+      -orig-id: EM_65816
+      doc: WDC 65816/65C816
+      doc-ref: https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L354
+    258:
+      id: loongarch
+      -orig-id: EM_LOONGARCH
+      doc: LoongArch
+      doc-ref: https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L355
+    259:
+      id: kf32
+      -orig-id: EM_KF32
+      doc: ChipON KungFu32
+      doc-ref:
+        - https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L356
+        - https://groups.google.com/g/generic-abi/c/n8tLQxj02YY
+    260:
+      id: u16_u8core
+      -orig-id: EM_U16_U8CORE
+      doc: LAPIS nX-U16/U8
+      doc-ref:
+        - https://gitlab.com/gnutools/binutils-gdb/-/blob/dfbcbf85ea/include/elf/common.h#L357
+    261:
+      id: tachyum
+      -orig-id: EM_TACHYUM
+      doc: Tachyum
+      doc-ref:
+        - https://gitlab.com/gnutools/binutils-gdb/-/blob/dfbcbf85ea/include/elf/common.h#L358
+    262:
+      id: nxp_56800ef
+      -orig-id: EM_56800EF
+      doc: NXP 56800EF Digital Signal Controller (DSC)
+      doc-ref:
+        - https://gitlab.com/gnutools/binutils-gdb/-/blob/dfbcbf85ea/include/elf/common.h#L359
+    # unofficial values
+    # https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L358
+    4183:
+      id: avr_old
+      -orig-id: EM_AVR_OLD
+    4185:
+      id: msp430_old
+      -orig-id: EM_MSP430_OLD
+    4643:
+      id: adapteva_epiphany
+      -orig-id: EM_ADAPTEVA_EPIPHANY
+      doc: Adapteva's Epiphany architecture.
+    9520:
+      id: mt
+      -orig-id: EM_MT
+      doc: Morpho MT
+    13104:
+      id: cygnus_fr30
+      -orig-id: EM_CYGNUS_FR30
+    16727:
+      id: webassembly
+      -orig-id: EM_WEBASSEMBLY
+      doc: Unofficial value for Web Assembly binaries, as used by LLVM.
+    18056:
+      id: xc16x
+      -orig-id: EM_XC16X
+      doc: Infineon Technologies 16-bit microcontroller with C166-V2 core
+    19951:
+      id: s12z
+      -orig-id: EM_S12Z
+      doc: The Freescale toolchain generates elf files with this value.
+    23205:
+      id: dlx
+      -orig-id: EM_DLX
+      doc: openDLX
+    21569:
+      id: cygnus_frv
+      -orig-id: EM_CYGNUS_FRV
+    30288:
+      id: cygnus_d10v
+      -orig-id: EM_CYGNUS_D10V
+    30326:
+      id: cygnus_d30v
+      -orig-id: EM_CYGNUS_D30V
+    33303:
+      id: ip2k_old
+      -orig-id: EM_IP2K_OLD
+    36901:
+      id: cygnus_powerpc
+      -orig-id: EM_CYGNUS_POWERPC
+    36902:
+      id: alpha
+      -orig-id: EM_ALPHA
+    36929:
+      id: cygnus_m32r
+      -orig-id: EM_CYGNUS_M32R
+    36992:
+      id: cygnus_v850
+      -orig-id: EM_CYGNUS_V850
+    41872:
+      id: s390_old
+      -orig-id: EM_S390_OLD
+    43975:
+      id: xtensa_old
+      -orig-id: EM_XTENSA_OLD
+    44357:
+      id: xstormy16
+      -orig-id: EM_XSTORMY16
+    47787:
+      id: microblaze_old
+      -orig-id: EM_MICROBLAZE_OLD
+    48879:
+      id: cygnus_mn10300
+      -orig-id: EM_CYGNUS_MN10300
+    57005:
+      id: cygnus_mn10200
+      -orig-id: EM_CYGNUS_MN10200
+    65200:
+      id: m32c_old
+      -orig-id: EM_M32C_OLD
+      doc: Renesas M32C and M16C
+    65210:
+      id: iq2000
+      -orig-id: EM_IQ2000
+      doc: Vitesse IQ2000
+    65211:
+      id: nios32
+      -orig-id: EM_NIOS32
+    61453:
+      id: cygnus_mep
+      -orig-id: EM_CYGNUS_MEP
+      doc: Toshiba MeP
+    65261:
+      id: moxie_old
+      -orig-id: EM_MOXIE_OLD
+      doc: Old, unofficial value for Moxie
   ph_type:
     0: null_type
     1: load
@@ -821,12 +1637,12 @@ enums:
     0x6ffffffa: sunw_move
     0x6ffffffb: sunw_comdat
     0x6ffffffc: sunw_syminfo
-    0x6ffffffd: sunw_verdef
-    # 0x6ffffffd: gnu_verdef
-    0x6ffffffe: sunw_verneed
-    # 0x6ffffffe: gnu_verneed
-    0x6fffffff: sunw_versym
-    # 0x6fffffff: gnu_versym
+    # 0x6ffffffd: sunw_verdef
+    0x6ffffffd: gnu_verdef
+    # 0x6ffffffe: sunw_verneed
+    0x6ffffffe: gnu_verneed
+    # 0x6fffffff: sunw_versym
+    0x6fffffff: gnu_versym
     # 0x6fffffff: hi_sunw
     # 0x6fffffff: hi_os
     # 0x70000000: lo_proc
@@ -967,7 +1783,7 @@ enums:
     0xffff: xindex
     # 0xffff: hi_reserve
   # https://docs.oracle.com/cd/E37838_01/html/E36783/chapter6-42444.html#OSLLGchapter6-tbl-52
-  # https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=HEAD#l853
+  # https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=0f62fe0532#l853
   dynamic_array_tags:
     0: "null"            # Marks end of dynamic section
     1: needed            # Name of needed library
@@ -1013,7 +1829,7 @@ enums:
     0x6000000e:
       id: sunw_rtldinf
       doc-ref:
-        - https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libphobos/libdruntime/core/sys/solaris/sys/link.d;h=d9d47c0914;hb=HEAD#l76
+        - https://github.com/gcc-mirror/gcc/blob/240f07805d/libphobos/libdruntime/core/sys/solaris/sys/link.d#L76
         - https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/uts/common/sys/link.h#L135
     0x6000000f:
       id: sunw_filter
@@ -1024,7 +1840,7 @@ enums:
         the previous one (`DT_SUNW_RTLDINF`) and there is not even a single
         source supporting this other than verbatim copies of the same table.
       doc-ref:
-        - https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libphobos/libdruntime/core/sys/solaris/sys/link.d;h=d9d47c0914;hb=HEAD#l77
+        - https://github.com/gcc-mirror/gcc/blob/240f07805d/libphobos/libdruntime/core/sys/solaris/sys/link.d#L77
         - https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/uts/common/sys/link.h#L136
     0x60000010: sunw_cap
     0x60000011: sunw_symtab

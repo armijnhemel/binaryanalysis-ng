@@ -5,8 +5,8 @@ meta:
   endian: le
   encoding: UTF-8
 doc-ref:
-  - https://source.denx.de/u-boot/u-boot/-/blob/a0953b34d9d8d9309c3eabbb75746fef66b15ffe/tools/mkimage.h
-  - https://source.denx.de/u-boot/u-boot/-/blob/a0953b34d9d8d9309c3eabbb75746fef66b15ffe/tools/mkimage.c
+  - https://source.denx.de/u-boot/u-boot/-/blob/a0953b34d9d8d9309c3eabbb75746fef66b15ffe/tools/mtk_image.h
+  - https://source.denx.de/u-boot/u-boot/-/blob/a0953b34d9d8d9309c3eabbb75746fef66b15ffe/tools/mtk_image.c
 seq:
   - id: file_info_header
     type: common_header

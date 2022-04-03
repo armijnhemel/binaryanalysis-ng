@@ -19,12 +19,22 @@ types:
       - id: magic
         type: u4
         enum: magic_types
+        valid:
+          any-of:
+            - magic_types::uimage
+            - magic_types::bix
+            - magic_types::bix2
+            - magic_types::bix3
       - id: header_crc
         type: u4
       - id: timestamp
         type: u4
       - id: len_image
         type: u4
+        valid:
+          max: _root._io.size
+          # the length of the image can never be more
+          # than the amount of bytes in the file.
       - id: load_address
         type: u4
       - id: entry_address
@@ -450,3 +460,9 @@ enums:
       id: bix
       doc: An adapted magic used by ZyXEL and Cisco
       doc-ref: https://github.com/ReFirmLabs/binwalk/pull/482/commits/f21282bce5b699fe627102a0b647416acd54933b
+    0x80800002:
+      id: bix2
+      doc: A variant of the .bix header found in the EnGenius ECS1112FP
+    0x93000000:
+      id: bix3
+      doc: A variant of the .bix header found in the EnGenius ECS1528FP
