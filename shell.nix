@@ -37,6 +37,7 @@ pkgs.mkShell {
     cabextract
     e2tools
     innoextract
+    kaitai-struct-compiler
     lz4
     mailcap
     ncompress
