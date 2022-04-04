@@ -268,7 +268,6 @@ enums:
     457: sm8450
     459: sm7225
     460: sa8540p
-    480: sm8450
   platform_ids:
     1: cdp
     2: ffa
