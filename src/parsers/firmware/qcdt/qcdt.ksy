@@ -290,7 +290,12 @@ enums:
     21: rcm
     23: stp
     24: sbc
+    25: adp
     29: cls
+    30: ttp
+    31: hdk
+    32: iot
+    34: idp
   pmic_ids:
     0: unknown
     1: pm8941
