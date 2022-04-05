@@ -19,9 +19,6 @@ The recommended way is to use [Nix](https://nixos.org/nix), run
 
 `nix` will make sure that everything is downloaded and installed to run BANG.
 
-In addition you will need to install the Kaitai Struct compiler. This is
-described in the file `doc/kaitai-struct.md`.
-
 ### Other distributions without Nix
 
 * a recent Linux distribution (Fedora 33 or higher, or equivalent)
@@ -55,6 +52,9 @@ described in the file `doc/kaitai-struct.md`.
 
 and many others (see `shell.nix`, `maintenance.nix` and `analysis.nix` for a
 full list).
+
+You will also need to install the Kaitai Struct compiler. This is described in
+the file `doc/kaitai-struct.md`.
 
 Additionally install `sasquatch`:
 

@@ -4,7 +4,9 @@ meta:
   license: Apache-2.0
   encoding: UTF-8
   endian: le
-doc-ref: https://github.com/anestisb/qc_image_unpacker/blob/master/src/packed_image.h
+doc-ref:
+  - https://github.com/anestisb/qc_image_unpacker/blob/master/src/packed_image.h
+  - https://source.android.com/devices/bootloader/tools/pixel/fw_unpack/fbpack.py
 seq:
   - id: header
     type: header
@@ -38,16 +40,17 @@ types:
         if: num_entries != 0
   bodyv2:
     seq:
-      - id: unknown1
+      - id: len_header
         type: u4
-        # ofset of entries?
       - id: len_entry
         type: u4
       - id: chip_id
         size: 16
       - id: img_version
-        size: 68
-      - id: unknown2
+        size: 64
+      - id: slot_type
+        type: u4
+      - id: data_align
         type: u4
       - id: num_entries
         type: u4
@@ -85,26 +88,25 @@ types:
       - id: total_file_size
         type: u4
     seq:
-      - id: unknown1
+      - id: type
         size: 4
       - id: partition_name
-        size: 76
+        size: 36
+        type: strz
+      - id: product_name
+        size: 40
         type: strz
       - id: ofs_partition
-        type: u4
+        type: u8
         valid:
           max: total_file_size
-      - id: unknown2
-        size: 4
       - id: len_partition
-        type: u4
+        type: u8
         valid:
           max: total_file_size - ofs_partition
-      - id: unknown3
-        size: 4
-      - id: type
+      - id: slotted
         type: u4
-      - id: unknown4
+      - id: crc32
         size: 4
     instances:
       partition:
