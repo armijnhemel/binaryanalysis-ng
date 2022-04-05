@@ -226,3 +226,5 @@ enums:
     4: config
     5: icon
     6: window
+    9: language_id
+    11: charset
