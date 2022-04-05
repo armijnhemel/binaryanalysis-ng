@@ -254,6 +254,7 @@ larger file, unless stated otherwise.
 153. Sunplus BRN firmware
 154. xo65 object files
 155. DOS MZ, plus COFF for MS-DOS, DJGPP go32 DOS extender
+156. WinHelp
 
 The following text formats can be recognized:
 
