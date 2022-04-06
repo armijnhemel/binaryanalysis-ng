@@ -20,37 +20,42 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import os
+'''
+Parse and unpack Windows Help (.hlp) files.
+'''
 
-from UnpackParser import UnpackParser, check_condition
+import os
+from UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import icns
+from . import winhelp
 
-class AppleIconUnpackParser(UnpackParser):
+
+class WinhelpClassUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (0, b'icns')
+        (0, b'\x3f\x5f\x03\x00')
     ]
-    pretty_name = 'apple_icon'
-    # https://en.wikipedia.org/wiki/Apple_Icon_Image_format
+    pretty_name = 'winhelp'
 
     def parse(self):
+        self.file_size = self.fileresult.filesize
         try:
-            self.data = icns.Icns.from_io(self.infile)
+            self.data = winhelp.Winhelp.from_io(self.infile)
 
-            # force read data to trigger validations
-            parsed = self.data.root_element.data_parsed
+            # force read some data
+            for i in self.data.internal_directory.contents.leaf_page.entries:
+                check_condition(i.ofs_fileheader + i.file.header.len_reserved_space <= self.data.len_file,
+                                "leaf entry cannot be outside of file")
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-    def unpack(self):
-        """extract any files from the input file"""
-        return []
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.data.len_file
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['apple', 'apple icon', 'graphics', 'resource']
+        labels = ['winhelp', 'resource']
         metadata = {}
 
         self.unpack_results.set_metadata(metadata)

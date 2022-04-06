@@ -41,7 +41,6 @@ import bz2
 import re
 import xml.dom
 import hashlib
-import brotli
 
 # some external packages that are needed
 import defusedxml.minidom
