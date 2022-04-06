@@ -1,9 +1,6 @@
 meta:
   id: pef
   title: Preferred Executable Format
-  file-extension:
-    - exe
-    - ovl
   tags:
     - macos
   license: CC0-1.0
@@ -28,7 +25,8 @@ types:
       - id: type_tag2
         contents: "peff"
       - id: architecture
-        size: 4
+        type: u4
+        enum: architectures
       - id: format_version
         type: u4
       - id: date
@@ -192,6 +190,9 @@ types:
         repeat-expr: num_reloc
         io: _parent._io
 enums:
+  architectures:
+    0x70777063: powerpc
+    0x6d36386b: m68k
   section:
     0: code
     1: unpacked_data
@@ -203,9 +204,9 @@ enums:
     7: exception
     8: traceback
   share:
-    1: process
-    4: global
-    5: protected
+    1: process_share
+    4: global_share
+    5: protected_share
   symbol_classes:
     0: code_address
     1: data_address
