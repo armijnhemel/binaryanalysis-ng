@@ -22,6 +22,8 @@
 
 import os
 import pathlib
+import zlib
+
 from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
@@ -44,6 +46,12 @@ class OdexUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
         self.unpacked_size = self.data.ofs_opt + self.data.len_opt
+
+        self.infile.seek(self.data.ofs_deps)
+        adler32_bytes = self.infile.read(self.data.ofs_opt + self.data.len_opt - self.data.ofs_deps)
+        computed_checksum = zlib.adler32(adler32_bytes)
+        check_condition(self.data.adler32 == computed_checksum,
+                        "wrong Adler32")
 
     # no need to carve from the file
     def carve(self):
