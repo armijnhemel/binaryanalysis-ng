@@ -255,6 +255,7 @@ larger file, unless stated otherwise.
 154. xo65 object files
 155. DOS MZ, plus COFF for MS-DOS, DJGPP go32 DOS extender
 156. WinHelp
+157. PEF (Preferred Executable Format)
 
 The following text formats can be recognized:
 
