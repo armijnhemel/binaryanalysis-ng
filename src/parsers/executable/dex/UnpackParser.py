@@ -499,7 +499,7 @@ class OdexUnpackParser(UnpackParser):
         outfile_full = self.scan_environment.unpack_path(outfile_rel)
         outfile_full.parent.mkdir(exist_ok=True)
         outfile = open(outfile_full, 'wb')
-        outfile.write(self.data.raw_dex)
+        outfile.write(self.data.dex)
         outfile.close()
         fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
         unpacked_files.append(fr)
