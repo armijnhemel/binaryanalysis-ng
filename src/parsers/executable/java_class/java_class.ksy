@@ -55,7 +55,7 @@ seq:
     repeat-expr: attributes_count
 types:
   constant_pool_entry:
-    doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4'
+    doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se18/html/jvms-4.html#jvms-4.4'
     params:
       - id: is_prev_two_entries
         type: bool
@@ -82,6 +82,7 @@ types:
             'tag_enum::method_handle': method_handle_cp_info
             'tag_enum::method_type': method_type_cp_info
             'tag_enum::invoke_dynamic': invoke_dynamic_cp_info
+            'tag_enum::dynamic': invoke_dynamic_cp_info
         if: not is_prev_two_entries
     instances:
       is_two_entries:
@@ -101,7 +102,10 @@ types:
         1: utf8
         15: method_handle
         16: method_type
+        17: dynamic
         18: invoke_dynamic
+        19: module
+        20: package
   class_cp_info:
     doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.1'
     seq:
