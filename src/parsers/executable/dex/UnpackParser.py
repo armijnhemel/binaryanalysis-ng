@@ -22,14 +22,20 @@
 
 
 import hashlib
+import pathlib
 import zlib
+
 import tlsh
 import mutf8
+
+from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import dex
+from . import odex
+
 
 # Opcodes for the various versions. The format is:
 #
@@ -444,3 +450,69 @@ class DexUnpackParser(UnpackParser):
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
+
+
+class OdexUnpackParser(UnpackParser):
+    extensions = []
+    signatures = [
+        (0, b'dey\n036\x00')
+    ]
+    pretty_name = 'odex'
+
+    def parse(self):
+        try:
+            self.data = odex.Odex.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
+            raise UnpackParserException(e.args)
+
+        self.unpacked_size = self.data.ofs_opt + self.data.len_opt
+
+        self.infile.seek(self.data.ofs_deps)
+        adler32_bytes = self.infile.read(self.data.ofs_opt + self.data.len_opt - self.data.ofs_deps)
+        computed_checksum = zlib.adler32(adler32_bytes)
+        check_condition(self.data.adler32 == computed_checksum,
+                        "wrong Adler32")
+
+        self.infile.seek(self.data.ofs_dex)
+        try:
+            self.dex = dex.Dex.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
+            raise UnpackParserException(e.args)
+
+    # no need to carve from the file
+    def carve(self):
+        pass
+
+    def unpack(self):
+        # write dex
+        unpacked_files = []
+        out_labels = []
+
+        # cut .odex from the path name if it is there
+        if self.fileresult.filename.suffix == '.odex':
+            file_path = pathlib.Path(self.fileresult.filename.with_suffix('.dex').name)
+        # else anonymous file
+        else:
+            file_path = pathlib.Path("unpacked_from_odex")
+
+        outfile_rel = self.rel_unpack_dir / file_path
+        outfile_full = self.scan_environment.unpack_path(outfile_rel)
+        outfile_full.parent.mkdir(exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        outfile.write(self.data.raw_dex)
+        outfile.close()
+        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
+        unpacked_files.append(fr)
+        return unpacked_files
+
+    # make sure that self.unpacked_size is not overwritten
+    def calculate_unpacked_size(self):
+        pass
+
+    def set_metadata_and_labels(self):
+        """sets metadata and labels for the unpackresults"""
+        labels = ['android', 'odex']
+        metadata = {}
+
+        self.unpack_results.set_labels(labels)
+        self.unpack_results.set_metadata(metadata)
