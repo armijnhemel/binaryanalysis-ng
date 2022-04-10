@@ -56,15 +56,16 @@ class JavaClassUnpackParser(UnpackParser):
                     # This shouldn't happen and means there
                     # is an error in the mutf8 package
                     pass
-            if type(i.cp_info) == java_class.JavaClass.StringCpInfo:
-                try:
+
+            try:
+                if type(i.cp_info) == java_class.JavaClass.StringCpInfo:
                     decoded_string = mutf8.decode_modified_utf8(i.cp_info.name_as_str)
-                except UnicodeDecodeError:
-                    # This shouldn't happen and means there
-                    # is an error in the mutf8 package
-                    pass
-                except AttributeError as e:
-                    raise UnpackParserException(e.args)
+            except UnicodeDecodeError:
+                # This shouldn't happen and means there
+                # is an error in the mutf8 package
+                pass
+            except AttributeError as e:
+                raise UnpackParserException(e.args)
             constant_pool_index += 1
 
     def set_metadata_and_labels(self):
