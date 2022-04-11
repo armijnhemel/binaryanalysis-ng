@@ -54,7 +54,8 @@ class VfatUnpackParser(UnpackParser):
     # is a FAT filesystem. We can use the 'file system type' string, but since
     # this was never intended as a signature, it is unreliable.
     signatures = [
-            (54, b'FAT')
+            (54, b'FAT'),
+            (82, b'FAT32   ')
             ]
 
     def parse(self):
