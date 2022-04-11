@@ -212,5 +212,11 @@ class VfatUnpackParser(UnpackParser):
         labels = ['fat', 'filesystem']
         metadata = {}
 
+        # store the OEM name. Even though the OEM name should be padded
+        # with spaces sometimes there are NUL characters instead
+        oem_name = self.data.boot_sector.oem_name.split('\x00')[0]
+
+        metadata['oem'] = oem_name
+
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
