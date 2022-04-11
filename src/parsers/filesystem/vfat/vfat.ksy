@@ -84,6 +84,8 @@ types:
       - id: bytes_per_ls
         -orig-id: BPB_BytsPerSec
         type: u2
+        valid:
+          min: 32
         doc: Bytes per logical sector
       - id: ls_per_clus
         -orig-id: BPB_SecPerClus
