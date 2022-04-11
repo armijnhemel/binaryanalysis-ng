@@ -256,6 +256,7 @@ larger file, unless stated otherwise.
 155. DOS MZ, plus COFF for MS-DOS, DJGPP go32 DOS extender
 156. WinHelp
 157. PEF (Preferred Executable Format)
+158. Nano app header (Android)
 
 The following text formats can be recognized:
 

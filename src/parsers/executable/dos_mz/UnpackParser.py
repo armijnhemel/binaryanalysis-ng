@@ -44,6 +44,7 @@ class DosMzClassUnpackParser(UnpackParser):
     pretty_name = 'dos_mz'
 
     def parse(self):
+        check_condition(self.offset == 0, "carving currently not supported")
         self.file_size = self.fileresult.filesize
         try:
             self.data = dos_mz.DosMz.from_io(self.infile)
