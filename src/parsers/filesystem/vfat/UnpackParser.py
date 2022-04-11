@@ -68,8 +68,12 @@ class VfatUnpackParser(UnpackParser):
         bpb = self.data.boot_sector.bpb
         check_condition(bpb.ls_per_clus > 0, "invalid bpb value: ls_per_clus")
         check_condition(bpb.bytes_per_ls > 0, "invalid bpb value: bytes_per_ls")
-        self.fat12 = self.is_fat12()
+
+        self.fat12 = False
         self.fat32 = self.data.boot_sector.is_fat32
+        if not self.fat32:
+            self.fat12 = self.is_fat12()
+
         self.pos_data = self.data.boot_sector.pos_root_dir + self.data.boot_sector.size_root_dir
         check_condition(self.pos_data <= self.fileresult.filesize,
                 "data sector outside file")
