@@ -11,3 +11,4 @@ rules:
     severity: ERROR
     languages:
       - c
+      - cpp
