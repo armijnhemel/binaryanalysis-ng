@@ -34,9 +34,6 @@ seq:
     type: u4
     doc: adler32 checksum covering deps/deps_padding/opt
 instances:
-  raw_dex:
-    pos: ofs_dex
-    size: len_dex
   dex:
     pos: ofs_dex
     size: len_dex
