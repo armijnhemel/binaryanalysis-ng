@@ -149,6 +149,9 @@ class Iso9660UnpackParser(WrappedUnpackParser):
 
                     # add the contents of a directory to the queue
                     for dir_record in record.body.directory_records.records:
+                        # first create the directory
+
+                        # then add the contents of the directory to the queue
                         if dir_record.len_dr == 0:
                             continue
                         if dir_record.body.file_flags_directory:
