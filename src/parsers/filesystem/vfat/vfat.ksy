@@ -177,6 +177,8 @@ types:
         type: u1
       - id: ext_boot_sign
         type: u1
+        valid:
+          any-of: [0x28, 0x29]
         doc: |
           Should be 0x29 to indicate that an EBPB with the following 3
           entries exists.
@@ -199,11 +201,16 @@ types:
         type: str
         encoding: ASCII
         pad-right: 0x20
+        if: is_extended
       - id: fs_type_str
         size: 8
         type: str
         encoding: ASCII
         pad-right: 0x20
+        if: is_extended
+    instances:
+      is_extended:
+        value: ext_boot_sign == 0x29
   ext_bios_param_block_fat32:
     doc: Extended BIOS Parameter Block for FAT32
     seq:
