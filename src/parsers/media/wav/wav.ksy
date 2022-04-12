@@ -49,7 +49,7 @@ meta:
     - windows
   license: BSD-3-Clause-Attribution
   imports:
-    - riff
+    - /common/riff
   encoding: ASCII
   endian: le
 doc: |

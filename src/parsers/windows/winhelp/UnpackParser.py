@@ -21,43 +21,42 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-Parser for ANI files. The parser here is correct, but there are a lot
-of ANI files where the length declared in the file is 8 bytes less than
-supposed. These files are not correctly recognized.
-
-test files for ANI: http://www.anicursor.com/diercur.html
-http://fileformats.archiveteam.org/wiki/Windows_Animated_Cursor#Sample_files
+Parse and unpack Windows Help (.hlp) files.
 '''
 
 import os
-
-from UnpackParser import UnpackParser, check_condition
+from UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import ani
+from . import winhelp
 
 
-class AniUnpackParser(UnpackParser):
+class WinhelpClassUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (8, b'ACON')
+        (0, b'\x3f\x5f\x03\x00')
     ]
-    pretty_name = 'ani'
+    pretty_name = 'winhelp'
 
     def parse(self):
+        self.file_size = self.fileresult.filesize
         try:
-            self.data = ani.Ani.from_io(self.infile)
-            # force reading of data because of Kaitai's lazy evaluation
-            for c in self.data.subchunks:
-                chunk_id = c.chunk.id
+            self.data = winhelp.Winhelp.from_io(self.infile)
+
+            # force read some data
+            for i in self.data.internal_directory.contents.leaf_page.entries:
+                check_condition(i.ofs_fileheader + i.file.header.len_reserved_space <= self.data.len_file,
+                                "leaf entry cannot be outside of file")
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.data.len_file
+
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['ani', 'graphics']
+        labels = ['winhelp', 'resource']
         metadata = {}
-        xmptags = []
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)

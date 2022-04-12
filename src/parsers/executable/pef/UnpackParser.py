@@ -21,43 +21,49 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-Parser for ANI files. The parser here is correct, but there are a lot
-of ANI files where the length declared in the file is 8 bytes less than
-supposed. These files are not correctly recognized.
-
-test files for ANI: http://www.anicursor.com/diercur.html
-http://fileformats.archiveteam.org/wiki/Windows_Animated_Cursor#Sample_files
+Parse and unpack Preferred Executable Format (PEF) files,
+as used on classic MacOS.
 '''
 
 import os
-
-from UnpackParser import UnpackParser, check_condition
+from UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import ani
+from . import pef
 
 
-class AniUnpackParser(UnpackParser):
+class PefClassUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (8, b'ACON')
+        (0, b'Joy!peff'),
     ]
-    pretty_name = 'ani'
+    pretty_name = 'pef'
 
     def parse(self):
+        self.file_size = self.fileresult.filesize
         try:
-            self.data = ani.Ani.from_io(self.infile)
-            # force reading of data because of Kaitai's lazy evaluation
-            for c in self.data.subchunks:
-                chunk_id = c.chunk.id
+            self.data = pef.Pef.from_io(self.infile)
+
+            self.unpacked_size = self.infile.tell()
+
+            # force read part of the sections
+            for s in self.data.section_headers:
+                self.unpacked_size = max(self.unpacked_size, s.ofs_container + s.len_packed)
+                if s.section_kind != pef.Pef.Section.loader:
+                    check_condition(len(s.section) == s.len_packed,
+                                    "not enough data")
+                else:
+                    symbols = s.section.header.symbols
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
+    def calculate_unpacked_size(self):
+        pass
+
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['ani', 'graphics']
+        labels = ['pef', 'executable', 'macos']
         metadata = {}
-        xmptags = []
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)

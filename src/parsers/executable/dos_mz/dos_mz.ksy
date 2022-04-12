@@ -58,6 +58,8 @@ types:
             - '"ZM"'
       - id: last_page_extra_bytes
         type: u2
+        valid:
+          max: 511
       - id: num_pages
         type: u2
       - id: num_relocations
@@ -80,8 +82,11 @@ types:
         type: u2
       - id: ofs_relocations
         type: u2
+        valid:
+          max: len_header - num_relocations * 4
       - id: overlay_id
         type: u2
+        valid: 0
     instances:
       len_header:
         value: header_size * 16

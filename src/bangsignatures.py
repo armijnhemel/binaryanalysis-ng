@@ -213,7 +213,6 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'ani': bangunpack.unpack_ani,
     'mng': bangunpack.unpack_mng,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
@@ -270,7 +269,6 @@ signatureprettyprint = {
 # One example is the Android sparse data format.
 # These extensions should be lower case
 extensiontofunction = {
-    '.new.dat': bangunpack.unpack_android_sparse_data,
 }
 
 import os

@@ -20,44 +20,32 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-'''
-Parser for ANI files. The parser here is correct, but there are a lot
-of ANI files where the length declared in the file is 8 bytes less than
-supposed. These files are not correctly recognized.
-
-test files for ANI: http://www.anicursor.com/diercur.html
-http://fileformats.archiveteam.org/wiki/Windows_Animated_Cursor#Sample_files
-'''
 
 import os
-
-from UnpackParser import UnpackParser, check_condition
+from UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import ani
+from . import napp_header
 
 
-class AniUnpackParser(UnpackParser):
+class NappHeaderClassUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (8, b'ACON')
+        (4, b'NANO'),
     ]
-    pretty_name = 'ani'
+    pretty_name = 'napp_header'
 
     def parse(self):
+        self.file_size = self.fileresult.filesize
         try:
-            self.data = ani.Ani.from_io(self.infile)
-            # force reading of data because of Kaitai's lazy evaluation
-            for c in self.data.subchunks:
-                chunk_id = c.chunk.id
+            self.data = napp_header.NappHeader.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['ani', 'graphics']
+        labels = ['android', 'nano app']
         metadata = {}
-        xmptags = []
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
