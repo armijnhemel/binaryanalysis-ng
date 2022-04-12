@@ -213,7 +213,6 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'ani': bangunpack.unpack_ani,
     'mng': bangunpack.unpack_mng,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
