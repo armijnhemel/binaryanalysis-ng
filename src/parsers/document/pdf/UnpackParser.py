@@ -23,7 +23,7 @@
 # The specifications for PDF 1.7 are an ISO standard and can be found
 # on the Adobe website:
 #
-# https://www.adobe.com/content/dam/acom/en/devnet/pdf/pdfs/PDF32000_2008.pdf
+# https://opensource.adobe.com/dc-acrobat-sdk-docs/standards/pdfstandards/pdf/PDF32000_2008.pdf
 #
 # with additional information at:
 #
@@ -42,19 +42,13 @@ import re
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
-from UnpackParser import WrappedUnpackParser
-from bangmedia import unpack_pdf
 
-class PdfUnpackParser(WrappedUnpackParser):
-#class PdfUnpackParser(UnpackParser):
+class PdfUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'%PDF-')
     ]
     pretty_name = 'pdf'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_pdf(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         pdfinfo = {}
@@ -103,22 +97,25 @@ class PdfUnpackParser(WrappedUnpackParser):
         # keep a list of referencs for the entire document
         document_object_references = {}
 
-        # store the current position
+        # store the current position (just after the header)
         current_position = self.infile.tell()
 
-        # The difficulty with PDF is that the body has no fixed structure
-        # but is referenced from a trailer at the end of the PDF, possibly
-        # followed by incremental updates (section 7.5.6). As files might
-        # have been concatenated simply jumping to the end of the file is
-        # not an option (although it would work for most files). Therefore
+        # The difficulty with PDF is that the body has no fixed structure.
+        # Instead, there is a trailer at the end of the file that contains
+        # references back into the file. There could be multiple trailers,
+        # because PDF allows incremental updates (section 7.5.6).
+        #
+        # As files might have been concatenated or a PDF might need to be
+        # carved simply jumping to the end of the file is not an option
+        # (although it would certainly work for most files). Therefore
         # the file needs to be read until the start of the trailer is found.
         # As an extra complication sometimes the updates are not appended
         # to the file, but prepended using forward references instead of
         # back references and then other parts of the PDF file having back
         # references, making the PDF file more of a random access file.
         while True:
-            # continuously look for trailers until there is no
-            # valid trailer anymore.
+            # continuously look for trailers until there is no valid trailer
+            # anymore. This will (likely) be the correct end of the file.
             start_xref_pos = -1
             cross_offset = -1
 
@@ -142,6 +139,7 @@ class PdfUnpackParser(WrappedUnpackParser):
                 pdfbuffer = bytearray(10240)
                 bytesread = self.infile.readinto(pdfbuffer)
                 if bytesread == 0:
+                    # no bytes could be read, so exit the loop
                     break
 
                 pdfpos = pdfbuffer.find(b'startxref')
@@ -153,8 +151,8 @@ class PdfUnpackParser(WrappedUnpackParser):
                     # * valid byte offset to last cross reference
                     # * EOF marker
 
-                    # skip over 'startxref'
-                    self.infile.seek(offset + start_xref_pos + 9)
+                    # skip 'startxref'
+                    self.infile.seek(start_xref_pos + 9)
 
                     # then either LF, CR, or CRLF (section 7.5.1)
                     buf = self.infile.read(1)
@@ -172,12 +170,13 @@ class PdfUnpackParser(WrappedUnpackParser):
                         if buf in [b'\x0a', b'\x0d']:
                             seeneol = True
                             break
-                        if self.infile.tell() == filesize:
+                        if self.infile.tell() == self.fileresult.filesize:
                             break
                         crossbuf += buf
                     if not seeneol:
-                        isvalidtrailer = False
+                        is_valid_trailer = False
                         break
+
                     # the value should be an integer followed by
                     # LF, CR or CRLF.
                     if crossbuf != b'':
@@ -188,8 +187,8 @@ class PdfUnpackParser(WrappedUnpackParser):
                     if crossoffset != 0:
                         # the offset for the cross reference cannot
                         # be outside of the file.
-                        if offset + crossoffset > self.infile.tell():
-                            isvalidtrailer = False
+                        if crossoffset > self.infile.tell():
+                            is_valid_trailer = False
                             break
                     else:
                         needs_prev = True
@@ -200,12 +199,12 @@ class PdfUnpackParser(WrappedUnpackParser):
 
                     # now finally check EOF
                     buf = self.infile.read(5)
-                    seeneof = False
+                    seen_eof = False
                     if buf != b'%%EOF':
-                        isvalidtrailer = False
+                        is_valid_trailer = False
                         break
 
-                    seeneof = True
+                    seen_eof = True
 
                     # Most likely there are EOL markers, although the PDF
                     # specification is not 100% clear about this:
@@ -217,32 +216,33 @@ class PdfUnpackParser(WrappedUnpackParser):
                     buf = self.infile.read(1)
                     if buf in [b'\x0a', b'\x0d']:
                         if buf == b'\x0d':
-                            if self.infile.tell() != filesize:
+                            if self.infile.tell() != self.fileresult.filesize:
                                 buf = self.infile.read(1)
                                 if buf != b'\x0a':
                                     self.infile.seek(-1, os.SEEK_CUR)
 
-                    if self.infile.tell() == filesize:
+                    if self.infile.tell() == self.fileresult.filesize:
                         break
-                    if seeneof:
+                    if seen_eof:
                         break
 
                 # check if the end of file was reached, without having
                 # read a valid trailer.
-                if self.infile.tell() == filesize:
-                    isvalidtrailer = False
+                if self.infile.tell() == self.fileresult.filesize:
+                    is_valid_trailer = False
                     break
 
                 # continue searching, with some overlap
                 self.infile.seek(-10, os.SEEK_CUR)
-                unpackedsize = self.infile.tell() - offset
+                unpackedsize = self.infile.tell()
 
-            if not isvalidtrailer:
+            if not is_valid_trailer:
                 break
-            if start_xref_pos == -1 or crossoffset == -1 or not seeneof:
+            if start_xref_pos == -1 or crossoffset == -1 or not seen_eof:
                 break
 
-            unpackedsize = self.infile.tell() - offset
+            unpackedsize = self.infile.tell()
+            current_position = unpackedsize
 
             # extra sanity check: look at the contents of the trailer dictionary
             self.infile.seek(start_xref_pos-5)
@@ -254,7 +254,7 @@ class PdfUnpackParser(WrappedUnpackParser):
                 # TODO
                 break
 
-            endoftrailerpos = buf.find(b'>>') + start_xref_pos - 4
+            end_of_trailer_pos = buf.find(b'>>') + start_xref_pos - 4
 
             trailerpos = -1
 
@@ -263,7 +263,7 @@ class PdfUnpackParser(WrappedUnpackParser):
             isstart = False
             while True:
                 curpos = self.infile.tell()
-                if curpos <= offset:
+                if curpos <= 0:
                     isstart = True
                 buf = self.infile.read(50)
                 trailerpos = buf.find(b'trailer')
@@ -276,7 +276,7 @@ class PdfUnpackParser(WrappedUnpackParser):
 
             # read the xref entries (section 7.5.4) as those
             # might be referenced in the trailer.
-            self.infile.seek(offset+crossoffset+4)
+            self.infile.seek(crossoffset+4)
             validxref = True
             if trailerpos - crossoffset > 0:
                 buf = self.infile.read(trailerpos - crossoffset - 4).strip()
@@ -383,7 +383,7 @@ class PdfUnpackParser(WrappedUnpackParser):
             self.infile.seek(trailerpos)
 
             # and read the trailer, minus '>>'
-            buf = self.infile.read(endoftrailerpos - trailerpos)
+            buf = self.infile.read(end_of_trailer_pos - trailerpos)
 
             # extra sanity check: see if '<<' is present
             if b'<<' not in buf:
@@ -416,7 +416,7 @@ class PdfUnpackParser(WrappedUnpackParser):
                     if objectref in object_references:
                         # seek to the position of the object in the
                         # file and read the data
-                        self.infile.seek(offset + object_references[objectref]['offset'])
+                        self.infile.seek(object_references[objectref]['offset'])
 
                         # first read a few bytes to check if it is
                         # actually the right object
@@ -482,7 +482,7 @@ class PdfUnpackParser(WrappedUnpackParser):
                     if prevres is not None:
                         prevxref = int(prevres.groups()[0])
                         seen_prev = True
-                        if offset + prevxref > filesize:
+                        if offset + prevxref > self.fileresult.filesize:
                             correct_reference = False
                             break
                         self.infile.seek(offset + prevxref)
@@ -510,6 +510,7 @@ class PdfUnpackParser(WrappedUnpackParser):
             valid_pdf_size = unpackedsize
 
         check_condition(valid_pdf, "not a valid PDF")
+        self.infile.seek(valid_pdf_size)
 
     def extract_metadata_and_labels(self):
         '''Extract metadata from the PDF file and set labels'''
