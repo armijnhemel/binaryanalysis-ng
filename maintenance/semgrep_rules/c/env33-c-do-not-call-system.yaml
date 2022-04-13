@@ -1,0 +1,14 @@
+rules:
+  - id: env33-c-do-not-call-system
+    pattern: system(...)
+    message: |
+      "Use of the system() function can result in exploitable vulnerabilities,
+      in the worst case allowing execution of arbitrary system commands."
+    metadata:
+      cert: env33-c
+      cert_url: https://wiki.sei.cmu.edu/confluence/pages/viewpage.action?pageId=87152177
+      license: CC0-1.0
+    severity: ERROR
+    languages:
+      - c
+      - cpp

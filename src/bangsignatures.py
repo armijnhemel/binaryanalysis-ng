@@ -213,23 +213,11 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'ani': bangunpack.unpack_ani,
-    'mng': bangunpack.unpack_mng,
-    'icc': bangunpack.unpack_icc,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
     'xar': bangunpack.unpack_xar,
     'iso9660': bangfilesystems.unpack_iso9660,
-    'jffs2_little_endian': bangfilesystems.unpack_jffs2,
-    'jffs2_big_endian': bangfilesystems.unpack_jffs2,
     'ext2': bangfilesystems.unpack_ext2,
-    'vmdk': bangfilesystems.unpack_vmdk,
-    'pdf': bangunpack.unpack_pdf,
-    'cbfs': bangfilesystems.unpack_cbfs,
-    'romfs': bangfilesystems.unpack_romfs,
-    'cramfs_le': bangfilesystems.unpack_cramfs,
-    'cramfs_be': bangfilesystems.unpack_cramfs,
-    'plf': bangfilesystems.unpack_plf,
 }
 
 # a lookup table to map signatures to a name for
@@ -279,7 +267,6 @@ signatureprettyprint = {
 # One example is the Android sparse data format.
 # These extensions should be lower case
 extensiontofunction = {
-    '.new.dat': bangunpack.unpack_android_sparse_data,
 }
 
 import os
@@ -561,17 +548,6 @@ def prescan_png(scanbytes, bytesread, filesize, offset, offsetinfile):
             return False
     return True
 
-def prescan_mng(scanbytes, bytesread, filesize, offset, offsetinfile):
-    # minimum size of MNG files is 52 bytes
-    if filesize - (offsetinfile + offset) < 52:
-        return False
-    if bytesread - offset >= 13:
-        # bytes 8 - 11 are always the same in
-        # every MNG
-        if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x1c':
-            return False
-    return True
-
 def prescan_truetype(scanbytes, bytesread, filesize, offset, offsetinfile):
     if filesize - (offsetinfile + offset) < 12:
         return False
@@ -610,7 +586,6 @@ prescan_functions = {
     'bmp' : prescan_bmp,
     'ico' : prescan_ico,
     'png' : prescan_png,
-    'mng' : prescan_mng,
     'truetype' : prescan_truetype,
     'opentype' : prescan_truetype,
     'terminfo' : prescan_terminfo,
