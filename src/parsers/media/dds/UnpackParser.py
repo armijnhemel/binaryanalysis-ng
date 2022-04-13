@@ -36,9 +36,6 @@ class DdsUnpackParser(UnpackParser):
     ]
     pretty_name = 'dds'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_dds(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = dds.Dds.from_io(self.infile)
