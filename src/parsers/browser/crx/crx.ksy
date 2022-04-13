@@ -4,7 +4,7 @@ meta:
   license: CC0-1.0
   ks-version: 0.9
   imports:
-    - /archive/zip
+    - zip
   encoding: utf-8
   endian: le
 doc-ref:

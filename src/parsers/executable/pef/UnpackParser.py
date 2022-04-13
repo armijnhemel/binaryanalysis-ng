@@ -20,45 +20,50 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import os
-import pathlib
-from FileResult import FileResult
+'''
+Parse and unpack Preferred Executable Format (PEF) files,
+as used on classic MacOS.
+'''
 
-from UnpackParser import UnpackParser, check_condition
+import os
+from UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import dds
+from . import pef
 
-class DdsUnpackParser(UnpackParser):
+
+class PefClassUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (0, b'DDS ')
+        (0, b'Joy!peff'),
     ]
-    pretty_name = 'dds'
+    pretty_name = 'pef'
 
     def parse(self):
+        self.file_size = self.fileresult.filesize
         try:
-            self.data = dds.Dds.from_io(self.infile)
+            self.data = pef.Pef.from_io(self.infile)
+
+            self.unpacked_size = self.infile.tell()
+
+            # force read part of the sections
+            for s in self.data.section_headers:
+                self.unpacked_size = max(self.unpacked_size, s.ofs_container + s.len_packed)
+                if s.section_kind != pef.Pef.Section.loader:
+                    check_condition(len(s.section) == s.len_packed,
+                                    "not enough data")
+                else:
+                    symbols = s.section.header.symbols
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
-        compatible_flags = True
-        if self.data.dds_header.flags & 0x8 == 0x8 and self.data.dds_header.flags & 0x80000 == 0x80000:
-            compatible_flags = False
-        check_condition(compatible_flags, "incompatible flags specified")
-        check_condition(self.data.dds_header.flags & 0x80000 == 0x80000,
-                        "uncompressed files currently not supported")
 
     def calculate_unpacked_size(self):
-        self.unpacked_size = 4 + self.data.dds_header.size + self.data.dds_header.pitch_or_linear_size
-        try:
-            self.unpacked_size += 20
-        except:
-            pass
+        pass
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['dds', 'graphics']
+        labels = ['pef', 'executable', 'macos']
         metadata = {}
 
-        self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)
+        self.unpack_results.set_labels(labels)

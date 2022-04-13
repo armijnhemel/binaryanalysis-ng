@@ -213,14 +213,12 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'ani': bangunpack.unpack_ani,
     'mng': bangunpack.unpack_mng,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
     'xar': bangunpack.unpack_xar,
     'iso9660': bangfilesystems.unpack_iso9660,
     'ext2': bangfilesystems.unpack_ext2,
-    'pdf': bangunpack.unpack_pdf,
 }
 
 # a lookup table to map signatures to a name for

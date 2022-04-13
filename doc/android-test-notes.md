@@ -33,12 +33,17 @@ The Nexus 5 (codename "hammerhead") was made by LG. The firmware uses the
 `androidmsmboot` format and the `android_boot_img` version 0 format. Uses
 Odex 036 and regular Dex 035.
 
+## oriole-sp2a.220405.004-factory-f560807e.zip
+
+Android 12L uses the `android_fbpk` version 1 and version 2 format,
+`android_vendor_boot` version 4 and `android_boot_img` version 4. It uses
+Oat 199, Art 099, Vdex 027, Dex 035, Dex 038 and Dex 039.
+
 ## raven-sd1a.210817.015.a4-factory-bd6cb030.zip
 
-The Pixel 6 Pro uses the `android_fbpk` version 1 and version 2 format
-(currently unsupported), `android_vendor_boot` version 4 and
-`android_boot_img` version 4. It uses Art 099, Oat 195, Vdex 027, Dex 035,
-Dex 038 and Dex 039.
+The Pixel 6 Pro uses the `android_fbpk` version 1 and version 2 format,
+`android_vendor_boot` version 4 and `android_boot_img` version 4. It uses
+Art 099, Oat 195, Vdex 027, Dex 035, Dex 038 and Dex 039.
 
 ## razorg-JLS36C-factory-834eab41.zip
 

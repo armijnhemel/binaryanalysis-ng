@@ -20,45 +20,43 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import os
-import pathlib
-from FileResult import FileResult
+'''
+Parse and unpack Windows Help (.hlp) files.
+'''
 
-from UnpackParser import UnpackParser, check_condition
+import os
+from UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import dds
+from . import winhelp
 
-class DdsUnpackParser(UnpackParser):
+
+class WinhelpClassUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (0, b'DDS ')
+        (0, b'\x3f\x5f\x03\x00')
     ]
-    pretty_name = 'dds'
+    pretty_name = 'winhelp'
 
     def parse(self):
+        self.file_size = self.fileresult.filesize
         try:
-            self.data = dds.Dds.from_io(self.infile)
+            self.data = winhelp.Winhelp.from_io(self.infile)
+
+            # force read some data
+            for i in self.data.internal_directory.contents.leaf_page.entries:
+                check_condition(i.ofs_fileheader + i.file.header.len_reserved_space <= self.data.len_file,
+                                "leaf entry cannot be outside of file")
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
-        compatible_flags = True
-        if self.data.dds_header.flags & 0x8 == 0x8 and self.data.dds_header.flags & 0x80000 == 0x80000:
-            compatible_flags = False
-        check_condition(compatible_flags, "incompatible flags specified")
-        check_condition(self.data.dds_header.flags & 0x80000 == 0x80000,
-                        "uncompressed files currently not supported")
 
     def calculate_unpacked_size(self):
-        self.unpacked_size = 4 + self.data.dds_header.size + self.data.dds_header.pitch_or_linear_size
-        try:
-            self.unpacked_size += 20
-        except:
-            pass
+        self.unpacked_size = self.data.len_file
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['dds', 'graphics']
+        labels = ['winhelp', 'resource']
         metadata = {}
 
-        self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)
+        self.unpack_results.set_labels(labels)

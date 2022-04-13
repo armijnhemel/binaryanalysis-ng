@@ -17,7 +17,7 @@ ifdef CONTAINER
 KAITAISTRUCT_COMPILER= $(CTR_PROGRAM) container run -it --rm $(CTR_OPTIONS) -v "$(PWD)":/src:z -w /src kaitai
 else
 # Assume kaitai-struct-compiler is in $PATH
-KAITAISTRUCT_COMPILER= kaitai-struct-compiler 
+KAITAISTRUCT_COMPILER= kaitai-struct-compiler
 endif
 
 all: $(KAITAI_PARSERS)
