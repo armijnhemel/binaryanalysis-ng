@@ -223,7 +223,7 @@ def unpack_zip(fileresult, scanenvironment, offset, unpackdir):
                 checkfile.seek(archivedecryptionsize, os.SEEK_CUR)
                 unpackedsize += archivedecryptionsize
             # check for the start of the central directory (section 4.3.12)
-            elif checkbytes == b'\x50\x4b\x01\02':
+            elif checkbytes == b'\x50\x4b\x01\x02':
                 seencentraldirectory = True
                 if checkfile.tell() + 46 > filesize:
                     checkfile.close()
