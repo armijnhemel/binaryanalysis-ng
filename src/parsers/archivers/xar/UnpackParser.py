@@ -286,6 +286,9 @@ class XarUnpackParser(UnpackParser):
                                            'archived_checksum_style': archived_checksum_style,
                                            'extracted_checksum': extracted_checksum,
                                            'extracted_checksum_style': extracted_checksum_style})
+                elif node_type == 'fifo':
+                    self.nodes.append({'name': full_node_name,
+                                       'type': 'fifo', 'id': file_id})
 
         # sanity check the data and the checksums
         maxbytestoread = 10000000
@@ -367,6 +370,9 @@ class XarUnpackParser(UnpackParser):
             elif node['type'] == 'symlink':
                 out_labels = ['symlink']
                 outfile_full.symlink_to(node['target'])
+            elif node['type'] == 'fifo':
+                out_labels = ['fifo']
+                os.mkfifo(outfile_full)
             else:
                 if node['type'] != 'file':
                     continue
