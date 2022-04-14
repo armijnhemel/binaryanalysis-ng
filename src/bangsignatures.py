@@ -215,7 +215,6 @@ signaturesoffset = {
 signaturetofunction = {
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
-    'xar': bangunpack.unpack_xar,
     'iso9660': bangfilesystems.unpack_iso9660,
     'ext2': bangfilesystems.unpack_ext2,
 }
