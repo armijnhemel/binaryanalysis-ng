@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021 - Armijn Hemel
+# Copyright 2021-2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -10,28 +10,24 @@
 This script processes source code archives and generates YARA rules
 '''
 
-import sys
+import datetime
+import hashlib
+import json
+import multiprocessing
 import os
-import re
-import uuid
-import argparse
 import pathlib
-import zipfile
+import queue
+import re
+import shutil
+import subprocess
+import sys
 import tarfile
 import tempfile
-import shutil
-import hashlib
-import subprocess
-import datetime
-import multiprocessing
-import queue
-import json
-
-# import some modules for dependencies, requires psycopg2 2.7+
-import psycopg2
-import psycopg2.extras
+import uuid
+import zipfile
 
 import packageurl
+import click
 
 # import YAML module for the configuration
 from yaml import load
@@ -97,7 +93,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             counter = 1
             for s in sorted(strings):
                 try:
-                    p.write("        $string%d = \"%s\"\n" % (counter, s))
+                    p.write("        $string%d = \"%s\" fullword\n" % (counter, s))
                     counter += 1
                 except:
                     pass
@@ -107,7 +103,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             p.write("\n        // Extracted functions\n\n")
             counter = 1
             for s in sorted(functions):
-                p.write("        $function%d = \"%s\"\n" % (counter, s))
+                p.write("        $function%d = \"%s\" fullword\n" % (counter, s))
                 counter += 1
 
         if variables != set():
@@ -115,7 +111,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             p.write("\n        // Extracted variables\n\n")
             counter = 1
             for s in sorted(variables):
-                p.write("        $variable%d = \"%s\"\n" % (counter, s))
+                p.write("        $variable%d = \"%s\" fullword\n" % (counter, s))
                 counter += 1
 
         # TODO: find good heuristics of how many identifiers should be matched
@@ -279,46 +275,22 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
         yaraqueue.task_done()
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to F-Droid configuration file", metavar="FILE")
-    parser.add_argument("-s", "--source-directory", action="store", dest="source_directory",
-                        help="path to directory with source code archives", metavar="DIR")
-    args = parser.parse_args()
+@click.command(short_help='process BANG result files and output YARA')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.option('--source-directory', '-s', help='source code archive directory', type=click.Path(exists=True), required=True)
+@click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
+def main(config_file, source_directory, identifiers):
 
-    # sanity checks for the source code directory
-    if args.source_directory is None:
-        parser.error("No source code directory provided, exiting")
+    source_directory = pathlib.Path(source_directory)
 
-    source_directory = pathlib.Path(args.source_directory)
-
-    # the source directory should exist ...
-    if not source_directory.exists():
-        parser.error("File %s does not exist, exiting." % source_directory)
-
-    # ... and should be a real directory
+    # should be a real directory
     if not source_directory.is_dir():
-        parser.error("%s is not a directory, exiting." % source_directory)
-
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    cfg = pathlib.Path(args.cfg)
-
-    # the configuration file should exist ...
-    if not cfg.exists():
-        parser.error("File %s does not exist, exiting." % args.cfg)
-
-    # ... and should be a real file
-    if not cfg.is_file():
-        parser.error("%s is not a regular file, exiting." % args.cfg)
+        print("%s is not a directory, exiting." % source_directory, file=sys.stderr)
+        sys.exit(1)
 
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(args.cfg, 'r')
-        config = load(configfile, Loader=Loader)
+        config = load(config_file, Loader=Loader)
     except (YAMLError, PermissionError):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
@@ -380,10 +352,6 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
-    yara_output_directory = yara_directory / 'binary'
-
-    yara_output_directory.mkdir(exist_ok=True)
-
     # test if ctags is available. This should be "universal ctags".
     if shutil.which('ctags') is None:
         print("ctags program not found, exiting",
@@ -395,6 +363,10 @@ def main():
         print("xgettext program not found, exiting",
               file=sys.stderr)
         sys.exit(1)
+
+    yara_output_directory = yara_directory / 'binary'
+
+    yara_output_directory.mkdir(exist_ok=True)
 
     threads = multiprocessing.cpu_count()
     if 'threads' in config['general']:

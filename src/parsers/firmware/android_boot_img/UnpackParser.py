@@ -115,7 +115,12 @@ class AndroidBootImgUnpacker(UnpackParser):
         fr = FileResult(self.fileresult, outfile_rel, set([]))
         unpacked_files.append(fr)
 
-        if len(self.data.header.ramdisk_img) > 0:
+        if self.data.header_version < 3:
+            ramdisk_size = self.data.header.ramdisk.size
+        else:
+            ramdisk_size = len(self.data.header.ramdisk_img)
+
+        if ramdisk_size > 0:
             outfile_rel = self.rel_unpack_dir / ramdisk_name
             outfile_full = self.scan_environment.unpack_path(outfile_rel)
             os.makedirs(outfile_full.parent, exist_ok=True)

@@ -438,6 +438,8 @@ class JpegUnpackParser(UnpackParser):
                 testimg.close()
             except OSError as e:
                 raise UnpackParserException(e.args)
+            except PIL.Image.DecompressionBombError as e:
+                raise UnpackParserException(e.args)
         else:
             temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
             os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
@@ -450,6 +452,8 @@ class JpegUnpackParser(UnpackParser):
                 testimg.load()
                 testimg.close()
             except OSError as e:
+                raise UnpackParserException(e.args)
+            except PIL.Image.DecompressionBombError as e:
                 raise UnpackParserException(e.args)
             finally:
                 jpeg_file.close()
