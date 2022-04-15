@@ -53,7 +53,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import xar
 
 
@@ -67,7 +67,7 @@ class XarUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = xar.Xar.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(len(self.data._raw__raw_toc) == self.data.header.len_toc_compressed,
                         "invalid compressed TOC length")
