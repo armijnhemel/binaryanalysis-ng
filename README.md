@@ -126,7 +126,7 @@ larger file, unless stated otherwise.
 31. Sun Raster files (standard type only)
 32. Intel Hex (text files only)
 33. Motorola SREC (text files only)
-34. MNG
+34. Quicktime
 35. Android sparse image files
 36. Java class file
 37. Android Dex/Odex (not OAT, just carving)
