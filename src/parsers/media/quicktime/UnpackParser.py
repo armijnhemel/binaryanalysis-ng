@@ -21,43 +21,28 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
-import pathlib
-from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import dds
+from . import quicktime_mov
 
-class DdsUnpackParser(UnpackParser):
+class QuickTimeUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (0, b'DDS ')
+        (4, b'ftyp')
     ]
-    pretty_name = 'dds'
+    pretty_name = 'quicktime'
 
     def parse(self):
         try:
-            self.data = dds.Dds.from_io(self.infile)
+            self.data = quicktime_mov.QuicktimeMov.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
-        compatible_flags = True
-        if self.data.dds_header.flags & 0x8 == 0x8 and self.data.dds_header.flags & 0x80000 == 0x80000:
-            compatible_flags = False
-        check_condition(compatible_flags, "incompatible flags specified")
-        check_condition(self.data.dds_header.flags & 0x80000 == 0x80000,
-                        "uncompressed files currently not supported")
-
-    def calculate_unpacked_size(self):
-        self.unpacked_size = 4 + self.data.dds_header.size + self.data.dds_header.pitch_or_linear_size
-        try:
-            self.unpacked_size += 20
-        except:
-            pass
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['dds', 'graphics']
+        labels = ['quicktime', 'video']
         metadata = {}
 
         self.unpack_results.set_labels(labels)

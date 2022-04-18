@@ -213,14 +213,10 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'ani': bangunpack.unpack_ani,
-    'mng': bangunpack.unpack_mng,
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
-    'xar': bangunpack.unpack_xar,
     'iso9660': bangfilesystems.unpack_iso9660,
     'ext2': bangfilesystems.unpack_ext2,
-    'pdf': bangunpack.unpack_pdf,
 }
 
 # a lookup table to map signatures to a name for
@@ -551,17 +547,6 @@ def prescan_png(scanbytes, bytesread, filesize, offset, offsetinfile):
             return False
     return True
 
-def prescan_mng(scanbytes, bytesread, filesize, offset, offsetinfile):
-    # minimum size of MNG files is 52 bytes
-    if filesize - (offsetinfile + offset) < 52:
-        return False
-    if bytesread - offset >= 13:
-        # bytes 8 - 11 are always the same in
-        # every MNG
-        if scanbytes[offset+8:offset+12] != b'\x00\x00\x00\x1c':
-            return False
-    return True
-
 def prescan_truetype(scanbytes, bytesread, filesize, offset, offsetinfile):
     if filesize - (offsetinfile + offset) < 12:
         return False
@@ -600,7 +585,6 @@ prescan_functions = {
     'bmp' : prescan_bmp,
     'ico' : prescan_ico,
     'png' : prescan_png,
-    'mng' : prescan_mng,
     'truetype' : prescan_truetype,
     'opentype' : prescan_truetype,
     'terminfo' : prescan_terminfo,

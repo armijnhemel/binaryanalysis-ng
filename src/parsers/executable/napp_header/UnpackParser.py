@@ -20,45 +20,32 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import os
-import pathlib
-from FileResult import FileResult
 
-from UnpackParser import UnpackParser, check_condition
+import os
+from UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import dds
+from . import napp_header
 
-class DdsUnpackParser(UnpackParser):
+
+class NappHeaderClassUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (0, b'DDS ')
+        (4, b'NANO'),
     ]
-    pretty_name = 'dds'
+    pretty_name = 'napp_header'
 
     def parse(self):
+        self.file_size = self.fileresult.filesize
         try:
-            self.data = dds.Dds.from_io(self.infile)
+            self.data = napp_header.NappHeader.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
-        compatible_flags = True
-        if self.data.dds_header.flags & 0x8 == 0x8 and self.data.dds_header.flags & 0x80000 == 0x80000:
-            compatible_flags = False
-        check_condition(compatible_flags, "incompatible flags specified")
-        check_condition(self.data.dds_header.flags & 0x80000 == 0x80000,
-                        "uncompressed files currently not supported")
-
-    def calculate_unpacked_size(self):
-        self.unpacked_size = 4 + self.data.dds_header.size + self.data.dds_header.pitch_or_linear_size
-        try:
-            self.unpacked_size += 20
-        except:
-            pass
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['dds', 'graphics']
+        labels = ['android', 'nano app']
         metadata = {}
 
-        self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)
+        self.unpack_results.set_labels(labels)

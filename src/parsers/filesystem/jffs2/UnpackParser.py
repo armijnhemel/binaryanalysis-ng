@@ -528,7 +528,8 @@ class Jffs2UnpackParser(UnpackParser):
 
         check_condition(data_unpacked, "no data unpacked")
         check_condition(1 in parent_inodes_seen, "no valid root file node")
-        self.unpacked_size = self.infile.tell() - self.offset
+        self.infile.seek(cur_offset)
+        self.unpacked_size = cur_offset
 
     # For unpacking data only the directory entry and regular inode
     # will be considered.
