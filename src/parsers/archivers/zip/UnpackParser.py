@@ -42,6 +42,7 @@ http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html
 
 import os
 import pathlib
+import tempfile
 import zipfile
 
 import pyaxmlparser
@@ -105,18 +106,25 @@ class ZipUnpackParser(WrappedUnpackParser):
         # Kaitai Struct.
         try:
             self.data = kaitai_zip.Zip.from_io(self.infile)
+
+            # store file names and CRC32 to see if they match in the local
+            # file headers and in the end of central directory
             for s in self.data.sections:
                 if s.section_type == kaitai_zip.Zip.SectionTypes.local_file:
-                    local_files.append(s.body.header.file_name)
+                    local_files.append((s.body.header.file_name, s.body.header.crc32))
                     if s.body.header.flags.file_encrypted:
                         self.encrypted = True
                 elif s.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
-                    central_directory_files.append(s.body.file_name)
+                    central_directory_files.append((s.body.file_name, s.body.crc32))
 
             # some more sanity checks here: verify if the
             # local files and the central directory match
+            if len(local_files) != len(central_directory_files):
+                raise UnpackParserException("local files and central directory files do not match")
+            if set(local_files) != set(central_directory_files):
+                raise UnpackParserException("local files and central directory files do not match")
             self.kaitai_success = True
-        except (ValidationFailedError) as e:
+        except (UnpackParserException, ValidationFailedError) as e:
             self.kaitai_success = False
 
         # in case the file cannot be successfully unpacked
@@ -652,6 +660,41 @@ class ZipUnpackParser(WrappedUnpackParser):
 
     def unpack(self):
         unpacked_files = []
+
+        # no files need to be unpacked for encrypted files
+        if self.encrypted:
+            return unpacked_files
+
+        # If the ZIP file is at the end of the file then the ZIP module
+        # from Python will do a lot of the heavy lifting. If not it first
+        # needs to be carved.
+        #
+        # Malformed ZIP files that need a workaround exist:
+        # http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442
+        if self.unpacked_size == self.fileresult.filesize:
+            carved = False
+        else:
+            # else carve the file from the larger ZIP first
+            temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
+            os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
+            os.fdopen(temporaryfile[0]).close()
+            carved = True
+        if not carved:
+            # seek to the right offset, even though that's
+            # not even necessary.
+            self.infile.seek(0)
+
+        try:
+            if not carved:
+                unpackzipfile = zipfile.ZipFile(self.infile)
+            else:
+                unpackzipfile = zipfile.ZipFile(temporaryfile[1])
+            zipfiles = unpackzipfile.namelist()
+            zipinfolist = unpackzipfile.infolist()
+            oldcwd = os.getcwd()
+        except Exception as e:
+            pass
+
         return unpacked_files
 
     def set_metadata_and_labels(self):
