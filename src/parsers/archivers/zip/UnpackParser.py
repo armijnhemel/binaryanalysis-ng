@@ -71,6 +71,7 @@ LOCAL_FILE_HEADER = b'PK\x03\x04'
 ZIP64_END_OF_CENTRAL_DIRECTORY = b'PK\x06\x06'
 ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR = b'PK\x06\x07'
 
+
 class ZipUnpackParser(WrappedUnpackParser):
 #class ZipUnpackParser(UnpackParser):
     extensions = []
@@ -677,14 +678,30 @@ class ZipUnpackParser(WrappedUnpackParser):
             # probably not necessary.
             self.infile.seek(0)
 
+        # store if an unsupported compression was found
+        self.unsupported_compression = False
+
+        # Malformed ZIP files where directories are stored as normal files exist:
+        # http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442
+        self.faulty_files = []
+
         try:
             if not self.carved:
                 unpackzipfile = zipfile.ZipFile(self.infile)
             else:
                 unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
-            zipfiles = unpackzipfile.namelist()
-            zipinfolist = unpackzipfile.infolist()
+            self.zipfiles = unpackzipfile.namelist()
+            self.zipinfolist = unpackzipfile.infolist()
             oldcwd = os.getcwd()
+            for z in self.zipinfolist:
+                # only stored, deflate, bzip2 and lzma are supported
+                # in Python's zipfile module.
+                if z.compress_type not in [0, 8, 12, 14]:
+                    self.unsupported_compression = True
+                    break
+                if z.file_size == 0 and not z.is_dir() and z.external_attr & 0x10 == 0x10:
+                    self.faulty_files.append(z)
+
         except zipfile.BadZipFile as e:
             if self.carved:
                 # cleanup
@@ -704,6 +721,38 @@ class ZipUnpackParser(WrappedUnpackParser):
                 # cleanup
                 os.unlink(self.temporary_file[1])
             return unpacked_files
+
+        # only stored, deflate, bzip2 and lzma are currently
+        # supported in Python's zipfile module.
+        if self.unsupported_compression:
+            if self.carved:
+                # cleanup
+                os.unlink(self.temporary_file[1])
+            return unpacked_files
+
+        if not self.carved:
+            unpackzipfile = zipfile.ZipFile(self.infile)
+        else:
+            unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
+
+        if self.faulty_files == []:
+            pass
+        else:
+            for z in self.zipinfolist:
+                outfile_rel = self.rel_unpack_dir / z.filename
+                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                os.makedirs(outfile_full.parent, exist_ok=True)
+
+                if z in self.faulty_files:
+                    # create the directory
+                    outfile_full.mkdir(exist_ok=True)
+                    fr = FileResult(self.fileresult, outfile_rel, set())
+                    unpacked_files.append(fr)
+                else:
+                    unpackzipfile.extract(z, path=self.rel_unpack_dir)
+                    fr = FileResult(self.fileresult, outfile_rel, set())
+                    unpacked_files.append(fr)
+
 
         if self.carved:
             # cleanup
@@ -725,11 +774,8 @@ class ZipUnpackParser(WrappedUnpackParser):
         else:
             unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
 
-        zipfiles = unpackzipfile.namelist()
-        zipinfolist = unpackzipfile.infolist()
-
         is_opc = False
-        for z in zipinfolist:
+        for z in self.zipinfolist:
             # https://www.python.org/dev/peps/pep-0427/
             if 'dist-info/WHEEL' in z.filename:
                 labels.append('python wheel')
@@ -747,10 +793,10 @@ class ZipUnpackParser(WrappedUnpackParser):
                 is_opc = True
 
         if is_opc:
-            for z in zipinfolist:
+            for z in self.zipinfolist:
                 if self.fileresult.filename.suffix == '.nupkg':
                     if z.filename.endswith('.nuspec'):
-                        labels.append('NuGet')
+                        labels.append('nuget')
                         break
 
         metadata = {}
