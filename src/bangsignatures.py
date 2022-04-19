@@ -216,7 +216,6 @@ signaturetofunction = {
     'zip': bangunpack.unpack_zip,
     'dahua': bangunpack.unpack_dahua,
     'iso9660': bangfilesystems.unpack_iso9660,
-    'ext2': bangfilesystems.unpack_ext2,
 }
 
 # a lookup table to map signatures to a name for
