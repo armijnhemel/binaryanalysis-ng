@@ -31,8 +31,11 @@ import subprocess
 import tempfile
 import uuid
 
+from FileResult import FileResult
+
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
+from kaitaistruct import ValidationFailedError
 
 from UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_ext2
@@ -44,6 +47,12 @@ ENCODINGS_TO_TRANSLATE = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
                           'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
                           'iso2022_jp_ext', 'iso2022_kr', 'shift_jis',
                           'shift_jis_2004', 'shift_jisx0213']
+
+# socket, symbolic link, regular, block device, directory
+# charactter device, FIFO/pipe
+OCTALS = [('s', 0o140000), ('l', 0o120000), ('-', 0o100000),
+          ('b', 0o60000), ('d', 0o40000), ('c', 0o10000),
+          ('p', 0o20000)]
 
 
 class Ext2UnpackParser(WrappedUnpackParser):
@@ -137,29 +146,29 @@ class Ext2UnpackParser(WrappedUnpackParser):
         # if the file system can be read. These tools can work with trailing
         # data, but if there is any data preceding the file system then the
         # data has to be carved first.
-        havetmpfile = False
+        self.havetmpfile = False
         if self.offset != 0:
             # if files are larger than a certain limit, then os.sendfile()
             # won't write more data than 2147479552 so write bytes
             # out in chunks. Reference:
             # https://bugzilla.redhat.com/show_bug.cgi?id=612839
-            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
             if self.unpacked_size > 2147479552:
                 bytesleft = self.unpacked_size
                 bytestowrite = min(bytesleft, 2147479552)
                 readoffset = self.offset
                 while bytesleft > 0:
-                    os.sendfile(temporary_file[0], self.infile.fileno(), readoffset, bytestowrite)
+                    os.sendfile(self.temporary_file[0], self.infile.fileno(), readoffset, bytestowrite)
                     bytesleft -= bytestowrite
                     readoffset += bytestowrite
                     bytestowrite = min(bytesleft, 2147479552)
             else:
-                os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
-            os.fdopen(temporary_file[0]).close()
-            havetmpfile = True
+                os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
+            os.fdopen(self.temporary_file[0]).close()
+            self.havetmpfile = True
 
-        if havetmpfile:
-            p = subprocess.Popen(['tune2fs', '-l', temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if self.havetmpfile:
+            p = subprocess.Popen(['tune2fs', '-l', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
             p = subprocess.Popen(['tune2fs', '-l', self.fileresult.filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -179,14 +188,17 @@ class Ext2UnpackParser(WrappedUnpackParser):
             # hard links, where files have the same inode.
             inode_to_file = {}
 
+            # store name of file, plus stat information
+            self.files = []
+
             while True:
                 try:
                     ext2dir = ext2dirstoscan.popleft()
                 except IndexError:
                     # there are no more entries to process
                     break
-                if havetmpfile:
-                    p = subprocess.Popen(['e2ls', '-lai', temporary_file[1] + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if self.havetmpfile:
+                    p = subprocess.Popen(['e2ls', '-lai', self.temporary_file[1] + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 else:
                     p = subprocess.Popen(['e2ls', '-lai', str(self.fileresult.filename) + ":" + ext2dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 (outputmsg, errormsg) = p.communicate()
@@ -196,90 +208,134 @@ class Ext2UnpackParser(WrappedUnpackParser):
 
                 dirlisting = outputmsg.rstrip().split(b'\n')
 
-                # socket, symbolic link, regular, block device, directory
-                # charactter device, FIFO/pipe
-                octals = [('s', 0o140000), ('l', 0o120000), ('-', 0o100000),
-                          ('b', 0o60000), ('d', 0o40000), ('c', 0o10000),
-                          ('p', 0o20000)]
-
-            for d in dirlisting:
-                # ignore deleted files
-                if d.strip().startswith(b'>'):
-                    continue
-                dirsplit = re.split(b'\s+', d.strip(), 7)
-                if len(dirsplit) != 8:
-                    failure = True
-                    break
-
-                (inode, filemode, userid, groupid, size, filedate, filetime, ext2name) = re.split(b'\s+', d.strip(), 7)
-
-                try:
-                    filemode = int(filemode, base=8)
-                except ValueError:
-                    # newer versions of e2tools (starting 0.1.0) pretty print
-                    # the file mode instead of printing a number so recreate it
-                    if len(filemode) != 10:
+                for d in dirlisting:
+                    # ignore deleted files
+                    if d.strip().startswith(b'>'):
+                        continue
+                    dirsplit = re.split(b'\s+', d.strip(), 7)
+                    if len(dirsplit) != 8:
                         failure = True
                         break
 
-                    # instantiate the file mode and look at the first character
-                    # as that is the only one used during checks.
-                    filemode = filemode.decode()
-                    new_filemode = 0
-                    for fm in octals:
-                        if filemode[0] == fm[0]:
-                            new_filemode = fm[1]
-                            break
+                    (inode, filemode, userid, groupid, size, filedate, filetime, ext2name) = re.split(b'\s+', d.strip(), 7)
 
-                    filemode = new_filemode
-
-                dataunpacked = True
-
-                # try to make sense of the filename by decoding it first.
-                # This might fail.
-                namedecoded = False
-                for c in ENCODINGS_TO_TRANSLATE:
                     try:
-                        ext2name = ext2name.decode(c)
-                        namedecoded = True
-                        break
-                    except Exception as e:
-                        pass
-                if not namedecoded:
-                    failure = True
-                    break
-
-                # Check the different file types
-                if stat.S_ISDIR(filemode):
-                    # It is a directory, so create it and then add
-                    # it to the scanning queue, unless it is . or ..
-                    if ext2name == '.' or ext2name == '..':
-                        continue
-                    newext2dir = os.path.join(ext2dir, ext2name)
-                    ext2dirstoscan.append(newext2dir)
-
-                fullext2name = os.path.join(ext2dir, ext2name)
-
-                if stat.S_ISREG(filemode):
-                    fileunpacked = False
-                    if inode not in inode_to_file:
-                        inode_to_file[inode] = fullext2name
-                        # use e2cp to copy the file
-                        if havetmpfile:
-                            p = subprocess.Popen(['e2cp', temporary_file[1] + ":" + fullext2name, os.devnull], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        else:
-                            p = subprocess.Popen(['e2cp', str(self.fileresult.filename) + ":" + fullext2name, os.devnull], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        (outputmsg, errormsg) = p.communicate()
-                        if p.returncode != 0:
+                        filemode = int(filemode, base=8)
+                    except ValueError:
+                        # newer versions of e2tools (starting 0.1.0) pretty print
+                        # the file mode instead of printing a number so recreate it
+                        if len(filemode) != 10:
                             failure = True
                             break
 
-        if havetmpfile:
-            os.unlink(temporary_file[1])
+                        # instantiate the file mode and look at the first character
+                        # as that is the only one used during checks.
+                        filemode = filemode.decode()
+                        new_filemode = 0
+                        for fm in OCTALS:
+                            if filemode[0] == fm[0]:
+                                new_filemode = fm[1]
+                                break
+
+                        filemode = new_filemode
+
+                    # try to make sense of the filename by decoding it first.
+                    # This might fail.
+                    namedecoded = False
+                    for c in ENCODINGS_TO_TRANSLATE:
+                        try:
+                            ext2name = ext2name.decode(c)
+                            namedecoded = True
+                            break
+                        except Exception as e:
+                            pass
+                    if not namedecoded:
+                        failure = True
+                        break
+
+                    # Check the different file types
+                    if stat.S_ISDIR(filemode):
+                        # It is a directory, so create it and then add
+                        # it to the scanning queue, unless it is . or ..
+                        if ext2name == '.' or ext2name == '..':
+                            continue
+                        newext2dir = os.path.join(ext2dir, ext2name)
+                        ext2dirstoscan.append(newext2dir)
+
+                    fullext2name = os.path.join(ext2dir, ext2name)
+
+                    self.files.append((fullext2name, inode, filemode))
+                    if stat.S_ISREG(filemode):
+                        fileunpacked = False
+                        if inode not in inode_to_file:
+                            inode_to_file[inode] = fullext2name
+                            # use e2cp to copy the file
+                            if self.havetmpfile:
+                                p = subprocess.Popen(['e2cp', self.temporary_file[1] + ":" + fullext2name, os.devnull], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            else:
+                                p = subprocess.Popen(['e2cp', str(self.fileresult.filename) + ":" + fullext2name, os.devnull], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            (outputmsg, errormsg) = p.communicate()
+                            if p.returncode != 0:
+                                failure = True
+                                break
+
+        if failure and self.havetmpfile:
+            os.unlink(self.temporary_file[1])
 
         check_condition(not failure, "sanity check with tune2fs, e2cp or e2ls failed")
 
+    def unpack(self):
+        unpacked_files = []
 
+        # Now read the contents of the file system with e2ls, starting
+        # with the root directory.
+        ext2dirstoscan = collections.deque([''])
+
+        # store a mapping for inodes and files. This is needed to detect
+        # hard links, where files have the same inode.
+        for f in self.files:
+            ext2name, inode, filemode = f
+            # Check the different file types
+            outfile_rel = self.rel_unpack_dir / ext2name
+            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+            os.makedirs(outfile_full.parent, exist_ok=True)
+            if stat.S_ISDIR(filemode):
+                os.makedirs(outfile_full, exist_ok=True)
+                fr = FileResult(self.fileresult, outfile_rel, set(['directory']))
+                unpacked_files.append(fr)
+            elif stat.S_ISBLK(filemode):
+                # ignore block devices
+                continue
+            elif stat.S_ISCHR(filemode):
+                # ignore character devices
+                continue
+            elif stat.S_ISFIFO(filemode):
+                # ignore FIFO
+                continue
+            elif stat.S_ISSOCK(filemode):
+                # ignore sockets
+                continue
+            elif stat.S_ISLNK(filemode):
+                # e2cp cannot copy symbolic links
+                # so just record that there is a symbolic link
+                # TODO: process symbolic links
+                pass
+            elif stat.S_ISREG(filemode):
+                fileunpacked = False
+                # use e2cp to copy the file
+                if self.havetmpfile:
+                    p = subprocess.Popen(['e2cp', self.temporary_file[1] + ":" + ext2name, outfile_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                else:
+                    p = subprocess.Popen(['e2cp', str(self.fileresult.filename) + ":" + ext2name, outfile_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                (outputmsg, errormsg) = p.communicate()
+
+                fr = FileResult(self.fileresult, outfile_rel, set())
+                unpacked_files.append(fr)
+
+        if self.havetmpfile:
+            os.unlink(self.temporary_file[1])
+
+        return unpacked_files
 
     # no need to carve from the file
     def carve(self):
