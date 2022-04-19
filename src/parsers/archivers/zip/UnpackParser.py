@@ -75,7 +75,7 @@ class ZipUnpackParser(WrappedUnpackParser):
 #class ZipUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (0, b'\x50\x4b\x03\04'),
+        (0, b'PK\x03\04'),
         # http://web.archive.org/web/20190709133846/https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/page-2
         #(0, b'DH\x03\04')
     ]
