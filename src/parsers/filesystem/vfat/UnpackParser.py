@@ -157,7 +157,6 @@ class VfatUnpackParser(UnpackParser):
                     # TODO: if normal_file
                     yield self.extract_file(record.start_clus, record.file_size, rel_outfile)
 
-
     def extract_dir(self, start_cluster, rel_outfile):
         abs_outfile = self.scan_environment.unpack_path(rel_outfile)
         os.makedirs(abs_outfile, exist_ok=True)
