@@ -270,7 +270,7 @@ class CramfsUnpackParser(UnpackParser):
             # clean up the temporary directory. It could be that
             # fsck.cramfs actually didn't create the directory due to
             # other errors, such as a CRC error.
-            raise UnpackParserError("cannot unpack cramfs")
+            raise UnpackParserException("cannot unpack cramfs")
 
     def unpack(self):
         unpacked_files = []
