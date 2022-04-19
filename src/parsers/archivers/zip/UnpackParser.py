@@ -117,8 +117,8 @@ class ZipUnpackParser(WrappedUnpackParser):
                 elif s.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
                     central_directory_files.append((s.body.file_name, s.body.crc32))
 
-            # some more sanity checks here: verify if the
-            # local files and the central directory match
+            # some more sanity checks here: verify if the local files
+            # and the central directory (including CRC32 values) match
             if len(local_files) != len(central_directory_files):
                 raise UnpackParserException("local files and central directory files do not match")
             if set(local_files) != set(central_directory_files):
@@ -131,8 +131,6 @@ class ZipUnpackParser(WrappedUnpackParser):
         # there is only the hard way left: parse from the start
         # and keep track of everything manually.
         if not self.kaitai_success:
-            pass
-
             seen_central_directory = False
             in_local_entry = True
             seen_zip64_end_of_central_dir = False
@@ -657,13 +655,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                                 "not enough data for compressed data")
                 self.infile.seek(self.infile.tell() + compressedsize)
 
-
-    def unpack(self):
-        unpacked_files = []
-
-        # no files need to be unpacked for encrypted files
-        if self.encrypted:
-            return unpacked_files
+        self.unpacked_size = self.infile.tell()
 
         # If the ZIP file is at the end of the file then the ZIP module
         # from Python will do a lot of the heavy lifting. If not it first
@@ -672,28 +664,50 @@ class ZipUnpackParser(WrappedUnpackParser):
         # Malformed ZIP files that need a workaround exist:
         # http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442
         if self.unpacked_size == self.fileresult.filesize:
-            carved = False
+            self.carved = False
         else:
             # else carve the file from the larger ZIP first
-            temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
-            os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
-            os.fdopen(temporaryfile[0]).close()
-            carved = True
-        if not carved:
+            self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
+            os.fdopen(self.temporary_file[0]).close()
+            self.carved = True
+
+        if not self.carved:
             # seek to the right offset, even though that's
-            # not even necessary.
+            # probably not necessary.
             self.infile.seek(0)
 
         try:
-            if not carved:
+            if not self.carved:
                 unpackzipfile = zipfile.ZipFile(self.infile)
             else:
-                unpackzipfile = zipfile.ZipFile(temporaryfile[1])
+                unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
             zipfiles = unpackzipfile.namelist()
             zipinfolist = unpackzipfile.infolist()
             oldcwd = os.getcwd()
-        except Exception as e:
-            pass
+        except zipfile.BadZipFile as e:
+            if self.carved:
+                # cleanup
+                os.unlink(self.temporary_file[1])
+            raise UnpackParserException(e.args)
+
+    # make sure that self.unpacked_size is not overwritten
+    def calculate_unpacked_size(self):
+        pass
+
+    def unpack(self):
+        unpacked_files = []
+
+        # no files need to be unpacked for encrypted files
+        if self.encrypted:
+            if self.carved:
+                # cleanup
+                os.unlink(self.temporary_file[1])
+            return unpacked_files
+
+        if self.carved:
+            # cleanup
+            os.unlink(self.temporary_file[1])
 
         return unpacked_files
 
@@ -705,6 +719,39 @@ class ZipUnpackParser(WrappedUnpackParser):
         if self.android_signing:
             labels.append('apk')
             labels.append('android')
+
+        if not self.carved:
+            unpackzipfile = zipfile.ZipFile(self.infile)
+        else:
+            unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
+
+        zipfiles = unpackzipfile.namelist()
+        zipinfolist = unpackzipfile.infolist()
+
+        is_opc = False
+        for z in zipinfolist:
+            # https://www.python.org/dev/peps/pep-0427/
+            if 'dist-info/WHEEL' in z.filename:
+                labels.append('python wheel')
+            # https://setuptools.readthedocs.io/en/latest/formats.html
+            if z.filename == 'EGG-INFO/PKG-INFO':
+                labels.append('python egg')
+            if z.filename == 'AndroidManifest.xml' or z.filename == 'classes.dex':
+                if self.fileresult.filename.suffix == '.apk':
+                    labels.append('android')
+                    labels.append('apk')
+
+            # https://en.wikipedia.org/wiki/Open_Packaging_Conventions
+            if z.filename == '[Content_Types].xml':
+                labels.append("Open Packaging Conventions")
+                is_opc = True
+
+        if is_opc:
+            for z in zipinfolist:
+                if self.fileresult.filename.suffix == '.nupkg':
+                    if z.filename.endswith('.nuspec'):
+                        labels.append('NuGet')
+                        break
 
         metadata = {}
 
