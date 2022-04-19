@@ -37,9 +37,6 @@ from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 
-from UnpackParser import WrappedUnpackParser
-from bangfilesystems import unpack_ext2
-
 from . import ext2
 
 ENCODINGS_TO_TRANSLATE = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
@@ -55,16 +52,12 @@ OCTALS = [('s', 0o140000), ('l', 0o120000), ('-', 0o100000),
           ('p', 0o20000)]
 
 
-class Ext2UnpackParser(WrappedUnpackParser):
-#class Ext2UnpackParser(UnpackParser):
+class Ext2UnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0x438,  b'\x53\xef')
     ]
     pretty_name = 'ext2'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_ext2(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         check_condition(shutil.which('e2ls') is not None, "e2ls program not found")
@@ -186,7 +179,7 @@ class Ext2UnpackParser(WrappedUnpackParser):
 
             # store a mapping for inodes and files. This is needed to detect
             # hard links, where files have the same inode.
-            inode_to_file = {}
+            self.inode_to_file = {}
 
             # store name of file, plus stat information
             self.files = []
@@ -266,9 +259,8 @@ class Ext2UnpackParser(WrappedUnpackParser):
 
                     self.files.append((fullext2name, inode, filemode))
                     if stat.S_ISREG(filemode):
-                        fileunpacked = False
-                        if inode not in inode_to_file:
-                            inode_to_file[inode] = fullext2name
+                        if inode not in self.inode_to_file:
+                            self.inode_to_file[inode] = fullext2name
                             # use e2cp to copy the file
                             if self.havetmpfile:
                                 p = subprocess.Popen(['e2cp', self.temporary_file[1] + ":" + fullext2name, os.devnull], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -321,15 +313,20 @@ class Ext2UnpackParser(WrappedUnpackParser):
                 # TODO: process symbolic links
                 pass
             elif stat.S_ISREG(filemode):
-                fileunpacked = False
-                # use e2cp to copy the file
-                if self.havetmpfile:
-                    p = subprocess.Popen(['e2cp', self.temporary_file[1] + ":" + ext2name, outfile_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if self.inode_to_file[inode] == ext2name:
+                    # use e2cp to copy the file
+                    if self.havetmpfile:
+                        p = subprocess.Popen(['e2cp', self.temporary_file[1] + ":" + ext2name, outfile_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    else:
+                        p = subprocess.Popen(['e2cp', str(self.fileresult.filename) + ":" + ext2name, outfile_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    (outputmsg, errormsg) = p.communicate()
+                    fr = FileResult(self.fileresult, outfile_rel, set())
                 else:
-                    p = subprocess.Popen(['e2cp', str(self.fileresult.filename) + ":" + ext2name, outfile_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                (outputmsg, errormsg) = p.communicate()
-
-                fr = FileResult(self.fileresult, outfile_rel, set())
+                    # hardlink
+                    target_rel = self.rel_unpack_dir / self.inode_to_file[inode]
+                    target_full = self.scan_environment.unpack_path(target_rel)
+                    target_full.link_to(outfile_full)
+                    fr = FileResult(self.fileresult, outfile_rel, set(['hardlink']))
                 unpacked_files.append(fr)
 
         if self.havetmpfile:
