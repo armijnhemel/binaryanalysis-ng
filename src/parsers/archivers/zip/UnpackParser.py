@@ -121,6 +121,8 @@ class ZipUnpackParser(WrappedUnpackParser):
                         self.encrypted = True
                 elif s.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
                     central_directory_files.append((s.body.file_name, s.body.crc32))
+                elif s.section_type == kaitai_zip.Zip.SectionTypes.end_of_central_dir:
+                    self.zip_comment = s.body.comment
 
             # some more sanity checks here: verify if the local files
             # and the central directory (including CRC32 values) match
@@ -129,7 +131,7 @@ class ZipUnpackParser(WrappedUnpackParser):
             if set(local_files) != set(central_directory_files):
                 raise UnpackParserException("local files and central directory files do not match")
             self.kaitai_success = True
-        except (UnpackParserException, ValidationFailedError) as e:
+        except (UnpackParserException, ValidationFailedError, EOFError) as e:
             self.kaitai_success = False
 
         # in case the file cannot be successfully unpacked
@@ -147,6 +149,7 @@ class ZipUnpackParser(WrappedUnpackParser):
 
             while True:
                 # first read the header
+                start_of_entry = self.infile.tell()
                 buf = self.infile.read(4)
                 check_condition(len(buf) == 4,
                                 "not enough data for ZIP entry header")
@@ -162,7 +165,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                         self.infile.seek(-4, os.SEEK_CUR)
                         try:
                             file_header = kaitai_zip.Zip.PkSection.from_io(self.infile)
-                        except (UnpackParserException, ValidationFailedError) as e:
+                        except (UnpackParserException, ValidationFailedError, EOFError) as e:
                             raise UnpackParserException(e.args)
 
                         if file_header.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
@@ -250,7 +253,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                 self.infile.seek(-4, os.SEEK_CUR)
                 try:
                     file_header = kaitai_zip.Zip.PkSection.from_io(self.infile)
-                except (UnpackParserException, ValidationFailedError) as e:
+                except (UnpackParserException, ValidationFailedError, EOFError) as e:
                     raise UnpackParserException(e.args)
 
                 compressed_size = file_header.body.header.len_body_compressed
@@ -281,40 +284,49 @@ class ZipUnpackParser(WrappedUnpackParser):
                 if file_header.body.header.flags.has_data_descriptor:
                     has_data_descriptor = True
 
+                # record if an entry is a zip64 entry
                 is_zip64_entry = False
 
                 # the extra fields are important, especially to check for
                 # any ZIP64 extension, as it contains updated values for
                 # the compressed size and uncompressed size (section 4.5)
-                for extra in file_header.body.header.extra.entries:
-                    # skip any unknown extra fields for now
-                    if type(extra.code) == int:
-                        continue
-                    if extra.code == kaitai_zip.Zip.ExtraCodes.zip64:
-                        # ZIP64, section 4.5.3
-                        # according to 4.4.3.2 PKZIP 4.5 or later is
-                        # needed to unpack ZIP64 files.
-                        check_condition(file_header.body.header.version >= 45, "wrong minimal needed version for ZIP64")
+                if type(file_header.body.header.extra) != kaitai_zip.Zip.Empty:
+                    for extra in file_header.body.header.extra.entries:
+                        # skip any unknown extra fields for now
+                        if type(extra.code) == int:
+                            continue
+                        if extra.code == kaitai_zip.Zip.ExtraCodes.zip64:
+                            # ZIP64, section 4.5.3
+                            # according to 4.4.3.2 PKZIP 4.5 or later is
+                            # needed to unpack ZIP64 files.
+                            check_condition(file_header.body.header.version >= 45, "wrong minimal needed version for ZIP64")
 
-                        # according to the official ZIP specifications the length of the
-                        # header should be 28, but there are files where this field is
-                        # 16 bytes long instead, sigh...
-                        check_condition(len(extra.body) in [16, 28],
-                                        "wrong extra field header length for ZIP64")
+                            # according to the official ZIP specifications the length of the
+                            # header should be 28, but there are files where this field is
+                            # 16 bytes long instead, sigh...
+                            check_condition(len(extra.body) in [16, 28],
+                                            "wrong extra field header length for ZIP64")
 
-                        zip64uncompressedsize = int.from_bytes(extra.body[:8], byteorder='little')
-                        zip64compressedsize = int.from_bytes(extra.body[8:16], byteorder='little')
+                            zip64uncompressedsize = int.from_bytes(extra.body[:8], byteorder='little')
+                            zip64compressedsize = int.from_bytes(extra.body[8:16], byteorder='little')
 
-                        is_zip64_entry = True
+                            is_zip64_entry = True
+                            orig_compressed_size = compressed_size
 
-                        if compressed_size == 0xffffffff:
-                            compressed_size = zip64compressedsize
-                        if uncompressed_size == 0xffffffff:
-                            uncompressed_size = zip64uncompressedsize
+                            # replace compressed size and uncompressed size but only
+                            # if they have the special value 0xffffffff
+                            if compressed_size == 0xffffffff:
+                                compressed_size = zip64compressedsize
+                            if uncompressed_size == 0xffffffff:
+                                uncompressed_size = zip64uncompressedsize
 
                 if is_zip64_entry:
-                    # skip the data
-                    self.infile.seek(compressed_size, os.SEEK_CUR)
+                    # skip the data but only if it was changed as there is
+                    # a slight chance there is a file where the size was not
+                    # changed. In that case the body is correctly read by
+                    # the kaitai struct code.
+                    if orig_compressed_size == 0xffffffff:
+                        self.infile.seek(compressed_size, os.SEEK_CUR)
 
                 # Section 4.4.4, bit 3:
                 # "If this bit is set, the fields crc-32, compressed
@@ -322,12 +334,16 @@ class ZipUnpackParser(WrappedUnpackParser):
                 # local header.  The correct values are put in the
                 # data descriptor immediately following the compressed
                 # data."
+                #
+                # This is not necessarily correct though: there are files
+                # where a data descriptor has been set and the sizes
+                # and CRC have not been changed.
                 ddfound = False
                 ddsearched = False
 
-                if (not file_header.body.header.file_name.endswith('/') and compressed_size == 0) or has_data_descriptor:
-                    # first store where the data possibly starts
-                    datastart = self.infile.tell()
+                if (not file_header.body.header.file_name.endswith('/') and compressed_size == 0) or has_data_descriptor and compressed_size == 0:
+                    # first store where the possible data descriptor starts
+                    start_of_possible_data_descriptor = self.infile.tell()
 
                     # In case the length is not known it is very difficult
                     # to see where the data ends so it is needed to search for
@@ -340,19 +356,22 @@ class ZipUnpackParser(WrappedUnpackParser):
                     # Whichever appears first in the data will be processed.
                     while True:
                         # store the current position of the pointer in the file
-                        curpos = self.infile.tell()
+                        current_position = self.infile.tell()
                         tmppos = -1
 
                         # read a number of bytes to be searched for markers
                         buf = self.infile.read(50000)
                         newcurpos = self.infile.tell()
+
+                        # EOF is reached
                         if buf == b'':
                             break
 
-                        # first search for the common marker for
-                        # data descriptors, but only if the right
-                        # flag has been set in the general purpose
-                        # bit flag.
+                        best_so_far = tmppos
+
+                        # first search for the common marker for data descriptors,
+                        # but only if the right flag has been set in the general
+                        # purpose bit flag.
                         if has_data_descriptor:
                             ddpos = -1
                             while True:
@@ -360,14 +379,21 @@ class ZipUnpackParser(WrappedUnpackParser):
                                 if ddpos != -1:
                                     ddsearched = True
                                     ddfound = True
-                                    # sanity check
-                                    self.infile.seek(curpos + ddpos + 8)
-                                    tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
-                                    if curpos + ddpos - datastart == tmpcompressedsize:
+
+                                    # sanity check to make sure that the
+                                    # compressed size makes sense in the data descriptor
+                                    # makes sense.
+                                    self.infile.seek(current_position + ddpos + 8)
+                                    tmp_compressed_size = int.from_bytes(self.infile.read(4), byteorder='little')
+
+                                    if current_position + ddpos - datastart == tmp_compressed_size:
                                         tmppos = ddpos
                                         break
                                 else:
                                     break
+
+                        if ddpos != -1:
+                            best_so_far = ddpos
 
                         # search for a local file header which indicates
                         # the next entry in the ZIP file
@@ -376,8 +402,8 @@ class ZipUnpackParser(WrappedUnpackParser):
                             # In case the file that is stored is an empty
                             # file, then there will be no data descriptor field
                             # so just continue as normal.
-                            if curpos + localheaderpos == datastart:
-                                self.infile.seek(curpos)
+                            if current_position + localheaderpos == datastart:
+                                self.infile.seek(current_position)
                                 break
 
                             # if there is a data descriptor, then the 12
@@ -387,12 +413,12 @@ class ZipUnpackParser(WrappedUnpackParser):
                             # * uncompressed size
                             # section 4.3.9
                             if has_data_descriptor:
-                                if curpos + localheaderpos - datastart > 12:
-                                    self.infile.seek(curpos + localheaderpos - 8)
+                                if current_position + localheaderpos - datastart > 12:
+                                    self.infile.seek(current_position + localheaderpos - 8)
                                     tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
                                     # and return to the original position
-                                    self.infile.seek(newcurpos)
-                                    if curpos + localheaderpos - datastart == tmpcompressedsize + 16:
+                                    self.infile.seek(newcurrent_position)
+                                    if current_position + localheaderpos - datastart == tmpcompressedsize + 16:
                                         if tmppos == -1:
                                             tmppos = localheaderpos
                                         else:
@@ -410,8 +436,8 @@ class ZipUnpackParser(WrappedUnpackParser):
                             # In case the file that is stored is an empty
                             # file, then there will be no data descriptor field
                             # so just continue as normal.
-                            if curpos + centraldirpos == datastart:
-                                self.infile.seek(curpos)
+                            if current_position + centraldirpos == datastart:
+                                self.infile.seek(current_position)
                                 break
 
                             # if there is a data descriptor, then the 12
@@ -422,18 +448,18 @@ class ZipUnpackParser(WrappedUnpackParser):
                             # section 4.3.9
                             if has_data_descriptor:
                                 if curpos + centraldirpos - datastart > 12:
-                                    self.infile.seek(curpos + centraldirpos - 8)
+                                    self.infile.seek(current_position + centraldirpos - 8)
                                     tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
                                     # and return to the original position
                                     self.infile.seek(newcurpos)
-                                    if curpos + centraldirpos - datastart == tmpcompressedsize + 16:
+                                    if current_position + centraldirpos - datastart == tmpcompressedsize + 16:
                                         if tmppos == -1:
                                             tmppos = centraldirpos
                                         else:
                                             tmppos = min(centraldirpos, tmppos)
                                     else:
-                                        if curpos + centraldirpos - datastart > 16:
-                                            self.infile.seek(curpos + centraldirpos - 16)
+                                        if current_position + centraldirpos - datastart > 16:
+                                            self.infile.seek(current_position + centraldirpos - 16)
                                             tmpbytes = self.infile.read(16)
                                             if tmpbytes == b'APK Sig Block 42':
                                                 androidsigning = True
@@ -453,18 +479,18 @@ class ZipUnpackParser(WrappedUnpackParser):
                             # extra sanity check: see if the
                             # file names are the same
                             origpos = self.infile.tell()
-                            self.infile.seek(curpos + tmppos + 42)
+                            self.infile.seek(current_position + tmppos + 42)
                             checkfn = self.infile.read(file_header.body.header.len_file_name)
                             if file_header.body.header.file_name != checkfn:
                                 tmppos = oldtmppos
                             self.infile.seek(origpos)
                         if tmppos != -1:
-                            self.infile.seek(curpos + tmppos)
+                            self.infile.seek(current_position + tmppos)
                             break
 
                         # have a small overlap the size of a possible header
                         # unless it is the last 4 bytes of the file
-                        if self.infile.tell() == filesize:
+                        if self.infile.tell() == self.fileresult.filesize:
                             break
                         self.infile.seek(-4, os.SEEK_CUR)
                 else:
