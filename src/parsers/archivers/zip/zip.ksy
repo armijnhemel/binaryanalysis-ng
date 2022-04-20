@@ -122,7 +122,7 @@ types:
             true: empty
     instances:
       has_padding:
-        value: len_extra < 4 and len_extra != 0
+        value: len_extra < 4
     types:
       gp_flags:
         -orig-id: general purpose bit flag
@@ -217,7 +217,11 @@ types:
         encoding: UTF-8
       - id: extra
         size: len_extra
-        type: extras(section_types::central_dir_entry)
+        type:
+          switch-on: len_extra
+          cases:
+            0: empty
+            _: extras(section_types::central_dir_entry)
       - id: comment
         type: str
         size: len_comment
@@ -305,7 +309,8 @@ types:
     seq:
       - id: entries
         type: extra_field
-        repeat: eos
+        repeat: until
+        repeat-until: _io.eof or _io.size - _io.pos < 4
   extra_field:
     seq:
       - id: code
