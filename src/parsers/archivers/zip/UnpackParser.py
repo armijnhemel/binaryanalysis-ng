@@ -281,11 +281,13 @@ class ZipUnpackParser(WrappedUnpackParser):
                 if file_header.body.header.flags.has_data_descriptor:
                     has_data_descriptor = True
 
+                is_zip64_entry = False
+
                 # the extra fields are important, especially to check for
                 # any ZIP64 extension, as it contains updated values for
                 # the compressed size and uncompressed size (section 4.5)
                 for extra in file_header.body.header.extra.entries:
-                    # skip any unknown extra fields
+                    # skip any unknown extra fields for now
                     if type(extra.code) == int:
                         continue
                     if extra.code == kaitai_zip.Zip.ExtraCodes.zip64:
@@ -303,10 +305,16 @@ class ZipUnpackParser(WrappedUnpackParser):
                         zip64uncompressedsize = int.from_bytes(extra.body[:8], byteorder='little')
                         zip64compressedsize = int.from_bytes(extra.body[8:16], byteorder='little')
 
+                        is_zip64_entry = True
+
                         if compressed_size == 0xffffffff:
                             compressed_size = zip64compressedsize
                         if uncompressed_size == 0xffffffff:
                             uncompressed_size = zip64uncompressedsize
+
+                if is_zip64_entry:
+                    # skip the data
+                    self.infile.seek(compressed_size, os.SEEK_CUR)
 
                 # Section 4.4.4, bit 3:
                 # "If this bit is set, the fields crc-32, compressed
