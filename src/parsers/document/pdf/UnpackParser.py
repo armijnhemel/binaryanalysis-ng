@@ -482,10 +482,10 @@ class PdfUnpackParser(UnpackParser):
                     if prevres is not None:
                         prevxref = int(prevres.groups()[0])
                         seen_prev = True
-                        if offset + prevxref > self.fileresult.filesize:
+                        if prevxref > self.fileresult.filesize:
                             correct_reference = False
                             break
-                        self.infile.seek(offset + prevxref)
+                        self.infile.seek(prevxref)
                         buf = self.infile.read(4)
                         if buf != b'xref':
                             correct_reference = False
