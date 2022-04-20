@@ -254,6 +254,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                     raise UnpackParserException(e.args)
 
                 compressed_size = file_header.body.header.len_body_compressed
+                uncompressed_size = file_header.body.header.len_body_uncompressed
 
                 broken_zip_version = False
 
@@ -296,15 +297,16 @@ class ZipUnpackParser(WrappedUnpackParser):
                         # according to the official ZIP specifications the length of the
                         # header should be 28, but there are files where this field is
                         # 16 bytes long instead, sigh...
-                        check_condition(extrafieldheaderlength in [16, 28],
+                        check_condition(len(extra.body) in [16, 28],
                                         "wrong extra field header length for ZIP64")
 
-                        zip64uncompressedsize = int.from_bytes(extrafields[extrafieldcounter:extrafieldcounter+8], byteorder='little')
-                        zip64compressedsize = int.from_bytes(extrafields[extrafieldcounter+8:extrafieldcounter+16], byteorder='little')
-                        if compressedsize == 0xffffffff:
-                            compressedsize = zip64compressedsize
-                        if uncompressedsize == 0xffffffff:
-                            uncompressedsize = zip64uncompressedsize
+                        zip64uncompressedsize = int.from_bytes(extra.body[:8], byteorder='little')
+                        zip64compressedsize = int.from_bytes(extra.body[8:16], byteorder='little')
+
+                        if compressed_size == 0xffffffff:
+                            compressed_size = zip64compressedsize
+                        if uncompressed_size == 0xffffffff:
+                            uncompressed_size = zip64uncompressedsize
 
                 # Section 4.4.4, bit 3:
                 # "If this bit is set, the fields crc-32, compressed

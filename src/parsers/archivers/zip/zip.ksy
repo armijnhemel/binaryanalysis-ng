@@ -84,6 +84,7 @@ types:
         type: local_file_header
       - id: body
         size: header.len_body_compressed
+        if: header.len_body_uncompressed != 0xffffffff
   local_file_header:
     seq:
       - id: version
