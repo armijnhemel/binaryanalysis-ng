@@ -394,18 +394,18 @@ types:
           - id: flags
             size: 1
             type: info_flags
-          - id: mod_time
-            type: u4
-            if: flags.has_mod_time
-            doc: Unix timestamp
-          - id: access_time
-            type: u4
-            if: flags.has_access_time and _parent._parent.type == section_types::local_file
-            doc: Unix timestamp
-          - id: create_time
-            type: u4
-            if: flags.has_create_time and _parent._parent.type == section_types::local_file
-            doc: Unix timestamp
+          #- id: mod_time
+          #  type: u4
+          #  if: flags.has_mod_time
+          #  doc: Unix timestamp
+          #- id: access_time
+          #  type: u4
+          #  if: flags.has_access_time and _parent._parent.type == section_types::local_file
+          #  doc: Unix timestamp
+          #- id: create_time
+          #  type: u4
+          #  if: flags.has_create_time and _parent._parent.type == section_types::local_file
+          #  doc: Unix timestamp
         types:
           info_flags:
             seq:
