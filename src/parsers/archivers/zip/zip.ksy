@@ -15,8 +15,8 @@ meta:
     wikidata: Q136218
   license: CC0-1.0
   ks-version: 0.9
-  imports:
-    - /common/dos_datetime
+  #imports:
+  #  - /common/dos_datetime
   endian: le
   bit-endian: le
 doc: |
@@ -98,7 +98,7 @@ types:
         enum: compression
       - id: file_mod_time
         size: 4
-        type: dos_datetime
+        #type: dos_datetime
       - id: crc32
         type: u4
       - id: len_body_compressed
@@ -190,7 +190,7 @@ types:
         enum: compression
       - id: file_mod_time
         size: 4
-        type: dos_datetime
+        #type: dos_datetime
       - id: crc32
         type: u4
       - id: len_body_compressed
