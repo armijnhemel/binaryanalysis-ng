@@ -61,7 +61,7 @@ from . import zip as kaitai_zip
 MIN_VERSION = 0
 MAX_VERSION = 90
 
-# several ZIP headers
+# all known ZIP headers
 ARCHIVE_EXTRA_DATA = b'PK\x06\x08'
 CENTRAL_DIRECTORY = b'PK\x01\x02'
 DATA_DESCRIPTOR = b'PK\x07\x08'
@@ -607,9 +607,16 @@ class ZipUnpackParser(WrappedUnpackParser):
             labels.append('android')
 
         if not self.carved:
-            unpackzipfile = zipfile.ZipFile(self.infile)
+            zfile = self.infile
         else:
-            unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
+            zfile = self.temporary_file[1]
+
+        unpackzipfile = zipfile.ZipFile(zfile)
+        try:
+            # TODO: process apk results
+            apk = pyaxmlparser.APK(zfile)
+        except:
+            pass
 
         is_opc = False
         for z in self.zipinfolist:
