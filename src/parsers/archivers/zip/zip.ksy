@@ -39,6 +39,7 @@ seq:
     repeat: until
     repeat-until: _.section_type == section_types::end_of_central_dir
 types:
+  empty: {}
   pk_section:
     seq:
       - id: magic
@@ -56,8 +57,8 @@ types:
             section_types::data_descriptor: data_descriptor
             section_types::archive_extra_data: archive_extra_data
             section_types::digital_signature: digital_signature
-            section_types::zip64_end_of_central_dir: zip64_end_of_central_directory
-            section_types::zip64_end_of_central_dir_locator: zip64_end_of_central_directory_locator
+            section_types::zip64_end_of_central_dir: zip64_end_of_central_dir
+            section_types::zip64_end_of_central_dir_locator: zip64_end_of_central_dir_locator
   archive_extra_data:
     seq:
       - id: len_extra_field
@@ -84,7 +85,7 @@ types:
         type: local_file_header
       - id: body
         size: header.len_body_compressed
-        if: header.len_body_uncompressed != 0xffffffff
+        if: header.len_body_compressed != 0xffffffff
   local_file_header:
     seq:
       - id: version
@@ -114,7 +115,14 @@ types:
         encoding: UTF-8
       - id: extra
         size: len_extra
-        type: extras(section_types::local_file)
+        type:
+          switch-on: has_padding
+          cases:
+            false: extras(section_types::local_file)
+            true: empty
+    instances:
+      has_padding:
+        value: len_extra < 4
     types:
       gp_flags:
         -orig-id: general purpose bit flag
@@ -239,7 +247,7 @@ types:
         type: str
         size: len_comment
         encoding: UTF-8
-  zip64_end_of_central_directory:
+  zip64_end_of_central_dir:
     seq:
       - id: len_record
         type: u8
@@ -277,14 +285,14 @@ types:
           - id: extensible_data
             size-eos: true
             doc: zip64 extensible data sector
-  zip64_end_of_central_directory_locator:
+  zip64_end_of_central_dir_locator:
     seq:
       - id: disk_of_start_of_central_dir
         type: u4
         doc: |
           number of the disk with the start of
           the zip64 end of central directory
-      - id: ofs_zip64_end_of_central_directory
+      - id: ofs_zip64_end_of_central_dir
         type: u8
         doc: relative offset of the zip64 end of central directory record
       - id: total_number_of_disks
@@ -511,6 +519,9 @@ enums:
     0xa220: microsoft_open_packaging_growth_hint
     # http://hg.openjdk.java.net/jdk7/jdk7/jdk/file/00cd9dc3c2b5/src/share/classes/java/util/jar/JarOutputStream.java#l46
     0xcafe: java_jar
+    # https://android.googlesource.com/platform/tools/apksig/+/87d6acee83378201b/src/main/java/com/android/apksig/ApkSigner.java#74
+    # https://developer.android.com/studio/command-line/zipalign
+    0xd935: zip_align
     0xe57a: alzip_code_page
     0xfd4a: sms_qdos
   section_types:
