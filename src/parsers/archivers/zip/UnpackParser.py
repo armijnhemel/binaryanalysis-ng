@@ -218,21 +218,37 @@ class ZipUnpackParser(WrappedUnpackParser):
                             check_condition(len(buf) == 8,
                                             "not enough data for ZIP64 end of Android signing block")
 
-                            androidsigningsize = int.from_bytes(buf, byteorder='little')
+                            android_signing_size = int.from_bytes(buf, byteorder='little')
+
+                            # APK signing V3 might pad to 4096 bytes first,
+                            # introduced in:
+                            #
+                            # https://android.googlesource.com/platform/tools/apksig/+/edf96cb79f533eb4255ee1b6aa2ba8bf9c1729b2
+                            if android_signing_size == 0:
+                                # read padding bytes
+                                padding = 4096 - self.infile.tell() % 4096
+                                padding_bytes = self.infile.read(padding)
+                                check_condition(padding_bytes == padding * b'\x00',
+                                                "invalid padding bytes for APK v3 signing block")
+
+                                # then read 8 bytes for the APK signing block size
+                                buf = self.infile.read(8)
+                                check_condition(len(buf) == 8, "not enough data for Android signing block")
+                                android_signing_size = int.from_bytes(buf, byteorder='little')
 
                             # as the last 16 bytes are for the Android signing block
                             # the block has to be at least 16 bytes.
-                            check_condition(androidsigningsize >= 16,
+                            check_condition(android_signing_size >= 16,
                                             "wrong size for Android signing block")
 
                             # the signing block cannot be (partially)
                             # outside of the file
-                            check_condition(self.infile.tell() + androidsigningsize <= self.fileresult.filesize,
+                            check_condition(self.infile.tell() + android_signing_size <= self.fileresult.filesize,
                                             "not enough data for Android signing block")
 
                             # then skip over the signing block, except the
                             # last 16 bytes to have an extra sanity check
-                            self.infile.seek(androidsigningsize - 16, os.SEEK_CUR)
+                            self.infile.seek(android_signing_size - 16, os.SEEK_CUR)
                             buf = self.infile.read(16)
                             check_condition(buf == b'APK Sig Block 42',
                                             "wrong magic for Android signing block")
