@@ -24,7 +24,7 @@
 ZIP specifications can be found at:
 
 https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
-(latest version: version 6.3.8)
+(latest version: version 6.3.9)
 
 This parser first verifies a file to see where the ZIP data
 starts and where it ends.
@@ -294,6 +294,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                     for extra in file_header.body.header.extra.entries:
                         # skip any unknown extra fields for now
                         if type(extra.code) == int:
+                            print(hex(extra.code), self.fileresult.filename)
                             continue
                         if extra.code == kaitai_zip.Zip.ExtraCodes.zip64:
                             # ZIP64, section 4.5.3
@@ -386,14 +387,14 @@ class ZipUnpackParser(WrappedUnpackParser):
                                     self.infile.seek(current_position + ddpos + 8)
                                     tmp_compressed_size = int.from_bytes(self.infile.read(4), byteorder='little')
 
-                                    if current_position + ddpos - datastart == tmp_compressed_size:
+                                    if current_position + ddpos - start_of_possible_data_descriptor == tmp_compressed_size:
                                         tmppos = ddpos
                                         break
                                 else:
                                     break
 
-                        if ddpos != -1:
-                            best_so_far = ddpos
+                            if ddpos != -1:
+                                best_so_far = ddpos
 
                         # search for a local file header which indicates
                         # the next entry in the ZIP file
@@ -402,7 +403,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                             # In case the file that is stored is an empty
                             # file, then there will be no data descriptor field
                             # so just continue as normal.
-                            if current_position + localheaderpos == datastart:
+                            if current_position + localheaderpos == start_of_possible_data_descriptor:
                                 self.infile.seek(current_position)
                                 break
 
@@ -413,12 +414,12 @@ class ZipUnpackParser(WrappedUnpackParser):
                             # * uncompressed size
                             # section 4.3.9
                             if has_data_descriptor:
-                                if current_position + localheaderpos - datastart > 12:
+                                if current_position + localheaderpos - start_of_possible_data_descriptor > 12:
                                     self.infile.seek(current_position + localheaderpos - 8)
                                     tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
                                     # and return to the original position
                                     self.infile.seek(newcurrent_position)
-                                    if current_position + localheaderpos - datastart == tmpcompressedsize + 16:
+                                    if current_position + localheaderpos - start_of_possible_data_descriptor == tmpcompressedsize + 16:
                                         if tmppos == -1:
                                             tmppos = localheaderpos
                                         else:
@@ -436,7 +437,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                             # In case the file that is stored is an empty
                             # file, then there will be no data descriptor field
                             # so just continue as normal.
-                            if current_position + centraldirpos == datastart:
+                            if current_position + centraldirpos == start_of_possible_data_descriptor:
                                 self.infile.seek(current_position)
                                 break
 
@@ -447,18 +448,18 @@ class ZipUnpackParser(WrappedUnpackParser):
                             # * uncompressed size
                             # section 4.3.9
                             if has_data_descriptor:
-                                if curpos + centraldirpos - datastart > 12:
+                                if current_position + centraldirpos - start_of_possible_data_descriptor > 12:
                                     self.infile.seek(current_position + centraldirpos - 8)
                                     tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
                                     # and return to the original position
                                     self.infile.seek(newcurpos)
-                                    if current_position + centraldirpos - datastart == tmpcompressedsize + 16:
+                                    if current_position + centraldirpos - start_of_possible_data_descriptor == tmpcompressedsize + 16:
                                         if tmppos == -1:
                                             tmppos = centraldirpos
                                         else:
                                             tmppos = min(centraldirpos, tmppos)
                                     else:
-                                        if current_position + centraldirpos - datastart > 16:
+                                        if current_position + centraldirpos - start_of_possible_data_descriptor > 16:
                                             self.infile.seek(current_position + centraldirpos - 16)
                                             tmpbytes = self.infile.read(16)
                                             if tmpbytes == b'APK Sig Block 42':
