@@ -479,7 +479,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                                             self.infile.seek(current_position + centraldirpos - 16)
                                             tmpbytes = self.infile.read(16)
                                             if tmpbytes == b'APK Sig Block 42':
-                                                androidsigning = True
+                                                self.android_signing = True
                                             # and (again) return to the
                                             # original position
                                             self.infile.seek(newcurpos)
