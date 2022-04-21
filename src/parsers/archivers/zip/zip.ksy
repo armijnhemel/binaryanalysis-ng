@@ -248,9 +248,7 @@ types:
       - id: len_comment
         type: u2
       - id: comment
-        type: str
         size: len_comment
-        encoding: UTF-8
   zip64_end_of_central_dir:
     seq:
       - id: len_record
