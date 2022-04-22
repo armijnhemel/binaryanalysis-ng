@@ -99,6 +99,7 @@ class PdfUnpackParser(UnpackParser):
 
         # store the current position (just after the header)
         current_position = self.infile.tell()
+        max_unpacked_size = current_position
 
         # The difficulty with PDF is that the body has no fixed structure.
         # Instead, there is a trailer at the end of the file that contains
@@ -224,6 +225,7 @@ class PdfUnpackParser(UnpackParser):
                                 if buf != b'\x0a':
                                     self.infile.seek(-1, os.SEEK_CUR)
 
+                    max_unpacked_size = max(max_unpacked_size, self.infile.tell())
                     if self.infile.tell() == self.fileresult.filesize:
                         break
                     if seen_eof:
@@ -509,7 +511,8 @@ class PdfUnpackParser(UnpackParser):
             # so record it as such and record until where the PDF is
             # considered valid.
             valid_pdf = True
-            valid_pdf_size = unpackedsize
+            max_unpacked_size = max(max_unpacked_size, self.infile.tell())
+            valid_pdf_size = max_unpacked_size
 
         check_condition(valid_pdf, "not a valid PDF")
         self.infile.seek(valid_pdf_size)
