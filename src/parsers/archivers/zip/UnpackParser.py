@@ -153,11 +153,9 @@ class ZipUnpackParser(WrappedUnpackParser):
                 buf = self.infile.read(4)
                 check_condition(len(buf) == 4,
                                 "not enough data for ZIP entry header")
-
                 if buf != LOCAL_FILE_HEADER:
                     # process everything that is not a local file header, but
                     # either a ZIP header or an Android signing signature.
-                    in_local_entry = False
 
                     # check the different file headers
                     if buf in ALL_HEADERS:
@@ -171,16 +169,19 @@ class ZipUnpackParser(WrappedUnpackParser):
                         if file_header.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
                             # store the file name (as byte string)
                             central_directory_files.append(file_header.body.file_name)
+                            in_local_entry = False
                         elif buf == ZIP64_END_OF_CENTRAL_DIRECTORY:
                             # first read the size of the ZIP64 end of
                             # central directory (section 4.3.14.1)
                             seen_zip64_end_of_central_dir = True
+                            in_local_entry = False
                         elif buf == ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR:
                             # check for ZIP64 end of central directory locator
                             # (section 4.3.15)
-                            pass
+                            in_local_entry = False
                         elif buf == END_OF_CENTRAL_DIRECTORY:
                             # check for end of central directory (section 4.3.16)
+                            in_local_entry = False
 
                             # read the ZIP comment length
                             self.zip_comment = file_header.body.comment
@@ -210,7 +211,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                         # 3. no data descriptors are used, meaning it might be a
                         #    length of a signing block.
                         if self.android_signing or buf == b'\x00\x00\x00\x00' or not has_data_descriptor:
-                            # first go back four bytes
+                            # first go back to the beginning of the block
                             self.infile.seek(-4, os.SEEK_CUR)
 
                             # then read 8 bytes for the APK signing block size
@@ -259,11 +260,10 @@ class ZipUnpackParser(WrappedUnpackParser):
 
                 # continue with the local file headers instead
                 if buf == LOCAL_FILE_HEADER and not in_local_entry:
-                    # this should totally not happen in a valid
-                    # ZIP file: local file headers should not be
-                    # interleaved with other headers.
-                    #break
-                    pass
+                    # this should not happen in a valid ZIP file:
+                    # local file headers should not be interleaved
+                    # with other headers, except data descriptors.
+                    break
 
                 # parse a single local file header with Kaitai Struct
                 self.infile.seek(-4, os.SEEK_CUR)
