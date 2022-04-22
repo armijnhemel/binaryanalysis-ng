@@ -141,6 +141,7 @@ class ZipUnpackParser(WrappedUnpackParser):
             seen_central_directory = False
             in_local_entry = True
             seen_zip64_end_of_central_dir = False
+            possible_android = False
 
             # go back to the start of the file
             self.infile.seek(0)
@@ -210,7 +211,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                         #    padded.
                         # 3. no data descriptors are used, meaning it might be a
                         #    length of a signing block.
-                        if self.android_signing or buf == b'\x00\x00\x00\x00' or not has_data_descriptor:
+                        if self.android_signing or buf == b'\x00\x00\x00\x00' or possible_android or not has_data_descriptor:
                             # first go back to the beginning of the block
                             self.infile.seek(-4, os.SEEK_CUR)
 
@@ -247,7 +248,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                             check_condition(self.infile.tell() + android_signing_size <= self.fileresult.filesize,
                                             "not enough data for Android signing block")
 
-                            # then skip over the signing block, except the
+                            # then skip the signing block, except the
                             # last 16 bytes to have an extra sanity check
                             self.infile.seek(android_signing_size - 16, os.SEEK_CUR)
                             buf = self.infile.read(16)
@@ -312,6 +313,8 @@ class ZipUnpackParser(WrappedUnpackParser):
                         if type(extra.code) == int:
                             print(hex(extra.code), self.fileresult.filename)
                             continue
+                        if extra.code == kaitai_zip.Zip.ExtraCodes.zip_align:
+                            possible_android = True
                         if extra.code == kaitai_zip.Zip.ExtraCodes.zip64:
                             # ZIP64, section 4.5.3
                             # according to 4.4.3.2 PKZIP 4.5 or later is
