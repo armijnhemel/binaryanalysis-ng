@@ -93,8 +93,10 @@ class ZipUnpackParser(WrappedUnpackParser):
         self.encrypted = False
         self.zip64 = False
 
+        self.is_dahua = False
+
         # store if there is an Android signing block:
-        # https://source.android.com/security/apksigning/v2
+        # https://source.android.com/security/apksigning/
         self.android_signing = False
 
         # In a ZIP file there are file entries, followed by a central
@@ -195,9 +197,9 @@ class ZipUnpackParser(WrappedUnpackParser):
                             pass
                     else:
                         # then check to see if this is possibly an Android
-                        # signing block:
+                        # signing block (v2 or v3):
                         #
-                        # https://source.android.com/security/apksigning/v2
+                        # https://source.android.com/security/apksigning/
                         #
                         # The Android signing block is squeezed in between the
                         # latest entry and the central directory, despite the
