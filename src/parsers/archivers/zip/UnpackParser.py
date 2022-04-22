@@ -133,7 +133,7 @@ class ZipUnpackParser(WrappedUnpackParser):
             if set(local_files) != set(central_directory_files):
                 raise UnpackParserException("local files and central directory files do not match")
             self.kaitai_success = True
-        except (UnpackParserException, ValidationFailedError, EOFError) as e:
+        except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
             self.kaitai_success = False
 
         # in case the file cannot be successfully unpacked
@@ -166,7 +166,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                         self.infile.seek(-4, os.SEEK_CUR)
                         try:
                             file_header = kaitai_zip.Zip.PkSection.from_io(self.infile)
-                        except (UnpackParserException, ValidationFailedError, EOFError) as e:
+                        except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
                             raise UnpackParserException(e.args)
 
                         if file_header.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
@@ -274,7 +274,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                 self.infile.seek(-4, os.SEEK_CUR)
                 try:
                     file_header = kaitai_zip.Zip.PkSection.from_io(self.infile)
-                except (UnpackParserException, ValidationFailedError, EOFError) as e:
+                except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
                     raise UnpackParserException(e.args)
 
                 compressed_size = file_header.body.header.len_body_compressed
