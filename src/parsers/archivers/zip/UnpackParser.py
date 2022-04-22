@@ -609,12 +609,10 @@ class ZipUnpackParser(WrappedUnpackParser):
             if z in self.faulty_files:
                 # create the directory
                 outfile_full.mkdir(exist_ok=True)
-                fr = FileResult(self.fileresult, outfile_rel, set())
-                unpacked_files.append(fr)
             else:
                 unpackzipfile.extract(z, path=self.rel_unpack_dir)
-                fr = FileResult(self.fileresult, outfile_rel, set())
-                unpacked_files.append(fr)
+            fr = FileResult(self.fileresult, outfile_rel, set())
+            unpacked_files.append(fr)
 
         if self.carved:
             # cleanup
