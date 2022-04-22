@@ -138,7 +138,7 @@ class ZipUnpackParser(WrappedUnpackParser):
         # there is only the hard way left: parse from the start
         # and keep track of everything manually.
         if not self.kaitai_success:
-            seen_central_directory = False
+            seen_end_of_central_directory = False
             in_local_entry = True
             seen_zip64_end_of_central_dir = False
             possible_android = False
@@ -186,6 +186,8 @@ class ZipUnpackParser(WrappedUnpackParser):
 
                             # read the ZIP comment length
                             self.zip_comment = file_header.body.comment
+
+                            seen_end_of_central_directory = True
 
                             # end of ZIP file reached, so break out of the loop
                             break
@@ -516,6 +518,9 @@ class ZipUnpackParser(WrappedUnpackParser):
                 else:
                     # default
                     pass
+
+            # there always has to be an end of central directory
+            check_condition(seen_end_of_central_directory, "no end of central directory found")
 
         self.unpacked_size = self.infile.tell()
 
