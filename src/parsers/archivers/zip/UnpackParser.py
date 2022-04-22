@@ -580,6 +580,7 @@ class ZipUnpackParser(WrappedUnpackParser):
 
     def unpack(self):
         unpacked_files = []
+        unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
 
         # no files need to be unpacked for encrypted files
         if self.encrypted:
@@ -601,17 +602,40 @@ class ZipUnpackParser(WrappedUnpackParser):
         else:
             unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
 
+        # Extract files (or create a directory for faulty files) but
+        # do not yet add a file result. There are some files where
+        # there are relative entries. Python's zip module will take
+        # care of these entries and write in the correct place, but
+        # this means that the filename from the ZIP info object cannot
+        # be used.
+        #
+        # Examples:
+        # https://github.com/iBotPeaches/Apktool/issues/1498
+        # https://github.com/iBotPeaches/Apktool/issues/1589
+        #
+        # Test data can be found in the Apktool repository
         for z in self.zipinfolist:
             outfile_rel = self.rel_unpack_dir / z.filename
             outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
 
             if z in self.faulty_files:
                 # create the directory
+                # TODO: check for relative paths
                 outfile_full.mkdir(exist_ok=True)
             else:
-                unpackzipfile.extract(z, path=self.rel_unpack_dir)
-            fr = FileResult(self.fileresult, outfile_rel, set())
+                try:
+                    unpackzipfile.extract(z, path=self.rel_unpack_dir)
+                except NotADirectoryError:
+                    # TODO: find out what to do here. This happens
+                    # sometimes with zip files with symbolic links from
+                    # one directory to another.
+                    pass
+
+        # Walk the result directory
+        for result in unpackdir_full.glob('**/*'):
+            # add the file to the result set
+            file_path = result.relative_to(unpackdir_full)
+            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set())
             unpacked_files.append(fr)
 
         if self.carved:
