@@ -134,6 +134,9 @@ class PdfUnpackParser(UnpackParser):
             needs_prev = False
 
             while True:
+                # first store the current pointer in the file
+                cur = self.infile.tell()
+
                 # create a new buffer for every read, as buffers are
                 # not flushed and old data might linger.
                 pdfbuffer = bytearray(10240)
@@ -144,7 +147,7 @@ class PdfUnpackParser(UnpackParser):
 
                 pdfpos = pdfbuffer.find(b'startxref')
                 if pdfpos != -1:
-                    start_xref_pos = unpackedsize + pdfpos
+                    start_xref_pos = cur + pdfpos
                     # extra sanity checks to check if it is really EOF
                     # (defined in section 7.5.5):
                     # * whitespace
@@ -234,15 +237,14 @@ class PdfUnpackParser(UnpackParser):
 
                 # continue searching, with some overlap
                 self.infile.seek(-10, os.SEEK_CUR)
-                unpackedsize = self.infile.tell()
+                cur = self.infile.tell()
 
             if not is_valid_trailer:
                 break
             if start_xref_pos == -1 or crossoffset == -1 or not seen_eof:
                 break
 
-            unpackedsize = self.infile.tell()
-            current_position = unpackedsize
+            current_position = self.infile.tell()
 
             # extra sanity check: look at the contents of the trailer dictionary
             self.infile.seek(start_xref_pos-5)
