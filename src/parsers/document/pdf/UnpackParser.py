@@ -39,6 +39,12 @@
 import os
 import re
 
+import pdfminer
+
+from pdfminer.pdfparser import PDFParser
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfpage import PDFPage
+
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
@@ -51,6 +57,15 @@ class PdfUnpackParser(UnpackParser):
     pretty_name = 'pdf'
 
     def parse(self):
+        # create a parser for pdfminer
+        try:
+            self.parser = PDFParser(self.infile)
+
+            # parse the document with the parser
+            doc = PDFDocument(self.parser)
+        except pdfminer.psparser.PSEOF as e:
+            raise UnpackParserException(e.args)
+
         pdfinfo = {}
 
         # open the file and skip the offset
@@ -99,6 +114,7 @@ class PdfUnpackParser(UnpackParser):
 
         # store the current position (just after the header)
         current_position = self.infile.tell()
+        max_unpacked_size = current_position
 
         # The difficulty with PDF is that the body has no fixed structure.
         # Instead, there is a trailer at the end of the file that contains
@@ -134,6 +150,9 @@ class PdfUnpackParser(UnpackParser):
             needs_prev = False
 
             while True:
+                # first store the current pointer in the file
+                cur = self.infile.tell()
+
                 # create a new buffer for every read, as buffers are
                 # not flushed and old data might linger.
                 pdfbuffer = bytearray(10240)
@@ -144,7 +163,7 @@ class PdfUnpackParser(UnpackParser):
 
                 pdfpos = pdfbuffer.find(b'startxref')
                 if pdfpos != -1:
-                    start_xref_pos = unpackedsize + pdfpos
+                    start_xref_pos = cur + pdfpos
                     # extra sanity checks to check if it is really EOF
                     # (defined in section 7.5.5):
                     # * whitespace
@@ -221,6 +240,7 @@ class PdfUnpackParser(UnpackParser):
                                 if buf != b'\x0a':
                                     self.infile.seek(-1, os.SEEK_CUR)
 
+                    max_unpacked_size = max(max_unpacked_size, self.infile.tell())
                     if self.infile.tell() == self.fileresult.filesize:
                         break
                     if seen_eof:
@@ -234,15 +254,14 @@ class PdfUnpackParser(UnpackParser):
 
                 # continue searching, with some overlap
                 self.infile.seek(-10, os.SEEK_CUR)
-                unpackedsize = self.infile.tell()
+                cur = self.infile.tell()
 
             if not is_valid_trailer:
                 break
             if start_xref_pos == -1 or crossoffset == -1 or not seen_eof:
                 break
 
-            unpackedsize = self.infile.tell()
-            current_position = unpackedsize
+            current_position = self.infile.tell()
 
             # extra sanity check: look at the contents of the trailer dictionary
             self.infile.seek(start_xref_pos-5)
@@ -507,7 +526,8 @@ class PdfUnpackParser(UnpackParser):
             # so record it as such and record until where the PDF is
             # considered valid.
             valid_pdf = True
-            valid_pdf_size = unpackedsize
+            max_unpacked_size = max(max_unpacked_size, self.infile.tell())
+            valid_pdf_size = max_unpacked_size
 
         check_condition(valid_pdf, "not a valid PDF")
         self.infile.seek(valid_pdf_size)
