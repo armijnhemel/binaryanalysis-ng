@@ -39,6 +39,12 @@
 import os
 import re
 
+import pdfminer
+
+from pdfminer.pdfparser import PDFParser
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfpage import PDFPage
+
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 
@@ -51,6 +57,15 @@ class PdfUnpackParser(UnpackParser):
     pretty_name = 'pdf'
 
     def parse(self):
+        # create a parser for pdfminer
+        try:
+            self.parser = PDFParser(self.infile)
+
+            # parse the document with the parser
+            doc = PDFDocument(self.parser)
+        except pdfminer.psparser.PSEOF as e:
+            raise UnpackParserException(e.args)
+
         pdfinfo = {}
 
         # open the file and skip the offset
