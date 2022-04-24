@@ -36,14 +36,20 @@
 # https://github.com/pdf-association/pdf20examples
 
 
+import io
 import os
 import re
+import tempfile
 
 import pdfminer
 
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfpage import PDFPage
+
+from pdfminer.converter import TextConverter
+from pdfminer.layout import LAParams
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
@@ -57,15 +63,6 @@ class PdfUnpackParser(UnpackParser):
     pretty_name = 'pdf'
 
     def parse(self):
-        # create a parser for pdfminer
-        try:
-            self.parser = PDFParser(self.infile)
-
-            # parse the document with the parser
-            doc = PDFDocument(self.parser)
-        except pdfminer.psparser.PSEOF as e:
-            raise UnpackParserException(e.args)
-
         pdfinfo = {}
 
         # open the file and skip the offset
@@ -106,15 +103,8 @@ class PdfUnpackParser(UnpackParser):
             if buf != b'\x0a':
                 self.infile.seek(-1, os.SEEK_CUR)
 
-        valid_pdf = False
-        valid_pdf_size = -1
-
-        # keep a list of referencs for the entire document
-        document_object_references = {}
-
         # store the current position (just after the header)
         current_position = self.infile.tell()
-        max_unpacked_size = current_position
 
         # The difficulty with PDF is that the body has no fixed structure.
         # Instead, there is a trailer at the end of the file that contains
@@ -124,30 +114,21 @@ class PdfUnpackParser(UnpackParser):
         # As files might have been concatenated or a PDF might need to be
         # carved simply jumping to the end of the file is not an option
         # (although it would certainly work for most files). Therefore
-        # the file needs to be read until the start of the trailer is found.
+        # the file needs to be read until %%EOF is found.
+        #
         # As an extra complication sometimes the updates are not appended
         # to the file, but prepended using forward references instead of
         # back references and then other parts of the PDF file having back
         # references, making the PDF file more of a random access file.
+
+        best_eof = -1
+        buffersize = 1000000
         while True:
-            # continuously look for trailers until there is no valid trailer
-            # anymore. This will (likely) be the correct end of the file.
-            start_xref_pos = -1
-            cross_offset = -1
-
-            # keep track of the object references in a single
-            # part of the document (either the original document
-            # or an update to the document)
-            object_references = {}
-
-            # first seek to where data had already been read
-            self.infile.seek(current_position)
-            is_valid_trailer = True
-
-            # Sometimes the value for the reference table in startxref is 0.
-            # This typically only happens for some updates, and there should
-            # be a Prev entry in the trailer dictionary.
-            needs_prev = False
+            # continuously look for %%EOF and then parse with pdfminer
+            # until there is a parse error or the end of file has been
+            # reached.
+            end_of_eof = -1
+            valid_eof = True
 
             while True:
                 # first store the current pointer in the file
@@ -155,76 +136,14 @@ class PdfUnpackParser(UnpackParser):
 
                 # create a new buffer for every read, as buffers are
                 # not flushed and old data might linger.
-                pdfbuffer = bytearray(10240)
+                pdfbuffer = bytearray(buffersize)
                 bytesread = self.infile.readinto(pdfbuffer)
                 if bytesread == 0:
-                    # no bytes could be read, so exit the loop
+                    # no bytes could be read, so exit this loop
                     break
 
-                pdfpos = pdfbuffer.find(b'startxref')
+                pdfpos = pdfbuffer.find(b'%%EOF')
                 if pdfpos != -1:
-                    start_xref_pos = cur + pdfpos
-                    # extra sanity checks to check if it is really EOF
-                    # (defined in section 7.5.5):
-                    # * whitespace
-                    # * valid byte offset to last cross reference
-                    # * EOF marker
-
-                    # skip 'startxref'
-                    self.infile.seek(start_xref_pos + 9)
-
-                    # then either LF, CR, or CRLF (section 7.5.1)
-                    buf = self.infile.read(1)
-                    if buf not in [b'\x0a', b'\x0d']:
-                        start_xref_pos = -1
-                    if buf == b'\x0d':
-                        buf = self.infile.read(1)
-                        if buf != b'\x0a':
-                            self.infile.seek(-1, os.SEEK_CUR)
-                    crossbuf = b''
-                    seeneol = False
-
-                    while True:
-                        buf = self.infile.read(1)
-                        if buf in [b'\x0a', b'\x0d']:
-                            seeneol = True
-                            break
-                        if self.infile.tell() == self.fileresult.filesize:
-                            break
-                        crossbuf += buf
-                    if not seeneol:
-                        is_valid_trailer = False
-                        break
-
-                    # the value should be an integer followed by
-                    # LF, CR or CRLF.
-                    if crossbuf != b'':
-                        try:
-                            crossoffset = int(crossbuf)
-                        except ValueError:
-                            break
-                    if crossoffset != 0:
-                        # the offset for the cross reference cannot
-                        # be outside of the file.
-                        if crossoffset > self.infile.tell():
-                            is_valid_trailer = False
-                            break
-                    else:
-                        needs_prev = True
-                    if buf == b'\x0d':
-                        buf = self.infile.read(1)
-                    if buf != b'\x0a':
-                        self.infile.seek(-1, os.SEEK_CUR)
-
-                    # now finally check EOF
-                    buf = self.infile.read(5)
-                    seen_eof = False
-                    if buf != b'%%EOF':
-                        is_valid_trailer = False
-                        break
-
-                    seen_eof = True
-
                     # Most likely there are EOL markers, although the PDF
                     # specification is not 100% clear about this:
                     # section 7.5.1 indicates that EOL markers are part of
@@ -232,310 +151,96 @@ class PdfUnpackParser(UnpackParser):
                     # Section 7.2.3 says that comments should *not*
                     # include "end of line" (but these two do not contradict)
                     # which likely confused people.
+                    self.infile.seek(cur + pdfpos + 5)
                     buf = self.infile.read(1)
                     if buf in [b'\x0a', b'\x0d']:
                         if buf == b'\x0d':
-                            if self.infile.tell() != self.fileresult.filesize:
+                            if self.offset + self.infile.tell() != self.fileresult.filesize:
                                 buf = self.infile.read(1)
                                 if buf != b'\x0a':
                                     self.infile.seek(-1, os.SEEK_CUR)
 
-                    max_unpacked_size = max(max_unpacked_size, self.infile.tell())
-                    if self.infile.tell() == self.fileresult.filesize:
+                    end_of_eof = self.infile.tell()
+                    havetmpfile = False
+
+                    # carve the file if necessary. This is necessary as pdfminer
+                    # first does a seek() to the end of the file. By carving
+                    # it is ensured that there actually is an %%EOF at the
+                    # end of the file.
+                    if self.offset != 0 or self.infile.tell() != self.fileresult.filesize:
+                        temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+                        os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.infile.tell())
+                        os.fdopen(temporary_file[0]).close()
+                        pdffile = open(temporary_file[1], 'rb')
+                        havetmpfile = True
+                    else:
+                        pdffile = self.infile
+
+                    # parse the file with pdfminer
+                    try:
+                        # first create a parser object
+                        self.parser = PDFParser(pdffile)
+
+                        # create a document with the parser. By default
+                        # pdfminer tries to be smart: if an error in the xref
+                        # section is found it will seek() to the start of the
+                        # file and parse from there as a fallback. This is
+                        # specifically *NOT* what is needed here, so disable
+                        # the fallback option.
+                        self.doc = PDFDocument(self.parser, fallback=False)
+
+                        # create a temporary string where the text
+                        # converter can write data to
+                        out = io.StringIO()
+
+                        # extract text from the PDF here. This cannot be
+                        # done later because the temporary file that is used
+                        # will be removed after parsing.
+                        rsrcmgr = PDFResourceManager()
+                        device = TextConverter(rsrcmgr, out, laparams=LAParams())
+                        interpreter = PDFPageInterpreter(rsrcmgr, device)
+                        for page in PDFPage.create_pages(self.doc):
+                            interpreter.process_page(page)
+                        self.contents = out.getvalue()
+
+                        best_eof = end_of_eof
+                    except (pdfminer.psparser.PSEOF, pdfminer.pdfparser.PDFSyntaxError) as e:
+                        # in case there is an error then this %%EOF is not
+                        # a valid %%EOF for the file, so there is no need
+                        # to continue parsing.
+                        valid_eof = False
                         break
-                    if seen_eof:
+                    finally:
+                        if havetmpfile:
+                            pdffile.close()
+                            os.unlink(temporary_file[1])
+
+                    self.infile.seek(end_of_eof)
+                    if self.offset + end_of_eof == self.fileresult.filesize:
                         break
-
-                # check if the end of file was reached, without having
-                # read a valid trailer.
-                if self.infile.tell() == self.fileresult.filesize:
-                    is_valid_trailer = False
-                    break
-
-                # continue searching, with some overlap
-                self.infile.seek(-10, os.SEEK_CUR)
-                cur = self.infile.tell()
-
-            if not is_valid_trailer:
-                break
-            if start_xref_pos == -1 or crossoffset == -1 or not seen_eof:
-                break
-
-            current_position = self.infile.tell()
-
-            # extra sanity check: look at the contents of the trailer dictionary
-            self.infile.seek(start_xref_pos-5)
-            buf = self.infile.read(5)
-            if b'>>' not in buf:
-                # possibly a cross reference stream (section 7.5.8),
-                # a comment line (iText seems to do this a lot)
-                # or whitespace
-                # TODO
-                break
-
-            end_of_trailer_pos = buf.find(b'>>') + start_xref_pos - 4
-
-            trailerpos = -1
-
-            # search the data backwards for the word "trailer"
-            self.infile.seek(-50, os.SEEK_CUR)
-            isstart = False
-            while True:
-                curpos = self.infile.tell()
-                if curpos <= 0:
-                    isstart = True
-                buf = self.infile.read(50)
-                trailerpos = buf.find(b'trailer')
-                if trailerpos != -1:
-                    trailerpos = curpos + trailerpos
-                    break
-                if isstart:
-                    break
-                self.infile.seek(-60, os.SEEK_CUR)
-
-            # read the xref entries (section 7.5.4) as those
-            # might be referenced in the trailer.
-            self.infile.seek(crossoffset+4)
-            validxref = True
-            if trailerpos - crossoffset > 0:
-                buf = self.infile.read(trailerpos - crossoffset - 4).strip()
-                if b'\r\n' in buf:
-                    objectdefs = buf.split(b'\r\n')
-                elif b'\r' in buf:
-                    objectdefs = buf.split(b'\r')
                 else:
-                    objectdefs = buf.split(b'\n')
-                firstlineseen = False
-                xrefseen = 0
-                xrefcount = 0
-                # the cross reference section might have
-                # subsections. The first line is always
-                # two integers
-                for obj in objectdefs:
-                    if not firstlineseen:
-                        # first line has to be two integers
-                        linesplits = obj.split()
-                        if len(linesplits) != 2:
-                            validxref = False
-                            break
-                        try:
-                            startxref = int(linesplits[0])
-                            xrefcount = int(linesplits[1])
-                            xrefcounter = int(linesplits[0])
-                        except ValueError:
-                            validxref = False
-                            break
-                        firstlineseen = True
-                        xrefseen = 0
-                        continue
-                    linesplits = obj.split()
-                    if len(linesplits) != 2 and len(linesplits) != 3:
-                        validxref = False
+                    # continue searching, with some overlap
+                    # unless EOF has been reached
+                    if self.offset + self.infile.tell() == self.fileresult.filesize:
                         break
-                    if len(linesplits) == 2:
-                        # start of a new subsection, so first
-                        # check if the previous subsection was
-                        # actually valid.
-                        if xrefcount != xrefseen:
-                            validxref = False
-                            break
-                        linesplits = obj.split()
-                        if len(linesplits) != 2:
-                            validxref = False
-                            break
-                        try:
-                            startxref = int(linesplits[0])
-                            xrefcount = int(linesplits[1])
-                            xrefcounter = int(linesplits[0])
-                        except ValueError:
-                            validxref = False
-                            break
-                        xrefseen = 0
-                        continue
-                    elif len(linesplits) == 3:
-                        # each of the lines consists of:
-                        # * offset
-                        # * generation number
-                        # * keyword to indicate in use/free
-                        if len(linesplits[0]) != 10:
-                            validxref = False
-                            break
-                        if len(linesplits[1]) != 5:
-                            validxref = False
-                            break
-                        if len(linesplits[2]) != 1:
-                            validxref = False
-                            break
-                        try:
-                            objectoffset = int(linesplits[0])
-                        except ValueError:
-                            validxref = False
-                            break
-                        try:
-                            generation = int(linesplits[1])
-                        except ValueError:
-                            validxref = False
-                            break
-                        if linesplits[2] == b'n':
-                            object_references[xrefcounter] = {}
-                            object_references[xrefcounter]['offset'] = objectoffset
-                            object_references[xrefcounter]['generation'] = generation
-                            object_references[xrefcounter]['keyword'] = 'new'
-                        elif linesplits[2] == b'f':
-                            object_references[xrefcounter] = {}
-                            object_references[xrefcounter]['offset'] = objectoffset
-                            object_references[xrefcounter]['generation'] = generation
-                            object_references[xrefcounter]['keyword'] = 'free'
-                        else:
-                            validxref = False
-                            break
-                        xrefcounter += 1
-                        xrefseen += 1
 
-                if xrefcount != xrefseen:
-                    validxref = False
+                    self.infile.seek(-10, os.SEEK_CUR)
 
-                if not validxref:
-                    break
-
-            # jump to the position where the trailer starts
-            self.infile.seek(trailerpos)
-
-            # and read the trailer, minus '>>'
-            buf = self.infile.read(end_of_trailer_pos - trailerpos)
-
-            # extra sanity check: see if '<<' is present
-            if b'<<' not in buf:
+            if not valid_eof:
                 break
 
-            # then split the entries
-            trailersplit = buf.split(b'\x0d\x0a')
-            if len(trailersplit) == 1:
-                trailersplit = buf.split(b'\x0d')
-                if len(trailersplit) == 1:
-                    trailersplit = buf.split(b'\x0a')
-
-            seen_root = False
-            correct_reference = True
-            seen_prev = False
-            for i in trailersplit:
-                if b'/' not in i:
-                    continue
-                if b'/Root' in i:
-                    seen_root = True
-                if b'/Info' in i:
-                    # indirect reference, section 7.3.10
-                    # Don't treat errors as fatal right now.
-                    infores = re.search(rb'/Info\s+(\d+)\s+(\d+)\s+R', i)
-                    if infores is None:
-                        continue
-                    (objectref, generation) = infores.groups()
-                    objectref = int(objectref)
-                    generation = int(generation)
-                    if objectref in object_references:
-                        # seek to the position of the object in the
-                        # file and read the data
-                        self.infile.seek(object_references[objectref]['offset'])
-
-                        # first read a few bytes to check if it is
-                        # actually the right object
-                        buf = self.infile.read(len(str(objectref)))
-                        try:
-                            cb = int(buf)
-                        except ValueError:
-                            continue
-                        if cb != objectref:
-                            continue
-
-                        # read a space
-                        buf = self.infile.read(1)
-                        if buf != b' ':
-                            continue
-
-                        # read the generation
-                        buf = self.infile.read(len(str(generation)))
-                        try:
-                            gen = int(buf)
-                        except ValueError:
-                            continue
-                        if gen != generation:
-                            continue
-
-                        # read a space
-                        buf = self.infile.read(1)
-                        if buf != b' ':
-                            continue
-
-                        # then read 'obj'
-                        buf = self.infile.read(3)
-                        if buf != b'obj':
-                            continue
-
-                        # now read until 'endobj' is reached
-                        infobytes = b''
-                        validinfobytes = True
-                        while True:
-                            buf = self.infile.read(20)
-                            infobytes += buf
-                            if infobytes == b'':
-                                validinfobytes = False
-                                break
-                            if b'endobj' in infobytes:
-                                break
-                        if not validinfobytes:
-                            continue
-                        infobytes = infobytes.split(b'endobj', 1)[0].strip()
-                        if b'<<' not in infobytes:
-                            continue
-                        if b'>>' not in infobytes:
-                            continue
-                        if infobytes[0] == b'<<' and infobytes[-1] == b'>>':
-                            infobytes = infobytes[1:-1]
-                        else:
-                            infobytes = infobytes.split(b'>>', 1)[0]
-                            infobytes = infobytes.split(b'<<', 1)[1]
-                        # process according to section 14.3.3
-                        # TODO
-                if b'/Prev' in i:
-                    prevres = re.search(rb'/Prev\s(\d+)', i)
-                    if prevres is not None:
-                        prevxref = int(prevres.groups()[0])
-                        seen_prev = True
-                        if prevxref > self.fileresult.filesize:
-                            correct_reference = False
-                            break
-                        self.infile.seek(prevxref)
-                        buf = self.infile.read(4)
-                        if buf != b'xref':
-                            correct_reference = False
-                            break
-                        pdfinfo['updates'] = True
-
-            # /Root element is mandatory
-            if not seen_root:
+            # stop if EOF has been reached
+            if self.offset + self.infile.tell() == self.fileresult.filesize:
                 break
 
-            if needs_prev and not seen_prev:
-                break
-
-            # references should be correct
-            if not correct_reference:
-                break
-
-            # so far the PDF file is valid (possibly including updates)
-            # so record it as such and record until where the PDF is
-            # considered valid.
-            valid_pdf = True
-            max_unpacked_size = max(max_unpacked_size, self.infile.tell())
-            valid_pdf_size = max_unpacked_size
-
-        check_condition(valid_pdf, "not a valid PDF")
-        self.infile.seek(valid_pdf_size)
+        check_condition(best_eof != -1, "not a valid PDF")
+        self.infile.seek(best_eof)
 
     def extract_metadata_and_labels(self):
         '''Extract metadata from the PDF file and set labels'''
         labels = ['pdf']
         metadata = {}
+        metadata['contents'] = self.contents
 
         return(labels, metadata)
 
