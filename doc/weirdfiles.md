@@ -54,3 +54,5 @@ trailer
 startxref
 %%EOF
 ```
+
+<https://github.com/pdfminer/pdfminer.six/issues/750>
