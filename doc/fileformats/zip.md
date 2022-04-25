@@ -48,12 +48,16 @@ entries from A you need to find out where A ends.
 
 # ZIP file unpacking in BANG
 
+In BANG it is assumed that ZIP files are always followed by extra data, so
+parsing starts from the beginning of the file, instead of using the central
+directory of the ZIP file to access the files.
+
 ZIP file unpacking in BANG works as follows (simplified):
 
 1. open the file
 2. go to the start of a local file header (section 4.3.7)
 3. read and parse the data in a local file header
-4. skip over the compressed data
+4. skip the compressed data
 5. process all entries and store information about the entries, until a central
    directory is found (section 4.3.12)
 6. process the central directory and verify if the contents in the central
@@ -205,3 +209,8 @@ It is possible to have multiple entries in the same ZIP file, with different
 properties, for example a copy of a file, and a link with the same name. It
 is unclear how these conflicts should be resolved and BANG currently does
 not handle this correctly.
+
+## Mismatches between central directory and actual files
+
+There could be more file entries in the archive than listed in the central
+directory.
