@@ -19,11 +19,15 @@ let
     pefile
     pillow
     protobuf
+    pyaxmlparser
     pytest
     python-snappy
     pyyaml
     telfhash
     tlsh
+    xxhash
+    zstd
+    zstandard
   ]);
     
 in
@@ -31,13 +35,13 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     binutils
     cabextract
+    e2fsprogs
     e2tools
     innoextract
-    libxml2
+    kaitai-struct-compiler
     lz4
     mailcap
     ncompress
-    openjdk8
     openssl
     my-python
     protobuf
@@ -48,6 +52,6 @@ pkgs.mkShell {
     unrar
     unshield
     utillinux
-    zstd
+    zchunk
   ];
 }

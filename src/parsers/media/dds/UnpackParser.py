@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationLessThanError
+from kaitaistruct import ValidationFailedError
 from . import dds
 
 class DdsUnpackParser(UnpackParser):
@@ -36,13 +36,10 @@ class DdsUnpackParser(UnpackParser):
     ]
     pretty_name = 'dds'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_dds(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = dds.Dds.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationLessThanError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         compatible_flags = True
         if self.data.dds_header.flags & 0x8 == 0x8 and self.data.dds_header.flags & 0x80000 == 0x80000:

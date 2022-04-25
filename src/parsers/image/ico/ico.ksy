@@ -68,10 +68,17 @@ types:
         type: u4
         valid:
           min: 1
+          max: _root._io.size
+          # the size can never be more than the
+          # amount of bytes in the file.
         doc: Size of the image data
       - id: ofs_img
         -orig-id: dwImageOffset
         type: u4
+        valid:
+          max: _root._io.size
+          # the offset can never be more than the
+          # amount of bytes in the file.
         doc: Absolute offset of the image data start in the file
     instances:
       img:
@@ -113,6 +120,9 @@ types:
         type: u2
       - id: bit_count
         type: u2
+        valid:
+          any-of: [1, 4, 8, 16, 24, 32]
+        doc: Number of bits per pixel that image buffer uses (1, 4, 8, 16, 24 or 32)
       - id: compression
         type: u4
         valid: 0
@@ -130,7 +140,7 @@ types:
       - id: num_colors_used
         -orig-id: biClrUsed
         type: u4
-        valid: 0
+        #valid: 0
       - id: num_colors_important
         -orig-id: biClrImportant
         type: u4

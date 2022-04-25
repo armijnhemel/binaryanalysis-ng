@@ -21,7 +21,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-Parse and unpack PNG files. The specification of the PNG can be found at:
+Parse and unpack PNG files. The specification of the PNG format can be found
+at:
 
 https://www.w3.org/TR/PNG/
 
@@ -40,7 +41,7 @@ import PIL.Image
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationExprError
+from kaitaistruct import ValidationFailedError
 from . import png
 
 # a list of known chunks
@@ -52,7 +53,7 @@ KNOWN_CHUNKS = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM',
                     'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT',
                     'sCAL', 'sTER', 'meTa', 'grAb', 'alPh', 'huBs',
                     'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd', 'dSIG',
-                    'eXIf', 'eXif', 'skMf', 'skRf'])
+                    'eXIf', 'eXif', 'skMf', 'skRf', 'atCh'])
 
 
 class PngUnpackParser(UnpackParser):
@@ -66,10 +67,8 @@ class PngUnpackParser(UnpackParser):
         self.chunknames = set()
         try:
             self.data = png.Png.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationExprError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.ihdr.bit_depth in [1, 2, 4, 8, 16],
-                "invalid bit depth")
         check_condition(self.data.ihdr.width > 0,
                 "invalid width")
         check_condition(self.data.ihdr.height > 0,
@@ -100,6 +99,7 @@ class PngUnpackParser(UnpackParser):
     def unpack(self):
         """extract any files from the input file"""
         return []
+
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = [ 'png', 'graphics' ]
@@ -109,7 +109,7 @@ class PngUnpackParser(UnpackParser):
         xmptags = []
         timetags = []
         metatags = []
-        png_type_labels = []
+        self.png_type_labels = []
 
         # TODO: eXif, tXMP
         for i in self.data.chunks:
@@ -137,18 +137,18 @@ class PngUnpackParser(UnpackParser):
                     # https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart3.pdf
                     try:
                         # XMP should be valid XML
-                        xmpdom = defusedxml.minidom.parseString(i.body.text)
-                        xmptags.append(i.body.text)
+                        xmpdom = defusedxml.minidom.parseString(i.body.text.text)
+                        xmptags.append(i.body.text.text)
                     except ExpatError:
                         pngtexts.append({'key': i.body.keyword,
                                          'languagetag': i.body.language_tag,
                                          'translatedkey': i.body.translated_keyword,
-                                         'value': i.body.text})
+                                         'value': i.body.text.text})
                 else:
                     pngtexts.append({'key': i.body.keyword,
                                      'languagetag': i.body.language_tag,
                                      'translatedkey': i.body.translated_keyword,
-                                     'value': i.body.text})
+                                     'value': i.body.text.text})
             elif i.type == 'meTa':
                 try:
                     metatags.append(i.body.decode(encoding='utf-16'))
@@ -162,7 +162,7 @@ class PngUnpackParser(UnpackParser):
                 # check to see if the file is a thumbnail.
                 # https://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html
                 if i.body.keyword.startswith('Thumb::'):
-                    png_type_labels.append('thumbnail')
+                    self.png_type_labels.append('thumbnail')
             elif i.type == 'tIME':
                 # tIMe chunk, should be only one but store
                 # as a list anyway
@@ -229,7 +229,7 @@ class PngUnpackParser(UnpackParser):
                     if not 'evernote' in metadata:
                         metadata['evernote'] = {}
                     metadata['evernote']['meta'] = evernote_body
-                    png_type_labels.append('evernote')
+                    self.png_type_labels.append('evernote')
                 except UnicodeError:
                     pass
                 except json.JSONDecodeError:
@@ -243,34 +243,36 @@ class PngUnpackParser(UnpackParser):
                 metadata['evernote']['uri_uuid'] = uri_uuid
                 # The rest of the image is the original PNG.
                 # TODO: extract PNG
+            elif i.type == 'atCh':
+                self.png_type_labels.append('pngattach')
 
         # check if the PNG is animated.
         # https://wiki.mozilla.org/APNG_Specification
         if 'acTL' in self.chunknames and 'fcTL' in self.chunknames \
             and 'fdAT' in self.chunknames:
-            png_type_labels.append('animated')
+            self.png_type_labels.append('animated')
             labels.append('apng')
 
         # Check if the file is a stereo image
         if 'sTER' in self.chunknames:
-            png_type_labels.append('stereo png')
+            self.png_type_labels.append('stereo png')
 
         # check if the file is possibly a "NinePatch" image
         # https://developer.android.com/reference/android/graphics/NinePatch
         for i in ['npTc', 'npLb', 'npOl']:
             if i in self.chunknames:
-                png_type_labels.append('ninepatch')
+                self.png_type_labels.append('ninepatch')
                 break
 
         # check if the file has an iDOT chunk, which is an undocumented
         # extension from Apple, not confirming to PNG specifications (it
         # is seen as a critical chunk by many decoders)
         if 'iDOT' in self.chunknames:
-            png_type_labels.append('apple')
+            self.png_type_labels.append('apple')
 
         # signed PNG
         if 'dSIG' in self.chunknames:
-            png_type_labels.append('signed png')
+            self.png_type_labels.append('signed png')
 
         # check if the file is perhaps made by ImageMagick, which used a few
         # private chunks:
@@ -279,27 +281,27 @@ class PngUnpackParser(UnpackParser):
         imagemagick = False
         for i in ['vpAg', 'caNv', 'orNT']:
             if i in self.chunknames:
-                png_type_labels.append('imagemagick')
+                self.png_type_labels.append('imagemagick')
                 break
 
         # https://zdoom.org/wiki/PNG
         for i in ['grAb', 'alPh', 'huBs', 'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd']:
             if i in self.chunknames:
-                png_type_labels.append('zdoom')
+                self.png_type_labels.append('zdoom')
                 break
 
         # https://zdoom.org/wiki/Savegame
         # This was changed in September 2016
         for i in ['huBs', 'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd']:
             if i in self.chunknames:
-                png_type_labels.append('zdoom')
-                png_type_labels.append('zdoom save game')
+                self.png_type_labels.append('zdoom')
+                self.png_type_labels.append('zdoom save game')
                 break
 
         # check if the file was made using Adobe Fireworks
         for i in ['prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF']:
             if i in self.chunknames:
-                png_type_labels.append('adobe fireworks')
+                self.png_type_labels.append('adobe fireworks')
                 break
 
         metadata['width'] = self.data.ihdr.width
@@ -310,7 +312,7 @@ class PngUnpackParser(UnpackParser):
         metadata['xmp'] = xmptags
         metadata['time'] = timetags
         metadata['meta'] = metatags
-        metadata['png_type'] = png_type_labels
+        metadata['png_type'] = self.png_type_labels
 
         unknownchunks = list(self.chunknames.difference(KNOWN_CHUNKS))
         metadata['unknownchunks'] = unknownchunks

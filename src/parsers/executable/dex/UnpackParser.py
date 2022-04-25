@@ -21,16 +21,21 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 
-import os
 import hashlib
+import pathlib
 import zlib
+
 import tlsh
 import mutf8
 
+from FileResult import FileResult
+
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import dex
+from . import odex
+
 
 # Opcodes for the various versions. The format is:
 #
@@ -60,32 +65,32 @@ DEX_035_OPCODES = {0x00: 1, 0x01: 1, 0x02: 2, 0x03: 3, 0x04: 1,
                    0x51: 2, 0x52: 2, 0x53: 2, 0x54: 2, 0x55: 2,
                    0x56: 2, 0x57: 2, 0x58: 2, 0x59: 2, 0x5a: 2,
                    0x5b: 2, 0x5c: 2, 0x5d: 2, 0x5e: 2, 0x5f: 2,
-                   0x60: 2, 0x61: 2, 0x62: 2, 0x62: 2, 0x63: 2,
-                   0x64: 2, 0x65: 2, 0x66: 2, 0x67: 2, 0x68: 2,
-                   0x69: 2, 0x6a: 2, 0x6b: 2, 0x6c: 2, 0x6d: 2,
-                   0x6e: 3, 0x6f: 3, 0x70: 3, 0x71: 3, 0x72: 3,
-                   0x74: 3, 0x75: 3, 0x76: 3, 0x77: 3, 0x78: 3,
-                   0x7b: 1, 0x7c: 1, 0x7d: 1, 0x7e: 1, 0x7e: 1,
-                   0x7f: 1, 0x80: 1, 0x81: 1, 0x82: 1, 0x83: 1,
-                   0x84: 1, 0x85: 1, 0x86: 1, 0x87: 1, 0x88: 1,
-                   0x89: 1, 0x8a: 1, 0x8b: 1, 0x8c: 1, 0x8d: 1,
-                   0x8e: 1, 0x8f: 1, 0x90: 2, 0x91: 2, 0x92: 2,
-                   0x93: 2, 0x94: 2, 0x95: 2, 0x96: 2, 0x97: 2,
-                   0x98: 2, 0x99: 2, 0x9a: 2, 0x9b: 2, 0x9c: 2,
-                   0x9d: 2, 0x9e: 2, 0x9f: 2, 0xa0: 2, 0xa1: 2,
-                   0xa2: 2, 0xa3: 2, 0xa4: 2, 0xa5: 2, 0xa6: 2,
-                   0xa7: 2, 0xa8: 2, 0xa9: 2, 0xaa: 2, 0xab: 2,
-                   0xac: 2, 0xad: 2, 0xae: 2, 0xaf: 2, 0xb0: 1,
-                   0xb1: 1, 0xb2: 1, 0xb3: 1, 0xb4: 1, 0xb5: 1,
-                   0xb6: 1, 0xb7: 1, 0xb8: 1, 0xb9: 1, 0xba: 1,
-                   0xbb: 1, 0xbc: 1, 0xbd: 1, 0xbe: 1, 0xbf: 1,
-                   0xc0: 1, 0xc1: 1, 0xc2: 1, 0xc3: 1, 0xc4: 1,
-                   0xc5: 1, 0xc6: 1, 0xc7: 1, 0xc8: 1, 0xc9: 1,
-                   0xca: 1, 0xcb: 1, 0xcc: 1, 0xcd: 1, 0xce: 1,
-                   0xcf: 1, 0xd0: 2, 0xd1: 2, 0xd2: 2, 0xd3: 2,
-                   0xd4: 2, 0xd5: 2, 0xd6: 2, 0xd7: 2, 0xd8: 2,
-                   0xd9: 2, 0xda: 2, 0xdb: 2, 0xdc: 2, 0xdd: 2,
-                   0xde: 2, 0xdf: 2, 0xe0: 2, 0xe1: 2, 0xe2: 2 }
+                   0x60: 2, 0x61: 2, 0x62: 2, 0x63: 2, 0x64: 2,
+                   0x65: 2, 0x66: 2, 0x67: 2, 0x68: 2, 0x69: 2,
+                   0x6a: 2, 0x6b: 2, 0x6c: 2, 0x6d: 2, 0x6e: 3,
+                   0x6f: 3, 0x70: 3, 0x71: 3, 0x72: 3, 0x74: 3,
+                   0x75: 3, 0x76: 3, 0x77: 3, 0x78: 3, 0x7b: 1,
+                   0x7c: 1, 0x7d: 1, 0x7e: 1, 0x7f: 1, 0x80: 1,
+                   0x81: 1, 0x82: 1, 0x83: 1, 0x84: 1, 0x85: 1,
+                   0x86: 1, 0x87: 1, 0x88: 1, 0x89: 1, 0x8a: 1,
+                   0x8b: 1, 0x8c: 1, 0x8d: 1, 0x8e: 1, 0x8f: 1,
+                   0x90: 2, 0x91: 2, 0x92: 2, 0x93: 2, 0x94: 2,
+                   0x95: 2, 0x96: 2, 0x97: 2, 0x98: 2, 0x99: 2,
+                   0x9a: 2, 0x9b: 2, 0x9c: 2, 0x9d: 2, 0x9e: 2,
+                   0x9f: 2, 0xa0: 2, 0xa1: 2, 0xa2: 2, 0xa3: 2,
+                   0xa4: 2, 0xa5: 2, 0xa6: 2, 0xa7: 2, 0xa8: 2,
+                   0xa9: 2, 0xaa: 2, 0xab: 2, 0xac: 2, 0xad: 2,
+                   0xae: 2, 0xaf: 2, 0xb0: 1, 0xb1: 1, 0xb2: 1,
+                   0xb3: 1, 0xb4: 1, 0xb5: 1, 0xb6: 1, 0xb7: 1,
+                   0xb8: 1, 0xb9: 1, 0xba: 1, 0xbb: 1, 0xbc: 1,
+                   0xbd: 1, 0xbe: 1, 0xbf: 1, 0xc0: 1, 0xc1: 1,
+                   0xc2: 1, 0xc3: 1, 0xc4: 1, 0xc5: 1, 0xc6: 1,
+                   0xc7: 1, 0xc8: 1, 0xc9: 1, 0xca: 1, 0xcb: 1,
+                   0xcc: 1, 0xcd: 1, 0xce: 1, 0xcf: 1, 0xd0: 2,
+                   0xd1: 2, 0xd2: 2, 0xd3: 2, 0xd4: 2, 0xd5: 2,
+                   0xd6: 2, 0xd7: 2, 0xd8: 2, 0xd9: 2, 0xda: 2,
+                   0xdb: 2, 0xdc: 2, 0xdd: 2, 0xde: 2, 0xdf: 2,
+                   0xe0: 2, 0xe1: 2, 0xe2: 2 }
 
 # see https://android.googlesource.com/platform/dalvik/+/android-4.4.2_r2/opcode-gen/bytecode.txt
 DEX_037_OPCODES = {0xe3: 2, 0xe4: 2, 0xe5: 2, 0xe6: 2, 0xe7: 2,
@@ -106,6 +111,13 @@ DEX_037 = DEX_035_OPCODES | DEX_037_OPCODES
 DEX_038 = DEX_035_OPCODES | DEX_037_OPCODES | DEX_038_OPCODES
 DEX_039 = DEX_035_OPCODES | DEX_037_OPCODES | DEX_038_OPCODES | DEX_039_OPCODES
 
+ALL_DEX_VERSIONS = sorted(['035', '037', '038', '039'])
+
+OPCODES = {'035': DEX_035,
+           '037': DEX_037,
+           '038': DEX_038,
+           '039': DEX_039}
+
 class DexUnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -124,114 +136,150 @@ class DexUnpackParser(UnpackParser):
         else:
             version_str = opcode_version
 
+        # Dex 036 is officially not supported
+        if version_str == '036':
+            return []
+
         # select the correct opcodes
-        if version_str == '035':
-            opcodes = DEX_035
-        elif version_str == '037':
-            opcodes = DEX_037
-        elif version_str == '038':
-            opcodes = DEX_038
-        elif version_str == '039':
-            opcodes = DEX_039
+        opcodes = OPCODES[version_str]
+
+        len_bytecode = len(bytecode)
 
         # keep track of which versions of the opcodes have been tried.
         # It could be that the code has been optimized and a different
-        # set of opcodes needs to be tried. TODO
+        # set of opcodes needs to be tried.
         tried_versions = [version_str]
+        all_versions_tried = False
+        retry = False
 
-        len_bytecode = len(bytecode)
-        counter = 0
-        string_ids = []
-        while counter < len_bytecode:
-            # read the first instruction
-            opcode = bytecode[counter]
+        while not all_versions_tried:
+            counter = 0
+            string_ids = []
+            if retry:
+                if sorted(tried_versions) == ALL_DEX_VERSIONS:
+                    all_versions_tried = True
+                    break
+                for o in ALL_DEX_VERSIONS:
+                    if o not in tried_versions:
+                        opcodes = OPCODES[o]
+                        tried_versions.append(o)
+                        break
+                retry = False
+            while counter < len_bytecode:
+                # read the first instruction
+                opcode = bytecode[counter]
 
-            # check if there are nop instructions to
-            # keep the bytecode byte aligned
-            if len_bytecode - counter == 1:
-                if opcode == 0:
-                    counter += 1
-                    continue
+                # check if there are nop instructions to
+                # keep the bytecode byte aligned
+                if len_bytecode - counter == 1:
+                    if opcode == 0:
+                        counter += 1
+                        continue
 
-            # TODO: length sanity check
+                # TODO: length sanity check
 
-            # process the byte code to find strings. The interesting
-            # instructions are:
-            #
-            # - const-string (0x1a)
-            # - const-string/jumbo (0x1b)
-            #
-            # Some instructions contain extra data and they need to be
-            # parsed separately and then be skipped.
-            #
-            # - fill-array-data (0x26)
-            # - packed-switch (0x2b)
-            # - sparse-switch (0x2c)
-            if opcode == 0x1a:
-                string_id = int.from_bytes(bytecode[counter+2:counter+4], byteorder='little')
-                string_ids.append(string_id)
-            elif opcode == 0x1b:
-                string_id = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
-                string_ids.append(string_id)
-            elif opcode == 0x00:
-                # the payloads for fill-array-data, packed-switch and sparse-switch
-                # use a pseudo opcode
-                if bytecode[counter+1] == 1:
-                    # packed-switch-payload
-                    counter += opcodes[opcode] * 2
+                # process the byte code to find strings. The interesting
+                # instructions are:
+                #
+                # - const-string (0x1a)
+                # - const-string/jumbo (0x1b)
+                #
+                # Some instructions contain extra data and they need to be
+                # parsed separately and then be skipped.
+                #
+                # - fill-array-data (0x26)
+                # - packed-switch (0x2b)
+                # - sparse-switch (0x2c)
+                if opcode == 0x1a:
+                    string_id = int.from_bytes(bytecode[counter+2:counter+4], byteorder='little')
+                    string_ids.append(string_id)
+                elif opcode == 0x1b:
+                    string_id = int.from_bytes(bytecode[counter+2:counter+6], byteorder='little')
+                    string_ids.append(string_id)
+                elif opcode == 0x00:
+                    # the payloads for fill-array-data, packed-switch and sparse-switch
+                    # use a pseudo opcode
+                    if bytecode[counter+1] == 1:
+                        # packed-switch-payload
+                        try:
+                            counter += opcodes[opcode] * 2
+                        except:
+                            retry = True
+                            break
 
-                    # number of entries in the table
-                    size = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
-                    counter += 2
-                    first_key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
-                    counter += 4
-                    # then the data
-                    for k in range(0, size):
-                        key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                        # number of entries in the table
+                        size = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
+                        counter += 2
+                        first_key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
                         counter += 4
-                    if counter%2 != 0:
-                        opcode = bytecode[counter]
-                        if opcode == 0:
-                            counter += 1
-                    continue
-                elif bytecode[counter+1] == 2:
-                    # sparse-switch-payload
-                    counter += opcodes[opcode] * 2
-                    size = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
-                    counter += 2
+                        # then the data
+                        for k in range(0, size):
+                            key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                            counter += 4
+                        if counter%2 != 0:
+                            opcode = bytecode[counter]
+                            if opcode == 0:
+                                counter += 1
+                        continue
 
-                    # keys
-                    for k in range(0, size):
-                        key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                    if bytecode[counter+1] == 2:
+                        # sparse-switch-payload
+                        try:
+                            counter += opcodes[opcode] * 2
+                        except:
+                            retry = True
+                            break
+
+                        size = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
+                        counter += 2
+
+                        # keys
+                        for k in range(0, size):
+                            key = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                            counter += 4
+
+                        # targets
+                        for t in range(0, size):
+                            target = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
+                            counter += 4
+                        if counter%2 != 0:
+                            opcode = bytecode[counter]
+                            if opcode == 0:
+                                counter += 1
+                        continue
+
+                    if bytecode[counter+1] == 3:
+                        # fill-array-data payload
+                        try:
+                            counter += opcodes[opcode] * 2
+                        except:
+                            retry = True
+
+                        element_width = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
+                        counter += 2
+
+                        size = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
                         counter += 4
 
-                    # targets
-                    for t in range(0, size):
-                        target = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
-                        counter += 4
-                    if counter%2 != 0:
-                        opcode = bytecode[counter]
-                        if opcode == 0:
-                            counter += 1
-                    continue
-                elif bytecode[counter+1] == 3:
-                    # fill-array-data payload
+                        # data
+                        counter += size * element_width
+                        if counter%2 != 0:
+                            opcode = bytecode[counter]
+                            if opcode == 0:
+                                counter += 1
+                        continue
+
+                try:
                     counter += opcodes[opcode] * 2
-                    element_width = int.from_bytes(bytecode[counter:counter+2], byteorder='little')
-                    counter += 2
+                except:
+                    retry = True
+                    break
+            if not retry:
+                break
 
-                    size = int.from_bytes(bytecode[counter:counter+4], byteorder='little')
-                    counter += 4
-
-                    # data
-                    counter += size * element_width
-                    if counter%2 != 0:
-                        opcode = bytecode[counter]
-                        if opcode == 0:
-                            counter += 1
-                    continue
-
-            counter += opcodes[opcode] * 2
+            # do not try all versions yet, as this needs
+            # more sanity checks.
+            break
         return string_ids
 
     def parse(self):
@@ -240,7 +288,7 @@ class DexUnpackParser(UnpackParser):
             self.data = dex.Dex.from_io(self.infile)
             computed_checksum = zlib.adler32(self.data.bytes_for_adler32)
             self.unpacked_size = self.data.header.file_size
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.header.checksum == computed_checksum,
                         "wrong Adler32")
@@ -282,7 +330,10 @@ class DexUnpackParser(UnpackParser):
             if class_definition.class_data is None:
                 continue
             class_obj = {}
-            class_obj['classname'] = mutf8.decode_modified_utf8(class_definition.type_name[1:-1])
+            try:
+                class_obj['classname'] = mutf8.decode_modified_utf8(class_definition.type_name[1:-1])
+            except UnicodeDecodeError:
+                pass
             if class_definition.sourcefile_name is not None:
                 class_obj['source'] = mutf8.decode_modified_utf8(class_definition.sourcefile_name)
             class_obj['methods'] = []
@@ -306,15 +357,19 @@ class DexUnpackParser(UnpackParser):
                 # extract the relevant strings from the bytecode and store them
                 strings = []
                 res = self.parse_bytecode(method.code.insns)
-                if res != []:
-                  for r in res:
-                      try:
-                          # this shouldn't happen, but there is a bug
-                          # in mutf8: https://github.com/TkTech/mutf8/issues/1
-                          bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
-                          strings.append(bytecode_string)
-                      except UnicodeDecodeError:
-                          pass
+                for r in res:
+                    try:
+                        # this shouldn't happen, but there is was bug
+                        # in mutf8: https://github.com/TkTech/mutf8/issues/1
+                        bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
+                        try:
+                            # this shouldn't happen, but there is likely a bug in mutf8
+                            bytecode_string.encode()
+                            strings.append(bytecode_string)
+                        except:
+                            pass
+                    except UnicodeDecodeError:
+                        pass
 
                 method_id += method.method_idx_diff.value
                 method_name = mutf8.decode_modified_utf8(self.data.method_ids[method_id].method_name)
@@ -340,15 +395,19 @@ class DexUnpackParser(UnpackParser):
                 # extract the relevant strings from the bytecode and store them
                 strings = []
                 res = self.parse_bytecode(method.code.insns)
-                if res != []:
-                  for r in res:
-                      try:
-                          # this shouldn't happen, but there is a bug
-                          # in mutf8: https://github.com/TkTech/mutf8/issues/1
-                          bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
-                          strings.append(bytecode_string)
-                      except UnicodeDecodeError:
-                          pass
+                for r in res:
+                    try:
+                        # this shouldn't happen, but there is was bug
+                        # in mutf8: https://github.com/TkTech/mutf8/issues/1
+                        bytecode_string = mutf8.decode_modified_utf8(self.data.string_ids[r].value.data)
+                        try:
+                            # this shouldn't happen, but there is likely a bug in mutf8
+                            bytecode_string.encode()
+                            strings.append(bytecode_string)
+                        except:
+                            pass
+                    except UnicodeDecodeError:
+                        pass
 
                 method_id += method.method_idx_diff.value
                 method_name = mutf8.decode_modified_utf8(self.data.method_ids[method_id].method_name)
@@ -377,9 +436,12 @@ class DexUnpackParser(UnpackParser):
                 field_type = mutf8.decode_modified_utf8(self.data.field_ids[field_id].type_name)
                 if field_type.endswith(';'):
                     field_type = field_type[1:-1]
-                class_type = mutf8.decode_modified_utf8(self.data.field_ids[field_id].class_name)
-                if class_type.endswith(';'):
-                    class_type = class_type[1:-1]
+                try:
+                    class_type = mutf8.decode_modified_utf8(self.data.field_ids[field_id].class_name)
+                    if class_type.endswith(';'):
+                        class_type = class_type[1:-1]
+                except UnicodeError:
+                    pass
                 field_name = mutf8.decode_modified_utf8(self.data.field_ids[field_id].field_name)
                 class_obj['fields'].append({'name': field_name,
                                             'type': field_type, 'class': class_type,
@@ -388,3 +450,69 @@ class DexUnpackParser(UnpackParser):
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
+
+
+class OdexUnpackParser(UnpackParser):
+    extensions = []
+    signatures = [
+        (0, b'dey\n036\x00')
+    ]
+    pretty_name = 'odex'
+
+    def parse(self):
+        try:
+            self.data = odex.Odex.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
+            raise UnpackParserException(e.args)
+
+        self.unpacked_size = self.data.ofs_opt + self.data.len_opt
+
+        self.infile.seek(self.data.ofs_deps)
+        adler32_bytes = self.infile.read(self.data.ofs_opt + self.data.len_opt - self.data.ofs_deps)
+        computed_checksum = zlib.adler32(adler32_bytes)
+        check_condition(self.data.adler32 == computed_checksum,
+                        "wrong Adler32")
+
+        self.infile.seek(self.data.ofs_dex)
+        try:
+            self.dex = dex.Dex.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
+            raise UnpackParserException(e.args)
+
+    # no need to carve from the file
+    def carve(self):
+        pass
+
+    def unpack(self):
+        # write dex
+        unpacked_files = []
+        out_labels = []
+
+        # cut .odex from the path name if it is there
+        if self.fileresult.filename.suffix == '.odex':
+            file_path = pathlib.Path(self.fileresult.filename.with_suffix('.dex').name)
+        # else anonymous file
+        else:
+            file_path = pathlib.Path("unpacked_from_odex")
+
+        outfile_rel = self.rel_unpack_dir / file_path
+        outfile_full = self.scan_environment.unpack_path(outfile_rel)
+        outfile_full.parent.mkdir(exist_ok=True)
+        outfile = open(outfile_full, 'wb')
+        outfile.write(self.data.dex)
+        outfile.close()
+        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
+        unpacked_files.append(fr)
+        return unpacked_files
+
+    # make sure that self.unpacked_size is not overwritten
+    def calculate_unpacked_size(self):
+        pass
+
+    def set_metadata_and_labels(self):
+        """sets metadata and labels for the unpackresults"""
+        labels = ['android', 'odex']
+        metadata = {}
+
+        self.unpack_results.set_labels(labels)
+        self.unpack_results.set_metadata(metadata)

@@ -23,28 +23,40 @@
 
 import os
 import binascii
+import json
 
 import telfhash
 
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_elf
+from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from kaitaistruct import UndecidedEndiannessError
 from . import elf
 
+# a list of (partial) names of functions that have been
+# compiled with FORTIFY_SOURCE. This list is not necessarily
+# complete, but at least catches some verified functions.
+FORTIFY_NAMES = ['cpy_chk', 'printf_chk', 'cat_chk', 'poll_chk',
+                 'read_chk', '__memset_chk', '__memmove_chk',
+                 'syslog_chk', '__longjmp_chk', '__fdelt_chk',
+                 '__realpath_chk', '__explicit_bzero_chk', '__recv_chk',
+                 '__getdomainname_chk', '__gethostname_chk']
 
-#class ElfUnpackParser(UnpackParser):
-class ElfUnpackParser(WrappedUnpackParser):
+# road only data sections. This should be expanded.
+RODATA_SECTIONS = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
+                   '.rodata.str1.8', '.rodata.cst4', '.rodata.cst8',
+                   '.rodata.cst16', 'rodata']
+
+# sections with interesting data found in guile programs
+GUILE_STRTAB_SECTIONS = ['.guile.arities.strtab', '.guile.docstrs.strtab']
+
+class ElfUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x7f\x45\x4c\x46')
     ]
     pretty_name = 'elf'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_elf(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         try:
@@ -64,6 +76,8 @@ class ElfUnpackParser(WrappedUnpackParser):
             self.unpacked_size = max(self.unpacked_size, shoff + self.data.header.qty_section_header
                                      * self.data.header.section_header_entry_size)
             for header in self.data.header.section_headers:
+                if header.type == elf.Elf.ShType.nobits:
+                    continue
                 self.unpacked_size = max(self.unpacked_size, header.ofs_body + header.len_body)
 
                 # ugly ugly hack to work around situations on Android where
@@ -72,17 +86,99 @@ class ElfUnpackParser(WrappedUnpackParser):
                 if header.type == elf.Elf.ShType.note:
                     for entry in header.body.entries:
                         pass
-        except (Exception, ValidationNotEqualError, UndecidedEndiannessError) as e:
+                elif header.type == elf.Elf.ShType.strtab:
+                    for entry in header.body.entries:
+                        pass
+
+                # force read the header name
+                name = header.name
+                if header.type == elf.Elf.ShType.symtab:
+                    if header.name == '.symtab':
+                        for entry in header.body.entries:
+                            name = entry.name
+                if header.type == elf.Elf.ShType.dynamic:
+                    if header.name == '.dynamic':
+                        for entry in header.body.entries:
+                            if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
+                                name = entry.value_str
+                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
+                                name = entry.value_str
+
+                elif header.type == elf.Elf.ShType.symtab:
+                    if header.name == '.symtab':
+                        for entry in header.body.entries:
+                            name = entry.name
+                            name = entry.type.name
+                            name = entry.bind.name
+                            name = entry.visibility.name
+                            name = entry.sh_idx
+                            name = entry.size
+                elif header.type == elf.Elf.ShType.dynsym:
+                    if header.name == '.dynsym':
+                        for entry in header.body.entries:
+                            name = entry.name
+                            name = entry.type.name
+                            name = entry.bind.name
+                            name = entry.visibility.name
+                            name = entry.sh_idx
+                            name = entry.size
+                elif header.type == elf.Elf.ShType.progbits:
+                    if header.name in RODATA_SECTIONS:
+                        body = header.body
+
+            # read the names, but don't proces them. This is just to force
+            # evaluation, which normally happens lazily for instances in
+            # kaitai struct.
+            names = self.data.header.section_names
+
+            # TODO linux kernel module signatures
+            # see scripts/sign-file.c in Linux kernel
+        except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
+    def carve(self):
+        """If the UnpackParser recognizes data but there is still data left in
+        the file, this method saves the parsed part of the file, leaving the
+        rest to be  analyzed. The part is saved to the unpack data directory,
+        under the name given by get_carved_filename.
+        """
+        if self.soname != '':
+            rel_output_path = self.rel_unpack_dir / self.soname
+        elif self.module_name != '':
+            rel_output_path = self.rel_unpack_dir / ("%s.ko" % self.module_name)
+        else:
+            rel_output_path = self.rel_unpack_dir / self.get_carved_filename()
+        abs_output_path = self.scan_environment.unpack_path(rel_output_path)
+        os.makedirs(abs_output_path.parent, exist_ok=True)
+        outfile = open(abs_output_path, 'wb')
+        # Although self.infile is an OffsetInputFile, fileno() will give the file
+        # descriptor of the backing file. Therefore, we need to specify self.offset here
+        os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset, self.unpacked_size)
+        outfile.close()
+
+        (labels, metadata) = self.extract_metadata_and_labels()
+
+        self.unpack_results.add_label('unpacked')
+        out_labels = self.unpack_results.get_labels() + ['unpacked'] + labels
+        fr = FileResult(self.fileresult, rel_output_path, set(out_labels))
+        fr.set_metadata(metadata)
+        self.unpack_results.add_unpacked_file( fr )
+
+    def extract_metadata_and_labels(self):
+        '''Extract metadata from the ELF file and set labels'''
         labels = [ 'elf' ]
         metadata = {}
         string_cutoff_length = 4
+
+        # translation table for ASCII strings
+        string_translation_table = str.maketrans({'\t': ' '})
 
         if self.data.bits == elf.Elf.Bits.b32:
             metadata['bits'] = 32
@@ -113,14 +209,23 @@ class ElfUnpackParser(WrappedUnpackParser):
             metadata['type'] = 'processor specific'
 
         # store the machine type, both numerical and pretty printed
-        metadata['machine_name'] = self.data.header.machine.name
-        metadata['machine'] = self.data.header.machine.value
+        if type(self.data.header.machine) == int:
+            metadata['machine_name'] = "unknown architecture"
+            metadata['machine'] = self.data.header.machine
+        else:
+            metadata['machine_name'] = self.data.header.machine.name
+            metadata['machine'] = self.data.header.machine.value
+
+        # store the ABI, both numerical and pretty printed
+        metadata['abi_name'] = self.data.abi.name
+        metadata['abi'] = self.data.abi.value
 
         metadata['security'] = []
         if self.data.header.section_names is not None:
             metadata['section_names'] = self.data.header.section_names.entries
 
-        # keep track of whether or not GNU_RELRO has been set
+        # RELRO is a technique to mitigate some security vulnerabilities
+        # http://refspecs.linuxfoundation.org/LSB_4.1.0/LSB-Core-generic/LSB-Core-generic/progheader.html
         seen_relro = False
 
         for header in self.data.header.program_headers:
@@ -143,6 +248,9 @@ class ElfUnpackParser(WrappedUnpackParser):
         # store dynamic symbols (empty for statically linked binaries)
         dynamic_symbols = []
 
+        # guile symbols (empty for non-Guile programs)
+        guile_symbols = []
+
         # store information about notes
         notes = []
 
@@ -155,18 +263,25 @@ class ElfUnpackParser(WrappedUnpackParser):
         runpath = ''
 
         # shared object name (for libraries)
-        soname = ''
+        self.soname = ''
 
-        # only look at a few interesting sections. This should be expanded.
-        rodata_sections = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
-                           '.rodata.str1.8', '.rodata.cst4', '.rodata.cst8',
-                           '.rodata.cst16', 'rodata']
+        # module name (for Linux kernel modules)
+        self.module_name = ''
 
         # process the various section headers
         is_dynamic_elf = False
         for header in self.data.header.section_headers:
             if header.name in ['.modinfo', '__ksymtab_strings']:
                 labels.append('linuxkernelmodule')
+                try:
+                    module_meta = header.body.split(b'\x00')
+                    for m in module_meta:
+                        meta = m.decode()
+                        if meta.startswith('name='):
+                            self.module_name = meta.split('=', maxsplit=1)[1]
+                            break
+                except Exception as e:
+                    pass
             elif header.name in ['.oat_patches', '.text.oat_patches', '.dex']:
                 # OAT information has been stored in various sections
                 # test files:
@@ -188,7 +303,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
                             runpath = entry.value_str
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
-                            soname = entry.value_str
+                            self.soname = entry.value_str
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags_1:
                             # check for position independent code
                             if entry.flag_1_values.pie:
@@ -210,7 +325,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                 if header.name == '.symtab':
                     for entry in header.body.entries:
                         symbol = {}
-                        if entry.name == None:
+                        if entry.name is None:
                             symbol['name'] = ''
                         else:
                             symbol['name'] = entry.name
@@ -224,7 +339,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                 if header.name == '.dynsym':
                     for entry in header.body.entries:
                         symbol = {}
-                        if entry.name == None:
+                        if entry.name is None:
                             symbol['name'] = ''
                         else:
                             symbol['name'] = entry.name
@@ -235,6 +350,20 @@ class ElfUnpackParser(WrappedUnpackParser):
                         symbol['size'] = entry.size
                         symbols.append(symbol)
                         dynamic_symbols.append(symbol)
+
+                        if symbol['name'] == 'oatdata':
+                            labels.append('oat')
+                            labels.append('android')
+
+                        # security related information
+                        if symbol['name'] == '__stack_chk_fail':
+                            metadata['security'].append('stack smashing protector')
+                        if '_chk' in symbol['name']:
+                            if 'fortify' not in metadata['security']:
+                                for fortify_name in FORTIFY_NAMES:
+                                    if symbol['name'].endswith(fortify_name):
+                                        metadata['security'].append('fortify')
+                                        break
 
             elif header.type == elf.Elf.ShType.progbits:
                 # process the various progbits sections here
@@ -257,12 +386,22 @@ class ElfUnpackParser(WrappedUnpackParser):
                     link_name = header.body.split(b'\x00', 1)[0].decode()
                     link_crc = header.body[-4:]
                     metadata['gnu debuglink'] = link_name
-                elif header.name in rodata_sections:
+                elif header.name in RODATA_SECTIONS:
                     for s in header.body.split(b'\x00'):
-                        if len(s) < string_cutoff_length:
-                            continue
                         try:
-                            data_strings.append(s.decode())
+                            decoded_strings = s.decode().splitlines()
+                            for decoded_string in decoded_strings:
+                                if len(decoded_string) < string_cutoff_length:
+                                    continue
+                                if decoded_string.isspace():
+                                    continue
+                                translated_string = decoded_string.translate(string_translation_table)
+                                if decoded_string.isascii():
+                                    # test the translated string
+                                    if translated_string.isprintable():
+                                        data_strings.append(decoded_string)
+                                else:
+                                    data_strings.append(decoded_string)
                         except:
                             pass
                     # some Qt binaries use the Qt resource system,
@@ -293,7 +432,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                 elif header.name == '.qtmetadata':
                     pass
                 elif header.name == '.qtmimedatabase':
-                    # data, in possibly zstd/gzip compressed
+                    # data, possibly zstd/gzip compressed
                     pass
                 elif header.name == '.qtversion':
                     pass
@@ -310,13 +449,20 @@ class ElfUnpackParser(WrappedUnpackParser):
                     pass
                 elif header.name == '.VTGPrLc':
                     pass
+                elif header.name == '.rol4re_elf_aux':
+                    labels.append('l4')
+
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
                 for entry in header.body.entries:
                     pass
             elif header.type == elf.Elf.ShType.strtab:
-                for entry in header.body.entries:
-                    pass
+                if header.name in GUILE_STRTAB_SECTIONS:
+                    for entry in header.body.entries:
+                        pass
+                else:
+                    for entry in header.body.entries:
+                        pass
             elif header.type == elf.Elf.ShType.dynsym:
                 for entry in header.body.entries:
                     pass
@@ -340,6 +486,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                         metadata['linux_version'] = (major_version, patchlevel, sublevel)
                     elif entry.name == b'GNU' and entry.type == 3:
                         # normally in .note.gnu.build-id
+                        # https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/developer_guide/compiling-build-id
                         buildid = binascii.hexlify(entry.descriptor).decode()
                         metadata['build-id'] = buildid
                         if len(buildid) == 40:
@@ -356,6 +503,7 @@ class ElfUnpackParser(WrappedUnpackParser):
                         # normally in .note.go.buildid
                         # there are four hashes concatenated
                         # https://golang.org/pkg/cmd/internal/buildid/#FindAndHash
+                        # http://web.archive.org/web/20210113145647/https://utcc.utoronto.ca/~cks/space/blog/programming/GoBinaryStructureNotes
                         pass
                     elif entry.name == b'Crashpad' and entry.type == 0x4f464e49:
                         # https://chromium.googlesource.com/crashpad/crashpad/+/refs/heads/master/util/misc/elf_note_types.h
@@ -376,6 +524,14 @@ class ElfUnpackParser(WrappedUnpackParser):
                         elif entry.type == 0x101:
                             # LINUX_ELFNOTE_LTO_INFO
                             pass
+                    elif entry.name == b'FDO' and entry.type == 0xcafe1a7e:
+                        # https://fedoraproject.org/wiki/Changes/Package_information_on_ELF_objects
+                        # https://systemd.io/COREDUMP_PACKAGE_METADATA/
+                        # extract JSON and store it
+                        try:
+                            metadata['package note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
+                        except:
+                            pass
                     elif entry.name == b'FreeBSD':
                         labels.append('freebsd')
                     elif entry.name == b'OpenBSD':
@@ -392,26 +548,41 @@ class ElfUnpackParser(WrappedUnpackParser):
                         # .note.Xen in FreeBSD kernel
                         # .notes in Linux kernel)
                         labels.append('xen')
+                    elif entry.name == b'NaCl':
+                        labels.append('Google Native Client')
 
         metadata['dynamic_symbols'] = dynamic_symbols
+        metadata['guile_symbols'] = guile_symbols
         metadata['needed'] = needed
         metadata['notes'] = notes
         metadata['rpath'] = rpath
         metadata['runpath'] = runpath
-        metadata['soname'] = soname
+        metadata['soname'] = self.soname
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
         metadata['telfhash'] = ''
 
-        telfhash_result = telfhash.telfhash(str(self.fileresult.filename))
-        telfhash_res = telfhash_result[0]['telfhash']
-        if telfhash_res != 'TNULL' and telfhash_res != '-':
-            metadata['telfhash'] = telfhash_res
+        if metadata['type'] in ['executable', 'shared']:
+            try:
+                telfhash_result = telfhash.telfhash(str(self.fileresult.filename))
+                if telfhash_result != []:
+                    telfhash_res = telfhash_result[0]['telfhash']
+                    if telfhash_res != 'TNULL' and telfhash_res != '-':
+                        metadata['telfhash'] = telfhash_res.upper()
+            except UnicodeEncodeError:
+                pass
 
         if is_dynamic_elf:
             labels.append('dynamic')
         else:
-            labels.append('static')
+            if metadata['type'] == 'core':
+                labels.append('core')
+            else:
+                labels.append('static')
+        return(labels, metadata)
 
+    def set_metadata_and_labels(self):
+        """sets metadata and labels for the unpackresults"""
+        (labels, metadata) = self.extract_metadata_and_labels()
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)

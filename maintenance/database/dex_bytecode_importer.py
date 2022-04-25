@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021 - Armijn Hemel
+# Copyright 2021-2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -11,16 +11,17 @@ This script processes data from Dex files processed by BANG
 and puts the relevant data in a PostgreSQL database.
 '''
 
-import sys
-import os
-import argparse
-import stat
 import pathlib
 import pickle
+import os
+import stat
+import sys
 
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
 import psycopg2.extras
+
+import click
 
 # import YAML module for the configuration
 from yaml import load
@@ -30,44 +31,20 @@ try:
 except ImportError:
     from yaml import Loader
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to F-Droid configuration file", metavar="FILE")
-    parser.add_argument("-r", "--result-directory", action="store", dest="result_directory",
-                        help="path to BANG result directories", metavar="DIR")
-    args = parser.parse_args()
-
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    # the configuration file should exist ...
-    if not os.path.exists(args.cfg):
-        parser.error("File %s does not exist, exiting." % args.cfg)
-
-    # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.cfg).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.cfg)
-
-    # sanity checks for the result directory
-    if args.result_directory is None:
-        parser.error("No result directory provided, exiting")
-
-    result_directory = pathlib.Path(args.result_directory)
-
-    # the result directory should exist ...
-    if not result_directory.exists():
-        parser.error("File %s does not exist, exiting." % args.result_directory)
+@click.command(short_help='load Dex bytecode information into database')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.option('--result-directory', '-r', required=True, help='directory with BANG result directories', type=click.Path(exists=True))
+def main(config_file, result_directory):
+    result_directory = pathlib.Path(result_directory)
 
     # ... and should be a real directory
     if not result_directory.is_dir():
-        parser.error("%s is not a directory, exiting." % args.result_directory)
+        print("%s is not a directory, exiting." % result_directory, file=sys.stderr)
+        sys.exit(1)
 
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(args.cfg, 'r')
-        config = load(configfile, Loader=Loader)
+        config = load(config_file, Loader=Loader)
     except (YAMLError, PermissionError):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)

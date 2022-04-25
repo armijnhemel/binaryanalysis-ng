@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationExprError
+from kaitaistruct import ValidationFailedError
 from . import milbeaut
 
 
@@ -40,7 +40,7 @@ class MilbeautUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = milbeaut.Milbeaut.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationExprError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     # no need to carve from the file

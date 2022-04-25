@@ -25,6 +25,9 @@ doc-ref: https://gitlab.gnome.org/GNOME/gimp/-/raw/4416313/devel-docs/gbr.txt
 seq:
   - id: len_header
     type: u4
+    valid:
+      min: 24
+      max: 280
   - id: header
     type: header
     size: len_header - len_header._sizeof
@@ -62,6 +65,7 @@ types:
         type: strz
         size-eos: true
         encoding: UTF-8
+        doc: maximum size is 256 bytes
   bitmap:
     seq:
       - id: rows

@@ -9,9 +9,8 @@ seq:
   - id: header
     type: header
   - id: entries
-    type: entry
-    repeat: expr
-    repeat-expr: header.num_files
+    type: entries
+    size: header.tzar_len - header._sizeof
 types:
   header:
     seq:
@@ -24,6 +23,12 @@ types:
         type: u4
       - id: num_files
         type: u4
+  entries:
+    seq:
+      - id: entries
+        type: entry
+        repeat: expr
+        repeat-expr: _root.header.num_files
   entry:
     seq:
       - id: len_filename

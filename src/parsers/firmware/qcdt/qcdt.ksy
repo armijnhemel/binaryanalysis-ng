@@ -17,6 +17,8 @@ doc-ref:
   - https://source.codeaurora.org/quic/kernel/skales/plain/dtbTool?id=1.6.0
   - web.archive.org/web/20160402060151if_/https://developer.qualcomm.com/qfile/28821/lm80-p0436-1_little_kernel_boot_loader_overview.pdf (section 2.4.1)
   - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/soc/qcom/socinfo.c?h=v5.13
+  - https://android.googlesource.com/kernel/msm/+/android-7.1.0_r0.2/drivers/soc/qcom/socinfo.c
+  - https://github.com/brinlyau/P810D02_ZTE_T792_KitKat_3.4/blob/master/P810D02_ZTE_T792_KitKat_340_kernel/arch/arm/mach-msm/socinfo.c
 seq:
   - id: magic
     contents: "QCDT"
@@ -65,23 +67,104 @@ types:
         size: len_dtb
 enums:
   soc_ids:
+    1: msm7x01_1
+    16: msm7x01_2
+    17: msm7x01_3
+    18: msm7x01_4
+    19: msm7x01_5
+    20: msm7x25_1
+    21: msm7225
+    23: msm7x01_6
+    24: msm7525
+    25: msm7x01_7
+    26: msm7x01_8
+    27: msm7625
+    30: msm8x50_1
+    32: msm7x01_9
+    33: msm7x01_10
+    34: msm7x01_11
+    35: msm7x01_12
+    36: msm8x50_2
+    37: msm8x50_3
+    38: msm8x50_4
+    39: msm7x25_2
+    40: msm7x25_3
+    42: msm7x25_5
+    43: msm7x27_1
+    44: msm7x27_2
+    59: msm7x30_1
+    60: msm7x30_2
+    61: msm7x27_3
+    62: msm7625_1
+    63: msm7225_1
+    66: msm7225_2
+    67: msm7227_1
+    68: msm7627_1
+    69: msm7627_2
+    70: msm8x60_1
     71: msm8660
+    74: msm8x55_1
+    75: msm8x55_2
+    85: msm8x55_3
+    86: msm8x60_2
     87: msm8960
+    88: msm7x25a_1
+    89: msm7x25a_2
+    90: msm7x27a_1
+    91: msm7x27a_2
+    92: msm7x27a_3
+    94: fsm_9xxx_1
+    95: fsm_9xxx_2
+    96: msm7x25a_3
+    97: msm7x27a_4
+    98: msm7x25aa_1
+    99: msm7x25aa_2
+    100: msm7x25aa_3
+    101: msm7x27aa_1
+    102: msm7x27aa_2
+    103: msm7x27aa_3
+    104: msm9615_1
+    105: msm9615_2
+    106: msm9615_3
+    107: msm9615_4
     109: apq8064
+    116: msm8930_1
+    117: msm8930_2
+    118: msm8930_3
+    119: msm8930_4
+    120: msm8627_1
+    121: msm8627_2
     122: msm8660a
     123: msm8260a
     124: apq8060a
     126: msm8974
+    127: msm8625_1
+    128: msm8625_2
+    129: msm8625_3
     130: mpq8064
+    131: msm7x25ab_1
+    132: msm7x25ab_2
+    133: msm7x25ab_3
+    134: msm9625_1
+    135: msm7x25ab_4
     138: msm8960ab
     139: apq8060ab
     140: msm8260ab
     141: msm8660ab
+    142: msm8930aa_1
+    143: msm8930aa_2
+    144: msm8930aa_3
     145: msm8626
     147: msm8610
+    148: msm9625_2
+    149: msm9625_3
+    150: msm9625_4
+    151: msm9625_5
+    152: msm9625_6
     153: apq8064_prime
     158: msm8226
     159: msm8526
+    160: msm8930aa_4
     161: msm8110
     162: msm8210
     163: msm8810
@@ -92,7 +175,11 @@ enums:
     169: msm8625q
     170: msm8125q
     172: apq8064aa
+    173: msm9625_7
+    174: msm9625_8
+    175: msm9625_9
     178: apq8084
+    180: msm8930aa_5
     184: apq8074
     185: msm8274
     186: msm8674
@@ -178,6 +265,9 @@ enums:
     425: sc7180
     453: ipq6005
     455: qrb5165
+    457: sm8450
+    459: sm7225
+    460: sa8540p
   platform_ids:
     1: cdp
     2: ffa
@@ -199,7 +289,12 @@ enums:
     21: rcm
     23: stp
     24: sbc
+    25: adp
     29: cls
+    30: ttp
+    31: hdk
+    32: iot
+    34: idp
   pmic_ids:
     0: unknown
     1: pm8941
@@ -234,3 +329,13 @@ enums:
     32: pm8150b
     33: pmk8002
     36: pm8009
+    38: pm8150c
+    41: smb2351
+    47: pmk8350
+    48: pm8350
+    49: pm8350c
+    50: pm8350b
+    51: pmr735a
+    52: pmr735b
+    58: pm8450
+    65: pm8010
