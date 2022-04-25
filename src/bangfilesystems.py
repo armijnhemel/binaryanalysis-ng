@@ -22,32 +22,12 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-# Built in carvers/verifiers/unpackers for file systems.
-#
-# For these unpackers it has been attempted to reduce disk I/O as much
-# as possible using the os.sendfile() method, as well as techniques
-# described in this blog post:
-#
-# https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews
-
 import sys
 import os
 import shutil
-import binascii
-import tempfile
 import collections
 import math
 import zlib
-import stat
-import subprocess
-import re
-import pathlib
-
-encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
-                        'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
-                        'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
-                        'iso2022_jp_ext', 'iso2022_kr', 'shift_jis',
-                        'shift_jis_2004', 'shift_jisx0213']
 
 
 # Derived from public ISO9660 specifications
