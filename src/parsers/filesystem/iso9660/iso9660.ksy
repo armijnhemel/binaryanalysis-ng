@@ -113,7 +113,7 @@ types:
       hundredths_second:
         value: hundredths_second_string.to_i
       valid_date:
-        value: month >= 1 and month <= 12 and day >=1 and day <= 31 and hour <= 23 and minute <= 59 and second <= 59
+        value: month <= 12 and day <= 31 and hour <= 23 and minute <= 59 and second <= 59
   datetime_short:
     doc-ref: ecma-119 9.1.5
     seq:
