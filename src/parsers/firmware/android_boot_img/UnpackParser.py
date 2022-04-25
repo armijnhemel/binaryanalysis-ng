@@ -115,7 +115,7 @@ class AndroidBootImgUnpacker(UnpackParser):
         fr = FileResult(self.fileresult, outfile_rel, set([]))
         unpacked_files.append(fr)
 
-        if self.data.header_version < 3:
+        if self.data.header_version < 3 or self.is_variant:
             ramdisk_size = self.data.header.ramdisk.size
         else:
             ramdisk_size = len(self.data.header.ramdisk_img)
