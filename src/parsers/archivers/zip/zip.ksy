@@ -42,10 +42,10 @@ types:
   empty: {}
   pk_section:
     seq:
-      - id: magic
-        contents: 'PK'
+      #- id: magic
+      #  contents: 'PK'
       - id: section_type
-        type: u2
+        type: u4
         enum: section_types
       - id: body
         type:
@@ -53,6 +53,7 @@ types:
           cases:
             section_types::central_dir_entry: central_dir_entry
             section_types::local_file: local_file
+            section_types::dahua_local_file: local_file
             section_types::end_of_central_dir: end_of_central_dir
             section_types::data_descriptor: data_descriptor
             section_types::archive_extra_data: archive_extra_data
@@ -528,11 +529,12 @@ enums:
     0xe57a: alzip_code_page
     0xfd4a: sms_qdos
   section_types:
-    0x0201: central_dir_entry
-    0x0403: local_file
-    0x0505: digital_signature
-    0x0605: end_of_central_dir
-    0x0606: zip64_end_of_central_dir
-    0x0706: zip64_end_of_central_dir_locator
-    0x0806: archive_extra_data
-    0x0807: data_descriptor
+    0x02014b50: central_dir_entry
+    0x04034b50: local_file
+    0x04034844: dahua_local_file
+    0x05054b50: digital_signature
+    0x06054b50: end_of_central_dir
+    0x06064b50: zip64_end_of_central_dir
+    0x07064b50: zip64_end_of_central_dir_locator
+    0x08064b50: archive_extra_data
+    0x08074b50: data_descriptor
