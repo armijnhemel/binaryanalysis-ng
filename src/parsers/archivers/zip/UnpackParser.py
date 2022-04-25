@@ -95,7 +95,7 @@ class ZipUnpackParser(WrappedUnpackParser):
         self.encrypted = False
         self.zip64 = False
 
-        self.is_dahua = False
+        self.dahua = False
 
         # store if there is an Android signing block:
         # https://source.android.com/security/apksigning/
@@ -120,7 +120,7 @@ class ZipUnpackParser(WrappedUnpackParser):
             # file headers and in the end of central directory
             for s in self.data.sections:
                 if s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
-                    self.is_dahua = True
+                    self.dahua = True
                 if s.section_type == kaitai_zip.Zip.SectionTypes.local_file or s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
                     local_files.append((s.body.header.file_name, s.body.header.crc32))
                     if s.body.header.flags.file_encrypted:
@@ -534,7 +534,7 @@ class ZipUnpackParser(WrappedUnpackParser):
         #
         # Malformed ZIP files that need a workaround exist:
         # http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442
-        if self.unpacked_size == self.fileresult.filesize and not self.is_dahua:
+        if self.unpacked_size == self.fileresult.filesize and not self.dahua:
             self.carved = False
         else:
             # else carve the file from the larger ZIP first
@@ -542,7 +542,7 @@ class ZipUnpackParser(WrappedUnpackParser):
             os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
             os.fdopen(self.temporary_file[0]).close()
             self.carved = True
-            if self.is_dahua:
+            if self.dahua:
                 # reopen the file in write mode
                 dahua = open(self.temporary_file[1], 'r+b')
                 dahua.seek(0)
@@ -673,6 +673,8 @@ class ZipUnpackParser(WrappedUnpackParser):
         if self.android_signing:
             labels.append('apk')
             labels.append('android')
+        if self.dahua:
+            labels.append('dahua')
 
         if not self.carved:
             zfile = self.infile
