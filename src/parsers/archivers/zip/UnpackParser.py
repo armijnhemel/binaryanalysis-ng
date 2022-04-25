@@ -70,11 +70,13 @@ END_OF_CENTRAL_DIRECTORY = b'PK\x05\x06'
 LOCAL_FILE_HEADER = b'PK\x03\x04'
 ZIP64_END_OF_CENTRAL_DIRECTORY = b'PK\x06\x06'
 ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR = b'PK\x06\x07'
+DAHUA_LOCAL_FILE_HEADER = b'DH\x03\x04'
 
 ALL_HEADERS = [ARCHIVE_EXTRA_DATA, CENTRAL_DIRECTORY, DATA_DESCRIPTOR,
                DIGITAL_SIGNATURE, END_OF_CENTRAL_DIRECTORY,
                LOCAL_FILE_HEADER, ZIP64_END_OF_CENTRAL_DIRECTORY,
-               ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR]
+               ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR,
+               DAHUA_LOCAL_FILE_HEADER]
 
 class ZipUnpackParser(WrappedUnpackParser):
 #class ZipUnpackParser(UnpackParser):
@@ -117,7 +119,9 @@ class ZipUnpackParser(WrappedUnpackParser):
             # store file names and CRC32 to see if they match in the local
             # file headers and in the end of central directory
             for s in self.data.sections:
-                if s.section_type == kaitai_zip.Zip.SectionTypes.local_file:
+                if s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
+                    self.is_dahua = True
+                if s.section_type == kaitai_zip.Zip.SectionTypes.local_file or s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
                     local_files.append((s.body.header.file_name, s.body.header.crc32))
                     if s.body.header.flags.file_encrypted:
                         self.encrypted = True
@@ -156,7 +160,7 @@ class ZipUnpackParser(WrappedUnpackParser):
                 buf = self.infile.read(4)
                 check_condition(len(buf) == 4,
                                 "not enough data for ZIP entry header")
-                if buf != LOCAL_FILE_HEADER:
+                if buf != LOCAL_FILE_HEADER and buf != DAHUA_LOCAL_FILE_HEADER:
                     # process everything that is not a local file header, but
                     # either a ZIP header or an Android signing signature.
 
@@ -314,9 +318,6 @@ class ZipUnpackParser(WrappedUnpackParser):
                 if type(file_header.body.header.extra) != kaitai_zip.Zip.Empty:
                     for extra in file_header.body.header.extra.entries:
                         # skip any unknown extra fields for now
-                        if type(extra.code) == int:
-                            print(hex(extra.code), self.fileresult.filename)
-                            continue
                         if extra.code == kaitai_zip.Zip.ExtraCodes.zip_align:
                             possible_android = True
                         if extra.code == kaitai_zip.Zip.ExtraCodes.zip64:
@@ -420,7 +421,8 @@ class ZipUnpackParser(WrappedUnpackParser):
                                 best_so_far = ddpos
 
                         # search for a local file header which indicates
-                        # the next entry in the ZIP file
+                        # the next entry in the ZIP file (not a Dahua local file
+                        # header as that is always the first one in the file)
                         localheaderpos = buf.find(LOCAL_FILE_HEADER)
                         if localheaderpos != -1 and (localheaderpos < tmppos or tmppos == -1):
                             # In case the file that is stored is an empty
@@ -532,7 +534,7 @@ class ZipUnpackParser(WrappedUnpackParser):
         #
         # Malformed ZIP files that need a workaround exist:
         # http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442
-        if self.unpacked_size == self.fileresult.filesize:
+        if self.unpacked_size == self.fileresult.filesize and not self.is_dahua:
             self.carved = False
         else:
             # else carve the file from the larger ZIP first
@@ -540,6 +542,12 @@ class ZipUnpackParser(WrappedUnpackParser):
             os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
             os.fdopen(self.temporary_file[0]).close()
             self.carved = True
+            if self.is_dahua:
+                # reopen the file in write mode
+                dahua = open(self.temporary_file[1], 'r+b')
+                dahua.seek(0)
+                dahua.write(b'PK')
+                dahua.close()
 
         if not self.carved:
             # seek to the right offset, even though that's
