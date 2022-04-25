@@ -38,6 +38,10 @@ A description of some of the underlying problems encountered
 when writing this code can be found here:
 
 http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html
+
+Also supported is a ZIP variant from Dahua. Dahua is a Chinese vendor that
+is using the ZIP format for its firmware updates, but has changed the first
+two characters of the file from PK to DH.
 '''
 
 import os
@@ -52,9 +56,6 @@ from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_zip
 
 from . import zip as kaitai_zip
 
@@ -78,18 +79,15 @@ ALL_HEADERS = [ARCHIVE_EXTRA_DATA, CENTRAL_DIRECTORY, DATA_DESCRIPTOR,
                ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR,
                DAHUA_LOCAL_FILE_HEADER]
 
-class ZipUnpackParser(WrappedUnpackParser):
-#class ZipUnpackParser(UnpackParser):
+
+class ZipUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'PK\x03\04'),
         # http://web.archive.org/web/20190709133846/https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/page-2
-        #(0, b'DH\x03\04')
+        (0, b'DH\x03\04')
     ]
     pretty_name = 'zip'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_zip(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         self.encrypted = False

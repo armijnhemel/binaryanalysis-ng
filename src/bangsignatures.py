@@ -25,7 +25,6 @@
 import math
 
 import bangfilesystems
-import bangunpack
 
 # store a few standard signatures
 signatures = {
@@ -213,8 +212,6 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'zip': bangunpack.unpack_zip,
-    'dahua': bangunpack.unpack_dahua,
     'iso9660': bangfilesystems.unpack_iso9660,
 }
 
