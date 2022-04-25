@@ -28,7 +28,7 @@ import pathlib
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationLessThanError, ValidationNotAnyOfError
+from kaitaistruct import ValidationFailedError
 from . import uimage
 
 
@@ -40,15 +40,16 @@ class UbootLegacyUnpackParser(UnpackParser):
     # - .bix as apparently used by ZyXEL and Cisco in some devices
     signatures = [
         (0, b'\x27\x05\x19\x56'),
-        (0, b'\x83\x80\x00\x00')
+        (0, b'\x80\x80\x00\x02'),
+        (0, b'\x83\x80\x00\x00'),
+        (0, b'\x93\x00\x00\x00')
     ]
     pretty_name = 'uboot_legacy'
 
     def parse(self):
         try:
             self.data = uimage.Uimage.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationLessThanError,
-                ValidationNotAnyOfError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         # now calculate the CRC of the header and compare it
@@ -73,7 +74,7 @@ class UbootLegacyUnpackParser(UnpackParser):
 
         # First try to see if this is perhaps an ASUS device
         self.is_asus_device = False
-        asus_product_families = ['GS-', 'GT-', 'RP-', 'RT-']
+        asus_product_families = ['4G-', 'BRT-', 'GS-', 'GT-', 'PL-', 'RP-', 'RT-']
         try:
             asus_product_id = self.data.header.asus_info.product_id
             for family in asus_product_families:

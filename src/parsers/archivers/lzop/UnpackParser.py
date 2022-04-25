@@ -24,42 +24,34 @@
 import os
 import pathlib
 import zlib
-#import lzo
-
-from UnpackParser import WrappedUnpackParser
-from bangunpack import unpack_lzop
-
+import lzo
 
 from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationGreaterThanError
+from kaitaistruct import ValidationFailedError
 from . import lzop
 
 
-class LzopUnpackParser(WrappedUnpackParser):
-#class LzopUnpackParser(UnpackParser):
+class LzopUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x89\x4c\x5a\x4f\x00\x0d\x0a\x1a\x0a')
     ]
     pretty_name = 'lzop'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_lzop(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = lzop.Lzop.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationGreaterThanError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         # version, has to be 0x00, 0x10 or 0x20 according
         # to /usr/share/magic and 0x30 and 0x40 according
         # to files observed in the wild and lzop source code
-        check_condition(self.data.lzop_version in [0x00, 0x10, 0x20, 0x40],
-                        "not enough data")
+        check_condition(self.data.lzop_version in [0x00, 0x10, 0x20, 0x30, 0x40],
+                        "unsupported version")
         for block in self.data.blocks:
             # TODO: checksum verification
             if isinstance(block.block_type, lzop.Lzop.Terminator):
@@ -97,20 +89,18 @@ class LzopUnpackParser(WrappedUnpackParser):
                 # 0x1a, 0x1b, 0x2a, 0x2b, 0x2d are NRV related (discontinued library)
                 # 128 is zlib related
                 # In practice LZO ones will be used the most
-                if self.data.method in [1, 2, 3]:
+                if self.data.method.value in [1, 2, 3]:
                     # TODO: catch errors
                     magic = b'\xf0' + int.to_bytes(block.len_decompressed, 4, 'big')
                     outfile.write(lzo.decompress(magic + block.block_type.data))
-                elif self.data.method == 128:
-                    # currently not supported in the Kaitai Struct grammar
-                    # and also not used in practice
+                elif self.data.method.value == 128:
+                    # seemingly not used in practice
                     outfile.write(zlib.decompress(block.block_type.data))
             counter += 1
         outfile.close()
         fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
         unpacked_files.append(fr)
         return unpacked_files
-
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""

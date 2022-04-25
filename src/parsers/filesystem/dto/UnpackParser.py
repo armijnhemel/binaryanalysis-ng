@@ -30,7 +30,7 @@ import pathlib
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import android_dto
 
 
@@ -48,7 +48,7 @@ class AndroidDtoUnpacker(UnpackParser):
             # not entirely complete. Use this to detect if the file
             # has been truncated.
             #a = type(self.data.buddy_allocator_body)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):
@@ -63,8 +63,8 @@ class AndroidDtoUnpacker(UnpackParser):
     def unpack(self):
         unpacked_files = []
         dtb_counter = 1
-        out_labels = []
         for i in self.data.entries:
+            out_labels = []
             file_path = pathlib.Path("unpacked-%d.dtb" % dtb_counter)
             self.extract_to_file(self.rel_unpack_dir / file_path, i.dt_offset, i.dt_size)
             dtb_counter += 1

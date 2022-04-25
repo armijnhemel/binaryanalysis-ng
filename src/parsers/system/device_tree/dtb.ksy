@@ -9,31 +9,35 @@ meta:
     wikidata: Q16960371
   tags:
     - linux
+    - serialization
   license: CC0-1.0
   ks-version: 0.9
   encoding: ASCII
   endian: be
 doc: |
-  Also referred to as Devicetree Blob (DTB). It is a flat
-  binary encoding of data (primarily devicetree data, although
-  other data is possible as well).
+  Also referred to as Devicetree Blob (DTB). It is a flat binary encoding
+  of data (primarily devicetree data, although other data is possible as well).
+  The data is internally stored as a tree of named nodes and properties. Nodes
+  contain properties and child nodes, while properties are name-value pairs.
 
-  On Linux systems that support this the blobs can be accessed in
+  The Devicetree Blobs (`.dtb` files) are compiled from the Devicetree Source
+  files (`.dts`) through the Devicetree compiler (DTC).
+
+  On Linux systems that support this, the blobs can be accessed in
   `/sys/firmware/fdt`:
 
-  - <https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-firmware-ofw>
+  * <https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-firmware-ofw>
 
-  The encoding of strings used in the strings block and struct block is
+  The encoding of strings used in the `strings_block` and `structure_block` is
   actually a subset of ASCII:
 
-  <https://github.com/devicetree-org/devicetree-specification/blob/v0.3/source/devicetree-basics.rst>
+  <https://devicetree-specification.readthedocs.io/en/v0.3/devicetree-basics.html#node-names>
 
   Example files:
 
-  - <https://github.com/qemu/qemu/tree/master/pc-bios>
+  * <https://github.com/qemu/qemu/tree/master/pc-bios>
 doc-ref:
-  - https://github.com/devicetree-org/devicetree-specification/releases/tag/v0.3
-  - https://github.com/devicetree-org/devicetree-specification/blob/ba2aa67/source/flattened-format.rst
+  - https://devicetree-specification.readthedocs.io/en/v0.3/flattened-format.html
   - https://elinux.org/images/f/f4/Elc2013_Fernandes.pdf
 seq:
   - id: magic
@@ -53,7 +57,7 @@ seq:
     type: u4
   - id: version
     type: u4
-  - id: last_compatible_version
+  - id: min_compatible_version
     -orig-id: last_comp_version
     type: u4
     valid:
@@ -83,7 +87,7 @@ instances:
 types:
   memory_block:
     seq:
-      - id: memory_block_entries
+      - id: entries
         type: memory_block_entry
         repeat: eos
   memory_block_entry:
@@ -94,11 +98,12 @@ types:
       - id: size
         type: u8
         doc: size of a reserved memory region
-  strings:
+  fdt_block:
     seq:
-      - id: strings
-        type: strz
-        repeat: eos
+      - id: nodes
+        type: fdt_node
+        repeat: until
+        repeat-until: _.type == fdt::end
   fdt_node:
     -webide-representation: '{type} {body}'
     seq:
@@ -111,17 +116,12 @@ types:
           cases:
             fdt::begin_node: fdt_begin_node
             fdt::prop: fdt_prop
-  fdt_block:
-    seq:
-      - id: fdt_nodes
-        type: fdt_node
-        repeat: until
-        repeat-until: _.type == fdt::end
   fdt_begin_node:
+    -webide-representation: '{name}'
     seq:
       - id: name
         type: strz
-      - id: boundary_padding
+      - id: padding
         size: (- _io.pos) % 4
   fdt_prop:
     -webide-representation: '{name}'
@@ -134,7 +134,7 @@ types:
         type: u4
       - id: property
         size: len_property
-      - id: boundary_padding
+      - id: padding
         size: (- _io.pos) % 4
     instances:
       name:
@@ -142,6 +142,11 @@ types:
         pos: ofs_name
         type: strz
         -webide-parse-mode: eager
+  strings:
+    seq:
+      - id: strings
+        type: strz
+        repeat: eos
 enums:
   fdt:
     0x00000001: begin_node

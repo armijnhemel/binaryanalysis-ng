@@ -28,7 +28,7 @@ created on MacOS.
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import ds_store
 
 
@@ -46,7 +46,7 @@ class DS_Store(UnpackParser):
             # not entirely complete. Use this to detect if the file
             # has been truncated.
             a = type(self.data.buddy_allocator_body)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):

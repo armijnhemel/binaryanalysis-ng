@@ -1,3 +1,25 @@
+# Binary Analysis Next Generation (BANG!)
+#
+# This file is part of BANG.
+#
+# BANG is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License, version 3,
+# as published by the Free Software Foundation.
+#
+# BANG is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License, version 3, along with BANG.  If not, see
+# <http://www.gnu.org/licenses/>
+#
+# Copyright Armijn Hemel
+# Licensed under the terms of the GNU Affero General Public License
+# version 3
+# SPDX-License-Identifier: AGPL-3.0-only
+
 import os
 import struct
 from . import vfat
@@ -5,7 +27,11 @@ from . import vfat_directory
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from FileResult import FileResult
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
+
+# https://en.wikipedia.org/wiki/File_Allocation_Table
+# https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system
+
 
 def get_lfn_part(record):
     # note: because python lacks a ucs-2 decoder, we use utf-16. In almost all
@@ -28,22 +54,27 @@ class VfatUnpackParser(UnpackParser):
     # is a FAT filesystem. We can use the 'file system type' string, but since
     # this was never intended as a signature, it is unreliable.
     signatures = [
-            (54, b'FAT')
+            (54, b'FAT'),
+            (82, b'FAT32   ')
             ]
 
     def parse(self):
         try:
             self.data = vfat.Vfat.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
         bpb = self.data.boot_sector.bpb
         check_condition(bpb.ls_per_clus > 0, "invalid bpb value: ls_per_clus")
         check_condition(bpb.bytes_per_ls > 0, "invalid bpb value: bytes_per_ls")
-        self.fat12 = self.is_fat12()
+
+        self.fat12 = False
         self.fat32 = self.data.boot_sector.is_fat32
+        if not self.fat32:
+            self.fat12 = self.is_fat12()
+
         self.pos_data = self.data.boot_sector.pos_root_dir + self.data.boot_sector.size_root_dir
         check_condition(self.pos_data <= self.fileresult.filesize,
                 "data sector outside file")
@@ -126,7 +157,6 @@ class VfatUnpackParser(UnpackParser):
                     # TODO: if normal_file
                     yield self.extract_file(record.start_clus, record.file_size, rel_outfile)
 
-
     def extract_dir(self, start_cluster, rel_outfile):
         abs_outfile = self.scan_environment.unpack_path(rel_outfile)
         os.makedirs(abs_outfile, exist_ok=True)
@@ -136,7 +166,7 @@ class VfatUnpackParser(UnpackParser):
         for cluster in self.cluster_chain(start_cluster):
             start = self.pos_data + (cluster-2) * cluster_size
             check_condition(start+cluster_size <= self.fileresult.filesize,
-                    "file data outside file")
+                    "directory data outside file")
             self.infile.seek(start)
             dir_entries += self.infile.read(cluster_size)
         return dir_entries
@@ -180,3 +210,17 @@ class VfatUnpackParser(UnpackParser):
         while not self.is_end_cluster(cluster):
             yield cluster
             cluster = self.get_cluster_map_entry(cluster)
+
+    def set_metadata_and_labels(self):
+        """sets metadata and labels for the unpackresults"""
+        labels = ['fat', 'filesystem']
+        metadata = {}
+
+        # store the OEM name. Even though the OEM name should be padded
+        # with spaces sometimes there are NUL characters instead
+        oem_name = self.data.boot_sector.oem_name.split('\x00')[0]
+
+        metadata['oem'] = oem_name
+
+        self.unpack_results.set_metadata(metadata)
+        self.unpack_results.set_labels(labels)

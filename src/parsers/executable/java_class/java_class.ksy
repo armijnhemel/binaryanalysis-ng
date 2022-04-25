@@ -15,6 +15,8 @@ seq:
     type: u2
   - id: version_major
     type: u2
+    valid:
+      min: 43
   - id: constant_pool_count
     type: u2
   - id: constant_pool
@@ -53,7 +55,7 @@ seq:
     repeat-expr: attributes_count
 types:
   constant_pool_entry:
-    doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4'
+    doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se18/html/jvms-4.html#jvms-4.4'
     params:
       - id: is_prev_two_entries
         type: bool
@@ -80,10 +82,11 @@ types:
             'tag_enum::method_handle': method_handle_cp_info
             'tag_enum::method_type': method_type_cp_info
             'tag_enum::invoke_dynamic': invoke_dynamic_cp_info
+            'tag_enum::dynamic': invoke_dynamic_cp_info
         if: not is_prev_two_entries
     instances:
       is_two_entries:
-        value: 'tag == tag_enum::long or tag == tag_enum::double'
+        value: 'is_prev_two_entries ? false : tag == tag_enum::long or tag == tag_enum::double'
     enums:
       tag_enum:
         7: class_type
@@ -99,7 +102,10 @@ types:
         1: utf8
         15: method_handle
         16: method_type
+        17: dynamic
         18: invoke_dynamic
+        19: module
+        20: package
   class_cp_info:
     doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.1'
     seq:
@@ -151,6 +157,11 @@ types:
     seq:
       - id: string_index
         type: u2
+    instances:
+      string_as_info:
+        value: _root.constant_pool[string_index - 1].cp_info.as<utf8_cp_info>
+      name_as_str:
+        value: string_as_info.value
   integer_cp_info:
     doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.4'
     seq:
@@ -192,10 +203,12 @@ types:
     seq:
       - id: str_len
         type: u2
-      - id: value
-        type: str
+      - id: raw_value
         size: str_len
-        encoding: UTF-8
+    instances:
+      value:
+        #value: raw_value.to_s("UTF-8")
+        value: raw_value
   method_handle_cp_info:
     doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.8'
     seq:
@@ -257,13 +270,13 @@ types:
         type:
           switch-on: name_as_str
           cases:
-            '"Code"': attr_body_code # 4.7.3
-            '"Exceptions"': attr_body_exceptions # 4.7.5
-            '"SourceFile"': attr_body_source_file # 4.7.10
-            '"LineNumberTable"': attr_body_line_number_table # 4.7.12
+            '[0x43, 0x6f, 0x64, 0x65]': attr_body_code # 4.7.3
+            '[0x45, 0x78, 0x63, 0x65, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73]': attr_body_exceptions # 4.7.5
+            '[0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x46, 0x69, 0x6c, 0x65]': attr_body_source_file # 4.7.10
+            '[0x4c, 0x69, 0x6e, 0x65, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x54, 0x61, 0x62, 0x6c, 0x65]': attr_body_line_number_table # 4.7.12
     instances:
       name_as_str:
-        value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.value
+        value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
     types:
       attr_body_code:
         doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3'

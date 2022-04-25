@@ -31,11 +31,11 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
-from . import android_msm_bootldr
+from kaitaistruct import ValidationFailedError
+from . import android_bootldr_qcom
 
 
-class AndroidBootHuaweiUnpackParser(UnpackParser):
+class AndroidMsmBootldrUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'BOOTLDR!')
@@ -45,12 +45,12 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
     def parse(self):
         file_size = self.fileresult.filesize
         try:
-            self.data = android_msm_bootldr.AndroidMsmBootldr.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+            self.data = android_bootldr_qcom.AndroidBootldrQcom.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
-        self.unpacked_size = self.data.ofs_start
-        for entry in self.data.img_info:
-            self.unpacked_size += entry.size
+        self.unpacked_size = self.data.ofs_img_bodies
+        for entry in self.data.img_headers:
+            self.unpacked_size += entry.len_body
         check_condition(file_size >= self.unpacked_size, "not enough data")
 
 
@@ -60,20 +60,20 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
 
     def unpack(self):
         unpacked_files = []
-        cur_offset = self.data.ofs_start
-        for entry in self.data.img_info:
-            if entry.size == 0:
+        cur_offset = self.data.ofs_img_bodies
+        for entry in self.data.img_headers:
+            if entry.len_body == 0:
                 continue
             if entry.name == '':
-                cur_offset += entry.size
+                cur_offset += entry.len_body
                 continue
 
             out_labels = []
             file_path = pathlib.Path(entry.name)
-            self.extract_to_file(self.rel_unpack_dir / file_path, cur_offset, entry.size)
+            self.extract_to_file(self.rel_unpack_dir / file_path, cur_offset, entry.len_body)
             fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
             unpacked_files.append(fr)
-            cur_offset += entry.size
+            cur_offset += entry.len_body
         return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
@@ -82,19 +82,19 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['android', 'bootloader']
+        labels = ['android', 'bootloader', 'qualcomm']
         metadata = {}
 
         metadata['chipset'] = 'snapdragon'
         metadata['partitions'] = []
-        cur_offset = self.data.ofs_start
-        for entry in self.data.img_info:
-            if entry.size == 0:
+        cur_offset = self.data.ofs_img_bodies
+        for entry in self.data.img_headers:
+            if entry.len_body == 0:
                 continue
             metadata['partitions'].append({'name': entry.name,
                                            'offset': cur_offset,
-                                           'size': entry.size})
-            cur_offset += entry.size
+                                           'size': entry.len_body})
+            cur_offset += entry.len_body
 
         self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)

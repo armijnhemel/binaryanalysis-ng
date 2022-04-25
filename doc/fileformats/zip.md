@@ -3,11 +3,11 @@
 This document describes how BANG unpacks ZIP files. Some of the information has
 already been published in a blog post which you can find at:
 
-http://web.archive.org/web/20180718185811/http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html
+<http://web.archive.org/web/20180718185811/http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html>
 
 The official ZIP file specification can be found at:
 
-https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
+<https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT>
 
 In the rest of this document there will be references to sections in the
 official specification.
@@ -48,12 +48,16 @@ entries from A you need to find out where A ends.
 
 # ZIP file unpacking in BANG
 
+In BANG it is assumed that ZIP files are always followed by extra data, so
+parsing starts from the beginning of the file, instead of using the central
+directory of the ZIP file to access the files.
+
 ZIP file unpacking in BANG works as follows (simplified):
 
 1. open the file
 2. go to the start of a local file header (section 4.3.7)
 3. read and parse the data in a local file header
-4. skip over the compressed data
+4. skip the compressed data
 5. process all entries and store information about the entries, until a central
    directory is found (section 4.3.12)
 6. process the central directory and verify if the contents in the central
@@ -107,10 +111,21 @@ individual file entries. As long as the offsets in the central directory are
 correct it doesn't really matter how much extra data is in the file and where
 this data is in the ZIP file.
 
+In some files the APK signing block is aligned to 4096 bytes:
+
+<https://android.googlesource.com/platform/tools/apksig/+/24aeb9bff8b6479397960eadac9283cc8a509f0b/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java#851>
+
+If this is the case, then there will be a padding block identifier:
+
+<https://android.googlesource.com/platform/tools/apksig/+/24aeb9bff8b6479397960eadac9283cc8a509f0b/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java#98>
+
+but this identifier doesn't appear at the start of the signing block, but at
+the end (which makes sense when reading from the end of the file).
+
 ## ZIP64
 
 The size field in the local file header cannot store a number larger than
-4,294,967,295 bytes (4 bytes, maximum 0xffffffff). If a file is equal to or
+4,294,967,295 bytes (4 bytes, maximum `0xffffffff`). If a file is equal to or
 larger than this number the actual size is stored in the "extra field" in the
 local file header (section 4.3.7). Storing files with file sizes equal to or
 larger than this limit is referred to as ZIP64. The specification of ZIP64
@@ -121,14 +136,14 @@ that will only store 16 bytes (compressed and uncompressed size).
 ## Directories unpacked as regular files
 
 Most, if not all, ZIP implementations rely on names of directories being stored
-with a '/' at the end of the entry name (even though the specification does not
+with a `/` at the end of the entry name (even though the specification does not
 seem to mandate this). There are files that contain files where a directory
-name does not end in '/' and which make the standard utilities fail and where
+name does not end in `/` and which make the standard utilities fail and where
 instead of a directory a zero byte file with the same name as the directory is
 created. Despite bug reports being filed this is still a problem. A bug report
 can be found at:
 
-http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442 )
+<http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442>
 
 Trying to unpack the file mentioned in this bug report leads to the following
 error (on Fedora 30):
@@ -164,7 +179,7 @@ field from the central directory (section 4.3.12) and checking if the low
 order byte corresponds to the MS-DOS directory attribute byte (section 4.4.15)
 while also checking that the size is 0 and that Python's zipinfo module does
 not recognize the file as a directory. If this is the case, then the directory
-is not unpacked with Python's zipinfo module, but a directory with the name of
+is not unpacked with Python's `zipinfo` module, but a directory with the name of
 the entry is created instead.
 
 This might not be entirely fool proof, but it is a very rare edge case.
@@ -177,7 +192,7 @@ The versions (section 4.4.3) can be computed by dividing the value from the
 local file header by 10. For example, "version 6.3" will be stored as "63" in
 the file header. The latest minimum version that has been defined is 6.3.
 
-There are a few files where the minimum version is something like 0x314 (778)
+There are a few files where the minimum version is something like `0x314` (778)
 or similar in the local file header, but not in the central directory. These
 known invalid versions are silently ignored in BANG.
 
@@ -185,8 +200,8 @@ known invalid versions are silently ignored in BANG.
 
 There are some vendors, such as the Chinese vendor Dahua, that use the ZIP
 format, but that slightly change one or more headers. In the case of Dahua the
-only change is that the first local file header is changed from "PK\x03\x04"
-to "DH\x03\x04".
+only change is that the first local file header is changed from `PK\x03\x04`
+to `DH\x03\x04`.
 
 ## Multiple entries with the same name
 
@@ -194,3 +209,8 @@ It is possible to have multiple entries in the same ZIP file, with different
 properties, for example a copy of a file, and a link with the same name. It
 is unclear how these conflicts should be resolved and BANG currently does
 not handle this correctly.
+
+## Mismatches between central directory and actual files
+
+There could be more file entries in the archive than listed in the central
+directory.

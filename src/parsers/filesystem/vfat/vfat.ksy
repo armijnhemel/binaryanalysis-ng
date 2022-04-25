@@ -22,25 +22,19 @@ types:
     seq:
       - id: jmp_1
         type: u1
-        valid: 0xEB
       - id: jmp_2
         type: u1
       - id: jmp_3
         type: u1
-        valid: 0x90
-  jmp_instruction_v2:
-    seq:
-      - id: jmp_1
-        type: u1
-        valid: 0xE9
-      - id: jmp_2
-        type: u1
-      - id: jmp_3
-        type: u1
+    instances:
+      is_valid:
+        value: '(jmp_1 == 0xeb and jmp_3 == 0x90) or jmp_1 == 0xe9'
   boot_sector:
     seq:
       - id: jmp_instruction
         type: jmp_instruction
+        valid:
+          expr: jmp_instruction.is_valid
       - id: oem_name
         type: str
         encoding: ASCII
@@ -90,10 +84,14 @@ types:
       - id: bytes_per_ls
         -orig-id: BPB_BytsPerSec
         type: u2
+        valid:
+          min: 32
         doc: Bytes per logical sector
       - id: ls_per_clus
         -orig-id: BPB_SecPerClus
         type: u1
+        valid:
+          any-of: [1, 2, 4, 8, 16, 32, 64, 128]
         doc: Logical sectors per cluster
       - id: num_reserved_ls
         -orig-id: BPB_RsvdSecCnt
@@ -119,6 +117,7 @@ types:
       - id: media_code
         -orig-id: BPB_Media
         type: u1
+        enum: media_descriptor
         doc: Media descriptor
       - id: ls_per_fat
         -orig-id: BPB_FATSz16
@@ -138,7 +137,7 @@ types:
         type: u2
         doc: |
           Physical sectors per track for disks with INT 13h CHS
-          geometry, e.g., 15 for a “1.20 MB” (1200 KB) floppy. A zero
+          geometry, e.g., 15 for a "1.20 MB" (1200 KB) floppy. A zero
           entry indicates that this entry is reserved, but not used.
       - id: num_heads
         -orig-id: BPB_NumHeads
@@ -178,6 +177,8 @@ types:
         type: u1
       - id: ext_boot_sign
         type: u1
+        valid:
+          any-of: [0x28, 0x29]
         doc: |
           Should be 0x29 to indicate that an EBPB with the following 3
           entries exists.
@@ -200,11 +201,16 @@ types:
         type: str
         encoding: ASCII
         pad-right: 0x20
+        if: is_extended
       - id: fs_type_str
         size: 8
         type: str
         encoding: ASCII
         pad-right: 0x20
+        if: is_extended
+    instances:
+      is_extended:
+        value: ext_boot_sign == 0x29
   ext_bios_param_block_fat32:
     doc: Extended BIOS Parameter Block for FAT32
     seq:
@@ -294,4 +300,20 @@ types:
         size: 32
         repeat: expr
         repeat-expr: _root.boot_sector.bpb.max_root_dir_rec
-
+enums:
+  media_descriptor:
+    0xe5: drdos_8inch
+    0xed: tandy2000_525inch
+    0xee: drdos_nonstandard
+    0xef: drdos_superfloppy
+    0xf0: standard_35inch
+    0xf4: altos_double_density
+    0xf5: altos_fixed_disk
+    0xf8: media_f8
+    0xf9: media_f9
+    0xfa: media_fa
+    0xfb: double_sided_640k
+    0xfc: single_sided_180k
+    0xfd: media_fd
+    0xfe: media_fe
+    0xff: media_ff

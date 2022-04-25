@@ -1,0 +1,6 @@
+---
+general:
+    # directory for unpacking. By default this is /tmp or
+    # whatever the default set by the system is.
+    # tempdir: /tmp
+    verbose: true
