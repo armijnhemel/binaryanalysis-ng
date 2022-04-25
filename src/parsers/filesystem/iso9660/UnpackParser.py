@@ -49,6 +49,7 @@ class Iso9660UnpackParser(WrappedUnpackParser):
         return unpack_iso9660(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
+        self.zisofs = False
         try:
             self.data = iso9660.Iso9660.from_io(self.infile)
 
@@ -62,8 +63,10 @@ class Iso9660UnpackParser(WrappedUnpackParser):
                     # to all dates used in the specification.
                     check_condition(descriptor.volume.volume_creation_date_and_time.valid_date,
                                     "invalid creation date")
+
                     check_condition(descriptor.volume.volume_modification_date_and_time.valid_date,
                                     "invalid modification date")
+
                     has_primary = True
                     iso_size = descriptor.volume.volume_space_size.value * descriptor.volume.logical_block_size.value
                     check_condition(iso_size <= self.fileresult.filesize,
@@ -120,7 +123,6 @@ class Iso9660UnpackParser(WrappedUnpackParser):
         check_condition(has_primary, "no primary volume descriptor found")
         check_condition(has_terminator, "no volume descriptor set terminator found")
         self.unpacked_size = iso_size
-
 
     def unpack(self):
         unpacked_files = []
