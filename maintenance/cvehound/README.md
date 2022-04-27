@@ -20,6 +20,16 @@ $ cvehound -k ~/git/linux/ --report /tmp/report.json
 
 It seems that `cvehound` cannot write to `stdout`.
 
-## Processing output
+## Example output (pretty printed)
+
+By default `cvehound` prints output on `stdout`. It looks like this:
+
+```
+$ cvehound -k ~/git/linux/
+Found: CVE-2020-25671
+Found: CVE-2020-25670
+```
+
+## Processing JSON output
 
 TODO
