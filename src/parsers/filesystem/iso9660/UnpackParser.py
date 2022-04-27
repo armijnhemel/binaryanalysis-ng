@@ -37,8 +37,8 @@ from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from . import iso9660
 
 
-class Iso9660UnpackParser(WrappedUnpackParser):
-#class Iso9660UnpackParser(UnpackParser):
+#class Iso9660UnpackParser(WrappedUnpackParser):
+class Iso9660UnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (32769, b'CD001')
@@ -138,6 +138,7 @@ class Iso9660UnpackParser(WrappedUnpackParser):
                         if record.len_dr == 0:
                             continue
                         if record.body.file_flags_directory:
+                            # add contentes, except for '.' and '..'
                             if record.body.file_id_dir not in ['\x00', '\x01']:
                                 files.append(record)
                         else:
@@ -157,6 +158,7 @@ class Iso9660UnpackParser(WrappedUnpackParser):
                         if dir_record.len_dr == 0:
                             continue
                         if dir_record.body.file_flags_directory:
+                            # add contentes, except for '.' and '..'
                             if dir_record.body.file_id_dir not in ['\x00', '\x01']:
                                 files.append(dir_record)
                         else:
