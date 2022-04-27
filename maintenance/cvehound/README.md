@@ -1,0 +1,25 @@
+# cvehound
+
+This directory contains a script to process the output of running `cvehound`
+on Linux kernel source trees and processing the output.
+
+## Running `cvehound`
+
+Note: anything older than Linux kernel 2.6 seems to be (currently) unsupported
+by `cvehound`.
+
+```
+$ cvehound -k /path/to/kernel/sources/ --report /path/to/output/json
+```
+
+for example:
+
+```
+$ cvehound -k ~/git/linux/ --report /tmp/report.json
+```
+
+It seems that `cvehound` cannot write to `stdout`.
+
+## Processing output
+
+TODO
