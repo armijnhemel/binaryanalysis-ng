@@ -17,5 +17,5 @@ pyaxmlparser
 pyyaml
 telfhash
 python-lzo
-zstd
+zstandard
 protobuf
