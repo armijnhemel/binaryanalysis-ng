@@ -148,6 +148,7 @@ class Iso9660UnpackParser(UnpackParser):
                     record = files.popleft()
 
                     if record.body.directory_records is None:
+                        # regular files, symlinks, etc.
                         continue
 
                     # add the contents of a directory to the queue
