@@ -8,6 +8,7 @@ Currently there are the following scripts:
 1. Debian package information - process Debian Packages files and store
 information (package name, short description, homepage, section)
 2. NixOS package information
+3. function/variable names extracted from source code with `ctags`
 
 Note: these scripts currently output JSON, but will switch to the
 Meilisearch Python API in the future.
