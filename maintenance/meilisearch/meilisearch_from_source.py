@@ -9,14 +9,16 @@
 '''
 This script processes source code archives and generates JSON
 suitable to be loaded into Meilisearch. Adapted from yara_from_source.py
+
+$ python3 meilisearch_from_source.py -c meilisearch-config.yaml -s /tmp/bla/ -i ../yara/low_quality_identifiers.pickle
 '''
 
-import datetime
 import hashlib
 import json
 import multiprocessing
 import os
 import pathlib
+import pickle
 import queue
 import shutil
 import subprocess
@@ -25,9 +27,6 @@ import tarfile
 import tempfile
 import zipfile
 
-import packageurl
-import click
-
 # import YAML module for the configuration
 from yaml import load
 from yaml import YAMLError
@@ -35,6 +34,10 @@ try:
     from yaml import CLoader as Loader
 except ImportError:
     from yaml import Loader
+
+import packageurl
+import click
+import meilisearch
 
 # lists of extenions for several programming language families
 C_SRC_EXTENSIONS = ['.c', '.cc', '.cpp', '.cxx', '.c++', '.h', '.hh', '.hpp',
@@ -48,6 +51,30 @@ SRC_EXTENSIONS = C_SRC_EXTENSIONS + JAVA_SRC_EXTENSIONS
 
 TAR_SUFFIX = ['.tbz2', '.tgz', '.txz', '.tlz', '.tz', '.gz', '.bz2', '.xz', '.lzma']
 
+def store_meili(resultqueue, meili_index):
+    '''Grab results from the result queue, update
+       where necessary and add to Meilisearch'''
+    while True:
+        results = resultqueue.get()
+        update_documents = []
+        new_documents = []
+
+        # first check if there are any duplicates
+        for result in results:
+            try:
+                meili_res = meili_index.get_document(result['id'])
+                if result['paths'][0] not in meili_res['paths']:
+                    meili_res['paths'] += result['paths']
+                    update_documents.append(meili_res)
+            except:
+                new_documents.append(result)
+
+        if new_documents != []:
+            meili_index.update_documents(new_documents)
+        if update_documents != []:
+            meili_index.update_documents(update_documents)
+
+        resultqueue.task_done()
 
 def extract_identifiers(meiliqueue, resultqueue, temporary_directory, source_directory, meili_env):
     '''Unpack a tar archive based on extension and extract identifiers'''
@@ -59,16 +86,18 @@ def extract_identifiers(meiliqueue, resultqueue, temporary_directory, source_dir
         try:
             tarchive = tarfile.open(name=tar_archive)
             members = tarchive.getmembers()
-        except Exception as e:
+        except Exception:
             meiliqueue.task_done()
             continue
 
         # store the results per file and per language
-        results = {}
+        results = []
         extracted = 0
 
-        for m in members:
-            extract_file = pathlib.Path(m.name)
+        sha256_to_path = {}
+
+        for member in members:
+            extract_file = pathlib.Path(member.name)
             if extract_file.suffix.lower() in SRC_EXTENSIONS:
                 extracted += 1
                 break
@@ -80,7 +109,7 @@ def extract_identifiers(meiliqueue, resultqueue, temporary_directory, source_dir
         unpack_dir = tempfile.TemporaryDirectory(dir=temporary_directory)
         tarchive.extractall(path=unpack_dir.name)
         for m in members:
-            identifiers = {}
+            result = {}
 
             extract_file = pathlib.Path(m.name)
             if extract_file.suffix.lower() in SRC_EXTENSIONS:
@@ -89,20 +118,25 @@ def extract_identifiers(meiliqueue, resultqueue, temporary_directory, source_dir
                 elif extract_file.suffix.lower() in JAVA_SRC_EXTENSIONS:
                     language = 'java'
 
-                identifiers['language'] = language
-                identifiers['functions'] = set()
-                identifiers['variables'] = set()
+                result['language'] = language
+                result['functions'] = set()
+                result['variables'] = set()
 
                 # some path sanity checks (TODO: add more checks)
                 if extract_file.is_absolute():
                     pass
                 else:
-                    member = open(unpack_dir.name / extract_file, 'rb')
-                    member_data = member.read()
-                    member.close()
+                    with open(unpack_dir.name / extract_file, 'rb') as member:
+                        member_data = member.read()
+
                     member_hash = hashlib.new('sha256')
                     member_hash.update(member_data)
-                    file_hash = member_hash.hexdigest()
+                    sha256 = member_hash.hexdigest()
+                    result['id'] = sha256
+                    if sha256 in sha256_to_path:
+                        sha256_to_path[sha256].append(str(extract_file))
+                        continue
+                    sha256_to_path[sha256] = [str(extract_file)]
 
                     # run ctags. Unfortunately ctags cannot process
                     # information from stdin so the file has to be extracted first
@@ -115,31 +149,44 @@ def extract_identifiers(meiliqueue, resultqueue, temporary_directory, source_dir
                         for line in lines:
                             try:
                                 ctags_json = json.loads(line)
-                            except Exception as e:
+                            except Exception:
                                 continue
                             try:
                                 ctags_name = ctags_json['name']
                                 if len(ctags_name) < meili_env['identifier_cutoff']:
                                     continue
                                 if ctags_json['kind'] == 'field':
-                                    identifiers['variables'].add(ctags_name)
+                                    if language == 'java' and ctags_name in meili_env['lq_identifiers']['dex']['variables']:
+                                        continue
+                                    result['variables'].add(ctags_name)
                                 elif ctags_json['kind'] == 'variable':
+                                    if language == 'c' and ctags_name in meili_env['lq_identifiers']['elf']['variables']:
+                                        continue
+                                    if language == 'java' and ctags_name in meili_env['lq_identifiers']['dex']['variables']:
+                                        continue
                                     # Kotlin uses variables, not fields
-                                    identifiers['variables'].add(ctags_name)
+                                    result['variables'].add(ctags_name)
                                 elif ctags_json['kind'] == 'method':
-                                    identifiers['functions'].add(ctags_name)
+                                    if language == 'java' and ctags_name in meili_env['lq_identifiers']['dex']['functions']:
+                                        continue
+                                    result['functions'].add(ctags_name)
                                 elif ctags_json['kind'] == 'function':
-                                    identifiers['functions'].add(ctags_name)
+                                    if language == 'c' and ctags_name in meili_env['lq_identifiers']['elf']['functions']:
+                                        continue
+                                    result['functions'].add(ctags_name)
                             except:
                                 pass
-                results[extract_file] = identifiers
 
-        for result in results:
-            identifiers = results[result]
+                    result['variables'] = list(result['variables'])
+                    result['functions'] = list(result['functions'])
 
-            # generate json for Meilisearch and add to the result queue
-            if not (identifiers['variables'] == set() and identifiers['functions'] == set()):
-                pass
+                    if not (result['variables'] == [] and result['functions'] == []):
+                        results.append(result)
+
+        if results != []:
+            for result in results:
+                result['paths'] = sha256_to_path[result['id']]
+            resultqueue.put(results)
 
         unpack_dir.cleanup()
         meiliqueue.task_done()
@@ -150,6 +197,27 @@ def extract_identifiers(meiliqueue, resultqueue, temporary_directory, source_dir
 @click.option('--source-directory', '-s', help='source code archive directory', type=click.Path(exists=True), required=True)
 @click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
 def main(config_file, source_directory, identifiers):
+
+    # some sanity checks for Meilisearch
+    client = meilisearch.Client('http://127.0.0.1:7700')
+    meili_index = client.index('ctags')
+    try:
+        health = client.health()
+    except meilisearch.errors.MeiliSearchCommunicationError:
+        print("Meilisearch not running, exiting...", file=sys.stderr)
+        sys.exit(1)
+
+    if health['status'] != 'available':
+        print("Meilisearch not available, exiting...", file=sys.stderr)
+        sys.exit(1)
+
+    client.create_index('ctags', {'primaryKey': 'id'})
+
+    # only allow searches on 'functions' and 'variables'
+    meili_index.update_settings({'searchableAttributes': [
+          'functions',
+          'variables',
+        ]})
 
     source_directory = pathlib.Path(source_directory)
 
@@ -241,12 +309,11 @@ def main(config_file, source_directory, identifiers):
         if isinstance(config['meilisearch']['max_identifiers'], int):
             max_identifiers = config['meilisearch']['max_identifiers']
 
-    tags = ['source']
-
     meili_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
                 'string_max_cutoff': string_max_cutoff,
                 'identifier_cutoff': identifier_cutoff,
-                'tags': tags, 'max_identifiers': max_identifiers}
+                'max_identifiers': max_identifiers,
+                 'lq_identifiers': lq_identifiers}
 
     processmanager = multiprocessing.Manager()
 
@@ -270,11 +337,16 @@ def main(config_file, source_directory, identifiers):
                                                 source_directory, meili_env))
         processes.append(process)
 
+    process = multiprocessing.Process(target=store_meili,
+                                      args=(resultqueue, meili_index))
+    processes.append(process)
+
     # start all the processes
     for process in processes:
         process.start()
 
     meiliqueue.join()
+    resultqueue.join()
 
     # Done processing, terminate processes
     for process in processes:

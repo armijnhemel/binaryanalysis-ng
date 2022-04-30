@@ -13,7 +13,6 @@ information (package name, short description, homepage, section)
 Note: these scripts currently output JSON, but will switch to the
 Meilisearch Python API in the future.
 
-
 # Installing Meilisearch
 
 If your distribution already has an installable package, use your
@@ -45,7 +44,6 @@ requires you to generate and use API keys.
 The code described and used here is only to be used in development mode.
 Production mode is future work.
 
-
 # Extracting and loading Debian package data
 
 Debian package data can be found in the file `Packages.gz` or `Packages.xz` on
@@ -75,6 +73,29 @@ Then process it and upload it into Meilisearch:
 ```
 $ python3 meilisearch_nixos.py -c meilisearch-config.yaml -p /tmp/nix.json > nix-meili.json
 $ curl -X POST 'http://127.0.0.1:7700/indexes/nixos/documents' -H 'Content-Type: application/json' --data-binary @nix-meili.json
+```
+
+# Extracting and loading `ctags` data
+
+This script allows you to extract function name and variable name data from
+tarballs in a directory and load into Meilisearch. The function names and
+variable names can then be searched.
+
+```
+$ python3 meilisearch_from_source.py -c /path/to/config.yaml -s /path/to/tarballs
+```
+
+Optionally (but highly recommended) filter low quality identifiers. The same
+data as for the `yara` import scripts can be used:
+
+```
+$ python3 meilisearch_from_source.py -c /path/to/config.yaml -s /path/to/tarballs -i /path/to/pickle
+```
+
+for example:
+
+```
+$ python3 meilisearch_from_source.py -c meilisearch-config.yaml -s ~/busybox/ -i low_quality_identifiers.pickle
 ```
 
 # References
