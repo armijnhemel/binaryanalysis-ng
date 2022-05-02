@@ -91,7 +91,7 @@ class Iso9660UnpackParser(UnpackParser):
                             if record.len_dr == 0:
                                 continue
                             if record.body.file_flags_directory:
-                                if record.body.file_id_dir not in ['\x00', '\x01']:
+                                if record.body.file_id not in ['\x00', '\x01']:
                                     files.append(record)
                             else:
                                 files.append(record)
@@ -108,7 +108,7 @@ class Iso9660UnpackParser(UnpackParser):
                             if dir_record.len_dr == 0:
                                 continue
                             if dir_record.body.file_flags_directory:
-                                if dir_record.body.file_id_dir not in ['\x00', '\x01']:
+                                if dir_record.body.file_id not in ['\x00', '\x01']:
                                     files.append(dir_record)
                             else:
                                 files.append(dir_record)
@@ -139,16 +139,32 @@ class Iso9660UnpackParser(UnpackParser):
                             continue
                         if record.body.file_flags_directory:
                             # add contentes, except for '.' and '..'
-                            if record.body.file_id_dir not in ['\x00', '\x01']:
+                            if record.body.file_id not in ['\x00', '\x01']:
                                 files.append(record)
                         else:
                             files.append(record)
 
                 while(len(files) != 0):
                     record = files.popleft()
+                    filename = record.body.file_id.split(';', 1)[0]
+                    try:
+                       alternate_name = ''
+                       for entry in record.body.system_use.entries:
+                          # walk the system use fields to see if an
+                          # "alternate name" has been provided
+                          if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_alternate_name:
+                              alternate_name += entry.susp_data.name
+                       if alternate_name != '':
+                           filename = alternate_name
+                    except AttributeError:
+                        # there are no entries in the system use
+                        # field or there is no system use field.
+                        pass
 
                     if record.body.directory_records is None:
                         # regular files, symlinks, etc.
+                        # first get the name. This might depend on whether or
+                        # not the "system use" field is used
                         continue
 
                     # add the contents of a directory to the queue
@@ -160,7 +176,7 @@ class Iso9660UnpackParser(UnpackParser):
                             continue
                         if dir_record.body.file_flags_directory:
                             # add contentes, except for '.' and '..'
-                            if dir_record.body.file_id_dir not in ['\x00', '\x01']:
+                            if dir_record.body.file_id not in ['\x00', '\x01']:
                                 files.append(dir_record)
                         else:
                             files.append(dir_record)
