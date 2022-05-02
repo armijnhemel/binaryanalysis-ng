@@ -165,6 +165,16 @@ class Iso9660UnpackParser(UnpackParser):
                         # regular files, symlinks, etc.
                         # first get the name. This might depend on whether or
                         # not the "system use" field is used
+                        outfile_rel = self.rel_unpack_dir / filename
+                        outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                        os.makedirs(outfile_full.parent, exist_ok=True)
+
+                        outfile = open(outfile_full, 'wb')
+                        outfile.write(record.body.file_content)
+
+                        outfile.close()
+                        fr = FileResult(self.fileresult, outfile_rel, set())
+                        unpacked_files.append(fr)
                         continue
 
                     # add the contents of a directory to the queue
