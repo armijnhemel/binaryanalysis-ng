@@ -774,6 +774,14 @@ types:
                       susp_sl:
                         doc-ref: susp 4.1.3.1
                         seq:
+                          - id: flags
+                            type: u1
+                          - id: component_records
+                            type: susp_sl_component_record
+                            repeat: eos
+                      susp_sl_component_record:
+                        doc-ref: susp 4.1.3.1
+                        seq:
                           - id: reserved
                             type: b4
                           - id: root
@@ -784,9 +792,11 @@ types:
                             type: b1
                           - id: continued
                             type: b1
+                          - id: len_component
+                            type: u1
                           - id: content
                             type: str
-                            size-eos: true
+                            size: len_component
                       susp_sp:
                         doc-ref: susp 5.3
                         seq:
