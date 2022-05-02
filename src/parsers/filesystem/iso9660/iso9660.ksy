@@ -488,16 +488,10 @@ types:
               - id: len_fi
                 doc-ref: ecma-119 9.1.10
                 type: u1
-              - id: file_id_file
+              - id: file_id
                 doc-ref: ecma-119 9.1.11
                 type: str
                 size: len_fi
-                if: not file_flags_directory
-              - id: file_id_dir
-                doc-ref: ecma-119 9.1.11
-                size: len_fi
-                type: str
-                if: file_flags_directory
               - id: padding_field
                 doc-ref: ecma-119 9.1.12
                 doc: |
@@ -527,7 +521,7 @@ types:
                   The SUSP magic is 2 bytes. A complete SUSP entry
                   is at least 4 bytes long.
                 seq:
-                  - id: header
+                  - id: entries
                     type: header
                     if: _io.size - _io.pos >= 4
                     repeat: until
