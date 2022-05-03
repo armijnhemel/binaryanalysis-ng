@@ -790,12 +790,8 @@ types:
                             type: b1
                           - id: parent
                             type: b1
-                            valid:
-                              expr: not root
                           - id: current
                             type: b1
-                            valid:
-                              expr: not (root or parent)
                           - id: continued
                             type: b1
                           - id: len_component
