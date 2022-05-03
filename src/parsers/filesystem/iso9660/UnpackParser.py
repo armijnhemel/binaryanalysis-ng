@@ -50,6 +50,7 @@ class Iso9660UnpackParser(UnpackParser):
 
     def parse(self):
         self.zisofs = False
+        self.apple_iso = False
         try:
             self.data = iso9660.Iso9660.from_io(self.infile)
 
@@ -101,6 +102,15 @@ class Iso9660UnpackParser(UnpackParser):
                         extent_size = record.body.extent.value * descriptor.volume.logical_block_size.value
                         check_condition(extent_size <= self.fileresult.filesize,
                                         "extent cannot be outside of file")
+
+                        # process the various system use entries,
+                        # to extract some interesting information
+                        try:
+                            for entry in record.body.system_use.entries:
+                                if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.apple_attribute_list:
+                                    self.apple_iso = True
+                        except AttributeError:
+                            pass
 
                         if record.body.directory_records is None:
                             continue
@@ -289,6 +299,9 @@ class Iso9660UnpackParser(UnpackParser):
                 pass
             elif volume_descriptor.type == iso9660.Iso9660.VolumeType.boot_record:
                 metadata['bootable'] = True
+
+        if self.apple_iso:
+            metadata['apple extensions'] = True
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
