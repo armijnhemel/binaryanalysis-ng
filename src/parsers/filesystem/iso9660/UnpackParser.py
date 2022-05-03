@@ -144,6 +144,7 @@ class Iso9660UnpackParser(UnpackParser):
         for descriptor in self.data.data_area:
             if descriptor.type == iso9660.Iso9660.VolumeType.primary:
 
+                self.moved_to_parent_extent = {}
                 self.extent_to_full_file = {}
 
                 # process the root directory.
@@ -264,11 +265,10 @@ class Iso9660UnpackParser(UnpackParser):
                                         break
                                 break
                         check_condition(parent != -1, "invalid parent link")
+                        self.moved_to_parent_extent[cwd / filename] = parent
 
                     if not record.body.file_flags_directory:
                         # regular files, symlinks, etc.
-                        # first get the name. This might depend on whether or
-                        # not the "system use" field is used
                         outfile_rel = self.rel_unpack_dir / cwd / filename
                         outfile_full = self.scan_environment.unpack_path(outfile_rel)
                         os.makedirs(outfile_full.parent, exist_ok=True)
