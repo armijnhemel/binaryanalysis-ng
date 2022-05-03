@@ -23,8 +23,10 @@
 # https://www.sciencedirect.com/science/article/pii/S1742287610000435
 
 import collections
+import math
 import os
 import pathlib
+import zlib
 
 from UnpackParser import WrappedUnpackParser
 from bangfilesystems import unpack_iso9660
@@ -36,6 +38,7 @@ from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from . import iso9660
 
+ZISO_MAGIC = b'\x37\xe4\x53\x96\xc9\xdB\xd6\x07'
 
 #class Iso9660UnpackParser(WrappedUnpackParser):
 class Iso9660UnpackParser(UnpackParser):
@@ -88,6 +91,11 @@ class Iso9660UnpackParser(UnpackParser):
                     # entry.
                     # Seen in an ISO file included in an ASUS firmware file
                     # Modem_FW_4G_AC55U_30043808102_M14.zip
+
+                    # data structures for relocated directories
+                    self.moved_to_parent_extent = {}
+                    self.extent_to_full_file = {}
+                    self.placeholders = set()
 
                     files = collections.deque()
                     if descriptor.volume.root_directory.body.directory_records is not None:
@@ -144,10 +152,6 @@ class Iso9660UnpackParser(UnpackParser):
         for descriptor in self.data.data_area:
             if descriptor.type == iso9660.Iso9660.VolumeType.primary:
 
-                self.moved_to_parent_extent = {}
-                self.extent_to_full_file = {}
-                self.placeholders = set()
-
                 # process the root directory.
                 files = collections.deque()
                 if descriptor.volume.root_directory.body.directory_records is not None:
@@ -165,6 +169,9 @@ class Iso9660UnpackParser(UnpackParser):
                     record, cwd = files.popleft()
                     filename = record.body.file_id.split(';', 1)[0]
                     is_symlink = False
+
+                    # store if an entry is a zisofs file
+                    is_zisofs_file = False
 
                     # store if an entry has been relocated
                     is_relocated = False
@@ -236,6 +243,10 @@ class Iso9660UnpackParser(UnpackParser):
                                 self.placeholders.add(cwd / filename)
                             elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_relocated_directory:
                                 is_relocated = True
+                            elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrzf_zisofs:
+                                is_zisofs_file = True
+                                original_size = entry.susp_data.uncompressed_size.value
+                                zisofs_header_size_susp = entry.susp_data.header_size
 
                         if alternate_name != '':
                             filename = alternate_name
@@ -283,6 +294,18 @@ class Iso9660UnpackParser(UnpackParser):
                                 outfile_full.symlink_to(symbolic_target_name)
                                 fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
                             else:
+                                if is_zisofs_file:
+                                    # extra sanity checks
+                                    check_condition(record.body.file_content[:8] == ZISO_MAGIC,
+                                                    "invalid ziso magic")
+                                    uncompressed_size = int.from_bytes(record.body.file_content[8:12], byteorder='little')
+                                    check_condition(original_size == uncompressed_size,
+                                                    "zisofs uncompressed size mismatch")
+
+                                    zisofs_header_size = record.body.file_content[12]
+                                    check_condition(zisofs_header_size == zisofs_header_size_susp,
+                                                    "zisofs header size mismatch")
+
                                 outfile = open(outfile_full, 'wb')
                                 outfile.write(record.body.file_content)
 
