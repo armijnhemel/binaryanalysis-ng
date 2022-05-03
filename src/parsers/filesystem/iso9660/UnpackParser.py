@@ -51,6 +51,7 @@ class Iso9660UnpackParser(UnpackParser):
     def parse(self):
         self.zisofs = False
         self.apple_iso = False
+
         try:
             self.data = iso9660.Iso9660.from_io(self.infile)
 
@@ -68,12 +69,14 @@ class Iso9660UnpackParser(UnpackParser):
                     check_condition(descriptor.volume.volume_modification_date_and_time.valid_date,
                                     "invalid modification date")
 
+                    self.block_size = descriptor.volume.logical_block_size.value
+
                     has_primary = True
-                    iso_size = descriptor.volume.volume_space_size.value * descriptor.volume.logical_block_size.value
+                    iso_size = descriptor.volume.volume_space_size.value * self.block_size
                     check_condition(iso_size <= self.fileresult.filesize,
                                     "declared ISO9660 image bigger than file")
 
-                    extent_size = descriptor.volume.root_directory.body.extent.value * descriptor.volume.logical_block_size.value
+                    extent_size = descriptor.volume.root_directory.body.extent.value * self.block_size
                     check_condition(extent_size <= self.fileresult.filesize,
                                     "extent cannot be outside of file")
 
@@ -141,6 +144,8 @@ class Iso9660UnpackParser(UnpackParser):
         for descriptor in self.data.data_area:
             if descriptor.type == iso9660.Iso9660.VolumeType.primary:
 
+                self.extent_to_full_file = {}
+
                 # process the root directory.
                 files = collections.deque()
                 if descriptor.volume.root_directory.body.directory_records is not None:
@@ -176,7 +181,7 @@ class Iso9660UnpackParser(UnpackParser):
                         symbolic_current_component_continue = False
 
                         # store the interesting entries first before processing
-                        su_entries = []
+                        self.su_entries = []
 
                         for entry in record.body.system_use.entries:
                             if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.susp_continuation_area:
@@ -184,11 +189,11 @@ class Iso9660UnpackParser(UnpackParser):
                                 # the list of entries that need to be processed
                                 # as well.
                                 for susp_entry in entry.susp_data.continuation_area.entries:
-                                    su_entries.append(susp_entry)
+                                    self.su_entries.append(susp_entry)
                             else:
-                                su_entries.append(entry)
+                                self.su_entries.append(entry)
 
-                        for entry in su_entries:
+                        for entry in self.su_entries:
                             if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_symbolic_link:
                                 is_symlink = True
                                 for component in entry.susp_data.component_records:
@@ -239,6 +244,8 @@ class Iso9660UnpackParser(UnpackParser):
                         # field or there is no system use field.
                         pass
 
+                    self.extent_to_full_file[record.body.extent.value] = cwd / filename
+
                     if is_relocated:
                         # now process the second directory item. According to the
                         # specifications:
@@ -246,7 +253,17 @@ class Iso9660UnpackParser(UnpackParser):
                         # The "PL" System Use Entry shall be recorded in the
                         # System Use Area of the second Directory Record
                         # (".." entry) of each moved directory.
-                        pass
+                        parent = -1
+                        for directory_record in record.body.directory_records.records:
+                            if directory_record.len_dr == 0:
+                                continue
+                            if directory_record.body.file_id == '\x01':
+                                for entry in directory_record.body.system_use.entries:
+                                    if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_parent_link:
+                                        parent = entry.susp_data.lba_parent.value
+                                        break
+                                break
+                        check_condition(parent != -1, "invalid parent link")
 
                     if not record.body.file_flags_directory:
                         # regular files, symlinks, etc.
@@ -255,14 +272,11 @@ class Iso9660UnpackParser(UnpackParser):
                         outfile_rel = self.rel_unpack_dir / cwd / filename
                         outfile_full = self.scan_environment.unpack_path(outfile_rel)
                         os.makedirs(outfile_full.parent, exist_ok=True)
+
                         if is_symlink:
                             outfile_full.symlink_to(symbolic_target_name)
                             fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
                         else:
-                            outfile_rel = self.rel_unpack_dir / cwd / filename
-                            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                            os.makedirs(outfile_full.parent, exist_ok=True)
-
                             outfile = open(outfile_full, 'wb')
                             outfile.write(record.body.file_content)
 
