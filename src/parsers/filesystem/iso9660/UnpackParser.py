@@ -146,6 +146,7 @@ class Iso9660UnpackParser(UnpackParser):
 
                 self.moved_to_parent_extent = {}
                 self.extent_to_full_file = {}
+                self.placeholders = set()
 
                 # process the root directory.
                 files = collections.deque()
@@ -232,7 +233,7 @@ class Iso9660UnpackParser(UnpackParser):
                                 else:
                                     alternate_name += entry.susp_data.name
                             elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_child_link:
-                                pass
+                                self.placeholders.add(cwd / filename)
                             elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_relocated_directory:
                                 is_relocated = True
 
@@ -254,6 +255,8 @@ class Iso9660UnpackParser(UnpackParser):
                         # The "PL" System Use Entry shall be recorded in the
                         # System Use Area of the second Directory Record
                         # (".." entry) of each moved directory.
+                        #
+                        # TODO: the PL entry could be in a continuation area
                         parent = -1
                         for directory_record in record.body.directory_records.records:
                             if directory_record.len_dr == 0:
@@ -273,30 +276,32 @@ class Iso9660UnpackParser(UnpackParser):
                         outfile_full = self.scan_environment.unpack_path(outfile_rel)
                         os.makedirs(outfile_full.parent, exist_ok=True)
 
-                        if is_symlink:
-                            outfile_full.symlink_to(symbolic_target_name)
-                            fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
-                        else:
-                            outfile = open(outfile_full, 'wb')
-                            outfile.write(record.body.file_content)
+                        # create files/links but only if they are not
+                        # placeholder files (for relocated directories)
+                        if cwd / filename not in self.placeholders:
+                            if is_symlink:
+                                outfile_full.symlink_to(symbolic_target_name)
+                                fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
+                            else:
+                                outfile = open(outfile_full, 'wb')
+                                outfile.write(record.body.file_content)
 
-                            outfile.close()
-                            fr = FileResult(self.fileresult, outfile_rel, set())
-                        unpacked_files.append(fr)
-                        continue
+                                outfile.close()
+                                fr = FileResult(self.fileresult, outfile_rel, set())
+                            unpacked_files.append(fr)
+                    else:
+                        # add the contents of a directory to the queue
+                        for dir_record in record.body.directory_records.records:
+                            # skip empty directory records
+                            if dir_record.len_dr == 0:
+                                continue
 
-                    # add the contents of a directory to the queue
-                    for dir_record in record.body.directory_records.records:
-                        # skip empty directory records
-                        if dir_record.len_dr == 0:
-                            continue
-
-                        if dir_record.body.file_flags_directory:
-                            # add contentes, except for '.' and '..'
-                            if dir_record.body.file_id not in ['\x00', '\x01']:
+                            if dir_record.body.file_flags_directory:
+                                # add contentes, except for '.' and '..'
+                                if dir_record.body.file_id not in ['\x00', '\x01']:
+                                    files.append((dir_record, cwd / filename))
+                            else:
                                 files.append((dir_record, cwd / filename))
-                        else:
-                            files.append((dir_record, cwd / filename))
         return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
