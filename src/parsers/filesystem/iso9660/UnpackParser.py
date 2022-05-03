@@ -92,12 +92,12 @@ class Iso9660UnpackParser(UnpackParser):
                                 continue
                             if record.body.file_flags_directory:
                                 if record.body.file_id not in ['\x00', '\x01']:
-                                    files.append(record)
+                                    files.append((record, pathlib.Path('')))
                             else:
-                                files.append(record)
+                                files.append((record, pathlib.Path('')))
 
                     while(len(files) != 0):
-                        record = files.popleft()
+                        record, cwd = files.popleft()
                         extent_size = record.body.extent.value * descriptor.volume.logical_block_size.value
                         check_condition(extent_size <= self.fileresult.filesize,
                                         "extent cannot be outside of file")
@@ -109,9 +109,9 @@ class Iso9660UnpackParser(UnpackParser):
                                 continue
                             if dir_record.body.file_flags_directory:
                                 if dir_record.body.file_id not in ['\x00', '\x01']:
-                                    files.append(dir_record)
+                                    files.append((dir_record, cwd))
                             else:
-                                files.append(dir_record)
+                                files.append((dir_record, cwd))
                 elif descriptor.type == iso9660.Iso9660.VolumeType.boot_record:
                     pass
                 elif descriptor.type == iso9660.Iso9660.VolumeType.set_terminator:
@@ -140,40 +140,86 @@ class Iso9660UnpackParser(UnpackParser):
                         if record.body.file_flags_directory:
                             # add contentes, except for '.' and '..'
                             if record.body.file_id not in ['\x00', '\x01']:
-                                files.append(record)
+                                files.append((record, pathlib.Path('')))
                         else:
-                            files.append(record)
+                            files.append((record, pathlib.Path('')))
 
                 while(len(files) != 0):
-                    record = files.popleft()
+                    record, cwd = files.popleft()
                     filename = record.body.file_id.split(';', 1)[0]
+                    is_symlink = False
+
+                    # process the various system use entries, mostly from RockRidge
                     try:
+                       # store an alternate name
                        alternate_name = ''
+
+                       # process symbolic links. There can be multiple SL fields
+                       # and together these make up the symbolic link target.
+                       # To make things even more interesting each individual
+                       # component can be continued as well.
+                       symbolic_link_components = []
+                       symbolic_current_component = ''
+                       symbolic_current_component_continue = False
+
                        for entry in record.body.system_use.entries:
-                          # walk the system use fields to see if an
-                          # "alternate name" has been provided
-                          if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_alternate_name:
+                          if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_symbolic_link:
+                              is_symlink = True
+                              for component in entry.susp_data.component_records:
+                                  # first determine the component
+                                  if component.current:
+                                      component_name = '.'
+                                  elif component.parent:
+                                      component_name = '..'
+                                  elif component.root:
+                                      component_name = '/'
+                                  else:
+                                      component_name = component.content
+
+                                  if symbolic_current_component_continue:
+                                      symbolic_current_component += component_name
+                                      if not component.continued:
+                                          symbolic_link_components.append(symbolic_current_component)
+                                          symbolic_current_component = ''
+                                          continue
+                                  else:
+                                      if component.continued:
+                                          symbolic_current_component = component_name
+                                      else:
+                                          symbolic_link_components.append(component_name)
+                                          symbolic_current_component = ''
+                                  symbolic_current_component_continue = component.continued
+                          elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_alternate_name:
                               alternate_name += entry.susp_data.name
                        if alternate_name != '':
                            filename = alternate_name
-                    except AttributeError:
+                       if symbolic_link_components != []:
+                           symbolic_target_name = pathlib.Path(*symbolic_link_components)
+                    except AttributeError as e:
                         # there are no entries in the system use
                         # field or there is no system use field.
                         pass
 
-                    if record.body.directory_records is None:
+                    if not record.body.file_flags_directory:
                         # regular files, symlinks, etc.
                         # first get the name. This might depend on whether or
                         # not the "system use" field is used
-                        outfile_rel = self.rel_unpack_dir / filename
+                        outfile_rel = self.rel_unpack_dir / cwd / filename
                         outfile_full = self.scan_environment.unpack_path(outfile_rel)
                         os.makedirs(outfile_full.parent, exist_ok=True)
+                        if is_symlink:
+                            outfile_full.symlink_to(symbolic_target_name)
+                            fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
+                        else:
+                            outfile_rel = self.rel_unpack_dir / cwd / filename
+                            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                            os.makedirs(outfile_full.parent, exist_ok=True)
 
-                        outfile = open(outfile_full, 'wb')
-                        outfile.write(record.body.file_content)
+                            outfile = open(outfile_full, 'wb')
+                            outfile.write(record.body.file_content)
 
-                        outfile.close()
-                        fr = FileResult(self.fileresult, outfile_rel, set())
+                            outfile.close()
+                            fr = FileResult(self.fileresult, outfile_rel, set())
                         unpacked_files.append(fr)
                         continue
 
@@ -187,9 +233,9 @@ class Iso9660UnpackParser(UnpackParser):
                         if dir_record.body.file_flags_directory:
                             # add contentes, except for '.' and '..'
                             if dir_record.body.file_id not in ['\x00', '\x01']:
-                                files.append(dir_record)
+                                files.append((dir_record, cwd / filename))
                         else:
-                            files.append(dir_record)
+                            files.append((dir_record, cwd))
         return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
