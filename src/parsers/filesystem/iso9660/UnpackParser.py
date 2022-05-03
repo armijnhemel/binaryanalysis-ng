@@ -273,17 +273,16 @@ class Iso9660UnpackParser(UnpackParser):
 
                     # add the contents of a directory to the queue
                     for dir_record in record.body.directory_records.records:
-                        # first create the directory
-
-                        # then add the contents of the directory to the queue
+                        # skip empty directory records
                         if dir_record.len_dr == 0:
                             continue
+
                         if dir_record.body.file_flags_directory:
                             # add contentes, except for '.' and '..'
                             if dir_record.body.file_id not in ['\x00', '\x01']:
                                 files.append((dir_record, cwd / filename))
                         else:
-                            files.append((dir_record, cwd))
+                            files.append((dir_record, cwd / filename))
         return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
