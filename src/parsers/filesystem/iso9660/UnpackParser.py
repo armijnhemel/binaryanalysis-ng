@@ -149,6 +149,9 @@ class Iso9660UnpackParser(UnpackParser):
                     filename = record.body.file_id.split(';', 1)[0]
                     is_symlink = False
 
+                    # store if an entry has been relocated
+                    is_relocated = False
+
                     # process the various system use entries, mostly from RockRidge
                     try:
                        # store an alternate name
@@ -162,7 +165,20 @@ class Iso9660UnpackParser(UnpackParser):
                        symbolic_current_component = ''
                        symbolic_current_component_continue = False
 
+                       # store the interesting entries first before processing
+                       su_entries = []
+
                        for entry in record.body.system_use.entries:
+                          if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.susp_continuation_area:
+                              # store all the continuation area entries to
+                              # the list of entries that need to be processed
+                              # as well.
+                              for susp_entry in entry.susp_data.continuation_area.entries:
+                                  su_entries.append(susp_entry)
+                          else:
+                              su_entries.append(entry)
+
+                       for entry in su_entries:
                           if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_symbolic_link:
                               is_symlink = True
                               for component in entry.susp_data.component_records:
@@ -190,7 +206,19 @@ class Iso9660UnpackParser(UnpackParser):
                                           symbolic_current_component = ''
                                   symbolic_current_component_continue = component.continued
                           elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_alternate_name:
-                              alternate_name += entry.susp_data.name
+                              # TODO: extra sanity checks for the alternate
+                              # name and how to resolve if either 'parent'
+                              # or 'current' is set.
+                              if entry.susp_data.parent:
+                                  alternate_name = '..'
+                              elif entry.susp_data.current:
+                                  alternate_name = '.'
+                              else:
+                                  alternate_name += entry.susp_data.name
+                          elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_child_link:
+                              pass
+                          elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_relocated_directory:
+                              is_relocated = True
                        if alternate_name != '':
                            filename = alternate_name
                        if symbolic_link_components != []:
@@ -198,6 +226,15 @@ class Iso9660UnpackParser(UnpackParser):
                     except AttributeError as e:
                         # there are no entries in the system use
                         # field or there is no system use field.
+                        pass
+
+                    if is_relocated:
+                        # now process the second directory item. According to the
+                        # specifications:
+                        #
+                        # The "PL" System Use Entry shall be recorded in the
+                        # System Use Area of the second Directory Record
+                        # (".." entry) of each moved directory.
                         pass
 
                     if not record.body.file_flags_directory:
