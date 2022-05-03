@@ -717,7 +717,7 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
 
                             extent_unpackdir_rel = os.path.join(this_extent_unpackdir_rel, extent_filename)
                             if haverockridge:
-                                if not renamecurrentdirectory or renameoarentdirectory:
+                                if not renamecurrentdirectory or renameparentdirectory:
                                     if alternatename != b'':
                                         try:
                                             alternatename = alternatename.decode()
@@ -737,7 +737,7 @@ def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
                         outfile_full = scanenvironment.unpack_path(outfile_rel)
                         if haverockridge:
                             if alternatename != b'':
-                                if not renamecurrentdirectory or renameoarentdirectory:
+                                if not renamecurrentdirectory or renameparentdirectory:
                                     try:
                                         alternatename = alternatename.decode()
                                         outfile_rel = os.path.join(this_extent_unpackdir_rel, alternatename)
