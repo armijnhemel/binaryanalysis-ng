@@ -97,7 +97,7 @@ class Iso9660UnpackParser(UnpackParser):
                             else:
                                 files.append((record, pathlib.Path('')))
 
-                    while(len(files) != 0):
+                    while len(files) != 0:
                         record, cwd = files.popleft()
                         extent_size = record.body.extent.value * descriptor.volume.logical_block_size.value
                         check_condition(extent_size <= self.fileresult.filesize,
@@ -154,7 +154,7 @@ class Iso9660UnpackParser(UnpackParser):
                         else:
                             files.append((record, pathlib.Path('')))
 
-                while(len(files) != 0):
+                while len(files) != 0:
                     record, cwd = files.popleft()
                     filename = record.body.file_id.split(';', 1)[0]
                     is_symlink = False
@@ -164,75 +164,76 @@ class Iso9660UnpackParser(UnpackParser):
 
                     # process the various system use entries, mostly from RockRidge
                     try:
-                       # store an alternate name
-                       alternate_name = ''
+                        # store an alternate name
+                        alternate_name = ''
 
-                       # process symbolic links. There can be multiple SL fields
-                       # and together these make up the symbolic link target.
-                       # To make things even more interesting each individual
-                       # component can be continued as well.
-                       symbolic_link_components = []
-                       symbolic_current_component = ''
-                       symbolic_current_component_continue = False
+                        # process symbolic links. There can be multiple SL fields
+                        # and together these make up the symbolic link target.
+                        # To make things even more interesting each individual
+                        # component can be continued as well.
+                        symbolic_link_components = []
+                        symbolic_current_component = ''
+                        symbolic_current_component_continue = False
 
-                       # store the interesting entries first before processing
-                       su_entries = []
+                        # store the interesting entries first before processing
+                        su_entries = []
 
-                       for entry in record.body.system_use.entries:
-                          if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.susp_continuation_area:
-                              # store all the continuation area entries to
-                              # the list of entries that need to be processed
-                              # as well.
-                              for susp_entry in entry.susp_data.continuation_area.entries:
-                                  su_entries.append(susp_entry)
-                          else:
-                              su_entries.append(entry)
+                        for entry in record.body.system_use.entries:
+                            if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.susp_continuation_area:
+                                # store all the continuation area entries to
+                                # the list of entries that need to be processed
+                                # as well.
+                                for susp_entry in entry.susp_data.continuation_area.entries:
+                                    su_entries.append(susp_entry)
+                            else:
+                                su_entries.append(entry)
 
-                       for entry in su_entries:
-                          if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_symbolic_link:
-                              is_symlink = True
-                              for component in entry.susp_data.component_records:
-                                  # first determine the component
-                                  if component.current:
-                                      component_name = '.'
-                                  elif component.parent:
-                                      component_name = '..'
-                                  elif component.root:
-                                      component_name = '/'
-                                  else:
-                                      component_name = component.content
+                        for entry in su_entries:
+                            if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_symbolic_link:
+                                is_symlink = True
+                                for component in entry.susp_data.component_records:
+                                    # first determine the component
+                                    if component.current:
+                                        component_name = '.'
+                                    elif component.parent:
+                                        component_name = '..'
+                                    elif component.root:
+                                        component_name = '/'
+                                    else:
+                                        component_name = component.content
 
-                                  if symbolic_current_component_continue:
-                                      symbolic_current_component += component_name
-                                      if not component.continued:
-                                          symbolic_link_components.append(symbolic_current_component)
-                                          symbolic_current_component = ''
-                                          continue
-                                  else:
-                                      if component.continued:
-                                          symbolic_current_component = component_name
-                                      else:
-                                          symbolic_link_components.append(component_name)
-                                          symbolic_current_component = ''
-                                  symbolic_current_component_continue = component.continued
-                          elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_alternate_name:
-                              # TODO: extra sanity checks for the alternate
-                              # name and how to resolve if either 'parent'
-                              # or 'current' is set.
-                              if entry.susp_data.parent:
-                                  alternate_name = '..'
-                              elif entry.susp_data.current:
-                                  alternate_name = '.'
-                              else:
-                                  alternate_name += entry.susp_data.name
-                          elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_child_link:
-                              pass
-                          elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_relocated_directory:
-                              is_relocated = True
-                       if alternate_name != '':
-                           filename = alternate_name
-                       if symbolic_link_components != []:
-                           symbolic_target_name = pathlib.Path(*symbolic_link_components)
+                                    if symbolic_current_component_continue:
+                                        symbolic_current_component += component_name
+                                        if not component.continued:
+                                            symbolic_link_components.append(symbolic_current_component)
+                                            symbolic_current_component = ''
+                                            continue
+                                    else:
+                                        if component.continued:
+                                            symbolic_current_component = component_name
+                                        else:
+                                            symbolic_link_components.append(component_name)
+                                            symbolic_current_component = ''
+                                    symbolic_current_component_continue = component.continued
+                            elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_alternate_name:
+                                # TODO: extra sanity checks for the alternate
+                                # name and how to resolve if either 'parent'
+                                # or 'current' is set.
+                                if entry.susp_data.parent:
+                                    alternate_name = '..'
+                                elif entry.susp_data.current:
+                                    alternate_name = '.'
+                                else:
+                                    alternate_name += entry.susp_data.name
+                            elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_child_link:
+                                pass
+                            elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_relocated_directory:
+                                is_relocated = True
+
+                        if alternate_name != '':
+                            filename = alternate_name
+                        if symbolic_link_components != []:
+                            symbolic_target_name = pathlib.Path(*symbolic_link_components)
                     except AttributeError as e:
                         # there are no entries in the system use
                         # field or there is no system use field.
