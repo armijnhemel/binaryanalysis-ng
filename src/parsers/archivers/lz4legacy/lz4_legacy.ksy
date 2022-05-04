@@ -30,6 +30,8 @@ types:
     seq:
       - id: len_data
         type: u4
+        valid:
+          max: _root._io.size
       - id: data
         size: len_data
         if: not is_magic

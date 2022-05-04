@@ -84,12 +84,7 @@ class CramfsUnpackParser(UnpackParser):
 
         # signature
         buf = self.infile.read(16)
-        check_condition(len(buf) == 16, "not enough data for signature field")
-        if buf != b'Compressed ROMFS':
-            self.infile.close()
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'invalid signature'}
-            return {'status': False, 'error': unpackingerror}
+        check_condition(buf == b'Compressed ROMFS', "invalid signature")
 
         # cramfs_info struct (32 bytes)
         # crc32
@@ -177,11 +172,7 @@ class CramfsUnpackParser(UnpackParser):
             # is restored by multiplying with 4 there is no need for a
             # check for padding.
             buf = self.infile.read(4)
-            if len(buf) != 4:
-                self.infile.close()
-                unpackingerror = {'offset': offset, 'fatal': False,
-                                  'reason': 'not enough data for inode'}
-                return {'status': False, 'error': unpackingerror}
+            check_condition(len(buf) == 4, "not enough data for inode")
             namelenbytes = int.from_bytes(buf, byteorder=byteorder)
 
             if bigendian:
@@ -279,7 +270,7 @@ class CramfsUnpackParser(UnpackParser):
             # clean up the temporary directory. It could be that
             # fsck.cramfs actually didn't create the directory due to
             # other errors, such as a CRC error.
-            raise UnpackParserError("cannot unpack cramfs")
+            raise UnpackParserException("cannot unpack cramfs")
 
     def unpack(self):
         unpacked_files = []

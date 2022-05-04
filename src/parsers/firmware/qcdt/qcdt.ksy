@@ -265,6 +265,9 @@ enums:
     425: sc7180
     453: ipq6005
     455: qrb5165
+    457: sm8450
+    459: sm7225
+    460: sa8540p
   platform_ids:
     1: cdp
     2: ffa
@@ -286,7 +289,12 @@ enums:
     21: rcm
     23: stp
     24: sbc
+    25: adp
     29: cls
+    30: ttp
+    31: hdk
+    32: iot
+    34: idp
   pmic_ids:
     0: unknown
     1: pm8941
@@ -321,3 +329,13 @@ enums:
     32: pm8150b
     33: pmk8002
     36: pm8009
+    38: pm8150c
+    41: smb2351
+    47: pmk8350
+    48: pm8350
+    49: pm8350c
+    50: pm8350b
+    51: pmr735a
+    52: pmr735b
+    58: pm8450
+    65: pm8010

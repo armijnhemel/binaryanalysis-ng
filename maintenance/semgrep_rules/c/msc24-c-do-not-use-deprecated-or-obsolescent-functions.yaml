@@ -1,0 +1,26 @@
+rules:
+  - id: msc24-c-do-not-use-deprecated-or-obsolescent-functions
+    pattern-either:
+      - pattern: asctime(...)
+      - pattern: atof(...)
+      - pattern: atoi(...)
+      - pattern: atol(...)
+      - pattern: atoll(...)
+      - pattern: ctime(...)
+      - pattern: fopen(...)
+      - pattern: freopen(...)
+      - pattern: rewind(...)
+      - pattern: setbuf(...)
+    message: |
+      "Do not use deprecated or obsolescent functions when more secure
+      equivalent functions are available. Deprecated functions are defined
+      by the C Standard. Obsolescent functions are defined by this
+      recommendation."
+    metadata:
+      cert: msc24-c
+      cert_url: https://wiki.sei.cmu.edu/confluence/display/c/MSC24-C.+Do+not+use+deprecated+or+obsolescent+functions
+      license: CC0-1.0
+    severity: ERROR
+    languages:
+      - c
+      - cpp
