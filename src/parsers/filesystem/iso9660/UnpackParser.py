@@ -107,20 +107,70 @@ class Iso9660UnpackParser(UnpackParser):
                             else:
                                 files.append((record, pathlib.Path('')))
 
+                    # process each file and sanity check
                     while len(files) != 0:
                         record, cwd = files.popleft()
                         extent_size = record.body.extent.value * descriptor.volume.logical_block_size.value
                         check_condition(extent_size <= self.fileresult.filesize,
                                         "extent cannot be outside of file")
 
-                        # process the various system use entries,
-                        # to extract some interesting information
+                        # store if an entry is a zisofs file
+                        is_zisofs_file = False
+
+                        # store if an entry has been relocated
+                        is_relocated = False
+
+                        # store the interesting entries first before processing
+                        su_entries = []
+
                         try:
+                            # process the various system use entries,
+                            # to extract some interesting information
                             for entry in record.body.system_use.entries:
+                                if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.susp_continuation_area:
+                                    # store all the continuation area entries to
+                                    # the list of entries that need to be processed
+                                    # as well.
+                                    for susp_entry in entry.susp_data.continuation_area.entries:
+                                        su_entries.append(susp_entry)
+                                else:
+                                    su_entries.append(entry)
+
+                            for entry in su_entries:
                                 if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.apple_attribute_list:
                                     self.apple_iso = True
+                                elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrzf_zisofs:
+                                    is_zisofs_file = True
+                                    original_size = entry.susp_data.uncompressed_size.value
+                                    zisofs_header_size_susp = entry.susp_data.header_size
                         except AttributeError:
                             pass
+
+                        if not record.body.file_flags_directory:
+                            if is_zisofs_file:
+                                # sanity checks for zisofs files
+                                try:
+                                    zisofs_file = zisofs.Zisofs.from_bytes(record.body.file_content)
+                                except ValidationFailedError:
+                                    raise UnpackParserException(e.args)
+
+                                # extra sanity checks
+                                check_condition(original_size == zisofs_file.header.uncompressed_size,
+                                                "zisofs uncompressed size mismatch")
+
+                                zisofs_header_size = record.body.file_content[12]
+                                check_condition(zisofs_header_size == zisofs_file.header.len_header,
+                                                "zisofs header size mismatch")
+
+                                check_condition(len(record.body.file_content) == zisofs_file.final_block_pointer,
+                                                    "zisofs header size mismatch")
+
+                                for block in zisofs_file.blocks:
+                                    if block.len_block != 0:
+                                        try:
+                                            zlib.decompress(block.data)
+                                        except zlib.error as e:
+                                            raise UnpackParserException(e.args)
 
                         if record.body.directory_records is None:
                             continue
@@ -189,7 +239,7 @@ class Iso9660UnpackParser(UnpackParser):
                         symbolic_current_component_continue = False
 
                         # store the interesting entries first before processing
-                        self.su_entries = []
+                        su_entries = []
 
                         for entry in record.body.system_use.entries:
                             if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.susp_continuation_area:
@@ -197,11 +247,11 @@ class Iso9660UnpackParser(UnpackParser):
                                 # the list of entries that need to be processed
                                 # as well.
                                 for susp_entry in entry.susp_data.continuation_area.entries:
-                                    self.su_entries.append(susp_entry)
+                                    su_entries.append(susp_entry)
                             else:
-                                self.su_entries.append(entry)
+                                su_entries.append(entry)
 
-                        for entry in self.su_entries:
+                        for entry in su_entries:
                             if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_symbolic_link:
                                 is_symlink = True
                                 for component in entry.susp_data.component_records:
@@ -297,16 +347,6 @@ class Iso9660UnpackParser(UnpackParser):
                                 if is_zisofs_file:
                                     zisofs_file = zisofs.Zisofs.from_bytes(record.body.file_content)
 
-                                    # extra sanity checks
-                                    check_condition(original_size == zisofs_file.header.uncompressed_size,
-                                                    "zisofs uncompressed size mismatch")
-
-                                    zisofs_header_size = record.body.file_content[12]
-                                    check_condition(zisofs_header_size == zisofs_file.header.len_header,
-                                                    "zisofs header size mismatch")
-
-                                    check_condition(len(record.body.file_content) == zisofs_file.final_block_pointer,
-                                                    "zisofs header size mismatch")
                                     for block in zisofs_file.blocks:
                                         if block.len_block == 0:
                                             outfile.seek( zisofs_file.header.block_size)
