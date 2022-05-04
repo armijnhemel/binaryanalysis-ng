@@ -37,8 +37,7 @@ from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from . import iso9660
-
-ZISO_MAGIC = b'\x37\xe4\x53\x96\xc9\xdB\xd6\x07'
+from . import zisofs
 
 #class Iso9660UnpackParser(WrappedUnpackParser):
 class Iso9660UnpackParser(UnpackParser):
@@ -294,20 +293,31 @@ class Iso9660UnpackParser(UnpackParser):
                                 outfile_full.symlink_to(symbolic_target_name)
                                 fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
                             else:
+                                outfile = open(outfile_full, 'wb')
                                 if is_zisofs_file:
+                                    zisofs_file = zisofs.Zisofs.from_bytes(record.body.file_content)
+
                                     # extra sanity checks
-                                    check_condition(record.body.file_content[:8] == ZISO_MAGIC,
-                                                    "invalid ziso magic")
-                                    uncompressed_size = int.from_bytes(record.body.file_content[8:12], byteorder='little')
-                                    check_condition(original_size == uncompressed_size,
+                                    check_condition(original_size == zisofs_file.header.uncompressed_size,
                                                     "zisofs uncompressed size mismatch")
 
                                     zisofs_header_size = record.body.file_content[12]
-                                    check_condition(zisofs_header_size == zisofs_header_size_susp,
+                                    check_condition(zisofs_header_size == zisofs_file.header.len_header,
                                                     "zisofs header size mismatch")
 
-                                outfile = open(outfile_full, 'wb')
-                                outfile.write(record.body.file_content)
+                                    check_condition(len(record.body.file_content) == zisofs_file.final_block_pointer,
+                                                    "zisofs header size mismatch")
+                                    for block in zisofs_file.blocks:
+                                        if block.len_block == 0:
+                                            outfile.seek( zisofs_file.header.block_size)
+                                        else:
+                                            outfile.write(zlib.decompress(block.data))
+                                    # in case more bytes were written because the last
+                                    # block with NUL bytes actually should not have been
+                                    # a full block.
+                                    outfile.truncate(original_size)
+                                else:
+                                    outfile.write(record.body.file_content)
 
                                 outfile.close()
                                 fr = FileResult(self.fileresult, outfile_rel, set())
