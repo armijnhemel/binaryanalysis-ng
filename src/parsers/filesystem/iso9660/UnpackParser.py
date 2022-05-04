@@ -127,10 +127,17 @@ class Iso9660UnpackParser(UnpackParser):
                             # to extract some interesting information
                             for entry in record.body.system_use.entries:
                                 if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.susp_continuation_area:
+                                    old_offset = self.infile.tell()
+                                    self.infile.seek(self.block_size * entry.susp_data.ca_location.value + entry.susp_data.ca_offset.value)
+                                    susp_bytes = self.infile.read(entry.susp_data.ca_length.value)
+                                    self.infile.seek(old_offset)
+
+                                    continuation_area = iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.from_bytes(susp_bytes)
+
                                     # store all the continuation area entries to
                                     # the list of entries that need to be processed
                                     # as well.
-                                    for susp_entry in entry.susp_data.continuation_area.entries:
+                                    for susp_entry in continuation_area.entries:
                                         su_entries.append(susp_entry)
                                 else:
                                     su_entries.append(entry)
@@ -274,7 +281,17 @@ class Iso9660UnpackParser(UnpackParser):
                                 # store all the continuation area entries to
                                 # the list of entries that need to be processed
                                 # as well.
-                                for susp_entry in entry.susp_data.continuation_area.entries:
+                                old_offset = self.infile.tell()
+                                self.infile.seek(self.block_size * entry.susp_data.ca_location.value + entry.susp_data.ca_offset.value)
+                                susp_bytes = self.infile.read(entry.susp_data.ca_length.value)
+                                self.infile.seek(old_offset)
+
+                                continuation_area = iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.from_bytes(susp_bytes)
+
+                                # store all the continuation area entries to
+                                # the list of entries that need to be processed
+                                # as well.
+                                for susp_entry in continuation_area.entries:
                                     su_entries.append(susp_entry)
                             else:
                                 su_entries.append(entry)

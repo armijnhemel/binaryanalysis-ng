@@ -41,10 +41,6 @@ instances:
   sector_size:
     doc-ref: ecma-119 6.1.2
     value: 0x800
-  logical_block_size:
-    # TODO: make sure that this is retrieved from the primary
-    # volume descriptor instead.
-    value: 0x800
 enums:
   volume_type:
     0x00: boot_record
@@ -680,12 +676,6 @@ types:
                             type: u4bi
                           - id: ca_length
                             type: u4bi
-                        instances:
-                          continuation_area:
-                            pos: _root.logical_block_size * ca_location.value + ca_offset.value
-                            io: _root._io
-                            type: susp
-                            size: ca_length.value
                       rrip_cl:
                         doc-ref: rrip 4.1.5.1
                         seq:
