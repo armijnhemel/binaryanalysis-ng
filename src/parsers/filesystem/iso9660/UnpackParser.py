@@ -139,12 +139,41 @@ class Iso9660UnpackParser(UnpackParser):
                             for entry in su_entries:
                                 if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.apple_attribute_list:
                                     self.apple_iso = True
+                                elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_relocated_directory:
+                                    is_relocated = True
                                 elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrzf_zisofs:
                                     is_zisofs_file = True
                                     original_size = entry.susp_data.uncompressed_size.value
                                     zisofs_header_size_susp = entry.susp_data.header_size
                         except AttributeError:
                             pass
+
+                        if is_relocated:
+                            # sanity check the SUSP entries for the second
+                            # directory item ('..'). According to the
+                            # specifications:
+                            #
+                            # The "PL" System Use Entry shall be recorded in the
+                            # System Use Area of the second Directory Record
+                            # (".." entry) of each moved directory.
+                            #
+                            # TODO: the PL entry could be in a continuation area
+
+                            # set parent to a dummy value. If there is a PL entry
+                            # this will be overwritten with an actual value, so
+                            # an easy sanity check would be to check if the
+                            # dummy value has been changed.
+                            parent = -1
+                            for directory_record in record.body.directory_records.records:
+                                if directory_record.len_dr == 0:
+                                    continue
+                                if directory_record.body.file_id == '\x01':
+                                    for entry in directory_record.body.system_use.entries:
+                                        if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_parent_link:
+                                            parent = entry.susp_data.lba_parent.value
+                                            break
+                                    break
+                            check_condition(parent != -1, "invalid parent link")
 
                         if not record.body.file_flags_directory:
                             if is_zisofs_file:
@@ -327,7 +356,7 @@ class Iso9660UnpackParser(UnpackParser):
                                         parent = entry.susp_data.lba_parent.value
                                         break
                                 break
-                        check_condition(parent != -1, "invalid parent link")
+
                         self.moved_to_parent_extent[cwd / filename] = parent
 
                     if not record.body.file_flags_directory:
