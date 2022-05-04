@@ -106,7 +106,8 @@ class Iso9660UnpackParser(UnpackParser):
                             else:
                                 files.append((record, pathlib.Path('')))
 
-                    # process each file and sanity check
+                    # process each file, perform various sanity checks
+                    # and store useful metadata
                     while len(files) != 0:
                         record, cwd = files.popleft()
                         extent_size = record.body.extent.value * descriptor.volume.logical_block_size.value
@@ -149,6 +150,7 @@ class Iso9660UnpackParser(UnpackParser):
                                     is_relocated = True
                                 elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrzf_zisofs:
                                     is_zisofs_file = True
+                                    self.zisofs = True
                                     original_size = entry.susp_data.uncompressed_size.value
                                     zisofs_header_size_susp = entry.susp_data.header_size
                         except AttributeError:
@@ -346,7 +348,7 @@ class Iso9660UnpackParser(UnpackParser):
                             filename = alternate_name
                         if symbolic_link_components != []:
                             symbolic_target_name = pathlib.Path(*symbolic_link_components)
-                    except AttributeError as e:
+                    except AttributeError:
                         # there are no entries in the system use
                         # field or there is no system use field.
                         pass
@@ -397,6 +399,7 @@ class Iso9660UnpackParser(UnpackParser):
                                             outfile.seek( zisofs_file.header.block_size)
                                         else:
                                             outfile.write(zlib.decompress(block.data))
+
                                     # in case more bytes were written because the last
                                     # block with NUL bytes actually should not have been
                                     # a full block.
@@ -439,6 +442,8 @@ class Iso9660UnpackParser(UnpackParser):
 
         if self.apple_iso:
             metadata['apple extensions'] = True
+        if self.zisofs:
+            metadata['zisofs'] = True
 
         self.unpack_results.set_metadata(metadata)
         self.unpack_results.set_labels(labels)
