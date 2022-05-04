@@ -26,7 +26,6 @@ let
     telfhash
     tlsh
     xxhash
-    zstd
     zstandard
   ]);
     
