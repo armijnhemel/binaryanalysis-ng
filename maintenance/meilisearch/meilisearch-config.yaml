@@ -2,10 +2,10 @@
 meilisearch:
     # Meilisearch connection information
     # The host for the Meilisearch server.
-    meilisearch_host: 127.0.0.1
+    host: 127.0.0.1
 
     # The port for the Meilisearch server.
-    meilisearch_port: 7700
+    port: 7700
 general:
     # directory for unpacking. By default this is /tmp or
     # whatever the default set by the system is (for example:

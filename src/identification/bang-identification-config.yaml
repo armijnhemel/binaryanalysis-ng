@@ -7,3 +7,9 @@ general:
 yara:
     # directory where pre-compiled yara rules can be found
     compiled_rules: /home/armijn/yara/binary
+meilisearch:
+    # The host for the Meilisearch server.
+    host: 127.0.0.1
+
+    # The port for the Meilisearch server.
+    port: 7700
