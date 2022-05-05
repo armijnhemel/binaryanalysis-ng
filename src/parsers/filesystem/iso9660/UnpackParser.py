@@ -59,6 +59,11 @@ class Iso9660UnpackParser(UnpackParser):
             has_primary = False
             has_terminator = False
 
+            # data structures for relocated directories
+            self.moved_to_parent_extent = {}
+            self.extent_to_full_file = {}
+            self.placeholders = set()
+
             # check the contents of the ISO image
             for descriptor in self.data.data_area:
                 if descriptor.type == iso9660.Iso9660.VolumeType.primary:
@@ -89,11 +94,6 @@ class Iso9660UnpackParser(UnpackParser):
                     # entry.
                     # Seen in an ISO file included in an ASUS firmware file
                     # Modem_FW_4G_AC55U_30043808102_M14.zip
-
-                    # data structures for relocated directories
-                    self.moved_to_parent_extent = {}
-                    self.extent_to_full_file = {}
-                    self.placeholders = set()
 
                     files = collections.deque()
                     if descriptor.volume.root_directory.body.directory_records is not None:
@@ -261,6 +261,7 @@ class Iso9660UnpackParser(UnpackParser):
 
                     # store if an entry has been relocated
                     is_relocated = False
+                    is_placeholder = False
 
                     # process the various system use entries, mostly from RockRidge
                     try:
@@ -337,6 +338,7 @@ class Iso9660UnpackParser(UnpackParser):
                                     alternate_name += entry.susp_data.name
                             elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_child_link:
                                 self.placeholders.add(cwd / filename)
+                                is_placeholder = True
                             elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_relocated_directory:
                                 is_relocated = True
                             elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrzf_zisofs:
@@ -353,7 +355,9 @@ class Iso9660UnpackParser(UnpackParser):
                         # field or there is no system use field.
                         pass
 
-                    self.extent_to_full_file[record.body.extent.value] = cwd / filename
+                    # do not record
+                    if not is_placeholder and not is_symlink:
+                        self.extent_to_full_file[record.body.extent.value] = cwd / filename
 
                     if is_relocated:
                         # now process the second directory item. According to the
@@ -385,7 +389,7 @@ class Iso9660UnpackParser(UnpackParser):
 
                         # create files/links but only if they are not
                         # placeholder files (for relocated directories)
-                        if cwd / filename not in self.placeholders:
+                        if not is_placeholder:
                             if is_symlink:
                                 outfile_full.symlink_to(symbolic_target_name)
                                 fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
