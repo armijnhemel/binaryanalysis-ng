@@ -390,10 +390,7 @@ class Iso9660UnpackParser(UnpackParser):
 
                     if not record.body.file_flags_directory:
                         # regular files, symlinks, etc.
-                        if cwd / filename in self.stored_filename_to_full_filename:
-                            outfile_rel = self.rel_unpack_dir / self.stored_filename_to_full_filename[cwd / filename]
-                        else:
-                            outfile_rel = self.rel_unpack_dir / cwd / filename
+                        outfile_rel = self.rel_unpack_dir / full_filename
                         outfile_full = self.scan_environment.unpack_path(outfile_rel)
                         os.makedirs(outfile_full.parent, exist_ok=True)
 
