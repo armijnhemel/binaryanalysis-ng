@@ -131,6 +131,7 @@ class Iso9660UnpackParser(UnpackParser):
                         # store if an entry has been relocated
                         is_relocated = False
                         is_placeholder = False
+                        is_symlink = False
 
                         try:
                             # process the various system use entries (mostly
@@ -165,6 +166,8 @@ class Iso9660UnpackParser(UnpackParser):
                             for entry in su_entries:
                                 if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.apple_attribute_list:
                                     self.apple_iso = True
+                                elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_symbolic_link:
+                                    is_symlink = True
                                 elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_alternate_name:
                                     # TODO: extra sanity checks for the alternate
                                     # name and how to resolve if either 'parent'
@@ -197,6 +200,9 @@ class Iso9660UnpackParser(UnpackParser):
 
                         if is_placeholder:
                             self.placeholders.add(full_filename)
+                        else:
+                            if not is_symlink:
+                                self.extent_to_full_file[record.body.extent.value] = full_filename
 
                         if is_relocated:
                             # sanity check the SUSP entries for the second
@@ -385,9 +391,6 @@ class Iso9660UnpackParser(UnpackParser):
                         # there are no entries in the system use
                         # field or there is no system use field.
                         pass
-
-                    if not is_placeholder:
-                        self.extent_to_full_file[record.body.extent.value] = full_filename
 
                     if is_relocated:
                         parent = self.relocated_to_parent_extent[full_filename]
