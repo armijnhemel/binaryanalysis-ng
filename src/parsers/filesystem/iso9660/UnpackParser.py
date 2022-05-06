@@ -20,6 +20,10 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# Process ISO9660 file systems. It should be noted that this is not
+# a complete implementation and there are quite a few different ways to
+# confuse parsers, hide data and so on:
+#
 # https://www.sciencedirect.com/science/article/pii/S1742287610000435
 
 import collections
