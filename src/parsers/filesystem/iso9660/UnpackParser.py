@@ -474,6 +474,10 @@ class Iso9660UnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         pass
 
+    # no need to carve from the file
+    def carve(self):
+        pass
+
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         labels = ['iso9660', 'filesystem']
