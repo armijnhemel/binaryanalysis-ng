@@ -126,6 +126,7 @@ class Iso9660UnpackParser(UnpackParser):
 
                         # store if an entry has been relocated
                         is_relocated = False
+                        is_placeholder = False
 
                         try:
                             # process the various system use entries (mostly
@@ -172,6 +173,8 @@ class Iso9660UnpackParser(UnpackParser):
                                         alternate_name += entry.susp_data.name
                                 elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_relocated_directory:
                                     is_relocated = True
+                                elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_child_link:
+                                    is_placeholder = True
                                 elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrzf_zisofs:
                                     is_zisofs_file = True
                                     self.zisofs = True
@@ -187,6 +190,9 @@ class Iso9660UnpackParser(UnpackParser):
                                 full_filename = cwd_name / alternate_name
                         except AttributeError:
                             pass
+
+                        if is_placeholder:
+                            self.placeholders.add(full_filename)
 
                         if is_relocated:
                             # sanity check the SUSP entries for the second
@@ -361,7 +367,6 @@ class Iso9660UnpackParser(UnpackParser):
                                             symbolic_current_component = ''
                                     symbolic_current_component_continue = component.continued
                             elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_child_link:
-                                self.placeholders.add(cwd / filename)
                                 is_placeholder = True
                             elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_relocated_directory:
                                 is_relocated = True
@@ -378,7 +383,7 @@ class Iso9660UnpackParser(UnpackParser):
                         pass
 
                     if not is_placeholder:
-                        self.extent_to_full_file[record.body.extent.value] = cwd / filename
+                        self.extent_to_full_file[record.body.extent.value] = full_filename
 
                     if is_relocated:
                         parent = self.relocated_to_parent_extent[full_filename]
