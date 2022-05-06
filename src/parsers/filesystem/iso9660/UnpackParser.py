@@ -70,7 +70,6 @@ class Iso9660UnpackParser(UnpackParser):
 
             # mapping between stored file names and alternate file names
             self.stored_filename_to_full_filename = {}
-            self.full_filename_to_stored_filename = {}
 
             # check the contents of the ISO image
             for descriptor in self.data.data_area:
@@ -193,7 +192,6 @@ class Iso9660UnpackParser(UnpackParser):
                                 else:
                                     cwd_name = cwd
                                 self.stored_filename_to_full_filename[cwd / filename] = cwd_name / alternate_name
-                                self.full_filename_to_stored_filename[cwd_name / alternate_name] = cwd / filename
                                 full_filename = cwd_name / alternate_name
                         except AttributeError:
                             pass
@@ -284,6 +282,27 @@ class Iso9660UnpackParser(UnpackParser):
             extent = self.relocated_to_parent_extent[f]
             check_condition(extent in self.extent_to_full_file,
                             "invalid extent in relocated entries")
+
+        # rewrite the names of entries in case there are relocated entries.
+        # Do this in a loop as there might have been multiple levels of
+        # relocation and those all need to be rewritten.
+        rewritten_entries = set()
+        while True:
+            rewritten = False
+            for f in self.relocated_to_parent_extent:
+                extent = self.relocated_to_parent_extent[f]
+                extent_name = self.extent_to_full_file[extent]
+                new_entry_name = extent_name / f.name
+                for name in self.stored_filename_to_full_filename:
+                    if f == self.stored_filename_to_full_filename[name]:
+                        self.stored_filename_to_full_filename[name] = new_entry_name
+                        rewritten = True
+                    elif self.stored_filename_to_full_filename[name].is_relative_to(f):
+                        relative = self.stored_filename_to_full_filename[name].relative_to(f)
+                        self.stored_filename_to_full_filename[name] = new_entry_name / relative
+                        rewritten = True
+            if not rewritten:
+                break
 
         self.unpacked_size = iso_size
 
@@ -399,9 +418,6 @@ class Iso9660UnpackParser(UnpackParser):
                         # field or there is no system use field.
                         pass
 
-                    if is_relocated:
-                        parent = self.relocated_to_parent_extent[full_filename]
-
                     if not record.body.file_flags_directory:
                         # regular files, symlinks, etc.
                         outfile_rel = self.rel_unpack_dir / full_filename
@@ -436,6 +452,10 @@ class Iso9660UnpackParser(UnpackParser):
                                 fr = FileResult(self.fileresult, outfile_rel, set())
                             unpacked_files.append(fr)
                     else:
+                        outfile_rel = self.rel_unpack_dir / full_filename
+                        outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                        os.makedirs(outfile_full, exist_ok=True)
+
                         # add the contents of a directory to the queue
                         for dir_record in record.body.directory_records.records:
                             # skip empty directory records
