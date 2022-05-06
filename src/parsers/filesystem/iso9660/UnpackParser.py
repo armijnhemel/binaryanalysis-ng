@@ -64,6 +64,10 @@ class Iso9660UnpackParser(UnpackParser):
             self.extent_to_full_file = {}
             self.placeholders = set()
 
+            # mapping between stored file names and alternate file names
+            self.stored_filename_to_full_filename = {}
+            self.full_filename_to_stored_filename = {}
+
             # check the contents of the ISO image
             for descriptor in self.data.data_area:
                 if descriptor.type == iso9660.Iso9660.VolumeType.primary:
@@ -110,6 +114,7 @@ class Iso9660UnpackParser(UnpackParser):
                     # and store useful metadata
                     while len(files) != 0:
                         record, cwd = files.popleft()
+                        filename = record.body.file_id
                         extent_size = record.body.extent.value * descriptor.volume.logical_block_size.value
                         check_condition(extent_size <= self.fileresult.filesize,
                                         "extent cannot be outside of file")
@@ -120,12 +125,17 @@ class Iso9660UnpackParser(UnpackParser):
                         # store if an entry has been relocated
                         is_relocated = False
 
-                        # store the interesting entries first before processing
-                        su_entries = []
-
                         try:
-                            # process the various system use entries,
-                            # to extract some interesting information
+                            # process the various system use entries (mostly
+                            # RockRidge), to extract interesting information
+
+                            # SUSP entries can appear in different places.
+                            # There can be "continuation area" entries with
+                            # more entries, so first extract all the entries
+                            # (including the ones in continuation areas) before
+                            # processing.
+                            su_entries = []
+
                             for entry in record.body.system_use.entries:
                                 if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.susp_continuation_area:
                                     old_offset = self.infile.tell()
@@ -133,19 +143,31 @@ class Iso9660UnpackParser(UnpackParser):
                                     susp_bytes = self.infile.read(entry.susp_data.ca_length.value)
                                     self.infile.seek(old_offset)
 
+                                    # parse the continuation area
                                     continuation_area = iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.from_bytes(susp_bytes)
 
-                                    # store all the continuation area entries to
-                                    # the list of entries that need to be processed
-                                    # as well.
+                                    # store all the entries
                                     for susp_entry in continuation_area.entries:
                                         su_entries.append(susp_entry)
                                 else:
                                     su_entries.append(entry)
 
+                            # store the alternate name, if any
+                            alternate_name = ''
+
                             for entry in su_entries:
                                 if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.apple_attribute_list:
                                     self.apple_iso = True
+                                elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_alternate_name:
+                                    # TODO: extra sanity checks for the alternate
+                                    # name and how to resolve if either 'parent'
+                                    # or 'current' is set.
+                                    if entry.susp_data.parent:
+                                        alternate_name = '..'
+                                    elif entry.susp_data.current:
+                                        alternate_name = '.'
+                                    else:
+                                        alternate_name += entry.susp_data.name
                                 elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_relocated_directory:
                                     is_relocated = True
                                 elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrzf_zisofs:
@@ -153,6 +175,13 @@ class Iso9660UnpackParser(UnpackParser):
                                     self.zisofs = True
                                     original_size = entry.susp_data.uncompressed_size.value
                                     zisofs_header_size_susp = entry.susp_data.header_size
+                            if alternate_name != '':
+                                if cwd in self.stored_filename_to_full_filename:
+                                    cwd_name = self.stored_filename_to_full_filename[cwd]
+                                else:
+                                    cwd_name = cwd
+                                self.stored_filename_to_full_filename[cwd / filename] = cwd_name / alternate_name
+                                self.full_filename_to_stored_filename[cwd_name / alternate_name] = cwd / filename
                         except AttributeError:
                             pass
 
@@ -216,9 +245,9 @@ class Iso9660UnpackParser(UnpackParser):
                                 continue
                             if dir_record.body.file_flags_directory:
                                 if dir_record.body.file_id not in ['\x00', '\x01']:
-                                    files.append((dir_record, cwd))
+                                    files.append((dir_record, cwd / filename))
                             else:
-                                files.append((dir_record, cwd))
+                                files.append((dir_record, cwd / filename))
                 elif descriptor.type == iso9660.Iso9660.VolumeType.boot_record:
                     pass
                 elif descriptor.type == iso9660.Iso9660.VolumeType.set_terminator:
@@ -253,7 +282,7 @@ class Iso9660UnpackParser(UnpackParser):
 
                 while len(files) != 0:
                     record, cwd = files.popleft()
-                    filename = record.body.file_id.split(';', 1)[0]
+                    filename = record.body.file_id
                     is_symlink = False
 
                     # store if an entry is a zisofs file
@@ -265,9 +294,6 @@ class Iso9660UnpackParser(UnpackParser):
 
                     # process the various system use entries, mostly from RockRidge
                     try:
-                        # store an alternate name
-                        alternate_name = ''
-
                         # process symbolic links. There can be multiple SL fields
                         # and together these make up the symbolic link target.
                         # To make things even more interesting each individual
@@ -326,16 +352,6 @@ class Iso9660UnpackParser(UnpackParser):
                                             symbolic_link_components.append(component_name)
                                             symbolic_current_component = ''
                                     symbolic_current_component_continue = component.continued
-                            elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_alternate_name:
-                                # TODO: extra sanity checks for the alternate
-                                # name and how to resolve if either 'parent'
-                                # or 'current' is set.
-                                if entry.susp_data.parent:
-                                    alternate_name = '..'
-                                elif entry.susp_data.current:
-                                    alternate_name = '.'
-                                else:
-                                    alternate_name += entry.susp_data.name
                             elif entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_child_link:
                                 self.placeholders.add(cwd / filename)
                                 is_placeholder = True
@@ -346,8 +362,6 @@ class Iso9660UnpackParser(UnpackParser):
                                 original_size = entry.susp_data.uncompressed_size.value
                                 zisofs_header_size_susp = entry.susp_data.header_size
 
-                        if alternate_name != '':
-                            filename = alternate_name
                         if symbolic_link_components != []:
                             symbolic_target_name = pathlib.Path(*symbolic_link_components)
                     except AttributeError:
@@ -355,8 +369,7 @@ class Iso9660UnpackParser(UnpackParser):
                         # field or there is no system use field.
                         pass
 
-                    # do not record
-                    if not is_placeholder and not is_symlink:
+                    if not is_placeholder:
                         self.extent_to_full_file[record.body.extent.value] = cwd / filename
 
                     if is_relocated:
@@ -383,7 +396,10 @@ class Iso9660UnpackParser(UnpackParser):
 
                     if not record.body.file_flags_directory:
                         # regular files, symlinks, etc.
-                        outfile_rel = self.rel_unpack_dir / cwd / filename
+                        if cwd / filename in self.stored_filename_to_full_filename:
+                            outfile_rel = self.rel_unpack_dir / self.stored_filename_to_full_filename[cwd / filename]
+                        else:
+                            outfile_rel = self.rel_unpack_dir / cwd / filename
                         outfile_full = self.scan_environment.unpack_path(outfile_rel)
                         os.makedirs(outfile_full.parent, exist_ok=True)
 
