@@ -31,9 +31,6 @@ import os
 import pathlib
 import zlib
 
-from UnpackParser import WrappedUnpackParser
-from bangfilesystems import unpack_iso9660
-
 from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
@@ -42,16 +39,12 @@ from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from . import iso9660
 from . import zisofs
 
-#class Iso9660UnpackParser(WrappedUnpackParser):
 class Iso9660UnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (32769, b'CD001')
     ]
     pretty_name = 'iso9660'
-
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_iso9660(fileresult, scan_environment, offset, unpack_dir)
 
     def parse(self):
         self.zisofs = False

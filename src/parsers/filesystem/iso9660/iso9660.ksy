@@ -20,6 +20,9 @@ doc: |
   features and very conservative file names standards) and sequential
   access (which favors disc devices with relatively slow rotation
   speed).
+
+  SUSP: IEEE P1281
+  RockRidge: IEEE P1282
 doc-ref:
   - ecma-119 https://www.ecma-international.org/wp-content/uploads/ECMA-119_3rd_edition_december_2017.pdf
   - susp https://web.archive.org/web/20170404132301/http://www.ymi.com/ymi/sites/default/files/pdf/Systems%20Use%20P1281.pdf
