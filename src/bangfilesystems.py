@@ -26,6 +26,9 @@ import os
 import collections
 import math
 
+# NOTE: this file is no longer being used. The code below is just
+# for documentation purposes and will be used for sanity checking
+# the existing FAT implementation.
 
 # FAT file system
 # https://en.wikipedia.org/wiki/File_Allocation_Table
