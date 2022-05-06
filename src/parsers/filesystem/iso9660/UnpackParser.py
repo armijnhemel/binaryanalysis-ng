@@ -284,7 +284,6 @@ class Iso9660UnpackParser(UnpackParser):
             extent = self.relocated_to_parent_extent[f]
             check_condition(extent in self.extent_to_full_file,
                             "invalid extent in relocated entries")
-            extent_name = self.relocated_to_parent_extent[f]
 
         self.unpacked_size = iso_size
 
