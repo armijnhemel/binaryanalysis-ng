@@ -60,7 +60,7 @@ class Iso9660UnpackParser(UnpackParser):
             has_terminator = False
 
             # data structures for relocated directories
-            self.moved_to_parent_extent = {}
+            self.relocated_to_parent_extent = {}
             self.extent_to_full_file = {}
             self.placeholders = set()
 
@@ -115,6 +115,8 @@ class Iso9660UnpackParser(UnpackParser):
                     while len(files) != 0:
                         record, cwd = files.popleft()
                         filename = record.body.file_id
+                        full_filename = cwd / filename
+
                         extent_size = record.body.extent.value * descriptor.volume.logical_block_size.value
                         check_condition(extent_size <= self.fileresult.filesize,
                                         "extent cannot be outside of file")
@@ -182,6 +184,7 @@ class Iso9660UnpackParser(UnpackParser):
                                     cwd_name = cwd
                                 self.stored_filename_to_full_filename[cwd / filename] = cwd_name / alternate_name
                                 self.full_filename_to_stored_filename[cwd_name / alternate_name] = cwd / filename
+                                full_filename = cwd_name / alternate_name
                         except AttributeError:
                             pass
 
@@ -211,6 +214,7 @@ class Iso9660UnpackParser(UnpackParser):
                                             break
                                     break
                             check_condition(parent != -1, "invalid parent link")
+                            self.relocated_to_parent_extent[full_filename] = parent
 
                         if not record.body.file_flags_directory:
                             if is_zisofs_file:
@@ -283,6 +287,10 @@ class Iso9660UnpackParser(UnpackParser):
                 while len(files) != 0:
                     record, cwd = files.popleft()
                     filename = record.body.file_id
+                    if cwd / filename in self.stored_filename_to_full_filename:
+                        full_filename = self.stored_filename_to_full_filename[cwd / filename]
+                    else:
+                        full_filename = cwd / filename
                     is_symlink = False
 
                     # store if an entry is a zisofs file
@@ -373,26 +381,7 @@ class Iso9660UnpackParser(UnpackParser):
                         self.extent_to_full_file[record.body.extent.value] = cwd / filename
 
                     if is_relocated:
-                        # now process the second directory item. According to the
-                        # specifications:
-                        #
-                        # The "PL" System Use Entry shall be recorded in the
-                        # System Use Area of the second Directory Record
-                        # (".." entry) of each moved directory.
-                        #
-                        # TODO: the PL entry could be in a continuation area
-                        parent = -1
-                        for directory_record in record.body.directory_records.records:
-                            if directory_record.len_dr == 0:
-                                continue
-                            if directory_record.body.file_id == '\x01':
-                                for entry in directory_record.body.system_use.entries:
-                                    if entry.signature == iso9660.Iso9660.VolumeDescriptor.DirectoryRecord.Body.Susp.Header.Signature.rrip_parent_link:
-                                        parent = entry.susp_data.lba_parent.value
-                                        break
-                                break
-
-                        self.moved_to_parent_extent[cwd / filename] = parent
+                        parent = self.relocated_to_parent_extent[full_filename]
 
                     if not record.body.file_flags_directory:
                         # regular files, symlinks, etc.
