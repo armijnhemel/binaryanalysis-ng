@@ -18,6 +18,7 @@ let
     psycopg2
     pytest
     pyyaml
+    requests
     tinycss2
     tlsh
     yara-python
