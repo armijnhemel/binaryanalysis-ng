@@ -38,6 +38,8 @@ types:
         type: u4
       - id: len_used_space
         type: u4
+        valid:
+          max: _root._io.size
       - id: file_flags
         type: u1
   b_tree:

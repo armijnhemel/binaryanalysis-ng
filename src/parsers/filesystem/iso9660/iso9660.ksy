@@ -20,6 +20,9 @@ doc: |
   features and very conservative file names standards) and sequential
   access (which favors disc devices with relatively slow rotation
   speed).
+
+  SUSP: IEEE P1281
+  RockRidge: IEEE P1282
 doc-ref:
   - ecma-119 https://www.ecma-international.org/wp-content/uploads/ECMA-119_3rd_edition_december_2017.pdf
   - susp https://web.archive.org/web/20170404132301/http://www.ymi.com/ymi/sites/default/files/pdf/Systems%20Use%20P1281.pdf
@@ -113,7 +116,7 @@ types:
       hundredths_second:
         value: hundredths_second_string.to_i
       valid_date:
-        value: month >= 1 and month <= 12 and day >=1 and day <= 31 and hour <= 23 and minute <= 59 and second <= 59
+        value: month <= 12 and day <= 31 and hour <= 23 and minute <= 59 and second <= 59
   datetime_short:
     doc-ref: ecma-119 9.1.5
     seq:
@@ -488,16 +491,10 @@ types:
               - id: len_fi
                 doc-ref: ecma-119 9.1.10
                 type: u1
-              - id: file_id_file
+              - id: file_id
                 doc-ref: ecma-119 9.1.11
                 type: str
                 size: len_fi
-                if: not file_flags_directory
-              - id: file_id_dir
-                doc-ref: ecma-119 9.1.11
-                size: len_fi
-                type: str
-                if: file_flags_directory
               - id: padding_field
                 doc-ref: ecma-119 9.1.12
                 doc: |
@@ -527,7 +524,7 @@ types:
                   The SUSP magic is 2 bytes. A complete SUSP entry
                   is at least 4 bytes long.
                 seq:
-                  - id: header
+                  - id: entries
                     type: header
                     if: _io.size - _io.pos >= 4
                     repeat: until
@@ -781,6 +778,16 @@ types:
                         doc-ref: susp 4.1.3.1
                         seq:
                           - id: reserved
+                            type: b7
+                          - id: continued
+                            type: b1
+                          - id: component_records
+                            type: susp_sl_component_record
+                            repeat: eos
+                      susp_sl_component_record:
+                        doc-ref: susp 4.1.3.1
+                        seq:
+                          - id: reserved
                             type: b4
                           - id: root
                             type: b1
@@ -790,9 +797,11 @@ types:
                             type: b1
                           - id: continued
                             type: b1
+                          - id: len_component
+                            type: u1
                           - id: content
                             type: str
-                            size-eos: true
+                            size: len_component
                       susp_sp:
                         doc-ref: susp 5.3
                         seq:

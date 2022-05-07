@@ -24,8 +24,6 @@
 
 import math
 
-import bangfilesystems
-
 # store a few standard signatures
 signatures = {
     'webp': b'WEBP',
@@ -212,7 +210,6 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'iso9660': bangfilesystems.unpack_iso9660,
 }
 
 # a lookup table to map signatures to a name for
