@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import rockchip
 
 
@@ -41,7 +41,7 @@ class RockchipUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = rockchip.Rockchip.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         self.unpacked_size = 0
@@ -74,6 +74,8 @@ class RockchipUnpackParser(UnpackParser):
         for entry in entries:
             if entry.path == 'SELF':
                 continue
+            if entry.data is None:
+                continue
 
             out_labels = []
 
@@ -84,9 +86,10 @@ class RockchipUnpackParser(UnpackParser):
                 if new_name in seen_paths:
                     counter = 1
                     while True:
-                        name_with_ctr = "%s-%d" % (new_name, counter)
+                        name_with_ctr = "%s-renamed-%d" % (new_name, counter)
                         if not new_name in seen_paths:
                             new_name = name_with_ctr
+                            out_labels.append('renamed')
                             break
                         counter += 1
                 file_path = pathlib.Path(new_name)

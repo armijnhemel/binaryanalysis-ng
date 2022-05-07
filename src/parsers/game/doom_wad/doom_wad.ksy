@@ -15,6 +15,8 @@ seq:
     encoding: ASCII
   - id: num_index_entries
     type: s4
+    valid:
+      max: _root._io.size
     doc: Number of entries in the lump index
   - id: index_offset
     type: s4

@@ -24,7 +24,7 @@ import os
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import icns
 
 class AppleIconUnpackParser(UnpackParser):
@@ -38,7 +38,10 @@ class AppleIconUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = icns.Icns.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+
+            # force read data to trigger validations
+            parsed = self.data.root_element.data_parsed
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def unpack(self):

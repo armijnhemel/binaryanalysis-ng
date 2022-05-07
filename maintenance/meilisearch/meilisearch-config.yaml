@@ -1,0 +1,17 @@
+---
+meilisearch:
+    # Meilisearch connection information
+    # The host for the Meilisearch server.
+    host: 127.0.0.1
+
+    # The port for the Meilisearch server.
+    port: 7700
+general:
+    # directory for unpacking. By default this is /tmp or
+    # whatever the default set by the system is (for example:
+    # /run/user/$UID/ )
+    # tempdir: /tmp
+
+    # Threads to use. 0 = maximum (dependent on system)
+    # threads: 0
+    verbose: true

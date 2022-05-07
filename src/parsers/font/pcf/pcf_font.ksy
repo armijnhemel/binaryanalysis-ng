@@ -36,8 +36,8 @@ seq:
       min: 1
   - id: tables
     type: table
-    repeat: expr
-    repeat-expr: num_tables
+    repeat: until
+    repeat-until: _index == num_tables - 1
 types:
   table:
     doc: |
@@ -291,6 +291,7 @@ types:
       - id: is_big_endian
         -orig-id: PCF_BYTE_MASK
         type: b1
+        valid: false
         doc: If set, then all integers in the table are treated as big-endian
       - id: glyph_pad_mask
         type: b2

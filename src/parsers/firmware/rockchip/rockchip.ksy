@@ -33,6 +33,8 @@ types:
         type: strz
       - id: num_files
         type: u4
+        valid:
+          expr: num_files * 112 < file_size
       - id: rockchip_files
         type: rockchip_file
         size: 112

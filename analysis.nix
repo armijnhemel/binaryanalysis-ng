@@ -6,13 +6,13 @@ let
   pkgs = import sources.nixpkgs { config.allowUnfree = true; overlays = []; };
 
   my-python = pkgs.python39.withPackages (p: with p; [
-    cve-bin-tool
     deepdiff
     defusedxml
     dockerfile-parse
     elasticsearch
     icalendar
     kaitaistruct
+    meilisearch
     parameterized
     pdfminer
     psycopg2
@@ -20,13 +20,15 @@ let
     pyyaml
     tinycss2
     tlsh
+    yara-python
   ]);
 
 in
 pkgs.mkShell {
   buildInputs = with pkgs; [
+    apkid
     binutils
-    libxml2
+    cve-bin-tool
     openjdk8
     openssl
     my-python

@@ -5,19 +5,22 @@ The NSRL forensics data sets can be found at:
 https://www.nist.gov/software-quality-group/national-software-reference-library-nsrl
 
 The main contents of NSRL are published as multiple ISO images, each containing
-CSV files. NSRL version 2.71 (December 2020) has the following sets:
+CSV files. NSRL version 2.76 (March 2022) has the following sets:
 
-* modern
+* modern (microcomputer applications from 2010 to present)
 * android (modern Android applications)
 * iOS
-* legacy
+* legacy (microcomputer applications from 2009 and earlier)
+
+Data for older Android applications can be found in version 2.65. Data for
+older iOS applications can be found in version 2.73.1.
 
 Each of these ISO files contain several CSV files:
 
-NSRLFile.txt (stored ZIP compressed as NSRLFile.txt.zip) -- maps checksums and names of individual files to products
-NSRLMfg.txt -- information about manufacturers
-NSRLOS.txt -- information about operating systems
-NSRLProd.txt -- information about individual products
+* `NSRLFile.txt` (stored ZIP compressed as `NSRLFile.txt.zip`) -- maps checksums and names of individual files to products
+* `NSRLMfg.txt` -- information about manufacturers
+* `NSRLOS.txt` -- information about operating systems
+* `NSRLProd.txt` -- information about individual products
 
 The first line of each file lists the field names.
 
@@ -28,7 +31,7 @@ shows that they might not be. It is advised to translate them first.
 
 Then they need to be made searchable by putting them into a database.
 
-The script nsrlimporter.py takes care of both steps (although translation can
+The script `nsrlimporter.py` takes care of both steps (although translation can
 optionally be disabled).
 
 ## Requirements
@@ -46,7 +49,7 @@ To use the files do the following:
     $ psql -U username < nsrl-init.sql
 
 2. mount the ISO files and copy the CSV files to a directory and make sure
-that NSRLFile.txt.zip has been unzipped.
+that `NSRLFile.txt.zip` has been unzipped.
 
 The easiest is to mount each file over loopback, for example:
 
@@ -55,7 +58,11 @@ The easiest is to mount each file over loopback, for example:
 
 As a normal user do:
 
-    $ cp /tmp/mnt/* /home/armijn/nsrl/android/
+    $ cp /tmp/mnt/* /path/to/nsrl/directory
+
+for example:
+
+    $ cp /tmp/mnt/* /home/armijn/tmp/nsrl/
 
 Of course you can also unpack the ISO-files via a desktop manager.
 
@@ -76,7 +83,7 @@ for example:
 The data in the NSRL dumps is not guaranteed to be in a single encoding: in
 older versions of NSRL various encodings were found. By default the importer
 will try to convert the data to UTF-8, although this is not guaranteed to
-work. To disable this behaviour (NOT recommended) supply the '-t' flag:
+work. To disable this behaviour (NOT recommended) supply the `-t` flag:
 
     $ python3 nsrlimporter.py -c /path/to/configuration/file -d /path/to/nsrl/directory -t
 
@@ -88,66 +95,60 @@ work. To disable this behaviour (NOT recommended) supply the '-t' flag:
 
 ## Statistics:
 
-Some statistics for a recent version of NSRL (2.60, March 2018):
+Some statistics for a recent version of NSRL (2.74, September 2021, modern applications only):
 
     bang=> \dt+
                              List of relations
      Schema |       Name        | Type  | Owner |  Size   | Description 
     --------+-------------------+-------+-------+---------+-------------
-     public | nsrl_entry        | table | bang  | 13 GB   | 
-     public | nsrl_hash         | table | bang  | 7477 MB | 
-     public | nsrl_manufacturer | table | bang  | 4208 kB | 
-     public | nsrl_os           | table | bang  | 104 kB  | 
-     public | nsrl_product      | table | bang  | 12 MB   | 
+     public | nsrl_entry        | table | bang  | 13 GB   |
+     public | nsrl_hash         | table | bang  | 5391 MB |
+     public | nsrl_manufacturer | table | bang  | 4944 kB |
+     public | nsrl_os           | table | bang  | 128 kB  |
+     public | nsrl_product      | table | bang  | 2184 kB |
     (5 rows)
     
     bang=> \di+
                                           List of relations
      Schema |          Name          | Type  | Owner |       Table       |  Size   | Description 
     --------+------------------------+-------+-------+-------------------+---------+-------------
-     public | nsrl_entry_sha1        | index | bang  | nsrl_entry        | 16 GB   | 
-     public | nsrl_hash_pkey         | index | bang  | nsrl_hash         | 5434 MB | 
-     public | nsrl_manufacturer_pkey | index | bang  | nsrl_manufacturer | 1976 kB | 
-     public | nsrl_os_pkey           | index | bang  | nsrl_os           | 48 kB   | 
-     public | nsrl_product_pkey      | index | bang  | nsrl_product      | 6720 kB | 
+     public | nsrl_entry_sha1        | index | bang  | nsrl_entry        | 12 GB   |
+     public | nsrl_hash_pkey         | index | bang  | nsrl_hash         | 2501 MB |
+     public | nsrl_manufacturer_pkey | index | bang  | nsrl_manufacturer | 2280 kB |
+     public | nsrl_os_pkey           | index | bang  | nsrl_os           | 72 kB   |
+     public | nsrl_product_pkey      | index | bang  | nsrl_product      | 552 kB  |
     (5 rows)
 
     bang=> select from nsrl_entry ;
     --
-    (179741841 rows)
+    (182824087 rows)
     
     bang=> select from nsrl_hash ;
     --
-    (62275938 rows)
+    (38320334 rows)
     
     bang=> select from nsrl_manufacturer ;
     --
-    (80636 rows)
+    (95343 rows)
     
     bang=> select from nsrl_os ;
     --
-    (1003 rows)
+    (1359 rows)
     
     bang=> select from nsrl_product ;
     --
-    (164295 rows)
+    (24372 rows)
 
 # Database design
 
 There are five tables, with the following schema:
 
     create table if not exists nsrl_hash(sha1 text, md5 text, crc32 text, filename text, primary key(sha1));
-    create table if not exists nsrl_entry(sha1 text, productcode int);
-    create table if not exists nsrl_manufacturer(manufacturercode int, manufacturername text, primary key(manufacturercode));
-    create table if not exists nsrl_os(oscode int, osname text, osversion text, manufacturercode int, primary key(oscode));
-    create table if not exists nsrl_product(productcode int, productname text, productversion text, manufacturercode int, applicationtype text, primary key(productcode));
+    create table if not exists nsrl_entry(sha1 text, product_code int);
+    create table if not exists nsrl_manufacturer(code int, name text, primary key(code));
+    create table if not exists nsrl_os(code int, name text, version text, manufacturer_code int, primary key(code));
+    create table if not exists nsrl_product(code int, name text, version text, manufacturer_code int, application_type text, primary key(code));
 
-The table nsrl_entry has an additional index:
+The table `nsrl_entry` has an additional index:
 
-    CREATE INDEX nsrl_entry_sha1 ON nsrl_entry USING HASH (sha1);
-
-The hash index is used because:
-
-1. it takes a lot less space compared to b-tree indexes
-2. only exact matches are needed
-3. the sha1 is not unique per row
+    CREATE INDEX nsrl_entry_sha1 ON nsrl_entry;

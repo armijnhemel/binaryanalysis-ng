@@ -12,13 +12,19 @@ seq:
   - id: magic
     contents: [0x8a, 0x32, 0xfc, 0x66]
   - id: padding
-    size: 2040
+    type: padding_byte
+    repeat: expr
+    repeat-expr: 2040
   - id: file_headers
     type: file_header
     repeat: expr
     repeat-expr: num_files
     # TODO: padding
 types:
+  padding_byte:
+    seq:
+      - id: padding
+        contents: [0xff]
   file_header:
     seq:
       - id: name

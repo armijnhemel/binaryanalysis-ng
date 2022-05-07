@@ -91,6 +91,11 @@ types:
         -orig-id: ShowCommand
         type: u4
         enum: window_state
+        valid:
+          any-of:
+            - window_state::normal
+            - window_state::maximized
+            - window_state::min_no_active
         doc: Window state to set after the launch of target executable
       - id: hotkey
         type: u2

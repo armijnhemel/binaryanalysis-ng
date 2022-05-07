@@ -5,9 +5,9 @@ if these are known passwords there is a password database table available
 that can be filled with hashed password/plaintext password combinations.
 
 There are relatively few public password databases out there. One is the
-file phpbb-withmd5.txt.bz2 that can be downloaded from:
+file `phpbb-withmd5.txt.bz2` that can be downloaded from:
 
-https://wiki.skullsecurity.org/Passwords
+<https://wiki.skullsecurity.org/Passwords>
 
 The script that loads the data into the database expects lines with
 hash/plaintext combinations separated by whitespace. As it is not known what
@@ -34,8 +34,33 @@ To use the files do the following:
 
     $ python3 passwdimporter.py -c /path/to/configuration/file -f /path/to/file/with/passwords
 
+where it is important to note that the password file should be decompressed
+first!
+
+## Statistics
+
+Some database statistics for the data contained in `phpbb-withmd5.txt.bz2`:
+
+    bang=> \dt+; \di+;
+                        List of relations
+     Schema |   Name   | Type  | Owner | Size  | Description
+    --------+----------+-------+-------+-------+-------------
+     public | password | table | bang  | 13 MB |
+    (1 row)
+
+                                List of relations
+     Schema |     Name      | Type  | Owner |  Table   | Size  | Description
+    --------+---------------+-------+-------+----------+-------+-------------
+     public | password_pkey | index | bang  | password | 10 MB |
+    (1 row)
+
+    bang=> select from password ;
+    --
+    (184389 rows)
+
+
 # Database design
 
-There is one tables, with the following schema:
+There is one table, with the following schema:
 
     create table if not exists password(hashed text, plaintext text, primary key(hashed));

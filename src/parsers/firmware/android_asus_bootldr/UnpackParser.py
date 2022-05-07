@@ -21,8 +21,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-Extract bootloader files as found on Qualcomm Snapdragon (MSM)
-based Android devices.
+Extract bootloader files as found on some Android devices made by ASUS.
 '''
 
 import os
@@ -31,8 +30,8 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError, ValidationLessThanError
-from . import android_asus_bootldr
+from kaitaistruct import ValidationFailedError
+from . import android_bootldr_asus
 
 
 class AndroidAsusBootUnpackParser(UnpackParser):
@@ -44,8 +43,8 @@ class AndroidAsusBootUnpackParser(UnpackParser):
 
     def parse(self):
         try:
-            self.data = android_asus_bootldr.AndroidAsusBootldr.from_io(self.infile)
-        except (Exception, ValidationNotEqualError, ValidationLessThanError) as e:
+            self.data = android_bootldr_asus.AndroidBootldrAsus.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     # no need to carve from the file
@@ -53,21 +52,23 @@ class AndroidAsusBootUnpackParser(UnpackParser):
         pass
 
     def unpack(self):
-        magic_to_files = {'IFWI!!!!': 'ifwi.bin',
+        chunk_to_files = {'IFWI!!!!': 'ifwi.bin',
                           'DROIDBT!': 'droidboot.img',
                           'SPLASHS!': 'splashscreen.img'}
         unpacked_files = []
         for image in self.data.images:
-            if image.magic in magic_to_files:
-                file_path = pathlib.Path(magic_to_files[image.magic])
-                outfile_rel = self.rel_unpack_dir / file_path
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                os.makedirs(outfile_full.parent, exist_ok=True)
-                outfile = open(outfile_full, 'wb')
-                outfile.write(image.body)
-                outfile.close()
-                fr = FileResult(self.fileresult, outfile_rel, set([]))
-                unpacked_files.append(fr)
+            if image.file_name != '':
+                file_path = pathlib.Path(image.file_name)
+            else:
+                file_path = pathlib.Path(chunk_to_files[image.chunk_id])
+            outfile_rel = self.rel_unpack_dir / file_path
+            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+            os.makedirs(outfile_full.parent, exist_ok=True)
+            outfile = open(outfile_full, 'wb')
+            outfile.write(image.body)
+            outfile.close()
+            fr = FileResult(self.fileresult, outfile_rel, set([]))
+            unpacked_files.append(fr)
         return unpacked_files
 
     def set_metadata_and_labels(self):
