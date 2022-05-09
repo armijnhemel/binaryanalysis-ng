@@ -8,8 +8,9 @@
 
 '''
 This script processes ELF files extracted/tagged by BANG
-and looks up identifiers in a Meilisearch database to determine
-which source code files the identifiers could have been from.
+and looks up strings identifiers in a Meilisearch database
+to determine which source code files the identifiers could
+have been from.
 '''
 
 import os
@@ -58,20 +59,26 @@ def main(config, result_directory):
               file=sys.stderr)
         sys.exit(1)
 
-    identifier_cutoff = 2
-    if 'identifier_cutoff' in configuration['meilisearch']:
-        if isinstance(configuration['meilisearch']['identifier_cutoff'], int):
-            identifier_cutoff = configuration['meilisearch']['identifier_cutoff']
+    if not 'index' in configuration['meilisearch']:
+        print("\'index\' section missing in configuration file, exiting",
+              file=sys.stderr)
+        sys.exit(1)
 
-    ignore_weak_symbols = False
-    if 'ignore_weak_symbols' in configuration['meilisearch']:
-        if isinstance(configuration['meilisearch']['ignore_weak_symbols'], bool):
-            ignore_weak_symbols = configuration['meilisearch']['ignore_weak_symbols']
+    meili_index = configuration['meilisearch']['index']
+
+    string_min_cutoff = 8
+    if 'string_min_cutoff' in configuration['meilisearch']:
+        if isinstance(configuration['meilisearch']['string_min_cutoff'], int):
+            string_min_cutoff = configuration['meilisearch']['string_min_cutoff']
+
+    string_max_cutoff = 200
+    if 'string_max_cutoff' in configuration['meilisearch']:
+        if isinstance(configuration['meilisearch']['string_max_cutoff'], int):
+            string_max_cutoff = configuration['meilisearch']['string_max_cutoff']
 
     # set up a minimal environment for meilisearch
-    meili_env = {'verbose': verbose,
-                 'identifier_cutoff': identifier_cutoff,
-                 'ignore_weak_symbols': ignore_weak_symbols,}
+    meili_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
+                 'string_max_cutoff': string_max_cutoff}
 
     # open the top level pickle
     bang_pickle = result_directory / 'bang.pickle'
@@ -91,7 +98,8 @@ def main(config, result_directory):
 
     # some sanity checks for Meilisearch
     client = meilisearch.Client('http://127.0.0.1:7700')
-    meili_index = client.index('ctags')
+    meili_index = client.index(meili_index)
+
     try:
         health = client.health()
     except meilisearch.errors.MeiliSearchCommunicationError:
@@ -116,29 +124,26 @@ def main(config, result_directory):
                 # have no associated metadata.
                 continue
 
+            strings = set()
             functions = set()
             variables = set()
-            if results_data['metadata']['symbols'] != []:
-                for s in results_data['metadata']['symbols']:
-                    if s['section_index'] == 0:
+            if results_data['metadata']['strings'] != []:
+                for s in results_data['metadata']['strings']:
+                    if len(s) < meili_env['string_min_cutoff']:
                         continue
-                    if meili_env['ignore_weak_symbols']:
-                        if s['binding'] == 'weak':
-                            continue
-                    if len(s['name']) < meili_env['identifier_cutoff']:
+                    if len(s) > meili_env['string_max_cutoff']:
                         continue
-                    if '@@' in s['name']:
-                        identifier_name = s['name'].rsplit('@@', 1)[0]
-                    elif '@' in s['name']:
-                        identifier_name = s['name'].rsplit('@', 1)[0]
-                    else:
-                        identifier_name = s['name']
-                    if s['type'] == 'func':
-                        functions.add(identifier_name)
-                    elif s['type'] == 'object':
-                        variables.add(identifier_name)
+                    # ignore whitespace-only strings
+                    if re.match(r'^\s+$', s) is None:
+                        strings.add(s)
 
             # process the identifiers
+            for f in strings:
+                results = meili_index.search('"%s"' % f)
+                if results['hits'] != []:
+                    for r in results['hits']:
+                        print(bang_file, f, r['id'], r['language'], r['paths'])
+                    print()
 
     os.chdir(old_cwd)
 
