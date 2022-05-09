@@ -13,3 +13,7 @@ meilisearch:
 
     # The port for the Meilisearch server.
     port: 7700
+
+    # the index to search
+    #index: ctags
+    index: strings
