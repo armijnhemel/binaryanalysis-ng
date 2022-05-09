@@ -31,5 +31,5 @@ A database for Meilisearch can be populated (from source code) using the
 scripts in the `maintenance/meilisearch` directory. This database can then be
 queried when analyzing results obtained with BANG.
 
-The Meilisearch database script currently only extracts function names and
-variable names to put into Meilisearch.
+The Meilisearch database script extracts strings, function names and variable
+names to put into Meilisearch. The search script only uses the strings.
