@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+
+'''
+This script reads two files with names of low quality functions and variable
+names (one per line) and turns them into a pickle which can be used by scripts
+to ignore low quality identifiers.
+'''
+
 import pickle
 
 lq_elf_funcs = list(map(lambda x: x.strip(), open('low_quality_elf_funcs', 'r').readlines()))
