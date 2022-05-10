@@ -145,25 +145,20 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
     return yara_file.name
 
 
-def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_output_directory, yara_env):
+def extract_identifiers(yara_queue, temporary_directory, source_directory, yara_output_directory, yara_env, package):
     '''Unpack a tar archive based on extension and extract identifiers'''
 
     heuristics = {}
     while True:
-        archive = yaraqueue.get()
+        archive = yara_queue.get()
 
         package_archive = source_directory / archive
         try:
             tarchive = tarfile.open(name=package_archive)
             members = tarchive.getmembers()
         except Exception as e:
-            yaraqueue.task_done()
+            yara_queue.task_done()
             continue
-
-        with open(package_archive, 'rb') as package_data:
-            archive_hash = hashlib.new('sha256')
-            archive_hash.update(package_data.read())
-            package_hash = archive_hash.hexdigest()
 
         identifiers_per_language = {}
 
@@ -186,8 +181,13 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                 break
 
         if extracted == 0:
-            yaraqueue.task_done()
+            yara_queue.task_done()
             continue
+
+        with open(package_archive, 'rb') as package_data:
+            archive_hash = hashlib.new('sha256')
+            archive_hash.update(package_data.read())
+            package_hash = archive_hash.hexdigest()
 
         unpack_dir = tempfile.TemporaryDirectory(dir=temporary_directory)
         tarchive.extractall(path=unpack_dir.name)
@@ -275,7 +275,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
             metadata= {}
             metadata['name'] = archive.name
             metadata['sha256'] = package_hash
-            metadata['package'] = archive.name
+            metadata['package'] = package
             metadata['language'] = language
 
             strings = identifiers_per_language[language]['strings']
@@ -287,14 +287,15 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                 yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
 
         unpack_dir.cleanup()
-        yaraqueue.task_done()
+        yara_queue.task_done()
 
 
 @click.command(short_help='process BANG result files and output YARA')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--source-directory', '-s', help='source code archive directory', type=click.Path(exists=True), required=True)
+@click.option('--source-directory', '-s', required=True, help='source code archive directory', type=click.Path(exists=True))
 @click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
-def main(config_file, source_directory, identifiers):
+@click.option('--meta', '-m', required=True, help='file with meta information about a package', type=click.File('r'))
+def main(config_file, source_directory, identifiers, meta):
     # test if ctags is available. This should be "universal ctags"
     # not "exuberant ctags"
     if shutil.which('ctags') is None:
@@ -314,6 +315,24 @@ def main(config_file, source_directory, identifiers):
     if not source_directory.is_dir():
         print("%s is not a directory, exiting." % source_directory, file=sys.stderr)
         sys.exit(1)
+
+    # parse the package meta information
+    try:
+        package_meta_information = load(meta, Loader=Loader)
+    except (YAMLError, PermissionError) as e:
+        raise YaraConfigException(e.args)
+
+    packages = []
+
+    package = package_meta_information['package']
+
+    # some sanity checks
+    for release in package_meta_information['releases']:
+        for release_version in release:
+            release_filename = release[release_version]
+            if not (source_directory / release_filename).exists():
+                continue
+            packages.append((release_filename, release[release_version]))
 
     # parse the configuration
     yara_config = YaraConfig(config_file)
@@ -342,29 +361,29 @@ def main(config_file, source_directory, identifiers):
     processmanager = multiprocessing.Manager()
 
     # create a queue for scanning files
-    yaraqueue = processmanager.JoinableQueue(maxsize=0)
+    yara_queue = processmanager.JoinableQueue(maxsize=0)
     processes = []
 
     # walk the archives directory
-    for archive in source_directory.iterdir():
-        tar_archive = source_directory / archive
+    for archive in packages:
+        tar_archive = source_directory / archive[1]
         if not tarfile.is_tarfile(tar_archive):
             continue
-        yaraqueue.put(archive)
+        yara_queue.put(pathlib.Path(archive[1]))
 
     # create processes for unpacking archives
     for i in range(0, yara_env['threads']):
         process = multiprocessing.Process(target=extract_identifiers,
-                                          args=(yaraqueue, yara_env['temporary_directory'],
+                                          args=(yara_queue, yara_env['temporary_directory'],
                                                 source_directory, yara_output_directory,
-                                                yara_env))
+                                                yara_env, package))
         processes.append(process)
 
     # start all the processes
     for process in processes:
         process.start()
 
-    yaraqueue.join()
+    yara_queue.join()
 
     # Done processing, terminate processes
     for process in processes:

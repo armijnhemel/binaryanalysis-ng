@@ -53,8 +53,9 @@ identifiers, such as the strings embedded in `.dex` files.
 
 ## Source code processor
 
-The script takes source code archives, unpacks them, extracts data using
-`ctags` and `xgettext` and generates YARA rules from them.
+The script unpacks individual files from source code archives, extracts
+data from the individual files using `ctags` and `xgettext` and generates
+YARA rules from the results of each package.
 
 The source code script depends on the extension of the file to determine
 the most likely programming language used in the source code file. Current
@@ -63,11 +64,12 @@ for more languages will be added in the future.
 
 The script to process source code can be invoked as follows:
 
-    $ python3 yara_from_source.py -c yara-config.yaml -s /path/to/source
+    $ python3 yara_from_source.py -c yara-config.yaml -s /path/to/source -m /path/to/metadata
 
 The directory with source code should contain source code archives (currently
 only TAR archives are supported, support for ZIP files will be added in the
-future).
+future). The `-m`/`--metadata` option requires a path to a file describing
+package metadata. An example can be found in the directory `data`.
 
 ## Binary processor
 
