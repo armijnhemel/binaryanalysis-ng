@@ -74,9 +74,9 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
     for m in sorted(metadata):
         meta += '        %s = "%s"\n' % (m, metadata[m])
 
-    #yara_file = yara_directory / ("%s-%s.yara" % (metadata['package'], metadata['name']))
+    #yara_file = yara_directory / ("%s-%s.yara" % (metadata['name'], metadata['name']))
     # TODO: origin and package?
-    yara_file = yara_directory / ("%s-%s.yara" % (metadata['package'], metadata['language']))
+    yara_file = yara_directory / ("%s-%s.yara" % (metadata['name'], metadata['language']))
     if tags == []:
         rule_name = 'rule rule_%s\n' % str(rule_uuid).translate(NAME_ESCAPE)
     else:
