@@ -101,26 +101,20 @@ class YaraConfig:
             if isinstance(self.config['yara']['fullword'], bool):
                 fullword = self.config['yara']['fullword']
 
-        dump_json = False
-        if 'dump_json' in self.config['yara']:
-            if isinstance(self.config['yara']['dump_json'], bool):
-                dump_json = self.config['yara']['dump_json']
-
         json_directory = yara_directory
-        if dump_json:
-            if 'json_directory' in self.config['yara']:
-                json_directory = pathlib.Path(self.config['yara']['json_directory'])
-                if json_directory != yara_directory:
-                    if not json_directory.exists():
-                        raise YaraConfigException("'json_directory' does not exist")
-                    if not json_directory.is_dir():
-                        raise YaraConfigException("'json_directory' is not a valid directory")
-                    # check if the json directory is writable
-                    try:
-                        temp_name = tempfile.NamedTemporaryFile(dir=json_directory)
-                        temp_name.close()
-                    except:
-                        raise YaraConfigException("'json_directory' cannot be written to")
+        if 'json_directory' in self.config['yara']:
+            json_directory = pathlib.Path(self.config['yara']['json_directory'])
+            if json_directory != yara_directory:
+                if not json_directory.exists():
+                    raise YaraConfigException("'json_directory' does not exist")
+                if not json_directory.is_dir():
+                    raise YaraConfigException("'json_directory' is not a valid directory")
+                # check if the json directory is writable
+                try:
+                    temp_name = tempfile.NamedTemporaryFile(dir=json_directory)
+                    temp_name.close()
+                except:
+                    raise YaraConfigException("'json_directory' cannot be written to")
 
         # heuristics used for generating YARA rules
         string_min_cutoff = 8
@@ -229,5 +223,5 @@ class YaraConfig:
                     'fullword': fullword, 'threads': threads,
                     'yara_directory': yara_directory, 'heuristics': heuristics,
                     'temporary_directory': temporary_directory,
-                    'dump_json': dump_json, 'json_directory': json_directory}
+                    'json_directory': json_directory}
         return yara_env

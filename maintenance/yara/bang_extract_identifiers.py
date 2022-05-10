@@ -184,11 +184,10 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
 
             if not (strings == [] and variables == [] and functions == []):
                 # write results to a JSON file for later processing
-                if extraction_env['dump_json']:
-                    json_file = json_output_directory / ("%s-%s.json" % (archive.name, language))
-                    with open(json_file, 'w') as dump_file:
-                        json.dump({'metadata': metadata, 'strings': strings,
-                                  'variables': variables, 'functions': functions}, dump_file, indent=4)
+                json_file = json_output_directory / ("%s-%s.json" % (archive.name, language))
+                with open(json_file, 'w') as dump_file:
+                    json.dump({'metadata': metadata, 'strings': strings,
+                              'variables': variables, 'functions': functions}, dump_file, indent=4)
 
         unpack_dir.cleanup()
         process_queue.task_done()

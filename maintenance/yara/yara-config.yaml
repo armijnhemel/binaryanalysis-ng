@@ -36,9 +36,6 @@ yara:
     # use YARA's 'fullword' or not, default: true
     #fullword: true
 
-    # SOURCE CODE ONLY: dump json (default false)
-    #dump_json: false
-
     # SOURCE CODE ONLY: json dump directory (default: same as yara_directory)
     json_directory: /home/armijn/yara/json
 
