@@ -152,13 +152,18 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
     while True:
         archive = yaraqueue.get()
 
-        tar_archive = source_directory / archive
+        package_archive = source_directory / archive
         try:
-            tarchive = tarfile.open(name=tar_archive)
+            tarchive = tarfile.open(name=package_archive)
             members = tarchive.getmembers()
         except Exception as e:
             yaraqueue.task_done()
             continue
+
+        with open(package_archive, 'rb') as package_data:
+            archive_hash = hashlib.new('sha256')
+            archive_hash.update(package_data.read())
+            package_hash = archive_hash.hexdigest()
 
         identifiers_per_language = {}
 
@@ -269,7 +274,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
             # inside a package.
             metadata= {}
             metadata['name'] = archive.name
-            metadata['sha256'] = ""
+            metadata['sha256'] = package_hash
             metadata['package'] = archive.name
             metadata['language'] = language
 
