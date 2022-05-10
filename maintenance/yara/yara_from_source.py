@@ -59,7 +59,7 @@ NAME_ESCAPE = str.maketrans({'.': '_',
                              '-': '_'})
 
 
-def generate_yara(yara_directory, metadata, functions, variables, strings, tags, heuristics):
+def generate_yara(yara_directory, metadata, functions, variables, strings, tags, heuristics, fullword):
     generate_date = datetime.datetime.utcnow().isoformat()
     rule_uuid = uuid.uuid4()
     meta = '''
@@ -93,7 +93,10 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             counter = 1
             for s in sorted(strings):
                 try:
-                    p.write("        $string%d = \"%s\" fullword\n" % (counter, s))
+                    if fullword:
+                        p.write("        $string%d = \"%s\" fullword\n" % (counter, s))
+                    else:
+                        p.write("        $string%d = \"%s\"\n" % (counter, s))
                     counter += 1
                 except:
                     pass
@@ -103,7 +106,10 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             p.write("\n        // Extracted functions\n\n")
             counter = 1
             for s in sorted(functions):
-                p.write("        $function%d = \"%s\" fullword\n" % (counter, s))
+                if fullword:
+                    p.write("        $function%d = \"%s\" fullword\n" % (counter, s))
+                else:
+                    p.write("        $function%d = \"%s\"\n" % (counter, s))
                 counter += 1
 
         if variables != set():
@@ -111,7 +117,10 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             p.write("\n        // Extracted variables\n\n")
             counter = 1
             for s in sorted(variables):
-                p.write("        $variable%d = \"%s\" fullword\n" % (counter, s))
+                if fullword:
+                    p.write("        $variable%d = \"%s\" fullword\n" % (counter, s))
+                else:
+                    p.write("        $variable%d = \"%s\"\n" % (counter, s))
                 counter += 1
 
         # TODO: find good heuristics of how many identifiers should be matched
@@ -269,7 +278,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
 
             if not (strings == set() and variables == set() and functions == set()):
                 yara_tags = yara_env['tags'] + [language]
-                yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics)
+                yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
 
         unpack_dir.cleanup()
         yaraqueue.task_done()
@@ -368,6 +377,11 @@ def main(config_file, source_directory, identifiers):
 
     yara_output_directory.mkdir(exist_ok=True)
 
+    fullword = True
+    if 'fullword' in config['yara']:
+        if isinstance(config['yara']['fullword'], bool):
+            fullword = config['yara']['fullword']
+
     threads = multiprocessing.cpu_count()
     if 'threads' in config['general']:
         if isinstance(config['general']['threads'], int):
@@ -398,7 +412,8 @@ def main(config_file, source_directory, identifiers):
     yara_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
                 'string_max_cutoff': string_max_cutoff,
                 'identifier_cutoff': identifier_cutoff,
-                'tags': tags, 'max_identifiers': max_identifiers}
+                'tags': tags, 'max_identifiers': max_identifiers,
+                'fullword': fullword}
 
     processmanager = multiprocessing.Manager()
 

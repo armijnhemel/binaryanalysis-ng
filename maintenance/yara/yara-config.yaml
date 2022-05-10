@@ -33,6 +33,9 @@ yara:
     # directory to store generated YARA files
     yara_directory: /home/armijn/yara
 
+    # use YARA's 'fullword' or not, default: true
+    #fullword: true
+
     # minimal length of strings, recommended to not go below 5
     # string_min_cutoff: 8
 
