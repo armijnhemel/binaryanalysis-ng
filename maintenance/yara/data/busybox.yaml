@@ -1,6 +1,8 @@
 ---
 package: busybox
 website: https://www.busybox.net/
+
+# releases, keep this sorted!
 releases: [
   1.1.0: busybox-1.1.0.tar.bz2,
   1.1.1: busybox-1.1.1.tar.bz2,
