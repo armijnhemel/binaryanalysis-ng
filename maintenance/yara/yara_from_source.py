@@ -14,9 +14,8 @@ import datetime
 import hashlib
 import json
 import multiprocessing
-import os
 import pathlib
-import queue
+import pickle
 import re
 import shutil
 import subprocess
@@ -36,6 +35,8 @@ try:
     from yaml import CLoader as Loader
 except ImportError:
     from yaml import Loader
+
+from yara_config import YaraConfig, YaraConfigException
 
 # lists of extenions for several programming language families
 C_SRC_EXTENSIONS = ['.c', '.cc', '.cpp', '.cxx', '.c++', '.h', '.hh', '.hpp',
@@ -289,78 +290,6 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
 @click.option('--source-directory', '-s', help='source code archive directory', type=click.Path(exists=True), required=True)
 @click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
 def main(config_file, source_directory, identifiers):
-
-    source_directory = pathlib.Path(source_directory)
-
-    # should be a real directory
-    if not source_directory.is_dir():
-        print("%s is not a directory, exiting." % source_directory, file=sys.stderr)
-        sys.exit(1)
-
-    # read the configuration file. This is in YAML format
-    try:
-        config = load(config_file, Loader=Loader)
-    except (YAMLError, PermissionError):
-        print("Cannot open configuration file, exiting", file=sys.stderr)
-        sys.exit(1)
-
-    # some sanity checks:
-    #for i in ['database', 'general', 'yara']:
-    for i in ['general', 'yara']:
-        if i not in config:
-            print("Invalid configuration file, section %s missing, exiting" % i,
-                  file=sys.stderr)
-            sys.exit(1)
-
-    verbose = False
-    if 'verbose' in config['general']:
-        if isinstance(config['general']['verbose'], bool):
-            verbose = config['general']['verbose']
-
-    # directory for unpacking. By default this will be /tmp or whatever
-    # the system default is.
-    temporary_directory = None
-
-    if 'tempdir' in config['general']:
-        temporary_directory = pathlib.Path(config['general']['tempdir'])
-        if temporary_directory.exists():
-            if temporary_directory.is_dir():
-                # check if the temporary directory is writable
-                try:
-                    temp_name = tempfile.NamedTemporaryFile(dir=temporary_directory)
-                    temp_name.close()
-                except:
-                    temporary_directory = None
-            else:
-                temporary_directory = None
-        else:
-            temporary_directory = None
-
-    if 'yara_directory' not in config['yara']:
-        print("yara_directory not defined in configuration, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    yara_directory = pathlib.Path(config['yara']['yara_directory'])
-    if not yara_directory.exists():
-        print("yara_directory does not exist, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    if not yara_directory.is_dir():
-        print("yara_directory is not a valid directory, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    # check if the yara directory is writable
-    try:
-        temp_name = tempfile.NamedTemporaryFile(dir=yara_directory)
-        temp_name.close()
-    except:
-        print("yara_directory is not writable, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
     # test if ctags is available. This should be "universal ctags".
     if shutil.which('ctags') is None:
         print("ctags program not found, exiting",
@@ -373,47 +302,36 @@ def main(config_file, source_directory, identifiers):
               file=sys.stderr)
         sys.exit(1)
 
-    yara_output_directory = yara_directory / 'binary'
+    source_directory = pathlib.Path(source_directory)
+
+    # should be a real directory
+    if not source_directory.is_dir():
+        print("%s is not a directory, exiting." % source_directory, file=sys.stderr)
+        sys.exit(1)
+
+    # parse the configuration
+    yara_config = YaraConfig(config_file)
+    yara_env = yara_config.parse()
+
+    lq_identifiers = {'elf': {'functions': [], 'variables': []},
+                      'dex': {'functions': [], 'variables': []}}
+
+    # read the pickle with identifiers
+    if identifiers is not None:
+        try:
+            lq_identifiers = pickle.load(identifiers)
+        except:
+            pass
+
+    yara_output_directory = yara_env['yara_directory'] / 'binary'
 
     yara_output_directory.mkdir(exist_ok=True)
 
-    fullword = True
-    if 'fullword' in config['yara']:
-        if isinstance(config['yara']['fullword'], bool):
-            fullword = config['yara']['fullword']
-
-    threads = multiprocessing.cpu_count()
-    if 'threads' in config['general']:
-        if isinstance(config['general']['threads'], int):
-            threads = config['general']['threads']
-
-    string_min_cutoff = 8
-    if 'string_min_cutoff' in config['yara']:
-        if isinstance(config['yara']['string_min_cutoff'], int):
-            string_min_cutoff = config['yara']['string_min_cutoff']
-
-    string_max_cutoff = 200
-    if 'string_max_cutoff' in config['yara']:
-        if isinstance(config['yara']['string_max_cutoff'], int):
-            string_max_cutoff = config['yara']['string_max_cutoff']
-
-    identifier_cutoff = 2
-    if 'identifier_cutoff' in config['yara']:
-        if isinstance(config['yara']['identifier_cutoff'], int):
-            identifier_cutoff = config['yara']['identifier_cutoff']
-
-    max_identifiers = 10000
-    if 'max_identifiers' in config['yara']:
-        if isinstance(config['yara']['max_identifiers'], int):
-            max_identifiers = config['yara']['max_identifiers']
-
     tags = ['source']
 
-    yara_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
-                'string_max_cutoff': string_max_cutoff,
-                'identifier_cutoff': identifier_cutoff,
-                'tags': tags, 'max_identifiers': max_identifiers,
-                'fullword': fullword}
+    # expand yara_env with source scanning specific values
+    yara_env['tags'] = tags
+    yara_env['lq_identifiers'] = lq_identifiers
 
     processmanager = multiprocessing.Manager()
 
@@ -429,9 +347,9 @@ def main(config_file, source_directory, identifiers):
         yaraqueue.put(archive)
 
     # create processes for unpacking archives
-    for i in range(0, threads):
+    for i in range(0, yara_env['threads']):
         process = multiprocessing.Process(target=extract_identifiers,
-                                          args=(yaraqueue, temporary_directory,
+                                          args=(yaraqueue, yara_env['temporary_directory'],
                                                 source_directory, yara_output_directory,
                                                 yara_env))
         processes.append(process)

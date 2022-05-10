@@ -16,10 +16,8 @@ import multiprocessing
 import os
 import pathlib
 import pickle
-import queue
 import re
 import sys
-import tempfile
 import uuid
 
 import packageurl
@@ -32,6 +30,8 @@ try:
     from yaml import CLoader as Loader
 except ImportError:
     from yaml import Loader
+
+from yara_config import YaraConfig, YaraConfigException
 
 # YARA escape sequences
 ESCAPE = str.maketrans({'"': '\\"',
@@ -396,167 +396,18 @@ def main(config_file, result_directory, identifiers):
         except:
             pass
 
-    # read the configuration file. This is in YAML format
-    try:
-        config = load(config_file, Loader=Loader)
-    except (YAMLError, PermissionError):
-        print("Cannot open configuration file, exiting", file=sys.stderr)
-        sys.exit(1)
+    # parse the configuration
+    yara_config = YaraConfig(config_file)
+    yara_env = yara_config.parse()
 
-    # some sanity checks:
-    for i in ['general', 'yara']:
-        if i not in config:
-            print("Invalid configuration file, section %s missing, exiting" % i,
-                  file=sys.stderr)
-            sys.exit(1)
-
-    verbose = False
-    if 'verbose' in config['general']:
-        if isinstance(config['general']['verbose'], bool):
-            verbose = config['general']['verbose']
-
-    threads = multiprocessing.cpu_count()
-    if 'threads' in config['general']:
-        if isinstance(config['general']['threads'], int):
-            threads = config['general']['threads']
-
-    if 'yara_directory' not in config['yara']:
-        print("yara_directory not defined in configuration, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    yara_directory = pathlib.Path(config['yara']['yara_directory'])
-    if not yara_directory.exists():
-        print("yara_directory does not exist, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    if not yara_directory.is_dir():
-        print("yara_directory is not a valid directory, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    # check if the yara directory is writable
-    try:
-        temp_name = tempfile.NamedTemporaryFile(dir=yara_directory)
-        temp_name.close()
-    except:
-        print("yara_directory is not writable, exiting",
-              file=sys.stderr)
-        sys.exit(1)
-
-    yara_binary_directory = yara_directory / 'binary'
+    yara_binary_directory = yara_env['yara_directory'] / 'binary'
 
     yara_binary_directory.mkdir(exist_ok=True)
-
-    fullword = True
-    if 'fullword' in config['yara']:
-        if isinstance(config['yara']['fullword'], bool):
-            fullword = config['yara']['fullword']
-
-    string_min_cutoff = 8
-    if 'string_min_cutoff' in config['yara']:
-        if isinstance(config['yara']['string_min_cutoff'], int):
-            string_min_cutoff = config['yara']['string_min_cutoff']
-
-    string_max_cutoff = 200
-    if 'string_max_cutoff' in config['yara']:
-        if isinstance(config['yara']['string_max_cutoff'], int):
-            string_max_cutoff = config['yara']['string_max_cutoff']
-
-    identifier_cutoff = 2
-    if 'identifier_cutoff' in config['yara']:
-        if isinstance(config['yara']['identifier_cutoff'], int):
-            identifier_cutoff = config['yara']['identifier_cutoff']
-
-    max_identifiers = 10000
-    if 'max_identifiers' in config['yara']:
-        if isinstance(config['yara']['max_identifiers'], int):
-            max_identifiers = config['yara']['max_identifiers']
-
-    heuristics = {}
-
-    strings_percentage = 10
-    if 'strings_percentage' in config['yara']:
-        if isinstance(config['yara']['strings_percentage'], int):
-            strings_percentage = config['yara']['strings_percentage']
-    heuristics['strings_percentage'] = strings_percentage
-
-    functions_percentage = 10
-    if 'functions_percentage' in config['yara']:
-        if isinstance(config['yara']['functions_percentage'], int):
-            functions_percentage = config['yara']['functions_percentage']
-    heuristics['functions_percentage'] = functions_percentage
-
-    variables_percentage = 10
-    if 'variables_percentage' in config['yara']:
-        if isinstance(config['yara']['variables_percentage'], int):
-            variables_percentage = config['yara']['variables_percentage']
-    heuristics['variables_percentage'] = variables_percentage
-
-    strings_matched = 1
-    if 'strings_matched' in config['yara']:
-        if isinstance(config['yara']['strings_matched'], int):
-            strings_matched = config['yara']['strings_matched']
-    heuristics['strings_matched'] = strings_matched
-
-    functions_matched = 1
-    if 'functions_matched' in config['yara']:
-        if isinstance(config['yara']['functions_matched'], int):
-            functions_matched = config['yara']['functions_matched']
-    heuristics['functions_matched'] = functions_matched
-
-    variables_matched = 1
-    if 'variables_matched' in config['yara']:
-        if isinstance(config['yara']['variables_matched'], int):
-            variables_matched = config['yara']['variables_matched']
-    heuristics['variables_matched'] = variables_matched
-
-    strings_minimum = 10
-    if 'strings_minimum' in config['yara']:
-        if isinstance(config['yara']['strings_minimum'], int):
-            strings_minimum = config['yara']['strings_minimum']
-    heuristics['strings_minimum'] = strings_minimum
-
-    functions_minimum = 10
-    if 'functions_minimum' in config['yara']:
-        if isinstance(config['yara']['functions_minimum'], int):
-            functions_minimum = config['yara']['functions_minimum']
-    heuristics['functions_minimum'] = functions_minimum
-
-    variables_minimum = 10
-    if 'variables_minimum' in config['yara']:
-        if isinstance(config['yara']['variables_minimum'], int):
-            variables_minimum = config['yara']['variables_minimum']
-    heuristics['variables_minimum'] = variables_minimum
-
-    strings_extracted = 5
-    if 'strings_extracted' in config['yara']:
-        if isinstance(config['yara']['strings_extracted'], int):
-            strings_extracted = config['yara']['strings_extracted']
-    heuristics['strings_extracted'] = strings_extracted
-
-    functions_extracted = 5
-    if 'functions_extracted' in config['yara']:
-        if isinstance(config['yara']['functions_extracted'], int):
-            functions_extracted = config['yara']['functions_extracted']
-    heuristics['functions_extracted'] = functions_extracted
-
-    variables_extracted = 5
-    if 'variables_extracted' in config['yara']:
-        if isinstance(config['yara']['variables_extracted'], int):
-            variables_extracted = config['yara']['variables_extracted']
-    heuristics['variables_extracted'] = variables_extracted
 
     processmanager = multiprocessing.Manager()
 
     # ignore object files (regular and GHC specific)
     ignored_suffixes = ['.o', '.p_o']
-
-    ignore_weak_symbols = False
-    if 'ignore_weak_symbols' in config['yara']:
-        if isinstance(config['yara']['ignore_weak_symbols'], bool):
-            ignore_weak_symbols = config['yara']['ignore_weak_symbols']
 
     # create a lock to control access to any shared data structures
     processlock = multiprocessing.Lock()
@@ -581,20 +432,16 @@ def main(config_file, result_directory, identifiers):
 
     generate_identifier_files = False
 
-    yara_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
-                'string_max_cutoff': string_max_cutoff,
-                'identifier_cutoff': identifier_cutoff,
-                'ignored_suffixes': ignored_suffixes,
-                'ignore_weak_symbols': ignore_weak_symbols,
-                'lq_identifiers': lq_identifiers, 'tags': tags,
-                'max_identifiers': max_identifiers,
-                'heuristics': heuristics, 'fullword': fullword,
-                'generate_identifier_files': generate_identifier_files}
+    # expand yara_env with binary scanning specific values
+    yara_env['ignored_suffixes'] = ignored_suffixes
+    yara_env['tags'] = tags
+    yara_env['lq_identifiers'] = lq_identifiers
+    yara_env['generate_identifier_files'] = generate_identifier_files
 
     # create processes for unpacking archives
-    for i in range(0, threads):
+    for i in range(0, yara_env['threads']):
         process = multiprocessing.Process(target=process_directory,
-                                          args=(yaraqueue, yara_directory,
+                                          args=(yaraqueue, yara_env['yara_directory'],
                                                 yara_binary_directory, processlock,
                                                 processed_files, yara_env))
         processes.append(process)
