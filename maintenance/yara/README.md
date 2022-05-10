@@ -63,7 +63,8 @@ This split is made since extracting identifiers is a fairly expensive step
 (nearly all processing time is used for extracting identifiers) and is
 something that typically only needs to be done once for an archive as the
 data for an archive is immutable. The only reason to rerun the extraction
-process is if there are errors in the extraction tools,
+process is if there are errors in the extraction tools. It also allows for
+incremental updates, only processing new packages.
 
 The `bang_extract_identifiers.py` script extracts individual files from source
 code archives, processes the individual files using `ctags` and `xgettext` to
@@ -106,6 +107,10 @@ package: busybox
 This will result in the files being stored in the directory
 `/home/bang/yara/json/busybox`.
 
+In case there are new packages then not all files will have to be reprocessed:
+only the new files need to be put into a new metadata file with just the new
+archives.
+
 The second step will be to run the YARA rule generation script:
 
     $ python3 yara_from_source.py -c /path/to/config --json-directory=/path/to/json/results -m /path/to/metadata
@@ -113,6 +118,9 @@ The second step will be to run the YARA rule generation script:
 for example:
 
     $ python3 yara_from_source.py -c yara-config.yaml --json-directory=/home/bang/yara/json/busybox -m data/busybox.yaml
+
+It is important that the metadata files for the extraction and YARA file
+generation are in sync.
 
 The results are stored in a subdirectory of the YARA directory that is defined
 in the YAML configuration file:
