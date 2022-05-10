@@ -290,7 +290,8 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
 @click.option('--source-directory', '-s', help='source code archive directory', type=click.Path(exists=True), required=True)
 @click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
 def main(config_file, source_directory, identifiers):
-    # test if ctags is available. This should be "universal ctags".
+    # test if ctags is available. This should be "universal ctags"
+    # not "exuberant ctags"
     if shutil.which('ctags') is None:
         print("ctags program not found, exiting",
               file=sys.stderr)
