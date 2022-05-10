@@ -194,14 +194,21 @@ def main(config_file, json_directory, identifiers, meta):
 
     package = package_meta_information['package']
 
+    versions = set()
+
+    for release in package_meta_information['releases']:
+        for release_version in release:
+            versions.add(release_version)
+
     # process all the JSON files in the directory
     for result_file in json_directory.glob('**/*'):
-        # sanity check
+        # sanity check for the package
         try:
             with open(result_file, 'r') as json_archive:
                 json_results = json.load(json_archive)
             if json_results['metadata']['package'] == package:
-                packages.append(result_file)
+                if json_results['metadata']['version'] in versions:
+                    packages.append(result_file)
         except Exception as e:
             continue
 
