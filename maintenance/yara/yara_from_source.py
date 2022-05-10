@@ -92,7 +92,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             # write the strings
             p.write("\n        // Extracted strings\n\n")
             counter = 1
-            for s in sorted(strings):
+            for s in strings:
                 try:
                     if fullword:
                         p.write("        $string%d = \"%s\" fullword\n" % (counter, s))
@@ -106,7 +106,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             # write the functions
             p.write("\n        // Extracted functions\n\n")
             counter = 1
-            for s in sorted(functions):
+            for s in functions:
                 if fullword:
                     p.write("        $function%d = \"%s\" fullword\n" % (counter, s))
                 else:
@@ -117,7 +117,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             # write the variable names
             p.write("\n        // Extracted variables\n\n")
             counter = 1
-            for s in sorted(variables):
+            for s in variables:
                 if fullword:
                     p.write("        $variable%d = \"%s\" fullword\n" % (counter, s))
                 else:
@@ -278,11 +278,11 @@ def extract_identifiers(yara_queue, temporary_directory, source_directory, yara_
             metadata['package'] = package
             metadata['language'] = language
 
-            strings = identifiers_per_language[language]['strings']
-            variables = identifiers_per_language[language]['variables']
-            functions = identifiers_per_language[language]['functions']
+            strings = sorted(identifiers_per_language[language]['strings'])
+            variables = sorted(identifiers_per_language[language]['variables'])
+            functions = sorted(identifiers_per_language[language]['functions'])
 
-            if not (strings == set() and variables == set() and functions == set()):
+            if not (strings == [] and variables == [] and functions == []):
                 yara_tags = yara_env['tags'] + [language]
                 yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
 
