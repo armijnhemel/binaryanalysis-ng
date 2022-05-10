@@ -2,7 +2,7 @@
 
 This directory contains scripts to generate YARA rules. There are two scripts:
 
-1. script to generate YARA rules from source code
+1. script to generate YARA rules from a directory of source code packages
 2. script to generate YARA rules from BANG results (binary files)
 
 The script to generate YARA rules from binaries currently only supports ELF
