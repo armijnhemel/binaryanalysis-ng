@@ -36,6 +36,12 @@ yara:
     # use YARA's 'fullword' or not, default: true
     #fullword: true
 
+    # SOURCE CODE ONLY: dump json (default false)
+    #dump_json: false
+
+    # SOURCE CODE ONLY: json dump directory (default: same as yara_directory)
+    json_directory: /home/armijn/yara/json
+
     # minimal length of strings, recommended to not go below 5
     # string_min_cutoff: 8
 
@@ -46,7 +52,7 @@ yara:
     # to not go below 2
     # identifier_cutoff: 2
 
-    # ignore weak ELF symbols. Recommended to set to 'true'
+    # BINARY ONLY: ignore weak ELF symbols. Recommended to set to 'true'
     ignore_weak_symbols: true
 
     # the maximum amount of identifiers that YARA will consider
