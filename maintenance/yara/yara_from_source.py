@@ -194,6 +194,13 @@ def main(config_file, json_directory, identifiers, meta):
 
     package = package_meta_information['package']
 
+    # extract the top level packageurl
+    try:
+        package_purl = package_meta_information['packageurl']
+        purl = packageurl.PackageURL.from_string(package_purl)
+    except ValueError:
+        purl = None
+
     versions = set()
 
     for release in package_meta_information['releases']:
