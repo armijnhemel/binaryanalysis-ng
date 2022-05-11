@@ -69,7 +69,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
         p.write(meta)
         p.write('\n    strings:\n')
 
-        if strings != set():
+        if strings != []:
             # write the strings
             p.write("\n        // Extracted strings\n\n")
             counter = 1
@@ -83,7 +83,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                 except:
                     pass
 
-        if functions != set():
+        if functions != []:
             # write the functions
             p.write("\n        // Extracted functions\n\n")
             counter = 1
@@ -94,7 +94,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                     p.write("        $function%d = \"%s\"\n" % (counter, s))
                 counter += 1
 
-        if variables != set():
+        if variables != []:
             # write the variable names
             p.write("\n        // Extracted variables\n\n")
             counter = 1
@@ -107,19 +107,19 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
 
         # TODO: find good heuristics of how many identifiers should be matched
         p.write('\n    condition:\n')
-        if strings != set():
+        if strings != []:
             p.write('        all of ($string*)')
             if not (functions == set() and variables == set()):
                 p.write(' and\n')
             else:
                 p.write('\n')
-        if functions != set():
+        if functions != []:
             p.write('        all of ($function*)')
             if variables != set():
                 p.write(' and\n')
             else:
                 p.write('\n')
-        if variables != set():
+        if variables != []:
             p.write('        all of ($variable*)\n')
         p.write('\n}')
 
