@@ -129,7 +129,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
 def extract_identifiers(process_queue, json_directory, yara_output_directory, yara_env):
     '''Read a JSON result file and generate YARA rules'''
 
-    heuristics = {}
+    heuristics = yara_env['heuristics']
     while True:
         json_file = process_queue.get()
 

@@ -55,21 +55,23 @@ yara:
     # the maximum amount of identifiers that YARA will consider
     max_identifiers: 10000
 
-    # percentage of strings, functions and variables that need to
+    # Heuristics for matching identifiers
+    #
+    # percentage of strings, functions and variables that should
     # be minimally matched from 0 - 100, default 10
     strings_percentage: 10
     functions_percentage: 10
     variables_percentage: 10
 
     # minimum amount of strings, functions and variables (if any)
-    # that need to be matched, default 1
+    # that need to be matched, default 1.
     strings_matched: 1
     functions_matched: 1
     variables_matched: 1
 
     # minimum amount of strings, functions and variables (if any)
     # that should be present before using any of the heuristics.
-    # Otherwise default to "any of".
+    # Otherwise "any of" will be used.
     strings_minimum_present: 10
     functions_minimum_present: 10
     variables_minimum_present: 10
