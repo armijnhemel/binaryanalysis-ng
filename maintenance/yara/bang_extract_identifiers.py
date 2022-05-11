@@ -143,18 +143,25 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
                                 else:
                                     msg_id = decoded_line[1:-1]
 
-                                if msg_id == '':
+                                # this is a bit of a horrible hack
+                                # https://stackoverflow.com/questions/1885181/how-to-un-escape-a-backslash-escaped-string
+                                try:
+                                    msg_id = msg_id.encode('utf-8', 'backslashreplace').decode('unicode-escape')
+                                except:
                                     continue
 
-                                # ignore whitespace-only strings
-                                if re.match(r'^\s+$', msg_id) is not None:
-                                    continue
+                                # backslashes should be replaced now so
+                                # split on newlines
+                                msg_ids = msg_id.splitlines()
+                                for m in msg_ids:
+                                    if m == '':
+                                        continue
 
-                                # replace tabs
-                                if '\\t' in msg_id:
-                                    msg_id = msg_id.replace('\\t', '\t')
+                                    # ignore whitespace-only strings
+                                    if re.match(r'^\s+$', m) is not None:
+                                        continue
 
-                                identifiers_per_language[language]['strings'].add(msg_id)
+                                    identifiers_per_language[language]['strings'].add(m)
                             except:
                                 pass
 
