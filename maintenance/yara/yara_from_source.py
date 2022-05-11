@@ -112,19 +112,27 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                 num_strings = max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])
                 p.write('        %d of ($string*)' % num_strings)
             else:
-                p.write('        all of ($string*)')
+                p.write('        any of ($string*)')
             if not (functions == set() and variables == set()):
                 p.write(' and\n')
             else:
                 p.write('\n')
         if functions != []:
-            p.write('        all of ($function*)')
+            if len(functions) >= heuristics['functions_minimum_present']:
+                num_funcs = max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])
+                p.write('        %d of ($function*)' % num_funcs)
+            else:
+                p.write('        any of ($function*)')
             if variables != set():
                 p.write(' and\n')
             else:
                 p.write('\n')
         if variables != []:
-            p.write('        all of ($variable*)\n')
+            if len(variables) >= heuristics['variables_minimum_present']:
+                num_vars = max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])
+                p.write('        %d of ($variable*)\n' % num_vars)
+            else:
+                p.write('        any of ($variable*)\n')
         p.write('\n}')
 
     return yara_file.name
