@@ -291,6 +291,37 @@ def main(config_file, json_directory, identifiers, meta):
     for process in processes:
         process.terminate()
 
+    # read the JSON again, this time aggregate the data
+    all_strings_union = set()
+    all_strings_intersection = set()
+
+    all_functions_union = set()
+    all_functions_intersection = set()
+
+    all_variables_union = set()
+    all_variables_intersection = set()
+
+    # keep track of if the first element is being processed
+    is_start = True
+
+    # TODO: sort the packages based on version number
+    for package in packages:
+        with open(package, 'r') as json_archive:
+            json_results = json.load(json_archive)
+            all_strings_union.update(json_results['strings'])
+            all_functions_union.update(json_results['functions'])
+            all_variables_union.update(json_results['variables'])
+
+            if is_start:
+                all_strings_intersection.update(json_results['strings'])
+                all_functions_intersection.update(json_results['functions'])
+                all_variables_intersection.update(json_results['variables'])
+                is_start = False
+            else:
+                all_strings_intersection &= set(json_results['strings'])
+                all_functions_intersection &= set(json_results['functions'])
+                all_variables_intersection &= set(json_results['variables'])
+
 
 if __name__ == "__main__":
     main()
