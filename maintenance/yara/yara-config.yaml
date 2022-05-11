@@ -68,10 +68,11 @@ yara:
     variables_matched: 1
 
     # minimum amount of strings, functions and variables (if any)
-    # that should be present. Otherwise default to "any of"
-    strings_minimum: 10
-    functions_minimum: 10
-    variables_minimum: 10
+    # that should be present before using any of the heuristics.
+    # Otherwise default to "any of".
+    strings_minimum_present: 10
+    functions_minimum_present: 10
+    variables_minimum_present: 10
 
     # minimum amount of strings, functions and variables that needs
     # to have been extracted before generating rules

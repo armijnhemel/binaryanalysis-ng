@@ -173,23 +173,23 @@ class YaraConfig:
                 variables_matched = self.config['yara']['variables_matched']
         heuristics['variables_matched'] = variables_matched
 
-        strings_minimum = 10
-        if 'strings_minimum' in self.config['yara']:
-            if isinstance(self.config['yara']['strings_minimum'], int):
-                strings_minimum = self.config['yara']['strings_minimum']
-        heuristics['strings_minimum'] = strings_minimum
+        strings_minimum_present = 10
+        if 'strings_minimum_present' in self.config['yara']:
+            if isinstance(self.config['yara']['strings_minimum_present'], int):
+                strings_minimum_present = self.config['yara']['strings_minimum_present']
+        heuristics['strings_minimum_present'] = strings_minimum_present
 
-        functions_minimum = 10
-        if 'functions_minimum' in self.config['yara']:
-            if isinstance(self.config['yara']['functions_minimum'], int):
-                functions_minimum = self.config['yara']['functions_minimum']
-        heuristics['functions_minimum'] = functions_minimum
+        functions_minimum_present = 10
+        if 'functions_minimum_present' in self.config['yara']:
+            if isinstance(self.config['yara']['functions_minimum_present'], int):
+                functions_minimum_present = self.config['yara']['functions_minimum_present']
+        heuristics['functions_minimum_present'] = functions_minimum_present
 
-        variables_minimum = 10
-        if 'variables_minimum' in self.config['yara']:
-            if isinstance(self.config['yara']['variables_minimum'], int):
-                variables_minimum = self.config['yara']['variables_minimum']
-        heuristics['variables_minimum'] = variables_minimum
+        variables_minimum_present = 10
+        if 'variables_minimum_present' in self.config['yara']:
+            if isinstance(self.config['yara']['variables_minimum_present'], int):
+                variables_minimum_present = self.config['yara']['variables_minimum_present']
+        heuristics['variables_minimum_present'] = variables_minimum_present
 
         strings_extracted = 5
         if 'strings_extracted' in self.config['yara']:
