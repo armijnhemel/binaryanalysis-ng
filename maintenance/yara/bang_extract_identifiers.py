@@ -51,7 +51,7 @@ SRC_EXTENSIONS = C_SRC_EXTENSIONS + JAVA_SRC_EXTENSIONS
 TAR_SUFFIX = ['.tbz2', '.tgz', '.txz', '.tlz', '.tz', '.gz', '.bz2', '.xz', '.lzma']
 
 
-def extract_identifiers(process_queue, temporary_directory, source_directory, json_output_directory, extraction_env, package):
+def extract_identifiers(process_queue, temporary_directory, source_directory, json_output_directory, extraction_env, package_meta_information):
     '''Unpack a tar archive based on extension and extract identifiers'''
 
     heuristics = {}
@@ -174,13 +174,16 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
             metadata= {}
             metadata['archive'] = archive.name
             metadata['sha256'] = package_hash
-            metadata['package'] = package
+            metadata['package'] = package_meta_information['package']
             metadata['language'] = language
             if purl is not None:
                 metadata['version'] = purl.version
                 metadata['packageurl'] = purl.to_string()
             else:
                 metadata['version'] = version
+            website = package_meta_information.get('website')
+            if website is not None:
+                metadata['website'] = website
 
             strings = sorted(identifiers_per_language[language]['strings'])
             variables = sorted(identifiers_per_language[language]['variables'])
@@ -228,9 +231,17 @@ def main(config_file, source_directory, meta):
     except (YAMLError, PermissionError) as e:
         raise YaraConfigException(e.args)
 
-    packages = []
+    if not 'package' in package_meta_information:
+        print("'package' missing in YAML", file=sys.stderr)
+        sys.exit(1)
+
+    if not 'releases' in package_meta_information:
+        print("'releases' missing in YAML", file=sys.stderr)
+        sys.exit(1)
 
     package = package_meta_information['package']
+
+    packages = []
 
     # some sanity checks
     for release in package_meta_information['releases']:
@@ -275,7 +286,7 @@ def main(config_file, source_directory, meta):
         process = multiprocessing.Process(target=extract_identifiers,
                                           args=(process_queue, extraction_env['temporary_directory'],
                                                 source_directory, json_output_directory,
-                                                extraction_env, package))
+                                                extraction_env, package_meta_information))
         processes.append(process)
 
     # start all the processes

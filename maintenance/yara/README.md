@@ -153,8 +153,8 @@ releases: [
 ```
 
 First is the name of the package, stored in the element `package`. Then there
-is some (currently not used) metadata: `website` and `packageurl`. Then there
-is a list called `releases` containing elements. The key of the element is the
+is some metadata: `website` and `packageurl` (currently not used). Then follows
+a list called `releases` containing elements. The key of the element is the
 version of the package, preferably in package-url format[1]. If there is no
 package-url available, then this should be the version, for example:
 
@@ -169,6 +169,8 @@ releases: [
   1.35.0: busybox-1.35.0.tar.bz2,
 ]
 ```
+
+Using package-url is strongly encouraged.
 
 ## Binary processor
 
