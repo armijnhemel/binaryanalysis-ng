@@ -76,9 +76,9 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             for s in strings:
                 try:
                     if fullword:
-                        p.write("        $string%d = \"%s\" fullword\n" % (counter, s))
+                        p.write("        $string%d = \"%s\" fullword\n" % (counter, s.translate(ESCAPE)))
                     else:
-                        p.write("        $string%d = \"%s\"\n" % (counter, s))
+                        p.write("        $string%d = \"%s\"\n" % (counter, s.translate(ESCAPE)))
                     counter += 1
                 except:
                     pass

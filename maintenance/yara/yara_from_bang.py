@@ -20,7 +20,6 @@ import re
 import sys
 import uuid
 
-import packageurl
 import click
 
 # import YAML module for the configuration
