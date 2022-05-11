@@ -195,13 +195,6 @@ def main(config_file, json_directory, identifiers, meta):
 
     package = package_meta_information['package']
 
-    # extract the top level packageurl
-    try:
-        package_purl = package_meta_information['packageurl']
-        purl = packageurl.PackageURL.from_string(package_purl)
-    except ValueError:
-        purl = None
-
     versions = set()
 
     for release in package_meta_information['releases']:
@@ -216,6 +209,8 @@ def main(config_file, json_directory, identifiers, meta):
                 json_results = json.load(json_archive)
             if json_results['metadata']['package'] == package:
                 if json_results['metadata']['version'] in versions:
+                    packages.append(result_file)
+                elif json_results['metadata'].get('packageurl') in versions:
                     packages.append(result_file)
         except Exception as e:
             continue
