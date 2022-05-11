@@ -151,11 +151,17 @@ def extract_identifiers(process_queue, json_directory, yara_output_directory, ya
         for function in identifiers['functions']:
             if len(function) < yara_env['identifier_cutoff']:
                 continue
+            if language == 'c':
+                if function in yara_env['lq_identifiers']['elf']['functions']:
+                    continue
             identifiers_per_language[language]['functions'].add(function)
 
         for variable in identifiers['variables']:
             if len(variable) < yara_env['identifier_cutoff']:
                 continue
+            if language == 'c':
+                if variable in yara_env['lq_identifiers']['elf']['variables']:
+                    continue
             identifiers_per_language[language]['variables'].add(variable)
 
         for language in identifiers_per_language:
@@ -223,6 +229,8 @@ def main(config_file, json_directory, identifiers, meta):
         print(e, file=sys.stderr)
         sys.exit(1)
 
+    # mapping for low quality identifiers. C is mapped to ELF,
+    # Java is mapped to Dex. TODO: use something a bit more sensible.
     lq_identifiers = {'elf': {'functions': [], 'variables': []},
                       'dex': {'functions': [], 'variables': []}}
 
