@@ -42,6 +42,7 @@ NAME_ESCAPE = str.maketrans({'.': '_',
 
 
 def generate_yara(yara_directory, metadata, functions, variables, strings, tags, heuristics, fullword):
+    '''Generate YARA rules from identifiers and heuristics'''
     generate_date = datetime.datetime.utcnow().isoformat()
     rule_uuid = uuid.uuid4()
     meta = '''
