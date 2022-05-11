@@ -119,7 +119,7 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
                     # party/external components so they can be ignored
 
                     # first run xgettext
-                    p = subprocess.Popen(['xgettext', '-a', '-o', '-', '--no-wrap', '--omit-header', '-'],
+                    p = subprocess.Popen(['xgettext', '-a', '-o', '-', '--no-wrap', '--no-location', '--omit-header', '-'],
                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE)
                     (stdout, stderr) = p.communicate(member_data)
@@ -140,14 +140,21 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
 
                                 if decoded_line.startswith('msgid '):
                                     msg_id = decoded_line[7:-1]
-                                    # ignore whitespace-only strings
-                                    if re.match(r'^\s+$', msg_id) is None:
-                                        identifiers_per_language[language]['strings'].add(msg_id)
                                 else:
-                                    # ignore whitespace-only strings
-                                    if re.match(r'^\s+$', decoded_line[1:-1]) is not None:
-                                        continue
-                                    identifiers_per_language[language]['strings'].add(decoded_line[1:-1])
+                                    msg_id = decoded_line[1:-1]
+
+                                if msg_id == '':
+                                    continue
+
+                                # ignore whitespace-only strings
+                                if re.match(r'^\s+$', msg_id) is not None:
+                                    continue
+
+                                # replace tabs
+                                if '\\t' in msg_id:
+                                    msg_id = msg_id.replace('\\t', '\t')
+
+                                identifiers_per_language[language]['strings'].add(msg_id)
                             except:
                                 pass
 
