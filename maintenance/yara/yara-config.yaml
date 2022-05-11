@@ -81,3 +81,15 @@ yara:
     strings_extracted: 5
     functions_extracted: 5
     variables_extracted: 5
+
+    third_party: [
+        3rdparty,
+        3rd-party-lib,
+        3rdpart,
+        contrib,
+        external,
+        thirdparty,
+        third_party,
+        third-party,
+        third-party-tools,
+    ]
