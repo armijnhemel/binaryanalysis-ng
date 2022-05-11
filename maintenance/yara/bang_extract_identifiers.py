@@ -50,6 +50,23 @@ SRC_EXTENSIONS = C_SRC_EXTENSIONS + JAVA_SRC_EXTENSIONS
 
 TAR_SUFFIX = ['.tbz2', '.tgz', '.txz', '.tlz', '.tz', '.gz', '.bz2', '.xz', '.lzma']
 
+REMOVE_CHARACTERS = ['\a', '\b', '\v', '\f', '\x01', '\x02', '\x03', '\x04',
+                     '\x05', '\x06', '\x0e', '\x0f', '\x10', '\x11', '\x12',
+                     '\x13', '\x14', '\x15', '\x16', '\x17', '\x18', '\x19',
+                     '\x1a', '\x1b', '\x1c', '\x1d', '\x1e', '\x1f', '\x7f']
+
+REMOVE_CHARACTERS_TABLE = str.maketrans({'\a': '', '\b': '', '\v': '',
+                                         '\f': '', '\x01': '', '\x02': '',
+                                         '\x03': '', '\x04': '', '\x05': '',
+                                         '\x06': '', '\x0e': '', '\x0f': '',
+                                         '\x10': '', '\x11': '', '\x12': '',
+                                         '\x13': '', '\x14': '', '\x15': '',
+                                         '\x16': '', '\x17': '', '\x18': '',
+                                         '\x19': '', '\x1a': '', '\x1b': '',
+                                         '\x1c': '', '\x1d': '', '\x1e': '',
+                                         '\x1f': '', '\x7f': ''
+                                        })
+
 
 def extract_identifiers(process_queue, temporary_directory, source_directory, json_output_directory, extraction_env, package_meta_information):
     '''Unpack a tar archive based on extension and extract identifiers'''
@@ -154,6 +171,10 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
                                 # split on newlines
                                 msg_ids = msg_id.splitlines()
                                 for m in msg_ids:
+                                    for rc in REMOVE_CHARACTERS:
+                                        if rc in m:
+                                            m = m.translate(REMOVE_CHARACTERS_TABLE)
+
                                     if m == '':
                                         continue
 
