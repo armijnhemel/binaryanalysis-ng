@@ -131,6 +131,45 @@ yara_directory: /home/bang/yara
 
 The subdirectory is called `src`.
 
+### YAML package configuration
+
+An example can be found in `data` and an edited version can be found below:
+
+```
+---
+package: busybox
+website: https://www.busybox.net/
+packageurl: pkg:generic/busybox
+
+releases: [
+  pkg:generic/busybox@1.1.0: busybox-1.1.0.tar.bz2,
+  pkg:generic/busybox@1.1.1: busybox-1.1.1.tar.bz2,
+
+...
+
+  pkg:generic/busybox@1.34.1: busybox-1.34.1.tar.bz2,
+  pkg:generic/busybox@1.35.0: busybox-1.35.0.tar.bz2,
+]
+```
+
+First is the name of the package, stored in the element `package`. Then there
+is some (currently not used) metadata: `website` and `packageurl`. Then there
+is a list called `releases` containing elements. The key of the element is the
+version of the package, preferably in package-url format[1]. If there is no
+package-url available, then this should be the version, for example:
+
+```
+releases: [
+  1.1.0: busybox-1.1.0.tar.bz2,
+  1.1.1: busybox-1.1.1.tar.bz2,
+
+...
+
+  1.34.1: busybox-1.34.1.tar.bz2,
+  1.35.0: busybox-1.35.0.tar.bz2,
+]
+```
+
 ## Binary processor
 
 The script takes result files of BANG scans (for example: Debian archive
@@ -185,3 +224,7 @@ false positives in YARA
 A prefab list of low quality ELF identifiers can be found in the files
 `low_quality_elf_funcs` and `low_quality_elf_vars`. These were handcrafted by
 looking at all identifiers found in all ELF files in Debian 11.
+
+# References
+
+[1] https://github.com/package-url

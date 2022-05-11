@@ -56,7 +56,7 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
 
     heuristics = {}
     while True:
-        version, archive = process_queue.get()
+        purl, version, archive = process_queue.get()
 
         try:
             tarchive = tarfile.open(name=archive)
@@ -175,8 +175,12 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
             metadata['archive'] = archive.name
             metadata['sha256'] = package_hash
             metadata['package'] = package
-            metadata['version'] = version
             metadata['language'] = language
+            if purl is not None:
+                metadata['version'] = purl.version
+                metadata['packageurl'] = purl.to_string()
+            else:
+                metadata['version'] = version
 
             strings = sorted(identifiers_per_language[language]['strings'])
             variables = sorted(identifiers_per_language[language]['variables'])
@@ -260,7 +264,11 @@ def main(config_file, source_directory, meta):
         tar_archive = source_directory / archive_name
         if not tarfile.is_tarfile(tar_archive):
             continue
-        process_queue.put((version, tar_archive))
+        try:
+            purl = packageurl.PackageURL.from_string(version)
+        except ValueError:
+            purl = None
+        process_queue.put((purl, version, tar_archive))
 
     # create processes for unpacking archives
     for i in range(0, extraction_env['threads']):
