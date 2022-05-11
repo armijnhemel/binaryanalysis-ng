@@ -119,6 +119,17 @@ for example:
 
     $ python3 yara_from_source.py -c yara-config.yaml --json-directory=/home/bang/yara/json/busybox -m data/busybox.yaml
 
+Optionally a pickle with low quality identifiers (example: `main()`) can be
+passed as a parameter:
+
+    $ python3 yara_from_source.py -c /path/to/config --json-directory=/path/to/json/results -m /path/to/metadata -i /path/to/pickle
+
+for example:
+
+    $ python3 yara_from_source.py -c yara-config.yaml --json-directory=/home/bang/yara/json/busybox -m data/busybox.yaml -i low_quality_identifiers.pickle
+
+A pregenerated pickle can be found in this repository.
+
 It is important that the metadata files for the extraction and YARA file
 generation are in sync.
 
