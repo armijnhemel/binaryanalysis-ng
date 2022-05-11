@@ -108,7 +108,11 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
         # TODO: find good heuristics of how many identifiers should be matched
         p.write('\n    condition:\n')
         if strings != []:
-            p.write('        all of ($string*)')
+            if len(strings) >= heuristics['strings_minimum_present']:
+                num_strings = max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])
+                p.write('        %d of ($string*)' % num_strings)
+            else:
+                p.write('        all of ($string*)')
             if not (functions == set() and variables == set()):
                 p.write(' and\n')
             else:
