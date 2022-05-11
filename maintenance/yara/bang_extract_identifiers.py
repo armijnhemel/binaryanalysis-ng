@@ -133,13 +133,21 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
                             if line.startswith(b'#'):
                                 # skip comments, hints, etc.
                                 continue
+                            if line.startswith(b'msgstr'):
+                                continue
                             try:
                                 decoded_line = line.decode()
+
                                 if decoded_line.startswith('msgid '):
                                     msg_id = decoded_line[7:-1]
                                     # ignore whitespace-only strings
                                     if re.match(r'^\s+$', msg_id) is None:
                                         identifiers_per_language[language]['strings'].add(msg_id)
+                                else:
+                                    # ignore whitespace-only strings
+                                    if re.match(r'^\s+$', decoded_line[1:-1]) is not None:
+                                        continue
+                                    identifiers_per_language[language]['strings'].add(decoded_line[1:-1])
                             except:
                                 pass
 
