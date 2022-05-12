@@ -25,7 +25,7 @@ Licensed under the terms of the Affero General Public License version 3
 
 SPDX-License-Identifier: AGPL-3.0-only
 
-Copyright 2018-2021 - Armijn Hemel
+Copyright 2018-2022 - Armijn Hemel
 
 # Getting Neo4J
 
@@ -116,11 +116,12 @@ During run time the so called "dynamic linker" sees if the ELF files from
 step 3 can be found in its search path. If so it extracts the symbols from
 these files (step 2) and matches them with the symbols from step 1. It is
 possible to have two libraries with the same name but in different paths. Which
-library is chosen depends on the configuration of the dynamic linker.
+library is chosen depends on the configuration of the dynamic linker and the
+order in which the libraries are searched.
 
 Sometimes some search paths are hardcoded to a specific ELF file using the
-so called "RPATH", which makes it possible to somewhat limit from which
-libraries symbols are chosen.
+either `RPATH`, or `RUNPATH` which makes it possible to somewhat limit from
+which libraries symbols are chosen.
 
 The scripts here do something similar to the dynamic linker, but instead of
 running the program graphs are created for displaying and searching.
