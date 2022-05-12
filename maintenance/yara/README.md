@@ -1,13 +1,12 @@
 # YARA rule generation scripts
 
-This directory contains scripts to generate YARA rules. There are two
-different ways to generate YARA rules:
+This directory contains scripts to generate YARA rules. There are two scripts:
 
-1. from source code
-2. from binaries
+1. script to generate YARA rules from source code
+2. script to generate YARA rules from BANG results (binary files)
 
-Generating YARA rules from binaries is currently only supported for
-ELF files and Android Dex files.
+The script to generate YARA rules from binaries currently only supports ELF
+and Android Dex. More formats will be added soon.
 
 ## When to use which processor
 
@@ -54,134 +53,21 @@ identifiers, such as the strings embedded in `.dex` files.
 
 ## Source code processor
 
-Generating YARA rules from source code involves two steps:
+The script takes source code archives, unpacks them, extracts data using
+`ctags` and `xgettext` and generates YARA rules from them.
 
-1. extracting identifiers from source code
-2. generating YARA rules from identifiers extracted in step 1
-
-This split is made since extracting identifiers is a fairly expensive step
-(nearly all processing time is used for extracting identifiers) and is
-something that typically only needs to be done once for an archive as the
-data for an archive is immutable. The only reason to rerun the extraction
-process is if there are errors in the extraction tools. It also allows for
-incremental updates, only processing new packages.
-
-The `bang_extract_identifiers.py` script extracts individual files from source
-code archives, processes the individual files using `ctags` and `xgettext` to
-get the interesting identifiers and generates JSON files with the results of
-each package. These results are raw and have not been cleaned up, with the
-exception of empty strings or all whitespace strings.
-
-The extraction code script looks at the extension of the file to determine
+The source code script depends on the extension of the file to determine
 the most likely programming language used in the source code file. Current
 focus is on C/C++, Java (including Scala and Kotlin) and Javascript. Support
 for more languages will be added in the future.
 
 The script to process source code can be invoked as follows:
 
-    $ python3 bang_extract_identifiers.py -c /path/to/config -s /path/to/sources -m /path/to/metadata
-
-for example:
-
-    $ python3 bang_extract_identifiers.py -c yara-config.yaml -s ~/busybox -m data/busybox.yaml
+    $ python3 yara_from_source.py -c yara-config.yaml -s /path/to/source
 
 The directory with source code should contain source code archives (currently
 only TAR archives are supported, support for ZIP files will be added in the
-future). The `-m`/`--metadata` option requires a path to a YAML file describing
-package metadata. An example can be found in the directory `data`.
-
-The results are stored in a subdirectory of the JSON directory that is defined
-in the YAML configuration file:
-
-```
-json_directory: /home/bang/yara/json
-```
-
-The subdirectory will be the name of the package as defined in the metadata
-file, for example:
-
-```
-package: busybox
-```
-
-This will result in the files being stored in the directory
-`/home/bang/yara/json/busybox`.
-
-In case there are new packages then not all files will have to be reprocessed:
-only the new files need to be put into a new metadata file with just the new
-archives.
-
-The second step will be to run the YARA rule generation script:
-
-    $ python3 yara_from_source.py -c /path/to/config --json-directory=/path/to/json/results -m /path/to/metadata
-
-for example:
-
-    $ python3 yara_from_source.py -c yara-config.yaml --json-directory=/home/bang/yara/json/busybox -m data/busybox.yaml
-
-Optionally a pickle with low quality identifiers (example: `main()`) can be
-passed as a parameter:
-
-    $ python3 yara_from_source.py -c /path/to/config --json-directory=/path/to/json/results -m /path/to/metadata -i /path/to/pickle
-
-for example:
-
-    $ python3 yara_from_source.py -c yara-config.yaml --json-directory=/home/bang/yara/json/busybox -m data/busybox.yaml -i low_quality_identifiers.pickle
-
-A pregenerated pickle can be found in this repository.
-
-It is important that the metadata files for the extraction and YARA file
-generation are in sync.
-
-The results are stored in a subdirectory of the YARA directory that is defined
-in the YAML configuration file:
-
-```
-yara_directory: /home/bang/yara
-```
-
-The subdirectory is called `src`.
-
-### YAML package configuration
-
-An example can be found in `data` and an edited version can be found below:
-
-```
----
-package: busybox
-website: https://www.busybox.net/
-packageurl: pkg:generic/busybox
-
-releases: [
-  pkg:generic/busybox@1.1.0: busybox-1.1.0.tar.bz2,
-  pkg:generic/busybox@1.1.1: busybox-1.1.1.tar.bz2,
-
-...
-
-  pkg:generic/busybox@1.34.1: busybox-1.34.1.tar.bz2,
-  pkg:generic/busybox@1.35.0: busybox-1.35.0.tar.bz2,
-]
-```
-
-First is the name of the package, stored in the element `package`. Then there
-is some metadata: `website` and `packageurl` (currently not used). Then follows
-a list called `releases` containing elements. The key of the element is the
-version of the package, preferably in package-url format[1]. If there is no
-package-url available, then this should be the version, for example:
-
-```
-releases: [
-  1.1.0: busybox-1.1.0.tar.bz2,
-  1.1.1: busybox-1.1.1.tar.bz2,
-
-...
-
-  1.34.1: busybox-1.34.1.tar.bz2,
-  1.35.0: busybox-1.35.0.tar.bz2,
-]
-```
-
-Using package-url is strongly encouraged.
+future).
 
 ## Binary processor
 
@@ -218,7 +104,7 @@ should be passed to the script in Python pickle format:
 
     $ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian -i low_quality_identifiers.pickle
 
-### Low quality identifiers
+### Low quality function names and variable names
 
 There are several identifiers such as function names and variable names
 that can be found in many binaries and that have generic names. Although
@@ -230,13 +116,37 @@ Examples are:
 
 * very short identifiers (a single character)
 * identifiers that are a substring of other identifiers as these could lead to
-false positives in YARA
+  false positives in YARA (somewhat prevented by using `fullword` in YARA
+  rules.
 * identifiers that occur in many packages. A good example: weak ELF symbols
-<https://en.wikipedia.org/wiki/Weak_symbol>
+  <https://en.wikipedia.org/wiki/Weak_symbol> or identifiers that occur in
+  packages that have been copied (cloned) and are included as "third party
+  code" such as `zlib`, `libpng`, `sqlite` and so on.
 
 A prefab list of low quality ELF identifiers can be found in the files
-`low_quality_elf_funcs` and `low_quality_elf_vars`. These were handcrafted by
-looking at all identifiers found in all ELF files in Debian 11.
+`low_quality_elf_funcs` and `low_quality_elf_vars`. These were collected by
+looking at all identifiers found in (nearly) all ELF files in Debian 11.
+
+Third party code is not yet labeled as such.
+
+### Low quality strings
+
+Similar to the function names and variable names there are also low quality
+strings. Some examples are:
+
+* very short identifiers (a single character)
+* identifiers that are a substring of other identifiers as these could lead to
+  false positives in YARA (somewhat prevented by using `fullword` in YARA
+  rules.
+* strings that appear in many packages. Good examples are strings that are
+  present in packages that have been copied (cloned) and are included as "third
+  party code" such as `zlib`, `libpng`, `sqlite` and so on.
+* country names, timezones, names of device files (`/dev/null`, etc.)
+
+
+A prefab list of low quality strings from ELF files can be found in the file
+`low_quality_elf_strings`. These were collected by looking at all strings
+found in (nearly) all ELF files in Debian 11.
 
 # References
 
