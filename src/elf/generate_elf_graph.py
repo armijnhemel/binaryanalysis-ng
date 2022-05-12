@@ -37,9 +37,8 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
-# Copyright 2018-2021 - Armijn Hemel, Tjaldur Software Governance Solutions
+# Copyright 2018-2022 - Armijn Hemel, Tjaldur Software Governance Solutions
 
-import argparse
 import configparser
 import os
 import secrets
@@ -48,6 +47,8 @@ import sys
 import tempfile
 import pickle
 import pathlib
+
+import click
 
 def createtext(outputdir, binaries, linked_libraries,
                  filename_to_full_path, elf_to_exported_symbols,
@@ -196,60 +197,33 @@ def createcypher(outputdir, binaries, linked_libraries,
                                 # something is horribly wrong here
                                 pass
 
-def main(argv):
-    parser = argparse.ArgumentParser()
+@click.command(short_help='process BANG result files and output ELF graphs')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.option('--directory', '-d', 'result_directory', required=True, help='BANG result directory', type=click.Path(exists=True))
+@click.option('--output', '-o', help='pickle with low quality identifiers')
+def main(config_file, result_directory, output):
 
-    # the following options are provided on the commandline
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    parser.add_argument("-d", "--directory", action="store",
-                        dest="bang_result_directory",
-                        help="path to BANG result directory", metavar="DIR")
-    parser.add_argument("-o", "--outputformat", action="store",
-                        dest="outputformat",
-                        help="output format", metavar="FORMAT")
-    args = parser.parse_args()
-
-    # first some sanity checks for the directory that needs to be scanned
-    if args.bang_result_directory is None:
-        parser.error("Directory argument missing")
-
-    bang_result_directory = pathlib.Path(args.bang_result_directory)
-
-    if not bang_result_directory.exists():
-        parser.error("Directory %s does not exist" % bang_result_directory)
+    bang_result_directory = pathlib.Path(result_directory)
 
     if not bang_result_directory.is_dir():
-        parser.error("%s is not a directory" % bang_result_directory)
+        print("%s is not a directory" % bang_result_directory, file=sys.stderr)
+        sys.exit(1)
 
     #supported_formats = ['text', 'cypher', 'graphviz']
     supported_formats = ['cypher']
 
     # check the output format. By default it is cypher.
     outputformat = 'cypher'
-    if args.outputformat is not None:
-        if args.outputformat not in supported_formats:
-            parser.error("Unsupported output format %s" % args.outputformat)
-        outputformat = args.outputformat
-
-    # then some checks for the configuration file
-    if args.cfg is None:
-        parser.error("Configuration file missing")
-
-    cfg = pathlib.Path(args.cfg)
-
-    if not cfg.exists():
-        parser.error("Configuration file does not exist")
-
-    if not cfg.is_file():
-        parser.error("%s is not a file" % cfg)
+    if output is not None:
+        if output not in supported_formats:
+            print("Unsupported output format %s" % output)
+            sys.exit(1)
+        outputformat = output
 
     config = configparser.ConfigParser()
 
-    configfile = open(cfg, 'r')
-
     try:
-        config.read_file(configfile)
+        config.read_file(config_file)
     except Exception:
         print("Cannot read configuration file", file=sys.stderr)
         sys.exit(1)
@@ -266,19 +240,19 @@ def main(argv):
                 except:
                     print("Directory to write Cypher files not configured",
                           file=sys.stderr)
-                    configfile.close()
+                    config_file.close()
                     sys.exit(1)
                 if not os.path.exists(outputdir):
                     print("Directory to write Cypher files does not exist",
                           file=sys.stderr)
-                    configfile.close()
+                    config_file.close()
                     sys.exit(1)
                 if not os.path.isdir(outputdir):
                     print("Directory to write Cypher files is not a directory",
                           file=sys.stderr)
-                    configfile.close()
+                    config_file.close()
                     sys.exit(1)
-    configfile.close()
+    config_file.close()
 
     if outputdir is None:
         print("Directory to write output files to not configured",
@@ -426,4 +400,4 @@ def main(argv):
                                      elf_to_imported_symbols)
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
