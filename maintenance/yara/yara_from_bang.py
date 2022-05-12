@@ -369,6 +369,12 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                         for f in sorted(variables_per_package):
                             p.write(f)
                             p.write('\n')
+                if len(strings) != 0:
+                    yara_file = yara_directory / ("%s.strings" % package_name)
+                    with yara_file.open(mode='w') as p:
+                        for f in sorted(strings_per_package):
+                            p.write(f)
+                            p.write('\n')
         yaraqueue.task_done()
 
 
