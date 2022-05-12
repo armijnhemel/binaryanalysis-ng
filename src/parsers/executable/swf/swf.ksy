@@ -54,6 +54,8 @@ types:
       - id: len_file
         -orig-id: FileLength
         type: u4
+        valid:
+          max: _root._io.size
   swf_body:
     seq:
       - id: rect

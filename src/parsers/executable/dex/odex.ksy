@@ -4,8 +4,6 @@ meta:
   file-extension: odex
   license: Apache-2.0
   ks-version: 0.9
-  imports:
-    - dex
   endian: le
   encoding: UTF-8
 doc-ref: http://web.archive.org/web/20180816094438/https://android.googlesource.com/platform/dalvik.git/+/master/libdex/DexFile.h
@@ -36,13 +34,9 @@ seq:
     type: u4
     doc: adler32 checksum covering deps/deps_padding/opt
 instances:
-  raw_dex:
-    pos: ofs_dex
-    size: len_dex
   dex:
     pos: ofs_dex
     size: len_dex
-    type: dex
   deps:
     pos: ofs_deps
     size: len_deps

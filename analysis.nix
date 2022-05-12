@@ -12,6 +12,7 @@ let
     elasticsearch
     icalendar
     kaitaistruct
+    meilisearch
     parameterized
     pdfminer
     psycopg2

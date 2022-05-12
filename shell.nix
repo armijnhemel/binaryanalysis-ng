@@ -26,7 +26,6 @@ let
     telfhash
     tlsh
     xxhash
-    zstd
     zstandard
   ]);
     
@@ -35,8 +34,10 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     binutils
     cabextract
+    e2fsprogs
     e2tools
     innoextract
+    kaitai-struct-compiler
     lz4
     mailcap
     ncompress
@@ -51,6 +52,5 @@ pkgs.mkShell {
     unshield
     utillinux
     zchunk
-    zstd
   ];
 }
