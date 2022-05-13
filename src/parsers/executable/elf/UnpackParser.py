@@ -21,9 +21,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 
-import os
 import binascii
 import json
+import os
 
 import telfhash
 
@@ -42,6 +42,18 @@ FORTIFY_NAMES = ['cpy_chk', 'printf_chk', 'cat_chk', 'poll_chk',
                  'syslog_chk', '__longjmp_chk', '__fdelt_chk',
                  '__realpath_chk', '__explicit_bzero_chk', '__recv_chk',
                  '__getdomainname_chk', '__gethostname_chk']
+
+# some names used in OCaml
+OCAML_NAMES = ['caml_c_cal', 'caml_init_atom_table',
+               'caml_init_backtrace', 'caml_init_custom_operations',
+               'caml_init_domain', 'caml_init_frame_descriptors',
+               'caml_init_gc', 'caml_init_ieee_floats',
+               'caml_init_locale', 'caml_init_major_heap',
+               'caml_init_signals', 'caml_sys_error',
+               'caml_sys_executable_name', 'caml_sys_exit',
+               'caml_sys_file_exists', 'caml_sys_get_argv',
+               'caml_sys_get_config', 'caml_sys_getcwd',
+               'caml_sys_getenv', 'caml_sys_init']
 
 # road only data sections. This should be expanded.
 RODATA_SECTIONS = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
@@ -372,6 +384,9 @@ class ElfUnpackParser(UnpackParser):
                         if symbol['name'] == 'oatdata':
                             labels.append('oat')
                             labels.append('android')
+
+                        if symbol['name'] in OCAML_NAMES:
+                            labels.append('ocaml')
 
                         # security related information
                         if symbol['name'] == '__stack_chk_fail':
