@@ -127,7 +127,10 @@ def main():
                 # no CVEs found, continue
                 continue
 
-            temp = open('%s.json' % temporary_file[1], 'rb')
+            try:
+                temp = open('%s.json' % temporary_file[1], 'rb')
+            except FileNotFoundError:
+                continue
             cve_json = json.loads(temp.read())
             temp.close()
             os.unlink(temp_name)
