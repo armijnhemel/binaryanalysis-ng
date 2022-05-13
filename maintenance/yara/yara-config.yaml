@@ -52,6 +52,9 @@ yara:
     # BINARY ONLY: ignore weak ELF symbols. Recommended to set to 'true'
     ignore_weak_symbols: true
 
+    # BINARY ONLY: ignore OCaml files
+    ignore_ocaml: true
+
     # the maximum amount of identifiers that YARA will consider
     max_identifiers: 10000
 

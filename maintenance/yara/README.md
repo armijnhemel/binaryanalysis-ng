@@ -122,6 +122,7 @@ Examples are:
   <https://en.wikipedia.org/wiki/Weak_symbol> or identifiers that occur in
   packages that have been copied (cloned) and are included as "third party
   code" such as `zlib`, `libpng`, `sqlite` and so on.
+* strings from embedded interpreters or runtimes (example: OCaml)
 
 A prefab list of low quality ELF identifiers can be found in the files
 `low_quality_elf_funcs` and `low_quality_elf_vars`. These were collected by

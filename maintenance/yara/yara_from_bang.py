@@ -198,6 +198,11 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     results_data = pickle.load(open(bang_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
                 except:
                     continue
+
+                if 'ocaml' in results_data['labels']:
+                    if yara_env['ignore_ocaml']:
+                        continue
+
                 if 'metadata' not in results_data:
                     # example: statically linked binaries currently
                     # have no associated metadata.

@@ -215,11 +215,17 @@ class YaraConfig:
             if isinstance(self.config['yara']['ignore_weak_symbols'], bool):
                 ignore_weak_symbols = self.config['yara']['ignore_weak_symbols']
 
+        ignore_ocaml = False
+        if 'ignore_ocaml' in self.config['yara']:
+            if isinstance(self.config['yara']['ignore_ocaml'], bool):
+                ignore_ocaml = self.config['yara']['ignore_ocaml']
+
         yara_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
                     'string_max_cutoff': string_max_cutoff,
                     'identifier_cutoff': identifier_cutoff,
                     'max_identifiers': max_identifiers,
                     'ignore_weak_symbols': ignore_weak_symbols,
+                    'ignore_ocaml': ignore_ocaml,
                     'fullword': fullword, 'threads': threads,
                     'yara_directory': yara_directory, 'heuristics': heuristics,
                     'temporary_directory': temporary_directory,
