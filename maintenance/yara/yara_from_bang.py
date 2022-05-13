@@ -426,8 +426,11 @@ def main(config_file, result_directory, identifiers):
 
     # walk the results directory
     for bang_directory in result_directory.iterdir():
-        bang_pickle = bang_directory / 'bang.pickle'
-        if not bang_pickle.exists():
+        try:
+            bang_pickle = bang_directory / 'bang.pickle'
+            if not bang_pickle.exists():
+                continue
+        except PermissionError:
             continue
 
         yaraqueue.put(bang_directory)
