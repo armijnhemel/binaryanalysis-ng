@@ -11,15 +11,16 @@ This script processes APK processed by BANG and runs apkid on them
 to find any possible obfuscators.
 '''
 
-import sys
-import shutil
+import json
 import os
-import argparse
 import pathlib
 import pickle
-import json
+import shutil
 import subprocess
+import sys
 import tempfile
+
+import click
 
 # import YAML module for the configuration
 from yaml import load
@@ -29,46 +30,20 @@ try:
 except ImportError:
     from yaml import Loader
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    parser.add_argument("-r", "--result-directory", action="store", dest="result_directory",
-                        help="path to BANG result directories", metavar="DIR")
-    args = parser.parse_args()
-
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    cfg = pathlib.Path(args.cfg)
-
-    # the configuration file should exist ...
-    if not cfg.exists:
-        parser.error("File %s does not exist, exiting." % cfg)
-
-    # ... and should be a real file
-    if not cfg.is_file():
-        parser.error("%s is not a regular file, exiting." % cfg)
-
-    # sanity checks for the result directory
-    if args.result_directory is None:
-        parser.error("No result directory provided, exiting")
-
-    result_directory = pathlib.Path(args.result_directory)
-
-    # the result directory should exist ...
-    if not result_directory.exists():
-        parser.error("File %s does not exist, exiting." % args.result_directory)
+@click.command(short_help='process BANG result files and output YARA')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.option('--result-directory', '-r', 'bang_result_directory', required=True, help='source code archive directory', type=click.Path(exists=True))
+def main(config_file, bang_result_directory):
+    result_directory = pathlib.Path(bang_result_directory)
 
     # ... and should be a real directory
     if not result_directory.is_dir():
-        parser.error("%s is not a directory, exiting." % args.result_directory)
+        print("%s is not a directory, exiting." % result_directory)
+        sys.exit(1)
 
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(cfg, 'r')
-        config = load(configfile, Loader=Loader)
+        config = load(config_file, Loader=Loader)
     except (YAMLError, PermissionError):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
