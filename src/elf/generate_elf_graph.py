@@ -41,12 +41,12 @@
 
 import configparser
 import os
+import pathlib
+import pickle
 import secrets
 import string
 import sys
 import tempfile
-import pickle
-import pathlib
 
 import click
 
