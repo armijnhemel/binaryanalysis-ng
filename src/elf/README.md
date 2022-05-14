@@ -34,7 +34,7 @@ Get the community edition at:
 https://neo4j.com/download-center/
 
 Since Neo4J tends to shuffle these download links around every once in a while
-it might not be accurate at some point in time.
+they might not be accurate.
 
 # Usage
 
@@ -46,7 +46,7 @@ it might not be accurate at some point in time.
 
 # Example
 
-(picture for this example can be found in the directory "pics")
+(picture for this example can be found in the directory `pics`)
 
 This script can be used to generate graphs after unpacking a firmware with
 BANG. For example:
