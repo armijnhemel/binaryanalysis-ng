@@ -72,130 +72,127 @@ def createcypher(outputdir, binaries, linked_libraries,
                  elf_to_imported_symbols):
     '''Create a Cypher file for each set of ELF files that belongs together'''
 
-    # create a cypher file for each architecture/operating system
-    # combination that was found. This means:
+    # create a cypher file for a collection of binaries. This means:
     #
-    # * generating names for the nodes in the graph
+    # * generating (random) names for the nodes in the graph
     # * defining vertices between the nodes
     # * writing the output file
-    print(binaries)
+    elf_to_placeholder = {}
+    placeholder_to_elf = {}
+    symbol_to_placeholder = {}
+    placeholder_to_symbol = {}
+    all_placeholder_names = set()
 
-    return
+    for binary in binaries:
+        # Create a placeholder name and check if it already exists. If so
+        # generate and check a new name until one is found that doesn't exist.
+        #
+        # Taken from the Python3 documentation:
+        # https://docs.python.org/3/library/secrets.html#recipes-and-best-practices
+        while True:
+            placeholdername = ''.join(secrets.choice(string.ascii_letters) for i in range(8))
+            if placeholdername not in placeholder_to_elf and placeholdername not in all_placeholder_names:
+                placeholder_to_elf[placeholdername] = binary
+                break
+        elf_to_placeholder[binary] = placeholdername
+        all_placeholder_names.add(placeholdername)
 
-    for architecture in machine_to_binary:
-        for o in machine_to_binary[architecture]:
-            for endian in machine_to_binary[architecture][o]:
-                for elfclass in machine_to_binary[architecture][o][endian]:
-                    elf_to_placeholder = {}
-                    placeholder_to_elf = {}
-                    symbol_to_placeholder = {}
-                    placeholder_to_symbol = {}
-                    all_placeholder_names = set()
-                    if machine_to_binary[architecture][o][endian][elfclass] == set():
-                        continue
+    # write the data to a Cypher file
+    cypherfile = tempfile.mkstemp(dir=outputdir, suffix='.cypher')
+    os.fdopen(cypherfile[0]).close()
+    with open(cypherfile[1], 'w') as cypherfileopen:
+        cypherfileopen.write("CREATE ")
 
-                    # first generate place holder names for every binary
-                    for filename in machine_to_binary[architecture][o][endian][elfclass]:
-                        # Create a placeholder name and check if it already exists. If so
-                        # generate and check a new name until one is found that doesn't exist.
-                        #
-                        # Taken from the Python3 documentation:
-                        # https://docs.python.org/3/library/secrets.html#recipes-and-best-practices
-                        while True:
-                            placeholdername = ''.join(secrets.choice(string.ascii_letters) for i in range(8))
-                            if placeholdername not in placeholder_to_elf and placeholdername not in all_placeholder_names:
-                                placeholder_to_elf[placeholdername] = filename
-                                break
-                        elf_to_placeholder[filename] = placeholdername
-                        all_placeholder_names.add(placeholdername)
+        # first add all the ELF files as nodes to the graph
+        seen_first_node = False
+        for filename in binaries:
 
-                    # write the data to a Cypher file
-                    cypherfile = tempfile.mkstemp(dir=outputdir,
-                                                  suffix='.cypher')
-                    os.fdopen(cypherfile[0]).close()
-                    cypherfileopen = open(cypherfile[1], 'w')
-                    cypherfileopen.write("CREATE ")
+            # some magic to make sure that nodes are formatted
+            # correctly in the file, else Neo4J will complain
+            # about malformed Cypher.
+            if seen_first_node:
+                cypherfileopen.write(", \n")
+            else:
+                seen_first_node = True
 
-                    seenfirst = False
+            # define a node
+            cypherfileopen.write("(%s:ELF {name: '%s'})" % (elf_to_placeholder[filename], filename))
 
-                    # first add all the ELF files as nodes to the graph
-                    for filename in machine_to_binary[architecture][o][endian][elfclass]:
-                        if seenfirst:
-                            cypherfileopen.write(", \n")
-                        else:
-                            seenfirst = True
-                        # first create the nodes
-                        cypherfileopen.write("(%s:ELF {name: '%s'})" % (elf_to_placeholder[filename], filename))
+        # add links between files
+        for filename in binaries:
+            if linked_libraries[filename] == []:
+                continue
 
-                    # then add all the links
-                    for filename in machine_to_binary[architecture][o][endian][elfclass]:
-                        if linked_libraries[filename] != []:
-                            # record the dependencies that are linked with
-                            for l in linked_libraries[filename]:
-                                libfound = False
-                                if l in filename_to_full_path:
-                                    for fl in filename_to_full_path[l]:
-                                        # only record dependencies that
-                                        # are in the same "class"
-                                        if fl in machine_to_binary[architecture][o][endian][elfclass]:
-                                            libfound = True
-                                            break
-                                if not libfound:
-                                    # problem here, ignore for now
-                                    continue
-                                    #pass
-                                cypherfileopen.write(", \n")
-                                cypherfileopen.write("(%s)-[:LINKSWITH]->(%s)" % (elf_to_placeholder[filename], elf_to_placeholder[fl]))
+            # record the dependencies that are linked with
+            for l in linked_libraries[filename]:
+                libfound = False
+                if l in filename_to_full_path:
+                    for fl in filename_to_full_path[l]:
+                        # only record dependencies that
+                        # are in the same collection of of binaries
+                        if fl in binaries:
+                            libfound = True
+                            break
+                if not libfound:
+                    # problem here, ignore for now
+                    continue
 
-                    # then add all the exported symbols just once
-                    tmpexportsymbols = set()
+                cypherfileopen.write(", \n")
+                cypherfileopen.write("(%s)-[:LINKSWITH]->(%s)" % (elf_to_placeholder[filename], elf_to_placeholder[fl]))
 
-                    for filename in machine_to_binary[architecture][o][endian][elfclass]:
-                        for exp in elf_to_exported_symbols[filename]:
-                            # remove a few symbols that are not needed
-                            if exp['size'] == 0:
-                                continue
-                            if exp['type'] == 'NOTYPE':
-                                continue
-                            tmpexportsymbols.add((exp['name'], exp['type'], exp['bind']))
-                    for exp in tmpexportsymbols:
-                        (symbolname, symboltype, symbolbinding) = exp
-                        while True:
-                            placeholdername = ''.join(secrets.choice(string.ascii_letters) for i in range(8))
-                            if placeholdername not in placeholder_to_symbol and placeholdername not in all_placeholder_names:
-                                placeholder_to_symbol[placeholdername] = symbolname
-                                break
-                        symbol_to_placeholder[(symbolname, symboltype)] = placeholdername
-                        all_placeholder_names.add(placeholdername)
-                        cypherfileopen.write(", \n")
-                        cypherfileopen.write("(%s:SYMBOL {name: '%s', type: '%s'})" % (symbol_to_placeholder[(symbolname, symboltype)], symbolname, symboltype))
+        # then add all the exported symbols just once
+        tmpexportsymbols = set()
 
-                    # then declare for all the symbols which are exported
-                    for filename in machine_to_binary[architecture][o][endian][elfclass]:
-                        for exp in elf_to_exported_symbols[filename]:
-                            # remove a few symbols that are not needed
-                            if exp['size'] == 0:
-                                continue
-                            if exp['type'] == 'NOTYPE':
-                                continue
-                            cypherfileopen.write(", \n")
-                            cypherfileopen.write("(%s)-[:EXPORTS]->(%s)" % (elf_to_placeholder[filename], symbol_to_placeholder[(exp['name'], exp['type'])]))
+        for filename in binaries:
+            for exp in elf_to_exported_symbols[filename]:
+                # remove a few symbols that are not needed
+                if exp['size'] == 0:
+                    continue
+                if exp['type'] == 'NOTYPE':
+                    continue
+                tmpexportsymbols.add((exp['name'], exp['type'], exp['binding']))
 
-                    # store which files use which symbols
-                    for filename in machine_to_binary[architecture][o][endian][elfclass]:
-                        for imp in elf_to_imported_symbols[filename]:
-                            if imp['bind'] == 'LOCAL':
-                                # skip LOCAL symbols
-                                continue
-                            if imp['bind'] == 'WEAK':
-                                # skip WEAK symbols for now
-                                continue
-                            if (imp['name'], imp['type']) in symbol_to_placeholder:
-                                cypherfileopen.write(", \n")
-                                cypherfileopen.write("(%s)-[:USES]->(%s)" % (elf_to_placeholder[filename], symbol_to_placeholder[(imp['name'], imp['type'])]))
-                            else:
-                                # something is horribly wrong here
-                                pass
+        for exp in tmpexportsymbols:
+            (symbolname, symboltype, symbolbinding) = exp
+            while True:
+                placeholdername = ''.join(secrets.choice(string.ascii_letters) for i in range(8))
+                if placeholdername not in placeholder_to_symbol and placeholdername not in all_placeholder_names:
+                    placeholder_to_symbol[placeholdername] = symbolname
+                    break
+            symbol_to_placeholder[(symbolname, symboltype)] = placeholdername
+            all_placeholder_names.add(placeholdername)
+            cypherfileopen.write(", \n")
+            cypherfileopen.write("(%s:SYMBOL {name: '%s', type: '%s'})" % (symbol_to_placeholder[(symbolname, symboltype)], symbolname, symboltype))
+
+        # then declare for all the symbols which are exported
+        for filename in binaries:
+            for exp in elf_to_exported_symbols[filename]:
+                # remove a few symbols that are not needed
+                if exp['size'] == 0:
+                    continue
+                if exp['type'] == 'no_type':
+                    continue
+                cypherfileopen.write(", \n")
+                cypherfileopen.write("(%s)-[:EXPORTS]->(%s)" % (elf_to_placeholder[filename], symbol_to_placeholder[(exp['name'], exp['type'])]))
+
+        # store which files use which symbols
+        for filename in binaries:
+            for imp in elf_to_imported_symbols[filename]:
+                if imp['size'] == 0:
+                    continue
+                if imp['binding'] == 'local':
+                    # skip LOCAL symbols
+                    continue
+                if imp['binding'] == 'weak':
+                    # skip WEAK symbols for now
+                    continue
+                if (imp['name'], imp['type']) in symbol_to_placeholder:
+                    cypherfileopen.write(", \n")
+                    cypherfileopen.write("(%s)-[:USES]->(%s)" % (elf_to_placeholder[filename], symbol_to_placeholder[(imp['name'], imp['type'])]))
+                else:
+                    # something is horribly wrong here
+                    pass
+
 
 @click.command(short_help='process BANG result files and output ELF graphs')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
@@ -328,6 +325,11 @@ def main(config_file, result_directory, output, root_directory):
             result_pickle = bang_result_directory / 'results' / ('%s.pickle' % sha256)
             result = pickle.load(open(result_pickle, 'rb'))
 
+            # store the name
+            if not binary_name.name in filename_to_full_path:
+                filename_to_full_path[binary_name.name] = []
+            filename_to_full_path[binary_name.name].append(binary_name)
+
             # store the parent
             if 'parent' in bang_results['scantree'][bang_result]:
                 parent = bang_results['scantree'][bang_result]['parent']
@@ -343,7 +345,7 @@ def main(config_file, result_directory, output, root_directory):
             # store the dependencies
             linked_libraries[binary_name] = result['metadata']['needed']
 
-            # store the symbols
+            # store the symbols from the dynamic symbol table
             elf_to_imported_symbols[binary_name] = []
             elf_to_exported_symbols[binary_name] = []
             for s in result['metadata']['dynamic_symbols']:
@@ -358,11 +360,35 @@ def main(config_file, result_directory, output, root_directory):
                 if s['section_index'] == 0xfff1:
                     continue
                 if s['section_index'] == 0:
-                    elf_to_imported_symbols[binary_name].append(s)
+                    if not s in elf_to_imported_symbols[binary_name]:
+                        elf_to_imported_symbols[binary_name].append(s)
                 else:
                     # TODO: this isn't quite correct, as it also includes
                     # symbols from for example ABS
-                    elf_to_exported_symbols[binary_name].append(s)
+                    if not s in elf_to_exported_symbols[binary_name]:
+                        elf_to_exported_symbols[binary_name].append(s)
+
+            # store the symbols from the symbol table (if any)
+            for s in result['metadata']['symbols']:
+                # ignore everything but functions and variables
+                if s['type'] not in ['func', 'object']:
+                    continue
+                # ignore symbols that have a local binding, only
+                # look at global and weak symbols
+                if s['binding'] == 'local':
+                    continue
+                # ignore ABS section
+                if s['section_index'] == 0xfff1:
+                    continue
+
+                if s['section_index'] == 0:
+                    if not s in elf_to_imported_symbols[binary_name]:
+                        elf_to_imported_symbols[binary_name].append(s)
+                else:
+                    # TODO: this isn't quite correct, as it also includes
+                    # symbols from for example ABS
+                    if not s in elf_to_exported_symbols[binary_name]:
+                        elf_to_exported_symbols[binary_name].append(s)
         elif 'symbolic link' in bang_results['scantree'][bang_result]['labels']:
             # It could be that a name of a dependency in an ELF file
             # is the name of a symbolic link, instead of the actual
