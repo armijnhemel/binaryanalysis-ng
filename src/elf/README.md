@@ -6,7 +6,8 @@ read:
 
 The scripts can output in several formats. Currently supported:
 
-* Cypher (Neo4J)
+* Cypher (Neo4J) (default, this might change)
+* dot (graphviz), output in PNG and SVG
 
 This script originally comes from the following repository:
 
@@ -27,7 +28,37 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 Copyright 2018-2022 - Armijn Hemel
 
-# Getting Neo4J
+# Usage
+
+1. unpack a root file system of a firmware into a directory (example: /tmp/rootfs)
+2. adapt the configuration file to change the directory where Cypher files will be stored
+3. run the script
+
+This script can be used to generate graphs after unpacking a firmware with
+BANG as follows:
+
+    $ python3 generate_elf_graph.py -c /path/to/config -d /path/to/bang/result/directory -r root/in/firmware
+
+for example:
+
+    $ python3 generate_elf_graph.py -c graph.config -d ~/tmp/bang-scan-gpiy5nb2/ -r TEW-636APB-1002.bin-0x00150000-squashfs-1
+
+which creates a graph in Cypher format.
+
+To generate PNG and SVG files using Dot/graphviz supply the extra parameter
+`-o dot`:
+
+    $ python3 generate_elf_graph.py -c /path/to/config -d /path/to/bang/result/directory -o dot -r root/in/firmware
+
+for example:
+
+    $ python3 generate_elf_graph.py -c graph.config -d ~/tmp/bang-scan-gpiy5nb2/ -o dot -r TEW-636APB-1002.bin-0x00150000-squashfs-1
+
+# Loading graphs into Neo4J 
+
+To load and query the graphs in Neo4J some extra steps have to be taken.
+
+## Getting Neo4J
 
 Get the community edition at:
 
@@ -36,33 +67,16 @@ https://neo4j.com/download-center/
 Since Neo4J tends to shuffle these download links around every once in a while
 they might not be accurate.
 
-# Usage
+Then load the Cypher file into Neo4J (figure 1) and after it has finished
+loading (figure 2) run the loaded graph by "playing" the script. This should
+load all the data into the database and nodes and edges should show up in
+the database overview (figure 3). Clicking on "ELF" should show a number
+of nodes of the type "ELF" (figure 4).
 
-1. start and configure Neo4J (out of scope of this document)
-2. unpack a root file system of a firmware into a directory (example: /tmp/rootfs)
-3. adapt the configuration file to change the directory where Cypher files will be stored
-4. run the script: `python3 generate_elf_graph.py -c /path/to/config -d /path/to/bang/result/directory`
-5. load the resulting Cypher file into Neo4J
-
-# Example
-
-(picture for this example can be found in the directory `pics`)
-
-This script can be used to generate graphs after unpacking a firmware with
-BANG. For example:
-
-    $ python3 generate_elf_graph.py -c graph.config -d ~/tmp/bang-scan-gpiy5nb2/
-
-Then load the graph into Neo4J (figure 1) and after it has finished loading
-(figure 2) run the loaded graph by "playing" the script. This should load all
-the data into the database and nodes and edges should show up in the database
-overview (figure 3). Clicking on "ELF" should show a number of nodes of the
-type "ELF" (figure 4).
-
-It might be that Neo4J barfs saying that there is a StackOverflowError and
-suggests to increase the size of the stack. As there will likely be quite a
-few nodes and edges it is advised to increase the stack a bit more than the
-suggested 2M, and set it to 200M or so:
+It might be that Neo4J displays an error saying that there is a
+`StackOverflowError` and suggests to increase the size of the stack. As there
+will likely be quite a few nodes and edges it is advised to increase the stack
+a bit more than the suggested 2M, and set it to 200M or so:
 
     dbms.jvm.additional=-Xss200M
 

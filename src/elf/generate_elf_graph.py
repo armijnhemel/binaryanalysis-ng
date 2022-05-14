@@ -39,6 +39,10 @@
 #
 # Copyright 2018-2022 - Armijn Hemel, Tjaldur Software Governance Solutions
 
+# TODO: RPATH and RUNPATH
+# TODO: colour edges for dot/graphviz
+
+import collections
 import configparser
 import os
 import pathlib
@@ -49,6 +53,8 @@ import sys
 import tempfile
 
 import click
+import pydot
+
 
 def createtext(outputdir, binaries, linked_libraries,
                  filename_to_full_path, elf_to_exported_symbols,
@@ -62,10 +68,60 @@ def createtext(outputdir, binaries, linked_libraries,
     pass
 
 def createdot(outputdir, binaries, linked_libraries,
-                 filename_to_full_path, elf_to_exported_symbols,
-                 elf_to_imported_symbols):
+              filename_to_full_path, elf_to_exported_symbols,
+              elf_to_imported_symbols, hashes):
     '''Create a Graphviz dot output for each set of ELF files that belongs together'''
-    pass
+    for filename in binaries:
+        graph = pydot.Dot(graph_type='digraph')
+        root_node = pydot.Node(str(filename))
+        graph.add_node(root_node)
+
+        if linked_libraries[filename] == []:
+            # standalone file, continue
+            continue
+
+        nodes_and_edges = collections.deque()
+
+        nodes_and_edges.append((root_node, filename))
+
+        processed_nodes = set([filename])
+
+        while True:
+            try:
+                node, node_name = nodes_and_edges.popleft()
+                if node_name not in linked_libraries:
+                    continue
+
+                # record the dependencies that are linked
+                for l in linked_libraries[node_name]:
+                    libfound = False
+                    if l in filename_to_full_path:
+                        for fl in filename_to_full_path[l]:
+                            # only record dependencies that
+                            # are in the same collection of of binaries
+                            if fl in binaries:
+                                libfound = True
+                                break
+                    if not libfound:
+                        # problem here, ignore for now
+                        continue
+                    lib_node = pydot.Node(str(fl))
+                    graph.add_node(lib_node)
+                    graph.add_edge(pydot.Edge(node, lib_node))
+                    if fl not in processed_nodes:
+                        nodes_and_edges.append((lib_node, fl))
+                        processed_nodes.add(fl)
+            except Exception as e:
+                break
+
+        graph_filename_png = "%s-%s.png" % (filename.name, hashes[filename])
+        graph_filename_svg = "%s-%s.svg" % (filename.name, hashes[filename])
+
+        # write graph as PNG and SVG
+        graph.write_png(outputdir / graph_filename_png)
+        graph.write_svg(outputdir / graph_filename_svg)
+
+
 
 def createcypher(outputdir, binaries, linked_libraries,
                  filename_to_full_path, elf_to_exported_symbols,
@@ -83,7 +139,7 @@ def createcypher(outputdir, binaries, linked_libraries,
     placeholder_to_symbol = {}
     all_placeholder_names = set()
 
-    for binary in binaries:
+    for filename in binaries:
         # Create a placeholder name and check if it already exists. If so
         # generate and check a new name until one is found that doesn't exist.
         #
@@ -92,9 +148,9 @@ def createcypher(outputdir, binaries, linked_libraries,
         while True:
             placeholdername = ''.join(secrets.choice(string.ascii_letters) for i in range(8))
             if placeholdername not in placeholder_to_elf and placeholdername not in all_placeholder_names:
-                placeholder_to_elf[placeholdername] = binary
+                placeholder_to_elf[placeholdername] = filename
                 break
-        elf_to_placeholder[binary] = placeholdername
+        elf_to_placeholder[filename] = placeholdername
         all_placeholder_names.add(placeholdername)
 
     # write the data to a Cypher file
@@ -123,7 +179,7 @@ def createcypher(outputdir, binaries, linked_libraries,
             if linked_libraries[filename] == []:
                 continue
 
-            # record the dependencies that are linked with
+            # record the dependencies that are linked
             for l in linked_libraries[filename]:
                 libfound = False
                 if l in filename_to_full_path:
@@ -214,7 +270,7 @@ def main(config_file, result_directory, output, root_directory):
         sys.exit(1)
 
     #supported_formats = ['text', 'cypher', 'graphviz']
-    supported_formats = ['cypher']
+    supported_formats = ['cypher', 'dot']
 
     # check the output format. By default it is cypher.
     outputformat = 'cypher'
@@ -237,31 +293,51 @@ def main(config_file, result_directory, output, root_directory):
 
     outputdir = None
     for section in config.sections():
+        if outputformat == 'dot':
+            if section == 'dot':
+                try:
+                    outputdir = pathlib.Path(config.get(section, 'outputdir'))
+                except:
+                    print("Directory to write graphviz files not configured",
+                          file=sys.stderr)
+                    config_file.close()
+                    sys.exit(1)
+                if not outputdir.exists():
+                    print("Directory to write graphviz files does not exist",
+                          file=sys.stderr)
+                    config_file.close()
+                    sys.exit(1)
+                if not outputdir.is_dir():
+                    print("Directory to write graphviz files is not a directory",
+                          file=sys.stderr)
+                    config_file.close()
+                    sys.exit(1)
         if outputformat == 'cypher':
             if section == 'cypher':
                 try:
-                    outputdir = config.get(section, 'cypherdir')
+                    outputdir = pathlib.Path(config.get(section, 'outputdir'))
                 except:
                     print("Directory to write Cypher files not configured",
                           file=sys.stderr)
                     config_file.close()
                     sys.exit(1)
-                if not os.path.exists(outputdir):
+                if not outputdir.exists():
                     print("Directory to write Cypher files does not exist",
                           file=sys.stderr)
                     config_file.close()
                     sys.exit(1)
-                if not os.path.isdir(outputdir):
+                if not outputdir.is_dir():
                     print("Directory to write Cypher files is not a directory",
                           file=sys.stderr)
                     config_file.close()
                     sys.exit(1)
     config_file.close()
 
-    if outputdir is None:
-        print("Directory to write output files to not configured",
-              file=sys.stderr)
-        sys.exit(1)
+    if outputformat == 'cypher':
+        if outputdir is None:
+            print("Directory to write output files to not configured",
+                  file=sys.stderr)
+            sys.exit(1)
 
     # read the BANG pickle
     try:
@@ -309,6 +385,8 @@ def main(config_file, result_directory, output, root_directory):
 
     file_to_parent = {}
 
+    hashes = {}
+
     # process each entry in the BANG result and store the parent per name.
     for bang_result in bang_results['scantree']:
         if not pathlib.Path(bang_result).is_relative_to(root_directory):
@@ -329,6 +407,9 @@ def main(config_file, result_directory, output, root_directory):
             if not binary_name.name in filename_to_full_path:
                 filename_to_full_path[binary_name.name] = []
             filename_to_full_path[binary_name.name].append(binary_name)
+
+            # store the hash
+            hashes[binary_name] = sha256
 
             # store the parent
             if 'parent' in bang_results['scantree'][bang_result]:
@@ -430,6 +511,10 @@ def main(config_file, result_directory, output, root_directory):
                         createcypher(outputdir, binaries, linked_libraries,
                                      filename_to_full_path, elf_to_exported_symbols,
                                      elf_to_imported_symbols)
+                    elif outputformat == 'dot':
+                        createdot(outputdir, binaries, linked_libraries,
+                                  filename_to_full_path, elf_to_exported_symbols,
+                                  elf_to_imported_symbols, hashes)
 
 if __name__ == "__main__":
     main()
