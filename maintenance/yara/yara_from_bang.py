@@ -225,6 +225,8 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                             continue
                         # ignore whitespace-only strings
                         if re.match(r'^\s+$', s) is None:
+                            if s in yara_env['lq_identifiers']['elf']['strings']:
+                                continue
                             strings.add(s.translate(ESCAPE))
                     strings_per_package.update(strings)
                 if results_data['metadata']['symbols'] != []:
@@ -396,8 +398,8 @@ def main(config_file, result_directory, identifiers):
         print("Error: %s is not a directory, exiting." % result_directory, file=sys.stderr)
         sys.exit(1)
 
-    lq_identifiers = {'elf': {'functions': [], 'variables': []},
-                      'dex': {'functions': [], 'variables': []}}
+    lq_identifiers = {'elf': {'functions': [], 'variables': [], 'strings': []},
+                      'dex': {'functions': [], 'variables': [], 'strings': []}}
 
     # read the pickle with identifiers
     if identifiers is not None:
