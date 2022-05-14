@@ -243,8 +243,8 @@ def main(config_file, json_directory, identifiers, meta):
 
     # mapping for low quality identifiers. C is mapped to ELF,
     # Java is mapped to Dex. TODO: use something a bit more sensible.
-    lq_identifiers = {'elf': {'functions': [], 'variables': []},
-                      'dex': {'functions': [], 'variables': []}}
+    lq_identifiers = {'elf': {'functions': [], 'variables': [], 'strings': []},
+                      'dex': {'functions': [], 'variables': [], 'strings': []}}
 
     # read the pickle with identifiers
     if identifiers is not None:
