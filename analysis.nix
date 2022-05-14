@@ -16,6 +16,7 @@ let
     parameterized
     pdfminer
     psycopg2
+    pydot
     pytest
     pyyaml
     tinycss2
