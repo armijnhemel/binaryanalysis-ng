@@ -200,13 +200,20 @@ def createcypher(outputdir, binaries, linked_libraries,
 @click.command(short_help='process BANG result files and output ELF graphs')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
 @click.option('--directory', '-d', 'result_directory', required=True, help='BANG result directory', type=click.Path(exists=True))
-@click.option('--output', '-o', help='pickle with low quality identifiers')
-def main(config_file, result_directory, output):
+@click.option('--output', '-o', help='output format')
+@click.option('--root', '-r', 'root_directory', required=True, help='root inside of BANG unpack directory')
+def main(config_file, result_directory, output, root_directory):
 
     bang_result_directory = pathlib.Path(result_directory)
 
     if not bang_result_directory.is_dir():
         print("%s is not a directory" % bang_result_directory, file=sys.stderr)
+        sys.exit(1)
+
+    elf_directory = bang_result_directory / 'unpack' / root_directory
+
+    if not elf_directory.exists():
+        print("%s is not a directory" % root_directory , file=sys.stderr)
         sys.exit(1)
 
     #supported_formats = ['text', 'cypher', 'graphviz']
@@ -307,6 +314,10 @@ def main(config_file, result_directory, output):
 
     # process each entry in the BANG result and store the parent per name.
     for bang_result in bang_results['scantree']:
+        if not pathlib.Path(bang_result).is_relative_to(root_directory):
+            continue
+
+        binary_name = '/' / pathlib.Path(bang_result).relative_to(root_directory)
         if 'elf' in bang_results['scantree'][bang_result]['labels']:
             if 'static' in bang_results['scantree'][bang_result]['labels']:
                 # ignore statically linked files
@@ -327,14 +338,14 @@ def main(config_file, result_directory, output):
                             'machine': result['metadata']['machine_name'],
                             'bits': result['metadata']['bits'],
                             'abi': result['metadata']['abi_name']}
-            binary_to_machine[bang_result] = machine_info
+            binary_to_machine[binary_name] = machine_info
 
             # store the dependencies
-            linked_libraries[bang_result] = result['metadata']['needed']
+            linked_libraries[binary_name] = result['metadata']['needed']
 
             # store the symbols
-            elf_to_imported_symbols[bang_result] = []
-            elf_to_exported_symbols[bang_result] = []
+            elf_to_imported_symbols[binary_name] = []
+            elf_to_exported_symbols[binary_name] = []
             for s in result['metadata']['dynamic_symbols']:
                 # ignore everything but functions and variables
                 if s['type'] not in ['func', 'object']:
@@ -347,24 +358,19 @@ def main(config_file, result_directory, output):
                 if s['section_index'] == 0xfff1:
                     continue
                 if s['section_index'] == 0:
-                    elf_to_imported_symbols[bang_result].append(s)
+                    elf_to_imported_symbols[binary_name].append(s)
                 else:
                     # TODO: this isn't quite correct, as it also includes
                     # symbols from for example ABS
-                    elf_to_exported_symbols[bang_result].append(s)
+                    elf_to_exported_symbols[binary_name].append(s)
         elif 'symbolic link' in bang_results['scantree'][bang_result]['labels']:
             # It could be that a name of a dependency in an ELF file
             # is the name of a symbolic link, instead of the actual
             # ELF file. This is why we also need to (recursively)
             # look at symbolic links and store the target.
-            symlink_to_target[bang_result] = str(bang_results['scantree'][bang_result]['target'])
+            symlink_to_target[binary_name] = str(bang_results['scantree'][bang_result]['target'])
             parent = bang_results['scantree'][bang_result]['parent']
-            file_to_parent[bang_result] = parent
-
-    for s in symlink_to_target:
-        break
-        print(s, symlink_to_target[s])
-    #sys.exit(0)
+            file_to_parent[binary_name] = parent
 
     # split the files into separate sets (per abi, endian, etc.)
     file_sets = {}
