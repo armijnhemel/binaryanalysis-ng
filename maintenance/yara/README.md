@@ -104,7 +104,7 @@ should be passed to the script in Python pickle format:
 
     $ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian -i low_quality_identifiers.pickle
 
-### Low quality identifiers
+### Low quality function names and variable names
 
 There are several identifiers such as function names and variable names
 that can be found in many binaries and that have generic names. Although
@@ -116,10 +116,38 @@ Examples are:
 
 * very short identifiers (a single character)
 * identifiers that are a substring of other identifiers as these could lead to
-false positives in YARA
+  false positives in YARA (somewhat prevented by using `fullword` in YARA
+  rules.
 * identifiers that occur in many packages. A good example: weak ELF symbols
-<https://en.wikipedia.org/wiki/Weak_symbol>
+  <https://en.wikipedia.org/wiki/Weak_symbol> or identifiers that occur in
+  packages that have been copied (cloned) and are included as "third party
+  code" such as `zlib`, `libpng`, `sqlite` and so on.
 
 A prefab list of low quality ELF identifiers can be found in the files
-`low_quality_elf_funcs` and `low_quality_elf_vars`. These were handcrafted by
-looking at all identifiers found in all ELF files in Debian 11.
+`low_quality_elf_funcs` and `low_quality_elf_vars`. These were collected by
+looking at all identifiers found in (nearly) all ELF files in Debian 11.
+
+Third party code is not yet labeled as such.
+
+### Low quality strings
+
+Similar to the function names and variable names there are also low quality
+strings. Some examples are:
+
+* very short identifiers (a single character)
+* identifiers that are a substring of other identifiers as these could lead to
+  false positives in YARA (somewhat prevented by using `fullword` in YARA
+  rules.
+* strings that appear in many packages. Good examples are strings that are
+  present in packages that have been copied (cloned) and are included as "third
+  party code" such as `zlib`, `libpng`, `sqlite` and so on.
+* country names, timezones, names of device files (`/dev/null`, etc.)
+
+
+A prefab list of low quality strings from ELF files can be found in the file
+`low_quality_elf_strings`. These were collected by looking at all strings
+found in (nearly) all ELF files in Debian 11.
+
+# References
+
+[1] https://github.com/package-url
