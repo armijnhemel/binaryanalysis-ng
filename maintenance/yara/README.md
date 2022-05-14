@@ -122,7 +122,6 @@ Examples are:
   <https://en.wikipedia.org/wiki/Weak_symbol> or identifiers that occur in
   packages that have been copied (cloned) and are included as "third party
   code" such as `zlib`, `libpng`, `sqlite` and so on.
-* strings from embedded interpreters or runtimes (example: OCaml)
 
 A prefab list of low quality ELF identifiers can be found in the files
 `low_quality_elf_funcs` and `low_quality_elf_vars`. These were collected by
@@ -142,7 +141,10 @@ strings. Some examples are:
 * strings that appear in many packages. Good examples are strings that are
   present in packages that have been copied (cloned) and are included as "third
   party code" such as `zlib`, `libpng`, `sqlite` and so on.
-* country names, timezones, names of device files (`/dev/null`, etc.)
+* country names, timezones, names of device files (`/dev/null`, etc.),
+  MIME types, HTTP headers
+* strings from frameworks (example: Boost)
+* strings from embedded interpreters or runtimes (example: OCaml)
 
 
 A prefab list of low quality strings from ELF files can be found in the file
