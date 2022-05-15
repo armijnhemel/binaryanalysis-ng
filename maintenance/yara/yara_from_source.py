@@ -7,7 +7,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-This script processes source code archives and extracts identifiers
+Process JSON results generated with bang_extract_identifier.py and
+output YARA rules.
 '''
 
 import datetime

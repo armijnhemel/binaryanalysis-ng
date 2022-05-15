@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-This script processes source code archives and extracts identifiers
+Process source code archives, extracts identifiers and output as JSON
 '''
 
 import datetime
