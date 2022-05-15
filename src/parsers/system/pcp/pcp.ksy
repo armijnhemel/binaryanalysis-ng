@@ -26,7 +26,7 @@ seq:
       cases:
         -1: meta
         -2: index
-        #_: archive
+        _: archive
     repeat: eos
 types:
   header:
@@ -47,9 +47,6 @@ types:
         doc: log start time, microseconds part
       - id: log_volume_number
         type: s4
-        valid:
-          #any-of: [-1, -2]
-          any-of: [-1]
         doc: current log volume number (or -1=.meta, -2=.index)
       - id: hostname
         size: 64
@@ -220,6 +217,60 @@ types:
       - id: ofs_archive
         type: u4
         doc: byte offset in archive volume file of pmResult
+  archive:
+    seq:
+      - id: len_record1
+        type: u4
+      - id: pm_result
+        #type: pm_result
+        size: len_record1 - len_record1._sizeof * 2
+      - id: len_record2
+        type: u4
+        valid: len_record1
+  pm_result:
+    seq:
+      - id: event_time_seconds
+        type: u4
+      - id: event_time_microseconds
+        type: u4
+      - id: num_pmids
+        type: u4
+      - id: pm_value_sets
+        type: pm_value_set
+        repeat: expr
+        repeat-expr: num_pmids
+      - id: pm_value_blocks
+        type: pm_value_block
+        repeat: expr
+        repeat-expr: num_pmids
+  pm_value_set:
+    seq:
+      - id: pmid
+        type: u4
+      - id: num_values
+        type: u4
+      - id: storage_mode
+        type: u4
+      - id: pm_values
+        type: pm_value
+        repeat: expr
+        repeat-expr: num_values
+  pm_value:
+    seq:
+      - id: number_in_instance_domain
+        type: u4
+      - id: value_or_offset
+        type: u4
+  pm_value_block:
+    seq:
+      - id: value_type
+        type: u1
+      - id: len_subrecord
+        type: b24
+      - id: data
+        size: len_subrecord - value_type._sizeof - len_subrecord._sizeof
+      - id: padding
+        size: -len_subrecord % 4
 enums:
   meta_records:
     1:

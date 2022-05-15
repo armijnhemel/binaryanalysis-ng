@@ -47,7 +47,7 @@ class RomfsUnpackParser(UnpackParser):
         # which is not available in Kaitai Struct.
         try:
             self.data = romfs.Romfs.from_io(self.infile)
-        except (UnicodeDecodeError, ValidationFailedError) as e:
+        except (UnicodeDecodeError, ValidationFailedError, Exception) as e:
             raise UnpackParserException(e.args)
 
         next_headers = set()

@@ -251,7 +251,7 @@ def extract_identifiers(yaraqueue, temporary_directory, source_directory, yara_o
                                 elif ctags_json['kind'] == 'function':
                                     identifiers_per_language[language]['functions'].add(ctags_name)
                             except:
-                                    pass
+                                pass
 
         for language in identifiers_per_language:
             # TODO: name is actually not correct, as it assumes

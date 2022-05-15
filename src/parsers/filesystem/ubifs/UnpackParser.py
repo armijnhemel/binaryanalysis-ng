@@ -27,7 +27,7 @@ import collections
 import socket
 
 import lzo
-import zstd
+import zstandard
 
 from FileResult import FileResult
 
@@ -186,7 +186,8 @@ class UbifsUnpackParser(UnpackParser):
                     elif process_node.node_header.compression == ubifs.Ubifs.Compression.lzo:
                         outfile.write(lzo.decompress(process_node.node_header.data, False, process_node.node_header.len_uncompressed))
                     elif process_node.node_header.compression == ubifs.Ubifs.Compression.zstd:
-                        outfile.write(zstd.decompress(process_node.node_header.data))
+                        reader = zstandard.ZstdDecompressor().stream_reader(process_node.node_header.data)
+                        outfile.write(reader.read())
                     outfile.close()
             except IndexError:
                 break

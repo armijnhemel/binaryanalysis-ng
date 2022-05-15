@@ -38,6 +38,9 @@ class AppleIconUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = icns.Icns.from_io(self.infile)
+
+            # force read data to trigger validations
+            parsed = self.data.root_element.data_parsed
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 

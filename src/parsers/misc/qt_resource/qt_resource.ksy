@@ -11,7 +11,7 @@ seq:
     type: header
   - id: data_block
     type: entry_block
-    size: header.ofs_tree - len_name_table - header._sizeof
+    size: len_data_block
   - id: name_table
     type: name_table
     size: len_name_table
@@ -24,6 +24,8 @@ seq:
 instances:
   len_name_table:
     value: header.ofs_tree - header.ofs_name_table
+  len_data_block:
+    value: header.ofs_tree - len_name_table - header._sizeof
 
 types:
   header:
@@ -34,10 +36,16 @@ types:
         type: u4
       - id: ofs_tree
         type: u4
+        valid:
+          max: _root._io.size
       - id: ofs_data
         type: u4
+        valid:
+          max: _root._io.size
       - id: ofs_name_table
         type: u4
+        valid:
+          max: _root._io.size
   entry_block:
     seq:
       - id: entries

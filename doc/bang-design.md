@@ -228,7 +228,7 @@ The structure of the scan is stored in a Python pickle file called
 specific data is stored as Python pickle files in the directory "results"
 found at the top level of the scan directory.
 
-#### Optimizations
+## Optimizations
 
 There are many optimizations in BANG aimed at reducing disk I/O to allow
 scanning of very large collections of files.
@@ -243,3 +243,19 @@ large files (for example: Android firmwares).
 Carving some file types means parsing the file format (example: PNG, Java class
 files, etcetera). To prevent these files being scanned again they are
 explicitly flagged as already having been scanned.
+
+## Reducing I/O with buffers and memoryviews
+
+For some unpackers it has been attempted to reduce memory usage
+using techniques described in this blog post:
+
+<https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews>
+
+## Prevent copying data to user space by using `os.sendfile()`
+
+One technique that is used is to copy data from and to files (for example:
+temporary files) without copying the data to user space first, but letting
+the kernel copy it directly is using `os.sendfile()`. This system call
+instructs the kernel to do an "in kernel" copying.
+
+This might be replaced in the future by `os.copy_file_range()`.
