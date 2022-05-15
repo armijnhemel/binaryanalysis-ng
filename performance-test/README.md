@@ -116,4 +116,17 @@ snakeviz myfirmware.prof
 ```
 
 
+## Implementation hints
+
+The current scans follow this pattern:
+
+1. find a matching unpack parser
+2. try the parse and yield a meta directory
+3. open the meta directory and write information to it
+4. while the meta directory is open, unpack any files from the meta directory.
+
+There is one case where the unpacked meta directory is the same as the meta directory: this is for synthesized files, as they need to be queued.
+For this reason, the information in the meta directory needs to be written to disk before queuing the file. After the file has been queued, no more
+info can be written. This avoids a race condition.
+
 
