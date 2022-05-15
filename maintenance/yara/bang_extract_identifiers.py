@@ -315,7 +315,7 @@ def main(config_file, source_directory, meta):
     for archive in packages:
         version, archive_name = archive
 
-        # verify that the file is a valid package url
+        # verify that the version is a valid package url
         try:
             purl = packageurl.PackageURL.from_string(version)
         except ValueError:

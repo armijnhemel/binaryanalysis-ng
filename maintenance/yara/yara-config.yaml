@@ -29,6 +29,10 @@ general:
     # Threads to use. 0 = maximum (dependent on system)
     # threads: 0
     verbose: true
+
+    # Setting to indicate whether an error should be fatal
+    # default: true
+    error_fatal: true
 yara:
     # directory to store generated YARA files
     yara_directory: /home/armijn/yara

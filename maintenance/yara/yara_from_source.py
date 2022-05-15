@@ -208,7 +208,8 @@ def main(config_file, json_directory, identifiers, meta):
     try:
         package_meta_information = load(meta, Loader=Loader)
     except (YAMLError, PermissionError) as e:
-        raise YaraConfigException(e.args)
+        print("invalid YAML:", e.args, file=sys.stderr)
+        sys.exit(1)
 
     packages = []
 
@@ -216,9 +217,19 @@ def main(config_file, json_directory, identifiers, meta):
 
     versions = set()
 
+    error_fatal = True
+
     for release in package_meta_information['releases']:
-        for release_version in release:
-            versions.add(release_version)
+        for version in release:
+            # verify that the version is a valid package url
+            try:
+                purl = packageurl.PackageURL.from_string(version)
+            except ValueError:
+                print("%s not a valid packageurl" % version, file=sys.stderr)
+                if error_fatal:
+                    sys.exit(1)
+                continue
+            versions.add(version)
 
     # process all the JSON files in the directory
     for result_file in json_directory.glob('**/*'):
@@ -227,9 +238,7 @@ def main(config_file, json_directory, identifiers, meta):
             with open(result_file, 'r') as json_archive:
                 json_results = json.load(json_archive)
             if json_results['metadata']['package'] == package:
-                if json_results['metadata']['version'] in versions:
-                    packages.append(result_file)
-                elif json_results['metadata'].get('packageurl') in versions:
+                if json_results['metadata'].get('packageurl') in versions:
                     packages.append(result_file)
         except Exception as e:
             continue
