@@ -1,7 +1,8 @@
 # YARA rules
 
-This directory contains several rules for copyright, licenses and forges that
-can be used with YARA (<https://virustotal.github.io/yara/>).
+This directory contains several rules for copyright, licenses, forges and
+some security smells that can be used with YARA
+(<https://virustotal.github.io/yara/>).
 
 None of these rules are meant 100% correct and should only be used as a
 starting point for further analysis.
@@ -111,6 +112,15 @@ To get a bit more information use the `-s` option:
     $ yara -sC forges.yarac /bin/gettext
     gnu_savannah /bin/gettext
     0x5aa8:$string1: savannah.gnu.org
+
+## Security
+
+The file `security.yara` contains rules for some security bugs. These were
+largely inspired by American Express' EarlyBird tool:
+
+<https://github.com/americanexpress/earlybird/>
+
+which has been released under the Apache 2 license.
 
 ## Combining all rules
 
