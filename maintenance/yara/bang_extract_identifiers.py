@@ -219,11 +219,8 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
             metadata['sha256'] = package_hash
             metadata['package'] = package_meta_information['package']
             metadata['language'] = language
-            if purl is not None:
-                metadata['version'] = purl.version
-                metadata['packageurl'] = purl.to_string()
-            else:
-                metadata['version'] = version
+            metadata['version'] = purl.version
+            metadata['packageurl'] = purl.to_string()
             website = package_meta_information.get('website')
             if website is not None:
                 metadata['website'] = website
@@ -302,6 +299,8 @@ def main(config_file, source_directory, meta):
         print(e, file=sys.stderr)
         sys.exit(1)
 
+    error_fatal = True
+
     json_output_directory = extraction_env['json_directory'] / package
 
     json_output_directory.mkdir(exist_ok=True)
@@ -312,16 +311,22 @@ def main(config_file, source_directory, meta):
     process_queue = processmanager.JoinableQueue(maxsize=0)
     processes = []
 
-    # walk the archives directory
+    # walk the archives directory, only support tar files now
     for archive in packages:
         version, archive_name = archive
-        tar_archive = source_directory / archive_name
-        if not tarfile.is_tarfile(tar_archive):
-            continue
+
+        # verify that the file is a valid package url
         try:
             purl = packageurl.PackageURL.from_string(version)
         except ValueError:
-            purl = None
+            print("%s not a valid packageurl" % version, file=sys.stderr)
+            if error_fatal:
+                sys.exit(1)
+            continue
+
+        tar_archive = source_directory / archive_name
+        if not tarfile.is_tarfile(tar_archive):
+            continue
         process_queue.put((purl, version, tar_archive))
 
     # create processes for unpacking archives
