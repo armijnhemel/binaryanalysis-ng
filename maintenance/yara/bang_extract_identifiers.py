@@ -265,11 +265,22 @@ def main(config_file, source_directory, meta):
         print("%s is not a directory, exiting." % source_directory, file=sys.stderr)
         sys.exit(1)
 
+    error_fatal = True
+
+    # parse the configuration
+    json_config = YaraConfig(config_file)
+    try:
+        extraction_env = json_config.parse()
+    except YaraConfigException as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
+
     # parse the package meta information
     try:
         package_meta_information = load(meta, Loader=Loader)
     except (YAMLError, PermissionError) as e:
-        raise YaraConfigException(e.args)
+        print("invalid YAML:", e.args, file=sys.stderr)
+        sys.exit(1)
 
     if not 'package' in package_meta_information:
         print("'package' missing in YAML", file=sys.stderr)
@@ -295,18 +306,11 @@ def main(config_file, source_directory, meta):
         for release_version in release:
             release_filename = release[release_version]
             if not (source_directory / release_filename).exists():
-                continue
+                print("%s does not exist" % (source_directory / release_filename), file=sys.stderr)
+                if error_fatal:
+                    sys.exit(1)
+                    continue
             packages.append((release_version, release_filename))
-
-    # parse the configuration
-    json_config = YaraConfig(config_file)
-    try:
-        extraction_env = json_config.parse()
-    except YaraConfigException as e:
-        print(e, file=sys.stderr)
-        sys.exit(1)
-
-    error_fatal = True
 
     json_output_directory = extraction_env['json_directory'] / package
 
