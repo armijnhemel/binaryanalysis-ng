@@ -215,6 +215,13 @@ def main(config_file, json_directory, identifiers, meta):
 
     package = package_meta_information['package']
 
+    # first verify that the top level package url is valid
+    try:
+        top_purl = packageurl.PackageURL.from_string(package_meta_information['packageurl'])
+    except ValueError:
+        print("%s not a valid packageurl" % package_meta_information['packageurl'], file=sys.stderr)
+        sys.exit(1)
+
     versions = set()
 
     error_fatal = True
@@ -226,6 +233,19 @@ def main(config_file, json_directory, identifiers, meta):
                 purl = packageurl.PackageURL.from_string(version)
             except ValueError:
                 print("%s not a valid packageurl" % version, file=sys.stderr)
+                if error_fatal:
+                    sys.exit(1)
+                continue
+            # sanity checks to verify that the top level purl matches
+            if purl.type != top_purl.type:
+                print("type '%s' does not match top level type '%s'" % (purl.type, top_purl.type),
+                      file=sys.stderr)
+                if error_fatal:
+                    sys.exit(1)
+                continue
+            if purl.name != top_purl.name:
+                print("name '%s' does not match top level name '%s'" % (purl.name, top_purl.name),
+                      file=sys.stderr)
                 if error_fatal:
                     sys.exit(1)
                 continue
