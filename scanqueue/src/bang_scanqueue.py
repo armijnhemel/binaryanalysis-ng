@@ -29,7 +29,7 @@ from werkzeug.utils import secure_filename
 
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
 app = Flask(__name__)
-#app.config.from_prefixed_env()
+app.config.from_prefixed_env()
 
 @app.route("/upload/", methods=['POST'])
 def task_post():
