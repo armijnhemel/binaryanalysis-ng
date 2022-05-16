@@ -245,14 +245,14 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
 @click.option('--source-directory', '-s', required=True, help='source code archive directory', type=click.Path(exists=True))
 @click.option('--meta', '-m', required=True, help='file with meta information about a package', type=click.File('r'))
 def main(config_file, source_directory, meta):
-    # test if ctags is available. This should be "universal ctags"
+    # check if ctags is available. This should be "universal ctags"
     # not "exuberant ctags"
     if shutil.which('ctags') is None:
         print("ctags program not found, exiting",
               file=sys.stderr)
         sys.exit(1)
 
-    # test if xgettext is available
+    # check if xgettext is available
     if shutil.which('xgettext') is None:
         print("xgettext program not found, exiting",
               file=sys.stderr)
@@ -260,12 +260,9 @@ def main(config_file, source_directory, meta):
 
     source_directory = pathlib.Path(source_directory)
 
-    # should be a real directory
     if not source_directory.is_dir():
         print("%s is not a directory, exiting." % source_directory, file=sys.stderr)
         sys.exit(1)
-
-    error_fatal = True
 
     # parse the configuration
     json_config = YaraConfig(config_file)
@@ -301,13 +298,13 @@ def main(config_file, source_directory, meta):
 
     packages = []
 
-    # some sanity checks
+    # some sanity checks for the files defined in the metadata
     for release in package_meta_information['releases']:
         for release_version in release:
             release_filename = release[release_version]
             if not (source_directory / release_filename).exists():
                 print("%s does not exist" % (source_directory / release_filename), file=sys.stderr)
-                if error_fatal:
+                if extraction_env['error_fatal']:
                     sys.exit(1)
                     continue
             packages.append((release_version, release_filename))
@@ -331,20 +328,20 @@ def main(config_file, source_directory, meta):
             purl = packageurl.PackageURL.from_string(version)
         except ValueError:
             print("%s not a valid packageurl" % version, file=sys.stderr)
-            if error_fatal:
+            if extraction_env['error_fatal']:
                 sys.exit(1)
             continue
         # sanity checks to verify that the top level purl matches
         if purl.type != top_purl.type:
             print("type '%s' does not match top level type '%s'" % (purl.type, top_purl.type),
                   file=sys.stderr)
-            if error_fatal:
+            if extraction_env['error_fatal']:
                 sys.exit(1)
             continue
         if purl.name != top_purl.name:
             print("name '%s' does not match top level name '%s'" % (purl.name, top_purl.name),
                   file=sys.stderr)
-            if error_fatal:
+            if extraction_env['error_fatal']:
                 sys.exit(1)
             continue
 

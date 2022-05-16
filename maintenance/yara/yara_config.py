@@ -64,10 +64,16 @@ class YaraConfig:
             raise YaraConfigException("'yara_directory' cannot be written to")
 
         temporary_directory = None
+
         verbose = False
         if 'verbose' in self.config['general']:
             if isinstance(self.config['general']['verbose'], bool):
                 verbose = self.config['general']['verbose']
+
+        error_fatal = True
+        if 'error_fatal' in self.config['general']:
+            if isinstance(self.config['general']['error_fatal'], bool):
+                error_fatal = self.config['general']['error_fatal']
 
         # directory for unpacking. By default this will be /tmp or whatever
         # the system default is.
@@ -220,7 +226,8 @@ class YaraConfig:
             if isinstance(self.config['yara']['ignore_ocaml'], bool):
                 ignore_ocaml = self.config['yara']['ignore_ocaml']
 
-        yara_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
+        yara_env = {'verbose': verbose, 'error_fatal': error_fatal,
+                    'string_min_cutoff': string_min_cutoff,
                     'string_max_cutoff': string_max_cutoff,
                     'identifier_cutoff': identifier_cutoff,
                     'max_identifiers': max_identifiers,
