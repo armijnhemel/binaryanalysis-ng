@@ -21,7 +21,7 @@ try:
 except ImportError:
     from yaml import Loader
 
-import VulnerableCodeConnector
+from VulnerableCodeConnector import VulnerableCodeConnector, VulnerableCodeException
 
 @click.command(short_help='query VulnerableCode using a package URL')
 @click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
@@ -43,10 +43,10 @@ def main(config):
         print("'url' not in configuration file, exiting", file=sys.stderr)
         sys.exit(1)
 
-    vulnerable_code_connector = VulnerableCodeConnector.VulnerableCodeConnector(configuration['vulnerablecode'])
+    vulnerable_code_connector = VulnerableCodeConnector(configuration['vulnerablecode'])
     try:
         results = vulnerable_code_connector.query('pkg:alpine/busybox@1.35.0-r7')
-    except VulnerableCodeConnector.VulnerableCodeException as e:
+    except VulnerableCodeException as e:
         print(e.args)
         sys.exit(1)
 
