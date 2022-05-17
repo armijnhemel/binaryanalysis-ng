@@ -13,6 +13,7 @@ let
     icalendar
     kaitaistruct
     meilisearch
+    packageurl-python
     parameterized
     pdfminer
     psycopg2

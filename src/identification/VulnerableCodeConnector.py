@@ -26,7 +26,8 @@ class VulnerableCodeConnector():
         '''Sanity check the environment and set up a session for queries'''
         # store the environment after sanity checking
         try:
-            self.env = self.check_configuration(env)
+            self.check_configuration(env)
+            self.env = env
         except VulnerableCodeException as e:
             raise e
         self.session = requests.Session()
@@ -36,13 +37,15 @@ class VulnerableCodeConnector():
         # verify that the version is a valid package url. If
         # not return
         try:
-            purl = packageurl.PackageURL.from_string(version)
+            query_purl = packageurl.PackageURL.from_string(purl)
         except ValueError as e:
             raise VulnerableCodeException(e.args)
 
-        # query
+        connection_string = "%s/packages/?purl=%s" % ( self.env['url'], purl)
+
+        # query VulnerableCode instance
         try:
-            req = session.get(self.env['url'], auth=(env['user'], env['password']))
+            req = self.session.get(connection_string, auth=(self.env.get('user', None), self.env.get('password', None)))
             return req.json()
         except requests.exceptions.RequestException as e:
             raise VulnerableCodeException(e.args)
