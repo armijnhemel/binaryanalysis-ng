@@ -2,9 +2,12 @@
 
 This is a proof of concept scanning queue for BANG. There are a few components:
 
-1. an interface, based on Flask, to upload tasks and query status
-2. a task queue
-
+1. a web interface, based on Flask, to upload tasks to and query status of
+   individual tasks
+2. a script to upload tasks to the scanning queue web interface
+3. a scanning queue to put tasks in
+4. a backend script pulling tasks from the scanning queue, scanning the
+   associated file with BANG and updating the task status
 
 # Components
 
@@ -39,6 +42,7 @@ For BANG the following functionality is needed:
 
 ```
 ```
+
 ## Flask
 
 ```
