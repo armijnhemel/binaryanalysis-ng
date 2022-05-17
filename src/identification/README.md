@@ -1,8 +1,7 @@
 # Identify ELF binaries with YARA and Meilisearch
 
-YARA (<https://virustotal.github.io/yara/>) is a tool to match patterns in
-files to rules. Meilisearch (<https://www.meilisearch.com/>) is a search
-engine.
+YARA[1] is a tool to match patterns in files to rules. Meilisearch[2] is a
+search engine. VulnerableCode[3] is an open source vulnerability database.
 
 ## YARA in BANG
 
@@ -33,3 +32,19 @@ queried when analyzing results obtained with BANG.
 
 The Meilisearch database script extracts strings, function names and variable
 names to put into Meilisearch. The search script only uses the strings.
+
+## VulnerableCode in BANG
+
+Data in VulnerableCode can be accessed via a Web API. Code that wraps around
+this API can be found in the file `VulnerableCodeConnector.py`. Configuration
+(endpoint, user name, password, etc.) is done in the configuration file.
+
+The parameter to a query should be a valid Package URL. The output is the raw
+output from VulnerableCode that a script should process further. A small demo
+can be found in the file `vulnerabletest.py`.
+
+# References
+
+[1] <https://virustotal.github.io/yara/>
+[2] <https://www.meilisearch.com/>
+[3] <https://github.com/nexB/vulnerablecode>
