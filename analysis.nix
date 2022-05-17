@@ -13,12 +13,14 @@ let
     icalendar
     kaitaistruct
     meilisearch
+    packageurl-python
     parameterized
     pdfminer
     psycopg2
     pydot
     pytest
     pyyaml
+    requests
     tinycss2
     tlsh
     yara-python

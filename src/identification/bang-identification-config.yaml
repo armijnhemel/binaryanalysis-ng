@@ -17,3 +17,12 @@ meilisearch:
     # the index to search
     #index: ctags
     index: strings
+vulnerablecode:
+    # endpoint url
+    url: https://localhost/api
+
+    # user name
+    # user: vulnerablecode
+
+    # password
+    # password: password
