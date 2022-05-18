@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# A simple script to test uploads to a queue from which
+# Example script to show how to upload to a queue from which
 # BANG can pick up tasks
 
 import json
