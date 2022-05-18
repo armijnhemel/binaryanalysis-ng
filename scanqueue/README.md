@@ -18,6 +18,9 @@ The following components are used:
 * Celery
 * Apache Airflow
 
+If you are using Nix then the dependencies for running the service are defined
+in the file `scanqueue.nix`.
+
 ## Redis
 
 Redis[1] is a message queue. It is used by Celery.
@@ -38,12 +41,20 @@ For BANG the following functionality is needed:
 
 # Running the microservice
 
-### Redis
+The components of the microservice need to be started in a particular order:
+
+1. Redis
+2. Celery
+3. Flask
+
+## Redis
 
 ```
 ```
 
 ## Flask
+
+Starting Flask:
 
 ```
 $ export FLASK_APP=bang_scanqueue.py
