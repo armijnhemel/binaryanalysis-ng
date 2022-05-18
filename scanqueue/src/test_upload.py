@@ -5,7 +5,9 @@
 
 import json
 import os
+import pathlib
 import sys
+import urllib.parse
 
 import requests
 import click
@@ -19,28 +21,10 @@ except ImportError:
     from yaml import Loader
 
 
-put_url = 'http://127.0.0.1:5000/upload/'
-
-test_data = open('/bin/ls', 'rb')
-test_data2 = open('/bin/vim', 'rb')
-
-files = {'ls': test_data, 'vim': test_data2}
-
-#requests.put(put_url, {'filename': 'ls', 'data': test_data})
-req = requests.post(put_url, files=files)
-print(req.__dict__)
-
 @click.command(short_help='Upload files to a queue')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--source-directory', '-s', required=True, help='source code archive directory', type=click.Path(exists=True))
-def main(config_file, source_directory, identifiers):
-
-    source_directory = pathlib.Path(source_directory)
-
-    # should be a real directory
-    if not source_directory.is_dir():
-        print("%s is not a directory, exiting." % source_directory, file=sys.stderr)
-        sys.exit(1)
+@click.option('--file', '-f', 'upload_file', required=True, help='firmware file to scan', type=click.Path(exists=True))
+def main(config_file, upload_file):
 
     # read the configuration file. This is in YAML format
     try:
@@ -49,6 +33,44 @@ def main(config_file, source_directory, identifiers):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
 
+    # sanity checks for the configuration
+    if not 'config' in config:
+        print("invalid configuration file", file=sys.stderr)
+        sys.exit(1)
+
+    if not 'url' in config['config']:
+        print("mandatory configuration for 'url' not found", file=sys.stderr)
+        sys.exit(1)
+
+    put_url = config['config']['url']
+
+    # check if the URL is actually valid
+    try:
+        parsed_url = urllib.parse.urlparse(put_url)
+    except Exception as e:
+        print("invalid URL", file=sys.stderr)
+        sys.exit(1)
+
+    # check if the scheme is valid
+    if parsed_url.scheme not in ['http', 'https']:
+        print("invalid URL scheme", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        upload_data = open(upload_file, 'rb')
+    except:
+        print("Could not open file", file=sys.stderr)
+        sys.exit(1)
+
+    files = {pathlib.Path(upload_file).name: upload_data}
+
+    try:
+        req = requests.post(put_url, files=files)
+    except requests.exceptions.ConnectionError as e:
+        print("Could not connect to service", file=sys.stderr)
+        sys.exit(1)
+
+    print(req.__dict__)
 
 
 if __name__ == "__main__":
