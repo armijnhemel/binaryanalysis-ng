@@ -249,12 +249,18 @@ def main(config_file, json_directory, identifiers, meta):
                 continue
             versions.add(version)
 
+    # store the languages
+    languages = set()
+
     # process all the JSON files in the directory
     for result_file in json_directory.glob('**/*'):
         # sanity check for the package
         try:
             with open(result_file, 'r') as json_archive:
                 json_results = json.load(json_archive)
+
+            languages.add(json_results['metadata']['language'])
+
             if json_results['metadata']['package'] == package:
                 if json_results['metadata'].get('packageurl') in versions:
                     packages.append(result_file)
@@ -319,36 +325,93 @@ def main(config_file, json_directory, identifiers, meta):
     for process in processes:
         process.terminate()
 
-    # read the JSON again, this time aggregate the data
-    all_strings_union = set()
-    all_strings_intersection = set()
+    # Now generate the top level YARA file
+    yara_output_directory = yara_env['yara_directory'] / 'src' / top_purl.type
 
-    all_functions_union = set()
-    all_functions_intersection = set()
-
-    all_variables_union = set()
-    all_variables_intersection = set()
-
-    # keep track of if the first element is being processed
-    is_start = True
+    heuristics = yara_env['heuristics']
 
     # TODO: sort the packages based on version number
-    for package in packages:
-        with open(package, 'r') as json_archive:
-            json_results = json.load(json_archive)
-            all_strings_union.update(json_results['strings'])
-            all_functions_union.update(json_results['functions'])
-            all_variables_union.update(json_results['variables'])
+    for language in languages:
+        # read the JSON again, this time aggregate the data
+        all_strings_union = set()
+        all_strings_intersection = set()
 
-            if is_start:
-                all_strings_intersection.update(json_results['strings'])
-                all_functions_intersection.update(json_results['functions'])
-                all_variables_intersection.update(json_results['variables'])
-                is_start = False
-            else:
-                all_strings_intersection &= set(json_results['strings'])
-                all_functions_intersection &= set(json_results['functions'])
-                all_variables_intersection &= set(json_results['variables'])
+        all_functions_union = set()
+        all_functions_intersection = set()
+
+        all_variables_union = set()
+        all_variables_intersection = set()
+
+        website = ''
+
+        # keep track of if the first element is being processed
+        is_start = True
+
+        for package in packages:
+            with open(package, 'r') as json_archive:
+                json_results = json.load(json_archive)
+
+                if website == '':
+                    website = json_results['metadata']['website']
+
+                strings = set()
+
+                for string in json_results['strings']:
+                    if len(string) >= yara_env['string_min_cutoff'] and len(string) <= yara_env['string_max_cutoff']:
+                        strings.add(string)
+
+                functions = set()
+
+                for function in json_results['functions']:
+                    if language == 'c':
+                        if function in yara_env['lq_identifiers']['elf']['functions']:
+                            continue
+                    functions.add(function)
+
+                variables = set()
+                for variable in json_results['variables']:
+                    if language == 'c':
+                        if variable in yara_env['lq_identifiers']['elf']['variables']:
+                            continue
+                    variables.add(variable)
+
+                all_strings_union.update(strings)
+                all_functions_union.update(functions)
+                all_variables_union.update(variables)
+
+                if is_start:
+                    all_strings_intersection.update(strings)
+                    all_functions_intersection.update(functions)
+                    all_variables_intersection.update(variables)
+                    is_start = False
+                else:
+                    all_strings_intersection &= strings
+                    all_functions_intersection &= functions
+                    all_variables_intersection &= variables
+
+        strings = sorted(all_strings_union)
+        variables = sorted(all_variables_union)
+        functions = sorted(all_functions_union)
+
+        metadata = {'archive': top_purl.name + "-union", 'language': language,
+                    'package': top_purl.name, 'packageurl': top_purl,
+                    'website': website}
+
+        if not (strings == set() and variables == set() and functions == set()):
+            yara_tags = yara_env['tags'] + [language]
+            yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
+
+        strings = sorted(all_strings_intersection)
+        variables = sorted(all_variables_intersection)
+        functions = sorted(all_functions_intersection)
+
+        metadata = {'archive': top_purl.name + "-intersection", 'language': language,
+                    'package': top_purl.name, 'packageurl': top_purl,
+                    'website': website}
+
+        if not (strings == [] and variables == [] and functions == []):
+            yara_tags = yara_env['tags'] + [language]
+            yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
 
 
 if __name__ == "__main__":
