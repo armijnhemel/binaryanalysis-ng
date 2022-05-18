@@ -56,13 +56,15 @@ def main(config_file, upload_file):
         print("invalid URL scheme", file=sys.stderr)
         sys.exit(1)
 
+    upload_name = pathlib.Path(upload_file).name
+
     try:
         upload_data = open(upload_file, 'rb')
     except:
         print("Could not open file", file=sys.stderr)
         sys.exit(1)
 
-    files = {pathlib.Path(upload_file).name: upload_data}
+    files = {upload_name: upload_data}
 
     try:
         req = requests.post(put_url, files=files)
@@ -70,8 +72,17 @@ def main(config_file, upload_file):
         print("Could not connect to service", file=sys.stderr)
         sys.exit(1)
 
-    print(req.__dict__)
+    if req.status_code != 200:
+        print("Failed to upload task, got status code %d" % req.status_code,
+              file=sys.stderr)
+        sys.exit(1)
 
+    if upload_name not in req.json():
+        print("Uploading failed: uploaded file name not in results",
+              file=sys.stderr)
+        sys.exit(1)
+
+    print("File '%s' uploaded successfully with UUID %s" % (upload_name, req.json()[upload_name]))
 
 if __name__ == "__main__":
     main()
