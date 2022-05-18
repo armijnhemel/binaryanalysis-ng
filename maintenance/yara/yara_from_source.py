@@ -281,9 +281,9 @@ def main(config_file, json_directory, identifiers, meta):
         except:
             pass
 
-    yara_output_directory = yara_env['yara_directory'] / 'src'
+    yara_output_directory = yara_env['yara_directory'] / 'src' / top_purl.type / top_purl.name
 
-    yara_output_directory.mkdir(exist_ok=True)
+    yara_output_directory.mkdir(parents=True, exist_ok=True)
 
     tags = ['source']
 
