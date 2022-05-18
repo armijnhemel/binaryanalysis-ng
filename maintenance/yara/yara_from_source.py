@@ -363,6 +363,8 @@ def main(config_file, json_directory, identifiers, meta):
                 functions = set()
 
                 for function in json_results['functions']:
+                    if len(function) < yara_env['identifier_cutoff']:
+                        continue
                     if language == 'c':
                         if function in yara_env['lq_identifiers']['elf']['functions']:
                             continue
@@ -370,6 +372,8 @@ def main(config_file, json_directory, identifiers, meta):
 
                 variables = set()
                 for variable in json_results['variables']:
+                    if len(variable) < yara_env['identifier_cutoff']:
+                        continue
                     if language == 'c':
                         if variable in yara_env['lq_identifiers']['elf']['variables']:
                             continue
