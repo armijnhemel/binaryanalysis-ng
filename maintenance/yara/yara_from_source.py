@@ -373,6 +373,7 @@ def main(config_file, json_directory, identifiers, meta):
 
         website = ''
         cpe = ''
+        cpe23 = ''
 
         # keep track of if the first element is being processed
         is_start = True
@@ -386,6 +387,8 @@ def main(config_file, json_directory, identifiers, meta):
 
                 if cpe == '':
                     cpe = json_results['metadata']['cpe']
+                if cpe23 == '':
+                    cpe23 = json_results['metadata']['cpe23']
 
                 strings = set()
 
@@ -449,7 +452,7 @@ def main(config_file, json_directory, identifiers, meta):
 
         metadata = {'archive': top_purl.name + "-union", 'language': language,
                     'package': top_purl.name, 'packageurl': top_purl,
-                    'website': website, 'cpe': cpe}
+                    'website': website, 'cpe': cpe, 'cpe23': cpe23}
 
         if not (strings == set() and variables == set() and functions == set()):
             yara_tags = yara_env['tags'] + [language]
@@ -464,7 +467,7 @@ def main(config_file, json_directory, identifiers, meta):
 
         metadata = {'archive': top_purl.name + "-intersection", 'language': language,
                     'package': top_purl.name, 'packageurl': top_purl,
-                    'website': website, 'cpe': cpe}
+                    'website': website, 'cpe': cpe, 'cpe23': cpe23}
 
         if not (strings == [] and variables == [] and functions == []):
             yara_tags = yara_env['tags'] + [language]

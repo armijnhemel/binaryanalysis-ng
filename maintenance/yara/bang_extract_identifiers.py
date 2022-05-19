@@ -227,6 +227,9 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
             cpe = package_meta_information.get('cpe')
             if cpe is not None:
                 metadata['cpe'] = cpe
+            cpe23 = package_meta_information.get('cpe23')
+            if cpe23 is not None:
+                metadata['cpe23'] = cpe23
 
             strings = sorted(identifiers_per_language[language]['strings'])
             variables = sorted(identifiers_per_language[language]['variables'])
