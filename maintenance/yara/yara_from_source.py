@@ -139,7 +139,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
     return yara_file.name
 
 
-def extract_identifiers(process_queue, json_directory, yara_output_directory, yara_env):
+def extract_identifiers(process_queue, result_queue, json_directory, yara_output_directory, yara_env):
     '''Read a JSON result file and generate YARA rules'''
 
     heuristics = yara_env['heuristics']
@@ -188,6 +188,14 @@ def extract_identifiers(process_queue, json_directory, yara_output_directory, ya
                 yara_tags = yara_env['tags'] + [language]
                 yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
 
+        result_meta = {}
+        for language in identifiers_per_language:
+            result_meta[language] = {}
+            result_meta[language]['strings'] = len(identifiers_per_language[language]['strings'])
+            result_meta[language]['variables'] = len(identifiers_per_language[language]['variables'])
+            result_meta[language]['functions'] = len(identifiers_per_language[language]['functions'])
+
+        result_queue.put(result_meta)
         process_queue.task_done()
 
 
@@ -301,6 +309,7 @@ def main(config_file, json_directory, identifiers, meta):
 
     # create a queue for scanning files
     process_queue = processmanager.JoinableQueue(maxsize=0)
+    result_queue = processmanager.JoinableQueue(maxsize=0)
     processes = []
 
     # walk the archives directory
@@ -311,7 +320,7 @@ def main(config_file, json_directory, identifiers, meta):
     # create processes for unpacking archives
     for i in range(0, yara_env['threads']):
         process = multiprocessing.Process(target=extract_identifiers,
-                                          args=(process_queue, json_directory,
+                                          args=(process_queue, result_queue, json_directory,
                                                 yara_output_directory, yara_env))
         processes.append(process)
 
@@ -324,6 +333,28 @@ def main(config_file, json_directory, identifiers, meta):
     # Done processing, terminate processes
     for process in processes:
         process.terminate()
+
+    # store the minimum per language, relevant for heuristics
+    min_per_language = {}
+    for language in languages:
+        min_per_language[language] = {}
+        min_per_language[language]['strings'] = sys.maxsize
+        min_per_language[language]['variables'] = sys.maxsize
+        min_per_language[language]['functions'] = sys.maxsize
+
+    while True:
+        try:
+            result = result_queue.get_nowait()
+            for language in result:
+                for identifier in ['strings', 'functions', 'variables']:
+                    min_per_language[language][identifier] = min(min_per_language[language][identifier], result[language][identifier])
+                result_queue.task_done()
+        except:
+            ## Queue is empty
+            break
+
+    # block here until the reportqueue is empty
+    result_queue.join()
 
     # Now generate the top level YARA file
     yara_output_directory = yara_env['yara_directory'] / 'src' / top_purl.type
