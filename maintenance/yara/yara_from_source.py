@@ -350,10 +350,9 @@ def main(config_file, json_directory, identifiers, meta):
                     min_per_language[language][identifier] = min(min_per_language[language][identifier], result[language][identifier])
                 result_queue.task_done()
         except:
-            ## Queue is empty
             break
 
-    # block here until the reportqueue is empty
+    # block until the result queue is empty
     result_queue.join()
 
     # Now generate the top level YARA file
