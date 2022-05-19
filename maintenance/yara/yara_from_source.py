@@ -11,6 +11,7 @@ Process JSON results generated with bang_extract_identifier.py and
 output YARA rules.
 '''
 
+import copy
 import datetime
 import json
 import multiprocessing
@@ -110,7 +111,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
         p.write('\n    condition:\n')
         if strings != []:
             if len(strings) >= heuristics['strings_minimum_present']:
-                num_strings = max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])
+                num_strings = int(max(len(strings) / 100 * heuristics['strings_percentage'], heuristics['strings_matched']))
                 p.write('        %d of ($string*)' % num_strings)
             else:
                 p.write('        any of ($string*)')
@@ -120,7 +121,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                 p.write('\n')
         if functions != []:
             if len(functions) >= heuristics['functions_minimum_present']:
-                num_funcs = max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])
+                num_funcs = int(max(len(functions) / 100 * heuristics['functions_percentage'], heuristics['functions_matched']))
                 p.write('        %d of ($function*)' % num_funcs)
             else:
                 p.write('        any of ($function*)')
@@ -130,7 +131,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                 p.write('\n')
         if variables != []:
             if len(variables) >= heuristics['variables_minimum_present']:
-                num_vars = max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])
+                num_vars = int(max(len(variables) / 100 * heuristics['variables_percentage'], heuristics['variables_matched']))
                 p.write('        %d of ($variable*)\n' % num_vars)
             else:
                 p.write('        any of ($variable*)\n')
@@ -358,8 +359,6 @@ def main(config_file, json_directory, identifiers, meta):
     # Now generate the top level YARA file
     yara_output_directory = yara_env['yara_directory'] / 'src' / top_purl.type
 
-    heuristics = yara_env['heuristics']
-
     # TODO: sort the packages based on version number
     for language in languages:
         # read the JSON again, this time aggregate the data
@@ -423,9 +422,26 @@ def main(config_file, json_directory, identifiers, meta):
                     all_functions_intersection &= functions
                     all_variables_intersection &= variables
 
+        # sort the identifiers so they are printed in
+        # sorted order in the YARA rule as well
         strings = sorted(all_strings_union)
         variables = sorted(all_variables_union)
         functions = sorted(all_functions_union)
+
+        # adapt the heuristics based on the minimum amount of strings
+        # found in a package.
+
+        # first instantiate the heuristics
+        heuristics = copy.deepcopy(yara_env['heuristics'])
+
+        # then change the percentage based on the minimum
+        # amount of identifiers, and the union
+        heuristics['strings_percentage'] = min(heuristics['strings_percentage'],
+                                               heuristics['strings_percentage'] * min_per_language[language]['strings'] / len(strings))
+        heuristics['functions_percentage'] = min(heuristics['functions_percentage'],
+                                                heuristics['functions_percentage'] * min_per_language[language]['functions'] / len(functions))
+        heuristics['variables_percentage'] = min(heuristics['variables_percentage'],
+                                                 heuristics['variables_percentage'] * min_per_language[language]['variables'] / len(variables))
 
         metadata = {'archive': top_purl.name + "-union", 'language': language,
                     'package': top_purl.name, 'packageurl': top_purl,
@@ -438,6 +454,9 @@ def main(config_file, json_directory, identifiers, meta):
         strings = sorted(all_strings_intersection)
         variables = sorted(all_variables_intersection)
         functions = sorted(all_functions_intersection)
+
+        # reset heuristics
+        heuristics = copy.deepcopy(yara_env['heuristics'])
 
         metadata = {'archive': top_purl.name + "-intersection", 'language': language,
                     'package': top_purl.name, 'packageurl': top_purl,
