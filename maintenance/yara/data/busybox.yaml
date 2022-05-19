@@ -2,6 +2,7 @@
 package: busybox
 website: https://www.busybox.net/
 packageurl: pkg:generic/busybox
+cpe: cpe:/a:busybox:busybox:-
 
 # releases, keep this sorted!
 releases: [
