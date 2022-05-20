@@ -1,4 +1,4 @@
-# Identify ELF binaries with YARA and Meilisearch
+# Identify ELF binaries with YARA, Meilisearch and VulnerableCode
 
 YARA[1] is a tool to match patterns in files to rules. Meilisearch[2] is a
 search engine. VulnerableCode[3] is an open source vulnerability database.
