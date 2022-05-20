@@ -205,7 +205,7 @@ def extract_identifiers(process_queue, result_queue, json_directory, yara_output
 @click.command(short_help='process BANG result files and output YARA')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
 @click.option('--json-directory', '-j', required=True, help='JSON file directory', type=click.Path(exists=True))
-@click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
+@click.option('--identifiers', '-i', requireed=True, help='pickle with low quality identifiers', type=click.File('rb'))
 @click.option('--meta', '-m', required=True, help='file with meta information about a package', type=click.File('r'))
 def main(config_file, json_directory, identifiers, meta):
     json_directory = pathlib.Path(json_directory)
