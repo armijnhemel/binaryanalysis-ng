@@ -42,7 +42,7 @@ NAME_ESCAPE = str.maketrans({'.': '_',
                              '-': '_'})
 
 
-def generate_yara(yara_directory, metadata, functions, variables, strings, tags, heuristics, fullword):
+def generate_yara(yara_directory, metadata, functions, variables, strings, tags, heuristics, fullword, yara_operator):
     generate_date = datetime.datetime.utcnow().isoformat()
     rule_uuid = uuid.uuid4()
     meta = '''
@@ -112,7 +112,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             else:
                 p.write('        any of ($string*)')
             if not (functions == set() and variables == set()):
-                p.write(' and\n')
+                p.write(' %s\n' % yara_operator)
             else:
                 p.write('\n')
         if functions != set():
@@ -122,7 +122,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             else:
                 p.write('        any of ($function*)')
             if variables != set():
-                p.write(' and\n')
+                p.write(' %s\n' % yara_operator)
             else:
                 p.write('\n')
         if variables != set():
@@ -276,7 +276,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     pass
 
                 yara_tags = yara_env['tags'] + ['elf']
-                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
+                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
                 yara_files.append(yara_name)
             elif 'dex' in bang_data['scantree'][bang_file]['labels']:
                 sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
@@ -353,7 +353,7 @@ def process_directory(yaraqueue, yara_directory, yara_binary_directory,
                     pass
 
                 yara_tags = yara_env['tags'] + ['dex']
-                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
+                yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
                 yara_files.append(yara_name)
 
         if yara_files != []:
