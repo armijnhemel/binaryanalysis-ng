@@ -104,7 +104,9 @@ configuration file.
 It is possible to filter low quality identifiers (described later). These
 should be passed to the script in Python pickle format:
 
-    $ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian -i low_quality_identifiers.pickle
+```console
+$ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian -i low_quality_identifiers.pickle
+```
 
 ### Low quality function names and variable names
 
