@@ -93,7 +93,9 @@ in this directory and should be adapted to your local settings.
 
 An example invocation could look like this:
 
-    $ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian
+```console
+$ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian
+```
 
 There are some settings in the configuration that determine which identifiers
 will be written to the YARA files. These are described in the sample
