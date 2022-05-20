@@ -73,8 +73,15 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
         p.write(meta)
         p.write('\n    strings:\n')
 
+        num_strings = 0
+        num_functions = 0
+        num_variables = 0
+
         if strings != []:
-            # write the strings
+            if len(strings) >= heuristics['strings_minimum_present']:
+                num_strings = int(max(len(strings) / 100 * heuristics['strings_percentage'], heuristics['strings_matched']))
+
+            # write all strings
             p.write("\n        // Extracted strings\n\n")
             counter = 1
             for s in strings:
@@ -88,7 +95,10 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                     pass
 
         if functions != []:
-            # write the functions
+            if len(functions) >= heuristics['functions_minimum_present']:
+                num_funcs = int(max(len(functions) / 100 * heuristics['functions_percentage'], heuristics['functions_matched']))
+
+            # write all functions
             p.write("\n        // Extracted functions\n\n")
             counter = 1
             for s in functions:
@@ -99,7 +109,10 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                 counter += 1
 
         if variables != []:
-            # write the variable names
+            if len(variables) >= heuristics['variables_minimum_present']:
+                num_vars = int(max(len(variables) / 100 * heuristics['variables_percentage'], heuristics['variables_matched']))
+
+            # write all variable names
             p.write("\n        // Extracted variables\n\n")
             counter = 1
             for s in variables:
@@ -111,9 +124,9 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
 
         # TODO: find good heuristics of how many identifiers should be matched
         p.write('\n    condition:\n')
+
         if strings != []:
             if len(strings) >= heuristics['strings_minimum_present']:
-                num_strings = int(max(len(strings) / 100 * heuristics['strings_percentage'], heuristics['strings_matched']))
                 p.write('        %d of ($string*)' % num_strings)
             else:
                 p.write('        any of ($string*)')
@@ -123,7 +136,6 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                 p.write('\n')
         if functions != []:
             if len(functions) >= heuristics['functions_minimum_present']:
-                num_funcs = int(max(len(functions) / 100 * heuristics['functions_percentage'], heuristics['functions_matched']))
                 p.write('        %d of ($function*)' % num_funcs)
             else:
                 p.write('        any of ($function*)')
@@ -133,7 +145,6 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                 p.write('\n')
         if variables != []:
             if len(variables) >= heuristics['variables_minimum_present']:
-                num_vars = int(max(len(variables) / 100 * heuristics['variables_percentage'], heuristics['variables_matched']))
                 p.write('        %d of ($variable*)\n' % num_vars)
             else:
                 p.write('        any of ($variable*)\n')
