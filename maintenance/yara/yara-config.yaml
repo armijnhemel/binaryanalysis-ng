@@ -43,6 +43,9 @@ yara:
     # SOURCE CODE ONLY: json dump directory (default: same as yara_directory)
     json_directory: /home/armijn/yara/json
 
+    # yara operator can be "and" or "or", default "and"
+    operator: and
+
     # minimal length of strings, recommended to not go below 5
     # string_min_cutoff: 8
 

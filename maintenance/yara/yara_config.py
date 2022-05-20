@@ -122,6 +122,11 @@ class YaraConfig:
                 except:
                     raise YaraConfigException("'json_directory' cannot be written to")
 
+        operator = 'and'
+        if 'operator' in self.config['yara']:
+            if self.config['yara']['operator'] in ['and', 'or']:
+                operator = self.config['yara']['operator']
+
         # heuristics used for generating YARA rules
         string_min_cutoff = 8
         if 'string_min_cutoff' in self.config['yara']:
@@ -236,5 +241,6 @@ class YaraConfig:
                     'fullword': fullword, 'threads': threads,
                     'yara_directory': yara_directory, 'heuristics': heuristics,
                     'temporary_directory': temporary_directory,
-                    'json_directory': json_directory}
+                    'json_directory': json_directory,
+                    'operator': operator}
         return yara_env

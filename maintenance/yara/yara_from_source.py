@@ -305,7 +305,6 @@ def main(config_file, json_directory, identifiers, meta):
     # expand yara_env with source scanning specific values
     yara_env['tags'] = tags
     yara_env['lq_identifiers'] = lq_identifiers
-    yara_env['operator'] = 'and'
 
     processmanager = multiprocessing.Manager()
 
