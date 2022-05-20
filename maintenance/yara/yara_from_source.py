@@ -43,7 +43,7 @@ NAME_ESCAPE = str.maketrans({'.': '_',
                              '-': '_'})
 
 
-def generate_yara(yara_directory, metadata, functions, variables, strings, tags, heuristics, fullword):
+def generate_yara(yara_directory, metadata, functions, variables, strings, tags, heuristics, fullword, yara_operator):
     '''Generate YARA rules from identifiers and heuristics'''
     generate_date = datetime.datetime.utcnow().isoformat()
     rule_uuid = uuid.uuid4()
@@ -116,7 +116,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             else:
                 p.write('        any of ($string*)')
             if not (functions == set() and variables == set()):
-                p.write(' and\n')
+                p.write(' %s\n' % yara_operator)
             else:
                 p.write('\n')
         if functions != []:
@@ -126,7 +126,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
             else:
                 p.write('        any of ($function*)')
             if variables != set():
-                p.write(' and\n')
+                p.write(' %s\n' % yara_operator)
             else:
                 p.write('\n')
         if variables != []:
@@ -187,7 +187,7 @@ def extract_identifiers(process_queue, result_queue, json_directory, yara_output
 
             if not (strings == [] and variables == [] and functions == []):
                 yara_tags = yara_env['tags'] + [language]
-                yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
+                yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
 
         result_meta = {}
         for language in identifiers_per_language:
@@ -305,6 +305,7 @@ def main(config_file, json_directory, identifiers, meta):
     # expand yara_env with source scanning specific values
     yara_env['tags'] = tags
     yara_env['lq_identifiers'] = lq_identifiers
+    yara_env['operator'] = 'and'
 
     processmanager = multiprocessing.Manager()
 
@@ -456,7 +457,7 @@ def main(config_file, json_directory, identifiers, meta):
 
         if not (strings == set() and variables == set() and functions == set()):
             yara_tags = yara_env['tags'] + [language]
-            yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
+            yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
 
         strings = sorted(all_strings_intersection)
         variables = sorted(all_variables_intersection)
@@ -471,7 +472,7 @@ def main(config_file, json_directory, identifiers, meta):
 
         if not (strings == [] and variables == [] and functions == []):
             yara_tags = yara_env['tags'] + [language]
-            yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'])
+            yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
 
 
 if __name__ == "__main__":
