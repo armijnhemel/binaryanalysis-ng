@@ -130,7 +130,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                 p.write('        %d of ($string*)' % num_strings)
             else:
                 p.write('        any of ($string*)')
-            if not (functions == set() and variables == set()):
+            if not (functions == [] and variables == []):
                 p.write(' %s\n' % yara_operator)
             else:
                 p.write('\n')
@@ -139,7 +139,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
                 p.write('        %d of ($function*)' % num_funcs)
             else:
                 p.write('        any of ($function*)')
-            if variables != set():
+            if variables != []:
                 p.write(' %s\n' % yara_operator)
             else:
                 p.write('\n')
