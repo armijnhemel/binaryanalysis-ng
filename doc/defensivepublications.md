@@ -140,3 +140,20 @@ determine the overall package using a generic package rule and then zooming
 in to find the particular version using package/version specific rules.
 
 <https://www.tdcommons.org/dpubs_series/4818/>
+
+## Finding a closest match for an ELF file based on proximity matching of extracted identifiers
+
+A common task for companies is to find the provenance of binary files that they
+receive from an upstream source. Several methods exist to fingerprint a binary,
+including string searches, looking at function names, using code clone
+detection, and so on. Some of these methods use a scoring mechanism or chop a
+file up in smaller pieces, compute a hash and look hashes up in a database. This
+document describes a method to turn a sequence of strings and other identifiers
+into a locality sensitive hash using TLSH, which can then be searched in a
+special datastructure called Vantage Point Tree (VPT) to quickly find a closest
+match in a collection of TLSH hashes of known files. A close match (where
+"close" is indicated by a threshold value) means that the file that is found
+has a (near) identical set of identifiers and is therefore likely to be made
+from the same source code software.
+
+<https://www.tdcommons.org/dpubs_series/5155/>
