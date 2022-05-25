@@ -128,6 +128,7 @@ def main(config_file, result_directory):
                                  bytecode_tlsh = m['bytecode_hashes']['tlsh']
                              db_rows.append((sha256, class_name, method_name, bytecode_sha256, bytecode_tlsh))
                 dex_counter += 1
+
         # insert contents of all the files in the APK
         psycopg2.extras.execute_batch(dbcursor, "execute bytecode_insert(%s, %s, %s, %s, %s)", db_rows)
         method_counter += len(db_rows)
@@ -137,7 +138,6 @@ def main(config_file, result_directory):
             print("Added %d methods" % len(db_rows))
             print("Total %d methods" % method_counter)
             print()
-
 
     if verbose:
         print()
