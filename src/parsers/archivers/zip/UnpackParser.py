@@ -441,7 +441,7 @@ class ZipUnpackParser(UnpackParser):
                                     self.infile.seek(current_position + localheaderpos - 8)
                                     tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
                                     # and return to the original position
-                                    self.infile.seek(newcurrent_position)
+                                    self.infile.seek(newcurpos)
                                     if current_position + localheaderpos - start_of_possible_data_descriptor == tmpcompressedsize + 16:
                                         if tmppos == -1:
                                             tmppos = localheaderpos
