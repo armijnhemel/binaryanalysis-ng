@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-This script processes results from cvehound
+This script processes JSON results from cvehound
 '''
 
 import json
