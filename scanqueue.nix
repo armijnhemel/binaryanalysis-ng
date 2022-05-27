@@ -14,7 +14,7 @@ let
     pyyaml
     redis
   ]);
-    
+
 in
 pkgs.mkShell {
   buildInputs = with pkgs; [
