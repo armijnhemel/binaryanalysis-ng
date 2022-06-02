@@ -41,5 +41,5 @@ There are then two different paths ways to implement unpacking:
 data) is run. If this fails then the other parsers are tried (most promising
 parser first) until one succeeds.
 
-2. all parsers are tried in parallel and results are either recombined later
-or kept as separate unpacking paths.
+2. all parsers are tried in parallel and results are either recombined (where
+possible) or kept as separate branches of unpacking.
