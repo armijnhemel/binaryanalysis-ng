@@ -9,7 +9,15 @@ This is a proof of concept scanning queue for BANG. There are a few components:
 4. a backend script pulling tasks from the scanning queue, scanning the
    associated file with BANG and updating the task status
 
-# Components
+## Web interface
+
+The web interface receives uploads, stores the uploaded data, creates a scan
+task for the uploaded data and adds the task to the scanning queue. It can
+also query the status of uploaded tasks (for example: queued, running,
+finished, and so on).
+
+
+# Technical components
 
 The following components are used:
 
@@ -39,6 +47,19 @@ For BANG the following functionality is needed:
 1. upload a firmware file (possibly very large) and submit it for scanning
 2. check on the status of an upload/scan
 
+# Configuring the microservice
+
+Several settings have to be configured in a configuration file.
+
+## Flask
+
+```
+---
+config:
+    uploads: /home/bang/uploads
+```
+
+
 # Running the microservice
 
 The components of the microservice need to be started in a particular order:
@@ -56,12 +77,12 @@ The components of the microservice need to be started in a particular order:
 
 Starting Flask:
 
-```
+```console
 $ export FLASK_APP=bang_scanqueue.py
 $ flask run
 ```
 
-This will launch the webservce, which can then be accessed on the advertised
+This will launch the webservice, which can then be accessed on the advertised
 Flask URL.
 
 
