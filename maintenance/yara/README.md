@@ -53,21 +53,103 @@ identifiers, such as the strings embedded in `.dex` files.
 
 ## Source code processor
 
-The script takes source code archives, unpacks them, extracts data using
-`ctags` and `xgettext` and generates YARA rules from them.
+The source code processor is split into two scripts:
+`bang_extract_identifiers.py` extracts identifiers from source code files and
+writes these identifiers, with associated metadata, to output files as JSON.
+The script `yara_from_source.py` takes these JSON output files and generates
+YARA rule files.
 
-The source code script depends on the extension of the file to determine
+### `bang_extract_identifiers.py`
+
+The `bang_extract_identifiers.py` script takes source code archives, unpacks
+them and extracts data using `ctags` and `xgettext`. These identifiers are
+written to JSON files together with associated metadata. The metadata is
+defined in YAML files.
+
+An example metadata file can be found in the directory `data`. A simplified
+version of this file can be found below:
+
+```
+---
+package: busybox
+website: https://www.busybox.net/
+packageurl: pkg:generic/busybox
+cpe: cpe:/a:busybox:busybox:-
+cpe23: cpe:2.3:a:busybox:busybox:-:*:*:*:*:*:*:*
+
+releases: [
+  pkg:generic/busybox@1.1.0: busybox-1.1.0.tar.bz2,
+]
+```
+
+In the metadata file `package`, `packageurl` and `releases` are mandatory.
+
+The script is invoked as follows:
+
+```console
+    $ python3 bang_extract_identifiers.py -c /path/to/config -s /path/to/sources -m /path/to/metadata
+```
+
+for example:
+
+```console
+    $ python3 bang_extract_identifiers.py -c yara-config.yaml -s ~/busybox -m data/busybox.yaml
+```
+
+The files mentioned in the metadata file should exist in the source code
+directory. By default entries that do not exist are silently ignored, unless
+`error_fatal` is set in the configuration file (in the section `general`).
+
+The JSON output is stored in a directory, which can be set in the configuration
+file (`json_directory` in the section `yara`). Inside this directory there is
+a subdirectory per package (`package` in the metadata file) with one JSON file
+per version defined in the metadata file.
+
+The script depends on the extension of the file to determine
 the most likely programming language used in the source code file. Current
 focus is on C/C++, Java (including Scala and Kotlin) and Javascript. Support
 for more languages will be added in the future.
 
-The script to process source code can be invoked as follows:
-
-    $ python3 yara_from_source.py -c yara-config.yaml -s /path/to/source
-
 The directory with source code should contain source code archives (currently
 only TAR archives are supported, support for ZIP files will be added in the
 future).
+
+The script extracts _all_ identifiers from the source code, except empty
+strings and strings containing only whitespace characters, as these are useless
+for fingerprinting. All other identifiers are extracted.
+
+### `yara_from_source.py`
+
+The script `yara_from_source.py` takes the JSON output and generates YARA
+files.
+
+The script takes a few parameters: a configuration file, a directory with JSON
+files, a pickle with low quality identifiers and a file with meta information
+(typically the same file used for extraction of identifiers).
+
+It can be invoked as follows:
+
+```console
+$ python3 yara_from_source.py -c yara-config.yaml -j /path/to/json/directory -i /path/to/pickle -m /path/to/metadata
+```
+
+for example:
+
+```console
+$ python3 yara_from_source.py -c yara-config.yaml -j ~/yara/json -i low_quality_identifiers.pickle -m data/busybox.yaml
+```
+
+The top level directory to store YARA files can be set in the configuration file
+(`yara_directory` in the section `yara`). The files are stored in the
+subdirectory `src`. Underneath this directory there will be a subdirectory
+per packageurl type (for example: `generic`). This directory contains package
+level YARA files with the union and intersection of identifiers of _all_
+versions per programming language category (example:
+`busybox-intersection-c.yara` and `busybox-union-c.yara`)
+
+For each package there is a subdirectory (for example: `busybox`) with YARA
+files per programming language category for each individual version of the
+package.
 
 ## Binary processor
 
@@ -93,7 +175,9 @@ in this directory and should be adapted to your local settings.
 
 An example invocation could look like this:
 
-    $ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian
+```console
+$ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian
+```
 
 There are some settings in the configuration that determine which identifiers
 will be written to the YARA files. These are described in the sample
@@ -102,15 +186,19 @@ configuration file.
 It is possible to filter low quality identifiers (described later). These
 should be passed to the script in Python pickle format:
 
-    $ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian -i low_quality_identifiers.pickle
+```console
+$ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian -i low_quality_identifiers.pickle
+```
 
-### Low quality function names and variable names
+# Low quality identifiers
 
 There are several identifiers such as function names and variable names
 that can be found in many binaries and that have generic names. Although
 they can still be useful they can also lead to false positives if there are
 only generic names. They also take up unnecessary space as YARA has a default
 maximum number of rules (10,000).
+
+## Low quality function names and variable names
 
 Examples are:
 
@@ -129,7 +217,7 @@ looking at all identifiers found in (nearly) all ELF files in Debian 11.
 
 Third party code is not yet labeled as such.
 
-### Low quality strings
+## Low quality strings
 
 Similar to the function names and variable names there are also low quality
 strings. Some examples are:
@@ -141,7 +229,10 @@ strings. Some examples are:
 * strings that appear in many packages. Good examples are strings that are
   present in packages that have been copied (cloned) and are included as "third
   party code" such as `zlib`, `libpng`, `sqlite` and so on.
-* country names, timezones, names of device files (`/dev/null`, etc.)
+* country names, timezones, names of device files (`/dev/null`, etc.),
+  MIME types, HTTP headers
+* strings from frameworks (example: Boost)
+* strings from embedded interpreters or runtimes (example: OCaml)
 
 
 A prefab list of low quality strings from ELF files can be found in the file

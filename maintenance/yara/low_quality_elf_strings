@@ -1,0 +1,95 @@
+/proc/%d
+/proc/cmdline
+/proc/uptime
+/proc/self/fd/
+/proc/%ld/object/a.out
+/proc/self/cmdline
+/proc/self/mountinfo
+/proc/%d/exe
+/proc/%d/status
+/proc/self/statm
+/proc/loadavg
+/proc/%d/stat
+/proc/self/status
+/proc/net/dev
+/proc/self/fd/%d
+/proc/%d/cmdline
+/proc/self/maps
+/proc/self/fd
+/proc/mounts
+/proc/stat
+/proc/meminfo
+/proc/cpuinfo
+/proc/self/exe
+/dev/video0
+/dev/shm
+/sys/devices/system/cpu/online
+/dev/ttyS0
+/sys/devices/system/cpu
+/dev/stderr
+/dev/cdrom
+/dev/mem
+/dev/zero
+/dev/mixer
+/dev/ptmx
+/dev/net/tun
+/dev/stdout
+/proc/net/dev
+/dev/stdin
+/dev/console
+/dev/dsp
+/dev/random
+/dev/tty
+/dev/urandom
+/dev/null
+!posix::pthread_mutex_destroy(&m)
+time::modified
+boost::format_error: format generic failure
+virtual void boost::exception_detail::error_info_container_impl::set(const boost::shared_ptr<boost::exception_detail::error_info_base>&, const boost::exception_detail::type_info_&)
+basic_string::_M_replace_aux
+*::boost::exception_detail::type_info_(typeid(*p)).type_==*ti.type_
+virtual boost::shared_ptr<boost::exception_detail::error_info_base> boost::exception_detail::error_info_container_impl::get(const boost::exception_detail::type_info_&) const
+basic_string::_M_replace
+basic_string::assign
+std::basic_iostream<char, std::char_traits<char> >
+std::basic_istream<char, std::char_traits<char> >
+std::basic_ostream<char, std::char_traits<char> >
+std::basic_string<char, std::char_traits<char>, std::allocator<char> >
+std::basic_string
+std::iostream
+std::istream
+boost::too_many_args: format-string referred to fewer arguments than were passed
+std::allocator
+std::ostream
+boost::bad_format_string: format-string is ill-formed
+boost::too_few_args: format-string referred to more arguments than were passed
+boost:: mutex constructor failed in pthread_mutex_init
+std::future_error: 
+boost::bad_any_cast: failed conversion using boost::any_cast
+basic_string::insert
+boost::exception_ptr boost::exception_detail::get_static_exception_object() [with Exception = boost::exception_detail::bad_alloc_]
+boost::exception_ptr boost::exception_detail::get_static_exception_object() [with Exception = boost::exception_detail::bad_exception_]
+_Map_base::at
+call to empty boost::function
+'2869/9 :::%;/;%46\t7*000.111022-33>'\t 
+basic_string::_M_create
+std::string
+deque::_M_new_elements_at_front
+deque::_M_new_elements_at_back
+basic_string::at: __n (which is %zu) >= this->size() (which is %zu)
+vector<bool>::_M_insert_aux
+vector<bool>::_M_fill_insert
+basic_string::basic_string
+basic_string::replace
+vector::_M_range_check: __n (which is %zu) >= this->size() (which is %zu)
+basic_string::erase
+vector::_M_fill_insert
+vector::_M_range_insert
+cannot create std::deque larger than max_size()
+vector::reserve
+vector::_M_default_append
+cannot create std::vector larger than max_size()
+basic_string::substr
+basic_string::append
+vector::_M_realloc_insert
+basic_string::_M_construct null not valid

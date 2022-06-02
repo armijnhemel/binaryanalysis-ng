@@ -29,9 +29,22 @@ general:
     # Threads to use. 0 = maximum (dependent on system)
     # threads: 0
     verbose: true
+
+    # Setting to indicate whether an error should be fatal
+    # default: true
+    error_fatal: true
 yara:
     # directory to store generated YARA files
     yara_directory: /home/armijn/yara
+
+    # use YARA's 'fullword' or not, default: true
+    #fullword: true
+
+    # SOURCE CODE ONLY: json dump directory (default: same as yara_directory)
+    json_directory: /home/armijn/yara/json
+
+    # yara operator can be "and" or "or", default "and"
+    operator: and
 
     # minimal length of strings, recommended to not go below 5
     # string_min_cutoff: 8
@@ -43,32 +56,50 @@ yara:
     # to not go below 2
     # identifier_cutoff: 2
 
-    # ignore weak ELF symbols. Recommended to set to 'true'
+    # BINARY ONLY: ignore weak ELF symbols. Recommended to set to 'true'
     ignore_weak_symbols: true
+
+    # BINARY ONLY: ignore OCaml files
+    ignore_ocaml: true
 
     # the maximum amount of identifiers that YARA will consider
     max_identifiers: 10000
 
-    # percentage of strings, functions and variables that need to
+    # Heuristics for matching identifiers
+    #
+    # percentage of strings, functions and variables that should
     # be minimally matched from 0 - 100, default 10
     strings_percentage: 10
     functions_percentage: 10
     variables_percentage: 10
 
     # minimum amount of strings, functions and variables (if any)
-    # that need to be matched, default 1
+    # that need to be matched, default 1.
     strings_matched: 1
     functions_matched: 1
     variables_matched: 1
 
     # minimum amount of strings, functions and variables (if any)
-    # that should be present. Otherwise default to "any of"
-    strings_minimum: 10
-    functions_minimum: 10
-    variables_minimum: 10
+    # that should be present before using any of the heuristics.
+    # Otherwise "any of" will be used.
+    strings_minimum_present: 10
+    functions_minimum_present: 10
+    variables_minimum_present: 10
 
     # minimum amount of strings, functions and variables that needs
     # to have been extracted before generating rules
     strings_extracted: 5
     functions_extracted: 5
     variables_extracted: 5
+
+    third_party: [
+        3rdparty,
+        3rd-party-lib,
+        3rdpart,
+        contrib,
+        external,
+        thirdparty,
+        third_party,
+        third-party,
+        third-party-tools,
+    ]

@@ -2,15 +2,17 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021-2022 - Armijn Hemel
+# Copyright 2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import sys
-import os
-import argparse
-import pathlib
+'''
+Helper classes for parsing YARA configuration
+'''
+
 import multiprocessing
+import pathlib
+import tempfile
 
 # import YAML module for the configuration
 from yaml import load
@@ -20,154 +22,225 @@ try:
 except ImportError:
     from yaml import Loader
 
-class ObjectDict(dict):
-    def __setattr__(self, name, value):
-        self[name] = value
 
-    def __getattr__(self, name):
-        return self[name]
+class YaraConfigException(Exception):
+    '''Generic exception for parsing YARA configuration files'''
+    pass
 
 
-class YaraBangConfigOptions():
-    def __init__(self):
-        self._set_default_options()
-        self._parse_arguments()
-        self._read_configuration_file()
-        self._set_options_from_configuration_file()
-        self._set_options_from_arguments()
-        self._validate_options()
-
-    def get(self):
-        return self.options
-
-    def _error(self, msg):
-        print(msg, file=sys.stderr)
-        sys.exit(1)
-
-    def _set_default_options(self):
-        self.defaults = {
-            'cfg': None,
-            'yara_directory': '',
-            'temporarydirectory': None,
-            'bangthreads': multiprocessing.cpu_count(),
-            'string_cutoff': 8,
-            'identifier_cutoff': 2,
-            'verbose': False,
-            'identifiers': [],
-        }
-        self.options = ObjectDict(dict(self.defaults))
-
-    def _parse_arguments(self):
-        self.parser = argparse.ArgumentParser()
-        self.parser.add_argument("-c", "--config",
-                                 action="store", dest="cfg",
-                                 help="path to configuration file", metavar="FILE")
-        self.parser.add_argument("-y", "--yara-directory",
-                                 action="store", dest="yara_directory",
-                                 help="path to YARA directory containing var/func files",
-                                 metavar="DIR")
-        self.parser.add_argument("-i", "--identifiers",
-                                 action="store", dest="identifiers",
-                                 help="path to pickle with low quality identifiers",
-                                 metavar="FILE")
-        self.args = self.parser.parse_args()
-        self._check_configuration_file()
-
-    def _check_configuration_file(self):
-        if self.args.cfg is None:
-            self.parser.error("No configuration file provided, exiting")
-
-        config_file = pathlib.Path(self.args.cfg)
-        # the configuration file should exist ...
-        if not config_file.exists():
-            self.parser.error("File %s does not exist, exiting." %
-                                config_file)
-        # ... and should be a real file
-        if not config_file.is_file():
-            self.parser.error("%s is not a regular file, exiting." %
-                                config_file)
-
-    def _read_configuration_file(self):
-        # read the configuration file. This is in YAML format.
-        environ = os.environ
+class YaraConfig:
+    def __init__(self, config_file):
+        # read the configuration file. This is in YAML format
         try:
-            del environ['SHELL']
-        except KeyError:
-            pass
+            self.config = load(config_file, Loader=Loader)
+        except (YAMLError, PermissionError) as e:
+            raise YaraConfigException(e.args)
+
+    def parse(self):
+        yara_env = {}
+        heuristics = {}
+
+        # general sanity checks to see if the required sections are present
+        for i in ['general', 'yara']:
+            if i not in self.config:
+                raise YaraConfigException("Section %s missing in configuration file" % i)
+
+        # sanity checks for yara_directory
+        if 'yara_directory' not in self.config['yara']:
+            raise YaraConfigException("'yara_directory' not defined in configuration")
+
+        yara_directory = pathlib.Path(self.config['yara']['yara_directory'])
+        if not yara_directory.exists():
+            raise YaraConfigException("yara_directory does not exist")
+
+        if not yara_directory.is_dir():
+            raise YaraConfigException("'yara_directory' is not a valid directory")
+
+        # check if the yara directory is writable
         try:
-            configfile = open(self.args.cfg, 'r')
-            self.config = load(configfile, Loader=Loader)
-        except (YAMLError, PermissionError):
-            self._error("Cannot open configuration file, exiting")
+            temp_name = tempfile.NamedTemporaryFile(dir=yara_directory)
+            temp_name.close()
+        except:
+            raise YaraConfigException("'yara_directory' cannot be written to")
 
-    def _set_string_option_from_config(self, option_name, section=None,
-            option=None):
-        if option is None:
-            option = option_name
-        try:
-            v = self.config[section][option]
-        except KeyError:
-            return
-        self.options[option_name] = v
+        temporary_directory = None
 
-    def _set_integer_option_from_config(self, option_name, section=None,
-            option=None):
-        if option is None:
-            option = option_name
-        try:
-            v = int(self.config[section][option])
-        except KeyError:
-            return
-        except ValueError:
-            return
-        self.options[option_name] = v
+        verbose = False
+        if 'verbose' in self.config['general']:
+            if isinstance(self.config['general']['verbose'], bool):
+                verbose = self.config['general']['verbose']
 
-    def _set_boolean_option_from_config(self, option_name, section=None,
-            option=None):
-        if option is None:
-            option = option_name
-        try:
-            v = self.config[section][option] == 'yes'
-        except KeyError:
-            return
-        except ValueError:
-            return
-        self.options[option_name] = v
+        error_fatal = True
+        if 'error_fatal' in self.config['general']:
+            if isinstance(self.config['general']['error_fatal'], bool):
+                error_fatal = self.config['general']['error_fatal']
 
-    def _set_options_from_configuration_file(self):
-        # general settings
-        self._set_integer_option_from_config('bangthreads',
-                section='general', option='threads')
-        self._set_boolean_option_from_config('verbose',
-                section='general')
+        # directory for unpacking. By default this will be /tmp or whatever
+        # the system default is.
+        temporary_directory = None
 
-        # yara settings
-        self._set_string_option_from_config('yara_directory',
-                section='yara')
-        self._set_integer_option_from_config('string_cutoff',
-                section='yara')
-        self._set_integer_option_from_config('identifier_cutoff',
-                section='yara')
+        if 'tempdir' in self.config['general']:
+            temporary_directory = pathlib.Path(self.config['general']['tempdir'])
+            if temporary_directory.exists():
+                if temporary_directory.is_dir():
+                    # check if the temporary directory is writable
+                    try:
+                        temp_name = tempfile.NamedTemporaryFile(dir=temporary_directory)
+                        temp_name.close()
+                    except:
+                        temporary_directory = None
+                else:
+                    temporary_directory = None
+            else:
+                temporary_directory = None
 
-    def _set_options_from_arguments(self):
-        if self.args.yara_directory:
-            self.options.yara_directory = self.args.yara_directory
-        if self.args.identifiers:
-            self.options.identifiers = self.args.identifiers
+        # set the number of threads that should be used
+        threads = multiprocessing.cpu_count()
+        if 'threads' in self.config['general']:
+            if isinstance(self.config['general']['threads'], int):
+                threads = self.config['general']['threads']
 
-    def _validate_options(self):
-        # bangthreads >= 1
-        if self.options.bangthreads < 1:
-            self.options.bangthreads = self.defaults['bangthreads']
+        # option to tell whether or not identifiers matched by YARA
+        # should be delimited or can be a substring.
+        fullword = True
+        if 'fullword' in self.config['yara']:
+            if isinstance(self.config['yara']['fullword'], bool):
+                fullword = self.config['yara']['fullword']
 
-        # yara_directory must be declared
-        if not self.options.yara_directory:
-            self._error('Missing YARA directory')
-        # yara_directory must exist
-        if not os.path.exists(self.options.yara_directory):
-            self._error("YARA directory %s does not exist, exiting"
-                    % self.options.yara_directory)
-        # .. be a directory
-        if not os.path.isdir(self.options.yara_directory):
-            self._error("YARA directory %s is not a directory, exiting"
-                    % self.options.yara_directory)
+        json_directory = yara_directory
+        if 'json_directory' in self.config['yara']:
+            json_directory = pathlib.Path(self.config['yara']['json_directory'])
+            if json_directory != yara_directory:
+                if not json_directory.exists():
+                    raise YaraConfigException("'json_directory' does not exist")
+                if not json_directory.is_dir():
+                    raise YaraConfigException("'json_directory' is not a valid directory")
+                # check if the json directory is writable
+                try:
+                    temp_name = tempfile.NamedTemporaryFile(dir=json_directory)
+                    temp_name.close()
+                except:
+                    raise YaraConfigException("'json_directory' cannot be written to")
+
+        operator = 'and'
+        if 'operator' in self.config['yara']:
+            if self.config['yara']['operator'] in ['and', 'or']:
+                operator = self.config['yara']['operator']
+
+        # heuristics used for generating YARA rules
+        string_min_cutoff = 8
+        if 'string_min_cutoff' in self.config['yara']:
+            if isinstance(self.config['yara']['string_min_cutoff'], int):
+                string_min_cutoff = self.config['yara']['string_min_cutoff']
+
+        string_max_cutoff = 200
+        if 'string_max_cutoff' in self.config['yara']:
+            if isinstance(self.config['yara']['string_max_cutoff'], int):
+                string_max_cutoff = self.config['yara']['string_max_cutoff']
+
+        identifier_cutoff = 2
+        if 'identifier_cutoff' in self.config['yara']:
+            if isinstance(self.config['yara']['identifier_cutoff'], int):
+                identifier_cutoff = self.config['yara']['identifier_cutoff']
+
+        max_identifiers = 10000
+        if 'max_identifiers' in self.config['yara']:
+            if isinstance(self.config['yara']['max_identifiers'], int):
+                max_identifiers = self.config['yara']['max_identifiers']
+
+        strings_percentage = 10
+        if 'strings_percentage' in self.config['yara']:
+            if isinstance(self.config['yara']['strings_percentage'], int):
+                strings_percentage = self.config['yara']['strings_percentage']
+        heuristics['strings_percentage'] = strings_percentage
+
+        functions_percentage = 10
+        if 'functions_percentage' in self.config['yara']:
+            if isinstance(self.config['yara']['functions_percentage'], int):
+                functions_percentage = self.config['yara']['functions_percentage']
+        heuristics['functions_percentage'] = functions_percentage
+
+        variables_percentage = 10
+        if 'variables_percentage' in self.config['yara']:
+            if isinstance(self.config['yara']['variables_percentage'], int):
+                variables_percentage = self.config['yara']['variables_percentage']
+        heuristics['variables_percentage'] = variables_percentage
+
+        strings_matched = 1
+        if 'strings_matched' in self.config['yara']:
+            if isinstance(self.config['yara']['strings_matched'], int):
+                strings_matched = self.config['yara']['strings_matched']
+        heuristics['strings_matched'] = strings_matched
+
+        functions_matched = 1
+        if 'functions_matched' in self.config['yara']:
+            if isinstance(self.config['yara']['functions_matched'], int):
+                functions_matched = self.config['yara']['functions_matched']
+        heuristics['functions_matched'] = functions_matched
+
+        variables_matched = 1
+        if 'variables_matched' in self.config['yara']:
+            if isinstance(self.config['yara']['variables_matched'], int):
+                variables_matched = self.config['yara']['variables_matched']
+        heuristics['variables_matched'] = variables_matched
+
+        strings_minimum_present = 10
+        if 'strings_minimum_present' in self.config['yara']:
+            if isinstance(self.config['yara']['strings_minimum_present'], int):
+                strings_minimum_present = self.config['yara']['strings_minimum_present']
+        heuristics['strings_minimum_present'] = strings_minimum_present
+
+        functions_minimum_present = 10
+        if 'functions_minimum_present' in self.config['yara']:
+            if isinstance(self.config['yara']['functions_minimum_present'], int):
+                functions_minimum_present = self.config['yara']['functions_minimum_present']
+        heuristics['functions_minimum_present'] = functions_minimum_present
+
+        variables_minimum_present = 10
+        if 'variables_minimum_present' in self.config['yara']:
+            if isinstance(self.config['yara']['variables_minimum_present'], int):
+                variables_minimum_present = self.config['yara']['variables_minimum_present']
+        heuristics['variables_minimum_present'] = variables_minimum_present
+
+        strings_extracted = 5
+        if 'strings_extracted' in self.config['yara']:
+            if isinstance(self.config['yara']['strings_extracted'], int):
+                strings_extracted = self.config['yara']['strings_extracted']
+        heuristics['strings_extracted'] = strings_extracted
+
+        functions_extracted = 5
+        if 'functions_extracted' in self.config['yara']:
+            if isinstance(self.config['yara']['functions_extracted'], int):
+                functions_extracted = self.config['yara']['functions_extracted']
+        heuristics['functions_extracted'] = functions_extracted
+
+        variables_extracted = 5
+        if 'variables_extracted' in self.config['yara']:
+            if isinstance(self.config['yara']['variables_extracted'], int):
+                variables_extracted = self.config['yara']['variables_extracted']
+        heuristics['variables_extracted'] = variables_extracted
+
+        # option to tell whether or not to ignore weak ELF symbols
+        ignore_weak_symbols = False
+        if 'ignore_weak_symbols' in self.config['yara']:
+            if isinstance(self.config['yara']['ignore_weak_symbols'], bool):
+                ignore_weak_symbols = self.config['yara']['ignore_weak_symbols']
+
+        ignore_ocaml = False
+        if 'ignore_ocaml' in self.config['yara']:
+            if isinstance(self.config['yara']['ignore_ocaml'], bool):
+                ignore_ocaml = self.config['yara']['ignore_ocaml']
+
+        yara_env = {'verbose': verbose, 'error_fatal': error_fatal,
+                    'string_min_cutoff': string_min_cutoff,
+                    'string_max_cutoff': string_max_cutoff,
+                    'identifier_cutoff': identifier_cutoff,
+                    'max_identifiers': max_identifiers,
+                    'ignore_weak_symbols': ignore_weak_symbols,
+                    'ignore_ocaml': ignore_ocaml,
+                    'fullword': fullword, 'threads': threads,
+                    'yara_directory': yara_directory, 'heuristics': heuristics,
+                    'temporary_directory': temporary_directory,
+                    'json_directory': json_directory,
+                    'operator': operator}
+        return yara_env
