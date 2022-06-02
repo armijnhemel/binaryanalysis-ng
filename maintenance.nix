@@ -23,6 +23,7 @@ let
 in
 pkgs.mkShell {
   buildInputs = with pkgs; [
+    cvehound
     gettext
     my-python
     universal-ctags
