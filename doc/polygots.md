@@ -23,7 +23,9 @@ When parsing this file two possible files can be concluded:
 1. EFI/MBR (offset 0x1fe)
 2. ISO9660 image (offset 0x8001)
 
-Both are correct.
+Both are correct conclusions and both files should be unpacked. It could
+be argued that the ISO9660 is the "outer" file and the EFI/MBR is the
+"inner" file.
 
 ## Current unpacking in BANG
 
