@@ -30,7 +30,7 @@ general:
     # threads: 0
     verbose: true
 proximity:
-    # directory to store generated YARA files
+    # directory to store generated JSON files
     proximity_directory: /home/armijn/proximity
 
     # minimal length of strings, recommended to not go below 5

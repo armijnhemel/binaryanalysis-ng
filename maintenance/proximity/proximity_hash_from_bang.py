@@ -101,7 +101,7 @@ def main(config_file, result_directory, identifiers, force):
               file=sys.stderr)
         sys.exit(1)
 
-    proximity_binary_directory = proximity_directory / 'json'
+    proximity_binary_directory = proximity_directory / 'elf'
 
     proximity_binary_directory.mkdir(exist_ok=True)
 
@@ -145,15 +145,14 @@ def main(config_file, result_directory, identifiers, force):
 
     for bang_file in bang_data['scantree']:
         if 'elf' in bang_data['scantree'][bang_file]['labels']:
-            # load the pickle for the ELF file
             sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
-            suffix = pathlib.Path(bang_file).suffix
-
-            if suffix in ignored_suffixes:
-                continue
 
             outputfile = proximity_binary_directory / ("%s.json" % sha256)
             if outputfile.exists() and not force:
+                continue
+
+            suffix = pathlib.Path(bang_file).suffix
+            if suffix in ignored_suffixes:
                 continue
 
             metadata = {}
