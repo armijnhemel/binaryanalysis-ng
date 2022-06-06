@@ -604,9 +604,9 @@ class ElfUnpackParser(UnpackParser):
             try:
                 telfhash_result = telfhash.telfhash(str(self.fileresult.filename))
                 if telfhash_result != []:
-                    telfhash_res = telfhash_result[0]['telfhash']
+                    telfhash_res = telfhash_result[0]['telfhash'].upper()
                     if telfhash_res != 'TNULL' and telfhash_res != '-':
-                        metadata['telfhash'] = telfhash_res.upper()
+                        metadata['telfhash'] = telfhash_res
             except UnicodeEncodeError:
                 pass
 
