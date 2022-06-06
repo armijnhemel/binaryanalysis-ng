@@ -39,7 +39,8 @@ except ImportError:
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
 @click.option('--result-directory', '-r', help='BANG result directory', type=click.Path(exists=True), required=True)
 @click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
-def main(config_file, result_directory, identifiers):
+@click.option('--force', '-f', help='run even if a result file exists', is_flag=True)
+def main(config_file, result_directory, identifiers, force):
     result_directory = pathlib.Path(result_directory)
 
     # ... and should be a real directory
@@ -151,7 +152,11 @@ def main(config_file, result_directory, identifiers):
             if suffix in ignored_suffixes:
                 continue
 
-            metadata = {'sha256': sha256}
+            outputfile = proximity_binary_directory / ("%s.json" % sha256)
+            if outputfile.exists() and not force:
+                continue
+
+            metadata = {}
 
             # open the result pickle
             try:
@@ -212,7 +217,10 @@ def main(config_file, result_directory, identifiers):
                 if tlsh_result != 'TNULL':
                     metadata['tlsh_identifiers'] = tlsh_result
 
-            print(metadata)
+            if metadata != {}:
+                metadata['sha256'] = sha256
+                with open(outputfile, 'w') as output:
+                    json.dump(metadata, output, indent=4)
 
 if __name__ == "__main__":
     main()
