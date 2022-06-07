@@ -27,9 +27,6 @@ vulnerablecode:
     # password
     # password: password
 proximity:
-    # directory to store generated YARA files
-    proximity_directory: /home/armijn/proximity
-
     # minimal length of strings, recommended to not go below 5
     # string_min_cutoff: 8
 
