@@ -122,11 +122,11 @@ def main(config_file, result_directory):
                     for m in r['methods']:
                         method_name = m['name']
                         if 'bytecode_hashes' in m:
-                             bytecode_sha256 = m['bytecode_hashes']['sha256']
-                             bytecode_tlsh = ''
-                             if m['bytecode_hashes']['tlsh'] is not None:
-                                 bytecode_tlsh = m['bytecode_hashes']['tlsh']
-                             db_rows.append((sha256, class_name, method_name, bytecode_sha256, bytecode_tlsh))
+                            bytecode_sha256 = m['bytecode_hashes']['sha256']
+                            bytecode_tlsh = ''
+                            if m['bytecode_hashes']['tlsh'] is not None:
+                                bytecode_tlsh = m['bytecode_hashes']['tlsh']
+                            db_rows.append((sha256, class_name, method_name, bytecode_sha256, bytecode_tlsh))
                 dex_counter += 1
 
         # insert contents of all the files in the APK
