@@ -84,7 +84,7 @@ service.
 For Dex files the TLSH computed for the bytecode of each individual method is
 extracted and written to a file. Currently methods are not yet filtered, but
 this might change in the future to be able to ignore certain methods (for
-example: `<init>` and `<clinit>`).
+example: `<init>` and `<clinit>`) that are inserted by the compiler.
 
 ## Extracting data from MalwareBazaar files
 
@@ -100,14 +100,16 @@ The script `proximity_hash_from_malwarebazaar.py` processes MalwareBazaar
 CSV files and outputs JSON files with information that can be loaded into a
 Vantage Point Tree object.
 
-Note: the full dumps of the MalwareBazaar project are typically ZIP-files
-and should first be decompressed.
+Note: the full dumps of the MalwareBazaar project are ZIP-files that should
+first be decompressed. The incremental updates are regular CSV files.
 
 The script to extract this information writes this information to JSON files.
 The name of the file is the SHA256 recorded in the CSV file, with the extension
 `.json`. These files are stored in a separate directory (of which the parent is
 configurable in the configuration file). The results are stored in a directory
 named `malwarebazaar`.
+
+The script is invoked as follows:
 
 ```console
 $ python3 proximity_hash_from_malwarebazaar.py -c proximity-config.yaml -m /path/to/csv
