@@ -3,6 +3,9 @@
 Proximity matching is a way to quickly find a closest match of a TLSH hash in
 a set of known TLSH matches, which in turn correspond with files.
 
+Proximity matching can be done with a special data structure called "Vantage
+Point Trees", for example using a webservice[1].
+
 ## Generating JSON data files from BANG results
 
 The first step is to process BANG results and extract the right information
@@ -26,7 +29,6 @@ The name of the file is the SHA256 of the original file, with the extension
 `.json`. These files are stored in a separate directory (of which the parent is
 configurable in the configuration file). For ELF files the result is stored in
 a directory named `elf`.
-
 
 ```console
 $ python3 proximity_hash_from_bang.py -c proximity-config.yaml -r /path/to/bang/result/directory
@@ -105,4 +107,29 @@ proximity:
 
 ## Loading information JSON data files into a Vantage Point Tree object
 
-TODO
+To create the Vantage Point Tree object pickle the script
+`populate_vpt_pickle.py` can be used. The script takes three parameters:
+
+1. directory with JSON files
+2. output file (where the VPT pickle will be stored)
+3. name of the TLSH value that should be stored
+
+The reason behind filtering the name is that this allows for creating different
+VPT object pickles which can be loaded into different instances of the VPT web
+service. The reason for this is that it doesn't make sense to mix different
+TLSH values: a TLSH value for an EXE file from MalwareBazaar will never give a
+close match to an identifier TLSH value calculated from an ELF file.
+
+```console
+$ python3 populate_vpt_pickle.py -j /path/to/json/files -o /path/to/output/pickle -f tlsh_filter
+
+```
+for example:
+
+```console
+$ python3 populate_vpt_pickle.py -j ~/proximity/elf/ -o /tmp/telfhash.pickle -f telfhash
+```
+
+# References
+
+[1] <https://github.com/armijnhemel/proximity_matcher_webservice/>
