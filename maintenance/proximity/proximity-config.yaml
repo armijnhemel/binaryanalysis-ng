@@ -45,3 +45,9 @@ proximity:
 
     # ignore weak ELF symbols. Recommended to set to 'true'
     ignore_weak_symbols: true
+
+    # process ELF files. Default: true
+    process_elf: true
+    #
+    # process Dex bytecode. Default: false
+    process_dex: false
