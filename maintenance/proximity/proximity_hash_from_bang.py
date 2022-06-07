@@ -101,9 +101,11 @@ def main(config_file, result_directory, identifiers, force):
               file=sys.stderr)
         sys.exit(1)
 
-    proximity_binary_directory = proximity_directory / 'elf'
+    proximity_binary_directory_elf = proximity_directory / 'elf'
+    proximity_binary_directory_dex = proximity_directory / 'dex'
 
-    proximity_binary_directory.mkdir(exist_ok=True)
+    proximity_binary_directory_elf.mkdir(exist_ok=True)
+    proximity_binary_directory_dex.mkdir(exist_ok=True)
 
     string_min_cutoff = 8
     if 'string_min_cutoff' in configuration['proximity']:
@@ -147,7 +149,7 @@ def main(config_file, result_directory, identifiers, force):
         if 'elf' in bang_data['scantree'][bang_file]['labels']:
             sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
 
-            outputfile = proximity_binary_directory / ("%s.json" % sha256)
+            outputfile = proximity_binary_directory_elf / ("%s.json" % sha256)
             if outputfile.exists() and not force:
                 continue
 
@@ -220,6 +222,30 @@ def main(config_file, result_directory, identifiers, force):
                 metadata['sha256'] = sha256
                 with open(outputfile, 'w') as output:
                     json.dump(metadata, output, indent=4)
+        elif 'dex' in bang_data['scantree'][bang_file]['labels']:
+            sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
+
+            # open the result pickle
+            try:
+                results_data = pickle.load(open(result_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
+            except:
+                continue
+
+            for r in results_data['metadata']['classes']:
+                for m in r['methods']:
+                    if 'bytecode_hashes' in m:
+                        bytecode_sha256 = m['bytecode_hashes']['sha256']
+                        if m['bytecode_hashes']['tlsh'] is not None:
+                            bytecode_tlsh = m['bytecode_hashes']['tlsh']
+
+                            outputfile = proximity_binary_directory_dex / ("%s.json" % bytecode_sha256)
+                            if outputfile.exists() and not force:
+                                continue
+                            with open(outputfile, 'w') as output:
+                                json.dump({'sha256': bytecode_sha256, 'tlsh': bytecode_tlsh}, output, indent=4)
+
+
+
 
 if __name__ == "__main__":
     main()

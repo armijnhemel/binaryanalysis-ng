@@ -25,10 +25,14 @@ later), sorted per type (first strings, then function names, then variable
 names) and concatenated (one space between each identifier).
 
 The script to extract this information writes this information to JSON files.
-The name of the file is the SHA256 of the original file, with the extension
-`.json`. These files are stored in a separate directory (of which the parent is
+The name of the file is a SHA256, with the extension `.json`. For ELF files
+the SHA256 of the original file is used, for Android Dex bytecode it is the
+SHA256 of the bytecode of each method.
+
+These files are stored in a separate directory (of which the parent is
 configurable in the configuration file). For ELF files the result is stored in
-a directory named `elf`.
+a directory named `elf`. For Android Dex bytecode (per method) the directory
+is called `dex`.
 
 ```console
 $ python3 proximity_hash_from_bang.py -c proximity-config.yaml -r /path/to/bang/result/directory
