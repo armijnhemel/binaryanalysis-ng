@@ -82,9 +82,14 @@ service.
 ### Android Dex
 
 For Dex files the TLSH computed for the bytecode of each individual method is
-extracted and written to a file. Currently methods are not yet filtered, but
-this might change in the future to be able to ignore certain methods (for
-example: `<init>` and `<clinit>`) that are inserted by the compiler.
+extracted from the BANG results and written to a file. Currently methods are
+not yet filtered, but this might change in the future to be able to ignore
+certain methods (for example: `<init>` and `<clinit>`) that are inserted by
+the compiler.
+
+It should be noted that when processing a large number of Dex files there will
+be hashes for many methods (at least a few hundred per Dex file). This is why
+scanning Dex methods is not enabled by default.
 
 ## Extracting data from MalwareBazaar files
 
