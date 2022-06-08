@@ -33,7 +33,7 @@ app.config.from_prefixed_env()
 
 @app.route("/upload/", methods=['POST'])
 def task_post():
-    '''Upload a file, return a task id'''
+    '''Upload a file, return a task id (UUID)'''
     upload_dir = pathlib.Path('/home/armijn/upload')
 
     uuids = {}
@@ -51,5 +51,11 @@ def task_post():
 @app.route("/status/<task_id>")
 def task_status(task_id):
     res = {'match': False}
+
+    # verify if the task_id is a valid UUID
+    try:
+        task = uuid.UUID(task_id)
+    except ValueError:
+        return jsonify(res)
 
     return jsonify(res)
