@@ -6,6 +6,10 @@ The Proximity Matcher webservice[4] is a webservice to quickly find a closest
 match of a TLSH hash in a set of known TLSH hashes, which can then be
 correlated to known files.
 
+In this directory there are a few files: there are proof of concept files
+that show how the individual methods can be used and there is one script
+that combines multiple methods into a single workflow.
+
 ## YARA in BANG
 
 The file `bang_identification_yara.py` is a proof of concept to see how YARA
