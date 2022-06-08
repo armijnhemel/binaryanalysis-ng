@@ -1,9 +1,9 @@
-# Setting up the database
+# Setting up and configuring the database
 
 Some analysis scripts in BANG use PostgreSQL as a database backend. This
 document describes how to configure PostgreSQL for use with these scripts.
 Versions 9 and earlier of PostgreSQL are not supported. It is recommended
-to use the latest version of PostgreSQL (version 14.1 at the time of writing)
+to use the latest version of PostgreSQL (version 14.3 at the time of writing)
 if possible.
 
 If you already have a preconfigured PostgreSQL server it is important to

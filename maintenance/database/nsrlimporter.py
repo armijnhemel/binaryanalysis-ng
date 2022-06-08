@@ -344,9 +344,9 @@ def main(config_file, nsrldir, decode):
         sha1 = sha1.lower()
         md5 = md5.lower()
         try:
-           productcode = int(productcode)
+            productcode = int(productcode)
         except ValueError:
-           continue
+            continue
 
         # Ignore hashes that have already been seen. This is not entirely
         # correct as there are files with the same hashes but different names

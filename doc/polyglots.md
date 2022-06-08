@@ -23,7 +23,9 @@ When parsing this file two possible files can be concluded:
 1. EFI/MBR (offset 0x1fe)
 2. ISO9660 image (offset 0x8001)
 
-Both are correct.
+Both are correct conclusions and both files should be unpacked. It could
+be argued that the ISO9660 is the "outer" file and the EFI/MBR is the
+"inner" file.
 
 ## Current unpacking in BANG
 
@@ -41,5 +43,5 @@ There are then two different paths ways to implement unpacking:
 data) is run. If this fails then the other parsers are tried (most promising
 parser first) until one succeeds.
 
-2. all parsers are tried in parallel and results are either recombined later
-or kept as separate unpacking paths.
+2. all parsers are tried in parallel and results are either recombined (where
+possible) or kept as separate branches of unpacking.

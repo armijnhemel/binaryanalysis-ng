@@ -30,7 +30,7 @@ general:
     # threads: 0
     verbose: true
 proximity:
-    # directory to store generated YARA files
+    # directory to store generated JSON files
     proximity_directory: /home/armijn/proximity
 
     # minimal length of strings, recommended to not go below 5
@@ -45,3 +45,9 @@ proximity:
 
     # ignore weak ELF symbols. Recommended to set to 'true'
     ignore_weak_symbols: true
+
+    # process ELF files. Default: true
+    process_elf: true
+    #
+    # process Dex bytecode. Default: false
+    process_dex: false

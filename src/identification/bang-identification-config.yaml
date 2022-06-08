@@ -26,3 +26,23 @@ vulnerablecode:
 
     # password
     # password: password
+proximity:
+    # minimal length of strings, recommended to not go below 5
+    # string_min_cutoff: 8
+
+    # maximal length of strings, recommended to not go above 200
+    # string_max_cutoff: 200
+
+    # minimal length of functions/variable names, recommended
+    # to not go below 2
+    # identifier_cutoff: 2
+
+    # ignore weak ELF symbols. Recommended to set to 'true'
+    ignore_weak_symbols: true
+
+    # different end points
+    endpoints:
+        - tlsh: http://localhost:5000/tlsh/
+        - telfhash: http://localhost:5000/telfhash/
+        - tlsh_identifiers: http://localhost:5000/tlsh_identifiers/
+        - malwarebazaar: http://localhost:5000/malwarebazaar/
