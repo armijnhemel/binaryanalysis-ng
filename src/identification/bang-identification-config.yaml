@@ -39,3 +39,10 @@ proximity:
 
     # ignore weak ELF symbols. Recommended to set to 'true'
     ignore_weak_symbols: true
+
+    # different end points
+    endpoints:
+        - tlsh: http://localhost:5000/tlsh/
+        - telfhash: http://localhost:5000/telfhash/
+        - tlsh_identifiers: http://localhost:5000/tlsh_identifiers/
+        - malwarebazaar: http://localhost:5000/malwarebazaar/
