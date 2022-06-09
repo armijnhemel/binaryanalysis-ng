@@ -10,6 +10,9 @@ In this directory there are a few files: there are proof of concept files
 that show how the individual methods can be used and there is one script
 that combines multiple methods into a single workflow.
 
+The "all in one" script is `bang_identification.py` and it combines YARA,
+proximity matching and VulnerableCode.
+
 ## YARA in BANG
 
 The file `bang_identification_yara.py` is a proof of concept to see how YARA
