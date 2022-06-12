@@ -119,6 +119,31 @@ def main(config, result_directory, identifiers):
             pass
 
     # identifier settings for proximity matching
+    proximity_string_min_cutoff = 8
+    if 'string_min_cutoff' in configuration['proximity']:
+        if isinstance(configuration['proximity']['string_min_cutoff'], int):
+            proximity_string_min_cutoff = configuration['proximity']['string_min_cutoff']
+
+    proximity_string_max_cutoff = 200
+    if 'string_max_cutoff' in configuration['proximity']:
+        if isinstance(configuration['proximity']['string_max_cutoff'], int):
+            proximity_string_max_cutoff = configuration['proximity']['string_max_cutoff']
+
+    proximity_identifier_cutoff = 2
+    if 'identifier_cutoff' in configuration['proximity']:
+        if isinstance(configuration['proximity']['identifier_cutoff'], int):
+            proximity_identifier_cutoff = configuration['proximity']['identifier_cutoff']
+
+    proximity_ignore_weak_symbols = False
+    if 'ignore_weak_symbols' in configuration['proximity']:
+        if isinstance(configuration['proximity']['ignore_weak_symbols'], bool):
+            proximity_ignore_weak_symbols = configuration['proximity']['ignore_weak_symbols']
+
+    # set up a minimal environment for proximity matching
+    proximity_env = {'string_min_cutoff': proximity_string_min_cutoff,
+                     'string_max_cutoff': proximity_string_max_cutoff,
+                     'identifier_cutoff': proximity_identifier_cutoff,
+                     'ignore_weak_symbols': proximity_ignore_weak_symbols}
 
     # open the top level pickle
     bang_pickle = result_directory / 'bang.pickle'
