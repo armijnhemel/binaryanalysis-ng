@@ -25,7 +25,7 @@ import os
 from UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import napp_header
+from . import android_nanoapp_header
 
 
 class NappHeaderClassUnpackParser(UnpackParser):
@@ -38,7 +38,7 @@ class NappHeaderClassUnpackParser(UnpackParser):
     def parse(self):
         self.file_size = self.fileresult.filesize
         try:
-            self.data = napp_header.NappHeader.from_io(self.infile)
+            self.data = android_nanoapp_header.AndroidNanoappHeader.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
