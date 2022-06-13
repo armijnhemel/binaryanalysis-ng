@@ -157,6 +157,10 @@ def main(config, result_directory, identifiers):
 
     bang_data = pickle.load(open(bang_pickle, 'rb'))
 
+    min_string_cutoff = min(yara_env['string_min_cutoff'], proximity_env['string_min_cutoff'])
+    max_string_cutoff = max(yara_env['string_max_cutoff'], proximity_env['string_max_cutoff'])
+    ignore_weak_symbols = yara_env['ignore_weak_symbols'] and proximity_env['ignore_weak_symbols']
+
     for bang_file in bang_data['scantree']:
         if 'elf' in bang_data['scantree'][bang_file]['labels']:
             # load the pickle for the ELF file
@@ -171,25 +175,39 @@ def main(config, result_directory, identifiers):
                 continue
 
             # extract the identifiers
-            strings = set()
-            functions = set()
-            variables = set()
+            yara_strings = set()
+            yara_functions = set()
+            yara_variables = set()
+
+            proximity_strings = set()
+            proximity_functions = set()
+            proximity_variables = set()
+
             if results_data['metadata']['strings'] != []:
                 for s in results_data['metadata']['strings']:
-                    if len(s) < yara_env['string_min_cutoff']:
+                    if len(s) < min_string_cutoff:
                         continue
-                    if len(s) > yara_env['string_max_cutoff']:
+                    if len(s) > max_string_cutoff:
                         continue
+
                     # ignore whitespace-only strings
                     if re.match(r'^\s+$', s) is None:
-                        strings.add(s)
+                        if len(s) >= yara_env['string_min_cutoff'] and len(s) <= yara_env['string_max_cutoff']:
+                            yara_strings.add(s)
+                        if len(s) >= proximity_env['string_min_cutoff'] and len(s) <= proximity_env['string_max_cutoff']:
+                            proximity_strings.add(s)
+
             if results_data['metadata']['symbols'] != []:
                 for s in results_data['metadata']['symbols']:
                     if s['section_index'] == 0:
                         continue
-                    if yara_env['ignore_weak_symbols']:
-                        if s['binding'] == 'weak':
+
+                    is_weak = False
+                    if s['binding'] == 'weak':
+                        if ignore_weak_symbols:
                             continue
+                        is_weak = True
+
                     if len(s['name']) < yara_env['identifier_cutoff']:
                         continue
                     if '@@' in s['name']:
@@ -199,9 +217,15 @@ def main(config, result_directory, identifiers):
                     else:
                         identifier_name = s['name']
                     if s['type'] == 'func':
-                        functions.add(identifier_name)
+                        if not (is_weak and yara_env['ignore_weak_symbols']):
+                            yara_functions.add(identifier_name)
+                        if not (is_weak and proximity_env['ignore_weak_symbols']):
+                            proximity_functions.add(identifier_name)
                     elif s['type'] == 'object':
-                        variables.add(identifier_name)
+                        if not (is_weak and yara_env['ignore_weak_symbols']):
+                            yara_variables.add(identifier_name)
+                        if not (is_weak and proximity_env['ignore_weak_symbols']):
+                            proximity_variables.add(identifier_name)
 
             # concatenate the strings, functions and variables
             yara_data = "\n".join(sorted(strings))
