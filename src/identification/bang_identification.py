@@ -171,6 +171,8 @@ def main(config, result_directory, identifiers):
                 results_data = pickle.load(open(result_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
             except:
                 continue
+
+            # skip entries for which there is no useful metadata
             if 'metadata' not in results_data:
                 continue
 
@@ -227,10 +229,12 @@ def main(config, result_directory, identifiers):
                         if not (is_weak and proximity_env['ignore_weak_symbols']):
                             proximity_variables.add(identifier_name)
 
-            # concatenate the strings, functions and variables for yara
+            # concatenate the strings, functions and variables for YARA
             yara_data = "\n".join(sorted(yara_strings))
             yara_data += "\n".join(sorted(yara_functions))
             yara_data += "\n".join(sorted(yara_variables))
+
+            # run the YARA rules
             for r in rules:
                 matches = r.match(data=yara_data)
                 if matches == []:
