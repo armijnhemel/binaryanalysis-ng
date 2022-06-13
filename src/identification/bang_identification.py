@@ -227,10 +227,10 @@ def main(config, result_directory, identifiers):
                         if not (is_weak and proximity_env['ignore_weak_symbols']):
                             proximity_variables.add(identifier_name)
 
-            # concatenate the strings, functions and variables
-            yara_data = "\n".join(sorted(strings))
-            yara_data += "\n".join(sorted(functions))
-            yara_data += "\n".join(sorted(variables))
+            # concatenate the strings, functions and variables for yara
+            yara_data = "\n".join(sorted(yara_strings))
+            yara_data += "\n".join(sorted(yara_functions))
+            yara_data += "\n".join(sorted(yara_variables))
             for r in rules:
                 matches = r.match(data=yara_data)
                 if matches == []:
