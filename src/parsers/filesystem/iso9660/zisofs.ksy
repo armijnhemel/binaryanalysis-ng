@@ -1,6 +1,12 @@
 meta:
   id: zisofs
   title: zisofs
+  xref:
+    justsolve: Zisofs
+    wikidata: Q105854284
+  tags:
+    - archive
+    - filesystem
   license: CC0-1.0
   endian: le
 doc: |
@@ -12,27 +18,25 @@ doc: |
 
   The specification here describes the structure of a file that has been
   preprocessed by mkzftree, not of a full ISO9660 ziso. Data is not
-  decompressed, as blocks with length 0 have a special meaning. Decompressing
-  and deconstruction this data should be done outside of Kaitai Struct.
+  decompressed, as blocks with length 0 have a special meaning. Decompression
+  and deconstruction of this data should be done outside of Kaitai Struct.
 doc-ref: https://web.archive.org/web/20200612093441/https://dev.lovelyhq.com/libburnia/web/-/wikis/zisofs
 seq:
   - id: header
-    type: header
     size: 16
+    type: header
   - id: block_pointers
     type: u4
     repeat: expr
-    repeat-expr: header.num_block_pointers
-  - id: final_block_pointer
-    type: u4
+    repeat-expr: header.num_blocks + 1
     doc: |
-      Final pointer indicating the first invalid byte. Typically this is
-      also the end of the file data.
+      The final pointer (`block_pointers[header.num_blocks]`) indicates the end
+      of the last block. Typically this is also the end of the file data.
 instances:
   blocks:
-    type: block_pointer(_index)
+    type: 'block(block_pointers[_index], block_pointers[_index + 1])'
     repeat: expr
-    repeat-expr: header.num_block_pointers
+    repeat-expr: header.num_blocks
 types:
   header:
     seq:
@@ -45,7 +49,7 @@ types:
         type: u1
         valid: 4
         doc: header_size >> 2 (currently 4)
-      - id: log2_block_size
+      - id: block_size_log2
         type: u1
         valid:
           any-of: [15, 16, 17]
@@ -53,18 +57,21 @@ types:
         contents: [0, 0]
     instances:
       block_size:
-        value: 2 << (log2_block_size - 1)
-      num_block_pointers:
-        value: 'uncompressed_size % block_size == 0 ? (uncompressed_size / block_size) : (uncompressed_size / block_size) + 1'
+        value: 1 << block_size_log2
+      num_blocks:
+        value: '(uncompressed_size / block_size) + (uncompressed_size % block_size != 0 ? 1 : 0)'
         doc: ceil(uncompressed_size / block_size)
-  block_pointer:
+  block:
+    -webide-representation: '[{ofs_start}, {ofs_end}): {len_data:dec} bytes'
     params:
-      - id: index
+      - id: ofs_start
+        type: u4
+      - id: ofs_end
         type: u4
     instances:
-      len_block:
-        value: 'index < _parent.block_pointers.size - 1 ? _parent.block_pointers[index+1] - _parent.block_pointers[index] : _parent.final_block_pointer - _parent.block_pointers[index]'
+      len_data:
+        value: ofs_end - ofs_start
       data:
-        pos: _parent.block_pointers[index]
         io: _root._io
-        size: len_block
+        pos: ofs_start
+        size: len_data
