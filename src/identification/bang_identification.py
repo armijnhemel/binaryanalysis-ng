@@ -69,6 +69,11 @@ def main(config, result_directory, identifiers):
         sys.exit(1)
 
     # identifier settings for YARA
+    yara_error_fatal = False
+    if 'error_fatal' in configuration['yara']:
+        if isinstance(configuration['yara']['error_fatal'], bool):
+            yara_error_fatal = configuration['yara']['error_fatal']
+
     yara_string_min_cutoff = 8
     if 'string_min_cutoff' in configuration['yara']:
         if isinstance(configuration['yara']['string_min_cutoff'], int):
@@ -112,11 +117,13 @@ def main(config, result_directory, identifiers):
 
     # load the YARA rules found in the directory
     rules = []
-    for result in rules_directory.glob('**/*'):
+    for result in rules_directory.glob('**/*.yarac'):
         try:
             rules.append(yara.load(str(result)))
         except yara.Error as e:
-            pass
+            if yara_error_fatal:
+                print("Fatal YARA error:", e, file=sys.stderr)
+                sys.exit(1)
 
     # identifier settings for proximity matching
     proximity_string_min_cutoff = 8
