@@ -96,7 +96,7 @@ class Bzip2UnpackParser(UnpackParser):
         # determine the name of the output file
         if self.fileresult.filename.suffix.lower() == '.bz2':
             file_path = pathlib.Path(self.fileresult.filename.stem)
-        elif self.fileresult.filename.suffix.lower() in ['.tbz', '.tbz2', '.tb2']:
+        elif self.fileresult.filename.suffix.lower() in ['.tbz', '.tbz2', '.tb2', '.tarbz2']:
             file_path = pathlib.Path(self.fileresult.filename.stem + ".tar")
         else:
             file_path = pathlib.Path("unpacked_from_bz2")
