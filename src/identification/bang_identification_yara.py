@@ -57,6 +57,11 @@ def main(config, result_directory):
               file=sys.stderr)
         sys.exit(1)
 
+    yara_error_fatal = False
+    if 'error_fatal' in configuration['yara']:
+        if isinstance(configuration['yara']['error_fatal'], bool):
+            yara_error_fatal = configuration['yara']['error_fatal']
+
     if not 'compiled_rules' in configuration['yara']:
         print("\'compiled_rules\' section missing in configuration file, exiting",
               file=sys.stderr)
@@ -105,11 +110,13 @@ def main(config, result_directory):
 
     # load the YARA rules found in the directory
     rules = []
-    for result in rules_directory.glob('**/*'):
-        try:
-            rules.append(yara.load(str(result)))
-        except yara.Error as e:
-            pass
+    for result in rules_directory.glob('**/*.yarac'):
+         try:
+             rules.append(yara.load(str(result)))
+         except yara.Error as e:
+            if yara_error_fatal:
+                print("Fatal YARA error:", e, file=sys.stderr)
+                sys.exit(1)
 
     # open the top level pickle
     bang_pickle = result_directory / 'bang.pickle'

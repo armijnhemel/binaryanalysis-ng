@@ -56,6 +56,8 @@ class Uf2UnpackParser(UnpackParser):
         # cut .uf2 from the path name if it is there
         if self.fileresult.filename.suffix == '.uf2':
             file_path = pathlib.Path(self.fileresult.filename.stem)
+            if file_path in ['.', '..']:
+                file_path = pathlib.Path("unpacked_from_uf2")
         # else anonymous file
         else:
             file_path = pathlib.Path("unpacked_from_uf2")
