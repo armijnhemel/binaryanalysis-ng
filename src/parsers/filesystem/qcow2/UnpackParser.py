@@ -86,7 +86,7 @@ class Qcow2UnpackParser(UnpackParser):
         # determine the name of the output file
         if self.fileresult.filename.suffix.lower() in ['.qcow2', '.qcow', '.qcow2c', '.img']
             file_path = pathlib.Path(self.fileresult.filename.stem)
-            if file_path in ['.', '/', '..']:
+            if file_path in ['.', '..']:
                 file_path = pathlib.Path("unpacked_from_qcow2")
         else:
             file_path = pathlib.Path("unpacked_from_qcow2")
