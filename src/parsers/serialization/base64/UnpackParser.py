@@ -189,6 +189,8 @@ class Base64UnpackParser(UnpackParser):
 
         if self.fileresult.filename.suffix.lower() in ['.base64', '.b64']:
             file_path = pathlib.Path(self.fileresult.filename.stem)
+            if file_path in ['.', '..']:
+                file_path = pathlib.Path("unpacked_from_base64")
         else:
             file_path = pathlib.Path("unpacked_from_base64")
 

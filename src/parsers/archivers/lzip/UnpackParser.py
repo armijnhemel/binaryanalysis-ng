@@ -125,6 +125,8 @@ class LzipUnpackParser(UnpackParser):
         # determine the name of the output file
         if self.fileresult.filename.suffix.lower() == '.lz':
             file_path = pathlib.Path(self.fileresult.filename.stem)
+            if file_path in ['.', '..']:
+                file_path = pathlib.Path("unpacked_from_lz")
         else:
             file_path = pathlib.Path("unpacked_from_lz")
 

@@ -86,6 +86,8 @@ class VmdkUnpackParser(UnpackParser):
 
         if self.fileresult.filename.suffix.lower() == '.vmdk':
             file_path = pathlib.Path(self.fileresult.filename.stem)
+            if file_path in ['.', '..']:
+                file_path = pathlib.Path("unpacked_from_vmdk")
         else:
             file_path = pathlib.Path("unpacked_from_vmdk")
 

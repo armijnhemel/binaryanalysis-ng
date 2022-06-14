@@ -101,6 +101,8 @@ class LzmaBaseUnpackParser(UnpackParser):
         if self.filetype == 'xz':
             if self.fileresult.filename.suffix.lower() == '.xz':
                 file_path = pathlib.Path(self.fileresult.filename.stem)
+                if file_path in ['.', '..']:
+                    file_path = pathlib.Path("unpacked_from_xz")
             elif self.fileresult.filename.suffix.lower() in ['.txz', '.tarxz']:
                 file_path = pathlib.Path(self.fileresult.filename.stem + ".tar")
             else:
@@ -108,6 +110,8 @@ class LzmaBaseUnpackParser(UnpackParser):
         elif self.filetype == 'lzma':
             if self.fileresult.filename.suffix.lower() == '.lzma':
                 file_path = pathlib.Path(self.fileresult.filename.stem)
+                if file_path in ['.', '..']:
+                    file_path = pathlib.Path("unpacked_from_lzma")
             elif self.fileresult.filename.suffix.lower() in ['.tlz', '.tarlz', '.tarlzma']:
                 file_path = pathlib.Path(self.fileresult.filename.stem + ".tar")
             else:
