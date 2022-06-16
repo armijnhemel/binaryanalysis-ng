@@ -13,6 +13,10 @@ file in a proximity matching database using a few metrics:
 * TLSH of the whole file
 * telfhash (if any)
 * TLSH generated from any identifiers (if any)
+* MalwareBazaar
+
+The result is a TLSH hash for each positive match. This hash then needs to
+be searched in an another external data source, for example a database.
 '''
 
 import os
