@@ -98,7 +98,7 @@ def main(config_file, result_directory, identifiers):
         if isinstance(configuration['proximity']['ignore_weak_symbols'], bool):
             ignore_weak_symbols = configuration['proximity']['ignore_weak_symbols']
 
-    maximum_distance = 80
+    maximum_distance = 70
     if 'maximum_distance' in configuration['proximity']:
         if isinstance(configuration['proximity']['maximum_distance'], int):
             maximum_distance = configuration['proximity']['maximum_distance']
