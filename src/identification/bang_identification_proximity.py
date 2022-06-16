@@ -208,6 +208,8 @@ def main(config_file, result_directory, identifiers):
                 if h in endpoints:
                     endpoint = endpoints[h]
                     try:
+                        if metadata[h] == '':
+                            continue
                         req = session.get('%s/%s' % (endpoint, metadata[h]))
                         json_results = req.json()
                         if json_results['match']:
