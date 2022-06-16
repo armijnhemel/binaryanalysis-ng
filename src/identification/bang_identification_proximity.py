@@ -98,6 +98,11 @@ def main(config_file, result_directory, identifiers):
         if isinstance(configuration['proximity']['ignore_weak_symbols'], bool):
             ignore_weak_symbols = configuration['proximity']['ignore_weak_symbols']
 
+    maximum_distance = 80
+    if 'maximum_distance' in configuration['proximity']:
+        if isinstance(configuration['proximity']['maximum_distance'], int):
+            maximum_distance = configuration['proximity']['maximum_distance']
+
     # store endpoints from the configuration file
     endpoints = {}
     for endpoint in configuration['proximity']['endpoints']:
@@ -204,8 +209,11 @@ def main(config_file, result_directory, identifiers):
                     endpoint = endpoints[h]
                     try:
                         req = session.get('%s/%s' % (endpoint, metadata[h]))
-                        print(req.json())
-                        sys.stdout.flush()
+                        json_results = req.json()
+                        if json_results['match']:
+                            if json_results['distance'] <= maximum_distance:
+                                print(endpoint, bang_file, json_results['tlsh'])
+                                sys.stdout.flush()
                     except requests.exceptions.RequestException:
                         pass
 
