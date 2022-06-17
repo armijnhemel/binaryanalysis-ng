@@ -146,11 +146,17 @@ def main(config, result_directory, identifiers):
         if isinstance(configuration['proximity']['ignore_weak_symbols'], bool):
             proximity_ignore_weak_symbols = configuration['proximity']['ignore_weak_symbols']
 
+    proximity_maximum_distance = 80
+    if 'maximum_distance' in configuration['proximity']:
+        if isinstance(configuration['proximity']['maximum_distance'], int):
+            proximity_maximum_distance = configuration['proximity']['maximum_distance']
+
     # set up a minimal environment for proximity matching
     proximity_env = {'string_min_cutoff': proximity_string_min_cutoff,
                      'string_max_cutoff': proximity_string_max_cutoff,
                      'identifier_cutoff': proximity_identifier_cutoff,
-                     'ignore_weak_symbols': proximity_ignore_weak_symbols}
+                     'ignore_weak_symbols': proximity_ignore_weak_symbols,
+                     'maximum_distance': proximity_maximum_distance}
 
     # open the top level pickle
     bang_pickle = result_directory / 'bang.pickle'
