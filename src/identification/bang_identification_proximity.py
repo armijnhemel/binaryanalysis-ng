@@ -13,6 +13,10 @@ file in a proximity matching database using a few metrics:
 * TLSH of the whole file
 * telfhash (if any)
 * TLSH generated from any identifiers (if any)
+* MalwareBazaar
+
+The result is a TLSH hash for each positive match. This hash then needs to
+be searched in an another external data source, for example a database.
 '''
 
 import os
@@ -97,6 +101,11 @@ def main(config_file, result_directory, identifiers):
     if 'ignore_weak_symbols' in configuration['proximity']:
         if isinstance(configuration['proximity']['ignore_weak_symbols'], bool):
             ignore_weak_symbols = configuration['proximity']['ignore_weak_symbols']
+
+    maximum_distance = 70
+    if 'maximum_distance' in configuration['proximity']:
+        if isinstance(configuration['proximity']['maximum_distance'], int):
+            maximum_distance = configuration['proximity']['maximum_distance']
 
     # store endpoints from the configuration file
     endpoints = {}
@@ -203,9 +212,14 @@ def main(config_file, result_directory, identifiers):
                 if h in endpoints:
                     endpoint = endpoints[h]
                     try:
+                        if metadata[h] == '':
+                            continue
                         req = session.get('%s/%s' % (endpoint, metadata[h]))
-                        print(req.json())
-                        sys.stdout.flush()
+                        json_results = req.json()
+                        if json_results['match']:
+                            if json_results['distance'] <= maximum_distance:
+                                print(endpoint, bang_file, json_results['tlsh'])
+                                sys.stdout.flush()
                     except requests.exceptions.RequestException:
                         pass
 

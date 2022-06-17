@@ -111,7 +111,9 @@ class CompressUnpackParser(UnpackParser):
         # determine the name of the output file
         if self.fileresult.filename.suffix.lower() == '.z':
             file_path = pathlib.Path(self.fileresult.filename.stem)
-        elif self.fileresult.filename.suffix.lower() == '.tz':
+            if file_path in ['.', '..']:
+                file_path = pathlib.Path("unpacked_from_compress")
+        elif self.fileresult.filename.suffix.lower() in ['.tz', '.tarz']:
             file_path = pathlib.Path(self.fileresult.filename).with_suffix('.tar')
         else:
             file_path = pathlib.Path("unpacked_from_compress")

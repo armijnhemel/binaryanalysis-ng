@@ -47,3 +47,6 @@ proximity:
         - telfhash: http://localhost:5000/telfhash/
         - tlsh_identifiers: http://localhost:5000/tlsh_identifiers/
         - malwarebazaar: http://localhost:5000/malwarebazaar/
+
+    # maximum TLSH distance. Every distance higher than this is ignored.
+    maximum_distance: 70
