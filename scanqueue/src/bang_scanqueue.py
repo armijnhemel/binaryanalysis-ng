@@ -29,12 +29,20 @@ from werkzeug.utils import secure_filename
 
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
 app = Flask(__name__)
-app.config.from_prefixed_env()
+app.config.from_envvar('SCANQUEUE_CONFIGURATION')
+
+if not pathlib.Path(app.config['UPLOAD_DIR']).exists():
+    print("upload dir %s does not exist" % app.config['UPLOAD_DIR'], file=sys.stderr)
+    sys.exit(1)
+
+if not pathlib.Path(app.config['UPLOAD_DIR']).is_dir():
+    print("upload dir %s is not a directory" % app.config['UPLOAD_DIR'], file=sys.stderr)
+    sys.exit(1)
 
 @app.route("/upload/", methods=['POST'])
 def task_post():
     '''Upload a file, return a task id (UUID)'''
-    upload_dir = pathlib.Path('/home/armijn/upload')
+    upload_dir = pathlib.Path(app.config['UPLOAD_DIR'])
 
     uuids = {}
 

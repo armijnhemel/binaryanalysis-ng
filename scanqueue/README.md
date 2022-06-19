@@ -53,11 +53,7 @@ Several settings have to be configured in a configuration file.
 
 ## Flask
 
-```
----
-config:
-    uploads: /home/bang/uploads
-```
+`$ export SCANQUEUE_CONFIGURATION=bang_scanqueue_config.py`
 
 
 # Running the microservice
@@ -78,6 +74,7 @@ The components of the microservice need to be started in a particular order:
 Starting Flask:
 
 ```console
+$ export SCANQUEUE_CONFIGURATION=bang_scanqueue_config.py
 $ export FLASK_APP=bang_scanqueue.py
 $ flask run
 ```
