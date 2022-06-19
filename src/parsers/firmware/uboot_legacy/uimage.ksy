@@ -452,6 +452,9 @@ enums:
     40:
       id: sunxi_egon
       doc: Allwinner eGON Boot Image
+    41:
+      id: sunxi_toc0
+      doc: Allwinner TOC0 Boot Image
   magic_types:
     0x27051956:
       id: uimage
