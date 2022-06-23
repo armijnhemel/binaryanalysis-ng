@@ -52,6 +52,7 @@ def task_post():
     upload_dir = pathlib.Path(app.config['UPLOAD_DIR'])
 
     # store UUID for any of the files that are uploaded
+    uuids = {}
 
     # store each file in the upload location
     for f in request.files:
@@ -63,9 +64,12 @@ def task_post():
         request.files[f].save(upload_dir / str(task_uuid) / filename)
         uuids[filename] = str(task_uuid)
 
-        # store the filename and uuid and status in a Redis hash
+        # store the uuid, filename and status to Redis hashes
+        redis_conn.hset('uuids_to_filename', str(task_uuid), filename)
+        redis_conn.hset('uuids_to_status', str(task_uuid), "uploaded")
 
         # add the uuid to a task list
+        redis_conn.rpsuh(str(task_uuid))
     return jsonify(uuids)
 
 
