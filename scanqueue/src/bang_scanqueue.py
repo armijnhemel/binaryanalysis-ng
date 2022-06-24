@@ -69,18 +69,25 @@ def task_post():
         redis_conn.hset('uuids_to_status', str(task_uuid), "uploaded")
 
         # add the uuid to a task list
-        redis_conn.rpsuh(str(task_uuid))
+        redis_conn.rpush('tasks', str(task_uuid))
     return jsonify(uuids)
 
 
 @app.route("/status/<task_id>")
 def task_status(task_id):
-    res = {'match': False}
+    res = {'status': 'invalid'}
 
     # verify if the task_id is a valid UUID
     try:
         task = uuid.UUID(task_id)
     except ValueError:
         return jsonify(res)
+
+    # search the status of the uuid in redis
+    task_status = redis_conn.hget('uuids_to_status', str(task))
+    if task_status is None:
+        return jsonify(res)
+
+    res = {'status': task_status.decode()}
 
     return jsonify(res)
