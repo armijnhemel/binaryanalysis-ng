@@ -57,6 +57,10 @@ The parameter to a query should be a valid Package URL. The output is the raw
 output from VulnerableCode that a script should process further. A small demo
 can be found in the file `vulnerabletest.py`.
 
+# Putting it all together
+
+The script `bang_identification.py` combines several methods.
+
 # References
 
 [1] <https://virustotal.github.io/yara/>
