@@ -20,6 +20,7 @@ let
     pydot
     pytest
     pyyaml
+    qiling
     requests
     tinycss2
     tlsh
