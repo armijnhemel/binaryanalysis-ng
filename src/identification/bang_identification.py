@@ -15,12 +15,15 @@ searches results in VulnerableCode.
 import os
 import pathlib
 import pickle
+import re
 import shutil
 import sys
-import re
+import urllib
 
 import click
 import packageurl
+import requests
+import tlsh
 import yara
 
 # import YAML module for the configuration
@@ -158,6 +161,21 @@ def main(config, result_directory, identifiers):
                      'ignore_weak_symbols': proximity_ignore_weak_symbols,
                      'maximum_distance': proximity_maximum_distance}
 
+    # store endpoints from the configuration file
+    endpoints = {}
+    for endpoint in configuration['proximity']['endpoints']:
+        # check if the endpoint URL is actually valid
+        try:
+            # grab the first item of the values
+            e = next(iter(endpoint.values()))
+            parsed_url = urllib.parse.urlparse(e)
+        except Exception:
+            continue
+        endpoints.update(endpoint)
+
+    # create a requests session
+    session = requests.Session()
+
     # open the top level pickle
     bang_pickle = result_directory / 'bang.pickle'
     if not bang_pickle.exists():
@@ -185,80 +203,119 @@ def main(config, result_directory, identifiers):
             except:
                 continue
 
+            # store various TLSH hashes
+            metadata = {}
+
+            if 'tlsh' in results_data:
+                metadata['tlsh'] = results_data['tlsh']
+
             # skip entries for which there is no useful metadata
-            if 'metadata' not in results_data:
-                continue
+            if 'metadata' in results_data:
+                if 'telfhash' in results_data['metadata']:
+                    metadata['telfhash'] = results_data['metadata']['telfhash']
 
-            # extract the identifiers
-            yara_strings = set()
-            yara_functions = set()
-            yara_variables = set()
+                # extract the identifiers
+                yara_strings = set()
+                yara_functions = set()
+                yara_variables = set()
 
-            proximity_strings = set()
-            proximity_functions = set()
-            proximity_variables = set()
+                proximity_strings = set()
+                proximity_functions = set()
+                proximity_variables = set()
 
-            if results_data['metadata']['strings'] != []:
-                for s in results_data['metadata']['strings']:
-                    if len(s) < min_string_cutoff:
-                        continue
-                    if len(s) > max_string_cutoff:
-                        continue
-
-                    # ignore whitespace-only strings
-                    if re.match(r'^\s+$', s) is None:
-                        if len(s) >= yara_env['string_min_cutoff'] and len(s) <= yara_env['string_max_cutoff']:
-                            yara_strings.add(s)
-                        if len(s) >= proximity_env['string_min_cutoff'] and len(s) <= proximity_env['string_max_cutoff']:
-                            proximity_strings.add(s)
-
-            if results_data['metadata']['symbols'] != []:
-                for s in results_data['metadata']['symbols']:
-                    if s['section_index'] == 0:
-                        continue
-
-                    is_weak = False
-                    if s['binding'] == 'weak':
-                        if ignore_weak_symbols:
+                if results_data['metadata']['strings'] != []:
+                    for s in results_data['metadata']['strings']:
+                        if len(s) < min_string_cutoff:
                             continue
-                        is_weak = True
+                        if len(s) > max_string_cutoff:
+                            continue
 
-                    if len(s['name']) < yara_env['identifier_cutoff']:
+                        # ignore whitespace-only strings
+                        if re.match(r'^\s+$', s) is None:
+                            if len(s) >= yara_env['string_min_cutoff'] and len(s) <= yara_env['string_max_cutoff']:
+                                yara_strings.add(s)
+                            if len(s) >= proximity_env['string_min_cutoff'] and len(s) <= proximity_env['string_max_cutoff']:
+                                proximity_strings.add(s)
+
+                if results_data['metadata']['symbols'] != []:
+                    for s in results_data['metadata']['symbols']:
+                        if s['section_index'] == 0:
+                            continue
+
+                        is_weak = False
+                        if s['binding'] == 'weak':
+                            if ignore_weak_symbols:
+                                continue
+                            is_weak = True
+
+                        if len(s['name']) < yara_env['identifier_cutoff']:
+                            continue
+                        if '@@' in s['name']:
+                            identifier_name = s['name'].rsplit('@@', 1)[0]
+                        elif '@' in s['name']:
+                            identifier_name = s['name'].rsplit('@', 1)[0]
+                        else:
+                            identifier_name = s['name']
+                        if s['type'] == 'func':
+                            if not (is_weak and yara_env['ignore_weak_symbols']):
+                                yara_functions.add(identifier_name)
+                            if not (is_weak and proximity_env['ignore_weak_symbols']):
+                                proximity_functions.add(identifier_name)
+                        elif s['type'] == 'object':
+                            if not (is_weak and yara_env['ignore_weak_symbols']):
+                                yara_variables.add(identifier_name)
+                            if not (is_weak and proximity_env['ignore_weak_symbols']):
+                                proximity_variables.add(identifier_name)
+
+                # concatenate the strings, functions and variables for YARA
+                yara_data = "\n".join(sorted(yara_strings))
+                yara_data += "\n".join(sorted(yara_functions))
+                yara_data += "\n".join(sorted(yara_variables))
+
+                # run the YARA rules
+                for r in rules:
+                    matches = r.match(data=yara_data)
+                    if matches == []:
                         continue
-                    if '@@' in s['name']:
-                        identifier_name = s['name'].rsplit('@@', 1)[0]
-                    elif '@' in s['name']:
-                        identifier_name = s['name'].rsplit('@', 1)[0]
-                    else:
-                        identifier_name = s['name']
-                    if s['type'] == 'func':
-                        if not (is_weak and yara_env['ignore_weak_symbols']):
-                            yara_functions.add(identifier_name)
-                        if not (is_weak and proximity_env['ignore_weak_symbols']):
-                            proximity_functions.add(identifier_name)
-                    elif s['type'] == 'object':
-                        if not (is_weak and yara_env['ignore_weak_symbols']):
-                            yara_variables.add(identifier_name)
-                        if not (is_weak and proximity_env['ignore_weak_symbols']):
-                            proximity_variables.add(identifier_name)
+                    for match in matches:
+                        print('Rule %s matched for %s' % (match.rule, bang_file))
+                        print('  number of strings matched: %d' % len(match.strings))
+                        if verbose:
+                            print('\n  Matched strings:\n')
+                            for s in match.strings:
+                                print(s[2].decode())
 
-            # concatenate the strings, functions and variables for YARA
-            yara_data = "\n".join(sorted(yara_strings))
-            yara_data += "\n".join(sorted(yara_functions))
-            yara_data += "\n".join(sorted(yara_variables))
+                # concatenate the strings, functions and variables for proximity matching
+                proximity_data = " ".join(sorted(yara_strings))
+                proximity_data += " ".join(sorted(yara_functions))
+                proximity_data += " ".join(sorted(yara_variables))
 
-            # run the YARA rules
-            for r in rules:
-                matches = r.match(data=yara_data)
-                if matches == []:
-                    continue
-                for match in matches:
-                    print('Rule %s matched for %s' % (match.rule, bang_file))
-                    print('  number of strings matched: %d' % len(match.strings))
-                    if verbose:
-                        print('\n  Matched strings:\n')
-                        for s in match.strings:
-                            print(s[2].decode())
+                # turn into binary as TLSH expects that
+                proximity_data = proximity_data.encode()
+
+                # compute TLSH for identifiers
+                tlsh_result = tlsh.hash(proximity_data)
+                if tlsh_result != 'TNULL':
+                    metadata['tlsh_identifiers'] = tlsh_result
+
+            # query the TLSH hashes
+            for h in metadata:
+                if h in endpoints:
+                    endpoint = endpoints[h]
+                    try:
+                        if metadata[h] == '':
+                            continue
+                        req = session.get('%s/%s' % (endpoint, metadata[h]))
+                        json_results = req.json()
+                        if json_results['match']:
+                            if json_results['distance'] <= maximum_distance:
+                                print(endpoint, bang_file, json_results['tlsh'])
+                                sys.stdout.flush()
+                    except requests.exceptions.RequestException:
+                        pass
+
+
+
 
 if __name__ == "__main__":
     main()
