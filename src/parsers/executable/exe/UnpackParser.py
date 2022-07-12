@@ -42,6 +42,7 @@ from . import ne
 from . import dos_mz
 from . import coff
 
+import pefile
 
 class ExeUnpackParser(UnpackParser):
     extensions = []
@@ -64,6 +65,26 @@ class ExeUnpackParser(UnpackParser):
                 pass
             if self.data.pe.certificate_table is not None:
                 certificate = self.data.pe.optional_hdr.data_dirs.certificate_table
+
+            # calculate the size of the PE. This is somewhat
+            # involved as there are multiple headers involved.
+            self.unpacked_size = self.data.mz.ofs_pe
+            for s in self.data.pe.sections:
+                self.unpacked_size = max(self.unpacked_size, s.size_of_raw_data + s.pointer_to_raw_data)
+
+            # certificates, if any, are appended at the end of the file
+            if self.data.pe.certificate_table is not None:
+                certificate = self.data.pe.optional_hdr.data_dirs.certificate_table
+                self.unpacked_size = max(self.unpacked_size, certificate.virtual_address + certificate.size)
+
+            # extra data could follow the PE, such as information
+            # from installers or other extra data. It is impossible
+            # to get this information from the PE headers, so other
+            # tricks need to be found. TODO.
+
+            # then read the data again with the pefile module.
+            self.infile.seek(self.offset)
+            pe = pefile.PE(data=self.infile.read(self.unpacked_size))
 
             self.exetype = 'pe'
         except (Exception, ValidationFailedError) as e:
@@ -149,21 +170,8 @@ class ExeUnpackParser(UnpackParser):
 
     def calculate_unpacked_size(self):
         if self.exetype == 'pe':
-            # calculate the size of the PE. This is somewhat
-            # involved as there are multiple headers involved.
-            self.unpacked_size = self.data.mz.ofs_pe
-            for s in self.data.pe.sections:
-                self.unpacked_size = max(self.unpacked_size, s.size_of_raw_data + s.pointer_to_raw_data)
-
-            # certificates, if any, are appended at the end of the file
-            if self.data.pe.certificate_table is not None:
-                certificate = self.data.pe.optional_hdr.data_dirs.certificate_table
-                self.unpacked_size = max(self.unpacked_size, certificate.virtual_address + certificate.size)
-
-            # extra data could follow the PE, such as information
-            # from installers or other extra data. It is impossible
-            # to get this information from the PE headers, so other
-            # tricks need to be found. TODO.
+            # size has already been calculated
+            pass
         elif self.exetype == 'dos_mz':
             if not self.has_coff:
                 self.unpacked_size = self.end_of_data
