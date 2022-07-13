@@ -195,6 +195,32 @@ class ExeUnpackParser(UnpackParser):
             except pefile.PEFormatError:
                 pass
 
+            # extract symbols
+            metadata['symbols'] = {}
+            imported_symbols = {}
+            exported_symbols = []
+
+            try:
+                for entry in self.pe.DIRECTORY_ENTRY_IMPORT:
+                    if entry.dll not in imported_symbols:
+                        dll = entry.dll.decode()
+                        imported_symbols[dll] = []
+                    for imp in entry.imports:
+                        if imp.name is None:
+                            continue
+                        imported_symbols[dll].append(imp.name.decode())
+            except Exception as e:
+                pass
+
+            try:
+                for entry in self.pe.DIRECTORY_ENTRY_EXPORT.symbols:
+                    exported_symbols.append(entry.name.decode())
+            except Exception as e:
+                pass
+
+            metadata['symbols']['imported'] = imported_symbols
+            metadata['symbols']['exported'] = exported_symbols
+
         elif self.exetype == 'dos_mz':
             labels = ['dos_mz', 'executable']
             if self.compressed:
