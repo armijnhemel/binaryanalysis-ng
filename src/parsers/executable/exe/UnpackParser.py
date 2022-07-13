@@ -84,7 +84,7 @@ class ExeUnpackParser(UnpackParser):
 
             # then read the data again with the pefile module.
             self.infile.seek(self.offset)
-            pe = pefile.PE(data=self.infile.read(self.unpacked_size))
+            self.pe = pefile.PE(data=self.infile.read(self.unpacked_size))
 
             self.exetype = 'pe'
         except (Exception, ValidationFailedError) as e:
@@ -188,6 +188,13 @@ class ExeUnpackParser(UnpackParser):
 
         if self.exetype == 'pe':
             labels = ['pe', 'executable']
+
+            # get the import hash (if any)
+            try:
+                metadata['imphash'] = self.pe.get_imphash()
+            except pefile.PEFormatError:
+                pass
+
         elif self.exetype == 'dos_mz':
             labels = ['dos_mz', 'executable']
             if self.compressed:
