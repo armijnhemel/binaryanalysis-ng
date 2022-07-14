@@ -180,6 +180,9 @@ class ExeUnpackParser(UnpackParser):
 
     def unpack(self):
         """extract any files from the input file"""
+        if self.exetype == 'pe':
+            # process resources here to extract BMP, ICO, etc.
+            pass
         return []
 
     def set_metadata_and_labels(self):
