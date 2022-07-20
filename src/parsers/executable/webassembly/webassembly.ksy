@@ -205,7 +205,7 @@ types:
         if: kind == symtab::data 
       - id: ext
         type: syminfo_ext
-        if: kind == symtab::function or kind == symtab::global or kind == symtab::event or kind == symtab::table
+        if: kind == symtab::function or kind == symtab::global_symbol or kind == symtab::event or kind == symtab::table
       - id: section
         type: syminfo_section
         if: kind == symtab::section
@@ -510,7 +510,7 @@ enums:
   symtab:
     0: function
     1: data
-    2: global
+    2: global_symbol
     3: section
     4: event
     5: table    
