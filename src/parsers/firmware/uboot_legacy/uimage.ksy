@@ -31,10 +31,6 @@ types:
         type: u4
       - id: len_image
         type: u4
-        valid:
-          max: _root._io.size
-          # the length of the image can never be more
-          # than the amount of bytes in the file.
       - id: load_address
         type: u4
       - id: entry_address
