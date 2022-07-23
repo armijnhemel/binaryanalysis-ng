@@ -53,8 +53,6 @@ types:
         type: u2
       - id: len_chunk
         type: u4
-        valid:
-          max: _root._io.size
 
   # Table
   table:
