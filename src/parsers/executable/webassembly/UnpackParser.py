@@ -20,6 +20,8 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# Kaitai file from: https://github.com/evacchi/kaitai-webassembly
+
 import os
 
 from UnpackParser import UnpackParser, check_condition
