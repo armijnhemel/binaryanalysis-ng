@@ -48,10 +48,24 @@ class WebAssemblyUnpackParser(UnpackParser):
         labels = ['webassembly']
         metadata = {}
 
+        function_imports = []
+        function_exports = []
+
         for section in self.data.sections.sections:
-            if section.header.id == webassembly.Webassembly.PayloadType.data_payload:
-                 for entry in section.payload_data.entries:
-                     pass
+            if section.header.id == webassembly.Webassembly.PayloadType.import_payload:
+                for entry in section.payload_data.entries:
+                    if entry.kind == webassembly.Webassembly.KindType.function_kind:
+                        function_imports.append(entry.field_str)
+            elif section.header.id == webassembly.Webassembly.PayloadType.export_payload:
+                for entry in section.payload_data.entries:
+                    if entry.kind == webassembly.Webassembly.KindType.function_kind:
+                        function_exports.append(entry.field_str)
+            elif section.header.id == webassembly.Webassembly.PayloadType.data_payload:
+                for entry in section.payload_data.entries:
+                    pass
+
+        metadata['exports'] = function_exports
+        metadata['imports'] = function_imports
 
         return (labels, metadata)
 
