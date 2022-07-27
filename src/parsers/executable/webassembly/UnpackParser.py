@@ -55,7 +55,7 @@ class WebAssemblyUnpackParser(UnpackParser):
             if section.header.id == webassembly.Webassembly.PayloadType.import_payload:
                 for entry in section.payload_data.entries:
                     if entry.kind == webassembly.Webassembly.KindType.function_kind:
-                        function_imports.append(entry.field_str)
+                        function_imports.append({'module': entry.module_str, 'name': entry.field_str})
             elif section.header.id == webassembly.Webassembly.PayloadType.export_payload:
                 for entry in section.payload_data.entries:
                     if entry.kind == webassembly.Webassembly.KindType.function_kind:
