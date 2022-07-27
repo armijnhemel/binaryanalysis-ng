@@ -46,6 +46,11 @@ class WebAssemblyUnpackParser(UnpackParser):
         labels = ['webassembly']
         metadata = {}
 
+        for section in self.data.sections.sections:
+            if section.header.id == webassembly.Webassembly.PayloadType.data_payload:
+                 for entry in section.payload_data.entries:
+                     pass
+
         return (labels, metadata)
 
     def set_metadata_and_labels(self):
