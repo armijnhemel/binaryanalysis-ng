@@ -149,7 +149,7 @@ class BfltUnpackParser(UnpackParser):
         pass
 
     def extract_metadata_and_labels(self):
-        '''Extract metadata from the ELF file and set labels'''
+        '''Extract metadata from the bFLT file and set labels'''
         labels = ['bflt', 'executable']
         metadata = {}
         data_strings = []
