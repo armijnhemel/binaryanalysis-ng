@@ -25,21 +25,25 @@ class QuakePakUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = quake_pak.QuakePak.from_io(self.infile)
+
             # there has to be at least one file.
             check_condition(self.data.len_index > 0, "at least one file needed")
-            # size of the file table has to be a multiple of 64. Possibly
-            # Kaitai already checks this.
+
+            # size of the file table has to be a multiple of 64.
             check_condition(self.data.len_index%64 == 0, "file table not a multiple of 64")
             check_condition(len(self.data.index.entries) == self.data.len_index//64,
                            "not enough file entries")
-        # TODO: decide what exceptions to catch
-        except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
-        except BaseException as e:
+
+            # hack: read the index entries to trigger that instances
+            # are read.
+            for i in self.data.index.entries:
+                pass
+        except ValidationFailedError as e:
             raise UnpackParserException(e.args)
         except EOFError as e:
             raise UnpackParserException(e.args)
-
+        except Exception as e:
+            raise UnpackParserException(e.args)
 
     # no need to carve the Quake PAK file itself from the file
     def carve(self):

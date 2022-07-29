@@ -10,12 +10,8 @@ seq:
     contents: 'PACK'
   - id: ofs_index
     type: u4
-    valid:
-      max: _root._io.size
   - id: len_index
     type: u4
-    valid:
-      max: _root._io.size - ofs_index
 instances:
   index:
     pos: ofs_index
@@ -39,8 +35,6 @@ types:
         type: u4
       - id: size
         type: u4
-        valid:
-          max: _root._io.size - ofs
     instances:
       body:
         io: _root._io

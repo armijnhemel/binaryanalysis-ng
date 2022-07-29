@@ -604,8 +604,6 @@ types:
               This indicates the format of the icon or other data stored in the element.
           - id: len_element
             type: u4
-            valid:
-              max: _root._io.size
             doc: |
               The length of the element,
               including the entire header (type and length).

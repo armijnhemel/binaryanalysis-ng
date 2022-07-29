@@ -11,8 +11,6 @@ seq:
     contents: "KRNL"
   - id: len_data
     type: u4
-    valid:
-      max: _root._io.size
   - id: data
     size: len_data
   - id: crc
