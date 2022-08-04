@@ -156,6 +156,8 @@ enums:
     0x20385056: vp8
     0x58385056: vp8x
     0x20504d58: xmp
+    # some files, for example in YTMusic.apk in some Android devices
+    # have a different padding byte for the XMP FourCC.
     0x00504d58: xmp_var
   filter_methods:
     0: no_filter
