@@ -38,8 +38,6 @@ class AndroidSuperUnpackParser(UnpackParser):
     pretty_name = 'android_super'
 
     def parse(self):
-        #check_condition(False, "disabled")
-
         # store partitions and extents 
         self.partitions = {}
         self.extents = {}
