@@ -1,7 +1,7 @@
 meta:
   id: axfs
   title: AXFS
-  license: GPL-2.0-only
+  license: CC0
   endian: be
   encoding: ASCII
 doc: |
