@@ -39,6 +39,7 @@ types:
             - chunk_names::vp8
             - chunk_names::vp8x
             - chunk_names::xmp
+            - chunk_names::xmp_var
       - id: len_data
         type: u4
       - id: data
@@ -52,6 +53,7 @@ types:
             chunk_names::vp8l: vp8l
             chunk_names::vp8x: vp8x
             chunk_names::xmp: xmp
+            chunk_names::xmp_var: xmp
       - id: padding
         size: 1
         if: len_data % 2 != 0
@@ -154,6 +156,7 @@ enums:
     0x20385056: vp8
     0x58385056: vp8x
     0x20504d58: xmp
+    0x00504d58: xmp_var
   filter_methods:
     0: no_filter
     1: horizontal
