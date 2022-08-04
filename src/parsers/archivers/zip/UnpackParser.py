@@ -699,6 +699,16 @@ class ZipUnpackParser(UnpackParser):
                     labels.append('android')
                     labels.append('apk')
 
+            # https://source.android.com/devices/tech/ota/apex
+            if z.filename == 'apex_pubkey' and self.fileresult.filename.suffix == '.apex':
+                    labels.append('android')
+                    labels.append('apex')
+
+            # https://source.android.com/devices/tech/ota/apex
+            if z.filename == 'original_apex' and self.fileresult.filename.suffix == '.capex':
+                    labels.append('android')
+                    labels.append('compressed apex')
+
             # https://en.wikipedia.org/wiki/Open_Packaging_Conventions
             if z.filename == '[Content_Types].xml':
                 labels.append("Open Packaging Conventions")
