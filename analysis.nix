@@ -5,18 +5,23 @@ let
 
   pkgs = import sources.nixpkgs { config.allowUnfree = true; overlays = []; };
 
-  my-python = pkgs.python39.withPackages (p: with p; [
+  my-python = pkgs.python3.withPackages (p: with p; [
     deepdiff
     defusedxml
     dockerfile-parse
     elasticsearch
     icalendar
     kaitaistruct
+    meilisearch
+    packageurl-python
     parameterized
     pdfminer
     psycopg2
+    pydot
     pytest
     pyyaml
+    qiling
+    requests
     tinycss2
     tlsh
     yara-python

@@ -21,7 +21,7 @@ The recommended way is to use [Nix](https://nixos.org/nix), run
 
 ### Other distributions without Nix
 
-* a recent Linux distribution (Fedora 33 or higher, or equivalent)
+* a recent Linux distribution (Fedora 35 or higher, or equivalent)
 * Python 3.9.x or higher
 * pillow (possibly named python3-pillow), a drop in replacement for PIL ( <http://python-pillow.github.io/> )
 * GNU binutils (for 'ar')
@@ -66,7 +66,7 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 
 ## Verified unsupported distributions
 
-* Fedora 33 and earlier
+* Fedora 34 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
 This doesn't mean that newer versions of Ubuntu are supported, they just
@@ -257,6 +257,8 @@ larger file, unless stated otherwise.
 156. WinHelp
 157. PEF (Preferred Executable Format)
 158. Nano app header (Android)
+159. WebAssembly binaries
+160. Android super images
 
 The following text formats can be recognized:
 

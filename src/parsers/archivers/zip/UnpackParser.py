@@ -441,7 +441,7 @@ class ZipUnpackParser(UnpackParser):
                                     self.infile.seek(current_position + localheaderpos - 8)
                                     tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
                                     # and return to the original position
-                                    self.infile.seek(newcurrent_position)
+                                    self.infile.seek(newcurpos)
                                     if current_position + localheaderpos - start_of_possible_data_descriptor == tmpcompressedsize + 16:
                                         if tmppos == -1:
                                             tmppos = localheaderpos
@@ -698,6 +698,16 @@ class ZipUnpackParser(UnpackParser):
                 if self.fileresult.filename.suffix == '.apk':
                     labels.append('android')
                     labels.append('apk')
+
+            # https://source.android.com/devices/tech/ota/apex
+            if z.filename == 'apex_pubkey' and self.fileresult.filename.suffix == '.apex':
+                    labels.append('android')
+                    labels.append('apex')
+
+            # https://source.android.com/devices/tech/ota/apex
+            if z.filename == 'original_apex' and self.fileresult.filename.suffix == '.capex':
+                    labels.append('android')
+                    labels.append('compressed apex')
 
             # https://en.wikipedia.org/wiki/Open_Packaging_Conventions
             if z.filename == '[Content_Types].xml':

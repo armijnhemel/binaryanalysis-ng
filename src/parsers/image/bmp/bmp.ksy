@@ -135,12 +135,6 @@ types:
       - id: len_file
         -orig-id: bfSize
         type: u4
-        valid:
-          max: _root._io.size
-          # the amount of bytes can never be more than the
-          # amount of bytes in the file.
-          # ugly hack to work around false positives while carving
-          # and to prevent lots of bytes being read.
         doc: not reliable, mostly ignored by BMP decoders
       - id: reserved1
         -orig-id: bfReserved1

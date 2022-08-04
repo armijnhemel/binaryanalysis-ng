@@ -47,6 +47,17 @@ types:
       - id: section_type
         type: u4
         enum: section_types
+        valid:
+          any-of:
+            - section_types::central_dir_entry
+            - section_types::local_file
+            - section_types::dahua_local_file
+            - section_types::digital_signature
+            - section_types::end_of_central_dir
+            - section_types::zip64_end_of_central_dir
+            - section_types::zip64_end_of_central_dir_locator
+            - section_types::archive_extra_data
+            - section_types::data_descriptor
       - id: body
         type:
           switch-on: section_type

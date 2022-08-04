@@ -24,8 +24,6 @@
 
 import math
 
-import bangfilesystems
-
 # store a few standard signatures
 signatures = {
     'webp': b'WEBP',
@@ -212,7 +210,6 @@ signaturesoffset = {
 
 # keep a list of signatures to the (built in) functions
 signaturetofunction = {
-    'iso9660': bangfilesystems.unpack_iso9660,
 }
 
 # a lookup table to map signatures to a name for
@@ -275,7 +272,7 @@ from UnpackParser import UnpackParser, WrappedUnpackParser
 def _get_unpackers_recursive(unpackers_root, parent_module_path):
     unpackers = []
     abs_module_path = unpackers_root / parent_module_path
-    for m in pkgutil.iter_modules([abs_module_path]):
+    for m in pkgutil.iter_modules([str(abs_module_path)]):
         full_module_path = parent_module_path / m.name
         if (unpackers_root / full_module_path).is_dir():
             try:

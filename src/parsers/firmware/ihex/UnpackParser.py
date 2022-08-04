@@ -171,6 +171,8 @@ class IhexUnpackParser(UnpackParser):
 
         if self.fileresult.filename.suffix.lower() in ['.hex', '.ihex']:
             file_path = pathlib.Path(self.fileresult.filename.stem)
+            if file_path in ['.', '..']:
+                file_path = pathlib.Path("unpacked_from_ihex")
         else:
             file_path = pathlib.Path("unpacked_from_ihex")
 

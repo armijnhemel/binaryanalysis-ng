@@ -20,8 +20,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-# bFLT is an old format used on uClinux systems.
-
 import os
 
 from UnpackParser import UnpackParser, check_condition
@@ -94,7 +92,7 @@ class Xo65UnpackParser(UnpackParser):
         pass
 
     def extract_metadata_and_labels(self):
-        '''Extract metadata from the ELF file and set labels'''
+        '''Extract metadata from the xo65 file and set labels'''
         labels = ['xo65', 'object file']
         metadata = {}
 

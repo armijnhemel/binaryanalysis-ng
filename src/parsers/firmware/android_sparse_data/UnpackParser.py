@@ -153,6 +153,8 @@ class AndroidSparseDataUnpackParser(UnpackParser):
             file_path = pathlib.Path("unpacked_from_android_sparse_data")
         else:
             file_path = pathlib.Path(self.fileresult.filename.stem)
+            if file_path in ['.', '..']:
+                file_path = pathlib.Path("unpacked_from_android_sparse_data")
 
         outfile_rel = self.rel_unpack_dir / file_path
         outfile_full = self.scan_environment.unpack_path(outfile_rel)

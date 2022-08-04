@@ -1,12 +1,14 @@
 meta:
-  id: napp_header
-  title: Nano App header
+  id: android_nanoapp_header
+  title: Android nanoapp header
   file-extension: napp_header
+  tags:
+    - android
+    - executable
   license: Apache-2.0
   ks-version: 0.9
   endian: le
-  encoding: UTF-8
-doc-ref: https://android.googlesource.com/platform/system/chre/+/a7ff61b94d6658597c63ae0a15bdee3cdfbaa8c7/build/build_template.mk#130
+doc-ref: https://android.googlesource.com/platform/system/chre/+/a7ff61b9/build/build_template.mk#130
 seq:
   - id: header_version
     type: u4
@@ -29,8 +31,8 @@ seq:
     contents: [0, 0, 0, 0, 0, 0]
 instances:
   is_signed:
-    value: flags & 0x1 == 0x1
+    value: flags & 0x1 != 0
   is_encrypted:
-    value: flags & 0x2 == 0x2
+    value: flags & 0x2 != 0
   is_tcm_capable:
-    value: flags & 0x4 == 0x4
+    value: flags & 0x4 != 0

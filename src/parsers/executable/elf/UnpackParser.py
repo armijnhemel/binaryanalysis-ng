@@ -21,9 +21,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 
-import os
 import binascii
 import json
+import os
 
 import telfhash
 
@@ -43,6 +43,18 @@ FORTIFY_NAMES = ['cpy_chk', 'printf_chk', 'cat_chk', 'poll_chk',
                  '__realpath_chk', '__explicit_bzero_chk', '__recv_chk',
                  '__getdomainname_chk', '__gethostname_chk']
 
+# some names used in OCaml
+OCAML_NAMES = ['caml_c_cal', 'caml_init_atom_table',
+               'caml_init_backtrace', 'caml_init_custom_operations',
+               'caml_init_domain', 'caml_init_frame_descriptors',
+               'caml_init_gc', 'caml_init_ieee_floats',
+               'caml_init_locale', 'caml_init_major_heap',
+               'caml_init_signals', 'caml_sys_error',
+               'caml_sys_executable_name', 'caml_sys_exit',
+               'caml_sys_file_exists', 'caml_sys_get_argv',
+               'caml_sys_get_config', 'caml_sys_getcwd',
+               'caml_sys_getenv', 'caml_sys_init']
+
 # road only data sections. This should be expanded.
 RODATA_SECTIONS = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
                    '.rodata.str1.8', '.rodata.cst4', '.rodata.cst8',
@@ -50,6 +62,27 @@ RODATA_SECTIONS = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
 
 # sections with interesting data found in guile programs
 GUILE_STRTAB_SECTIONS = ['.guile.arities.strtab', '.guile.docstrs.strtab']
+
+REMOVE_CHARACTERS = ['\a', '\b', '\v', '\f', '\x01', '\x02', '\x03', '\x04',
+                     '\x05', '\x06', '\x0e', '\x0f', '\x10', '\x11', '\x12',
+                     '\x13', '\x14', '\x15', '\x16', '\x17', '\x18', '\x19',
+                     '\x1a', '\x1b', '\x1c', '\x1d', '\x1e', '\x1f', '\x7f']
+
+REMOVE_CHARACTERS_TABLE = str.maketrans({'\a': '', '\b': '', '\v': '',
+                                         '\f': '', '\x01': '', '\x02': '',
+                                         '\x03': '', '\x04': '', '\x05': '',
+                                         '\x06': '', '\x0e': '', '\x0f': '',
+                                         '\x10': '', '\x11': '', '\x12': '',
+                                         '\x13': '', '\x14': '', '\x15': '',
+                                         '\x16': '', '\x17': '', '\x18': '',
+                                         '\x19': '', '\x1a': '', '\x1b': '',
+                                         '\x1c': '', '\x1d': '', '\x1e': '',
+                                         '\x1f': '', '\x7f': ''
+                                        })
+
+# translation table for ASCII strings for the string
+# to pass the isascii() test
+STRING_TRANSLATION_TABLE = str.maketrans({'\t': ' '})
 
 class ElfUnpackParser(UnpackParser):
     extensions = []
@@ -176,9 +209,6 @@ class ElfUnpackParser(UnpackParser):
         labels = [ 'elf' ]
         metadata = {}
         string_cutoff_length = 4
-
-        # translation table for ASCII strings
-        string_translation_table = str.maketrans({'\t': ' '})
 
         if self.data.bits == elf.Elf.Bits.b32:
             metadata['bits'] = 32
@@ -355,6 +385,9 @@ class ElfUnpackParser(UnpackParser):
                             labels.append('oat')
                             labels.append('android')
 
+                        if symbol['name'] in OCAML_NAMES:
+                            labels.append('ocaml')
+
                         # security related information
                         if symbol['name'] == '__stack_chk_fail':
                             metadata['security'].append('stack smashing protector')
@@ -391,11 +424,16 @@ class ElfUnpackParser(UnpackParser):
                         try:
                             decoded_strings = s.decode().splitlines()
                             for decoded_string in decoded_strings:
+                                for rc in REMOVE_CHARACTERS:
+                                    if rc in decoded_string:
+                                        decoded_string = decoded_string.translate(REMOVE_CHARACTERS_TABLE)
+
                                 if len(decoded_string) < string_cutoff_length:
                                     continue
                                 if decoded_string.isspace():
                                     continue
-                                translated_string = decoded_string.translate(string_translation_table)
+
+                                translated_string = decoded_string.translate(STRING_TRANSLATION_TABLE)
                                 if decoded_string.isascii():
                                     # test the translated string
                                     if translated_string.isprintable():
@@ -566,9 +604,9 @@ class ElfUnpackParser(UnpackParser):
             try:
                 telfhash_result = telfhash.telfhash(str(self.fileresult.filename))
                 if telfhash_result != []:
-                    telfhash_res = telfhash_result[0]['telfhash']
+                    telfhash_res = telfhash_result[0]['telfhash'].upper()
                     if telfhash_res != 'TNULL' and telfhash_res != '-':
-                        metadata['telfhash'] = telfhash_res.upper()
+                        metadata['telfhash'] = telfhash_res
             except UnicodeEncodeError:
                 pass
 

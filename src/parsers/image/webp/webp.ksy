@@ -11,8 +11,6 @@ seq:
     contents: "RIFF"
   - id: len_data
     type: u4
-    valid:
-      max: _root._io.size
   - id: webp
     contents: "WEBP"
   - id: payload
