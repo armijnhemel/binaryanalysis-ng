@@ -272,7 +272,7 @@ from UnpackParser import UnpackParser, WrappedUnpackParser
 def _get_unpackers_recursive(unpackers_root, parent_module_path):
     unpackers = []
     abs_module_path = unpackers_root / parent_module_path
-    for m in pkgutil.iter_modules([abs_module_path]):
+    for m in pkgutil.iter_modules([str(abs_module_path)]):
         full_module_path = parent_module_path / m.name
         if (unpackers_root / full_module_path).is_dir():
             try:

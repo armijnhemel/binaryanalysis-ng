@@ -243,6 +243,23 @@ class ZipUnpackParser(UnpackParser):
                                 buf = self.infile.read(8)
                                 check_condition(len(buf) == 8, "not enough data for Android signing block")
                                 android_signing_size = int.from_bytes(buf, byteorder='little')
+                            elif self.infile.tell() + android_signing_size > self.fileresult.filesize:
+                                # there could be fewer than 8 padding bytes, leading to weird results.
+                                # first go back to the beginning of the block
+                                self.infile.seek(-8, os.SEEK_CUR)
+
+                                # then pad
+                                padding = 4096 - self.infile.tell() % 4096
+                                padding_bytes = self.infile.read(padding)
+                                check_condition(padding_bytes == padding * b'\x00',
+                                                "invalid padding bytes for APK v3 signing block")
+
+                                # then read 8 bytes for the APK signing block size
+                                buf = self.infile.read(8)
+                                check_condition(len(buf) == 8,
+                                                "not enough data for ZIP64 end of Android signing block")
+
+                                android_signing_size = int.from_bytes(buf, byteorder='little')
 
                             # as the last 16 bytes are for the Android signing block
                             # the block has to be at least 16 bytes.
@@ -441,7 +458,7 @@ class ZipUnpackParser(UnpackParser):
                                     self.infile.seek(current_position + localheaderpos - 8)
                                     tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
                                     # and return to the original position
-                                    self.infile.seek(newcurrent_position)
+                                    self.infile.seek(newcurpos)
                                     if current_position + localheaderpos - start_of_possible_data_descriptor == tmpcompressedsize + 16:
                                         if tmppos == -1:
                                             tmppos = localheaderpos
@@ -698,6 +715,16 @@ class ZipUnpackParser(UnpackParser):
                 if self.fileresult.filename.suffix == '.apk':
                     labels.append('android')
                     labels.append('apk')
+
+            # https://source.android.com/devices/tech/ota/apex
+            if z.filename == 'apex_pubkey' and self.fileresult.filename.suffix == '.apex':
+                    labels.append('android')
+                    labels.append('apex')
+
+            # https://source.android.com/devices/tech/ota/apex
+            if z.filename == 'original_apex' and self.fileresult.filename.suffix == '.capex':
+                    labels.append('android')
+                    labels.append('compressed apex')
 
             # https://en.wikipedia.org/wiki/Open_Packaging_Conventions
             if z.filename == '[Content_Types].xml':

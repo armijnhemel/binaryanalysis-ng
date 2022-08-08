@@ -108,6 +108,9 @@ enums:
     0x46464952: riff
     0x4e4f4341: acon
     0x4e4f4349: icon
+    0x4f464e49: info
+    0x5453494c: list
+    0x61746164: data
     0x68696e61: anih
     0x65746172: rate
     0x20716573: seq

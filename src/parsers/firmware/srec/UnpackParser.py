@@ -170,6 +170,8 @@ class SrecUnpackParser(UnpackParser):
 
         if self.fileresult.filename.suffix.lower() in ['.srec']:
             file_path = pathlib.Path(self.fileresult.filename.stem)
+            if file_path in ['.', '..']:
+                file_path = pathlib.Path("unpacked_from_srec")
         else:
             file_path = pathlib.Path("unpacked_from_srec")
 

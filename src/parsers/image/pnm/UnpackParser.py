@@ -200,6 +200,8 @@ class PnmUnpackParser(UnpackParser):
                 raise UnpackParserException(e.args)
             except ValueError as e:
                 raise UnpackParserException(e.args)
+            except ZeroDivisionError as e:
+                raise UnpackParserException(e.args)
         else:
             temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
             os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
@@ -215,10 +217,11 @@ class PnmUnpackParser(UnpackParser):
                 raise UnpackParserException(e.args)
             except ValueError as e:
                 raise UnpackParserException(e.args)
+            except ZeroDivisionError as e:
+                raise UnpackParserException(e.args)
             finally:
                 pnm_file.close()
                 os.unlink(temporary_file[1])
-
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

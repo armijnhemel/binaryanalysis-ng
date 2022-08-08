@@ -5,7 +5,8 @@ let
 
   pkgs = import sources.nixpkgs { config.allowUnfree = true; overlays = []; };
 
-  my-python = pkgs.python39.withPackages (p: with p; [
+  my-python = pkgs.python3.withPackages (p: with p; [
+    beautifulsoup4
     click
     cxxfilt
     defusedxml
@@ -15,6 +16,8 @@ let
     pytest
     pyyaml
     requests
+    scrapy
+    selenium
     telfhash
     tlsh
     woodblock
@@ -23,6 +26,8 @@ let
 in
 pkgs.mkShell {
   buildInputs = with pkgs; [
+    cvehound
+    geckodriver
     gettext
     my-python
     universal-ctags

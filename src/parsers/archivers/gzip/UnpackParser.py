@@ -124,7 +124,9 @@ class GzipUnpackParser(UnpackParser):
         if not renamed:
             if self.fileresult.filename.suffix.lower() == '.gz':
                 file_path = pathlib.Path(self.fileresult.filename.stem)
-            elif self.fileresult.filename.suffix.lower() == '.tgz':
+                if file_path in ['.', '..']:
+                    file_path = pathlib.Path("unpacked_from_gzip")
+            elif self.fileresult.filename.suffix.lower() in ['.tgz', '.targz', '.tgzip', '.targzip']:
                 file_path = pathlib.Path(self.fileresult.filename.stem + ".tar")
             elif self.fileresult.filename.suffix.lower() == '.svgz':
                 file_path = pathlib.Path(self.fileresult.filename.stem + ".svg")

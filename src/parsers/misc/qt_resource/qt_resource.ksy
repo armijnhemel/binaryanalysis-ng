@@ -36,16 +36,10 @@ types:
         type: u4
       - id: ofs_tree
         type: u4
-        valid:
-          max: _root._io.size
       - id: ofs_data
         type: u4
-        valid:
-          max: _root._io.size
       - id: ofs_name_table
         type: u4
-        valid:
-          max: _root._io.size
   entry_block:
     seq:
       - id: entries

@@ -57,8 +57,6 @@ types:
     seq:
       - id: len
         type: u4
-        valid:
-          max: _root._io.size
       - id: type
         type: str
         size: 4
