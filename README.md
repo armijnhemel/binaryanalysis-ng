@@ -258,6 +258,8 @@ larger file, unless stated otherwise.
 157. PEF (Preferred Executable Format)
 158. Nano app header (Android)
 159. WebAssembly binaries
+160. Android super images
+161. Qualcomm QTI Chromatix (structural checks only)
 
 The following text formats can be recognized:
 
