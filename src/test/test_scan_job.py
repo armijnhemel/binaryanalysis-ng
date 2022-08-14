@@ -101,7 +101,7 @@ def test_process_paddingfile_has_correct_labels(scan_environment):
     scanjob = ScanJob(fileresult)
     scan_environment.scanfilequeue.put(scanjob)
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as e:
@@ -120,7 +120,7 @@ def test_process_css_file_has_correct_labels(scan_environment):
     scanjob = ScanJob(fileresult)
     scan_environment.scanfilequeue.put(scanjob)
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as e:
@@ -140,7 +140,7 @@ def test_openwrt_version_has_correct_labels(scan_environment):
     scanjob = ScanJob(fileresult)
     scan_environment.scanfilequeue.put(scanjob)
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as ex:
@@ -159,7 +159,7 @@ def test_dhcpv6sh_has_correct_labels(scan_environment):
     scanjob = ScanJob(fileresult)
     scan_environment.scanfilequeue.put(scanjob)
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as e:
@@ -179,7 +179,7 @@ def test_kernelconfig_is_processed(scan_environment):
     scanjob = ScanJob(fileresult)
     scan_environment.scanfilequeue.put(scanjob)
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as e:
@@ -200,7 +200,7 @@ def test_gzip_unpacks_to_right_directory(scan_environment):
     scanjob = ScanJob(fileresult)
     scan_environment.scanfilequeue.put(scanjob)
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as e:
@@ -221,7 +221,7 @@ def test_report_has_correct_path(scan_environment):
     scanjob = ScanJob(fileresult)
     scan_environment.scanfilequeue.put(scanjob)
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as e:
@@ -261,7 +261,7 @@ def test_double_gif_file_increases_name_counter(scan_environment):
     scan_environment.scanfilequeue.put(scanjob)
     scan_environment.createjson = False
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as e:
@@ -701,7 +701,7 @@ def test_file_with_extension_match_is_carved(scan_environment):
     scanjob = ScanJob(fileresult)
     scan_environment.scanfilequeue.put(scanjob)
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as e:
@@ -727,7 +727,7 @@ def test_file_with_signature_match_is_carved(scan_environment):
     scanjob = ScanJob(fileresult)
     scan_environment.scanfilequeue.put(scanjob)
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as e:
@@ -754,7 +754,7 @@ def test_file_without_features_is_carved(scan_environment):
     scanjob = ScanJob(fileresult)
     scan_environment.scanfilequeue.put(scanjob)
     try:
-        processfile(MockDBConn(), MockDBCursor(), scan_environment)
+        processfile(scan_environment)
     except QueueEmptyError:
         pass
     except ScanJobError as e:

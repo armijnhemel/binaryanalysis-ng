@@ -31,7 +31,7 @@ https://www.csie.ntu.edu.tw/~r92092/ref/midi/
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import vlq_base128_be
 from . import standard_midi_file
 
@@ -46,7 +46,7 @@ class MidiUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = standard_midi_file.StandardMidiFile.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def set_metadata_and_labels(self):

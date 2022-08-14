@@ -26,22 +26,22 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
-from . import file_contexts
+from kaitaistruct import ValidationFailedError
+from . import selinux_file_contexts
 
 
-class FileContext(UnpackParser):
+class SELinuxFileContext(UnpackParser):
     extensions = []
     signatures = [
         (0, b'\x8a\xff\x7c\xf9')
     ]
-    pretty_name = 'file_contexts.bin'
+    pretty_name = 'selinux_file_contexts'
 
     def parse(self):
         file_size = self.fileresult.filesize
         try:
-            self.data = file_contexts.FileContexts.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+            self.data = selinux_file_contexts.SelinuxFileContexts.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
 

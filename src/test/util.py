@@ -39,7 +39,6 @@ def scan_environment(tmp_path_factory):
         readsize = 10240,
         createbytecounter = False,
         createjson = True,
-        runfilescans = True, # TODO: is this the correct value?
         tlshmaximum = sys.maxsize,
         synthesizedminimum = 10,
         logging = False,

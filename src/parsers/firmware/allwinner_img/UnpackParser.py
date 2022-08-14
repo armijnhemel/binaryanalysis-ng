@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import allwinner_img
 
 
@@ -40,7 +40,7 @@ class AllwinnerUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = allwinner_img.AllwinnerImg.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.img_header.len_image + self.offset <= self.fileresult.filesize, "not enough data")
         self.unpacked_size = 0

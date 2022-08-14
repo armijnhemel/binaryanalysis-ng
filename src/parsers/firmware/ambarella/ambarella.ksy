@@ -15,7 +15,22 @@ seq:
     type: u4
     repeat: expr
     repeat-expr: 32
+instances:
+  sections:
+    type: section_data(_index)
+    repeat: expr
+    repeat-expr: 32
 types:
+  section_data:
+    params:
+      - id: i
+        type: u4
+    instances:
+      body:
+        pos: _parent.start_offsets[i]
+        size: _parent.end_offsets[i] - _parent.start_offsets[i]
+        type: section
+        if: _parent.start_offsets[i] != 0
   section:
     seq:
       - id: header

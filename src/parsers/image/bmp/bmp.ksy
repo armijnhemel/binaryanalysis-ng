@@ -102,10 +102,23 @@ seq:
   - id: dib_info
     size: file_hdr.ofs_bitmap - file_hdr._sizeof
     type: bitmap_info
+    valid:
+      expr: validate_bitmap_header
   - id: bitmap
     type: bitmap
-    size-eos: true
+    size: file_hdr.len_file - file_hdr.ofs_bitmap
+instances:
+  validate_bitmap_header:
+    pos: file_hdr._sizeof
+    size: 4
+    type: valid_bitmap_header
 types:
+  valid_bitmap_header:
+    seq:
+      - id: len_header
+        type: u4
+        valid:
+          any-of: [12, 64, 16, 40, 52, 56, 108, 124]
   bitmap:
     doc: |
       Replace with an opaque type if you care about the pixels.
@@ -126,12 +139,18 @@ types:
       - id: reserved1
         -orig-id: bfReserved1
         type: u2
+        # valid: 0
+        doc: Specifications say "has to be zero" but wikipedia disagrees
       - id: reserved2
         -orig-id: bfReserved2
         type: u2
+        # valid: 0
+        doc: Specifications say "has to be zero" but wikipedia disagrees
       - id: ofs_bitmap
         -orig-id: bfOffBits
-        type: s4
+        type: u4
+        valid:
+          expr: ofs_bitmap <= len_file
         doc: Offset to actual raw pixel data of the image
   bitmap_info:
     -orig-id: BITMAPINFO
@@ -139,6 +158,8 @@ types:
     seq:
       - id: len_header
         type: u4
+        valid:
+          any-of: [12, 64, 16, 40, 52, 56, 108, 124]
       - id: header
         -orig-id: bmciHeader
         size: len_header - len_header._sizeof

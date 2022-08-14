@@ -32,10 +32,12 @@ seq:
   - id: num_tables
     -orig-id: table_count
     type: u4
+    valid:
+      min: 1
   - id: tables
     type: table
-    repeat: expr
-    repeat-expr: num_tables
+    repeat: until
+    repeat-until: _index == num_tables - 1
 types:
   table:
     doc: |
@@ -47,6 +49,17 @@ types:
       - id: type
         type: u4
         enum: types
+        valid:
+          any-of:
+            - types::properties
+            - types::accelerators
+            - types::metrics
+            - types::bitmaps
+            - types::ink_metrics
+            - types::bdf_encodings
+            - types::swidths
+            - types::glyph_names
+            - types::bdf_accelerators
       - id: format
         type: format
       - id: len_body
@@ -278,6 +291,7 @@ types:
       - id: is_big_endian
         -orig-id: PCF_BYTE_MASK
         type: b1
+        valid: false
         doc: If set, then all integers in the table are treated as big-endian
       - id: glyph_pad_mask
         type: b2

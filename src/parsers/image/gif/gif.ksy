@@ -96,6 +96,11 @@ types:
       - id: block_type
         type: u1
         enum: block_type
+        valid:
+          any-of:
+            - block_type::extension
+            - block_type::local_image_descriptor
+            - block_type::end_of_file
       - id: body
         type:
           switch-on: block_type
@@ -110,8 +115,12 @@ types:
         type: u2
       - id: width
         type: u2
+        valid:
+          min: 1
       - id: height
         type: u2
+        valid:
+          min: 1
       - id: flags
         type: u1
       - id: local_color_table

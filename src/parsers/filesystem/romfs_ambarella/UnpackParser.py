@@ -26,7 +26,7 @@ from FileResult import FileResult
 
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import romfs_ambarella
 
 
@@ -40,7 +40,7 @@ class RomfsAmbarellaUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = romfs_ambarella.RomfsAmbarella.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
         self.unpacked_size = 0
@@ -73,7 +73,7 @@ class RomfsAmbarellaUnpackParser(UnpackParser):
 
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
-        labels = ['ambarella', 'file system']
+        labels = ['ambarella', 'filesystem']
         metadata = {}
 
         self.unpack_results.set_labels(labels)

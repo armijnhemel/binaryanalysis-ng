@@ -61,6 +61,8 @@ types:
         type: str
         size: 4
         encoding: UTF-8
+        valid:
+          expr: type != "\0\0\0\0"
       - id: body
         size: len
         type:
@@ -97,6 +99,12 @@ types:
             '"mkBS"': adobe_fireworks_chunk
             '"mkTS"': adobe_fireworks_chunk
             '"prVW"': adobe_fireworks_chunk
+
+            # evernote/skitch chunks
+            '"skRf"': evernote_skrf_chunk
+
+            # pngattach: https://nullprogram.com/blog/2021/12/31/
+            '"atCh"': atch_chunk
       - id: crc
         size: 4
   ihdr_chunk:
@@ -104,10 +112,16 @@ types:
     seq:
       - id: width
         type: u4
+        valid:
+          min: 1
       - id: height
         type: u4
+        valid:
+          min: 1
       - id: bit_depth
         type: u1
+        valid:
+          any-of: [1, 2, 4, 8, 16]
       - id: color_type
         type: u1
         enum: color_type
@@ -258,6 +272,8 @@ types:
         doc: Indicates purpose of the following text data.
       - id: compression_flag
         type: u1
+        valid:
+          any-of: [0, 1]
         doc: |
           0 = text is uncompressed, 1 = text is compressed with a
           method specified in `compression_method`.
@@ -278,12 +294,34 @@ types:
           Keyword translated into language specified in
           `language_tag`. Line breaks are not allowed.
       - id: text
+        type:
+          switch-on: compression_flag
+          cases:
+            0: international_text
+            1: international_text_compressed
+        size-eos: true
+        doc: |
+          Text contents ("value" of this key-value pair), written in
+          language specified in `language_tag`. Line breaks are
+          allowed.
+  international_text:
+    seq:
+      - id: text
         type: str
         encoding: UTF-8
         size-eos: true
         doc: |
           Text contents ("value" of this key-value pair), written in
-          language specified in `language_tag`. Linke breaks are
+          language specified in `language_tag`. Line breaks are
+          allowed.
+  international_text_compressed:
+    seq:
+      - id: text
+        size-eos: true
+        process: zlib
+        doc: |
+          Text contents ("value" of this key-value pair), written in
+          language specified in `language_tag`. Line breaks are
           allowed.
   text_chunk:
     doc: |
@@ -396,6 +434,30 @@ types:
       - id: preview_data
         process: zlib
         size-eos: true
+  evernote_skrf_chunk:
+    seq:
+      - id: uuid
+        size: 16
+      - id: data
+        size-eos: true
+  atch_chunk:
+    seq:
+      - id: name
+        type: strz
+        encoding: utf-8
+      - id: compression
+        type: u1
+        enum: compression_attach_methods
+        valid:
+          any-of:
+            - compression_attach_methods::no_compression
+            - compression_attach_methods::zlib
+      - id: data
+        size-eos: true
+    enums:
+      compression_attach_methods:
+        0: no_compression
+        1: zlib
 enums:
   color_type:
     0: greyscale
