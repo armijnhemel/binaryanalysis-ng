@@ -604,7 +604,7 @@ class ZipUnpackParser(UnpackParser):
                 if z.file_size == 0 and not z.is_dir() and z.external_attr & 0x10 == 0x10:
                     self.faulty_files.append(z)
 
-        except (OSError, zipfile.BadZipFile) as e:
+        except (OSError, zipfile.BadZipFile, NotImplementedError) as e:
             if self.carved:
                 # cleanup
                 os.unlink(self.temporary_file[1])
