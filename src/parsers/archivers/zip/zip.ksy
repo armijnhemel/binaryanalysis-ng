@@ -230,10 +230,10 @@ types:
       - id: extra
         size: len_extra
         type:
-          switch-on: len_extra
+          switch-on: has_padding
           cases:
-            0: empty
-            _: extras(section_types::central_dir_entry)
+            true: empty
+            false: extras(section_types::central_dir_entry)
       - id: comment
         type: str
         size: len_comment
@@ -242,6 +242,8 @@ types:
       local_header:
         pos: ofs_local_header
         type: pk_section
+      has_padding:
+        value: len_extra < 4
   # https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT - 4.3.16
   end_of_central_dir:
     seq:
