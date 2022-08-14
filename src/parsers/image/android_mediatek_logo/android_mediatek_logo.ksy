@@ -6,6 +6,7 @@ meta:
     - android
     - mediatek
   license: GPL-3.0-or-later
+  encoding: UTF-8
   endian: le
 doc: |
   Format of logo.bin files found on (older) MediaTek based devices
@@ -29,7 +30,10 @@ types:
       - id: len_payload
         type: u4
       - id: magic
-        contents: "LOGO"
+        size: 4
+        type: str
+        valid:
+          any-of: ['"LOGO"', '"logo"']
   payload:
     seq:
       - id: num_pictures
@@ -46,3 +50,18 @@ types:
         type: u4
         repeat: expr
         repeat-expr: num_pictures
+    instances:
+      data:
+        type: body(_index)
+        repeat: expr
+        repeat-expr: num_pictures
+    types:
+      body:
+        params:
+          - id: i
+            type: u4
+        instances:
+          body:
+            pos: _parent.offsets[i]
+            size: 'i == _parent.offsets.size - 1 ? _parent.total_block_size - _parent.offsets[i] : _parent.offsets[i+1] - _parent.offsets[i]'
+            process: zlib
