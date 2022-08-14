@@ -153,7 +153,7 @@ Mediatek MT6572 based, uses Dex 035 and Odex 036.
 
 ## Eurostar_Onyx_1_Plus_MT6580_06262017_6.0.zip
 
-Mediatek MT6580 based, uses `mtk_bootrom` amongst others.
+Mediatek MT6580 based, uses `mtk_bootrom` amongst others. Uses `android_mediatek_logo`.
 
 ## fw-vendor_phoenix_miui_PHOENIX_20.9.3_cf0b9e25cc_10.0.zip
 

@@ -260,6 +260,7 @@ larger file, unless stated otherwise.
 159. WebAssembly binaries
 160. Android super images
 161. Qualcomm QTI Chromatix (structural checks only)
+162. Mediatek logo.bin
 
 The following text formats can be recognized:
 
