@@ -51,6 +51,10 @@ class AndroidMediatekUnpackParser(UnpackParser):
     def unpack(self):
         unpacked_files = []
 
+        # write the raw data. These files are (apparently) in
+        # BGRA format which can be # converted to regular images.
+        # Information necessary for the conversion (such as dimensions)
+        # have to be guessed and are not stored anywhere in the file.
         img_counter = 1
         for img in self.data.payload.data:
             out_labels = []
