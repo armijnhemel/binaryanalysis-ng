@@ -1,9 +1,31 @@
+# Binary Analysis Next Generation (BANG!)
+#
+# This file is part of BANG.
+#
+# BANG is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License, version 3,
+# as published by the Free Software Foundation.
+#
+# BANG is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License, version 3, along with BANG.  If not, see
+# <http://www.gnu.org/licenses/>
+#
+# Copyright Armijn Hemel
+# Licensed under the terms of the GNU Affero General Public License
+# version 3
+# SPDX-License-Identifier: AGPL-3.0-only
+
 import os
 import defusedxml.minidom
 from . import gif
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 
 class GifUnpackParser(UnpackParser):
     extensions = ['.gif']
@@ -17,22 +39,21 @@ class GifUnpackParser(UnpackParser):
         try:
             self.data = gif.Gif.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.logical_screen_descriptor.screen_width > 0,
-                "invalid width")
-        check_condition(self.data.logical_screen_descriptor.screen_height > 0,
-                "invalid height")
+
     def unpack(self):
         """extract any files from the input file"""
         return []
+
     def set_metadata_and_labels(self):
         """sets metadata and labels for the unpackresults"""
         extensions = [ x.body for x in self.data.blocks
                 if x.block_type == self.data.BlockType.extension ]
 
+        labels = ['gif', 'graphics']
         metadata = { 'width': self.data.logical_screen_descriptor.screen_width,
                      'height': self.data.logical_screen_descriptor.screen_height}
 
@@ -130,4 +151,4 @@ class GifUnpackParser(UnpackParser):
         metadata['comments'] = comments
         metadata['applications'] = applications
         self.unpack_results.set_metadata(metadata)
-        self.unpack_results.set_labels([ 'gif', 'graphics' ])
+        self.unpack_results.set_labels(labels)

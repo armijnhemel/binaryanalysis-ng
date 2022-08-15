@@ -159,6 +159,8 @@ types:
         seq:
           - id: version_raw
             type: u4
+            valid:
+              expr: major < 2
         instances:
           major:
             value: version_raw >> 16

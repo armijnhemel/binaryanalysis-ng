@@ -86,7 +86,7 @@ def test_get_unpackparsers_from_scan_environment(scan_environment):
 class TestScanEnvironment(unittest.TestCase):
     def create_scan_environment(self,
                 maxbytes = 0, readsize = 0, createbytecounter = False,
-                createjson = False, runfilescans = False, tlshmaximum = 1024,
+                createjson = False, tlshmaximum = 1024,
                 synthesizedminimum = 200, logging = False,
                 paddingname = 'PADDING', unpackdirectory = pathlib.Path('.'),
                 temporarydirectory = pathlib.Path('.'),
@@ -94,7 +94,7 @@ class TestScanEnvironment(unittest.TestCase):
                 scanfilequeue = None, resultqueue = None,
                 processlock = None, checksumdict = None):
         return ScanEnvironment(maxbytes, readsize, createbytecounter,
-                createjson, runfilescans, tlshmaximum, synthesizedminimum,
+                createjson, tlshmaximum, synthesizedminimum,
                 logging, paddingname, unpackdirectory, temporarydirectory,
                  resultsdirectory, scanfilequeue, resultqueue, processlock,
                  checksumdict)

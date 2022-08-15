@@ -23,7 +23,7 @@
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import doom_wad
 
 class DoomWadUnpackParser(UnpackParser):
@@ -33,16 +33,13 @@ class DoomWadUnpackParser(UnpackParser):
     ]
     pretty_name = 'doomwad'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_doom_wad(fileresult, scan_environment, offset, unpack_dir)
-
     # http://web.archive.org/web/20090530112359/http://www.gamers.org/dhs/helpdocs/dmsp1666.html
     # chapter 2
     def parse(self):
         try:
             self.data = doom_wad.DoomWad.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         except BaseException as e:
             raise UnpackParserException(e.args)
@@ -52,9 +49,17 @@ class DoomWadUnpackParser(UnpackParser):
         # than the file itself and there would be hundreds of millions of
         # index entries for which the generated code would first try to create
         # an IndexEntry() object leading to an out of memory issue.
-        filesize = self.fileresult.filename.stat().st_size
+        filesize = self.fileresult.filesize
         check_condition(self.data.index_offset <= filesize, "index offset outside of file")
         check_condition(self.data.num_index_entries > 0, "no lumps defined")
+
+        # another ugly hack to prevent ASCII decoding errors
+        # (example: when scanning mime.cache)
+        try:
+            for i in self.data.index:
+                pass
+        except Exception as e:
+            raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.index_offset + self.data.num_index_entries * 16

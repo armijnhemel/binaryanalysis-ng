@@ -14,7 +14,7 @@ provenance.
 By analyzing the contents of a file and seeing which character sets the contents
 belong to a better guess can be made.
 
-https://www.tdcommons.org/dpubs_series/1898/
+<https://www.tdcommons.org/dpubs_series/1898/>
 
 ## Using build identifiers to fingerprint ELF binaries and link to build information without having access to source code
 
@@ -27,7 +27,7 @@ binaries for which source code and build information is available it is in
 certain cases possible to find out what source code and build information was
 used for a binary.
 
-https://www.tdcommons.org/dpubs_series/1897/
+<https://www.tdcommons.org/dpubs_series/1897/>
 
 ## Better unpacking binary files using contextual information
 
@@ -43,7 +43,7 @@ situation. This document describes possible approaches to this problem, where
 contextual information from unpacking is made available to allow for more
 accurate unpacking and labeling of files.
 
-https://www.tdcommons.org/dpubs_series/1919/
+<https://www.tdcommons.org/dpubs_series/1919/>
 
 ## Finding (partial) code clones at method level in Android programs without access to source code to detect copyright infringements or security issues
 
@@ -56,7 +56,7 @@ make an educated guess of which programs or program fragments are used in the
 program, and possibly detect copyright infringements or trojaned versions
 of programs.
 
-https://www.tdcommons.org/dpubs_series/2479/
+<https://www.tdcommons.org/dpubs_series/2479/>
 
 ## Finding (partial) code clones at method level in binary Java programs without access to source code to detect copyright infringements or security issues
 
@@ -69,7 +69,7 @@ to make an educated guess of which programs or program fragments are used in
 the program, and possibly detect copyright infringements or trojaned versions
 of programs.
 
-https://www.tdcommons.org/dpubs_series/3658/
+<https://www.tdcommons.org/dpubs_series/3658/>
 
 ## Finding out how close source code files are to files in the Git version control system.
 
@@ -82,7 +82,7 @@ important to find out how close a certain piece of software is to any
 given version in a version control system, for example for assessing
 copyright, security research or other provenance issues.
 
-https://www.tdcommons.org/dpubs_series/3925/
+<https://www.tdcommons.org/dpubs_series/3925/>
 
 ## Computing a distance between a source code directory and another source code directory
 
@@ -93,4 +93,67 @@ changes/fixes might need to be backported from the official version. In this
 document a method to compute a score to quantify possible maintenance costs
 is proposed.
 
-https://www.tdcommons.org/dpubs_series/3942/
+<https://www.tdcommons.org/dpubs_series/3942/>
+
+## Using ELF symbols extracted from dynamically linked ELF binaries for fingerprinting
+
+Detecting provenance of dynamically linked ELF binaries can be achieved by
+creating fingerprints using information in the dynamic symbol table and
+comparing these to fingerprints created by symbols from reference binaries,
+or from symbols extracted from source code. Fingerprints can be stored in a
+database or turned into rules for the YARA pattern matching tool.
+
+<https://www.tdcommons.org/dpubs_series/4441/>
+
+## Open source license text matching and reporting
+
+When using open source software it is important to find out under which open
+source license the software was released under, as this determines what can
+and cannot be done with the software. There are many open source software
+licenses with different license terms that are not always compatible with each
+other. Different pieces of software released under incompatible software
+licenses cannot be combined with each other. It is therefore necessary to find
+out which licenses are declared in source code and correctly report these.
+Source code repositories or releases that are open source licensed almost
+always contain a text file with the text of the license that the code has been
+released under, such as the GNU General Public License (various versions), the
+Apache License (various versions), and so on. While open source license texts
+are meant to be immutable, they are frequently changed. Many times the changes
+are purely cosmetic, but sometimes the license are changed in such a way that
+the changes could affect the meaning of the license. It is important to be able
+to detect such changes. In this article a very lightweight method for comparing
+license texts found in source code archives with official license texts is
+presented.
+
+<https://www.tdcommons.org/dpubs_series/4769/>
+
+## Finding version information for binary files with YARA fingerprinting using a multi-layered approach
+
+Detecting provenance of binary files can be done by using the YARA pattern
+matching tool. It is easy to write or generate YARA rules to detect a
+particular version of a binary file, but detection can be time consuming as
+for some packages there are many versions, meaning there are potentially lots
+of different rules that need to be applied, with most of them applied while it
+is already clear that there will never be any successful matches for those
+rules. Using multiple scan phases allows doing a coarse check first to
+determine the overall package using a generic package rule and then zooming
+in to find the particular version using package/version specific rules.
+
+<https://www.tdcommons.org/dpubs_series/4818/>
+
+## Finding a closest match for an ELF file based on proximity matching of extracted identifiers
+
+A common task for companies is to find the provenance of binary files that they
+receive from an upstream source. Several methods exist to fingerprint a binary,
+including string searches, looking at function names, using code clone
+detection, and so on. Some of these methods use a scoring mechanism or chop a
+file up in smaller pieces, compute a hash and look hashes up in a database. This
+document describes a method to turn a sequence of strings and other identifiers
+into a locality sensitive hash using TLSH, which can then be searched in a
+special datastructure called Vantage Point Tree (VPT) to quickly find a closest
+match in a collection of TLSH hashes of known files. A close match (where
+"close" is indicated by a threshold value) means that the file that is found
+has a (near) identical set of identifiers and is therefore likely to be made
+from the same source code software.
+
+<https://www.tdcommons.org/dpubs_series/5155/>

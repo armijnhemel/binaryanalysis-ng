@@ -34,7 +34,7 @@ https://github.com/kaitai-io/kaitai_struct_formats/issues/437
 import os
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import pcf_font
 
 class PcfUnpackParser(UnpackParser):
@@ -53,7 +53,7 @@ class PcfUnpackParser(UnpackParser):
             # has been truncated.
             for i in self.data.tables:
                  a = type(i.body)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     # no need to carve the PCF font from the file

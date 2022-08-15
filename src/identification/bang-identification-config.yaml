@@ -1,0 +1,52 @@
+---
+general:
+    # directory for unpacking. By default this is /tmp or
+    # whatever the default set by the system is.
+    # tempdir: /tmp
+    verbose: true
+yara:
+    # directory where pre-compiled yara rules can be found
+    compiled_rules: /home/armijn/yara/binary
+    error_fatal: false
+meilisearch:
+    # The host for the Meilisearch server.
+    host: 127.0.0.1
+
+    # The port for the Meilisearch server.
+    port: 7700
+
+    # the index to search
+    #index: ctags
+    index: strings
+vulnerablecode:
+    # endpoint url
+    url: https://localhost/api
+
+    # user name
+    # user: vulnerablecode
+
+    # password
+    # password: password
+proximity:
+    # minimal length of strings, recommended to not go below 5
+    # string_min_cutoff: 8
+
+    # maximal length of strings, recommended to not go above 200
+    # string_max_cutoff: 200
+
+    # minimal length of functions/variable names, recommended
+    # to not go below 2
+    # identifier_cutoff: 2
+
+    # ignore weak ELF symbols. Recommended to set to 'true'
+    ignore_weak_symbols: true
+
+    # different end points
+    endpoints:
+        - tlsh: http://localhost:5000/tlsh/
+        - telfhash: http://localhost:5000/telfhash/
+        - tlsh_identifiers: http://localhost:5000/tlsh_identifiers/
+        - malwarebazaar: http://localhost:5000/malwarebazaar/
+
+    # maximum TLSH distance. Every distance higher than this is ignored.
+    maximum_distance: 70

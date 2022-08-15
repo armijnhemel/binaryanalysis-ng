@@ -24,7 +24,7 @@ import os
 from FileResult import FileResult
 from UnpackParser import UnpackParser, check_condition
 from UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationNotEqualError
+from kaitaistruct import ValidationFailedError
 from . import dtb
 
 class DeviceTreeUnpackParser(UnpackParser):
@@ -38,11 +38,11 @@ class DeviceTreeUnpackParser(UnpackParser):
         file_size = self.fileresult.filesize
         try:
             self.data = dtb.Dtb.from_io(self.infile)
-        except (Exception, ValidationNotEqualError) as e:
+        except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(file_size >= self.data.total_size, "not enough data")
         if self.data.version > 16:
-            check_condition(self.data.last_compatible_version, "invalid compatible version")
+            check_condition(self.data.min_compatible_version, "invalid compatible version")
         # check some offsets
         check_condition(self.data.ofs_memory_reservation_block > 36,
                         "invalid offset for memory reservation block")
@@ -57,7 +57,7 @@ class DeviceTreeUnpackParser(UnpackParser):
 
         # sanity check: the fdt nodes are actually a tree, not a list
         property_level = 0
-        for node in self.data.structure_block.fdt_nodes:
+        for node in self.data.structure_block.nodes:
             if node.type == dtb.Dtb.Fdt.begin_node:
                 property_level += 1
             elif node.type == dtb.Dtb.Fdt.end_node:
@@ -74,36 +74,30 @@ class DeviceTreeUnpackParser(UnpackParser):
         property_level = 0
         in_kernel = False
         in_fdt = False
-        is_dtb = False
-        for node in self.data.structure_block.fdt_nodes:
+        in_ramdisk = False
+        has_images = False
+        level_to_name = ['']
+        is_fit = False
+        for node in self.data.structure_block.nodes:
             if node.type == dtb.Dtb.Fdt.begin_node:
                 property_level += 1
-                if is_dtb and node.body.name.startswith('kernel@'):
-                    in_kernel = True
-                    in_fdt = False
-                    kernel_name = node.body.name
-                elif is_dtb and node.body.name.startswith('fdt@'):
-                    in_fdt = True
-                    in_kernel = False
-                    fdt_name = node.body.name
+                if has_images:
+                    # TODO: perhaps use "description"?
+                    level_to_name.append(node.body.name)
+                    if node.body.name.startswith('kernel@'):
+                        is_fit = True
+                    elif node.body.name.startswith('fdt@'):
+                        is_fit = True
+                    elif node.body.name.startswith('ramdisk@'):
+                        is_fit = True
                 if node.body.name == 'images':
-                    is_dtb = True
+                    has_images = True
             elif node.type == dtb.Dtb.Fdt.end_node:
                 property_level -= 1
             elif node.type == dtb.Dtb.Fdt.prop:
-                if in_kernel:
+                if has_images:
                     if node.body.name == 'data':
-                        outfile_rel = self.rel_unpack_dir / kernel_name
-                        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                        os.makedirs(outfile_full.parent, exist_ok=True)
-                        outfile = open(outfile_full, 'wb')
-                        outfile.write(node.body.property)
-                        outfile.close()
-                        fr = FileResult(self.fileresult, outfile_rel, set([]))
-                        unpacked_files.append(fr)
-                elif in_fdt:
-                    if node.body.name == 'data':
-                        outfile_rel = self.rel_unpack_dir / fdt_name
+                        outfile_rel = self.rel_unpack_dir / level_to_name.pop()
                         outfile_full = self.scan_environment.unpack_path(outfile_rel)
                         os.makedirs(outfile_full.parent, exist_ok=True)
                         outfile = open(outfile_full, 'wb')

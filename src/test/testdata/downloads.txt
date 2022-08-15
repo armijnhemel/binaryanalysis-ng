@@ -7,3 +7,4 @@ dlcurl http://distro.ibiblio.org/pub/linux/distributions/slitaz/sources/packages
 dlcurl https://gitlab.gnome.org/GNOME/gimp/-/raw/0ef5d67/data/brushes/Basic/pixel.gbr image/gimp_brush/pixel.gbr
 dlcurl https://github.com/qemu/qemu/raw/master/pc-bios/bamboo.dtb system/device_tree/bamboo.dtb
 dlcurl https://github.com/mozilla/build-mar/raw/master/tests/test-xz.mar archivers/mozilla_mar/test-xz.mar
+dlcurl https://downloads.openwrt.org/releases/19.07.7/targets/brcm47xx/mips74k/openwrt-19.07.7-brcm47xx-mips74k-asus-rt-ac53u-squashfs.trx firmware/trx/openwrt-19.07.7-brcm47xx-mips74k-asus-rt-ac53u-squashfs.trx
