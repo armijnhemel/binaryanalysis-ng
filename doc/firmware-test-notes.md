@@ -110,3 +110,7 @@ Uses `seama` and `dlink_romfs`.
 <https://www.uselesssoftware.com/download/154anis-zip>
 
 Lots of ANI files.
+
+## 0803_20140919-GPS-1CARD-PROCAM.bin
+
+Contains `romfs_ambarella` and `ambarella`
