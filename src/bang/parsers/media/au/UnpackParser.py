@@ -64,3 +64,4 @@ class AuUnpackParser(UnpackParser):
         metadata = {}
         if self.data.header.comment != '':
             metadata['comment'] = self.data.header.comment
+        return metadata
