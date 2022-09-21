@@ -20,7 +20,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
