@@ -102,7 +102,6 @@ class Bzip2UnpackParser(UnpackParser):
 
             # incrementally read compressed data and decompress:
             # https://docs.python.org/3/library/bz2.html#incremental-de-compression
-            self.unpacked_size = 0
             datareadsize = 10000000
             bz2data = self.infile.read(datareadsize)
             while bz2data != b'':
@@ -113,7 +112,6 @@ class Bzip2UnpackParser(UnpackParser):
                     break
 
                 # there is no more compressed data
-                self.unpacked_size += len(bz2data) - len(bz2decompressor.unused_data)
                 if bz2decompressor.unused_data != b'':
                     break
                 bz2data = self.infile.read(datareadsize)
