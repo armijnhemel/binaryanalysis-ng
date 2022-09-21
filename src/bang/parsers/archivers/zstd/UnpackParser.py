@@ -119,7 +119,7 @@ class ZstdUnpackParser(UnpackParser):
             if blocktype == 1:
                 blocksize = 1
 
-            check_condition(self.infile.tell() + blocksize <= self.fileresult.filesize,
+            check_condition(self.infile.tell() + blocksize <= self.infile.size,
                             "not enough data for frame")
 
             self.infile.seek(blocksize, os.SEEK_CUR)
@@ -143,9 +143,6 @@ class ZstdUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-        unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
-
         # determine the name of the output file
         if meta_directory.file_path.suffix.lower() == '.zst':
             file_path = pathlib.Path(meta_directory.file_path.stem)
