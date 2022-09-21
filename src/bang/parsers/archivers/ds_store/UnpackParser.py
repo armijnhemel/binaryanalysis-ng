@@ -25,7 +25,6 @@ Unpacker for Apple .DS_Store files, frequently found in archives
 created on MacOS.
 '''
 
-import os
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
@@ -53,5 +52,5 @@ class DS_Store(UnpackParser):
         self.unpacked_size = self.data.buddy_allocator_header.ofs_bookkeeping_info_block + \
                             self.data.buddy_allocator_header.len_bookkeeping_info_block + 4
 
-    labels = [ 'resource', 'ds_store' ]
+    labels = ['resource', 'ds_store']
     metadata = {}
