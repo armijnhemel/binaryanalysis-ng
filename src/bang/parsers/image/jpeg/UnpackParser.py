@@ -102,7 +102,7 @@ class JpegUnpackParser(UnpackParser):
                 check_condition(len(checkbytes) == 2, "not enough data for table/misc length field")
 
                 misctablelength = int.from_bytes(checkbytes, byteorder='big')
-                check_condition(self.infile.tell() + misctablelength - 2 <= self.fileresult.filesize,
+                check_condition(self.infile.tell() + misctablelength - 2 <= self.infile.size,
                                 "table outside of file")
 
                 if marker == b'\xff\xdd':
@@ -180,7 +180,7 @@ class JpegUnpackParser(UnpackParser):
 
             sectionlength = int.from_bytes(checkbytes, byteorder='big')
 
-            check_condition(self.infile.tell() + sectionlength - 2 <= self.fileresult.filesize,
+            check_condition(self.infile.tell() + sectionlength - 2 <= self.infile.infile,
                             "table outside of file")
 
             ishierarchical = True
@@ -208,7 +208,7 @@ class JpegUnpackParser(UnpackParser):
                                     "not enough data for table/misc length field")
 
                     misctablelength = int.from_bytes(checkbytes, byteorder='big')
-                    check_condition(self.infile.tell() + misctablelength - 2 <= self.fileresult.filesize,
+                    check_condition(self.infile.tell() + misctablelength - 2 <= self.infile.size,
                                     "table outside of file")
 
                     if isdri:
@@ -240,7 +240,7 @@ class JpegUnpackParser(UnpackParser):
                                 "not enough data for table/misc length field")
 
                 misctablelength = int.from_bytes(checkbytes, byteorder='big')
-                check_condition(self.infile.tell() + misctablelength - 2 <= self.fileresult.filesize,
+                check_condition(self.infile.tell() + misctablelength - 2 <= self.infile.size,
                                 "table outside of file")
 
                 # skip over the section
@@ -263,7 +263,7 @@ class JpegUnpackParser(UnpackParser):
                             "not enough data for table/misc length field")
 
             misctablelength = int.from_bytes(checkbytes, byteorder='big')
-            check_condition(self.infile.tell() + misctablelength - 2 <= self.fileresult.filesize,
+            check_condition(self.infile.tell() + misctablelength - 2 <= self.infile.size,
                             "table outside of file")
 
             # skip over the section
@@ -289,7 +289,7 @@ class JpegUnpackParser(UnpackParser):
                                         "not enough data for table/misc length field")
 
                         misctablelength = int.from_bytes(checkbytes, byteorder='big')
-                        check_condition(self.infile.tell() + misctablelength - 2 <= self.fileresult.filesize,
+                        check_condition(self.infile.tell() + misctablelength - 2 <= self.infile.size,
                                         "table outside of file")
 
                         # skip over the section
@@ -312,7 +312,7 @@ class JpegUnpackParser(UnpackParser):
                                     "not enough data for table/misc length field")
 
                     headerlength = int.from_bytes(checkbytes, byteorder='big')
-                    check_condition(self.infile.tell() + headerlength - 2 <= self.fileresult.filesize,
+                    check_condition(self.infile.tell() + headerlength - 2 <= self.infile.size,
                                     "start of scan outside of file")
 
                     # skip over the section
@@ -332,7 +332,7 @@ class JpegUnpackParser(UnpackParser):
                                     "not enough data for table/misc length field")
 
                     headerlength = int.from_bytes(checkbytes, byteorder='big')
-                    check_condition(self.infile.tell() + headerlength - 2 <= self.fileresult.filesize,
+                    check_condition(self.infile.tell() + headerlength - 2 <= self.infile.size,
                                     "start of scan outside of file")
 
                     # the number of image components, can only be 1-4
@@ -382,7 +382,7 @@ class JpegUnpackParser(UnpackParser):
                             if ffpos == -1:
                                 break
                             # if 0xff is the last byte, bail out
-                            if oldpos + ffpos == self.fileresult.filesize - 1:
+                            if oldpos + ffpos == self.infile.size - 1:
                                 break
                             startffpos = ffpos + 1
                             if ffpos < readsize - 1:
@@ -419,7 +419,7 @@ class JpegUnpackParser(UnpackParser):
                         # a valid marker was found, so break out of the loop
                         if fffound:
                             break
-                    if self.infile.tell() == self.fileresult.filesize:
+                    if self.infile.tell() == self.infile.size:
                         break
                     self.infile.seek(-1, os.SEEK_CUR)
 
@@ -428,7 +428,7 @@ class JpegUnpackParser(UnpackParser):
                 break
 
         self.unpacked_size = self.infile.tell()
-        if self.unpacked_size == self.fileresult.filesize:
+        if self.unpacked_size == self.infile.size:
             # now load the file using PIL as an extra sanity check
             # although this doesn't seem to do a lot.
             try:
