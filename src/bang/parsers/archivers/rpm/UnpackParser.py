@@ -23,10 +23,7 @@
 import bz2
 import gzip
 import lzma
-import os
 import pathlib
-import shutil
-import tempfile
 import zstandard
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -72,7 +69,7 @@ class RpmUnpackParser(UnpackParser):
         check_condition(self.payload_format in ['cpio', 'drpm'],
                         'unsupported payload format')
 
-        # test decompress the payload
+        # test decompressing the payload
         if self.compressor == 'bzip2':
             decompressor = bz2.BZ2Decompressor()
             try:

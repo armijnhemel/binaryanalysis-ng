@@ -118,7 +118,7 @@ class SnappyUnpackParser(UnpackParser):
                 infile.close()
                 os.unlink(self.temporary_file[1])
 
-        yield unpacked_md
+            yield unpacked_md
 
     def calculate_unpacked_size(self):
         pass
