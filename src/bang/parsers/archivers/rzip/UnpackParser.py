@@ -134,8 +134,6 @@ class RzipUnpackParser(UnpackParser):
             file_path = pathlib.Path("unpacked_from_rzip")
 
         with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
-            # First reset the offset
-            self.infile.seek(self.offset)
             p = subprocess.Popen(['rzip', '-k', '-d', meta_directory.file_path, '-o', outfile],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
             (outputmsg, errormsg) = p.communicate()
