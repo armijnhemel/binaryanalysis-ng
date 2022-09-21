@@ -15,11 +15,13 @@ Some intended uses:
 The recommended way is to use [Nix](https://nixos.org/nix), run
 `nix-shell` to load all the dependencies for the unpacker,
 `nix-shell maintenance.nix` for the maintenance scripts and
-`nix-shell analysis.nix` for the maintenance scripts.
+`nix-shell analysis.nix` for the analysis scripts.
 
 `nix` will make sure that everything is downloaded and installed to run BANG.
 
 ### Other distributions without Nix
+
+Note: this list is incomplete. It is highly recommended to use Nix.
 
 * a recent Linux distribution (Fedora 35 or higher, or equivalent)
 * Python 3.9.x or higher
@@ -84,7 +86,6 @@ or from the `src` directory, type
 ```
 make dockerbuild
 ```
-
 
 
 ## Supported file types

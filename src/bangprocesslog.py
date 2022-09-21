@@ -35,7 +35,7 @@ import sys
 import click
 
 # import own modules
-import bangsignatures
+import bang.signatures
 
 
 @click.command(short_help='process log output from BANG scan')

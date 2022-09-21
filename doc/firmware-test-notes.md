@@ -100,3 +100,13 @@ Contains `bflt` test files.
 From <https://www.foscam.nl/attachments/FI8908W_Firmware>
 
 Contains `bflt` test files (including `gzip` compressed).
+
+## DIR-600_fw_revC1_3-05B15__all_en_20120216.zip
+
+Uses `seama` and `dlink_romfs`.
+
+## 154ANIS.ZIP
+
+<https://www.uselesssoftware.com/download/154anis-zip>
+
+Lots of ANI files.

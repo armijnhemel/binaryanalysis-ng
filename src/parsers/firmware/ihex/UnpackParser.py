@@ -24,13 +24,10 @@
 # It is assumed that only files that are completely text
 # files can be IHex files.
 
-import os
 import pathlib
 
-from FileResult import FileResult
-
-from UnpackParser import UnpackParser, check_condition
-from UnpackParserException import UnpackParserException
+from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParserException import UnpackParserException
 
 
 class IhexUnpackParser(UnpackParser):
@@ -161,10 +158,6 @@ class IhexUnpackParser(UnpackParser):
         check_condition(end_of_ihex and unpacked != 0, "no data unpacked")
         self.unpacked_size = unpacked
 
-    # no need to carve from the file
-    def carve(self):
-        pass
-
     def unpack(self):
         unpacked_files = []
         out_labels = []
@@ -176,54 +169,38 @@ class IhexUnpackParser(UnpackParser):
         else:
             file_path = pathlib.Path("unpacked_from_ihex")
 
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
+        with meta_directory.unpack_regular_file(file_path) as (unpack_md, outfile):
+            ihex_file = open(self.infile.name, 'r')
+            for hex_line in ihex_file:
+                line = hex_line.rstrip()
+                if not line.startswith(':'):
+                    # There could be comments
+                    if line.startswith('#'):
+                        continue
+                    break
 
-        ihex_file = open(self.infile.name, 'r')
+                if len(line) < 11 or len(line) % 2 != 1:
+                    break
 
-        for hex_line in ihex_file:
-            line = hex_line.rstrip()
-            if not line.startswith(':'):
-                # There could be comments
-                if line.startswith('#'):
-                    continue
-                break
+                # next two bytes are the byte count
+                num_bytes = int.from_bytes(bytes.fromhex(line[1:3]), byteorder='big')
 
-            if len(line) < 11 or len(line) % 2 != 1:
-                break
+                record_type = int.from_bytes(bytes.fromhex(line[7:9]), byteorder='big')
 
-            # next two bytes are the byte count
-            num_bytes = int.from_bytes(bytes.fromhex(line[1:3]), byteorder='big')
-
-            record_type = int.from_bytes(bytes.fromhex(line[7:9]), byteorder='big')
-
-            # record type 0 is data, record type 1 is end of data
-            # Other record types do not include any actual data.
-            if record_type == 1:
-                end_of_ihex = True
-                break
-            elif record_type == 0:
-                ihexdata = bytes.fromhex(line[9:9+num_bytes*2])
-                outfile.write(ihexdata)
-
-        outfile.close()
-        ihex_file.close()
-
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-        unpacked_files.append(fr)
-        return unpacked_files
+                # record type 0 is data, record type 1 is end of data
+                # Other record types do not include any actual data.
+                if record_type == 1:
+                    end_of_ihex = True
+                    break
+                elif record_type == 0:
+                    ihexdata = bytes.fromhex(line[9:9+num_bytes*2])
+                    outfile.write(ihexdata)
+            ihex_file.close()
+            yield unpacked_md
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def set_metadata_and_labels(self):
-        """sets metadata and labels for the unpackresults"""
-        labels = ['ihex']
-
-        metadata = {}
-
-        self.unpack_results.set_labels(labels)
-        self.unpack_results.set_metadata(metadata)
+    labels = ['ihex']
+    metadata = {}

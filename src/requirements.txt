@@ -19,3 +19,4 @@ telfhash
 python-lzo
 zstandard
 protobuf
+Click

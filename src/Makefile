@@ -1,6 +1,6 @@
 # GNU make file
 
-SOURCES = $(shell find parsers -type f -name '*.ksy')
+SOURCES = $(shell find bang/parsers -type f -name '*.ksy')
 KAITAI_PARSERS = $(patsubst %.ksy, %.py, $(SOURCES))
 SPACE:=$(EMPTY) $(EMPTY)
 KAITAI_NAMES = $(notdir $(basename $(SOURCES)))
@@ -23,7 +23,7 @@ endif
 all: $(KAITAI_PARSERS)
 
 %.py : %.ksy
-	$(KAITAISTRUCT_COMPILER) -I parsers -t python --outdir `dirname "$<"` $<
+	$(KAITAISTRUCT_COMPILER) -I bang/parsers -t python --outdir `dirname "$<"` $<
 	sed -i 's/^from \($(KAITAI_PATTERN)\) import /from .\1 import /' "$@"
 	sed -i 's/^import \($(KAITAI_PATTERN)\)$$/from . &\nfrom .\1 import \*/' "$@"
 

@@ -167,9 +167,10 @@ part, call a subparser on the image data, or perhaps even both.
 ### Kaitai parser expects an end of stream
 
 Kaitai parsers that expect an end of stream, for example by using `size-eos`,
-or calling `size` on a kaitai stream object, cannot be used for carving data
-from a file. When carving, we have a stream that can contain data beyond the
-file that we want to extract, and therefore, our parser cannot depend on that.
+or calling `size` on a kaitai stream object, cannot be used while extracting
+data from a file. When extracting, we have a stream that can contain data
+beyond the file that we want to extract, and therefore, our parser cannot
+depend on that.
 
 ### Handling parse errors
 
