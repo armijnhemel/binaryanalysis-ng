@@ -90,7 +90,7 @@ class SwfUnpackParser(UnpackParser):
             checkbytes = self.infile.read(4)
             check_condition(len(checkbytes) == 4, "not enough data for LZMA compressed length")
             compressedlength = int.from_bytes(checkbytes, byteorder='little')
-            check_condition(compressedlength + 12 + 5 <= self.fileresult.filesize,
+            check_condition(compressedlength + 12 + 5 <= self.infile.size,
                             "invalid length")
 
             # now read 1 byte for the LZMA properties
