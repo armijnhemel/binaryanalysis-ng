@@ -29,7 +29,8 @@ from PIL.GbrImagePlugin import GbrImageFile
 
 
 class GimpBrushUnpackParser(UnpackParser):
-    extensions = ['.gbr']
+    #extensions = ['.gbr']
+    extensions = []
     signatures = [
         (20, b'GIMP')
     ]
