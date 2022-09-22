@@ -106,8 +106,8 @@ and Dex 035.
 
 ## htc_d027_9_7inch_wm3732_phonesdk_gc2035_gc0308_de_201210122.img
 
-Rockchip based, uses `rk_crc`, `rockchip` and `android_boot_img` version 0
-formats. Uses Dex 035 and Dex 036 (which officially doesn't exist).
+Rockchip based, uses `rk_crc`, `rockchip`, `rkboot` and `android_boot_img`
+version 0 formats. Uses Dex 035 and Dex 036 (which officially doesn't exist).
 
 ## I9300XXUFMB3_I9300OJKFMB3_ILO.zip
 
