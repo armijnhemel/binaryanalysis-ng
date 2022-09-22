@@ -159,7 +159,7 @@ larger file, unless stated otherwise.
 61. VirtualBox VDI (needs qemu-img, whole file only,
     Oracle flavour only)
 62. XML (whole file)
-63. Snappy (needs python-snappy)
+63. Snappy framing2 format (needs python-snappy)
 64. various certificates (PEM, private key, etc., needs openssl)
 65. lzop
 66. PNG/APNG (needs PIL)
@@ -262,6 +262,7 @@ larger file, unless stated otherwise.
 160. Android super images
 161. Qualcomm QTI Chromatix (structural checks only)
 162. Mediatek logo.bin
+163. Android DTO
 
 The following text formats can be recognized:
 
