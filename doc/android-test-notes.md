@@ -37,7 +37,8 @@ Odex 036 and regular Dex 035.
 
 Android 12L uses the `android_fbpk` version 1 and version 2 format,
 `android_vendor_boot` version 4 and `android_boot_img` version 4. It uses
-Oat 199, Art 099, Vdex 027, Dex 035, Dex 038 and Dex 039.
+Oat 199, Art 099, Vdex 027, Dex 035, Dex 038 and Dex 039. It also contains
+`napp_header` (nano app).
 
 ## raven-sd1a.210817.015.a4-factory-bd6cb030.zip
 
