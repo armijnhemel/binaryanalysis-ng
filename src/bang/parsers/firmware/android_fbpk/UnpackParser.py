@@ -76,7 +76,6 @@ class AndroidFbpkUnpackParser(UnpackParser):
                         partition_name = new_partition_name
                         is_renamed = True
                         orig_name = entry.partition_name
-                        out_labels.append('renamed')
                         break
                     counter += 1
 
@@ -84,9 +83,11 @@ class AndroidFbpkUnpackParser(UnpackParser):
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(entry.partition)
 
-                with unpacked_md.open(open_file=False):
-                    # TODO: add original filename to unpacked_md info if renamed
-                    unpacked_md.info['labels'] = out_labels
+                if is_renamed:
+                    with unpacked_md.open(open_file=False):
+                        out_labels.append('renamed')
+                        unpacked_md.info['labels'] = out_labels
+                        unpacked_md.info['metadata'] = {'name': orig_name}
                 yield unpacked_md
             seen_partitions.add(partition_name)
 
