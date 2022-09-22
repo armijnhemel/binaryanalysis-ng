@@ -198,7 +198,7 @@ Spreadtrum based, uses `spreadtrum_pac`
 
 ## Titan_8_Plus_MT6572_20180126_4.4.2.zip
 
-Mediatek MT6572 based, uses `mtk_bootrom` amongst others.
+Mediatek MT6572 based, uses `mtk_bootrom`, `android_mediatek_logo` amongst others.
 
 ## Vega_Tab_67_C543G_MT6572_16122016.zip
 
