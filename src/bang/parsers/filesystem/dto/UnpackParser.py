@@ -21,8 +21,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 '''
-Unpacker for DTBO images. This does not include the AVB signature
-at the end.
+Unpacker for device tree overlay (DTO) images, also called DTBO. This does
+not include the AVB signature at the end.
 '''
 
 import os
