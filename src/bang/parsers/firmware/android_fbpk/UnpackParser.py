@@ -62,6 +62,10 @@ class AndroidFbpkUnpackParser(UnpackParser):
             # only consider "real" partitions
             if entry.type == 0:
                 continue
+
+            is_renamed = False
+            orig_name = ''
+
             partition_name = entry.partition_name
             # there can be duplicates, so rename
             if partition_name in seen_partitions:
@@ -70,12 +74,14 @@ class AndroidFbpkUnpackParser(UnpackParser):
                     new_partition_name = "%s-renamed-%d" % (entry.partition_name, counter)
                     if new_partition_name not in seen_partitions:
                         partition_name = new_partition_name
+                        is_renamed = True
+                        orig_name = entry.partition_name
                         out_labels.append('renamed')
                         break
                     counter += 1
 
             file_path = pathlib.Path(partition_name)
-            with meta_directory.unpack_results(file_path) as (unpacked_md, outfile):
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(entry.partition)
 
                 with unpacked_md.open(open_file=False):
