@@ -49,7 +49,6 @@ class AllwinnerUnpackParser(UnpackParser):
             self.unpacked_size = max(self.unpacked_size, entry.file_header_data.offset + entry.file_header_data.stored_length)
         check_condition(self.infile.size >= self.unpacked_size, "not enough data")
 
-
     def unpack(self, meta_directory):
         for entry in self.data.file_headers:
             file_path = pathlib.Path(entry.file_header_data.name)
