@@ -25,6 +25,7 @@ from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import dds
 
+
 class DdsUnpackParser(UnpackParser):
     extensions = []
     signatures = [
