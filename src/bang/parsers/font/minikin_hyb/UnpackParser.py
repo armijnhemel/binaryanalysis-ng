@@ -51,5 +51,5 @@ class MinikinHybUnpackParser(UnpackParser):
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.file_size
 
-    labels = ['android', 'resource']
+    labels = ['android', 'resource', 'minikin']
     metadata = {}
