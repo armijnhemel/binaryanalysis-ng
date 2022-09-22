@@ -132,7 +132,7 @@ class BfltUnpackParser(UnpackParser):
 
                         # likely incorrect when relocations are in other
                         # files, for example shared libraries
-                        check_condition(r <= self.fileresult.filesize,
+                        check_condition(r <= self.infile.size,
                                         "relocation cannot be outside of file")
                     self.data_data = self.data.data
                     self.data_text = self.data.text
