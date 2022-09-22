@@ -41,15 +41,21 @@ class GitIndexUnpackParser(UnpackParser):
             self.data = git_index.GitIndex.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
+
+        # verify the SHA1 checksum
         bytes_to_read = self.infile.tell() - self.offset - self.data.len_hash
 
         # seek back to the offset
         self.infile.seek(self.offset)
+
+        # read the bytes
         checksum_bytes = self.infile.read(bytes_to_read)
 
+        # compute the checksum and compare
         checksum = hashlib.sha1(checksum_bytes)
         check_condition(checksum.digest() == self.data.checksum, "invalid checksum")
 
+        # seek to the end of the Git index
         self.infile.seek(self.data.len_hash, os.SEEK_CUR)
 
     labels = ['git index', 'resource']
