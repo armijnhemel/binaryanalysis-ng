@@ -51,7 +51,7 @@ class ZchunkUnpackParser(UnpackParser):
         # zchunk data starts at offset 0.
         # If not this is not the case, carve the file first.
         self.havetmpfile = False
-        if not (self.offset == 0 and self.fileresult.filesize == self.infile.tell()):
+        if not (self.offset == 0 and self.infile.size == self.infile.tell()):
             self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
             self.havetmpfile = True
             os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.infile.tell())
@@ -62,8 +62,9 @@ class ZchunkUnpackParser(UnpackParser):
             p = subprocess.Popen(['unzck', '-c', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         else:
             # ??
-            #p = subprocess.Popen(['unzck', '-c', self.infile.file_path], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
             p = subprocess.Popen(['unzck', '-c', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+        (outputmsg, errormsg) = p.communicate()
 
         if p.returncode != 0 and self.havetmpfile:
             os.unlink(self.temporary_file[1])
