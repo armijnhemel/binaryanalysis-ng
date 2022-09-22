@@ -89,7 +89,7 @@ Edimax device, uses `u-boot`, `squashfs`, `lzma`
 
 ## https://github.com/mrdoob/three.js.git
 
-Contains test files for ktx
+Contains test files for `ktx` in `examples/textures/compressed`
 
 ## 20080929182630500_MX10_Firmware.zip
 
