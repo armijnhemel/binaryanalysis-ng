@@ -42,8 +42,6 @@ class RkCrcUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
-        out_labels = []
-
         file_path = pathlib.Path('data')
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
             outfile.write(self.data.data)
