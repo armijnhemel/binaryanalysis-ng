@@ -80,7 +80,7 @@ class AndroidUpdateUnpackParser(UnpackParser):
             # signatures offset (relative to the start of the payload)
             signatures_offset = self.manifest_data.signatures_offset
             signatures_size = self.manifest_data.signatures_size
-            check_condition(self.start_of_payload + signatures_offset + signatures_size <= self.fileresult.filesize,
+            check_condition(self.start_of_payload + signatures_offset + signatures_size <= self.infile.size,
                             "not enough data for signatures")
 
             minor_version = self.manifest_data.minor_version
@@ -88,7 +88,7 @@ class AndroidUpdateUnpackParser(UnpackParser):
                 block_counter = 0
                 for operation in partition.operations:
                     # operation offset is relative to the start of the payload
-                    check_condition(self.start_of_payload + operation.data_offset + operation.data_length <= self.fileresult.filesize,
+                    check_condition(self.start_of_payload + operation.data_offset + operation.data_length <= self.infile.size,
                                     "not enough data for operation")
 
                     # signatures follow the last block
@@ -121,10 +121,9 @@ class AndroidUpdateUnpackParser(UnpackParser):
                 raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
-        unpacked_files = []
         if self.data.major_version == 2:
             for partition in self.manifest_data.partitions:
-                file_path = partition.partition_name
+                file_path = pathlib.Path(partition.partition_name)
 
                 with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                     for operation in partition.operations:
