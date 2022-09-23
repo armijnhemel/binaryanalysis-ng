@@ -55,7 +55,7 @@ class SgiUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-        if self.unpacked_size == self.fileresult.filesize:
+        if self.unpacked_size == self.infile.size:
             # now load the file using PIL as an extra sanity check
             # although this doesn't seem to do a lot.
             try:
@@ -80,7 +80,6 @@ class SgiUnpackParser(UnpackParser):
             finally:
                 sgi_file.close()
                 os.unlink(temporary_file[1])
-
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
