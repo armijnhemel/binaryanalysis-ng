@@ -132,13 +132,13 @@ def show(all, metadir):
         print(f'Metadata:')
         pprint.pprint(md.info.get('metadata'))
         if all:
-            for k,v in md.info.get('extracted_files', {}).items():
+            for k,v in sorted(md.info.get('extracted_files', {}).items()):
                 print(f'{k}\t{v}')
-            for k,v in md.info.get('unpacked_absolute_files', {}).items():
+            for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
                 print(f'{k}\t{v}')
-            for k,v in md.info.get('unpacked_relative_files', {}).items():
+            for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
                 print(f'{k}\t{v}')
-            for k,v in md.info.get('unpacked_symlinks', {}).items():
+            for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
                 print(f'{k}\t{v}\t(symlink)')
 
 
@@ -149,13 +149,13 @@ def ls(metadir):
     '''
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     with md.open(open_file=False, info_write=False):
-        for k,v in md.info.get('extracted_files', {}).items():
+        for k,v in sorted(md.info.get('extracted_files', {}).items()):
             print(f'{k}\t{v}')
-        for k,v in md.info.get('unpacked_absolute_files', {}).items():
+        for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
             print(f'{k}\t{v}')
-        for k,v in md.info.get('unpacked_relative_files', {}).items():
+        for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
             print(f'{k}\t{v}')
-        for k,v in md.info.get('unpacked_symlinks', {}).items():
+        for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
             print(f'{k}\t{v}\t(symlink)')
 
 
