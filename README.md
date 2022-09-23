@@ -187,9 +187,9 @@ larger file, unless stated otherwise.
 86. PPM files ('raw' PPM only)
 87. PGM files ('raw' PGM only)
 88. PBM files ('raw' PBM only)
-89. Android bootloader for Qualcomm Snapdragon
+89. Android bootloader image for Qualcomm Snapdragon
 90. Android bootloader image (also a Little Kernel based variant)
-91. Android bootloader for Huawei devices
+91. Android bootloader image for Huawei devices
 92. FAT16 file systems (8.3 file names)
 93. Coreboot images
 94. Minix V1 file system (Linux variant)
