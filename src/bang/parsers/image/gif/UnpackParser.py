@@ -56,8 +56,8 @@ class GifUnpackParser(UnpackParser):
         extensions = [ x.body for x in self.data.blocks
                 if x.block_type == self.data.BlockType.extension ]
 
-        metadata = { 'width': self.data.logical_screen_descriptor.screen_width,
-                     'height': self.data.logical_screen_descriptor.screen_height}
+        metadata = {'width': self.data.logical_screen_descriptor.screen_width,
+                    'height': self.data.logical_screen_descriptor.screen_height}
 
         applications = []
 
