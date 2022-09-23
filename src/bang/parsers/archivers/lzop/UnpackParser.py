@@ -60,7 +60,6 @@ class LzopUnpackParser(UnpackParser):
             file_path = pathlib.Path('unpacked_from_lzo')
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-            counter = 1
             for block in self.data.blocks:
                 if isinstance(block.block_type, lzop.Lzop.Terminator):
                     break
@@ -81,7 +80,6 @@ class LzopUnpackParser(UnpackParser):
                     elif self.data.method.value == 128:
                         # seemingly not used in practice
                         outfile.write(zlib.decompress(block.block_type.data))
-                counter += 1
             yield unpacked_md
 
     labels = ['lzo', 'compressed']
