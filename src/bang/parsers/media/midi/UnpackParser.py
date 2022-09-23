@@ -28,7 +28,6 @@ Some documentation:
 https://www.csie.ntu.edu.tw/~r92092/ref/midi/
 '''
 
-import os
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
@@ -50,7 +49,7 @@ class MidiUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-    labels = [ 'midi', 'audio' ]
+    labels = ['midi', 'audio']
 
     @property
     def metadata(self):
