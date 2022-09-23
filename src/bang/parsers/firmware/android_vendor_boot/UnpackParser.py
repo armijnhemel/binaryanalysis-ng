@@ -70,8 +70,18 @@ class AndroidVendorBootUnpackParser(UnpackParser):
 
     @property
     def metadata(self):
+        # store the commandline options in an easier to search dict
+        commandline_options = {}
+        for c in self.data.header.commandline.split():
+            cmd, value = c.split('=', maxsplit=1)
+
+            # there can be multiple instances of the same option,
+            # but the Linux kernel will use the one specified last
+            # so it is safe to simply not check for duplicates.
+            commandline_options[cmd] = value
         metadata = {
             'commandline': self.data.header.commandline,
-            'version': self.data.header.version
+            'version': self.data.header.version,
+            'commandline_options': commandline_options
         }
         return metadata
