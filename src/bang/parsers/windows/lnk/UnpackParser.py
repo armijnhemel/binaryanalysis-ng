@@ -20,13 +20,12 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-
-import os
 from . import windows_shell_items
 from . import windows_lnk_file
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
+
 
 class WindowsLinkUnpackParser(UnpackParser):
     extensions = ['.lnk']
