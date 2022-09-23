@@ -55,7 +55,7 @@ class UbiUnpackParser(UnpackParser):
         self.blocksize = 0
         readsize = 1048576
         ubifound = False
-        file_size = self.fileresult.filesize
+        file_size = self.infile.size
 
         isfirstblock = True
 
