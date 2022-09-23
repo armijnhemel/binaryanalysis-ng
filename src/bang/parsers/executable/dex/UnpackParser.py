@@ -477,10 +477,6 @@ class OdexUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
-        # write dex
-        unpacked_files = []
-        out_labels = []
-
         # cut .odex from the path name if it is there
         if meta_directory.file_path.suffix.lower() == '.odex':
             file_path = pathlib.Path(meta_directory.file_path.with_suffix('.dex').name)
@@ -489,7 +485,7 @@ class OdexUnpackParser(UnpackParser):
             file_path = pathlib.Path("unpacked_from_odex")
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-            outfile.write(self.data.dex.data)
+            outfile.write(self.data.dex)
             yield unpacked_md
 
     # make sure that self.unpacked_size is not overwritten
