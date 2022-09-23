@@ -56,9 +56,6 @@ class AndroidBootImgUnpacker(UnpackParser):
 
         self.unpacked_size = self.infile.tell()
 
-        # TODO: this check should go in the .ksy
-        check_condition(self.data.header.page_size > 0, "page size cannot be zero")
-
         # compute the size and check against the file size
         # take padding into account
         if self.is_variant:
