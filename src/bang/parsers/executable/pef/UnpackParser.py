@@ -59,4 +59,6 @@ class PefClassUnpackParser(UnpackParser):
         pass
 
     labels = ['pef', 'executable', 'macos']
+
+    # TODO: filter/store symbols
     metadata = {}
