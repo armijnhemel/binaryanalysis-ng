@@ -56,7 +56,7 @@ class Lz4legacyUnpackParser(UnpackParser):
         # equals the entire file. If not, carve the file first, as multiple
         # streams can be concatenated and lz4c will concatenate result
         self.havetmpfile = False
-        if not (self.offset == 0 and self.fileresult.filesize == self.unpacked_size):
+        if not (self.offset == 0 and self.infile.size == self.unpacked_size):
             self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
             self.havetmpfile = True
             os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
@@ -66,6 +66,8 @@ class Lz4legacyUnpackParser(UnpackParser):
             p = subprocess.Popen(['lz4c', '-cd', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         else:
             p = subprocess.Popen(['lz4c', '-cd', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+        (outputmsg, errormsg) = p.communicate()
 
         if p.returncode != 0:
             if self.havetmpfile:
