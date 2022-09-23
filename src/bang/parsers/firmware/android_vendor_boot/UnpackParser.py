@@ -43,10 +43,23 @@ class AndroidVendorBootUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
-        file_path = pathlib.Path('vendor_ramdisk')
-        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-            outfile.write(self.data.vendor_ramdisk)
-            yield unpacked_md
+        if self.data.header.version == 3:
+            file_path = pathlib.Path('vendor_ramdisk')
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(self.data.vendor_ramdisk.data)
+                yield unpacked_md
+        elif self.data.header.version == 4:
+            ramdisk_counter = 1
+            for ramdisk in self.data.vendor_ramdisk_table.entries:
+                if ramdisk.name == '':
+                    file_path = pathlib.Path("ramdisk-%d" % ramdisk_counter)
+                else:
+                    file_path = pathlib.Path(ramdisk.name)
+                ramdisk_counter += 1
+
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    outfile.write(ramdisk.ramdisk)
+                    yield unpacked_md
 
         file_path = pathlib.Path('dtb')
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
@@ -58,6 +71,7 @@ class AndroidVendorBootUnpackParser(UnpackParser):
     @property
     def metadata(self):
         metadata = {
-            'commandline': self.data.header.commandline
+            'commandline': self.data.header.commandline,
+            'version': self.data.header.version
         }
         return metadata
