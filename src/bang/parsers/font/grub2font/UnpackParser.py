@@ -38,6 +38,7 @@ class Grub2fontUnpackParser(UnpackParser):
     pretty_name = 'grub2font'
 
     def parse(self):
+        self.unpacked_size = 0
         try:
             self.data = grub2_font.Grub2Font.from_io(self.infile)
             for i in self.data.sections:
