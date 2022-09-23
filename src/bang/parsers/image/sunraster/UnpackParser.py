@@ -23,6 +23,8 @@
 # https://www.fileformat.info/format/sunraster/egff.htm
 # This is an imperfect parser: only some formats are supported
 # and there could be false positives.
+#
+# Sample file: https://www.fileformat.info/format/sunraster/sample/index.htm
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
@@ -50,7 +52,7 @@ class SunrasterUnpackParser(UnpackParser):
         check_condition(self.data.bitmap_type == sunraster.Sunraster.BitmapTypes.standard,
                         "only standard type is supported")
 
-        check_condition(32 + self.data.len_color_map + self.data.len_image_data <= self.fileresult.filesize,
+        check_condition(32 + self.data.len_color_map + self.data.len_image_data <= self.infile.size,
                         "not enough data")
         self.unpacked_size = 32 + self.data.len_color_map + self.data.len_image_data
 
