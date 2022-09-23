@@ -16,7 +16,7 @@ seq:
   - id: preheader
     type: preheader
   - id: header
-    type: header
+    type: maps_header
     size: preheader.len_header
   - id: maps_data
     size: header.len_file - preheader.len_header - preheader._sizeof
@@ -28,7 +28,7 @@ types:
       - id: len_header
         type: u4
         doc: size of the file header in bytes (without magic byte)
-  header:
+  maps_header:
     seq:
       - id: version
         type: u4
@@ -69,7 +69,7 @@ types:
       - id: num_zoom_intervals
         type: u1
       - id: zoom_intervals
-        type: zoom_interval
+        type: zoom_interval(len_file)
         repeat: expr
         repeat-expr: num_zoom_intervals
     instances:
@@ -86,6 +86,9 @@ types:
       has_created_by_field:
         value: flags & 0x04 == 0x04
   zoom_interval:
+    params:
+      - id: max_offset
+        type: u8
     seq:
       - id: base_zoom_level
         type: u1
@@ -97,12 +100,12 @@ types:
         type: u8
         valid:
           min: _root.preheader.len_header
-          max: _root.header.len_file
+          max: max_offset
         doc: absolute start position of the sub file
       - id: len_sub_file
         type: u8
         valid:
-          max: _root.header.len_file - ofs_sub_file
+          max: max_offset - ofs_sub_file
   tags:
     seq:
       - id: num_tags
