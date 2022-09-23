@@ -157,11 +157,11 @@ class AndroidBootImgUnpacker(UnpackParser):
                     metadata = {'extra_cmdline': self.data.header.extra_cmdline.decode()}
                 except:
                     pass
-            metadata['version'] = {'major': self.data.header.os_version.major,
-                                   'minor': self.data.header.os_version.minor,
-                                   'patch': self.data.header.os_version.patch,
-                                   'year': self.data.header.os_version.year,
-                                   'month': self.data.header.os_version.month,
-                                  }
+            metadata['os_version'] = {'major': self.data.header.os_version.major,
+                                     'minor': self.data.header.os_version.minor,
+                                     'patch': self.data.header.os_version.patch,
+                                     'year': self.data.header.os_version.year,
+                                     'month': self.data.header.os_version.month,
+                                    }
 
         return metadata
