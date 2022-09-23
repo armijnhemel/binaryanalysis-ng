@@ -270,6 +270,7 @@ class ElfUnpackParser(UnpackParser):
 
         # module name (for Linux kernel modules)
         self.module_name = ''
+        linux_kernel_module_info = {}
 
         # process the various section headers
         is_dynamic_elf = False
@@ -282,6 +283,7 @@ class ElfUnpackParser(UnpackParser):
                         meta = m.decode()
                         if meta.startswith('name='):
                             self.module_name = meta.split('=', maxsplit=1)[1]
+                            linux_kernel_module_info['name'] = self.module_name
                             break
                 except Exception as e:
                     pass
@@ -383,9 +385,6 @@ class ElfUnpackParser(UnpackParser):
                         pass
                 elif header.name == '.gcc_except_table':
                     # debug information from GCC
-                    pass
-                elif header.name == '.gnu_debugdata':
-                    # debug data, often compressed
                     pass
                 elif header.name == '.gnu_debuglink':
                     # https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
@@ -529,7 +528,7 @@ class ElfUnpackParser(UnpackParser):
                             # LINUX_ELFNOTE_BUILD_SALT
                             # see BUILD_SALT in init/Kconfig
                             try:
-                                metadata['kernel build id salt'] = entry.descriptor.decode()
+                                linux_kernel_module_info['kernel build id salt'] = entry.descriptor.decode()
                             except:
                                 pass
                         elif entry.type == 0x101:
@@ -572,6 +571,9 @@ class ElfUnpackParser(UnpackParser):
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
         metadata['telfhash'] = ''
+
+        if linux_kernel_module_info != {}:
+            metadata['linux_kernel_module'] = linux_kernel_module_info
 
         if metadata['type'] in ['executable', 'shared']:
             try:
