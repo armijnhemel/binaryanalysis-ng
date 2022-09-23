@@ -46,6 +46,7 @@ class RockchipUnpackParser(UnpackParser):
 
         if self.data.magic == 'RKFW':
             self.unpacked_size = self.data.rockchip.ofs_image + self.data.rockchip.len_image
+            self.rockchip_type = 'rkfw'
         elif self.data.magic == 'RKAF':
             # file_size does not include the magic bytes, so add it
             self.unpacked_size = self.data.rockchip.file_size + 4
@@ -53,11 +54,11 @@ class RockchipUnpackParser(UnpackParser):
                 if entry.path == 'SELF':
                     continue
                 self.unpacked_size = max(self.unpacked_size, entry.ofs_image + entry.len_image)
+            self.rockchip_type = 'rkaf'
 
         check_condition(self.infile.size >= self.unpacked_size, "not enough data")
 
     def unpack(self, meta_directory):
-
         if self.data.magic == 'RKFW':
             entries = self.data.rockchip.rkaf.rockchip_files
         elif self.data.magic == 'RKAF':
@@ -101,4 +102,12 @@ class RockchipUnpackParser(UnpackParser):
         pass
 
     labels = ['rockchip']
-    metadata = {}
+
+    @property
+    def metadata(self):
+        metadata = {}
+        metadata['type'] = self.rockchip_type
+        if self.rockchip_type == 'rkfw':
+            # TODO: record more info about chipset, etc.
+            pass
+        return metadata
