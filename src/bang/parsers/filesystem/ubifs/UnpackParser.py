@@ -49,7 +49,6 @@ class UbifsUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
-
         # store the highest inode number
         highest_inum = self.data.master_1.node_header.highest_inum
 
@@ -124,8 +123,8 @@ class UbifsUnpackParser(UnpackParser):
                         node_blocks.append(branch.branch_target)
                 elif type(process_node.node_header) == ubifs.Ubifs.InodeHeader:
                     inode = process_node.node_header.key.inode_number
-                    file_path = pathlib.Path(inode_to_path[inode])
                     if inode in inode_to_type:
+                        file_path = pathlib.Path(inode_to_path[inode])
                         if inode_to_type[inode] == ubifs.Ubifs.InodeTypes.regular:
                             # write a stub file
                             # empty file
