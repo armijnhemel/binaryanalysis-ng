@@ -39,6 +39,8 @@ class BittorrentUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
+    labels = ['torrent', 'resource']
+
     # TODO: extract interesting information from 'announce'
     # and 'comment' elements
     metadata = {}
