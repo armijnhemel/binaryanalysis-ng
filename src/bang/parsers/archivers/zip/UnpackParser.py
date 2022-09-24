@@ -730,7 +730,6 @@ class ZipUnpackParser(UnpackParser):
         else:
             zfile = self.temporary_file[1]
 
-        unpackzipfile = zipfile.ZipFile(zfile)
         try:
             # TODO: process apk results
             apk = pyaxmlparser.APK(zfile)
