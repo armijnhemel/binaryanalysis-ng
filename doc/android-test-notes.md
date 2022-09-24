@@ -126,6 +126,10 @@ there is a CAB file called `_D73E97C33A4BA86CBC3B146ECFF38C2C` which can be
 unpacked with `cabextract` and which contains a file called
 `_B8D67569E4EF4C3386C854FEE4260157` which is the actual firmware file.
 
+## OPEN-ZS590KS-32.0501.0403.4-BSP-2206-user-20220705.zip
+
+ASUS Zenfone 8, contains `android_super`. Uses Oat 183, Vdex 021.
+
 # Random files
 
 Most of the files below were downloaded from obscure firmware download sites,
