@@ -20,8 +20,7 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import os
-import tempfile
+import io
 
 import PIL.Image
 
@@ -65,21 +64,19 @@ class SgiUnpackParser(UnpackParser):
             except OSError as e:
                 raise UnpackParserException(e.args)
         else:
-            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
-            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
-            os.fdopen(temporary_file[0]).close()
+            # load the SGI data into memory
+            self.infile.seek(0)
+            sgi_bytes = io.BytesIO(self.infile.read(self.unpacked_size))
 
-            # reopen as read only
-            sgi_file = open(temporary_file[1], 'rb')
+            # test in PIL
             try:
-                testimg = PIL.Image.open(sgi_file)
+                testimg = PIL.Image.open(sgi_bytes)
                 testimg.load()
                 testimg.close()
             except OSError as e:
                 raise UnpackParserException(e.args)
-            finally:
-                sgi_file.close()
-                os.unlink(temporary_file[1])
+            except PIL.Image.DecompressionBombError as e:
+                raise UnpackParserException(e.args)
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
