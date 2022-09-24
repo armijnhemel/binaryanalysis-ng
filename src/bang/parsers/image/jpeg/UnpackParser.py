@@ -30,8 +30,8 @@
 # https://en.wikipedia.org/wiki/JPEG#Syntax_and_structure
 # also has an extensive list of the markers
 
+import io
 import os
-import tempfile
 
 import PIL.Image
 
@@ -440,23 +440,19 @@ class JpegUnpackParser(UnpackParser):
             except PIL.Image.DecompressionBombError as e:
                 raise UnpackParserException(e.args)
         else:
-            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
-            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
-            os.fdopen(temporary_file[0]).close()
+            # load the JPEG data into memory
+            self.infile.seek(0)
+            jpeg_bytes = io.BytesIO(self.infile.read(self.unpacked_size))
 
-            # reopen as read only
-            jpeg_file = open(temporary_file[1], 'rb')
+            # test in PIL
             try:
-                testimg = PIL.Image.open(jpeg_file)
+                testimg = PIL.Image.open(jpeg_bytes)
                 testimg.load()
                 testimg.close()
             except OSError as e:
                 raise UnpackParserException(e.args)
             except PIL.Image.DecompressionBombError as e:
                 raise UnpackParserException(e.args)
-            finally:
-                jpeg_file.close()
-                os.unlink(temporary_file[1])
 
     labels = ['graphics', 'jpeg']
     metadata = {}
