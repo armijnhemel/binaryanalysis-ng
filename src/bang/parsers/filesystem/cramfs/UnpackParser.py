@@ -231,73 +231,44 @@ class CramfsUnpackParser(UnpackParser):
                     check_condition(inodes[inode]['data_offset'] in offsettoinode,
                                     "invalid directory entry")
 
-        self.havetmpfile = False
-
         # unpack in a temporary directory to rule out things like CRC errors.
         # fsck.cramfs expects to create the directory itself so only create
         # the name and then let fsck.cramfs create the directory.
 
         # first get a temporary name
-        cramfs_unpack_directory = tempfile.mkdtemp(dir=self.scan_environment.temporarydirectory)
+        self.cramfs_unpack_directory = tempfile.mkdtemp(dir=self.scan_environment.temporarydirectory)
 
         # remove the directory. Possible race condition?
-        shutil.rmtree(cramfs_unpack_directory)
+        shutil.rmtree(self.cramfs_unpack_directory)
 
         if self.offset == 0 and self.cramfs_size == self.infile.filesize:
-            p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfs_unpack_directory, self.infile.name],
+            p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % self.cramfs_unpack_directory, self.infile.name],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (outputmsg, errormsg) = p.communicate()
         else:
             temporaryfile = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
             os.sendfile(temporaryfile[0], self.infile.fileno(), self.offset, self.cramfs_size)
             os.fdopen(temporaryfile[0]).close()
-            self.havetmpfile = True
 
-            p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfs_unpack_directory, temporaryfile[1]],
+            p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % self.cramfs_unpack_directory, temporaryfile[1]],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        (outputmsg, errormsg) = p.communicate()
-
-        # clean up
-        if self.havetmpfile:
+            (outputmsg, errormsg) = p.communicate()
             os.unlink(temporaryfile[1])
-
-        if os.path.exists(cramfs_unpack_directory):
-            shutil.rmtree(cramfs_unpack_directory)
 
         if p.returncode != 0:
             # clean up the temporary directory. It could be that
             # fsck.cramfs actually didn't create the directory due to
             # other errors, such as a CRC error.
+            if os.path.exists(self.cramfs_unpack_directory):
+                shutil.rmtree(self.cramfs_unpack_directory)
+
             raise UnpackParserException("cannot unpack cramfs")
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-
-        # create a temporary directory and remove it again
-        # fsck.cramfs cannot unpack to an existing directory
-        # and move contents after unpacking.
-        cramfs_unpack_directory = tempfile.mkdtemp(dir=self.scan_environment.temporarydirectory)
-        shutil.rmtree(cramfs_unpack_directory)
-
-        if not self.havetmpfile:
-            p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfs_unpack_directory, self.infile.name],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        else:
-            temporaryfile = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
-            os.sendfile(temporaryfile[0], self.infile.fileno(), self.offset, self.cramfs_size)
-            os.fdopen(temporaryfile[0]).close()
-
-            p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfs_unpack_directory, temporaryfile[1]],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (outputmsg, errormsg) = p.communicate()
-
-        if self.havetmpfile:
-            os.unlink(temporaryfile[1])
-
         # move the unpacked files
         # move contents of the unpacked file system
-        for result in pathlib.Path(cramfs_unpack_directory).glob('**/*'):
-            relative_result = result.relative_to(cramfs_unpack_directory)
+        for result in pathlib.Path(self.cramfs_unpack_directory).glob('**/*'):
+            relative_result = result.relative_to(self.cramfs_unpack_directory)
             outfile_rel = self.rel_unpack_dir / relative_result
             outfile_full = self.scan_environment.unpack_path(outfile_rel)
             os.makedirs(outfile_full.parent, exist_ok=True)
@@ -318,7 +289,7 @@ class CramfsUnpackParser(UnpackParser):
             unpacked_files.append(fr)
 
         # clean up the temporary directory
-        shutil.rmtree(cramfs_unpack_directory)
+        shutil.rmtree(self.cramfs_unpack_directory)
         return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
