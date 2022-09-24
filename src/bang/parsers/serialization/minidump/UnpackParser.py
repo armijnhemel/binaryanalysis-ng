@@ -32,6 +32,7 @@ from kaitaistruct import ValidationFailedError
 
 from . import windows_minidump
 
+
 class MinidumpUnpackParser(UnpackParser):
     extensions = []
     signatures = [
