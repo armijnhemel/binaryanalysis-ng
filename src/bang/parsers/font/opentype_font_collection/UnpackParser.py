@@ -38,9 +38,6 @@ class OpentypeFontCollectionUnpackParser(UnpackParser):
     ]
     pretty_name = 'ttc'
 
-    def unpack_function(self, fileresult, scan_environment, offset, unpack_dir):
-        return unpack_opentype_font_collection(fileresult, scan_environment, offset, unpack_dir)
-
     def parse(self):
         try:
             self.data = otff.Otff.from_io(self.infile)
