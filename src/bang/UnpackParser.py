@@ -149,20 +149,6 @@ class UnpackParser:
     def is_valid_extension(cls, ext):
         return ext in cls.extensions
 
-    def extract_to_file(self, filename, start, length):
-        """Extracts data from the input stream, starting at start, of length
-        length, to the file pointed to by filename.
-        filename is a path, relative to the unpack root directory.,
-        start is relative to the beginning of the input stream. If the file
-        data is assumed to start at an offset in the input stream, you will
-        need to add this offset when calling this method.
-        """
-        outfile_full = self.scan_environment.unpack_path(filename)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
-        os.sendfile(outfile.fileno(), self.infile.fileno(), self.infile.offset + start, length)
-        outfile.close()
-
 
 class ExtractedParser(UnpackParser):
 
