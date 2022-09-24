@@ -63,7 +63,7 @@ class AaptParser(UnpackParser):
             if entry.entry_type == aapt.Aapt.EntryTypes.file:
                 entry_file = ResourcesInternal_pb2.CompiledFile()
                 entry_file.ParseFromString(entry.data.header)
-                file_path = pathlib.Path(entry_file.source_path).name
+                file_path = pathlib.Path(entry_file.source_path)
 
                 with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                     outfile.write(entry.data.data)
