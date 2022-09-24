@@ -20,6 +20,7 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -91,7 +92,7 @@ class AndroidSuperUnpackParser(UnpackParser):
             for i in range(0, self.partitions[partition]['num_extents']):
                 extent_number = self.partitions[partition]['first_extent'] + i
                 check_condition(extent_number in self.extents, "invalid extent number")
-                check_condition(self.extents[extent_number]['offset'] + self.extents[extent_number]['size'] <= self.fileresult.filesize,
+                check_condition(self.extents[extent_number]['offset'] + self.extents[extent_number]['size'] <= self.infile.size,
                                 "extent too large for file")
                 self.unpacked_size = self.extents[extent_number]['offset'] + self.extents[extent_number]['size']
                 
@@ -107,7 +108,7 @@ class AndroidSuperUnpackParser(UnpackParser):
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 for i in range(0, self.partitions[partition]['num_extents']):
                     extent_number = self.partitions[partition]['first_extent'] + i
-                    self.extract_to_file(outfile, self.extents[extent_number]['offset'], self.extents[extent_number]['size'])
+                    os.sendfile(outfile.fileno(), self.infile.fileno(), self.extents[extent_number]['offset'], self.extents[extent_number]['size'])
 
                 yield unpacked_md
 
