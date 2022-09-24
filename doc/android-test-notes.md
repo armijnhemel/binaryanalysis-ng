@@ -128,7 +128,8 @@ unpacked with `cabextract` and which contains a file called
 
 ## OPEN-ZS590KS-32.0501.0403.4-BSP-2206-user-20220705.zip
 
-ASUS Zenfone 8, contains `android_super`. Uses Oat 183, Vdex 021.
+ASUS Zenfone 8, contains `android_super`. Uses Oat 183, Vdex 021. Also has
+`chromatix` and `aapt`.
 
 # Random files
 
