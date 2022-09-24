@@ -116,11 +116,6 @@ class UnpackParser:
     def parsed_size(self):
         return self.unpacked_size
 
-    def set_metadata_and_labels(self):
-        """Override this method to set metadata and labels."""
-        self.unpack_results.set_labels([])
-        self.unpack_results.set_metadata({})
-
     def unpack(self, to_meta_directory):
         """Override this method to unpack any data into subfiles.
         The filenames will be stored in to_meta_directory root.
