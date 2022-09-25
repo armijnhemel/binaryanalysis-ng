@@ -22,6 +22,7 @@
 
 import io
 import os
+import pathlib
 import zipfile
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -44,9 +45,6 @@ class CrxUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-        unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
-
         zip_offset = self.data.header.len_header
         zip_end = self.infile.tell()
 
@@ -60,14 +58,13 @@ class CrxUnpackParser(UnpackParser):
         except:
             pass
         for z in crx_zip.infolist():
+            file_path = pathlib.Path(z.filename)
             try:
-                crx_zip.extract(z, unpackdir_full)
-                fr = FileResult(self.fileresult, self.rel_unpack_dir / z.filename, set())
-                unpacked_files.append(fr)
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    outfile.write(crx_zip.read(z))
+                    yield unpacked_md
             except Exception as e:
                 pass
-
-        return unpacked_files
 
     labels = ['crx', 'chrome']
     metadata = {}
