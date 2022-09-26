@@ -615,9 +615,6 @@ class ZipUnpackParser(UnpackParser):
         pass
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-        unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
-
         # no files need to be unpacked for encrypted files
         # only stored, deflate, bzip2 and lzma are currently
         # supported in Python's zipfile module.
@@ -632,6 +629,9 @@ class ZipUnpackParser(UnpackParser):
         else:
             unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
 
+        unpacked_files = []
+        #unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
+
         # Extract files (or create a directory for faulty files) but
         # do not yet add a file result. There are some files where
         # there are relative entries. Python's zip module will take
@@ -645,28 +645,24 @@ class ZipUnpackParser(UnpackParser):
         #
         # Test data can be found in the Apktool repository
         for z in self.zipinfolist:
-            outfile_rel = self.rel_unpack_dir / z.filename
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
+            file_path = pathlib.Path(z.filename)
 
             if z in self.faulty_files:
                 # create the directory
-                # TODO: check for relative paths
-                outfile_full.mkdir(exist_ok=True)
+                meta_directory.unpack_directory(file_path)
             else:
                 try:
-                    unpackzipfile.extract(z, path=self.rel_unpack_dir)
+                    if not z.is_dir():
+                        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                            outfile.write(unpackzipfile.read(z))
+                            yield unpacked_md
+                    else:
+                        meta_directory.unpack_directory(file_path)
                 except NotADirectoryError:
                     # TODO: find out what to do here. This happens
                     # sometimes with zip files with symbolic links from
                     # one directory to another.
                     pass
-
-        # Walk the result directory
-        for result in unpackdir_full.glob('**/*'):
-            # add the file to the result set
-            file_path = result.relative_to(unpackdir_full)
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set())
-            unpacked_files.append(fr)
 
         if self.carved:
             # cleanup
