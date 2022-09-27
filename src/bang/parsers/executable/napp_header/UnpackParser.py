@@ -20,7 +20,7 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from bang.UnpackParser import UnpackParser, check_condition, OffsetInputFile
+from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import android_nanoapp_header
