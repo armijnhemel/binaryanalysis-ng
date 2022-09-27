@@ -87,10 +87,9 @@ class CompressUnpackParser(UnpackParser):
             (standard_out, standard_error) = p.communicate()
             check_condition(p.returncode == 0 and standard_error == b'',
                             'invalid compress file')
-            self.unpacked_size = self.fileresult.filesize
         else:
             self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
-            os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.fileresult.filesize - self.offset)
+            os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.infile.size)
             os.fdopen(self.temporary_file[0]).close()
 
             p = subprocess.Popen(['uncompress', '-c', self.temporary_file[1]],
@@ -104,7 +103,7 @@ class CompressUnpackParser(UnpackParser):
                             'invalid compress file')
 
             self.havetmpfile = True
-            self.unpacked_size = self.fileresult.filesize - self.offset
+        self.unpacked_size = self.infile.size
 
     def unpack(self, meta_directory):
         # determine the name of the output file
