@@ -516,7 +516,7 @@ def process_jobs(pipeline, scan_environment):
         # TODO: check if timeout long enough
         log.debug(f'process_jobs: getting scanjob')
         s = scan_environment.scan_semaphore.acquire(blocking=False)
-        if s == True: # at least one scan job is running
+        if s: # at least one scan job is running
             try:
                 #scanjob = scan_environment.scan_queue.get(timeout=86400)
                 scanjob = scan_environment.scan_queue.get(timeout=scan_environment.job_wait_time)

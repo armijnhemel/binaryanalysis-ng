@@ -145,7 +145,7 @@ class MetaDirectory:
         self._info_write = self._info_write or info_write
         open_file = open_file or (self._open_file is None)
         if open_file:
-                self._open_file = self.abs_file_path.open('rb')
+            self._open_file = self.abs_file_path.open('rb')
         if self._refcount == 0:
             self.info = self._read_info()
             log.debug(f'[{self.md_path}]open: opening context, reading info {self.info}')
@@ -194,7 +194,7 @@ class MetaDirectory:
         the open() context will not write again. If you call this method, be aware of what you are
         doing!
         '''
-        log.debug(f'[{self.md_path}]write_ahead: setting refcount to 0 and write info to disk') 
+        log.debug(f'[{self.md_path}]write_ahead: setting refcount to 0 and write info to disk')
         self._refcount = 0
         self._write_info(self.info)
 
