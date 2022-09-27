@@ -24,11 +24,10 @@ import bz2
 import hashlib
 import lzma
 import os
+import pathlib
 import zlib
 
 import zstandard
-
-from FileResult import FileResult
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
@@ -227,19 +226,15 @@ class ZimUnpackParser(UnpackParser):
                 # TODO: both name and target are relative to the root
                 # this means that a relative path from name to target
                 # should be computed first.
-                outfile_rel = self.rel_unpack_dir / name
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                file_path = pathlib.Path(name)
 
-                # check if a directory component already exists as a regular file.
+                # TODO: check if a directory component already exists as a regular file.
                 # This should not happen, but Zim allows for this. Example:
                 # zdoom_en_all_nopic_2021-10.zim
                 try:
-                    os.makedirs(outfile_full.parent, exist_ok=True)
-                except:
+                    meta_directory.unpack_symlink(file_path, target)
+                except Exception as e:
                     continue
-                outfile_full.symlink_to(target)
-                fr = FileResult(self.fileresult, outfile_rel, set([]))
-                unpacked_files.append(fr)
             else:
                 if entry.entry.body.namespace in SKIPPABLE:
                     continue
@@ -251,29 +246,23 @@ class ZimUnpackParser(UnpackParser):
                 else:
                     continue
 
-                outfile_rel = self.rel_unpack_dir / name
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
+                file_path = pathlib.Path(name)
 
-                # check if a directory component already exists as a regular file.
+                # TODO: check if a directory component already exists as a regular file.
                 # This should not happen, but Zim allows for this. Example:
                 # zdoom_en_all_nopic_2021-10.zim
                 try:
-                    os.makedirs(outfile_full.parent, exist_ok=True)
+                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                        if entry.entry.body.cluster_number not in blobs_per_compressed_cluster:
+                            # not in a compressed cluster, so easy to process
+                            outfile.write(self.data.clusters.clusters[entry.entry.body.cluster_number].cluster.body.blobs[entry.entry.body.blob_number].blob)
+                        else:
+                            outfile.write(blobs_per_compressed_cluster[entry.entry.body.cluster_number][entry.entry.body.blob_number])
+                        yield unpacked_md
                 except:
                     continue
-                outfile = open(outfile_full, 'wb')
 
-                if entry.entry.body.cluster_number not in blobs_per_compressed_cluster:
-                    # not in a compressed cluster, so easy to process
-                    outfile.write(self.data.clusters.clusters[entry.entry.body.cluster_number].cluster.body.blobs[entry.entry.body.blob_number].blob)
-                else:
-                    outfile.write(blobs_per_compressed_cluster[entry.entry.body.cluster_number][entry.entry.body.blob_number])
-                outfile.close()
-                fr = FileResult(self.fileresult, outfile_rel, set([]))
-                unpacked_files.append(fr)
             entry_counter += 1
-
-        return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
