@@ -8,6 +8,7 @@ The scripts can output in several formats. Currently supported:
 
 * Cypher (Neo4J) (default, this might change)
 * dot (graphviz), output in PNG and SVG
+* jsonl (arangodb / arangoimport)
 
 This script originally comes from the following repository:
 
