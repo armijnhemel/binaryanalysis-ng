@@ -629,9 +629,6 @@ class ZipUnpackParser(UnpackParser):
         else:
             unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
 
-        unpacked_files = []
-        #unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
-
         # Extract files (or create a directory for faulty files) but
         # do not yet add a file result. There are some files where
         # there are relative entries. Python's zip module will take
@@ -667,8 +664,6 @@ class ZipUnpackParser(UnpackParser):
         if self.carved:
             # cleanup
             os.unlink(self.temporary_file[1])
-
-        return unpacked_files
 
     @property
     def labels(self):
