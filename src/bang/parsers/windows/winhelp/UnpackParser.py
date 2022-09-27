@@ -24,7 +24,7 @@
 Parse and unpack Windows Help (.hlp) files.
 '''
 
-from bang.UnpackParser import UnpackParser, check_condition, OffsetInputFile
+from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import winhelp
