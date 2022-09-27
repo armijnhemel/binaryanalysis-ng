@@ -24,9 +24,9 @@
 # man 5 ppm
 # man 5 pgm
 
+import io
 import os
 import string
-import tempfile
 
 import PIL.Image
 
@@ -182,13 +182,13 @@ class PnmUnpackParser(UnpackParser):
                 if self.pnmtype == 'ppm':
                     len_data_bytes = len_data_bytes * 3
 
-        check_condition(self.infile.tell() + len_data_bytes <= self.fileresult.filesize,
+        check_condition(self.infile.tell() + len_data_bytes <= self.infile.size,
                         "not enough data for raster")
 
         self.unpacked_size = self.infile.tell() + len_data_bytes
         # use PIL as an extra sanity check
 
-        if self.unpacked_size == self.fileresult.filesize:
+        if self.unpacked_size == self.infile.size:
             # now load the file using PIL as an extra sanity check
             # although this doesn't seem to do a lot.
             try:
@@ -202,14 +202,13 @@ class PnmUnpackParser(UnpackParser):
             except ZeroDivisionError as e:
                 raise UnpackParserException(e.args)
         else:
-            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
-            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
-            os.fdopen(temporary_file[0]).close()
+            # load the PNM/PPM/PBM data into memory
+            self.infile.seek(0)
+            pnm_bytes = io.BytesIO(self.infile.read(self.unpacked_size))
 
-            # reopen as read only
-            pnm_file = open(temporary_file[1], 'rb')
+            # test in PIL
             try:
-                testimg = PIL.Image.open(pnm_file)
+                testimg = PIL.Image.open(pnm_bytes)
                 testimg.load()
                 testimg.close()
             except OSError as e:
@@ -218,9 +217,8 @@ class PnmUnpackParser(UnpackParser):
                 raise UnpackParserException(e.args)
             except ZeroDivisionError as e:
                 raise UnpackParserException(e.args)
-            finally:
-                pnm_file.close()
-                os.unlink(temporary_file[1])
+            except PIL.Image.DecompressionBombError as e:
+                raise UnpackParserException(e.args)
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
