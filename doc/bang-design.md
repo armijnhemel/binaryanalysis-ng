@@ -128,7 +128,7 @@ scanning of very large collections of files.
   parsed again, because the processing code will assign it a fresh meta
   directory in which the UnpackParser can store its information.
 * Minimize opening files: A meta directory will open the file and provide a
-  file object and the mmap-ed file object to the parsers.
+  file object to the parsers.
 * Pre-parsing checks: UnpackParsers can implement quick heuristic checks before
   doing large parses.
 
