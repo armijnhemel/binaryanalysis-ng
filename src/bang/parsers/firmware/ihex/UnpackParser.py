@@ -159,9 +159,6 @@ class IhexUnpackParser(UnpackParser):
         self.unpacked_size = unpacked
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-        out_labels = []
-
         if meta_directory.file_path.suffix.lower() in ['.hex', '.ihex']:
             file_path = pathlib.Path(meta_directory.file_path.stem)
             if file_path in ['.', '..']:
