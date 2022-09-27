@@ -43,6 +43,7 @@ from . import coff
 
 import pefile
 
+
 class ExeUnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -51,8 +52,6 @@ class ExeUnpackParser(UnpackParser):
     pretty_name = 'exe'
 
     def parse(self):
-        self.file_size = self.fileresult.filesize
-
         # first try to recognize if a file is a PE.
         # This is the most common case.
         try:
@@ -97,14 +96,14 @@ class ExeUnpackParser(UnpackParser):
                 raise UnpackParserException(e.args)
 
         if self.exetype == 'pe':
-            check_condition(self.data.mz.ofs_pe <= self.file_size,
+            check_condition(self.data.mz.ofs_pe <= self.infile.size,
                     "invalid offset")
         elif self.exetype == 'dos_mz':
             if self.data.header.mz.last_page_extra_bytes == 0:
                 self.end_of_data = self.data.header.mz.num_pages * 512
             else:
                 self.end_of_data = (self.data.header.mz.num_pages - 1) * 512 + self.data.header.mz.last_page_extra_bytes
-            check_condition(self.end_of_data <= self.fileresult.filesize,
+            check_condition(self.end_of_data <= self.infile.size,
                             "not enough data")
 
             self.extender = ''
@@ -115,7 +114,8 @@ class ExeUnpackParser(UnpackParser):
             # DOS MZ header and payload, example: many FreeDOS programs
             # some signatures from /usr/share/magic
             self.has_coff = False
-            if self.end_of_data + self.offset != self.fileresult.filesize:
+
+            if self.end_of_data != self.infile.size:
                 if self.data.body.startswith(b'go32stub, v 2.0'):
                     self.extender = 'DJGPP go32'
                     self.has_coff = True
@@ -145,15 +145,15 @@ class ExeUnpackParser(UnpackParser):
                     self.coff_size = inf.tell()
                     for section in self.coff.section_headers:
                         if section.ofs_section != 0:
-                            check_condition(section.ofs_section + section.len_section <= self.fileresult.filesize - coff_offset,
+                            check_condition(section.ofs_section + section.len_section <= self.infile.size - coff_offset,
                                             "section data outside of file")
                             self.coff_size = max(self.coff_size, section.ofs_section + section.len_section)
                         if section.ofs_relocation_table != 0:
-                            check_condition(section.ofs_relocation_table <= self.fileresult.filesize - coff_offset,
+                            check_condition(section.ofs_relocation_table <= self.infile.size - coff_offset,
                                             "section data outside of file")
                             self.coff_size = max(self.coff_size, section.ofs_relocation_table)
                         if section.ofs_line_number_table != 0:
-                            check_condition(section.ofs_line_number_table <= self.fileresult.filesize - coff_offset,
+                            check_condition(section.ofs_line_number_table <= self.infile.size - coff_offset,
                                             "section data outside of file")
                             self.coff_size = max(self.coff_size, section.ofs_line_number_table)
 
