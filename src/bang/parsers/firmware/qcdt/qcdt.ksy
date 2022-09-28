@@ -16,7 +16,7 @@ doc-ref:
   - https://raw.githubusercontent.com/CyanogenMod/android_device_qcom_common/cm-14.1/dtbtool/dtbtool.txt (v3)
   - https://source.codeaurora.org/quic/kernel/skales/plain/dtbTool?id=1.6.0
   - web.archive.org/web/20160402060151if_/https://developer.qualcomm.com/qfile/28821/lm80-p0436-1_little_kernel_boot_loader_overview.pdf (section 2.4.1)
-  - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/soc/qcom/socinfo.c?h=v5.13
+  - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/soc/qcom/socinfo.c?h=v5.19
   - https://android.googlesource.com/kernel/msm/+/android-7.1.0_r0.2/drivers/soc/qcom/socinfo.c
   - https://github.com/brinlyau/P810D02_ZTE_T792_KitKat_3.4/blob/master/P810D02_ZTE_T792_KitKat_340_kernel/arch/arm/mach-msm/socinfo.c
 seq:
@@ -183,7 +183,7 @@ enums:
     184: apq8074
     185: msm8274
     186: msm8674
-    194: msm8974_pro
+    194: msm8974_pro_ac
     198: msm8126
     199: apq8026
     200: msm8926
@@ -193,17 +193,17 @@ enums:
     205: msm8326
     206: msm8916
     207: msm8994
-    208: apq8074_aa
-    209: apq8074_ab
-    210: apq8074_pro
-    211: msm8274_aa
-    212: msm8274_ab
-    213: msm8274_pro
-    214: msm8674_aa
-    215: msm8674_ab
-    216: msm8674_pro
-    217: msm8974_aa
-    218: msm8974_ab
+    208: apq8074pro-aa
+    209: apq8074pro-ab
+    210: apq8074pro-ac
+    211: msm8274pro-aa
+    212: msm8274pro-ab
+    213: msm8274pro-ac
+    214: msm8674pro-aa
+    215: msm8674pro-ab
+    216: msm8674pro-ac
+    217: msm8974pro-aa
+    218: msm8974pro-ab
     219: apq8028
     220: msm8128
     221: msm8228
@@ -263,11 +263,18 @@ enums:
     421: ipq6000
     422: ipq6010
     425: sc7180
+    439: sm8350
+    449: sc8280xp
     453: ipq6005
     455: qrb5165
     457: sm8450
     459: sm7225
-    460: sa8540p
+    460: sa8295p
+    461: sa8540p
+    480: sm8450_1
+    482: sm8450_2
+    487: sc7280
+    495: sc7180p
   platform_ids:
     1: cdp
     2: ffa
