@@ -193,17 +193,17 @@ enums:
     205: msm8326
     206: msm8916
     207: msm8994
-    208: apq8074pro-aa
-    209: apq8074pro-ab
-    210: apq8074pro-ac
-    211: msm8274pro-aa
-    212: msm8274pro-ab
-    213: msm8274pro-ac
-    214: msm8674pro-aa
-    215: msm8674pro-ab
-    216: msm8674pro-ac
-    217: msm8974pro-aa
-    218: msm8974pro-ab
+    208: apq8074pro_aa
+    209: apq8074pro_ab
+    210: apq8074pro_ac
+    211: msm8274pro_aa
+    212: msm8274pro_ab
+    213: msm8274pro_ac
+    214: msm8674pro_aa
+    215: msm8674pro_ab
+    216: msm8674pro_ac
+    217: msm8974pro_aa
+    218: msm8974pro_ab
     219: apq8028
     220: msm8128
     221: msm8228
