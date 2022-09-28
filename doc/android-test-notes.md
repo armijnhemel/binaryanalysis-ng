@@ -103,6 +103,10 @@ and Dex 035.
 From <https://dl.twrp.me/marlin/>. Uses the `android_boot_img` version 0 format
 and Dex 035.
 
+## lineage-18.1-20220401-recovery-FP2.img
+
+Uses `qcdt`.
+
 # Official firmware files
 
 ## htc_d027_9_7inch_wm3732_phonesdk_gc2035_gc0308_de_201210122.img
