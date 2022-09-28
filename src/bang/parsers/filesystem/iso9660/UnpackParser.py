@@ -27,7 +27,6 @@
 # https://www.sciencedirect.com/science/article/pii/S1742287610000435
 
 import collections
-import os
 import pathlib
 import zlib
 
@@ -78,11 +77,11 @@ class Iso9660UnpackParser(UnpackParser):
 
                     has_primary = True
                     iso_size = descriptor.volume.volume_space_size.value * self.block_size
-                    check_condition(iso_size <= self.fileresult.filesize,
+                    check_condition(iso_size <= self.infile.size,
                                     "declared ISO9660 image bigger than file")
 
                     extent_size = descriptor.volume.root_directory.body.extent.value * self.block_size
-                    check_condition(extent_size <= self.fileresult.filesize,
+                    check_condition(extent_size <= self.infile.size,
                                     "extent cannot be outside of file")
 
                     # process the root directory.
@@ -113,7 +112,7 @@ class Iso9660UnpackParser(UnpackParser):
                         full_filename = cwd / filename
 
                         extent_size = record.body.extent.value * descriptor.volume.logical_block_size.value
-                        check_condition(extent_size <= self.fileresult.filesize,
+                        check_condition(extent_size <= self.infile.size,
                                         "extent cannot be outside of file")
 
                         # store if an entry is a zisofs file
@@ -299,8 +298,6 @@ class Iso9660UnpackParser(UnpackParser):
         self.unpacked_size = iso_size
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-
         # check the contents of the ISO image
         for descriptor in self.data.data_area:
             if descriptor.type == iso9660.Iso9660.VolumeType.primary:
@@ -412,41 +409,35 @@ class Iso9660UnpackParser(UnpackParser):
 
                     if not record.body.file_flags_directory:
                         # regular files, symlinks, etc.
-                        outfile_rel = self.rel_unpack_dir / full_filename
-                        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                        os.makedirs(outfile_full.parent, exist_ok=True)
+                        file_path = pathlib.Path(full_filename)
 
                         # create files/links but only if they are not
                         # placeholder files (for relocated directories)
                         if not is_placeholder:
                             if is_symlink:
-                                outfile_full.symlink_to(symbolic_target_name)
-                                fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
+                                meta_directory.unpack_symlink(file_path, symbolic_target_name)
                             else:
-                                outfile = open(outfile_full, 'wb')
-                                if is_zisofs_file:
-                                    zisofs_file = zisofs.Zisofs.from_bytes(record.body.file_content)
+                                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                                    if is_zisofs_file:
+                                        zisofs_file = zisofs.Zisofs.from_bytes(record.body.file_content)
 
-                                    for block in zisofs_file.blocks:
-                                        if block.len_block == 0:
-                                            outfile.seek( zisofs_file.header.block_size)
-                                        else:
-                                            outfile.write(zlib.decompress(block.data))
+                                        for block in zisofs_file.blocks:
+                                            if block.len_block == 0:
+                                                outfile.seek(zisofs_file.header.block_size)
+                                            else:
+                                                outfile.write(zlib.decompress(block.data))
 
-                                    # in case more bytes were written because the last
-                                    # block with NUL bytes actually should not have been
-                                    # a full block.
-                                    outfile.truncate(original_size)
-                                else:
-                                    outfile.write(record.body.file_content)
+                                        # in case more bytes were written because the last
+                                        # block with NUL bytes actually should not have been
+                                        # a full block.
+                                        outfile.truncate(original_size)
+                                    else:
+                                        outfile.write(record.body.file_content)
+                                    yield unpacked_md
 
-                                outfile.close()
-                                fr = FileResult(self.fileresult, outfile_rel, set())
-                            unpacked_files.append(fr)
                     else:
-                        outfile_rel = self.rel_unpack_dir / full_filename
-                        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                        os.makedirs(outfile_full, exist_ok=True)
+                        # directory
+                        meta_directory.unpack_directory(file_path)
 
                         # add the contents of a directory to the queue
                         for dir_record in record.body.directory_records.records:
@@ -460,7 +451,6 @@ class Iso9660UnpackParser(UnpackParser):
                                     files.append((dir_record, cwd / filename))
                             else:
                                 files.append((dir_record, cwd / filename))
-        return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
@@ -482,3 +472,4 @@ class Iso9660UnpackParser(UnpackParser):
             metadata['apple extensions'] = True
         if self.zisofs:
             metadata['zisofs'] = True
+        return metadata
