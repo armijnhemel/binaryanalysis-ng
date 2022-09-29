@@ -172,6 +172,47 @@ data from a file. When extracting, we have a stream that can contain data
 beyond the file that we want to extract, and therefore, our parser cannot
 depend on that.
 
+### Difficulties using `_io.size`
+
+The BANG parsers use `OffsetInputFile`, a thin wrapper around a regular file
+that hides the offset, so it appears that the file is always opened at
+offset 0. This makes writing parsers easier, but the Kaitai Struct parsers
+do not use `OffsetInputFile`, but the underlying file. This means that certain
+things in Kaitai Struct files will not necessarily make sense, such as
+`_io.size`. The `_io.size` variable will point to the length of the *original*
+file, not the wrapped file.
+
+This has consequences example when carving files or when doing sanity checks
+(it is no issue for files where parsing starts at `0`). An example is the
+`git_index` format, for which the following is defined in the `.ksy` file:
+
+```
+seq:
+  - id: header
+    type: header
+  - id: entries
+    type: entry
+    repeat: expr
+    repeat-expr: header.num_entries
+  - id: extensions
+    type: extension
+    repeat: until
+    repeat-until: _io.pos >= _io.size - len_hash
+  - id: checksum
+    size: len_hash
+```
+
+The `repeat-until` for the `extensions` element is depending on `_io.size`
+to determine when to break out of the loop. If parsing of the file does not
+start at `0`, then the wrong data is read and parsing will fail.
+
+The solution is of course to not rely on `_io.size` but sometimes this isn't
+always possible.
+
+Because of this some files will not be correctly carved and unpacked if there
+is extra data prepended in front of the file. As most files that are parsed
+start at offset `0` this is inconvenient, but not a major problem.
+
 ### Handling parse errors
 
 The UnpackParser class asks us to raise `UnpackParserExceptions` for non-fatal
