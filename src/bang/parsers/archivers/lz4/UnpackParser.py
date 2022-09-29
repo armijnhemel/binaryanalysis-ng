@@ -54,14 +54,14 @@ class Lz4UnpackParser(UnpackParser):
                 check_condition(block.checksum == block_checksum.intdigest(),
                                 "invalid block checksum")
 
+        self.unpacked_size = self.infile.tell()
+
         # test if descmpression works
         # first create a decompressor object
         decompressor = lz4.frame.create_decompression_context()
 
         # seek to the input of the input
-        self.infile.infile.seek(self.offset)
-
-        self.unpacked_size = self.infile.tell()
+        self.infile.seek(0)
 
         bytes_to_read = self.unpacked_size
         readsize = min(bytes_to_read, 1000000)
@@ -72,6 +72,7 @@ class Lz4UnpackParser(UnpackParser):
             try:
                 uncompressresults = lz4.frame.decompress_chunk(decompressor, checkbytes)
             except Exception as e:
+                print(e)
                 raise UnpackParserException(e.args)
             bytes_to_read -= readsize
             readsize = min(bytes_to_read, 1000000)
@@ -92,7 +93,7 @@ class Lz4UnpackParser(UnpackParser):
             decompressor = lz4.frame.create_decompression_context()
 
             # seek to the input of the input
-            self.infile.infile.seek(self.offset)
+            self.infile.seek(0)
 
             bytes_to_read = self.unpacked_size
             readsize = min(bytes_to_read, 1000000)
