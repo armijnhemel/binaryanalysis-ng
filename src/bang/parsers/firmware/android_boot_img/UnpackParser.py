@@ -55,6 +55,9 @@ class AndroidBootImgUnpacker(UnpackParser):
             except (Exception, ValidationFailedError) as e:
                 raise UnpackParserException(e.args)
 
+            check_condition(self.data.header.page_size + self.data.header.kernel.size <= self.infile.size,
+                            "data cannot be outside of file")
+
         self.unpacked_size = self.infile.tell()
 
         # compute the size and check against the file size
