@@ -63,7 +63,7 @@ class IccUnpackParser(UnpackParser):
         # perhaps there are also padding bytes, as fields
         # are 4 bytes aligned
         if self.unpacked_size % 4 != 0:
-            self.infile.seek(self.offset + self.unpacked_size)
+            self.infile.seek(self.unpacked_size)
             num_padding = 4 - (self.unpacked_size % 4)
             buf = self.infile.read(num_padding)
             if buf == b'\x00' * num_padding:
