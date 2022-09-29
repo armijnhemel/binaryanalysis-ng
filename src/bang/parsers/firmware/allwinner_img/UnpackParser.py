@@ -41,7 +41,7 @@ class AllwinnerUnpackParser(UnpackParser):
             self.data = allwinner_img.AllwinnerImg.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
-        check_condition(self.data.img_header.len_image + self.offset <= self.infile.size, "not enough data")
+        check_condition(self.data.img_header.len_image <= self.infile.size, "not enough data")
         self.unpacked_size = 0
         for entry in self.data.file_headers:
             check_condition(entry.file_header_data.stored_length >= entry.file_header_data.original_length,
