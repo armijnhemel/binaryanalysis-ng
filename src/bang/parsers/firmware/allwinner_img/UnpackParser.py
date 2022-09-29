@@ -53,7 +53,7 @@ class AllwinnerUnpackParser(UnpackParser):
         for entry in self.data.file_headers:
             file_path = pathlib.Path(entry.file_header_data.name)
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
-                os.sendfile(f.fileno(), self.infile.fileno(), entry.file_header_data.offset,
+                os.sendfile(f.fileno(), self.infile.fileno(), entry.file_header_data.offset + self.offset,
                                  entry.file_header_data.original_length)
                 yield unpacked_md
 
