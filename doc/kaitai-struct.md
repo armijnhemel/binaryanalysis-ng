@@ -215,6 +215,15 @@ Because of this some files will not be correctly carved and unpacked if there
 is extra data prepended in front of the file. As most files that are parsed
 start at offset `0` this is inconvenient, but not a major problem.
 
+Currently the following parsers are potentially affected because `_io.size`
+is used in the "main" stream.
+
+1. `au`
+2. `cpio_old_binary`
+3. `git_index`
+4. `gpt_partition_table`
+5. `quicktime`
+
 ### Handling parse errors
 
 The UnpackParser class asks us to raise `UnpackParserExceptions` for non-fatal
