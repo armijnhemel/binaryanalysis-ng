@@ -26,7 +26,6 @@ import tarfile
 
 from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
-from FileResult import FileResult
 
 
 class TarUnpackParser(UnpackParser):
@@ -80,7 +79,7 @@ class TarUnpackParser(UnpackParser):
         self.unpacked_size = self.infile.tell()
 
         if self.unpacked_size % 512 == 0:
-            while self.unpacked_size < self.fileresult.filesize - self.offset:
+            while self.unpacked_size < self.infile.size:
                 checkbytes = self.infile.read(512)
                 if len(checkbytes) != 512:
                     break
@@ -135,6 +134,9 @@ class TarUnpackParser(UnpackParser):
                     #outfile_full.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
                 #fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
                 #unpacked_files.append(fr)
+
+    def calculate_unpacked_size(self):
+        pass
 
     labels = ['tar', 'archive']
     metadata = {}
