@@ -43,7 +43,6 @@ class OggUnpackParser(UnpackParser):
         try:
             self.data = ogg.Ogg.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            print(e)
             raise UnpackParserException(e.args)
 
     labels = ['audio', 'ogg']
