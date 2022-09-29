@@ -121,7 +121,7 @@ class TruetypeFontUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-        check_condition(self.offset + self.unpacked_size <= self.infile.size,
+        check_condition(self.unpacked_size <= self.infile.size,
                         "not enough data")
 
         # then compute the font checksum
