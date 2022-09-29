@@ -179,12 +179,14 @@ that hides the offset, so it appears that the file is always opened at
 offset 0. This makes writing parsers easier, but the Kaitai Struct parsers
 do not use `OffsetInputFile`, but the underlying file. This means that certain
 things in Kaitai Struct files will not necessarily make sense, such as
-`_io.size`. The `_io.size` variable will point to the length of the *original*
-file, not the wrapped file.
+using `_io.size` in the main structure of the file (the so called "stream").
+The `_io.size` variable will point to the length of the *original* file, not
+the wrapped file.
 
 This has consequences example when carving files or when doing sanity checks
-(it is no issue for files where parsing starts at `0`). An example is the
-`git_index` format, for which the following is defined in the `.ksy` file:
+(it is no issue for files where parsing starts at `0` or when `_io.size` is
+used in a substream). An example is the `git_index` format, for which the
+following is defined in the `.ksy` file:
 
 ```
 seq:
@@ -206,8 +208,8 @@ The `repeat-until` for the `extensions` element is depending on `_io.size`
 to determine when to break out of the loop. If parsing of the file does not
 start at `0`, then the wrong data is read and parsing will fail.
 
-The solution is of course to not rely on `_io.size` but sometimes this isn't
-always possible.
+The solution is of course to not rely on `_io.size` in the "main" stream of
+a file but sometimes this isn't always possible.
 
 Because of this some files will not be correctly carved and unpacked if there
 is extra data prepended in front of the file. As most files that are parsed
