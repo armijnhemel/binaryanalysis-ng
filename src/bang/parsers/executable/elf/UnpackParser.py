@@ -176,11 +176,17 @@ class ElfUnpackParser(UnpackParser):
 
     def unpack(self, meta_directory):
         # interesting data might reside in some of the ELF sections.
-        # Not all of them are interesting, but there are a few that are.
-        # These are unpacked here and processed further.
+        # TODO: write *all* ELF sections?
+        # There are some Android variants where the interesting data might
+        # span multiple sections.
         for header in self.data.header.section_headers:
             if header.type == elf.Elf.ShType.progbits:
+                interesting = False
                 if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext']:
+                    interesting = True
+                if header.name.startswith('.gresource'):
+                    interesting = True
+                if interesting:
                     file_path = pathlib.Path(header.name)
                     with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                         outfile.write(header.body)
@@ -471,6 +477,12 @@ class ElfUnpackParser(UnpackParser):
                     pass
                 elif header.name == '.rol4re_elf_aux':
                     labels.append('l4')
+                elif header.name == '.sbat':
+                    # systemd, example linuxx64.elf.stub
+                    pass
+                elif header.name == '.sdmagic':
+                    # systemd, example linuxx64.elf.stub
+                    pass
 
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
