@@ -170,7 +170,7 @@ class Yaffs2UnpackParser(UnpackParser):
             #
             # The metadata is in the 'spare' part.
             while True:
-                if self.last_valid_offset + chunk_size + spare_size > self.fileresult.filesize:
+                if self.last_valid_offset + chunk_size + spare_size > self.infile.size:
                     break
 
                 self.last_valid_offset = self.infile.tell()
@@ -413,7 +413,7 @@ class Yaffs2UnpackParser(UnpackParser):
                     is_first_element = False
                     dataunpacked = True
 
-                if self.infile.tell() == self.fileresult.filesize:
+                if self.infile.tell() == self.infile.size:
                     break
 
                 # skip to the next chunk/spare
