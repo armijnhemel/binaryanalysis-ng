@@ -53,7 +53,7 @@ class Bzip2UnpackParser(UnpackParser):
 
         # the header parsed cleanly, so test unpack the data
         # First reset the offset
-        self.infile.seek(self.offset)
+        self.infile.seek(0)
 
         # then create a bzip2 decompressor
         bz2decompressor = bz2.BZ2Decompressor()
@@ -95,7 +95,7 @@ class Bzip2UnpackParser(UnpackParser):
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
             # First reset the offset
-            self.infile.seek(self.offset)
+            self.infile.seek(0)
 
             # then create a bzip2 decompressor
             bz2decompressor = bz2.BZ2Decompressor()
