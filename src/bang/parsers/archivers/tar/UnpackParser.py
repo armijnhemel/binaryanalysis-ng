@@ -20,7 +20,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import os
 import pathlib
 import stat
 import tarfile
@@ -122,13 +121,6 @@ class TarUnpackParser(UnpackParser):
             else:
                 # block/device characters, sockets, etc. TODO
                 pass
-
-            #if tarinfo.issym():
-            #    out_labels.append('symbolic link')
-            #elif tarinfo.islnk():
-            #    out_labels.append('hardlink')
-            #elif tarinfo.isdir():
-            #    out_labels.append('directory')
 
             #if tarinfo.isfile() or tarinfo.issym() or tarinfo.isdir() or tarinfo.islnk():
                 #try:
