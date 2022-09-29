@@ -34,7 +34,6 @@ version 5:
 https://chromium.googlesource.com/chromium/src/tools/grit/+/master/grit/format/data_pack.py
 '''
 
-import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -55,7 +54,7 @@ class ChromePakUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
         check_condition(self.data.resources[-1].id == 0, "wrong resource identifier")
-        check_condition(self.data.resources[-1].ofs_body <= self.fileresult.filesize,
+        check_condition(self.data.resources[-1].ofs_body <= self.infile.size,
                         "not enough data")
 
     def unpack(self, meta_directory):
