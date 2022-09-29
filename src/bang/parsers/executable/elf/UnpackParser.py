@@ -180,7 +180,7 @@ class ElfUnpackParser(UnpackParser):
         # These are unpacked here and processed further.
         for header in self.data.header.section_headers:
             if header.type == elf.Elf.ShType.progbits:
-                if header in ['.gnu_debugdata', '.qtmimedatabase']:
+                if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext']:
                     file_path = pathlib.Path(header.name)
                     with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                         outfile.write(header.body)
