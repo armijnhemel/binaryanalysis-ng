@@ -22,6 +22,7 @@
 
 import binascii
 import json
+import pathlib
 
 import telfhash
 
@@ -172,6 +173,18 @@ class ElfUnpackParser(UnpackParser):
 
     def calculate_unpacked_size(self):
         pass
+
+    def unpack(self, meta_directory):
+        # interesting data might reside in some of the ELF sections.
+        # Not all of them are interesting, but there are a few that are.
+        # These are unpacked here and processed further.
+        for header in self.data.header.section_headers:
+            if header.type == elf.Elf.ShType.progbits:
+                if header in ['.gnu_debugdata', '.qtmimedatabase']:
+                    file_path = pathlib.Path(header.name)
+                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                        outfile.write(header.body)
+                        yield unpacked_md
 
     def write_info(self, to_meta_directory):
         self.labels, self.metadata = self.extract_metadata_and_labels(to_meta_directory)
@@ -440,9 +453,6 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == '.qml_compile_hash':
                     pass
                 elif header.name == '.qtmetadata':
-                    pass
-                elif header.name == '.qtmimedatabase':
-                    # data, possibly zstd/gzip compressed
                     pass
                 elif header.name == '.qtversion':
                     pass
