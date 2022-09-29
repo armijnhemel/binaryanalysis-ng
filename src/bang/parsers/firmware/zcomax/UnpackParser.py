@@ -28,7 +28,8 @@ from kaitaistruct import ValidationFailedError
 from . import zcomax
 
 
-# test file: https://www.zcomax.com/zcn-1523h-2-8
+# http://web.archive.org/web/20210620033751/https://www.zcomax.com/zcn-1523h-2-8
+# ZCN-1523H-X-DR.zip
 class ZcomaxUnpackParser(UnpackParser):
     extensions = []
     signatures = [
