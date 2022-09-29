@@ -48,7 +48,8 @@ class AndroidBootImgUnpacker(UnpackParser):
             self.data = android_img.AndroidImg.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             try:
-                self.infile.seek(self.offset)
+                # seek to the start of the file
+                self.infile.seek(0)
                 self.data = android_img_lk.AndroidImgLk.from_io(self.infile)
                 self.is_variant = True
             except (Exception, ValidationFailedError) as e:
