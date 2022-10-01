@@ -34,6 +34,7 @@ import datetime
 import json
 import pathlib
 import uuid
+import zlib
 from xml.parsers.expat import ExpatError
 
 import defusedxml.minidom
@@ -97,6 +98,7 @@ class PngUnpackParser(UnpackParser):
                         "IEND section missing")
 
     def unpack(self, meta_directory):
+        # Unpack embedded Evernote files
         if 'skRf' in self.chunknames:
             for i in self.data.chunks:
                 if i.type == 'skRf':
@@ -109,6 +111,29 @@ class PngUnpackParser(UnpackParser):
                     with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                         outfile.write(i.body.data)
                         yield unpacked_md
+
+        # Unpack files from PNG attach files
+        if 'atCh' in self.chunknames:
+            for i in self.data.chunks:
+                if i.type == 'atCh':
+                    if i.body.name == '':
+                        file_path = pathlib.Path('unpacked_from_png')
+                    elif i.body.name in ['.', '..', '/']:
+                        file_path = pathlib.Path('unpacked_from_png')
+                    else:
+                        file_path = pathlib.Path(i.body.name)
+
+                    if i.body.compression == png.Png.AtchChunk.CompressionAttachMethods.zlib:
+                        try:
+                            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                                outfile.write(zlib.decompress(i.body.data))
+                                yield unpacked_md
+                        except:
+                            pass
+                    else:
+                        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                            outfile.write(i.body.data)
+                            yield unpacked_md
 
     @property
     def labels(self):
