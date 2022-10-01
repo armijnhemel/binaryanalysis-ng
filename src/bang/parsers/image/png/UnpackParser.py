@@ -32,6 +32,7 @@ Section 5 describes the structure of a PNG file
 import binascii
 import datetime
 import json
+import pathlib
 import uuid
 from xml.parsers.expat import ExpatError
 
@@ -94,6 +95,20 @@ class PngUnpackParser(UnpackParser):
                         "IDAT section missing")
         check_condition('IEND' in self.chunknames,
                         "IEND section missing")
+
+    def unpack(self, meta_directory):
+        if 'skRf' in self.chunknames:
+            for i in self.data.chunks:
+                if i.type == 'skRf':
+                    # use the uri_uuid for the name of the PNG
+                    # TODO: is this actually correct?
+                    uri_uuid = uuid.UUID(bytes=i.body.uuid)
+                    file_path = pathlib.Path(f"{uri_uuid}.png")
+
+                    # The rest of the image is the original PNG.
+                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                        outfile.write(i.body.data)
+                        yield unpacked_md
 
     @property
     def labels(self):
@@ -244,8 +259,6 @@ class PngUnpackParser(UnpackParser):
                 if not 'evernote' in metadata:
                     metadata['evernote'] = {}
                 metadata['evernote']['uri_uuid'] = uri_uuid
-                # The rest of the image is the original PNG.
-                # TODO: extract PNG
             elif i.type == 'atCh':
                 self.png_type_labels.append('pngattach')
 
