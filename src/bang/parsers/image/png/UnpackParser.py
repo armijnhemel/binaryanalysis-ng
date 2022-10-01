@@ -135,13 +135,7 @@ class PngUnpackParser(UnpackParser):
                             outfile.write(i.body.data)
                             yield unpacked_md
 
-    @property
-    def labels(self):
-        labels = [ 'png', 'graphics' ]
-        if 'acTL' in self.chunknames and 'fcTL' in self.chunknames \
-            and 'fdAT' in self.chunknames:
-            labels.append('apng')
-        return labels
+    labels = [ 'png', 'graphics' ]
 
     @property
     def metadata(self):
@@ -291,7 +285,7 @@ class PngUnpackParser(UnpackParser):
         # https://wiki.mozilla.org/APNG_Specification
         if 'acTL' in self.chunknames and 'fcTL' in self.chunknames \
             and 'fdAT' in self.chunknames:
-            labels.append('apng')
+            self.png_type_labels.append('apng')
             self.png_type_labels.append('animated')
 
         # Check if the file is a stereo image
