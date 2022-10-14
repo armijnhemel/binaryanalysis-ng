@@ -49,7 +49,7 @@ Art 099, Oat 195, Vdex 027, Dex 035, Dex 038 and Dex 039.
 ## razorg-JLS36C-factory-834eab41.zip
 
 The Nexus 7 2013 Mobile (codename "razorg") was made by ASUS. The firmware
-uses `androidasusboot` format. It uses Odex 036 and regular Dex 035.
+uses `androidmsmboot` format. It uses Odex 036 and regular Dex 035.
 
 ## redfin-rd1a.200810.020-factory-c3ea1715.zip
 
