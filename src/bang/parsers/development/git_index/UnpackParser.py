@@ -37,6 +37,9 @@ class GitIndexUnpackParser(UnpackParser):
     pretty_name = 'git_index'
 
     def parse(self):
+        # parse the file, likely this will fail when carving and there
+        # because _io.size and _io.pos are used in the Kaitai Struct
+        # definition, which uses the regular file and not the OffsetInputFile
         try:
             self.data = git_index.GitIndex.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
