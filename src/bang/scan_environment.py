@@ -90,7 +90,16 @@ class ParserCollection:
         for u in self.unpackparsers:
             for s in u.signatures:
                 log.debug(f'build_automaton: ({s},{u}, {s[0]+len(s[1])-1=}')
-                self._automaton.add_word(s[1], (s[0]+len(s[1])-1, u))
+
+                # check if the key already exists: some parsers could
+                # have the same signature. Normally add_word() would simply
+                # overwrite the value, so first retrieve the old value
+                if s[1] in self._automaton:
+                    unpackers = self._automaton.pop(s[1])[1]
+                    unpackers.append(u)
+                    self._automaton.add_word(s[1], (s[0]+len(s[1])-1, unpackers))
+                else:
+                    self._automaton.add_word(s[1], (s[0]+len(s[1])-1, [u]))
                 self.longest_signature_length = max(self.longest_signature_length, len(s))
         if len(self._automaton) > 0:
             self._automaton.make_automaton()

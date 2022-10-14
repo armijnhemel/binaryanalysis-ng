@@ -235,32 +235,35 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
 #
 def scan_signatures(scan_environment, meta_directory):
     file_scan_state = FileScanState(0,0)
-    for offset, unpack_parser_cls in find_signature_parsers(scan_environment, meta_directory.open_file, file_scan_state, meta_directory.size):
-        log.debug(f'scan_signatures[{meta_directory.md_path}]: wait at {file_scan_state.scanned_until}, found parser at {offset}: {unpack_parser_cls}')
+    for offset, unpack_parser_classes in find_signature_parsers(scan_environment, meta_directory.open_file, file_scan_state, meta_directory.size):
+        log.debug(f'scan_signatures[{meta_directory.md_path}]: wait at {file_scan_state.scanned_until}, found parsers at {offset}: {unpack_parser_classes}')
         if offset < file_scan_state.scanned_until: # we have passed this point in the file, ignore the result
             log.debug(f'scan_signatures[{meta_directory.md_path}]: skipping [{offset}:{file_scan_state.scanned_until}]')
             continue
-        # try if the unpackparser works
-        try:
-            unpack_parser = unpack_parser_cls(meta_directory, offset)
-            log.debug(f'scan_signatures[{meta_directory.md_path}]: trying parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
-            unpack_parser.parse_from_offset()
-            log.debug(f'scan_signatures[{meta_directory.md_path}]: successful parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
-            if offset == 0 and unpack_parser.parsed_size == meta_directory.size:
-                log.debug(f'scan_signatures[{meta_directory.md_path}]: skipping [{file_scan_state.scanned_until}:{unpack_parser.parsed_size}], covers entire file, yielding {unpack_parser_cls} and return')
-                yield 0, unpack_parser
-                return
-            if offset > file_scan_state.scanned_until:
-                # if it does, yield a synthesizing parser for the padding before the file
-                log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{offset}] yields SynthesizingParser, length {offset - file_scan_state.scanned_until}')
-                yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, offset - file_scan_state.scanned_until)
-            # yield the part that the unpackparser parsed
-            log.debug(f'scan_signatures[{meta_directory.md_path}]: [{offset}:{offset+unpack_parser.parsed_size}] yields {unpack_parser_cls}, length {unpack_parser.parsed_size}')
-            yield offset, unpack_parser
-            file_scan_state.scanned_until = offset + unpack_parser.parsed_size
-        except UnpackParserException as e:
-            log.debug(f'scan_signatures[{meta_directory.md_path}]: failed parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
-            log.debug(f'scan_signatures[{meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
+
+        for unpack_parser_cls in unpack_parser_classes:
+            # try if the unpackparser works
+            try:
+                unpack_parser = unpack_parser_cls(meta_directory, offset)
+                log.debug(f'scan_signatures[{meta_directory.md_path}]: trying parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
+                unpack_parser.parse_from_offset()
+                log.debug(f'scan_signatures[{meta_directory.md_path}]: successful parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
+                if offset == 0 and unpack_parser.parsed_size == meta_directory.size:
+                    log.debug(f'scan_signatures[{meta_directory.md_path}]: skipping [{file_scan_state.scanned_until}:{unpack_parser.parsed_size}], covers entire file, yielding {unpack_parser_cls} and return')
+                    yield 0, unpack_parser
+                    return
+                if offset > file_scan_state.scanned_until:
+                    # if it does, yield a synthesizing parser for the padding before the file
+                    log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{offset}] yields SynthesizingParser, length {offset - file_scan_state.scanned_until}')
+                    yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, offset - file_scan_state.scanned_until)
+                # yield the part that the unpackparser parsed
+                log.debug(f'scan_signatures[{meta_directory.md_path}]: [{offset}:{offset+unpack_parser.parsed_size}] yields {unpack_parser_cls}, length {unpack_parser.parsed_size}')
+                yield offset, unpack_parser
+                file_scan_state.scanned_until = offset + unpack_parser.parsed_size
+            except UnpackParserException as e:
+                log.debug(f'scan_signatures[{meta_directory.md_path}]: failed parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
+                log.debug(f'scan_signatures[{meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
+
     # yield the trailing part
     if 0 < file_scan_state.scanned_until < meta_directory.size:
         log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{meta_directory.size}] yields SynthesizingParser, length {meta_directory.size - file_scan_state.scanned_until}')
