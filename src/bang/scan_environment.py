@@ -85,8 +85,11 @@ class ParserCollection:
     def build_automaton(self):
         if ahocorasick.unicode != 0:
             raise ImportError('ahocorasick module must be compiled in bytes mode')
+
+        # initialize the automaton
         self._automaton = ahocorasick.Automaton()
         self.longest_signature_length = 0
+
         for u in self.unpackparsers:
             for s in u.signatures:
                 log.debug(f'build_automaton: ({s},{u}, {s[0]+len(s[1])-1=}')
@@ -101,6 +104,7 @@ class ParserCollection:
                 else:
                     self._automaton.add_word(s[1], (s[0]+len(s[1])-1, [u]))
                 self.longest_signature_length = max(self.longest_signature_length, len(s))
+
         if len(self._automaton) > 0:
             self._automaton.make_automaton()
         else:
