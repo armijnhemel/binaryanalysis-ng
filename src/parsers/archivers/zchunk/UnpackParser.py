@@ -49,6 +49,30 @@ class ZchunkUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
+        p = subprocess.Popen(['unzck', '-c', self.fileresult.filename], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        (outputmsg, errormsg) = p.communicate()
+
+        # check if the file starts at offset 0 as unzck expects that
+        # zchunk data starts at offset 0.
+        # If not this is not the case, carve the file first.
+        if not (self.offset == 0 and self.fileresult.filesize == self.infile.tell()):
+            self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            self.havetmpfile = True
+            os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.infile.tell())
+            os.fdopen(self.temporary_file[0]).close()
+
+        # test unpack to /dev/null to see if the data is valid
+        if self.havetmpfile:
+            p = subprocess.Popen(['unzck', '-c', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        else:
+            p = subprocess.Popen(['unzck', '-c', self.fileresult.filename], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+        (outputmsg, errormsg) = p.communicate()
+
+        if p.returncode != 0 and self.havetmpfile:
+            os.unlink(self.temporary_file[1])
+        check_condition(p.returncode == 0, "zck unpacking error")
+
     # no need to carve from the file
     def carve(self):
         pass
@@ -56,16 +80,6 @@ class ZchunkUnpackParser(UnpackParser):
     def unpack(self):
         unpacked_files = []
         out_labels = []
-
-        # check if the file starts at offset 0 as unzck expects that
-        # zchunk data starts at offset 0.
-        # If not this is not the case, carve the file first.
-        havetmpfile = False
-        if not (self.offset == 0 and self.fileresult.filesize == self.infile.tell()):
-            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
-            havetmpfile = True
-            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.infile.tell())
-            os.fdopen(temporary_file[0]).close()
 
         # determine the name of the output file
         if self.fileresult.filename.suffix.lower() == '.zck':
@@ -80,19 +94,17 @@ class ZchunkUnpackParser(UnpackParser):
 
         os.makedirs(outfile_full.parent, exist_ok=True)
         outfile = open(outfile_full, 'wb')
-        if havetmpfile:
-            p = subprocess.Popen(['unzck', '-c', temporary_file[1]], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+        if self.havetmpfile:
+            p = subprocess.Popen(['unzck', '-c', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
         else:
             p = subprocess.Popen(['unzck', '-c', self.fileresult.filename], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
 
         (outputmsg, errormsg) = p.communicate()
 
         if havetmpfile:
-            os.unlink(temporary_file[1])
+            os.unlink(self.temporary_file[1])
 
         outfile.close()
-
-        check_condition(p.returncode == 0, "zck unpacking error")
 
         fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
         unpacked_files.append(fr)
