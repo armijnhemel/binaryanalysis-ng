@@ -26,6 +26,7 @@ from kaitaistruct import ValidationFailedError
 
 from . import ico
 
+
 class IcoUnpackParser(UnpackParser):
     pretty_name = 'ico'
     extensions = [ '.ico' ]
@@ -66,7 +67,7 @@ class IcoUnpackParser(UnpackParser):
                     "Invalid ico file: image inside header")
 
     def calculate_unpacked_size(self):
-        self.unpacked_size = self.infile.tell() - self.offset
+        self.unpacked_size = self.infile.tell()
         for i in self.data.images:
             self.unpacked_size = max(self.unpacked_size, i.ofs_img + i.len_img)
 
