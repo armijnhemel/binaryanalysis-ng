@@ -43,10 +43,10 @@ class GitIndexUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
         # verify the SHA1 checksum
-        bytes_to_read = self.infile.tell() - self.offset - self.data.len_hash
+        bytes_to_read = self.infile.tell() - self.data.len_hash
 
         # seek back to the offset
-        self.infile.seek(self.offset)
+        self.infile.seek(0)
 
         # read the bytes
         checksum_bytes = self.infile.read(bytes_to_read)
