@@ -81,7 +81,7 @@ class UbifsUnpackParser(UnpackParser):
                     target_name = process_node.node_header.name
 
                     # store name, parent and type
-                    inode_to_name[target_inode] = target_name
+                    inode_to_name[target_inode] = pathlib.Path(target_name)
                     inode_to_parent[target_inode] = parent_inode_nr
                     inode_to_type[target_inode] = process_node.node_header.inode_type
             except IndexError:
@@ -98,7 +98,7 @@ class UbifsUnpackParser(UnpackParser):
                     break
                 index = inode_to_parent[index]
                 if index in inode_to_name:
-                    new_name = os.path.join(inode_to_name[index], new_name)
+                    new_name = inode_to_name[index] / new_name
 
         # create the directories
         for inode in inode_to_path:
