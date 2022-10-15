@@ -79,7 +79,8 @@ class AndroidMsmBootldrUnpackParser(UnpackParser):
         metadata['chipset'] = 'snapdragon'
         metadata['partitions'] = []
         cur_offset = self.data.ofs_img_bodies
-        # TODO: we can put this info on the unpacked_md info too?
+
+        # TODO: we can put this info in the unpacked_md info too?
         for entry in self.data.img_headers:
             if entry.len_body == 0:
                 continue
