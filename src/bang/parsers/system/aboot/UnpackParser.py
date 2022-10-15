@@ -20,8 +20,7 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-
-import os
+import pathlib
 import ssl
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -41,6 +40,26 @@ class AbootUnpackParser(UnpackParser):
             certificate_chain = ssl.DER_cert_to_PEM_cert(self.data.image.certificate_chain)
         except (Exception, ValidationFailedError, ssl.SSLError) as e:
             raise UnpackParserException(e.args)
+
+    def unpack(self, meta_directory):
+        file_path = pathlib.Path("image")
+
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.image.raw_appsbl)
+            yield unpacked_md
+
+        file_path = pathlib.Path("signature")
+
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.image.signature)
+            yield unpacked_md
+
+        file_path = pathlib.Path("certificate_chain")
+
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.image.certificate_chain)
+            yield unpacked_md
+
 
     labels = ['aboot', 'android']
     metadata = {}
