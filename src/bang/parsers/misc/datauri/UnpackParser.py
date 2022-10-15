@@ -28,6 +28,7 @@ import binascii
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
+
 class DataUriUnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -37,7 +38,7 @@ class DataUriUnpackParser(UnpackParser):
     ]
     pretty_name = 'data_uri'
 
-    validbase64chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r')
+    valid_base64_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r')
 
     def parse(self):
         bytes_read = 0
@@ -63,12 +64,13 @@ class DataUriUnpackParser(UnpackParser):
             data = self.infile.read(block_size)
             if data == b'':
                 raise UnpackParserException("end of file reached")
+
             # TODO: also valid eob are "'", " " and ")"
             if b'"' in data:
                 eob = True
             check_data = data.split(b'"', 1)[0]
             for i in check_data:
-                if chr(i) not in self.validbase64chars:
+                if chr(i) not in self.valid_base64_chars:
                     raise UnpackParserException("invalid base64")
             self.payload_data += check_data
             bytes_read += len(check_data)
@@ -98,4 +100,3 @@ class DataUriUnpackParser(UnpackParser):
 
     labels = ['data uri']
     metadata = {}
-
