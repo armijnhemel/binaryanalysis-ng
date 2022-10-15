@@ -187,7 +187,7 @@ larger file, unless stated otherwise.
 86. PPM files ('raw' PPM only)
 87. PGM files ('raw' PGM only)
 88. PBM files ('raw' PBM only)
-89. Android bootloader image for Qualcomm Snapdragon
+89. Android bootloader image for Qualcomm Snapdragon (MSM)
 90. Android bootloader image (also a Little Kernel based variant)
 91. Android bootloader image for Huawei devices
 92. FAT16 file systems (8.3 file names)
@@ -218,7 +218,7 @@ larger file, unless stated otherwise.
 116. Windows shell link file (.lnk)
 117. PCF fonts (that actually follow the specification, little endian only)
 118. DS\_Store
-119. Qualcomm Snapdragon MSM bootloader files
+119. libminikin hyb text layout format
 120. Mozilla ARchive (.mar)
 121. OpenFst (subset, identification only)
 122. SELinux file context
@@ -263,7 +263,6 @@ larger file, unless stated otherwise.
 161. Qualcomm QTI Chromatix (structural checks only)
 162. Mediatek logo.bin
 163. Android DTO
-164. libminikin hyb text layout format
 
 The following text formats can be recognized:
 
