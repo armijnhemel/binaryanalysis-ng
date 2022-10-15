@@ -180,7 +180,7 @@ class JpegUnpackParser(UnpackParser):
 
             sectionlength = int.from_bytes(checkbytes, byteorder='big')
 
-            check_condition(self.infile.tell() + sectionlength - 2 <= self.infile.infile,
+            check_condition(self.infile.tell() + sectionlength - 2 <= self.infile.size,
                             "table outside of file")
 
             ishierarchical = True
