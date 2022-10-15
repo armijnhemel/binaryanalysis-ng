@@ -42,6 +42,7 @@ class RkCrcUnpackParser(UnpackParser):
             self.data = rk_crc.RkCrc.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
+        check_condition(len(self.data.data) > 0, "empty data section")
 
     def unpack(self):
         unpacked_files = []
