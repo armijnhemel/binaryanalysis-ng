@@ -38,6 +38,10 @@ class RomfsUnpackParser(UnpackParser):
     ]
     pretty_name = 'romfs'
 
+    def __init__(self, from_meta_directory, offset):
+        self.md = from_meta_directory
+        super().__init__(from_meta_directory, offset)
+
     def parse(self):
         # first parse with Kaitai Struct, then with a regular parser.
         # This is because the "next header" points to a byte offset
@@ -93,7 +97,7 @@ class RomfsUnpackParser(UnpackParser):
                 (curoffset, curcwd) = offsets.popleft()
             except:
                 break
-            romfs_fileheader = OffsetInputFile(self.infile.infile, curoffset + self.offset)
+            romfs_fileheader = OffsetInputFile(self.md, curoffset + self.offset)
             romfs_fileheader.seek(0)
             file_header = romfs.Romfs.Fileheader.from_io(romfs_fileheader)
             check_condition(romfs_fileheader.tell() + curoffset <= self.data.len_file,
@@ -129,7 +133,7 @@ class RomfsUnpackParser(UnpackParser):
             if file_header.next_fileheader != 0:
                 offsets.append((file_header.next_fileheader, curcwd))
 
-    def unpack(self):
+    def unpack(self, meta_directory):
         unpacked_files = []
 
         # now go back to the start of the files and unpack
@@ -151,7 +155,7 @@ class RomfsUnpackParser(UnpackParser):
                 (curoffset, curcwd) = offsets.popleft()
             except:
                 break
-            romfs_fileheader = OffsetInputFile(self.infile.infile, curoffset + self.offset)
+            romfs_fileheader = OffsetInputFile(self.md, curoffset + self.offset)
             romfs_fileheader.seek(0)
             file_header = romfs.Romfs.Fileheader.from_io(romfs_fileheader)
 
@@ -179,28 +183,18 @@ class RomfsUnpackParser(UnpackParser):
 
             elif file_header.filetype == romfs.Romfs.Filetypes.directory:
                 if file_header.name != '.' and file_header.name != '..':
-                    outfile_rel = self.rel_unpack_dir / curcwd / file_header.name
-                    outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                    os.makedirs(outfile_full, exist_ok=True)
+                    file_path = curcwd / file_header.name
+                    meta_directory.unpack_directory(file_path)
                     offsets.append((file_header.spec_info, curcwd / file_header.name))
             elif file_header.filetype == romfs.Romfs.Filetypes.regular_file:
-                outfile_rel = self.rel_unpack_dir / curcwd / file_header.name
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                os.makedirs(outfile_full.parent, exist_ok=True)
-                outfile = open(outfile_full, 'wb')
-                outfile.write(file_header.data)
-                outfile.close()
-                fr = FileResult(self.fileresult, outfile_rel, set())
-                unpacked_files.append(fr)
+                file_path = curcwd / file_header.name
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    outfile.write(file_header.data)
+                    yield unpacked_md
             elif file_header.filetype == romfs.Romfs.Filetypes.symbolic_link:
                 target = file_header.data.decode()
-                outfile_rel = self.rel_unpack_dir / curcwd / file_header.name
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                os.makedirs(outfile_full.parent, exist_ok=True)
-
-                outfile_full.symlink_to(target)
-                fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
-                unpacked_files.append(fr)
+                file_path = curcwd / file_header.name
+                meta_directory.unpack_symlink(file_path, target)
             elif file_header.filetype == romfs.Romfs.Filetypes.block_device:
                 pass
             elif file_header.filetype == romfs.Romfs.Filetypes.character_device:
