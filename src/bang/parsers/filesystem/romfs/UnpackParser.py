@@ -25,7 +25,6 @@ import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
-from bang.UnpackParser import OffsetInputFile
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import romfs
@@ -37,10 +36,6 @@ class RomfsUnpackParser(UnpackParser):
         (0, b'-rom1fs-')
     ]
     pretty_name = 'romfs'
-
-    def __init__(self, from_meta_directory, offset):
-        self.md = from_meta_directory
-        super().__init__(from_meta_directory, offset)
 
     def parse(self):
         # first parse with Kaitai Struct, then with a regular parser.
@@ -97,10 +92,9 @@ class RomfsUnpackParser(UnpackParser):
                 (curoffset, curcwd) = offsets.popleft()
             except:
                 break
-            romfs_fileheader = OffsetInputFile(self.md, curoffset + self.offset)
-            romfs_fileheader.seek(0)
-            file_header = romfs.Romfs.Fileheader.from_io(romfs_fileheader)
-            check_condition(romfs_fileheader.tell() + curoffset <= self.data.len_file,
+            self.infile.seek(curoffset)
+            file_header = romfs.Romfs.Fileheader.from_io(self.infile)
+            check_condition(self.infile.tell() <= self.data.len_file,
                             "file cannot be outside of romfs")
 
             if file_header.name != '.' and file_header.name != '..':
@@ -155,9 +149,8 @@ class RomfsUnpackParser(UnpackParser):
                 (curoffset, curcwd) = offsets.popleft()
             except:
                 break
-            romfs_fileheader = OffsetInputFile(self.md, curoffset + self.offset)
-            romfs_fileheader.seek(0)
-            file_header = romfs.Romfs.Fileheader.from_io(romfs_fileheader)
+            self.infile.seek(curoffset)
+            file_header = romfs.Romfs.Fileheader.from_io(self.infile)
 
             if file_header.filetype == romfs.Romfs.Filetypes.hardlink:
                 # hard link, target is in spec.info
