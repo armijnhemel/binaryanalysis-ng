@@ -51,6 +51,10 @@ class ExeUnpackParser(UnpackParser):
     ]
     pretty_name = 'exe'
 
+    def __init__(self, from_meta_directory, offset):
+        self.md = from_meta_directory
+        super().__init__(from_meta_directory, offset)
+
     def parse(self):
         # first try to recognize if a file is a PE.
         # This is the most common case.
@@ -81,7 +85,7 @@ class ExeUnpackParser(UnpackParser):
             # tricks need to be found. TODO.
 
             # then read the data again with the pefile module.
-            self.infile.seek(self.offset)
+            self.infile.seek(0)
             self.pe = pefile.PE(data=self.infile.read(self.unpacked_size))
 
             self.exetype = 'pe'
@@ -139,21 +143,22 @@ class ExeUnpackParser(UnpackParser):
             if self.has_coff:
                 self.coff_size = 0
                 coff_offset = self.offset + self.end_of_data
-                inf = OffsetInputFile(self.infile.infile, coff_offset)
+                inf = OffsetInputFile(self.md, coff_offset)
+
                 try:
                     self.coff = coff.Coff.from_io(inf)
                     self.coff_size = inf.tell()
                     for section in self.coff.section_headers:
                         if section.ofs_section != 0:
-                            check_condition(section.ofs_section + section.len_section <= self.infile.size - coff_offset,
+                            check_condition(section.ofs_section + section.len_section <= self.infile.size - self.end_of_data,
                                             "section data outside of file")
                             self.coff_size = max(self.coff_size, section.ofs_section + section.len_section)
                         if section.ofs_relocation_table != 0:
-                            check_condition(section.ofs_relocation_table <= self.infile.size - coff_offset,
+                            check_condition(section.ofs_relocation_table <= self.infile.size - self.end_of_data,
                                             "section data outside of file")
                             self.coff_size = max(self.coff_size, section.ofs_relocation_table)
                         if section.ofs_line_number_table != 0:
-                            check_condition(section.ofs_line_number_table <= self.infile.size - coff_offset,
+                            check_condition(section.ofs_line_number_table <= self.infile.size - self.end_of_data,
                                             "section data outside of file")
                             self.coff_size = max(self.coff_size, section.ofs_line_number_table)
 
