@@ -295,23 +295,18 @@ class ElfUnpackParser(UnpackParser):
         self.module_name = ''
         linux_kernel_module_info = {}
 
-        # compute various hashes of all the sections except nobits
-        section_to_hash = {}
-        for header in self.data.header.section_headers:
-            if header.type == elf.Elf.ShType.nobits:
-                continue
-            if header.body == b'':
-                continue
-
-            section_to_hash[header.name] = {}
-            for h in HASH_ALGORITHMS:
-                section_hash = hashlib.new(h)
-                section_hash.update(header.raw_body)
-                section_to_hash[header.name][h] = section_hash.hexdigest()
-
         # process the various section headers
         is_dynamic_elf = False
+        section_to_hash = {}
         for header in self.data.header.section_headers:
+            if header.type != elf.Elf.ShType.nobits:
+                if header.body != b'':
+                    section_to_hash[header.name] = {}
+                    for h in HASH_ALGORITHMS:
+                        section_hash = hashlib.new(h)
+                        section_hash.update(header.raw_body)
+                        section_to_hash[header.name][h] = section_hash.hexdigest()
+
             if header.name in ['.modinfo', '__ksymtab_strings']:
                 labels.append('linuxkernelmodule')
                 try:
