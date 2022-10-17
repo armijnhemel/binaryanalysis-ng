@@ -21,6 +21,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import binascii
+import hashlib
 import json
 import pathlib
 
@@ -80,6 +81,9 @@ REMOVE_CHARACTERS_TABLE = str.maketrans({'\a': '', '\b': '', '\v': '',
 # translation table for ASCII strings for the string
 # to pass the isascii() test
 STRING_TRANSLATION_TABLE = str.maketrans({'\t': ' '})
+
+# hashes to compute for sections
+HASH_ALGORITHMS = ['sha256', 'md5', 'sha1']
 
 
 class ElfUnpackParser(UnpackParser):
@@ -290,6 +294,20 @@ class ElfUnpackParser(UnpackParser):
         # module name (for Linux kernel modules)
         self.module_name = ''
         linux_kernel_module_info = {}
+
+        # compute various hashes of all the sections except nobits
+        section_to_hash = {}
+        for header in self.data.header.section_headers:
+            if header.type == elf.Elf.ShType.nobits:
+                continue
+            if header.body == b'':
+                continue
+
+            section_to_hash[header.name] = {}
+            for h in HASH_ALGORITHMS:
+                section_hash = hashlib.new(h)
+                section_hash.update(header.raw_body)
+                section_to_hash[header.name][h] = section_hash.hexdigest()
 
         # process the various section headers
         is_dynamic_elf = False
@@ -593,6 +611,7 @@ class ElfUnpackParser(UnpackParser):
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
         metadata['telfhash'] = ''
+        metadata['section_hashes'] = section_to_hash
 
         if linux_kernel_module_info != {}:
             metadata['linux_kernel_module'] = linux_kernel_module_info

@@ -439,6 +439,10 @@ types:
                 'bits::b32': u4
                 'bits::b64': u8
         instances:
+          raw_body:
+            io: _root._io
+            pos: ofs_body
+            size: len_body
           body:
             io: _root._io
             pos: ofs_body
