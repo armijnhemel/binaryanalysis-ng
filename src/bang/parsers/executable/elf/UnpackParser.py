@@ -25,6 +25,7 @@ import hashlib
 import json
 import pathlib
 
+import tlsh
 import telfhash
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -315,6 +316,13 @@ class ElfUnpackParser(UnpackParser):
                         section_hash = hashlib.new(h)
                         section_hash.update(header.raw_body)
                         section_information[header.name]['hashes'][h] = section_hash.hexdigest()
+
+                    try:
+                        tlsh_hash = tlsh.hash(header.raw_body)
+                        if tlsh_hash != 'TNULL':
+                            section_information[header.name]['hashes']['tlsh'] = tlsh_hash
+                    except:
+                        pass
 
             section_ctr += 1
 
