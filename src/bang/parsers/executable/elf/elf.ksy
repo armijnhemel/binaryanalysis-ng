@@ -457,7 +457,6 @@ types:
                 'sh_type::note': note_section
                 'sh_type::rel': relocation_section(false)
                 'sh_type::rela': relocation_section(true)
-                'sh_type::arm_attributes': arm_attributes_section
                 'sh_type::gnu_versym': versym_section
             if: type != sh_type::nobits
           linked_section:
@@ -706,28 +705,6 @@ types:
                 'bits::b32': s4
                 'bits::b64': s8
             if: _parent.has_addend
-      arm_attributes_section:
-        seq:
-          - id: version
-            type: u1
-          - id: sections
-            type: arm_attributes_section_entry
-            repeat: eos
-            doc-ref: https://developer.arm.com/documentation/ihi0044/h/?lang=en
-      arm_attributes_section_entry:
-        seq:
-          - id: len_section
-            type: u4
-          - id: rest_of_entry
-            type: arm_attributes_section_entry_rest
-            size: len_section - len_section._sizeof
-      arm_attributes_section_entry_rest:
-        seq:
-          - id: vendor_name
-            type: strz
-            encoding: ASCII
-          - id: attribute_tags
-            size-eos: true
       versym_section:
         seq:
           - id: symbol_versions
