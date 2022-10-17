@@ -248,6 +248,7 @@ class ElfUnpackParser(UnpackParser):
 
         metadata['security'] = []
 
+        # record the section names so they are easily accessible
         if self.data.header.section_names is not None:
             metadata['section_names'] = sorted(self.data.header.section_names.entries)
 
@@ -612,6 +613,7 @@ class ElfUnpackParser(UnpackParser):
         metadata['notes'] = notes
         metadata['rpath'] = rpath
         metadata['runpath'] = runpath
+        metadata['security'].sort()
         metadata['soname'] = self.soname
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
