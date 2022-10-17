@@ -247,8 +247,9 @@ class ElfUnpackParser(UnpackParser):
         metadata['abi'] = self.data.abi.value
 
         metadata['security'] = []
+
         if self.data.header.section_names is not None:
-            metadata['section_names'] = self.data.header.section_names.entries
+            metadata['section_names'] = sorted(self.data.header.section_names.entries)
 
         # RELRO is a technique to mitigate some security vulnerabilities
         # http://refspecs.linuxfoundation.org/LSB_4.1.0/LSB-Core-generic/LSB-Core-generic/progheader.html
@@ -298,14 +299,23 @@ class ElfUnpackParser(UnpackParser):
         # process the various section headers
         is_dynamic_elf = False
         section_to_hash = {}
+        section_information = {}
+        section_ctr = 0
         for header in self.data.header.section_headers:
+            section_information[header.name] = {}
+            section_information[header.name]['nr'] = section_ctr
+            section_information[header.name]['address'] = header.addr
             if header.type != elf.Elf.ShType.nobits:
+                section_information[header.name]['size'] = header.len_body
+                section_information[header.name]['offset'] = header.ofs_body
                 if header.body != b'':
-                    section_to_hash[header.name] = {}
+                    section_information[header.name]['hashes'] = {}
                     for h in HASH_ALGORITHMS:
                         section_hash = hashlib.new(h)
                         section_hash.update(header.raw_body)
-                        section_to_hash[header.name][h] = section_hash.hexdigest()
+                        section_information[header.name]['hashes'][h] = section_hash.hexdigest()
+
+            section_ctr += 1
 
             if header.name in ['.modinfo', '__ksymtab_strings']:
                 labels.append('linuxkernelmodule')
@@ -606,7 +616,7 @@ class ElfUnpackParser(UnpackParser):
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
         metadata['telfhash'] = ''
-        metadata['section_hashes'] = section_to_hash
+        metadata['section_information'] = section_information
 
         if linux_kernel_module_info != {}:
             metadata['linux_kernel_module'] = linux_kernel_module_info
