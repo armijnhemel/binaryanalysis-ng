@@ -82,7 +82,7 @@ types:
     seq:
       - id: header_crc
         type: u4
-      - id: inode_numbers
+      - id: inode_number
         type: u4
       - id: inode_version
         type: u4
