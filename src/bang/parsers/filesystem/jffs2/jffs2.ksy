@@ -9,11 +9,12 @@ meta:
 seq:
   - id: magic
     type: u2be
-    enum: endian
+    enum: magic
     valid:
       any-of:
-        - endian::be
-        - endian::le
+        - magic::be
+        - magic::le
+        - magic::dirty
   - id: header
     type: inode_header
   - id: inode_data
@@ -23,27 +24,22 @@ seq:
         'inode_type::dirent': dirent
         'inode_type::inode': inode
     size: header.len_inode - header._sizeof - magic._sizeof
+instances:
+  crc_bytes:
+    pos: 0
+    size: 8
 types:
   inode_header:
     meta:
       endian:
         switch-on: _root.magic
         cases:
-          'endian::le': le
-          'endian::be': be
+          'magic::le': le
+          'magic::be': be
     seq:
       - id: inode_type
         type: u2
         enum: inode_type
-        valid:
-          any-of:
-            - inode_type::dirent
-            - inode_type::inode
-            - inode_type::clean_marker
-            - inode_type::padding
-            - inode_type::summary
-            - inode_type::xattr
-            - inode_type::xref
       - id: len_inode
         type: u4
   dirent:
@@ -51,8 +47,8 @@ types:
       endian:
         switch-on: _root.magic
         cases:
-          'endian::le': le
-          'endian::be': be
+          'magic::le': le
+          'magic::be': be
     seq:
       - id: header_crc
         type: u4
@@ -81,8 +77,8 @@ types:
       endian:
         switch-on: _root.magic
         cases:
-          'endian::le': le
-          'endian::be': be
+          'magic::le': le
+          'magic::be': be
     seq:
       - id: header_crc
         type: u4
@@ -93,7 +89,8 @@ types:
       - id: file_mode
         type: u4
 enums:
-  endian:
+  magic:
+    0x0000: dirty
     0x8519: le
     0x1985: be
   inode_type:
