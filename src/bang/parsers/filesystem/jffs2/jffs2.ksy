@@ -24,10 +24,6 @@ seq:
         'inode_type::dirent': dirent
         'inode_type::inode': inode
     size: header.len_inode - header._sizeof - magic._sizeof
-instances:
-  crc_bytes:
-    pos: 0
-    size: 8
 types:
   inode_header:
     meta:
