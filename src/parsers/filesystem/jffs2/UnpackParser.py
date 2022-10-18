@@ -368,6 +368,7 @@ class Jffs2UnpackParser(UnpackParser):
                 elif stat.S_ISDIR(filemode):
                     # create directories, but skip them otherwise
                     self.infile.seek(cur_offset + inode_size)
+                    data_unpacked=True
                     continue
 
                 elif stat.S_ISLNK(filemode):
@@ -720,7 +721,7 @@ class Jffs2UnpackParser(UnpackParser):
                     pass
                 elif stat.S_ISDIR(filemode):
                     # create directories, but skip them otherwise
-                    os.makedirs(outfile_full.parent, exist_ok=True)
+                    os.makedirs(outfile_full, exist_ok=True)
                     self.infile.seek(cur_offset + inode_size)
                     continue
 
