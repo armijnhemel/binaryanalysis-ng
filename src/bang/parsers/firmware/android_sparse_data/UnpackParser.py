@@ -37,10 +37,9 @@
 
 import os
 import pathlib
+import sys
 
 import brotli
-
-from FileResult import FileResult
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
@@ -53,7 +52,12 @@ class AndroidSparseDataUnpackParser(UnpackParser):
     pretty_name = 'androidsparsedata'
 
     def parse(self):
-        transferfile = pathlib.Path(self.infile.name[:-8] + ".transfer.list")
+        if self.infile.name.endswith('.new.dat'):
+            transferfile = pathlib.Path(self.infile.name[:-8] + ".transfer.list")
+        elif self.infile.name.endswith('.new.dat.br'):
+            transferfile = pathlib.Path(self.infile.name[:-11] + ".transfer.list")
+            patchfile = pathlib.Path(self.infile.name[:-11] + ".patch.dat")
+            check_condition(patchfile.exists(), "patch file not found")
         check_condition(transferfile.exists(), "transfer list not found")
 
         # open the transfer list in text mode, not in binary mode
@@ -141,52 +145,52 @@ class AndroidSparseDataUnpackParser(UnpackParser):
         self.unpacked_size = self.infile.size
 
     def unpack(self, meta_directory):
-        unpacked_files = []
         # block size is set to 4096 in the Android source code
         blocksize = 4096
 
-        unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
-
         # cut the extension '.new.dat' from the file name unless the file
         # name is the extension (as there would be a zero length name).
-        if len(self.fileresult.filename.stem) == 0:
-            file_path = pathlib.Path("unpacked_from_android_sparse_data")
-        else:
-            file_path = pathlib.Path(self.fileresult.filename.stem)
+
+        if meta_directory.file_path.name.endswith('.new.dat'):
+            file_path = pathlib.Path(meta_directory.file_path.stem)
             if file_path in ['.', '..']:
+                # invalid path, so make anonymous
                 file_path = pathlib.Path("unpacked_from_android_sparse_data")
+            if file_path == '':
+                # invalid path, so make anonymous
+                file_path = pathlib.Path("unpacked_from_android_sparse_data")
+        else:
+            # else anonymous file
+            file_path = pathlib.Path("unpacked_from_android_sparse_data")
 
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-        outfile = open(outfile_full, 'wb')
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            # make sure that the target file is large enough.
+            # On Linux truncate() will zero fill the targetfile.
+            outfile.truncate(self.maxblock*blocksize)
 
-        # make sure that the target file is large enough.
-        # On Linux truncate() will zero fill the targetfile.
-        outfile.truncate(self.maxblock*blocksize)
+            # then seek to the beginning of the target file
+            outfile.seek(0)
 
-        # then seek to the beginning of the target file
-        outfile.seek(0)
+            # keep the offset for the position in the input file
+            # although this should be done automatically when using
+            # sendfile() (and this was working correctly in the old parser)
+            # it seems that with context managers sometimes the file
+            # pointer is moved forwards 4096 bytes.
+            infile_offset = 0
 
-        self.infile.seek(0)
-
-        # then process all the commands. "zero" is not interesting as
-        # the underlying file has already been zero filled.
-        # erase is not very interesting either.
-        for c in self.transfercommands:
-            (transfercommand, blocks) = c
-            if transfercommand == 'new':
-                for b in range(0, len(blocks), 2):
-                    outfile.seek(blocks[b]*blocksize)
-                    os.sendfile(outfile.fileno(), self.infile.fileno(), None, (blocks[b+1] - blocks[b]) * blocksize)
-            else:
-                pass
-
-        outfile.close()
-        fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set())
-        unpacked_files.append(fr)
-
-        return unpacked_files
+            # then process all the commands. "zero" is not interesting as
+            # the underlying file has already been zero filled.
+            # erase is not very interesting either.
+            for c in self.transfercommands:
+                (transfercommand, blocks) = c
+                if transfercommand == 'new':
+                    for b in range(0, len(blocks), 2):
+                        outfile.seek(blocks[b]*blocksize)
+                        os.sendfile(outfile.fileno(), self.infile.fileno(), infile_offset, (blocks[b+1] - blocks[b]) * blocksize)
+                        infile_offset += (blocks[b+1] - blocks[b]) * blocksize
+                else:
+                    pass
+            yield unpacked_md
 
     labels = ['android', 'android sparse data']
     metadata = {}
