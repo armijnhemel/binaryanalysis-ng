@@ -17,7 +17,7 @@ seq:
         - magic::dirty
   - id: header
     type: inode_header
-  - id: inode_data
+  - id: data
     type:
       switch-on: header.inode_type
       cases:
@@ -96,11 +96,12 @@ types:
         type: u4
       - id: ctime
         type: u4
-      - id: data
+      - id: body
         size-eos: true
         type:
           switch-on: file_mode
           cases:
+            modes::link: regular
             modes::regular: regular
     instances:
       file_mode:
@@ -128,6 +129,16 @@ types:
                 - compression::dynrubin
                 - compression::zlib
                 - compression::lzo
+          - id: requested_compression
+            type: u1
+          - id: flags
+            type: u2
+          - id: data_crc
+            type: u4
+          - id: node_crc
+            type: u4
+          - id: data
+            size-eos: true
 enums:
   magic:
     0x0000: dirty
