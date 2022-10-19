@@ -528,16 +528,7 @@ class Jffs2UnpackParser(UnpackParser):
                     target = jffs2_inode.data.body.data.decode()
                     meta_directory.unpack_symlink(file_path, target)
                 elif filemode == jffs2.Jffs2.Modes.regular:
-                    os.makedirs(outfile_full.parent, exist_ok=True)
-
-                    # skip ahead 20 bytes to the offset of where to write data
-                    self.infile.seek(20, os.SEEK_CUR)
-
-                    # the write offset is useful as a sanity check: either
-                    # it is 0, or it is the previous offset, plus the
-                    # previous uncompressed length.
-                    buf = self.infile.read(4)
-                    writeoffset = int.from_bytes(buf, byteorder=self.byteorder)
+                    writeoffset = jffs2_inode.data.body.ofs_write
 
                     if writeoffset == 0:
                         if inode_number in inode_to_write_offset:
