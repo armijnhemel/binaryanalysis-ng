@@ -118,6 +118,16 @@ types:
           - id: compression
             type: u1
             enum: compression
+            valid:
+              any-of:
+                - compression::no_compression
+                - compression::zero
+                - compression::rtime
+                - compression::rubinmips
+                - compression::copy
+                - compression::dynrubin
+                - compression::zlib
+                - compression::lzo
 enums:
   magic:
     0x0000: dirty
