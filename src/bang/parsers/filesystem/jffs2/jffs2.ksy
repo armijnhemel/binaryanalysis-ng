@@ -1,6 +1,6 @@
 meta:
   id: jffs2
-  title: JFFS2
+  title: JFFS2 inode
   tags:
     - file system
     - linux
@@ -82,8 +82,42 @@ types:
         type: u4
       - id: inode_version
         type: u4
-      - id: file_mode
+      - id: mode
         type: u4
+      - id: uid
+        type: u2
+      - id: gid
+        type: u2
+      - id: isize
+        type: u4
+      - id: atime
+        type: u4
+      - id: mtime
+        type: u4
+      - id: ctime
+        type: u4
+      - id: data
+        size-eos: true
+        type:
+          switch-on: file_mode
+          cases:
+            modes::regular: regular
+    instances:
+      file_mode:
+        value: mode & 0o0170000
+        enum: modes
+    types:
+      regular:
+        seq:
+          - id: ofs_write
+            type: u4
+          - id: len_compressed
+            type: u4
+          - id: len_decompressed
+            type: u4
+          - id: compression
+            type: u1
+            enum: compression
 enums:
   magic:
     0x0000: dirty
@@ -97,3 +131,21 @@ enums:
     0x2006: summary
     0xe008: xattr
     0xe009: xref
+  modes:
+    0xc000: socket
+    0xa000: link
+    0x8000: regular
+    0x6000: block_device
+    0x4000: directory
+    0x2000: character_device
+    0x1000: fifo
+  compression:
+    0: no_compression
+    1: zero
+    2: rtime
+    3: rubinmips
+    4: copy
+    5: dynrubin
+    6: zlib
+    7: lzo
+    8: lzma
