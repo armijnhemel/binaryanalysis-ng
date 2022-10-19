@@ -39,41 +39,9 @@ from kaitaistruct import ValidationFailedError
 
 from . import jffs2
 
-# the various node types in JFFS2 are:
-#
-# * directory entry
-# * inode (containing actual data)
-# * clean marker
-# * padding
-# * summary
-# * xattr
-# * xref
-
-DIRENT = 0xe001
-INODE = 0xe002
-CLEANMARKER = 0x2003
-PADDING = 0x2004
-SUMMARY = 0x2006
-XATTR = 0xe008
-XREF = 0xe009
-
-VALID_INODES = set([DIRENT, INODE, CLEANMARKER,
-                    PADDING, SUMMARY, XATTR, XREF])
-
-# different kinds of compression
 # The mtd-utils code defines more types of "compression"
 # than supported by mkfs.jffs2
 # LZMA compression is available as a patch from OpenWrt.
-COMPR_NONE = 0x00
-COMPR_ZERO = 0x01
-COMPR_RTIME = 0x02
-COMPR_RUBINMIPS = 0x03
-COMPR_COPY = 0x04
-COMPR_DYNRUBIN = 0x05
-COMPR_ZLIB = 0x06
-COMPR_LZO = 0x07
-COMPR_LZMA = 0x08
-
 # LZMA settings from OpenWrt's patch
 LZMA_DICT_SIZE = 0x2000
 LZMA_PB = 0
@@ -137,7 +105,7 @@ class Jffs2UnpackParser(UnpackParser):
         while True:
             cur_offset = self.infile.tell()
 
-            # stop processing the end of the file is reached
+            # stop processing if the end of the file is reached
             if self.infile.tell() == self.infile.size:
                 break
 
@@ -431,7 +399,7 @@ class Jffs2UnpackParser(UnpackParser):
         while True:
             cur_offset = self.infile.tell()
 
-            # stop processing the end of the file is reached
+            # stop processing as soon as the end of the unpacked data is reached
             if self.infile.tell() == self.unpacked_size:
                 break
             buf = self.infile.read(2)
