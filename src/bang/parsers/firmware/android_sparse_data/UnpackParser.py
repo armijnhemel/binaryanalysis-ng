@@ -52,13 +52,19 @@ class AndroidSparseDataUnpackParser(UnpackParser):
     pretty_name = 'androidsparsedata'
 
     def parse(self):
+        self.is_brotli = False
         if self.infile.name.endswith('.new.dat'):
             transferfile = pathlib.Path(self.infile.name[:-8] + ".transfer.list")
+            #patchfile = pathlib.Path(self.infile.name[:-8] + ".patch.dat")
         elif self.infile.name.endswith('.new.dat.br'):
+            self.is_brotli = True
             transferfile = pathlib.Path(self.infile.name[:-11] + ".transfer.list")
-            patchfile = pathlib.Path(self.infile.name[:-11] + ".patch.dat")
-            check_condition(patchfile.exists(), "patch file not found")
+            #patchfile = pathlib.Path(self.infile.name[:-11] + ".patch.dat")
+        #check_condition(patchfile.exists(), "patch file not found")
         check_condition(transferfile.exists(), "transfer list not found")
+
+        # Brotli compression requires that the file is first decompressed
+        # before processing.
 
         # open the transfer list in text mode, not in binary mode
         transferlist = open(transferfile, 'r')
@@ -151,16 +157,16 @@ class AndroidSparseDataUnpackParser(UnpackParser):
         # cut the extension '.new.dat' from the file name unless the file
         # name is the extension (as there would be a zero length name).
 
-        if meta_directory.file_path.name.endswith('.new.dat'):
-            file_path = pathlib.Path(meta_directory.file_path.stem)
-            if file_path in ['.', '..']:
-                # invalid path, so make anonymous
-                file_path = pathlib.Path("unpacked_from_android_sparse_data")
-            if file_path == '':
-                # invalid path, so make anonymous
-                file_path = pathlib.Path("unpacked_from_android_sparse_data")
+        if self.is_brotli:
+            file_path = pathlib.Path(meta_directory.file_path.name[:-11])
         else:
-            # else anonymous file
+            file_path = pathlib.Path(meta_directory.file_path.name[:-8])
+
+        if file_path in ['.', '..']:
+            # invalid path, so make anonymous
+            file_path = pathlib.Path("unpacked_from_android_sparse_data")
+        elif file_path == '':
+            # invalid path, so make anonymous
             file_path = pathlib.Path("unpacked_from_android_sparse_data")
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
