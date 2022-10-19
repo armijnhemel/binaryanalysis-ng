@@ -42,10 +42,10 @@ types:
         type: u8
       - id: ofs_bsdiff_patch
         type: u8
-    #instances:
-    #  bsdiff:
-    #    pos: ofs_bsdiff_patch
-    #    size: 1
+    instances:
+      bsdiff:
+        pos: ofs_bsdiff_patch
+        type: bsdiff40
   chunk_gzip:
     seq:
       - id: ofs_source
@@ -66,10 +66,10 @@ types:
         size: len_gzip_header
       - id: gzip_footer
         size: 8
-    #instances:
-    #  bsdiff:
-    #    pos: ofs_bsdiff_patch
-    #    size: 1
+    instances:
+      bsdiff:
+        pos: ofs_bsdiff_patch
+        type: bsdiff40
   chunk_deflate:
     seq:
       - id: ofs_source
@@ -84,10 +84,10 @@ types:
         type: u8
       - id: gzip_info
         type: gzip_info
-    #instances:
-    #  bsdiff:
-    #    pos: ofs_bsdiff_patch
-    #    size: 1
+    instances:
+      bsdiff:
+        pos: ofs_bsdiff_patch
+        type: bsdiff40
   chunk_raw:
     seq:
       - id: len_target
@@ -106,6 +106,22 @@ types:
         type: u4
       - id: strategy
         type: u4
+  bsdiff40:
+    seq:
+      - id: magic
+        contents: 'BSDIFF40'
+      - id: len_control_block
+        type: u8
+      - id: len_diff_block
+        type: u8
+      - id: len_new_file
+        type: u8
+      - id: control_block
+        size: len_control_block
+      - id: diff_block
+        size: len_diff_block
+      #- id: extra_block
+        #size: ???
 enums:
   chunk_types:
     0: normal
