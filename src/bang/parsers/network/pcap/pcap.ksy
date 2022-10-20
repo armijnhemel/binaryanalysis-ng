@@ -239,6 +239,10 @@ enums:
     289: atsc_alp
     290: etw
     292: zboss_ncp
+    293: usb_2_0_low_speed
+    294: usb_2_0_full_speed
+    295: usb_2_0_high_speed
+    296: auerswald_log
   endian:
     0xd4c3b2a1: little
     0x4d3cb2a1: little_nano
