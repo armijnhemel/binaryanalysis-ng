@@ -25,7 +25,7 @@
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/fs/mfs
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/usr.sbin/mkfs.mfs/v1l
 
-import os
+import pathlib
 import stat
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -49,7 +49,7 @@ class Minix1lUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
         inode_to_name = {}
-        inode_to_name[1] = ''
+        inode_to_name[1] = pathlib.Path('')
         is_root_inode = True
 
         # walk all the inodes, the root inode is always 1
@@ -123,7 +123,7 @@ class Minix1lUnpackParser(UnpackParser):
                             continue
 
                         if inode_name not in ['.', '..']:
-                            inode_to_name[inodenr] = os.path.join(current_directory, inode_name)
+                            inode_to_name[inodenr] = current_directory / inode_name
             elif stat.S_ISREG(i.mode):
                 check_condition(len(zones) != 0, "no valid zones found")
 
@@ -137,7 +137,7 @@ class Minix1lUnpackParser(UnpackParser):
         unpacked_files = []
 
         inode_to_name = {}
-        inode_to_name[1] = ''
+        inode_to_name[1] = pathlib.Path('')
 
         # walk all the inodes, the root inode is always 1
         inode_counter = 1
@@ -164,12 +164,12 @@ class Minix1lUnpackParser(UnpackParser):
                             if double_zone.number != 0:
                                 zones.append(double_zone)
 
+            file_path = inode_to_name[inode_counter]
+
             if stat.S_ISDIR(i.mode):
                 current_directory = inode_to_name[inode_counter]
-                if current_directory != '':
-                    outfile_rel = self.rel_unpack_dir / inode_to_name[inode_counter]
-                    outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                    os.makedirs(outfile_full, exist_ok=True)
+                if current_directory != pathlib.Path(''):
+                    meta_directory.unpack_directory(file_path)
 
                 for z in zones:
                     for r in range(0, len(z.zone_data.data)//32):
@@ -186,21 +186,16 @@ class Minix1lUnpackParser(UnpackParser):
                             continue
 
                         if inode_name not in ['.', '..']:
-                            inode_to_name[inodenr] = os.path.join(current_directory, inode_name)
+                            inode_to_name[inodenr] = current_directory / inode_name
 
             elif stat.S_ISREG(i.mode):
-                file_path = pathlib.Path(inode_to_name[inode_counter])
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    for z in zones:
+                        outfile.write(z.zone_data.data)
+                    outfile.truncate(i.size)
+                    yield unpacked_md
 
-                for z in zones:
-                    outfile.write(z.zone_data.data)
-                outfile.truncate(i.size)
-                outfile.close()
-                fr = FileResult(self.fileresult, outfile_rel, set([]))
-                unpacked_files.append(fr)
             elif stat.S_ISLNK(i.mode):
-                outfile_rel = self.rel_unpack_dir / inode_to_name[inode_counter]
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-
                 # process zones to get the target name
                 target = ''
                 for z in zones:
@@ -210,9 +205,7 @@ class Minix1lUnpackParser(UnpackParser):
                         target = ''
                         break
                 if target != '':
-                    outfile_full.symlink_to(target)
-                fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
-                unpacked_files.append(fr)
+                    meta_directory.unpack_symlink(file_path, target)
 
             # do not process character devices, block devices, FIFOs and
             # sockets, but possibly record information about them
