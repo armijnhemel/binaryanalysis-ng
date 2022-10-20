@@ -23,7 +23,6 @@
 # https://web.archive.org/web/20120511095357/https://0entropy.blogspot.com/2011/08/firmware-reverse-engineering.html
 # Test firmware (40 bytes file entry): https://www.touslesdrivers.com/index.php?v_page=23&v_code=15240&v_langue=en
 
-import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
