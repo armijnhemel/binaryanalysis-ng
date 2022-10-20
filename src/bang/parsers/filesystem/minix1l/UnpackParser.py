@@ -48,8 +48,8 @@ class Minix1lUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-        inode_to_name = {}
-        inode_to_name[1] = pathlib.Path('')
+        self.inode_to_name = {}
+        self.inode_to_name[1] = pathlib.Path('')
         is_root_inode = True
 
         # walk all the inodes, the root inode is always 1
@@ -102,7 +102,7 @@ class Minix1lUnpackParser(UnpackParser):
 
             # sanity checks for inodes
             if stat.S_ISDIR(i.mode):
-                current_directory = inode_to_name[inode_counter]
+                current_directory = self.inode_to_name[inode_counter]
                 for z in zones:
                     for r in range(0, len(z.zone_data.data)//32):
                         inode_bytes = z.zone_data.data[r*32:r*32+32]
@@ -123,7 +123,7 @@ class Minix1lUnpackParser(UnpackParser):
                             continue
 
                         if inode_name not in ['.', '..']:
-                            inode_to_name[inodenr] = current_directory / inode_name
+                            self.inode_to_name[inodenr] = current_directory / inode_name
             elif stat.S_ISREG(i.mode):
                 check_condition(len(zones) != 0, "no valid zones found")
 
@@ -135,9 +135,6 @@ class Minix1lUnpackParser(UnpackParser):
 
     def unpack(self, meta_directory):
         unpacked_files = []
-
-        inode_to_name = {}
-        inode_to_name[1] = pathlib.Path('')
 
         # walk all the inodes, the root inode is always 1
         inode_counter = 1
@@ -164,10 +161,10 @@ class Minix1lUnpackParser(UnpackParser):
                             if double_zone.number != 0:
                                 zones.append(double_zone)
 
-            file_path = inode_to_name[inode_counter]
+            file_path = self.inode_to_name[inode_counter]
 
             if stat.S_ISDIR(i.mode):
-                current_directory = inode_to_name[inode_counter]
+                current_directory = self.inode_to_name[inode_counter]
                 if current_directory != pathlib.Path(''):
                     meta_directory.unpack_directory(file_path)
 
@@ -184,9 +181,6 @@ class Minix1lUnpackParser(UnpackParser):
                         except:
                             # TODO: what to do in this case?
                             continue
-
-                        if inode_name not in ['.', '..']:
-                            inode_to_name[inodenr] = current_directory / inode_name
 
             elif stat.S_ISREG(i.mode):
                 with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
@@ -221,4 +215,16 @@ class Minix1lUnpackParser(UnpackParser):
         return unpacked_files
 
     labels = ['minix1l', 'filesystem']
-    metadata = {}
+
+    @property
+    def metadata(self):
+        metadata = {}
+        metadata['list'] = {}
+        inode_counter = 1
+        for i in self.data.inodes:
+            if i.mode == 0:
+                continue
+            metadata['list'][str(self.inode_to_name[inode_counter])] = {
+              'uid': i.uid, 'gid': i.gid, 'time': i.time, 'mode': i.mode}
+            inode_counter += 1
+        return metadata
