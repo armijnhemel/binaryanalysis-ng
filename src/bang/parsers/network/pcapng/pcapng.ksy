@@ -5,6 +5,8 @@ meta:
   ks-version: 0.9
   encoding: utf-8
   endian: le
+doc:
+  Test files: <https://github.com/hadrielk/pcapng-test-generator>
 doc-ref: https://github.com/pcapng/pcapng
 seq:
   - id: blocks
