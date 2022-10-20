@@ -89,15 +89,21 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     scan_environment.scan_semaphore = process_manager.Semaphore(jobs)
     scan_environment.scan_queue = scan_queue
 
+    # create a scan pipeline for parsing and unpacking files
     scan_pipeline = make_scan_pipeline()
 
+    # create $jobs processes
     processes = [ multiprocessing.Process(target = process_jobs, args = (scan_pipeline, scan_environment,)) for i in range(jobs)]
 
-    # queue the file
+    # first create a meta directory for the file
     md = MetaDirectory(scan_environment.unpackdirectory, None, True)
     md.file_path = pathlib.Path(path).absolute()
     log.debug(f'cli:scan[{md.md_path}]: queued job [{time.time_ns()}]')
+
+    # create a scanjob using the created meta directory
     j = ScanJob(md.md_path)
+
+    # queue the scanjob
     scan_queue.put(j)
 
     # start processes
