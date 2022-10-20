@@ -71,8 +71,6 @@ class PfsUnpackParser(UnpackParser):
 
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(entry.data)
-                for uf2_block in self.data.uf2_blocks:
-                    outfile.write(uf2_block.data)
                 yield unpacked_md
 
     labels = ['pfs', 'filesystem']
