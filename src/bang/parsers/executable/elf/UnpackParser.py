@@ -515,6 +515,9 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == '.sdmagic':
                     # systemd, example linuxx64.elf.stub
                     pass
+                elif header.name == 'sw_isr_table':
+                    # Zephyr
+                    labels.append('zephyr')
 
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
