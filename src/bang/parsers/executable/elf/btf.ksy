@@ -14,21 +14,26 @@ seq:
     type: u1
   - id: len_header
     type: u4
-  - id: ofs_type_section
-    type: u4
-  - id: len_type_section
-    type: u4
-  - id: ofs_string_section
-    type: u4
-  - id: len_string_section
-    type: u4
+  - id: rest_of_header
+    type: header
+    size: len_header - magic._sizeof - version._sizeof - flags._sizeof - len_header._sizeof
   - id: type_section
-    size: len_type_section
+    size: rest_of_header.len_type_section
     #type: type_section
   - id: string_section
-    size: len_string_section
+    size: rest_of_header.len_string_section
     type: string_section
 types:
+  header:
+    seq:
+      - id: ofs_type_section
+        type: u4
+      - id: len_type_section
+        type: u4
+      - id: ofs_string_section
+        type: u4
+      - id: len_string_section
+        type: u4
   info:
     meta:
       bit-endian: be
