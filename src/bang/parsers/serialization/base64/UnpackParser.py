@@ -22,13 +22,11 @@
 
 import base64
 import binascii
-import os
 import pathlib
 import sys
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
-
 
 class Base64UnpackParser(UnpackParser):
     extensions = []
@@ -37,15 +35,22 @@ class Base64UnpackParser(UnpackParser):
     scan_if_featureless = True
     pretty_name = 'base64'
 
+    def __init__(self, from_meta_directory, offset):
+        super().__init__(from_meta_directory, offset)
+        self.from_md = from_meta_directory
+
     def parse(self):
-        check_condition('pak' not in self.fileresult.parentlabels,
+        # check if the file is from a Chrome PAK file. This is
+        # to avoid lots of unnecessary scanning.
+        parent = self.from_md.info.get('parent', [])
+        check_condition('chrome pak' not in parent,
                         'parent file Chrome PAK')
+
         # add a cut off value to prevent many false positives
         base64cutoff = 8
-        check_condition(self.infile.size - self.offset >= base64cutoff,
-                        'file too small')
+        check_condition(self.infile.size >= base64cutoff, 'file too small')
 
-        # open the file again, but then in text mode
+        # open the file again, but in text mode
         base64_file = open(self.infile.name, 'r')
 
         unpacked = 0
@@ -96,7 +101,7 @@ class Base64UnpackParser(UnpackParser):
         try:
             self.decoded_data = base64.b16decode(base64_bytes)
             decoded = True
-            self.encoding = 'base16'
+            self.encoding = ['base16']
         except binascii.Error:
             pass
 
@@ -194,7 +199,7 @@ class Base64UnpackParser(UnpackParser):
 
     @property
     def labels(self):
-        labels = [self.encoding]
+        labels = self.encoding
         return labels
 
     metadata = {}
