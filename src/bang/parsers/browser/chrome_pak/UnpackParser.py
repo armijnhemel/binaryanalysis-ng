@@ -63,6 +63,8 @@ class ChromePakUnpackParser(UnpackParser):
             file_path = pathlib.Path("resource-%d" % resources[i].id)
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(resources[i].body)
+                with unpacked_md.open(open_file=False):
+                    unpacked_md.info['parent'] = "chrome pak"
                 yield unpacked_md
 
     def calculate_unpacked_size(self):
