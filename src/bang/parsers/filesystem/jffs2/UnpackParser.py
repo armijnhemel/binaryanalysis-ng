@@ -196,11 +196,13 @@ class Jffs2UnpackParser(UnpackParser):
             crc_bytes = self.infile.read(8)
             self.infile.seek(stored_offset)
 
-            computedcrc = (zlib.crc32(crc_bytes, -1) ^ -1) & 0xffffffff
-            if not computedcrc == jffs2_inode.data.header_crc:
-                break
+            if jffs2_inode.header.inode_type == jffs2.Jffs2.InodeType.dirent or \
+                jffs2_inode.header.inode_type == jffs2.Jffs2.InodeType.inode:
+                computedcrc = (zlib.crc32(crc_bytes, -1) ^ -1) & 0xffffffff
+                if not computedcrc == jffs2_inode.data.header_crc:
+                    break
 
-            inode_number = jffs2_inode.data.inode_number
+                inode_number = jffs2_inode.data.inode_number
 
             # process directory entries
             if jffs2_inode.header.inode_type == jffs2.Jffs2.InodeType.dirent:
@@ -458,10 +460,10 @@ class Jffs2UnpackParser(UnpackParser):
                     unpackedsize = self.infile.tell()
                 continue
 
-            inode_number = jffs2_inode.data.inode_number
-
             # process directory entries
             if jffs2_inode.header.inode_type == jffs2.Jffs2.InodeType.dirent:
+                inode_number = jffs2_inode.data.inode_number
+
                 parent_inodes_seen.add(jffs2_inode.data.parent_inode)
 
                 # skip unlinked inodes
@@ -493,6 +495,8 @@ class Jffs2UnpackParser(UnpackParser):
                     inode_to_filename[inode_number] = inode_to_filename[jffs2_inode.data.parent_inode] / inode_name
 
             elif jffs2_inode.header.inode_type == jffs2.Jffs2.InodeType.inode:
+                inode_number = jffs2_inode.data.inode_number
+
                 # first check if a file name for this inode is known
                 if inode_number not in inode_to_filename:
                     break
