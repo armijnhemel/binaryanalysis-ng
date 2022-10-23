@@ -47,10 +47,14 @@ class DdsUnpackParser(UnpackParser):
 
     def calculate_unpacked_size(self):
         self.unpacked_size = 4 + self.data.dds_header.size + self.data.dds_header.pitch_or_linear_size
+        '''
+        # likely the above calculation is not entirely correct, but
+        # unsure what to do and why the below code was included.
         try:
             self.unpacked_size += 20
         except:
             pass
+        '''
 
     labels = ['dds', 'graphics']
     metadata = {}
