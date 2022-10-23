@@ -288,6 +288,23 @@ class MetaDirectory:
         full_path.mkdir(parents=True, exist_ok=True)
         return unpacked_path
 
+    def unpack_hardlink(self, source, target):
+        '''Unpacks a hardlink with path source, pointing to target. The target is not modified
+        or rewritten.
+        Returns the source path relative to the MetaDirectory.
+        '''
+        unpacked_path = self.unpacked_path(source)
+        full_path = self._meta_root / unpacked_path
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        full_path.hardlink_to(target)
+        self.info.setdefault('unpacked_hardlinks', {})[unpacked_path] = target
+        log.debug(f'[{self.md_path}]unpack_hardlink: update info to {self.info}')
+        return unpacked_path
+
+    @property
+    def unpacked_hardlinks(self):
+        return self.info.get('unpacked_hardlinks',{})
+
     def unpack_symlink(self, source, target):
         '''Unpacks a symlink with path source, pointing to target. The target is not modified
         or rewritten.
