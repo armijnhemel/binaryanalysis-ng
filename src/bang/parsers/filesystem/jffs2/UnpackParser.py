@@ -62,7 +62,7 @@ class Jffs2UnpackParser(UnpackParser):
         # a valid inode, not a dirty inode.
         try:
             root_inode = jffs2.Jffs2.from_io(self.infile)
-        except (ValidationFailedError, EOFError) as e:
+        except (ValidationFailedError, ValueError, EOFError) as e:
             raise UnpackParserException(e.args)
 
         self.bigendian = False
@@ -139,7 +139,7 @@ class Jffs2UnpackParser(UnpackParser):
 
             try:
                 jffs2_inode = jffs2.Jffs2.from_io(self.infile)
-            except (ValidationFailedError , EOFError) as e:
+            except (ValidationFailedError , ValueError, EOFError) as e:
                 break
 
             if jffs2_inode.magic != root_inode.magic and jffs2_inode.magic != jffs2.Jffs2.Magic.dirty:
