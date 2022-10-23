@@ -23,6 +23,7 @@
 import collections
 import math
 import os
+import pathlib
 import re
 import shutil
 import stat
@@ -71,7 +72,7 @@ class Ext2UnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-        check_condition(self.superblock.block_size * self.superblock.blocks_count <= self.fileresult.filesize,
+        check_condition(self.superblock.block_size * self.superblock.blocks_count <= self.infile.size,
                         "declared file system size larger than file size")
 
         # TODO: does this have to be math.ceil()?
