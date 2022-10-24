@@ -13,7 +13,6 @@ and puts the relevant data in a PostgreSQL database.
 
 import pathlib
 import pickle
-import os
 import stat
 import sys
 
