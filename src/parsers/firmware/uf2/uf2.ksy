@@ -112,7 +112,7 @@ enums:
       doc: "Microchip (Atmel) SAMD51"
     0x57755a57:
       id: stm32f4
-      doc: "ST STM32F401"
+      doc: "ST STM32F4xx"
     0x5a18069b:
       id: fx2
       doc: "Cypress FX2"
@@ -179,3 +179,9 @@ enums:
     0x9af03e33:
       id: gd32vf103
       doc: "GigaDevice GD32VF103"
+    0x4f6ace52:
+      id: csk4
+      doc: "LISTENAI CSK300x/400x"
+    0x6e7348a8:
+      id: csk6
+      doc: "LISTENAI CSK60xx"
