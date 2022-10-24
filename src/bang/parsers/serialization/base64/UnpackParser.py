@@ -184,7 +184,7 @@ class Base64UnpackParser(UnpackParser):
                 except binascii.Error:
                     pass
 
-        check_condition(decoded, "no base64")
+        check_condition(decoded and self.decoded_data != b'', "no base64")
 
     def unpack(self, meta_directory):
         unpacked_files = []
