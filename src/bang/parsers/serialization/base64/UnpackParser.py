@@ -50,32 +50,36 @@ class Base64UnpackParser(UnpackParser):
         base64cutoff = 8
         check_condition(self.infile.size >= base64cutoff, 'file too small')
 
-        # open the file again, but in text mode
-        base64_file = open(self.infile.name, 'r')
-
         unpacked = 0
 
         line_counter = 0
 
-        len_previous_line = sys.maxsize
-        # first check to see if the file has consistent
-        # line wrapping and if there are any characters
-        # that are not in any known base16/32/64 alphabets
-        for line in base64_file:
-            base64_line = line.strip()
-            if " " in base64_line:
-                break
-            if len(base64_line) != '':
-                pass
-            if len(base64_line) > len_previous_line:
-                break
-            len_previous_line = len(base64_line)
-            try:
-                unpacked += len(base64_line) + len(base64_file.newlines)
-            except:
-                unpacked += len(base64_line)
-            line_counter += 1
-        base64_file.close()
+        # open the file again, but in text mode
+        try:
+            base64_file = open(self.infile.name, 'r')
+
+            len_previous_line = sys.maxsize
+            # first check to see if the file has consistent
+            # line wrapping and if there are any characters
+            # that are not in any known base16/32/64 alphabets
+            for line in base64_file:
+                base64_line = line.strip()
+                if " " in base64_line:
+                    break
+                if len(base64_line) != '':
+                    pass
+                if len(base64_line) > len_previous_line:
+                    break
+                len_previous_line = len(base64_line)
+                try:
+                    unpacked += len(base64_line) + len(base64_file.newlines)
+                except:
+                    unpacked += len(base64_line)
+                line_counter += 1
+        except UnicodeDecodeError as e:
+            raise UnpackParserException(e.args)
+        finally:
+            base64_file.close()
 
         check_condition(line_counter >= 1, "no base64 bytes in file")
 
