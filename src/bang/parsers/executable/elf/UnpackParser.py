@@ -440,8 +440,9 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == '.gnu_debuglink':
                     # https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
                     link_name = header.body.split(b'\x00', 1)[0].decode()
-                    link_crc = header.body[-4:]
+                    link_crc = int.from_bytes(header.body[-4:], byteorder=metadata['endian'])
                     metadata['gnu debuglink'] = link_name
+                    metadata['gnu debuglink crc'] = link_crc
                 elif header.name in RODATA_SECTIONS:
                     for s in header.body.split(b'\x00'):
                         try:
