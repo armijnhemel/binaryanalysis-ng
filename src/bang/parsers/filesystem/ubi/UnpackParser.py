@@ -492,4 +492,9 @@ class UbiUnpackParser(UnpackParser):
         pass
 
     labels = ['ubi']
-    metadata = {}
+
+    @property
+    def metadata(self):
+        metadata = {}
+        metadata['volume_tables'] = self.volume_tables
+        return metadata
