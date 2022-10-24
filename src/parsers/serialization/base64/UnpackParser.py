@@ -97,8 +97,9 @@ class Base64UnpackParser(UnpackParser):
         # first base16
         try:
             self.decoded_data = base64.b16decode(base64_bytes)
-            decoded = True
-            self.encoding = 'base16'
+            if self.decoded_data != b'':
+                decoded = True
+                self.encoding = 'base16'
         except binascii.Error:
             pass
 
@@ -106,8 +107,9 @@ class Base64UnpackParser(UnpackParser):
         if not decoded:
             try:
                 self.decoded_data = base64.b32decode(base64_bytes)
-                decoded = True
-                self.encoding = ['base32']
+                if self.decoded_data != b'':
+                    decoded = True
+                    self.encoding = ['base32']
             except binascii.Error:
                 pass
 
@@ -115,8 +117,9 @@ class Base64UnpackParser(UnpackParser):
         if not decoded:
             try:
                 self.decoded_data = base64.b32decode(base64_bytes, map01='I')
-                decoded = True
-                self.encoding = ['base32']
+                if self.decoded_data != b'':
+                    decoded = True
+                    self.encoding = ['base32']
             except binascii.Error:
                 pass
 
@@ -124,8 +127,9 @@ class Base64UnpackParser(UnpackParser):
         if not decoded:
             try:
                 self.decoded_data = base64.b32decode(base64_bytes, map01='L')
-                decoded = True
-                self.encoding = ['base32']
+                if self.decoded_data != b'':
+                    decoded = True
+                    self.encoding = ['base32']
             except binascii.Error:
                 pass
 
