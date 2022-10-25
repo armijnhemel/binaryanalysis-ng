@@ -50,9 +50,6 @@ class CbfsUnpackParser(UnpackParser):
         # seek to the offset where the first component is found
         self.infile.seek(self.offset)
 
-        # what follows is a list of components
-        havecbfscomponents = False
-
         # there should be one master header, which defines a
         # few characteristics, such as the byte alignment. This
         # one should come first to be able to read the rest.
