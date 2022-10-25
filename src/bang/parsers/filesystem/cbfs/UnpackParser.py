@@ -21,9 +21,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
+import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from bang.UnpackParserException import UnpackParserException
+from kaitaistruct import ValidationFailedError
+from . import cbfs
 
 # https://www.coreboot.org/CBFS
 # test files: https://rsync.libreboot.org/testing/
@@ -36,19 +39,15 @@ class CbfsUnpackParser(UnpackParser):
     ]
     pretty_name = 'cbfs'
 
-    def open(self):
-        # parsing CBFS is a bit more difficult because the identifier
-        # is not at a fixed offset in the file but there could be (valid)
-        # data before the first header.
-        # This is why the wrapped file (with the artificial offset) cannot
-        # be used.
-        filename_full = self.scan_environment.get_unpack_path_for_fileresult(
-                    self.fileresult)
-        f = filename_full.open('rb')
-        self.infile = f
+    def __init__(self, from_meta_directory, offset):
+        self.md = from_meta_directory
+        self.offset = offset
+
+        # set the artificial offset to 0
+        self.infile = OffsetInputFile(from_meta_directory, 0)
 
     def parse(self):
-        # seek to the offset
+        # seek to the offset where the first component is found
         self.infile.seek(self.offset)
 
         # what follows is a list of components
@@ -67,120 +66,69 @@ class CbfsUnpackParser(UnpackParser):
         # It is assumed that the first block encountered is the master header
         while True:
             buf = self.infile.read(8)
+            print(buf, self.offset)
             if buf != b'LARCHIVE':
                 break
 
-            # length
-            buf = self.infile.read(4)
-            check_condition(len(buf) == 4, "not enough data for length field")
-            component_length = int.from_bytes(buf, byteorder='big')
-
-            # type
-            buf = self.infile.read(4)
-            check_condition(len(buf) == 4, "not enough data for type field")
-            component_type = int.from_bytes(buf, byteorder='big')
-
-            # checksum
-            buf = self.infile.read(4)
-            check_condition(len(buf) == 4, "not enough data for checksum field")
-            checksum = int.from_bytes(buf, byteorder='big')
-
-            # component offset
-            buf = self.infile.read(4)
-            check_condition(len(buf) == 4, "not enough data for component offset field")
-            component_offset = int.from_bytes(buf, byteorder='big')
-
-            # "The difference between the size of the header and offset
-            # is the size of the component name."
-            name_length = component_offset - 24
-            buf = self.infile.read(name_length)
-            check_condition(len(buf) == name_length,
-                            "not enough data for component name field")
-            if b'\x00' not in buf:
-                raise UnpackParserException("invalid component name, not NULL terminated")
+            # rewind
+            self.infile.seek(-8, os.SEEK_CUR)
+            start_offset = self.infile.tell()
 
             try:
-                component_name = buf.split(b'\x00')[0].decode()
-            except Exception as e:
+                component = cbfs.Cbfs.Component.from_io(self.infile)
+            except (Exception, ValidationFailedError) as e:
                 raise UnpackParserException(e.args)
 
-            end_of_component = self.infile.tell() + component_length
+            end_of_component = self.infile.tell()
+
             self.maxsize = max(self.maxsize, end_of_component)
-            check_condition(end_of_component <= self.fileresult.filesize, "data outside of file")
 
-            # store the current offset
-            curoffset = self.infile.tell()
-
-            self.offsets[self.infile.tell()] = (component_length, component_name)
+            self.offsets[start_offset + component.header.offset] = (component.header.len_data, component.name)
 
             # read the first four bytes of the payload to see
             # if this is the master header
-            buf = self.infile.read(4)
-            check_condition(len(buf) == 4, "not enough data for payload magic")
+            buf = component.data[:4]
             if buf == b'ORBC':
                 check_condition(not seen_master_header, "only one master header allowed")
 
-                # version
-                buf = self.infile.read(4)
-                check_condition(len(buf) == 4, "not enough data for master version field")
-                master_version = int.from_bytes(buf, byteorder='big')
+                # parse the header with kaitai struct
+                try:
+                    master_header = cbfs.Cbfs.Header.from_bytes(component.data)
+                except (Exception, ValidationFailedError) as e:
+                    raise UnpackParserException(e.args)
 
                 # romsize
-                buf = self.infile.read(4)
-                check_condition(len(buf) == 4, "not enough data for romsize field")
-                self.romsize = int.from_bytes(buf, byteorder='big')
+                self.romsize = master_header.len_rom
+                check_condition(self.romsize >= master_header.align, "invalid rom size")
 
                 # check if the rom size isn't larger than the actual file.
                 # As the master header won't be at the beginning of the file
                 # the check should be against size of the entire file, not
                 # starting at the offset, unless that is already part
                 # of another file (TODO).
-                check_condition(self.romsize <= self.fileresult.filesize,
+                check_condition(self.romsize <= self.infile.size,
                                 "not enough data for image")
 
                 # boot block size
-                buf = self.infile.read(4)
-                check_condition(len(buf) == 4, "not enough data for boot block size field")
-                boot_block_size = int.from_bytes(buf, byteorder='big')
-                check_condition(boot_block_size <= self.romsize, "invalid boot block size")
-
-                # align, always 64 bytes
-                buf = self.infile.read(4)
-                check_condition(len(buf) == 4, "not enough data for align field")
-                align = int.from_bytes(buf, byteorder='big')
-                check_condition(align == 64, "invalid alignment size")
-                check_condition(self.romsize >= align, "invalid rom size")
+                check_condition(master_header.len_boot_block <= self.romsize, "invalid boot block size")
 
                 # offset of first block
-                buf = self.infile.read(4)
-                check_condition(len(buf) == 4, "not enough data for cbfs offset field")
-                cbfs_offset = int.from_bytes(buf, byteorder='big')
-                check_condition(cbfs_offset <= self.romsize,
+                check_condition(master_header.cbfs_offset <= self.romsize,
                                 "offset of first block cannot be outside image")
 
-                check_condition(cbfs_offset <= self.offset,
+                check_condition(master_header.cbfs_offset <= self.offset,
                                 "invalid first block offset")
 
-                # architecture
-                buf = self.infile.read(4)
-                check_condition(len(buf) == 4, "not enough data for architecture field")
-                architecture = int.from_bytes(buf, byteorder='big')
-
-                # padding
-                buf = self.infile.read(4)
-                check_condition(len(buf) == 4, "not enough data for padding field")
                 seen_master_header = True
 
             # assume for now that the first block encountered
             # is always the master header
             check_condition(seen_master_header, "no master header found")
 
-            self.infile.seek(curoffset)
-            self.infile.seek(component_length, os.SEEK_CUR)
-
             # skip alignment bytes
-            if self.infile.tell() % align != 0:
-                self.infile.seek(align - (self.infile.tell() % align), os.SEEK_CUR)
+            if self.infile.tell() % master_header.align != 0:
+                self.infile.seek(master_header.align - (self.infile.tell() % master_header.align), os.SEEK_CUR)
+
         check_condition(seen_master_header, "no master header found")
         check_condition(self.romsize <= self.maxsize, "invalid rom size")
         self.offset = self.maxsize - self.romsize
