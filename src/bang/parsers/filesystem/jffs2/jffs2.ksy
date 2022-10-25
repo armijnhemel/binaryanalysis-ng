@@ -129,6 +129,7 @@ types:
                 - compression::dynrubin
                 - compression::zlib
                 - compression::lzo
+                - compression::lzma
           - id: requested_compression
             type: u1
           - id: flags
