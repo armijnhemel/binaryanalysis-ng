@@ -296,7 +296,10 @@ class MetaDirectory:
         unpacked_path = self.unpacked_path(source)
         full_path = self._meta_root / unpacked_path
         full_path.parent.mkdir(parents=True, exist_ok=True)
-        full_path.hardlink_to(target)
+
+        target_path = self.unpacked_path(target)
+        target_full_path = self._meta_root / target_path
+        full_path.hardlink_to(target_full_path)
         self.info.setdefault('unpacked_hardlinks', {})[unpacked_path] = target
         log.debug(f'[{self.md_path}]unpack_hardlink: update info to {self.info}')
         return unpacked_path
