@@ -387,13 +387,12 @@ class Jffs2UnpackParser(UnpackParser):
     # For unpacking data only the directory entry and regular inode
     # will be considered.
     def unpack(self, meta_directory):
-        unpacked_files = []
+        unpacked_mds = {}
 
         inode_to_filename = {}
         inode_to_filename[1] = pathlib.Path('')
         parent_inodes_seen = set()
         inode_to_write_offset = {}
-        inode_to_open_files = {}
         current_inode = None
 
         # reset the file pointer to the start of the file system and read all
@@ -484,11 +483,9 @@ class Jffs2UnpackParser(UnpackParser):
                 if inode_number in inode_to_filename:
                     # the inode number is already known, meaning
                     # that this should be a hard link
-                    inode_rel = self.rel_unpack_dir / inode_to_filename[inode_number]
-                    outfile_rel = self.rel_unpack_dir / inode_name
-                    inode_rel.link_to(outfile_rel)
-                    fr = FileResult(self.fileresult, outfile_rel, set(['hardlink']))
-                    unpacked_files.append(fr)
+                    target = pathlib.Path(inode_name)
+                    file_path = pathlib.Path(inode_to_filename[inode_number])
+                    meta_directory.unpack_hardlink(target, file_path)
 
                 # now add the name to the inode to filename mapping
                 if jffs2_inode.data.parent_inode in inode_to_filename:
@@ -537,104 +534,104 @@ class Jffs2UnpackParser(UnpackParser):
                     if writeoffset == 0:
                         if inode_number in inode_to_write_offset:
                             break
-                        if inode_number in inode_to_open_files:
+                        if inode_number in unpacked_mds:
                             break
 
-                        # open a file and store it as a reference
-                        outfile = open(outfile_full, 'wb')
-                        inode_to_open_files[inode_number] = outfile
-                        fr = FileResult(self.fileresult, outfile_rel, set())
-                        unpacked_files.append(fr)
+                        # write a stub file
+                        # empty file
+                        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                            unpacked_mds[inode_number] = unpacked_md
 
                         current_inode = inode_number
                     else:
                         if writeoffset != inode_to_write_offset[inode_number]:
                             break
-                        if inode_number not in inode_to_open_files:
+                        if inode_number not in unpacked_mds:
                             break
-                        outfile = inode_to_open_files[inode_number]
 
                     decompressed_size = jffs2_inode.data.body.len_decompressed
 
-                    # Check the compression that's used as it could be that
-                    # for a file compressed and uncompressed nodes are mixed
-                    # in case the node cannot be compressed efficiently
-                    # and the compressed data would be larger than the
-                    # original data.
-                    if jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.no_compression:
-                        # the data is not compressed, so can be written
-                        # to the output file immediately
-                        outfile.write(jffs2_inode.data.body.data)
-                    elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.zlib:
-                        # the data is zlib compressed, so first decompress
-                        # before writing
-                        uncompressed_data = zlib.decompress(jffs2_inode.data.body.data)
-                        if len(uncompressed_data) > decompressed_size:
-                            outfile.write(uncompressed_data[:decompressed_size])
+                    unpacked_md = unpacked_mds[inode_number]
+                    with open(unpacked_md.abs_file_path, 'ab') as outfile:
+                        # Check the compression that's used as it could be that
+                        # for a file compressed and uncompressed nodes are mixed
+                        # in case the node cannot be compressed efficiently
+                        # and the compressed data would be larger than the
+                        # original data.
+                        if jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.no_compression:
+                            # the data is not compressed, so can be written
+                            # to the output file immediately
+                            outfile.write(jffs2_inode.data.body.data)
+                        elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.zlib:
+                            # the data is zlib compressed, so first decompress
+                            # before writing
+                            uncompressed_data = zlib.decompress(jffs2_inode.data.body.data)
+                            if len(uncompressed_data) > decompressed_size:
+                                outfile.write(uncompressed_data[:decompressed_size])
+                            else:
+                                outfile.write(uncompressed_data)
+                        elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.lzma:
+                            # The data is LZMA compressed, so create a
+                            # LZMA decompressor with custom filter, as the data
+                            # is stored without LZMA headers.
+                            jffs_filters = [{'id': lzma.FILTER_LZMA1,
+                                             'dict_size': LZMA_DICT_SIZE,
+                                             'lc': LZMA_LC, 'lp': LZMA_LP,
+                                             'pb': LZMA_PB}]
+
+                            decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=jffs_filters)
+                            uncompressed_data = decompressor.decompress(jffs2_inode.data.body.data)
+                            if len(uncompressed_data) > decompressed_size:
+                                outfile.write(uncompressed_data[:decompressed_size])
+                            else:
+                                outfile.write(uncompressed_data)
+                        elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.rtime:
+                            # From: https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py
+                            # First initialize the positions, set to 0
+                            positions = [0] * 256
+
+                            # create a bytearray, set everything to 0
+                            data_out = bytearray([0] * decompressed_size)
+
+                            # create counters
+                            outpos = 0
+                            pos = 0
+
+                            # process all the bytes
+                            while outpos < decompressed_size:
+                                value = jffs2_inode.data.body.data[pos]
+                                pos += 1
+                                data_out[outpos] = value
+                                outpos += 1
+                                repeat = jffs2_inode.data.body.data[pos]
+                                pos += 1
+
+                                backoffs = positions[value]
+                                positions[value] = outpos
+                                if repeat:
+                                    if backoffs + repeat >= outpos:
+                                        while repeat:
+                                            data_out[outpos] = data_out[backoffs]
+                                            outpos += 1
+                                            backoffs += 1
+                                            repeat -= 1
+                                    else:
+                                        data_out[outpos : outpos + repeat] = data_out[
+                                            backoffs : backoffs + repeat
+                                        ]
+                                        outpos += repeat
+                            outfile.write(data_out)
+                        elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.lzo:
+                            outfile.write(lzo.decompress(jffs2_inode.data.body.data, False, decompressed_size))
                         else:
-                            outfile.write(uncompressed_data)
-                    elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.lzma:
-                        # The data is LZMA compressed, so create a
-                        # LZMA decompressor with custom filter, as the data
-                        # is stored without LZMA headers.
-                        jffs_filters = [{'id': lzma.FILTER_LZMA1,
-                                         'dict_size': LZMA_DICT_SIZE,
-                                         'lc': LZMA_LC, 'lp': LZMA_LP,
-                                         'pb': LZMA_PB}]
+                            break
 
-                        decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=jffs_filters)
-                        uncompressed_data = decompressor.decompress(jffs2_inode.data.body.data)
-                        if len(uncompressed_data) > decompressed_size:
-                            outfile.write(uncompressed_data[:decompressed_size])
-                        else:
-                            outfile.write(uncompressed_data)
-                    elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.rtime:
-                        # From: https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py
-                        # First initialize the positions, set to 0
-                        positions = [0] * 256
+                        # flush any remaining data
+                        inode_to_write_offset[inode_number] = writeoffset + decompressed_size
+                        outfile.flush()
 
-                        # create a bytearray, set everything to 0
-                        data_out = bytearray([0] * decompressed_size)
-
-                        # create counters
-                        outpos = 0
-                        pos = 0
-
-                        # process all the bytes
-                        while outpos < decompressed_size:
-                            value = jffs2_inode.data.body.data[pos]
-                            pos += 1
-                            data_out[outpos] = value
-                            outpos += 1
-                            repeat = jffs2_inode.data.body.data[pos]
-                            pos += 1
-
-                            backoffs = positions[value]
-                            positions[value] = outpos
-                            if repeat:
-                                if backoffs + repeat >= outpos:
-                                    while repeat:
-                                        data_out[outpos] = data_out[backoffs]
-                                        outpos += 1
-                                        backoffs += 1
-                                        repeat -= 1
-                                else:
-                                    data_out[outpos : outpos + repeat] = data_out[
-                                        backoffs : backoffs + repeat
-                                    ]
-                                    outpos += repeat
-                        outfile.write(data_out)
-                    elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.lzo:
-                        outfile.write(lzo.decompress(jffs2_inode.data.body.data, False, decompressed_size))
-                    else:
-                        break
-
-                    # flush any remaining data
-                    inode_to_write_offset[inode_number] = writeoffset + decompressed_size
-                    outfile.flush()
-
-                    # unsure what to do here now
-                    pass
+                        # unsure what to do here now
+                        pass
 
             unpackedsize = self.infile.tell()
             if unpackedsize % 4 != 0:
@@ -642,9 +639,8 @@ class Jffs2UnpackParser(UnpackParser):
                 self.infile.seek(paddingbytes, os.SEEK_CUR)
                 unpackedsize = self.infile.tell()
 
-        for i in inode_to_open_files:
-            inode_to_open_files[i].close()
-        return unpacked_files
+        for unpacked_md in unpacked_mds.values():
+            yield unpacked_md
 
     labels = ['jffs2', 'filesystem']
     metadata = {}
