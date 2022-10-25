@@ -99,6 +99,8 @@ class ElfUnpackParser(UnpackParser):
             self.data = elf.Elf.from_io(self.infile)
 
             # calculate size, also read all the data to catch EOF
+            # This isn't always accurate, for example when debugging
+            # data is stored in ELF files as a compressed ELF file.
             phoff = self.data.header.program_header_offset
             self.unpacked_size = phoff
             for header in self.data.header.program_headers:
