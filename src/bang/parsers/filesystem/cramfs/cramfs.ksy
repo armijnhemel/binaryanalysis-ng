@@ -2,7 +2,7 @@ meta:
   id: cramfs
   title: Compressed ROM filesystem
   license: CC0
-  encoding: ASCII
+  encoding: UTF-8
 seq:
   - id: magic
     type: u4be
@@ -41,7 +41,7 @@ types:
         type: u4
       - id: num_files
         type: u4
-      - id: user_defined_name
+      - id: volume_name
         type: strz
         size: 16
     instances:
