@@ -29,6 +29,9 @@ import tempfile
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
+from kaitaistruct import ValidationFailedError
+
+from . import cramfs
 
 
 class CramfsUnpackParser(UnpackParser):
@@ -49,187 +52,55 @@ class CramfsUnpackParser(UnpackParser):
         check_condition(shutil.which('fsck.cramfs') is not None,
                         'fsck.cramfs program not found')
 
-        # read the magic to see what the endianness is
-        buf = self.infile.read(4)
-        if buf == b'\x45\x3d\xcd\x28':
-            byteorder = 'little'
-            bigendian = False
-        else:
-            byteorder = 'big'
-            bigendian = True
-
-        # length in bytes
-        buf = self.infile.read(4)
-        self.cramfs_size = int.from_bytes(buf, byteorder=byteorder)
-        check_condition(self.offset + self.cramfs_size <= self.infile.size,
-                        "declared size larger than file")
-
-        # feature flags
-        buf = self.infile.read(4)
-        check_condition(len(buf) == 4, "not enough data for feature flags")
-        featureflags = int.from_bytes(buf, byteorder=byteorder)
-
-        if featureflags & 1 == 1:
-            cramfs_version = 2
-        else:
-            cramfs_version = 0
+        try:
+            self.data = cramfs.Cramfs.from_io(self.infile)
+        except ValidationFailedError as e:
+            raise UnpackParserException(e.args)
 
         # currently only version 2 is supported
-        check_condition(cramfs_version == 2, "unsupported cramfs version")
-
-        # reserved for future use, skip
-        self.infile.seek(4, os.SEEK_CUR)
-
-        # signature
-        buf = self.infile.read(16)
-        check_condition(buf == b'Compressed ROMFS', "invalid signature")
-
-        # cramfs_info struct (32 bytes)
-        # crc32
-        buf = self.infile.read(4)
-        check_condition(len(buf) == 4, "not enough data for crc32 field")
-        cramfs_crc32 = int.from_bytes(buf, byteorder=byteorder)
-
-        # edition
-        buf = self.infile.read(4)
-        check_condition(len(buf) == 4, "not enough data for cramfs edition field")
-        cramfs_edition = int.from_bytes(buf, byteorder=byteorder)
-
-        # blocks
-        buf = self.infile.read(4)
-        check_condition(len(buf) == 4, "not enough data for blocks field")
-        cramfs_blocks = int.from_bytes(buf, byteorder=byteorder)
-
-        # files
-        buf = self.infile.read(4)
-        check_condition(len(buf) == 4, "not enough data for files field")
-        cramfs_files = int.from_bytes(buf, byteorder=byteorder)
-
-        # user defined name
-        buf = self.infile.read(16)
-        check_condition(len(buf) == 16, "not enough data for user defined name field")
-        try:
-            volumename = buf.split(b'\x00', 1)[0].decode()
-        except UnicodeDecodeError:
-            raise UnpackParserException('invalid volume name')
-
-        # then process the inodes.
+        check_condition(self.data.header.version == 2, "unsupported cramfs version")
 
         # keep a mapping of inode numbers to metadata
         # and a reverse mapping from offset to inode
         inodes = {}
-        offsettoinode = {}
+        offset_to_inode = {}
 
         # See defines in Linux kernel include/uapi/linux/cramfs_fs.h
         # for the width/length of modes, lengths, etc.
-        for inode in range(0, cramfs_files):
-            # store the current offset, as it is used by directories
-            curoffset = self.infile.tell()
-
-            # 2 bytes mode width, 2 bytes uid width
-            buf = self.infile.read(2)
-            check_condition(len(buf) == 2, "not enough data for inode")
-            inode_mode = int.from_bytes(buf, byteorder=byteorder)
-
-            # determine the kind of file
-            if stat.S_ISDIR(inode_mode):
-                mode = 'directory'
-            elif stat.S_ISCHR(inode_mode):
-                mode = 'chardev'
-            elif stat.S_ISBLK(inode_mode):
-                mode = 'blockdev'
-            elif stat.S_ISREG(inode_mode):
-                mode = 'file'
-            elif stat.S_ISFIFO(inode_mode):
-                mode = 'fifo'
-            elif stat.S_ISLNK(inode_mode):
-                mode = 'symlink'
-            elif stat.S_ISSOCK(inode_mode):
-                mode = 'socket'
-
-            buf = self.infile.read(2)
-            check_condition(len(buf) == 2, "not enough data for inode")
-            inode_uid = int.from_bytes(buf, byteorder=byteorder)
-
-            # 3 bytes size width, 1 bytes gid width
-            buf = self.infile.read(3)
-            check_condition(len(buf) == 3, "not enough data for inode")
-
-            # size of the decompressed inode
-            inode_size = int.from_bytes(buf, byteorder=byteorder)
-
-            buf = self.infile.read(1)
-            check_condition(len(buf) == 1, "not enough data for inode")
-            inode_gid = int.from_bytes(buf, byteorder=byteorder)
-
-            # length of the name and offset. The first 6 bits are for
-            # the name length (divided by 4), the last 26 bits for the
-            # offset of the data (divided by 4). This is regardless of
-            # the endianness!
-            # The name is padded to 4 bytes. Because the original name length
-            # is restored by multiplying with 4 there is no need for a
-            # check for padding.
-            buf = self.infile.read(4)
-            check_condition(len(buf) == 4, "not enough data for inode")
-            namelenbytes = int.from_bytes(buf, byteorder=byteorder)
-
-            if bigendian:
-                # get the most significant bits and then shift 26 bits
-                name_length = ((namelenbytes & 4227858432) >> 26) * 4
-
-                # 0b11111111111111111111111111 = 67108863
-                data_offset = (namelenbytes & 67108863) * 4
-            else:
-                # 0b111111 = 63
-                name_length = (namelenbytes & 63) * 4
-
-                # get the bits, then shift 6 bits
-                data_offset = ((namelenbytes & 67108863) >> 6) * 4
+        inode_counter = 0
+        for inode in self.data.data.inodes:
+            # only use valid modes
+            if type(inode.file_mode) == int:
+                raise UnpackParserException("unsupported file mode")
 
             # the data cannot be outside of the file
-            check_condition(self.offset + data_offset <= self.infile.size,
+            check_condition(inode.ofs_data <= self.infile.size,
                             "data cannot be outside of file")
 
-            # if this is the root node there won't be any data
-            # following, so continue with the next inode.
-            if inode == 0:
-                continue
+            if inode_counter != 0:
+                check_condition(inode.len_name != 0, "cannot have zero length filename")
 
-            check_condition(name_length != 0, "cannot have zero length filename")
+            inodes[inode_counter] = {'name': inode.name, 'mode': inode.file_mode.name,
+                             'data_offset': inode.ofs_data, 'uid': inode.uid,
+                             'gid': inode.gid, 'size': inode.len_decompressed}
 
-            buf = self.infile.read(name_length)
-            try:
-                inode_name = buf.split(b'\x00', 1)[0].decode()
-            except UnicodeDecodeError:
-                raise UnpackParserException('invalid filename')
+            inode_counter += 1
 
-            inodes[inode] = {'name': inode_name, 'mode': mode, 'offset': curoffset,
-                             'data_offset': data_offset, 'uid': inode_uid,
-                             'gid': inode_gid, 'size': inode_size}
-
-            offsettoinode[curoffset] = inode
-
-        inodeoffsettodirectory = {}
-
+        '''
         # for now unpack using fsck.cramfs from util-linux. In the future
         # this should be replaced by an own unpacker.
+        inode_offset_to_directory = {}
 
         # now verify the data
         for inode in inodes:
-            # don't recreate device files
-            if inodes[inode]['mode'] == 'blockdev':
-                continue
-            if inodes[inode]['mode'] == 'chardev':
-                continue
-            if inodes[inode]['mode'] == 'file':
-                pass
-            elif inodes[inode]['mode'] == 'directory':
+            if inodes[inode]['mode'] == 'directory':
                 # the data offset points to the offset of
                 # the first inode in the directory
                 if inodes[inode]['data_offset'] != 0:
                     # verify if there is a valid inode
-                    check_condition(inodes[inode]['data_offset'] in offsettoinode,
+                    check_condition(inodes[inode]['data_offset'] in offset_to_inode,
                                     "invalid directory entry")
+        '''
 
         # unpack in a temporary directory to rule out things like CRC errors.
         # fsck.cramfs expects to create the directory itself so only create
@@ -241,13 +112,13 @@ class CramfsUnpackParser(UnpackParser):
         # remove the directory. Possible race condition?
         shutil.rmtree(self.cramfs_unpack_directory)
 
-        if self.offset == 0 and self.cramfs_size == self.infile.filesize:
+        if self.offset == 0 and self.data.header.len_cramfs == self.infile.filesize:
             p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % self.cramfs_unpack_directory, self.infile.name],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
         else:
             temporaryfile = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
-            os.sendfile(temporaryfile[0], self.infile.fileno(), self.offset, self.cramfs_size)
+            os.sendfile(temporaryfile[0], self.infile.fileno(), self.offset, self.data.header.len_cramfs)
             os.fdopen(temporaryfile[0]).close()
 
             p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % self.cramfs_unpack_directory, temporaryfile[1]],
@@ -269,6 +140,9 @@ class CramfsUnpackParser(UnpackParser):
         # move contents of the unpacked file system
         for result in pathlib.Path(self.cramfs_unpack_directory).glob('**/*'):
             relative_result = result.relative_to(self.cramfs_unpack_directory)
+
+            file_path = pathlib.Path(relative_result)
+
             outfile_rel = self.rel_unpack_dir / relative_result
             outfile_full = self.scan_environment.unpack_path(outfile_rel)
             os.makedirs(outfile_full.parent, exist_ok=True)
@@ -294,7 +168,7 @@ class CramfsUnpackParser(UnpackParser):
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
-        self.unpacked_size = self.cramfs_size
+        self.unpacked_size = self.data.header.len_cramfs
 
     labels = ['cramfs', 'filesystem']
     metadata = {}
