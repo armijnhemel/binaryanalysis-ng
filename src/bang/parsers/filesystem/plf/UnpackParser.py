@@ -20,7 +20,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import os
 import pathlib
 import gzip
 
@@ -95,12 +94,11 @@ class PlfUnpackParser(UnpackParser):
             # some partitions need to be treated differently than
             # others. For example, the separate partitions with type
             # 0x09 are actually inodes, not separate partitions, so
-            # should be unpacked together.
+            # should be unpacked together instead of separately.
             if partition.section_type == plf.Plf.SectionTypes.section9:
-                data_dir_rel = self.rel_unpack_dir / 'file_system_data'
-                if file_system_data_directory is None:
-                    file_system_data_directory = self.scan_environment.unpack_path(data_dir_rel)
-                    file_system_data_directory.mkdir()
+                # put all the unpacked inodes in a separate directory.
+                # This is ugly, but practical.
+                data_dir_rel = pathlib.Path('file_system_data')
 
                 # data consist the file name, followed by 8 bytes
                 # of metadata and then the file data
@@ -108,7 +106,7 @@ class PlfUnpackParser(UnpackParser):
                 if entry_name == b'':
                     continue
                 try:
-                    file_path = pathlib.Path(entry_name.decode())
+                    file_path = data_dir_rel / entry_name.decode()
                 except:
                     continue
 
@@ -116,29 +114,15 @@ class PlfUnpackParser(UnpackParser):
                 entry_flags = int.from_bytes(entry_tag, byteorder='little')
                 entry_filetype = entry_flags >> 12
 
-                # then process based on the file type
-                outfile_rel = data_dir_rel / file_path
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-
                 if entry_filetype == 0x4:
                     # create directory
-                    os.makedirs(outfile_full, exist_ok=True)
-
-                    # add result to result set
-                    fr = FileResult(self.fileresult, outfile_rel, set(['directory']))
-                    unpacked_files.append(fr)
+                    meta_directory.unpack_directory(file_path)
                 elif entry_filetype == 0x8:
                     # write data, skip the first 12 bytes of the data
                     # (entry tag, plus 8 bytes of other information)
-                    outfile_full.parent.mkdir(exist_ok=True)
-                    outfile = open(outfile_full, 'wb')
-                    outfile.write(entry_data[12:])
-                    outfile.close()
-
-                    # add result to result set
-                    fr = FileResult(self.fileresult, outfile_rel, set())
-                    unpacked_files.append(fr)
-
+                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                        outfile.write(entry_data[12:])
+                        yield unpacked_md
                 elif entry_filetype == 0xa:
                     # symlink, only process if not compressed
                     if compressed:
@@ -147,64 +131,36 @@ class PlfUnpackParser(UnpackParser):
                         target_name = entry_data[12:].split(b'\x00', 1)[0].decode()
                     except:
                         continue
-                    outfile_full.symlink_to(target_name)
-
-                    # add result to result set
-                    fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
-                    unpacked_files.append(fr)
+                    meta_directory.unpack_symlink(file_path, target_name)
 
             elif partition.section_type == plf.Plf.SectionTypes.section4:
-                data_dir_rel = self.rel_unpack_dir / 'data'
-                if data_directory is None:
-                    data_directory = self.scan_environment.unpack_path(data_dir_rel)
-                    data_directory.mkdir()
-
                 # data consists of the file name, followed by the file data
                 entry_name, entry_data = data.split(b'\x00', 1)
                 if entry_name == b'':
                     continue
                 try:
-                    file_path = pathlib.Path(entry_name.decode())
+                    file_path = pathlib.Path('data') / entry_name.decode()
                 except:
                     continue
 
                 # then write the data
-                outfile_rel = data_dir_rel / file_path
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                outfile_full.parent.mkdir(exist_ok=True)
-
-                outfile = open(outfile_full, 'wb')
-                outfile.write(entry_data)
-                outfile.close()
-
-                # add result to result set
-                fr = FileResult(self.fileresult, outfile_rel, set())
-                unpacked_files.append(fr)
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    outfile.write(entry_data)
+                    yield unpacked_md
             elif partition.section_type == plf.Plf.SectionTypes.section5:
-                data_dir_rel = self.rel_unpack_dir / 'data'
-                if data_directory is None:
-                    data_directory = self.scan_environment.unpack_path(data_dir_rel)
-                    data_directory.mkdir()
+                # this section only creates directories
                 entry_name, entry_data = data.split(b'\x00', 1)
                 if entry_name == b'':
                     continue
                 try:
-                    file_path = pathlib.Path(entry_name.decode())
+                    file_path = pathlib.Path('data') / entry_name.decode()
                 except:
                     continue
 
                 if file_path == pathlib.Path('/'):
                     continue
 
-                outfile_rel = data_dir_rel / file_path
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-
-                # create directory
-                os.makedirs(outfile_full, exist_ok=True)
-
-                # add result to result set
-                fr = FileResult(self.fileresult, outfile_rel, set(['directory']))
-                unpacked_files.append(fr)
+                meta_directory.unpack_directory(file_path)
             elif partition.section_type == plf.Plf.SectionTypes.section11:
                 pass
             else:
@@ -218,14 +174,10 @@ class PlfUnpackParser(UnpackParser):
                 partition_names.add(partition_name)
                 '''
                 file_path = pathlib.Path(partition_name)
-                outfile_rel = self.rel_unpack_dir / file_path
-                outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                os.makedirs(outfile_full.parent, exist_ok=True)
-                outfile = open(outfile_full, 'wb')
-                outfile.write(partition.data)
-                outfile.close()
-                fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-                unpacked_files.append(fr)
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    outfile.write(partition.data)
+                    yield unpacked_md
+
             counter += 1
 
         return unpacked_files
