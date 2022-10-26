@@ -146,6 +146,8 @@ def show(all, metadir):
                 print(f'{k}\t{v}')
             for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
                 print(f'{k}\t{v}\t(symlink)')
+            for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
+                print(f'{k}\t{v}\t(hardlink)')
 
 
 @app.command(short_help='Lists extracted and unpacked files')
@@ -163,6 +165,8 @@ def ls(metadir):
             print(f'{k}\t{v}')
         for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
             print(f'{k}\t{v}\t(symlink)')
+        for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
+            print(f'{k}\t{v}\t(hardlink)')
 
 
 if __name__=="__main__":
