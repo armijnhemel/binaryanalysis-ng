@@ -72,7 +72,7 @@ The Nexus 6 (codename "shamu") was made by Motorola Mobility. It uses the
 ## soju-grk39f-factory-8e283784.zip
 
 The Nexus S (codename "crespo") was made by Samsung. It uses the `android_boot_img`
-version 0 format and Dex 035 and Odex 036.
+version 0 format and Dex 035 and Odex 036. It also has `kcm` files.
 
 ## walleye-opm1.171019.011-factory-f74dd4fd.zip
 
