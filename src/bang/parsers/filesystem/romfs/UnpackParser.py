@@ -21,7 +21,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import collections
-import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -161,18 +160,10 @@ class RomfsUnpackParser(UnpackParser):
                     if source_target_name.is_absolute():
                         source_target_name = source_target_name.relative_to('/')
 
-                    source_target_name = self.scan_environment.unpack_path(self.rel_unpack_dir / source_target_name)
-
                     file_path = curcwd / file_header.name
 
-                    outfile_rel = self.rel_unpack_dir / curcwd / file_header.name
-                    outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                    os.makedirs(outfile_full.parent, exist_ok=True)
-
                     # link source and target
-                    source_target_name.link_to(outfile_full)
-                    fr = FileResult(self.fileresult, outfile_rel, set(['hardlink']))
-                    unpacked_files.append(fr)
+                    meta_directory.unpack_hardlink(file_path, source_target_name)
 
             elif file_header.filetype == romfs.Romfs.Filetypes.directory:
                 if file_header.name != '.' and file_header.name != '..':
@@ -199,7 +190,6 @@ class RomfsUnpackParser(UnpackParser):
 
             if file_header.next_fileheader != 0:
                 offsets.append((file_header.next_fileheader, curcwd))
-
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.len_file
