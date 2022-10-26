@@ -70,7 +70,11 @@ types:
           - id: uid
             type: u2
           - id: len_decompressed
-            type: b24
+            type:
+              switch-on: _root.magic
+              cases:
+                'magic::little': b24le
+                'magic::big': b24be
           - id: gid
             type: u1
           - id: name_length
