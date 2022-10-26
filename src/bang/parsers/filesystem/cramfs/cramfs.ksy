@@ -79,6 +79,13 @@ types:
             type: strz
             size: len_name
         instances:
+          # length of the name and offset. The first 6 bits are for
+          # the name length (divided by 4), the last 26 bits for the
+          # offset of the data (divided by 4). This is regardless of
+          # the endianness!
+          # The name is padded to 4 bytes. Because the original name length
+          # is restored by multiplying with 4 there is no need for a
+          # check for padding.
           file_mode:
             value: mode & 0o0170000
             enum: modes
