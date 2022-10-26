@@ -23,6 +23,11 @@ seq:
   - id: keyboard_type
     type: u1
     enum: keyboard_type
+    valid:
+      any-of:
+        - keyboard_type::numeric
+        - keyboard_type::q14
+        - keyboard_type::qwerty
   - id: padding
     size: 11
   - id: keys
