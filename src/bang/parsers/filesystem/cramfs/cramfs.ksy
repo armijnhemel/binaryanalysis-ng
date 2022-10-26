@@ -79,6 +79,9 @@ types:
             type: strz
             size: len_name
         instances:
+          file_mode:
+            value: mode & 0o0170000
+            enum: modes
           len_name:
             value: |
               _root.magic == magic::big ? ((name_length & 4227858432) >> 26) * 4:
@@ -91,3 +94,11 @@ enums:
   magic:
     0x453dcd28: little
     0x28cd3d45: big
+  modes:
+    0xc000: socket
+    0xa000: link
+    0x8000: regular
+    0x6000: block_device
+    0x4000: directory
+    0x2000: character_device
+    0x1000: fifo
