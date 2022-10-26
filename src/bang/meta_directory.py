@@ -272,7 +272,9 @@ class MetaDirectory:
         try:
             yield unpacked_md, unpacked_file
         finally:
-            unpacked_path.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            # change permissions, equivalent to:
+            # $ chmod 744
+            unpacked_path.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IROTH)
             unpacked_file.close()
 
         # update info
