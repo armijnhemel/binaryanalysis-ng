@@ -23,6 +23,7 @@ import multiprocessing
 import os
 import pathlib
 import pickle
+import stat
 import uuid
 
 from contextlib import contextmanager
@@ -271,7 +272,9 @@ class MetaDirectory:
         try:
             yield unpacked_md, unpacked_file
         finally:
+            unpacked_path.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
             unpacked_file.close()
+
         # update info
         if path.is_absolute():
             self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
