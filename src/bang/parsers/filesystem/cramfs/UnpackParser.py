@@ -20,6 +20,8 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# cramfs: no support for holes or uncompressed data
+
 import os
 import pathlib
 import shutil
@@ -91,10 +93,14 @@ class CramfsUnpackParser(UnpackParser):
                     # sanity check for zlib compressed data
                     self.infile.seek(start_offset)
                     buf = self.infile.read(block_pointer - start_offset)
-                    try:
-                        zlib.decompress(buf)
-                    except zlib.error as e:
-                        raise UnpackParserException(e.args)
+                    if buf != b'':
+                        try:
+                            zlib.decompress(buf)
+                        except zlib.error as e:
+                            raise UnpackParserException(e.args)
+                    else:
+                        # holes?
+                        pass
                     start_offset = block_pointer
 
             inodes[inode_counter] = {'name': inode.name, 'mode': inode.file_mode.name,
