@@ -26,6 +26,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import zlib
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
@@ -79,6 +80,22 @@ class CramfsUnpackParser(UnpackParser):
 
             if inode_counter != 0:
                 check_condition(inode.len_name != 0, "cannot have zero length filename")
+
+            # sanity checks for block pointers
+            if inode.file_mode == cramfs.Cramfs.Modes.regular or inode.file_mode == cramfs.Cramfs.Modes.link:
+                start_offset = inode.ofs_data + inode.nblocks * 4
+                for block_pointer in inode.block_pointers.block_pointers:
+                    check_condition(block_pointer <= self.infile.size,
+                                    "data cannot be outside of file")
+
+                    # sanity check for zlib compressed data
+                    self.infile.seek(start_offset)
+                    buf = self.infile.read(block_pointer - start_offset)
+                    try:
+                        zlib.decompress(buf)
+                    except zlib.error as e:
+                        raise UnpackParserException(e.args)
+                    start_offset = block_pointer
 
             inodes[inode_counter] = {'name': inode.name, 'mode': inode.file_mode.name,
                              'data_offset': inode.ofs_data, 'uid': inode.uid,
