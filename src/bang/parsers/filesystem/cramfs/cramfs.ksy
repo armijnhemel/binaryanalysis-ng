@@ -124,7 +124,7 @@ types:
             value: ((len_decompressed - 1) / _root.block_size) + 1
       block_pointers:
         seq:
-          - id: block_pointer
+          - id: block_pointers
             type: u4
             repeat: eos
 enums:
