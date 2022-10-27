@@ -53,12 +53,12 @@ class VmdkUnpackParser(UnpackParser):
         check_condition(self.data.header.size_max % self.data.header.size_grain == 0,
                         "invalid capacity")
 
-        check_condition(self.data.header.size_metadata * self.data.len_sector <= self.fileresult.filesize,
+        check_condition(self.data.header.size_metadata * self.data.len_sector <= self.infile.size,
                         "invalid meta data size")
 
         # run a sanity check using qemu-img
         check_condition(self.infile.offset == 0, "vmdk carving not supported")
-        p = subprocess.Popen(['qemu-img', 'info', '--output=json', self.fileresult.filename],
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', self.infile.name],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
 
@@ -70,7 +70,7 @@ class VmdkUnpackParser(UnpackParser):
                 raise UnpackParserException('no valid JSON output from qemu-img')
         else:
             raise UnpackParserException('invalid VMDK')
-        check_condition(self.fileresult.filesize == vmdkjson['actual-size'],
+        check_condition(self.infile.size == vmdkjson['actual-size'],
                         "invalid size")
         self.unpacked_size = vmdkjson['actual-size']
 
