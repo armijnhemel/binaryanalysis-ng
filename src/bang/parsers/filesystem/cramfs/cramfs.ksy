@@ -3,6 +3,8 @@ meta:
   title: Compressed ROM filesystem
   license: CC0
   encoding: UTF-8
+doc-ref:
+  - https://github.com/npitre/cramfs-tools
 seq:
   - id: magic
     type: u4be
@@ -16,6 +18,9 @@ seq:
   - id: data
     size: header.len_cramfs - magic._sizeof - header._sizeof
     type: inodes(header.num_files)
+instances:
+  block_size:
+    value: 4096
 types:
   endian_header:
     meta:
@@ -47,6 +52,14 @@ types:
     instances:
       version:
         value: 'feature_flags & 1 == 1 ? 2: 0'
+      sorted_dirs:
+        value: feature_flags & 2 == 2
+      holes:
+        value: feature_flags & 0x100 == 0x100
+      shifted_root_offset:
+        value: feature_flags & 0x400 == 0x400
+      block_pointer_extensions:
+        value: feature_flags & 0x800 == 0x800
   inodes:
     meta:
       endian:
@@ -101,6 +114,19 @@ types:
             value: |
               _root.magic == magic::big ? (name_length & 67108863) * 4:
               ((name_length & 67108863) >> 6) * 4
+          block_pointers:
+            pos: ofs_data
+            io: _root._io
+            type: block_pointers
+            size: nblocks * 4
+            if: file_mode == modes::regular or file_mode == modes::link
+          nblocks:
+            value: ((len_decompressed - 1) / _root.block_size) + 1
+      block_pointers:
+        seq:
+          - id: block_pointer
+            type: u4
+            repeat: eos
 enums:
   magic:
     0x453dcd28: little
