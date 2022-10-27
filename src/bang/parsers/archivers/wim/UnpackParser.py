@@ -83,10 +83,8 @@ class WimUnpackParser(UnpackParser):
         unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
 
         # check if the file starts at offset 0. If not, carve the
-        # file first, as cabextract tries to be smart and unpack
-        # all cab data in a file, like concatenated cab files,
-        # even if there is other data in between the individual
-        # cab files
+        # file first, as 7z tries to be smart and unpack
+        # all wim data in a file.
         havetmpfile = False
         if not (self.offset == 0 and self.fileresult.filesize == self.unpacked_size):
             temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
