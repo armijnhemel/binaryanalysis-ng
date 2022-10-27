@@ -175,7 +175,7 @@ class Ext2UnpackParser(UnpackParser):
         if not failure:
             # Now read the contents of the file system with e2ls, starting
             # with the root directory.
-            ext2dirstoscan = collections.deque([''])
+            ext2_dirs_to_scan = collections.deque([''])
 
             # store a mapping for inodes and files. This is needed to detect
             # hard links, where files have the same inode.
@@ -186,7 +186,7 @@ class Ext2UnpackParser(UnpackParser):
 
             while True:
                 try:
-                    ext2dir = ext2dirstoscan.popleft()
+                    ext2dir = ext2_dirs_to_scan.popleft()
                 except IndexError:
                     # there are no more entries to process
                     break
@@ -253,7 +253,7 @@ class Ext2UnpackParser(UnpackParser):
                         if ext2name == '.' or ext2name == '..':
                             continue
                         newext2dir = os.path.join(ext2dir, ext2name)
-                        ext2dirstoscan.append(newext2dir)
+                        ext2_dirs_to_scan.append(newext2dir)
 
                     fullext2name = os.path.join(ext2dir, ext2name)
 
@@ -281,7 +281,7 @@ class Ext2UnpackParser(UnpackParser):
 
         # Now read the contents of the file system with e2ls, starting
         # with the root directory.
-        ext2dirstoscan = collections.deque([''])
+        ext2_dirs_to_scan = collections.deque([''])
 
         # store a mapping for inodes and files. This is needed to detect
         # hard links, where files have the same inode.
