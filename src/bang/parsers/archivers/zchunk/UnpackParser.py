@@ -51,7 +51,7 @@ class ZchunkUnpackParser(UnpackParser):
         # zchunk data starts at offset 0.
         # If not this is not the case, carve the file first.
         self.havetmpfile = False
-        if not (self.offset == 0 and self.infile.size == self.infile.tell()):
+        if not self.offset == 0:
             self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
             self.havetmpfile = True
             os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.infile.tell())
