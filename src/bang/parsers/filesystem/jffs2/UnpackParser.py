@@ -65,9 +65,12 @@ class Jffs2UnpackParser(UnpackParser):
         except (ValidationFailedError, ValueError, EOFError) as e:
             raise UnpackParserException(e.args)
 
+        # store endianness, as it is needed in some cases (dirty nodes)
         self.bigendian = False
+        byteorder = 'little'
         if root_inode.magic == jffs2.Jffs2.Magic.be:
             self.bigendian = True
+            byteorder = 'big'
 
         # keep a list of inodes to file names
         # the root inode (1) always has ''
@@ -115,13 +118,15 @@ class Jffs2UnpackParser(UnpackParser):
             if len(buf) != 2:
                 break
 
-            # first check if the inode magic is valid
+            # first check if the inode magic is valid: big endian
+            # and big endian cannot be mixed.
             if self.bigendian:
                 if buf not in [b'\x19\x85', b'\x00\x00', b'\xff\xff']:
                     break
             else:
                 if buf not in [b'\x85\x19', b'\x00\x00', b'\xff\xff']:
                     break
+
             if buf == b'\x00\x00':
                 # dirty nodes
                 node_magic_type = 'dirty'
@@ -135,6 +140,30 @@ class Jffs2UnpackParser(UnpackParser):
             else:
                 node_magic_type = 'normal'
 
+            # skip dirty nodes. Some manual parsing is needed here. As from
+            # the magic it isn't clear which endianness is used it needs to
+            # be taken from the context
+            if node_magic_type == 'dirty':
+                self.infile.seek(2, os.SEEK_CUR)
+                buf = self.infile.read(4)
+                if len(buf) != 4:
+                    break
+
+                len_inode = int.from_bytes(buf, byteorder=byteorder)
+                if cur_offset + len_inode > self.infile.size:
+                    break
+
+                # skip the dirty data
+                self.infile.seek(cur_offset + len_inode)
+
+                unpackedsize = self.infile.tell()
+                if unpackedsize % 4 != 0:
+                    paddingbytes = 4 - (unpackedsize % 4)
+                    self.infile.seek(paddingbytes, os.SEEK_CUR)
+                    unpackedsize = self.infile.tell()
+                continue
+
+            # reset the file pointer and parse with Kaitai Struct
             self.infile.seek(cur_offset)
 
             try:
@@ -166,15 +195,6 @@ class Jffs2UnpackParser(UnpackParser):
                 continue
 
             prev_is_padding = False
-
-            # skip dirty nodes
-            if node_magic_type == 'dirty':
-                unpackedsize = self.infile.tell()
-                if unpackedsize % 4 != 0:
-                    paddingbytes = 4 - (unpackedsize % 4)
-                    self.infile.seek(paddingbytes, os.SEEK_CUR)
-                    unpackedsize = self.infile.tell()
-                continue
 
             # Verify the header CRC of the first 8 bytes in the node
             # The checksum is not the same as the CRC32 algorithm from
@@ -423,7 +443,30 @@ class Jffs2UnpackParser(UnpackParser):
             else:
                 node_magic_type = 'normal'
 
-            # seek to the start of the inode
+            # skip dirty nodes. Some manual parsing is needed here. As from
+            # the magic it isn't clear which endianness is used it needs to
+            # be taken from the context
+            if node_magic_type == 'dirty':
+                self.infile.seek(2, os.SEEK_CUR)
+                buf = self.infile.read(4)
+                if len(buf) != 4:
+                    break
+
+                len_inode = int.from_bytes(buf, byteorder=byteorder)
+                if cur_offset + len_inode > self.infile.size:
+                    break
+
+                # skip the dirty data
+                self.infile.seek(cur_offset + len_inode)
+
+                unpackedsize = self.infile.tell()
+                if unpackedsize % 4 != 0:
+                    paddingbytes = 4 - (unpackedsize % 4)
+                    self.infile.seek(paddingbytes, os.SEEK_CUR)
+                    unpackedsize = self.infile.tell()
+                continue
+
+            # reset the file pointer and parse with Kaitai Struct
             self.infile.seek(cur_offset)
 
             jffs2_inode = jffs2.Jffs2.from_io(self.infile)
@@ -449,15 +492,6 @@ class Jffs2UnpackParser(UnpackParser):
                 continue
 
             prev_is_padding = False
-
-            # skip dirty nodes
-            if node_magic_type == 'dirty':
-                unpackedsize = self.infile.tell()
-                if unpackedsize % 4 != 0:
-                    paddingbytes = 4 - (unpackedsize % 4)
-                    self.infile.seek(paddingbytes, os.SEEK_CUR)
-                    unpackedsize = self.infile.tell()
-                continue
 
             # process directory entries
             if jffs2_inode.header.inode_type == jffs2.Jffs2.InodeType.dirent:
