@@ -26,8 +26,6 @@ import lz4
 import lz4.frame
 import xxhash
 
-from FileResult import FileResult
-
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
@@ -72,7 +70,6 @@ class Lz4UnpackParser(UnpackParser):
             try:
                 uncompressresults = lz4.frame.decompress_chunk(decompressor, checkbytes)
             except Exception as e:
-                print(e)
                 raise UnpackParserException(e.args)
             bytes_to_read -= readsize
             readsize = min(bytes_to_read, 1000000)
