@@ -111,7 +111,8 @@ class TarUnpackParser(UnpackParser):
                         target = pathlib.Path(tarinfo.linkname)
                         meta_directory.unpack_symlink(file_path, target)
                     elif tarinfo.islnk(): # hard link
-                        pass
+                        target = pathlib.Path(tarinfo.linkname)
+                        meta_directory.unpack_hardlink(file_path, target)
                     elif tarinfo.isdir(): # directory
                         meta_directory.unpack_directory(pathlib.Path(tarinfo.name))
                 except ValueError:
