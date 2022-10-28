@@ -57,7 +57,7 @@ class CabUnpackParser(UnpackParser):
         # even if there is other data in between the individual
         # cab files
         havetmpfile = False
-        if not (self.offset == 0 and self.fileresult.filesize == self.data.preheader.len_cabinet):
+        if not (self.offset == 0 and self.infile.size == self.data.preheader.len_cabinet):
             temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
             havetmpfile = True
             os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.data.preheader.len_cabinet)
@@ -66,7 +66,7 @@ class CabUnpackParser(UnpackParser):
         if havetmpfile:
             p = subprocess.Popen(['cabextract', '-d', unpackdir_full, temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            p = subprocess.Popen(['cabextract', '-d', unpackdir_full, self.fileresult.filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['cabextract', '-d', unpackdir_full, meta_directory.file_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         (outputmsg, errormsg) = p.communicate()
 
