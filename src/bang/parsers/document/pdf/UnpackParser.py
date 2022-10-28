@@ -154,7 +154,7 @@ class PdfUnpackParser(UnpackParser):
                     buf = self.infile.read(1)
                     if buf in [b'\x0a', b'\x0d']:
                         if buf == b'\x0d':
-                            if self.offset + self.infile.tell() != self.infile.size:
+                            if self.infile.tell() != self.infile.size:
                                 buf = self.infile.read(1)
                                 if buf != b'\x0a':
                                     self.infile.seek(-1, os.SEEK_CUR)
@@ -215,12 +215,12 @@ class PdfUnpackParser(UnpackParser):
                             os.unlink(temporary_file[1])
 
                     self.infile.seek(end_of_eof)
-                    if self.offset + end_of_eof == self.infile.size:
+                    if end_of_eof == self.infile.size:
                         break
                 else:
                     # continue searching, with some overlap
                     # unless EOF has been reached
-                    if self.offset + self.infile.tell() == self.infile.size:
+                    if self.infile.tell() == self.infile.size:
                         break
 
                     self.infile.seek(-10, os.SEEK_CUR)
@@ -229,7 +229,7 @@ class PdfUnpackParser(UnpackParser):
                 break
 
             # stop if EOF has been reached
-            if self.offset + self.infile.tell() == self.infile.size:
+            if self.infile.tell() == self.infile.size:
                 break
 
         check_condition(best_eof != -1, "not a valid PDF")
