@@ -65,7 +65,7 @@ class AndroidBackupUnpackParser(UnpackParser):
 
         # create a temporary file to write the results to
         # then create a zlib decompression object
-        temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+        self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
         decompressobj = zlib.decompressobj()
 
         self.unpacked_size = self.infile.tell()
@@ -77,48 +77,31 @@ class AndroidBackupUnpackParser(UnpackParser):
         try:
             while checkbytes != b'':
                 # uncompress the data, and write to an output file
-                os.write(temporary_file[0], decompressobj.decompress(checkbytes))
+                os.write(self.temporary_file[0], decompressobj.decompress(checkbytes))
                 self.unpacked_size += len(checkbytes) - len(decompressobj.unused_data)
                 if len(decompressobj.unused_data) != 0:
                     break
                 checkbytes = self.infile.read(chunksize)
         except Exception as e:
-            os.fdopen(temporary_file[0]).close()
-            os.unlink(temporary_file[1])
+            os.fdopen(self.temporary_file[0]).close()
+            os.unlink(self.temporary_file[1])
             raise UnpackParserException(e.args)
-        os.fdopen(temporary_file[0]).close()
+        os.fdopen(self.temporary_file[0]).close()
 
         # check the if the file is a valid tar file
         try:
-            android_tar = tarfile.open(temporary_file[1], mode='r')
+            android_tar = tarfile.open(self.temporary_file[1], mode='r')
             members = android_tar.getmembers()
             for member in members:
                 pass
         except TarError as e:
+            os.unlink(self.temporary_file[1])
             raise UnpackParserException(e.args)
-        finally:
-            os.unlink(temporary_file[1])
 
     def unpack(self, meta_directory):
         unpacked_files = []
 
-        temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
-        decompressobj = zlib.decompressobj()
-        self.infile.seek(self.zlib_start)
-
-        # read 1 MB chunks
-        chunksize = 1024*1024
-        checkbytes = self.infile.read(chunksize)
-        while checkbytes != b'':
-            # uncompress the data, and write to an output file
-            os.write(temporary_file[0], decompressobj.decompress(checkbytes))
-            self.unpacked_size += len(checkbytes) - len(decompressobj.unused_data)
-            if len(decompressobj.unused_data) != 0:
-                break
-            checkbytes = self.infile.read(chunksize)
-        os.fdopen(temporary_file[0]).close()
-
-        android_tar = tarfile.open(temporary_file[1], mode='r')
+        android_tar = tarfile.open(self.temporary_file[1], mode='r')
         members = android_tar.getmembers()
 
         for entry in members:
@@ -132,7 +115,7 @@ class AndroidBackupUnpackParser(UnpackParser):
 
             fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
             unpacked_files.append(fr)
-        os.unlink(temporary_file[1])
+        os.unlink(self.temporary_file[1])
         return unpacked_files
             
     # make sure that self.unpacked_size is not overwritten
