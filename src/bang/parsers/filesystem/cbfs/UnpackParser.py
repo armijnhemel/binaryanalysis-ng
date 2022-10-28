@@ -63,7 +63,6 @@ class CbfsUnpackParser(UnpackParser):
         # It is assumed that the first block encountered is the master header
         while True:
             buf = self.infile.read(8)
-            print(buf, self.offset)
             if buf != b'LARCHIVE':
                 break
 
