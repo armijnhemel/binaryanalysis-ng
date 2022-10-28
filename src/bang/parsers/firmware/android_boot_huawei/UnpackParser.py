@@ -57,7 +57,7 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
             out_labels = []
             file_path = pathlib.Path(entry.name)
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
-                os.sendfile(f.fileno(), self.infile.fileno(), entry.ofs_body, entry.len_body)
+                os.sendfile(f.fileno(), self.infile.fileno(), self.offset + entry.ofs_body, entry.len_body)
                 yield unpacked_md
 
     # make sure that self.unpacked_size is not overwritten
