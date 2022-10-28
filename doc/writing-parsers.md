@@ -57,10 +57,37 @@ sanity checks should be done here and not later in the unpacking phase. Ideally
 nothing should be written to disk in this phase, although this isn't always
 possible.
 
-Notes: `self.offset` is still relevant when:
+## `unpack()`
 
-1. using `sendfile()`
-2. when checking if the file scanned is the whole file
+## `calculate_unpacked_size()`
+
+## Offsets
+
+To make it easier for the parsers the file that is presented to the parser and
+unpacker is not the real file. Instead, it has been wrapped in a so called
+`OffsetInputFile` wrapper, that takes care of offsets. This is so the parser
+does not need to worry too much about where in the file it actually is reading
+and what offsets need to be taken care off (which is always a source of bugs).
+This makes the parser easier and cleaner, as it always seems as if the parser
+starts at offset `0`. When using Kaitai Struct based parsers this usually does
+not matter at all (unless the Kaitai Struct specification uses file size
+checks, which some unfortunately do) as tKaitai Struct will read from a stream
+of bytes and all that is needed is that the file pointer is pointing at the
+right offset.
+
+The offset of the signature in the *original* file can still be accessed
+through `self.offset`. The original file can be accessed (if needed) via
+`self.infile.infile`. In an ideal case these are never needed, but there are
+exceptions, for example when using external tools, or when writing data in
+bulk using `sendfile()`.
+
+There are various modules that are using `sendfile()`, for example:
+
+1. `AndroidDtoUnpacker`
+
+and also parsers that are using external tools, such as:
+
+1.
 
 ## Common mistakes
 
