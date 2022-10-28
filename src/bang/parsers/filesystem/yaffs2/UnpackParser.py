@@ -127,7 +127,7 @@ class Yaffs2UnpackParser(UnpackParser):
     def parse(self):
         self.byteorder = 'little'
         self.yaffs2_metadata = {}
-        dataunpacked = False
+        data_unpacked = False
 
         # then try to read the file system for various chunk/spare
         # combinations until either data has been successfully parsed
@@ -142,10 +142,10 @@ class Yaffs2UnpackParser(UnpackParser):
             object_id_to_latest_chunk = {}
 
             # keep a mapping of object ids to type
-            object_id_to_type = {}
+            self.object_id_to_type = {}
 
             # keep a mapping of object ids to name
-            object_id_to_name = {}
+            self.object_id_to_name = {}
 
             # store if element with object id 1 has been seen. Most, but not all,
             # YAFFS2 images have this as a separate chunk.
@@ -153,7 +153,7 @@ class Yaffs2UnpackParser(UnpackParser):
             is_first_element = True
 
             # store if this is an inband image
-            inband = False
+            self.inband = False
 
             # keep some metadata about files, simulate
             # unpacking, but don't write data
@@ -208,7 +208,7 @@ class Yaffs2UnpackParser(UnpackParser):
                 # For inbound tags some data (object id, chunk id) are
                 # mixed with the actual data, so extract them first.
                 if chunk_id & EXTRA_HEADER_INFO_FLAG == EXTRA_HEADER_INFO_FLAG:
-                    if not is_first_element and not inband:
+                    if not is_first_element and not self.inband:
                         # can't mix inband and out of band tags
                         break
 
@@ -223,7 +223,7 @@ class Yaffs2UnpackParser(UnpackParser):
                     # with data (files), so it is safe to simply
                     # set the chunk_id to 0 here (new chunk).
                     chunk_id = 0
-                    inband = True
+                    self.inband = True
 
                 # read the chunk byte count
                 spare_bytes = self.infile.read(4)
@@ -245,11 +245,11 @@ class Yaffs2UnpackParser(UnpackParser):
                         break
 
                     # only files can be spread over multiple chunks
-                    if object_id_to_type[object_id] != YAFFS_OBJECT_TYPE_FILE:
+                    if self.object_id_to_type[object_id] != YAFFS_OBJECT_TYPE_FILE:
                         break
 
                     object_id_to_latest_chunk[object_id] = chunk_id
-                    dataunpacked = True
+                    data_unpacked = True
                 else:
                     if last_open is not None:
                         if object_id_to_latest_chunk[previous_object_id] == 0:
@@ -281,7 +281,7 @@ class Yaffs2UnpackParser(UnpackParser):
                     parent_id_bytes = self.infile.read(4)
                     parent_object_id = int.from_bytes(parent_id_bytes, byteorder=self.byteorder)
 
-                    if inband:
+                    if self.inband:
                         parent_object_id = orig_chunk_id & ~ALL_EXTRA_FLAG
 
                     # skip the name checksum (2 bytes)
@@ -352,8 +352,8 @@ class Yaffs2UnpackParser(UnpackParser):
                     if object_id != 1:
                         if is_first_element:
                             # artificially add object 1
-                            object_id_to_type[1] = YAFFS_OBJECT_TYPE_DIRECTORY
-                            object_id_to_name[1] = ''
+                            self.object_id_to_type[1] = YAFFS_OBJECT_TYPE_DIRECTORY
+                            self.object_id_to_name[1] = ''
                     else:
                         # sanity checks for the root element
                         if not is_first_element:
@@ -362,20 +362,23 @@ class Yaffs2UnpackParser(UnpackParser):
                             break
 
                         # add the root element and skip to the next chunk
-                        object_id_to_type[1] = YAFFS_OBJECT_TYPE_DIRECTORY
-                        object_id_to_name[1] = ''
+                        self.object_id_to_type[1] = YAFFS_OBJECT_TYPE_DIRECTORY
+                        self.object_id_to_name[1] = ''
                         self.infile.seek(self.last_valid_offset + chunk_size + spare_size)
                         continue
 
-                    if parent_object_id not in object_id_to_type:
+                    if parent_object_id not in self.object_id_to_type:
                         break
 
                     # parent objects always have to be a directory
-                    if object_id_to_type[parent_object_id] != YAFFS_OBJECT_TYPE_DIRECTORY:
+                    if self.object_id_to_type[parent_object_id] != YAFFS_OBJECT_TYPE_DIRECTORY:
                         break
 
                     # record a place holder object so hard links work
-                    object_id_to_name[object_id] = ''
+                    self.object_id_to_name[object_id] = ''
+
+                    full_object_name = pathlib.Path(self.object_id_to_name[parent_object_id]) / object_name
+                    self.object_id_to_name[object_id] = full_object_name
 
                     # sanity check for individual file types
                     if chunk_object_type == YAFFS_OBJECT_TYPE_FILE:
@@ -402,16 +405,16 @@ class Yaffs2UnpackParser(UnpackParser):
                     elif chunk_object_type == YAFFS_OBJECT_TYPE_DIRECTORY:
                         pass
                     elif chunk_object_type == YAFFS_OBJECT_TYPE_HARDLINK:
-                        if equiv_id not in object_id_to_name:
+                        if equiv_id not in self.object_id_to_name:
                             break
                     elif chunk_object_type == YAFFS_OBJECT_TYPE_SPECIAL:
                         pass
                     else:
                         break
 
-                    object_id_to_type[object_id] = chunk_object_type
+                    self.object_id_to_type[object_id] = chunk_object_type
                     is_first_element = False
-                    dataunpacked = True
+                    data_unpacked = True
 
                 if self.infile.tell() == self.infile.size:
                     break
@@ -426,19 +429,18 @@ class Yaffs2UnpackParser(UnpackParser):
                         # something is wrong here
                         break
 
-            if dataunpacked:
+            if data_unpacked:
                 self.unpackedsize = self.last_valid_offset
                 self.yaffs2_metadata['chunk size'] = chunk_size
                 self.yaffs2_metadata['spare size'] = spare_size
                 self.infile.seek(self.last_valid_offset)
                 break
 
-        check_condition(dataunpacked, "no valid/suppported yaffs2 image found")
+        check_condition(data_unpacked, "no valid/suppported yaffs2 image found")
         check_condition(self.yaffs2_metadata != {}, "no valid/suppported yaffs2 image found")
 
-    def unpack(self):
-        unpacked_files = []
-        unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
+    def unpack(self, meta_directory):
+        unpacked_mds = {}
 
         chunk_size = self.yaffs2_metadata['chunk size']
         spare_size = self.yaffs2_metadata['spare size']
@@ -450,19 +452,12 @@ class Yaffs2UnpackParser(UnpackParser):
         # keep a mapping of object ids to latest chunk id
         object_id_to_latest_chunk = {}
 
-        # keep a mapping of object ids to type
-        object_id_to_type = {}
-
-        # keep a mapping of object ids to name
-        object_id_to_name = {}
-
         # keep a mapping of object ids to file size
         # for sanity checks
         object_id_to_size = {}
 
-        # store the last open file for an object
+        # store the meta directory for the last open file for an object
         last_open = None
-        last_open_name = None
         last_open_size = 0
         previous_object_id = 0
 
@@ -470,9 +465,6 @@ class Yaffs2UnpackParser(UnpackParser):
         # YAFFS2 images have this as a separate chunk.
         seen_root_element = False
         is_first_element = True
-
-        # store if this is an inband image
-        inband = False
 
         self.last_valid_offset = cur_offset
 
@@ -520,7 +512,6 @@ class Yaffs2UnpackParser(UnpackParser):
                 # with data (files), so it is safe to simply
                 # set the chunk_id to 0 here (new chunk).
                 chunk_id = 0
-                inband = True
 
             # read the chunk byte count
             spare_bytes = self.infile.read(4)
@@ -533,15 +524,19 @@ class Yaffs2UnpackParser(UnpackParser):
 
                 # jump to the offset of the chunk and write data. This needs
                 # absolute offsets again. Dirty hack!
-                os.sendfile(last_open.fileno(), self.infile.fileno(), self.last_valid_offset + self.offset, byte_count)
 
+                # open the file in append mode. Unfortunately this means
+                # that sendfile() cannot be used currently. From the man page:
+                #
+                # EINVAL out_fd has the O_APPEND flag set.  This is not currently
+                # supported by sendfile().
+                #
+                # It looks like this will not be supported in the future
+                unpacked_md = unpacked_mds[object_id]
+                with open(unpacked_md.abs_file_path, 'ab') as outfile:
+                    self.infile.seek(self.last_valid_offset)
+                    outfile.write(self.infile.read(byte_count))
             else:
-                # close open file, if any
-                if last_open is not None:
-                    last_open.close()
-                    fr = FileResult(self.fileresult, last_open_name, set())
-                    unpacked_files.append(fr)
-
                 last_open = None
 
                 # store latest chunk id for this object
@@ -558,7 +553,7 @@ class Yaffs2UnpackParser(UnpackParser):
                 parent_id_bytes = self.infile.read(4)
                 parent_object_id = int.from_bytes(parent_id_bytes, byteorder=self.byteorder)
 
-                if inband:
+                if self.inband:
                     parent_object_id = orig_chunk_id & ~ALL_EXTRA_FLAG
 
                 # skip the name checksum (2 bytes)
@@ -626,22 +621,12 @@ class Yaffs2UnpackParser(UnpackParser):
                 # element 1 is special, but not every yaffs2 file system
                 # seems to have element 1, so sometimes it needs to be
                 # artificially added.
-                if object_id != 1:
-                    if is_first_element:
-                        # artificially add object 1
-                        object_id_to_type[1] = YAFFS_OBJECT_TYPE_DIRECTORY
-                        object_id_to_name[1] = ''
-                else:
-                    # add the root element and skip to the next chunk
-                    object_id_to_type[1] = YAFFS_OBJECT_TYPE_DIRECTORY
-                    object_id_to_name[1] = ''
+                if object_id == 1:
+                    # skip the root element
                     self.infile.seek(self.last_valid_offset + chunk_size + spare_size)
                     continue
 
-                full_object_name = os.path.join(object_id_to_name[parent_object_id], object_name)
-                outfile_rel = self.rel_unpack_dir / full_object_name
-                outfile_full = unpackdir_full / full_object_name
-                object_id_to_name[object_id] = full_object_name
+                file_path = pathlib.Path(self.object_id_to_name[parent_object_id]) / object_name
 
                 if chunk_object_type == YAFFS_OBJECT_TYPE_FILE:
                     # first reconstruct the file size.
@@ -650,33 +635,29 @@ class Yaffs2UnpackParser(UnpackParser):
                     else:
                         object_size = object_size_low
 
-                    last_open = open(outfile_full, 'wb')
-                    last_open_name = outfile_rel
+                    # write a stub file
+                    # empty file
+                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
+                        unpacked_mds[object_id] = unpacked_md
+
+                    last_open = ''
                     last_open_size = object_size
                     previous_object_id = object_id
                 elif chunk_object_type == YAFFS_OBJECT_TYPE_SYMLINK:
                     alias = alias.split(b'\x00', 1)[0].decode()
-
-                    # create the symlink
-                    os.symlink(alias, outfile_full)
-                    fr = FileResult(self.fileresult, outfile_rel, set(['symbolic link']))
-                    unpacked_files.append(fr)
+                    meta_directory.unpack_symlink(file_path, alias)
                 elif chunk_object_type == YAFFS_OBJECT_TYPE_DIRECTORY:
                     # create the directory
-                    os.makedirs(outfile_full, exist_ok=True)
-                    fr = FileResult(self.fileresult, outfile_rel, set(['directory']))
-                    unpacked_files.append(fr)
+                    meta_directory.unpack_directory(file_path)
                 elif chunk_object_type == YAFFS_OBJECT_TYPE_HARDLINK:
-                    linkname = unpackdir_full / object_id_to_name[equiv_id]
-                    os.link(linkname, outfile_full)
+                    meta_directory.unpack_hardlink(file_path, linkname)
                 elif chunk_object_type == YAFFS_OBJECT_TYPE_SPECIAL:
                     # no permissions to create special files,
                     # so don't create, but report instead. TODO
                     pass
 
-                object_id_to_type[object_id] = chunk_object_type
                 is_first_element = False
-                dataunpacked = True
+                data_unpacked = True
 
             if self.infile.tell() == self.unpacked_size:
                 break
@@ -686,7 +667,6 @@ class Yaffs2UnpackParser(UnpackParser):
 
         # close any open files
         if last_open is not None:
-            last_open.close()
             if object_id_to_latest_chunk[previous_object_id] == 0:
                 if last_open_size != 0:
                     os.unlink(last_open.name)
@@ -697,7 +677,8 @@ class Yaffs2UnpackParser(UnpackParser):
                 fr = FileResult(self.fileresult, last_open_name, set())
                 unpacked_files.append(fr)
 
-        return unpacked_files
+        for unpacked_md in unpacked_mds.values():
+            yield unpacked_md
 
     labels = ['yaffs2', 'filesystem']
 
