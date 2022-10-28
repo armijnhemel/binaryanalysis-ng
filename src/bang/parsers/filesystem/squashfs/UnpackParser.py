@@ -109,11 +109,11 @@ class SquashfsUnpackParser(UnpackParser):
             check_condition(len(checkbytes) == 4,
                             "not enough data to read squashfs size")
 
-        squashfssize = int.from_bytes(checkbytes, byteorder=byteorder)
-        check_condition(squashfssize > 0,
+        squashfs_size = int.from_bytes(checkbytes, byteorder=byteorder)
+        check_condition(squashfs_size > 0,
                         "cannot determine size of squashfs file system")
 
-        check_condition(squashfssize <= filesize,
+        check_condition(squashfs_size <= filesize,
                         "file system cannot extend past file")
 
         success = False
@@ -136,16 +136,16 @@ class SquashfsUnpackParser(UnpackParser):
         check_condition(success, "invalid or unsupported squashfs file system")
 
         # by default mksquashfs pads to 4K blocks with NUL bytes.
-        # The padding is not counted in squashfssize
-        if squashfssize % 4096 != 0:
-            self.infile.seek(squashfssize)
-            paddingbytes = 4096 - squashfssize % 4096
+        # The padding is not counted in squashfs_size
+        if squashfs_size % 4096 != 0:
+            self.infile.seek(squashfs_size)
+            paddingbytes = 4096 - squashfs_size % 4096
             checkbytes = self.infile.read(paddingbytes)
             if len(checkbytes) == paddingbytes:
                 if checkbytes == paddingbytes * b'\x00':
-                    squashfssize += paddingbytes
+                    squashfs_size += paddingbytes
 
-        self.unpacked_size = squashfssize
+        self.unpacked_size = squashfs_size
         check_condition(False, "invalid or unsupported squashfs file system")
 
     def unpack(self, meta_directory):
