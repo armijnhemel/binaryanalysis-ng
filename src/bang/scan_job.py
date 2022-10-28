@@ -463,7 +463,9 @@ def pipe_with(context, pipe):
 
 def make_scan_pipeline():
     stop_if_scanned = pipe_cond(cond_if_scanned, pipe_fail, pipe_pass)
+
     pipe_padding = pipe_seq(pipe_exec(check_for_padding), stop_if_scanned)
+
     pipe_checks_if_not_synthesized = pipe_cond(
             cond_not_synthesized,
             pipe_seq(
@@ -542,5 +544,6 @@ def process_jobs(pipeline, scan_environment):
             log.debug(f'process_jobs: all scanjobs are waiting')
             break
     log.debug(f'process_jobs: exiting')
+
     # TODO: this should not be needed if unpackparsers behave
     os.chdir(current_dir)
