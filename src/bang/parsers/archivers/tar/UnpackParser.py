@@ -121,20 +121,6 @@ class TarUnpackParser(UnpackParser):
                 # block/device characters, sockets, etc. TODO
                 pass
 
-            #if tarinfo.isfile() or tarinfo.issym() or tarinfo.isdir() or tarinfo.islnk():
-                #try:
-                    #self.unpacktar.extract(tarinfo, path=self.rel_unpack_dir)
-                #except ValueError:
-                    ## embedded NUL bytes could cause the extractor to fail
-                    #continue
-
-                # tar can change permissions after unpacking, so change
-                # them back to something a bit more sensible
-                #if tarinfo.isfile() or tarinfo.isdir():
-                    #outfile_full.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-                #fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-                #unpacked_files.append(fr)
-
     def calculate_unpacked_size(self):
         pass
 
