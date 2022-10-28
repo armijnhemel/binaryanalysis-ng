@@ -108,8 +108,8 @@ class TarUnpackParser(UnpackParser):
                     if tarinfo.isfile(): # normal file
                         yield from self.tar_unpack_regular(meta_directory, file_path, tarinfo)
                     elif tarinfo.issym(): # symlink
-                        # meta_directory.unpack_symlink(tarinfo.name, ...)
-                        pass
+                        target = pathlib.Path(tarinfo.linkname)
+                        meta_directory.unpack_symlink(file_path, target)
                     elif tarinfo.islnk(): # hard link
                         pass
                     elif tarinfo.isdir(): # directory
