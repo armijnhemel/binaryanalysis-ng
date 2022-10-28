@@ -93,7 +93,7 @@ class SqliteUnpackParser(UnpackParser):
         check_condition(len(checkbytes) == 4, "not enough data for size of database in pages")
         dbsizeinpages = int.from_bytes(checkbytes, byteorder='big')
 
-        check_condition(self.infile.offset + dbsizeinpages * pagesize <= self.fileresult.filesize,
+        check_condition(self.infile.offset + dbsizeinpages * pagesize <= self.infile.size,
                         "not enough data for database")
 
         # page number of the first freelist trunk page
@@ -174,7 +174,7 @@ class SqliteUnpackParser(UnpackParser):
         # extra sanity checks: see if the database can be
         # opened with Python's built-in sqlite3 module, but
         # only if the whole file is SQLite.
-        if self.offset == 0 and self.unpacked_size == self.fileresult.filesize:
+        if self.offset == 0 and self.unpacked_size == self.infile.size:
             dbopen = False
             try:
                 testconn = sqlite3.connect('file:%s?mode=ro' % self.infile.name, uri=True)
