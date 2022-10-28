@@ -665,6 +665,7 @@ class Yaffs2UnpackParser(UnpackParser):
             # skip to the next chunk/spare
             self.infile.seek(self.last_valid_offset + chunk_size + spare_size)
 
+        ''' TODO: find out what to do here
         # close any open files
         if last_open is not None:
             if object_id_to_latest_chunk[previous_object_id] == 0:
@@ -676,6 +677,7 @@ class Yaffs2UnpackParser(UnpackParser):
             else:
                 fr = FileResult(self.fileresult, last_open_name, set())
                 unpacked_files.append(fr)
+        '''
 
         for unpacked_md in unpacked_mds.values():
             yield unpacked_md
