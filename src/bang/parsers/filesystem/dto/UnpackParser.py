@@ -60,7 +60,7 @@ class AndroidDtoUnpacker(UnpackParser):
         for i in self.data.entries:
             file_path = pathlib.Path("unpacked-%d.dtb" % dtb_counter)
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                os.sendfile(outfile.fileno(), self.infile.fileno(), i.dt_offset, i.dt_size)
+                os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset + i.dt_offset, i.dt_size)
                 dtb_counter += 1
                 yield unpacked_md
 
