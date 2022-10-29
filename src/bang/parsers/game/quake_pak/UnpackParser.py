@@ -91,8 +91,7 @@ class QuakePakUnpackParser(UnpackParser):
 
             file_path = pathlib.Path(entry_name)
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, f):
-
-                os.sendfile(f.fileno(), self.infile.fileno(), self.infile.offset + quake_entry.ofs, quake_entry.size)
+                os.sendfile(f.fileno(), self.infile.fileno(), self.offset + quake_entry.ofs, quake_entry.size)
 
                 # TODO: set original file name on unpacked_md if renamed
                 with unpacked_md.open(open_file = False):
