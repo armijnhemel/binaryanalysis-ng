@@ -75,6 +75,9 @@ types:
         value: flags.value & 0b1 == 0b1
       has_optional_elements:
         value: flags.value & 0b10 == 0b10
+      compression:
+        value: compression_type.value
+        enum: compression
   optional_element:
     seq:
       - id: element_id
@@ -186,3 +189,6 @@ enums:
     1: sha256
     2: sha512
     3: sha512_128 # first 128 bits of sha512 checksum
+  compression:
+    0: none
+    2: zstd
