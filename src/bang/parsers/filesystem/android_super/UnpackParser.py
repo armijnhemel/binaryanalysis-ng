@@ -108,7 +108,7 @@ class AndroidSuperUnpackParser(UnpackParser):
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 for i in range(0, self.partitions[partition]['num_extents']):
                     extent_number = self.partitions[partition]['first_extent'] + i
-                    os.sendfile(outfile.fileno(), self.infile.fileno(), self.extents[extent_number]['offset'], self.extents[extent_number]['size'])
+                    os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset + self.extents[extent_number]['offset'], self.extents[extent_number]['size'])
 
                 yield unpacked_md
 
