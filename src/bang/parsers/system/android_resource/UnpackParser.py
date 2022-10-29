@@ -31,7 +31,7 @@ class AndroidResourceUnpackParser(UnpackParser):
     signatures = [
         (0, b'\x03\x00\x08\x00')
     ]
-    pretty_name = 'androidresource'
+    pretty_name = 'android_resource'
 
     def parse(self):
         try:
