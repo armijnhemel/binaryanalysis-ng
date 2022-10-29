@@ -11,6 +11,35 @@ to do the following:
 A new parser derives from the `UnpackParser` class. To implement functionality
 different methods need to be redefined.
 
+## First: an important word about offsets
+
+To make it easier for the parsers the file that is presented to the parser and
+unpacker is not the real file. Instead, it has been wrapped in a so called
+`OffsetInputFile` wrapper, that takes care of offsets. This is so the parser
+does not need to worry too much about where in the file it actually is reading
+and what offsets need to be taken care off (which is always a source of bugs).
+This makes the parser easier and cleaner, as it always seems as if the parser
+starts at offset `0`. When using Kaitai Struct based parsers this usually does
+not matter at all (unless the Kaitai Struct specification uses file size
+checks, which some unfortunately do) as tKaitai Struct will read from a stream
+of bytes and all that is needed is that the file pointer is pointing at the
+right offset.
+
+The offset of the signature in the *original* file can still be accessed
+through `self.offset`. The original file can be accessed (if needed) via
+`self.infile.infile`. In an ideal case these are never needed, but there are
+exceptions, for example when using external tools, or when writing data in
+bulk using `sendfile()`.
+
+There are various modules that are using `sendfile()`, for example:
+
+1. `AndroidDtoUnpacker`
+2. `AndroidMsmBoot`
+
+and also parsers that are using external tools, such as:
+
+1.
+
 ## `extensions` and `signatures`
 
 The two data structures `extensions` and `signatures` are defined that define
@@ -61,33 +90,22 @@ possible.
 
 ## `calculate_unpacked_size()`
 
-## Offsets
+By default the unpacked size is set to wherever the file pointer is at in the
+wrapped input file (so the offset is taken care of). This is not always the
+correct size. For example, when a Kaitai Struct based parser using `instances`
+is used (and there are many) some of the data structures are actually Python
+`properties` and these are not automatically parsed and thus the file pointer
+is not moved.
 
-To make it easier for the parsers the file that is presented to the parser and
-unpacker is not the real file. Instead, it has been wrapped in a so called
-`OffsetInputFile` wrapper, that takes care of offsets. This is so the parser
-does not need to worry too much about where in the file it actually is reading
-and what offsets need to be taken care off (which is always a source of bugs).
-This makes the parser easier and cleaner, as it always seems as if the parser
-starts at offset `0`. When using Kaitai Struct based parsers this usually does
-not matter at all (unless the Kaitai Struct specification uses file size
-checks, which some unfortunately do) as tKaitai Struct will read from a stream
-of bytes and all that is needed is that the file pointer is pointing at the
-right offset.
+Frequently the size is set during parsing by `parse()` (example:
+`AllwinnerUnpackParser`) and `calculate_unpacked_size()` should not do anything
+and can be set to:
 
-The offset of the signature in the *original* file can still be accessed
-through `self.offset`. The original file can be accessed (if needed) via
-`self.infile.infile`. In an ideal case these are never needed, but there are
-exceptions, for example when using external tools, or when writing data in
-bulk using `sendfile()`.
+```
+    def calculate_unpacked_size(self):
+        pass
+```
 
-There are various modules that are using `sendfile()`, for example:
-
-1. `AndroidDtoUnpacker`
-
-and also parsers that are using external tools, such as:
-
-1.
 
 ## Common mistakes
 
