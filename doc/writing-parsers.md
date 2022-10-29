@@ -78,13 +78,34 @@ more contextual information is needed. An example is `base64`, where there is a
 check to see if the file was unpacked from a Chrome PAK file to avoid needless
 false positives.
 
+Another example is `CbfsUnpackParser` because there the wrapped file should
+not be used.
+
 ## `parse()`
 
 The main parsing method is called `parse()`. This method is used to parse and
 verify if the contents of the data that is being parsed is correct. All of the
 sanity checks should be done here and not later in the unpacking phase. Ideally
 nothing should be written to disk in this phase, although this isn't always
-possible.
+possible (for example, when using external tools and data need to be carved
+first because the external tools cannot work with offsets).
+
+The goal of `parse()` is to fail as soon as possible to waste as little effort
+as possible trying to find out what a file is. This means writing checks using
+`check_condition()` and, if the parser uses Kaitai Struct, in the Kaitai Struct
+grammar.
+
+When using Kaitai Struct based parsers using `instances` (and there are many)
+some of the data structures are actually Python `properties` which are lazily
+evaluated and only parsed when requested, so the data structures have to be
+explicitly walked. Some parsers where this happens are:
+
+1. `WavUnpackParser`
+2. `ElfUnpackParser`
+
+Sometimes some data structures that are used later (by either calculating the
+size or unpacking) are created during parsing and shared to avoid reparsing
+in any of the other methods.
 
 ## `unpack()`
 
@@ -102,10 +123,20 @@ Frequently the size is set during parsing by `parse()` (example:
 and can be set to:
 
 ```
-    def calculate_unpacked_size(self):
-        pass
+def calculate_unpacked_size(self):
+    pass
 ```
 
+## `labels` and `metadata`
+
+The two properties `labels` and `metadata` are used to set labels and metadata
+respercively. What goes where is sometimes a bit arbitrary (or at least has
+been in the past) but as a rule of thumb: `labels` should be as small as
+possible while in `metadata` everything deemed interesting about a file should
+go. For example: `uid` and `gid` information per file for an archive or file
+system should go into `metadata`. Identifiers extracted from executables and
+architecture information should go into `metadata`. Information that something
+is a file system or archive should go into `labels`.
 
 ## Common mistakes
 
@@ -116,3 +147,12 @@ their solutions.
 
 The parsers won't be picked up if there isn't a `__init__.py` file in the
 directory as well as in every parent directory.
+
+### Forgetting `self.offset` when using `os.sendfile()`
+
+When writing large amounts of data using `os.sendfile()` and having a file that
+does not start at `0` it is important to use `self.offset`. This is because
+`os.sendfile()` operates on file descriptors. When using `OffsetInputFile` the
+file descriptor of the wrapped file is the same as the original file, meaning
+that parameters given to `os.sendfile()` like offsets should reflect the
+situation of the original unwrapped file.
