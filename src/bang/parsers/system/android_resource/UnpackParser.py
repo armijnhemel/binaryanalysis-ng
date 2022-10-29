@@ -27,6 +27,8 @@ from . import android_resource
 
 
 class AndroidResourceUnpackParser(UnpackParser):
+    # extensions are mostly for resources.arsc,
+    # signatures are for Android binary XML
     extensions = ['resources.arsc']
     signatures = [
         (0, b'\x03\x00\x08\x00')
