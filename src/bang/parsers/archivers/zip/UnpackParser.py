@@ -333,7 +333,7 @@ class ZipUnpackParser(UnpackParser):
                         # skip any unknown extra fields for now
                         if extra.code == kaitai_zip.Zip.ExtraCodes.zip_align:
                             possible_android = True
-                        if extra.code == kaitai_zip.Zip.ExtraCodes.zip64:
+                        elif extra.code == kaitai_zip.Zip.ExtraCodes.zip64:
                             # ZIP64, section 4.5.3
                             # according to 4.4.3.2 PKZIP 4.5 or later is
                             # needed to unpack ZIP64 files.
