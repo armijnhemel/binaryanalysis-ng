@@ -21,7 +21,7 @@ and what offsets need to be taken care off (which is always a source of bugs).
 This makes the parser easier and cleaner, as it always seems as if the parser
 starts at offset `0`. When using Kaitai Struct based parsers this usually does
 not matter at all (unless the Kaitai Struct specification uses file size
-checks, which some unfortunately do) as tKaitai Struct will read from a stream
+checks, which some unfortunately do) as Kaitai Struct will read from a stream
 of bytes and all that is needed is that the file pointer is pointing at the
 right offset.
 
@@ -199,9 +199,18 @@ are cases where this is not easily possible. One example is the current parser
 and unpacker for `ubifs`, where data of files are not in a single inode, but
 scattered across the file system. Here the meta directories are stored, data
 is appended to the output files and the meta directories are yielded at the end
-in a single loop.
+in a single loop. Please take note: `os.sendfile()` does not work when files
+are opened in append mode (this is a limitation of the underlying system call)
+so cannot be used when appending to files.
 
 ### Unpacking directories
+
+In some file formats directories are or can be stored as a separate entry.
+Examples are ZIP-files, tar files, several file systems, and so on.
+
+Unpacking directories is easy: the meta directory object has a method
+`unpack_directory()` which should be called. The parameter should be a valid
+`pathlib` object. No meta directory needs to be yielded.
 
 ### Unpacking symbolic links
 
