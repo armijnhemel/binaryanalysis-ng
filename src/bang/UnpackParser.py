@@ -323,6 +323,9 @@ class HashParser(UnpackParser):
                 # not enough entropy in input file
                 pass
 
+        self.update_metadata(self.from_md)
+        self.from_md.write_ahead()
+
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
 
