@@ -291,7 +291,7 @@ class HashParser(UnpackParser):
             scan_tlsh = False
 
         if scan_tlsh:
-            hashes['tlsh'] = tlsh.Tlsh()
+            tlsh_hash = tlsh.Tlsh()
 
         # then read the data
         bytes_processed = 0
@@ -301,20 +301,27 @@ class HashParser(UnpackParser):
             bytes_processed += bytes_read
             data = memoryview(scanbytes[:bytes_read])
             for h in hashes:
-                if h == 'tlsh':
-                    hashes[h].update(data.tobytes())
-                else:
-                    hashes[h].update(data)
+                hashes[h].update(data)
+            if scan_tlsh:
+                tlsh_hash.update(data.tobytes())
             bytes_read = self.infile.readinto(scanbytes)
 
         if scan_tlsh:
-            hashes['tlsh'].final()
+            tlsh_hash.final()
 
         self.hash_results = dict([(algorithm, computed_hash.hexdigest())
             for algorithm, computed_hash in hashes.items()])
 
+        if scan_tlsh:
+            try:
+                self.hash_results['tlsh'] = tlsh_hash.hexdigest()
+            except ValueError:
+                # not enough entropy in input file
+                pass
+
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
+
 
 def check_condition(condition, message):
     '''semantic check function to see if condition is True.
