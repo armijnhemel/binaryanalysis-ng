@@ -23,6 +23,8 @@ import hashlib
 import os
 import pathlib
 
+import tlsh
+
 from .UnpackParserException import UnpackParserException
 
 
@@ -258,15 +260,38 @@ class HashParser(UnpackParser):
     def __init__(self, from_meta_directory, offset):
         super().__init__(from_meta_directory, offset)
         self.hash_algorithms = ['sha256', 'md5', 'sha1']
+        self.from_md = from_meta_directory
 
         # read data in blocks of 10 MiB
         self.read_size = 10485760
 
+        # labels that TLSH should ignore
+        self.tlsh_labels_ignore = set([
+            'compressed', 'graphics', 'audio', 'archive',
+            'filesystem', 'srec', 'ihex', 'padding',
+            'database'])
+
+        # TLSH maximum size
+        self.tlsh_maximum = 31457280
+
     def parse(self):
-        # first create the hashes
+        # create the hashes
         hashes = {}
         for h in self.hash_algorithms:
             hashes[h] = hashlib.new(h)
+
+        # also compute TLSH hashes, but only for interesting
+        # files and files that are big enough but not too big
+        scan_tlsh = False
+        if 256 <= self.from_md._size <= self.tlsh_maximum:
+            scan_tlsh = True
+
+        labels = self.from_md.info.get('labels', [])
+        if self.tlsh_labels_ignore.intersection(labels) != set():
+            scan_tlsh = False
+
+        if scan_tlsh:
+            hashes['tlsh'] = tlsh.Tlsh()
 
         # then read the data
         bytes_processed = 0
@@ -276,15 +301,20 @@ class HashParser(UnpackParser):
             bytes_processed += bytes_read
             data = memoryview(scanbytes[:bytes_read])
             for h in hashes:
-                hashes[h].update(data)
+                if h == 'tlsh':
+                    hashes[h].update(data.tobytes())
+                else:
+                    hashes[h].update(data)
             bytes_read = self.infile.readinto(scanbytes)
 
-        hash_results = dict([(algorithm, computed_hash.hexdigest())
+        if scan_tlsh:
+            hashes['tlsh'].final()
+
+        self.hash_results = dict([(algorithm, computed_hash.hexdigest())
             for algorithm, computed_hash in hashes.items()])
 
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
-
 
 def check_condition(condition, message):
     '''semantic check function to see if condition is True.
