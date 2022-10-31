@@ -107,8 +107,6 @@ Sometimes some data structures that are used later (by either calculating the
 size or unpacking) are created during parsing and shared to avoid reparsing
 in any of the other methods.
 
-## `unpack()`
-
 ## `calculate_unpacked_size()`
 
 By default the unpacked size is set to wherever the file pointer is at in the
@@ -120,12 +118,94 @@ is not moved.
 
 Frequently the size is set during parsing by `parse()` (example:
 `AllwinnerUnpackParser`) and `calculate_unpacked_size()` should not do anything
-and can be set to:
+and should be set to:
 
 ```
 def calculate_unpacked_size(self):
     pass
 ```
+
+This will prevent that the default `calcuate_unpacked_size()` from the
+`UnpackParser` base class is run.
+
+## `unpack()`
+
+Unpacking files, directories, symbolic links, and so on, is done in the
+`unpack()` method. One of the parameters to the `unpack()` method is a meta
+directory.
+
+The meta directory object has several convenience functions specifically for
+unpacking data and hiding all kinds of implementation details, such as where
+the data is written to. The meta directory takes care of this and provides a
+directory where the data is written to. Depending on if the files that are
+unpacked have an absolute path or a relative path these files will be written
+to `abs/` and `rel/` respectively.
+
+The result of unpacking regular files should be yielded so they can immediately
+be put back into the scanning queue.
+
+As everything has already been parsed ideally no errors should be thrown in
+this method. Instead, any errors should be caught in `parse()`. That might mean
+doing some double work (example: using external tools that do all kinds of
+validation while unpacking).
+
+### Unpacking regular files
+
+The most common operation will be writing data to a file. This can be done in
+several ways, namely by reading the data first (which might already have been
+done by a Kaitai Struct parser) and then writing it to the output file, or by
+doing bulk writes using `os.sendfile()`.
+
+As an example of the first, let's look at `Uf2UnpackParser`. The code for
+writing the data is as follows:
+
+```
+with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+    outfile.write(self.data.uf2_block_start.data)
+    for uf2_block in self.data.uf2_blocks:
+        outfile.write(uf2_block.data)
+    yield unpacked_md
+```
+
+The parameter `file_path` should be a valid `pathlib` object. Depending on the
+format of the parsed file this is either embedded in the binary (example: files
+in a file system) or can be derived from the suffix of the file (as in this
+case).
+
+The result of `unpack_regular_file()` is a tuple with another meta directory
+(where the meta data of the file to be unpacked will be written), as well as an
+opened file object that can be written to using `write()` (as done here) or
+using `os.sendfile()`.
+
+An example using `os.sendfile()` is `AllwinnerUnpackParser`:
+
+```
+def unpack(self, meta_directory):
+    for entry in self.data.file_headers:
+        file_path = pathlib.Path(entry.file_header_data.name)
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            os.sendfile(outfile.fileno(), self.infile.fileno(), entry.file_header_data.offset + self.offset,
+                             entry.file_header_data.original_length)
+            yield unpacked_md
+```
+
+The name is extracted using the Kaitai Struct parser, as are the offset and
+size that are needed to write the data. What should be noted is that when using
+`os.sendfile()` some extra information is needed (namely the original offset)
+as explained at the start of this document.
+
+Although the meta directories in these examples are yielded immediately there
+are cases where this is not easily possible. One example is the current parser
+and unpacker for `ubifs`, where data of files are not in a single inode, but
+scattered across the file system. Here the meta directories are stored, data
+is appended to the output files and the meta directories are yielded at the end
+in a single loop.
+
+### Unpacking directories
+
+### Unpacking symbolic links
+
+### Unpacking hard links
 
 ## `labels` and `metadata`
 
@@ -137,6 +217,9 @@ go. For example: `uid` and `gid` information per file for an archive or file
 system should go into `metadata`. Identifiers extracted from executables and
 architecture information should go into `metadata`. Information that something
 is a file system or archive should go into `labels`.
+
+As everything has already been parsed and unpacked at this point no errors
+should be thrown when setting `labels` and `metadata`.
 
 ## Common mistakes
 
