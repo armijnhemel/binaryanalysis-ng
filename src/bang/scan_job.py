@@ -95,6 +95,7 @@ def compute_hashes(scan_environment, checking_meta_directory):
         unpack_parser = HashParser(checking_meta_directory, 0)
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
 
+        checking_meta_directory.unpack_parser = unpack_parser
         unpack_parser.parse_from_offset()
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
@@ -516,7 +517,6 @@ def make_scan_pipeline():
         pipe_fail), pipe_with(ctx_open_md_for_writing, pipe_hashes)
     )
     '''
-
     return pipe_root
 
 # Example: resume scan:
