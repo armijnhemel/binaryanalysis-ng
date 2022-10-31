@@ -19,6 +19,7 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import hashlib
 import os
 import pathlib
 
@@ -249,6 +250,40 @@ class ExtractingParser(UnpackParser):
     def write_info(self, to_meta_directory):
         '''TODO: write any data about the parent MetaDirectory here.'''
         pass
+
+class HashParser(UnpackParser):
+    '''Compute various hashes for files. By default a few hashes have
+    been hardcoded. To compute different hashes change this file.
+    '''
+    def __init__(self, from_meta_directory, offset):
+        super().__init__(from_meta_directory, offset)
+        self.hash_algorithms = ['sha256', 'md5', 'sha1']
+
+        # read data in blocks of 10 MiB
+        self.read_size = 10485760
+
+    def parse(self):
+        # first create the hashes
+        hashes = {}
+        for h in self.hash_algorithms:
+            hashes[h] = hashlib.new(h)
+
+        # then read the data
+        bytes_processed = 0
+        scanbytes = bytearray(self.read_size)
+        bytes_read = self.infile.readinto(scanbytes)
+        while bytes_read != 0:
+            bytes_processed += bytes_read
+            data = memoryview(scanbytes[:bytes_read])
+            for h in hashes:
+                hashes[h].update(data)
+            bytes_read = self.infile.readinto(scanbytes)
+
+        hash_results = dict([(algorithm, computed_hash.hexdigest())
+            for algorithm, computed_hash in hashes.items()])
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = 0
 
 
 def check_condition(condition, message):
