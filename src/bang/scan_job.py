@@ -474,6 +474,12 @@ def pipe_not(pipe):
 def ctx_open_md_for_writing(scan_environment, meta_directory):
     return meta_directory.open()
 
+def ctx_open_md_for_updating(scan_environment, meta_directory):
+    return meta_directory.open(open_file=False)
+
+def ctx_open_md_readonly(scan_environment, meta_directory):
+    return meta_directory.open(open_file=False, info_write=False)
+
 def pipe_with(context, pipe):
     def _check(scan_environment, meta_directory):
         with context(scan_environment, meta_directory):
