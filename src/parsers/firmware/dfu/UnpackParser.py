@@ -78,9 +78,9 @@ class DfuUnpackParser(UnpackParser):
         """sets metadata and labels for the unpackresults"""
         labels = ['dfu', 'firmware']
         metadata = {}
-        metadata['hardare'] = {}
-        metadata['hardare']['product_id'] = self.data.product
-        metadata['hardare']['vendor_id'] = self.data.vendor
+        metadata['hardware'] = {}
+        metadata['hardware']['product_id'] = self.data.product
+        metadata['hardware']['vendor_id'] = self.data.vendor
 
         self.unpack_results.set_labels(labels)
         self.unpack_results.set_metadata(metadata)
