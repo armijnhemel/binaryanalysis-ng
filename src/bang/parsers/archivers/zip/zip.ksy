@@ -522,6 +522,8 @@ enums:
     0x0019: pkcs7_enc_recip_cert_list
     0x0065: ibm_s390_uncomp
     0x0066: ibm_s390_comp
+    # https://github.com/PixarAnimationStudios/USD/blob/4d8a92af5a26f7f/pxr/usd/usd/zipFile.cpp#L451
+    0x1986: usd
     0x4690: poszip_4690
     0x5455: extended_timestamp
     0x554e: xceed_unicode
