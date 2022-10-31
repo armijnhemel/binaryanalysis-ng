@@ -54,6 +54,12 @@ class ScanJob:
 def is_scannable(path):
     return path.is_file() and path.stat().st_size != 0
 
+#####
+#
+# Returns if a path is a scannable file, i.e. a regular file and empty.
+#
+def is_empty(path):
+    return path.is_file() and path.stat().st_size == 0
 
 #####
 #
