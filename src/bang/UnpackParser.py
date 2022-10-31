@@ -257,22 +257,26 @@ class HashParser(UnpackParser):
     '''Compute various hashes for files. By default a few hashes have
     been hardcoded. To compute different hashes change this file.
     '''
-    def __init__(self, from_meta_directory, offset):
-        super().__init__(from_meta_directory, offset)
-        self.hash_algorithms = ['sha256', 'md5', 'sha1']
-        self.from_md = from_meta_directory
 
-        # read data in blocks of 10 MiB
-        self.read_size = 10485760
+    hash_algorithms = ['sha256', 'md5', 'sha1']
 
-        # labels that TLSH should ignore
-        self.tlsh_labels_ignore = set([
+    # read data in blocks of 10 MiB
+    read_size = 10485760
+
+    # labels that TLSH should ignore
+    tlsh_labels_ignore = set([
             'compressed', 'graphics', 'audio', 'archive',
             'filesystem', 'srec', 'ihex', 'padding',
             'database'])
 
-        # TLSH maximum size
-        self.tlsh_maximum = 31457280
+    # TLSH maximum size
+    tlsh_maximum = 31457280
+
+    def __init__(self, from_meta_directory, offset):
+        super().__init__(from_meta_directory, offset)
+        self.from_md = from_meta_directory
+
+    pretty_name = 'hashparser'
 
     def parse(self):
         # create the hashes
@@ -321,6 +325,14 @@ class HashParser(UnpackParser):
 
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
+
+    labels = []
+
+    @property
+    def metadata(self):
+        metadata = {}
+        metadata['hashes'] = self.hash_results
+        return metadata
 
 
 def check_condition(condition, message):
