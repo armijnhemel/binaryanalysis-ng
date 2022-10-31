@@ -29,7 +29,7 @@ import time
 from dataclasses import dataclass
 from operator import itemgetter
 from .meta_directory import *
-from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser
+from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, HashParser
 from .UnpackParserException import UnpackParserException
 from bang import signatures
 from .log import log
@@ -87,6 +87,23 @@ def check_for_padding(scan_environment, checking_meta_directory):
     except UnpackParserException as e:
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {unpack_parser.__class__} parser exception: {e}')
 
+#####
+# Computes and write hashes to the meta_directory
+#
+def compute_hashes(scan_environment, checking_meta_directory):
+    try:
+        unpack_parser = HashParser(checking_meta_directory, 0)
+        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+
+        unpack_parser.parse_from_offset()
+        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
+        yield checking_meta_directory
+
+    except UnpackParserException as e:
+        # there will be a "parser resulted in zero length file"
+        # warning, but ignore that.
+        pass
 
 #####
 #
@@ -466,6 +483,8 @@ def make_scan_pipeline():
 
     pipe_padding = pipe_seq(pipe_exec(check_for_padding), stop_if_scanned)
 
+    pipe_hashes = pipe_exec(compute_hashes)
+
     pipe_checks_if_not_synthesized = pipe_cond(
             cond_not_synthesized,
             pipe_seq(
@@ -489,6 +508,15 @@ def make_scan_pipeline():
         pipe_with(ctx_open_md_for_writing, pipe_scan),
         pipe_fail
     )
+
+    '''
+    pipe_root = pipe_or(pipe_cond(
+        cond_scannable,
+        pipe_with(ctx_open_md_for_writing, pipe_scan),
+        pipe_fail), pipe_with(ctx_open_md_for_writing, pipe_hashes)
+    )
+    '''
+
     return pipe_root
 
 # Example: resume scan:
