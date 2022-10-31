@@ -62,7 +62,7 @@ class DfuUnpackParser(UnpackParser):
     @property
     def metadata(self):
         metadata = {
-            'hardare' : {
+            'hardware' : {
                 'product_id': self.data.product,
                 'vendor_id': self.data.vendor
             }
