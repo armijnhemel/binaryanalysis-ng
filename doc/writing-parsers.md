@@ -214,6 +214,12 @@ Unpacking directories is easy: the meta directory object has a method
 
 ### Unpacking symbolic links
 
+Unpacking symbolic links is fairly straightforward. The meta directory object
+that is passed has a method `unpack_symlink()` that can be called. No meta
+directory needs to be yielded.
+
+An example parser with symbolic links is `ZimUnpackParser`.
+
 ### Unpacking hard links
 
 ## `labels` and `metadata`
