@@ -67,7 +67,7 @@ class CpioBaseUnpackParser(UnpackParser):
 
     def unpack_regular(self, meta_directory, path, start, length):
         with meta_directory.unpack_regular_file(path) as (unpacked_md, f):
-            os.sendfile(f.fileno(), self.infile.fileno(), start, length)
+            os.sendfile(f.fileno(), self.infile.fileno(), self.offset + start, length)
             yield unpacked_md
 
     def unpack_device(self, meta_directory, filename):
