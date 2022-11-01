@@ -135,6 +135,13 @@ types:
       tls:
         value: value & 0x400 != 0
         doc: "section hold thread-local data"
+      compressed:
+        value: value & 0x800 != 0
+        doc: "section with compressed data"
+      # https://sourceware.org/git/?p=glibc.git;a=commit;f=elf/elf.h;h=c41d197ec4a564a588e1cf3855d955297f2915c4
+      retain:
+        value: value & 0x200000 != 0
+        doc: "not to be GCed by linker."
       ordered:
         value: value & 0x04000000 != 0
         doc: "special ordering requirement (Solaris)"
