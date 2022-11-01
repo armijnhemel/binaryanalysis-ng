@@ -406,6 +406,9 @@ class ElfUnpackParser(UnpackParser):
                         symbol['visibility'] = entry.visibility.name
                         symbol['section_index'] = entry.sh_idx
                         symbol['size'] = entry.size
+
+                        # store dynamic symbols in *both* symbols and
+                        # dynamic_symbols as they have a different scope.
                         symbols.append(symbol)
                         dynamic_symbols.append(symbol)
 
