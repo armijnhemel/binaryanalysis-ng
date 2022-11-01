@@ -528,6 +528,9 @@ enums:
     0x5455: extended_timestamp
     0x554e: xceed_unicode
     0x5855: infozip_unix_old
+    # https://www.artpol-software.com/ZipArchive/KB/0610242300.aspx
+    0x5a4c: ziparchive_unicode
+    0x5a4d: ziparchive_seekable
     0x6542: beos
     0x7075: infozip_unicode_path
     0x756e: asi_unix
