@@ -25,6 +25,8 @@ types:
         type: u4
       - id: min_instruction_length
         type: u1
+      - id: max_operations_per_instruction
+        type: u1
       - id: default_is_stmt
         type: u1
       - id: line_base
