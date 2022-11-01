@@ -520,6 +520,10 @@ enums:
     0x0017: strong_encryption_header
     0x0018: record_management_controls
     0x0019: pkcs7_enc_recip_cert_list
+    0x0020: reserved_for_timestamp
+    0x0021: policy_decryption_key
+    0x0022: smartcrypt_key_provider
+    0x0023: smartcrypt_policy_key_data
     0x0065: ibm_s390_uncomp
     0x0066: ibm_s390_comp
     # https://github.com/PixarAnimationStudios/USD/blob/4d8a92af5a26f7f/pxr/usd/usd/zipFile.cpp#L451
