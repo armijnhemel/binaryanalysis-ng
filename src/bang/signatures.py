@@ -31,10 +31,6 @@ from . import parsers
 import pathlib
 from .UnpackParser import UnpackParser
 
-# store a few standard signatures (OBSOLETE)
-signatures = {
-}
-
 
 def _get_unpackers_recursive(unpackers_root, parent_module_path):
     abs_module_path = unpackers_root / parent_module_path
