@@ -1,6 +1,6 @@
 meta:
-  id: dwarf
-  title: DWARF
+  id: dwarf_debug_line
+  title: DWARF .debug_line
   imports:
     - /common/vlq_base128_le
   encoding: UTF-8
