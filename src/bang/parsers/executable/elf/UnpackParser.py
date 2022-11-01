@@ -431,6 +431,8 @@ class ElfUnpackParser(UnpackParser):
                 if header.name == '.comment':
                     # comment, typically in binaries that have
                     # not been stripped.
+                    #
+                    # The "strings" flag *should* be set for this section
                     try:
                         comment = list(filter(lambda x: x != b'', header.body.split(b'\x00')))[0].decode()
                         metadata['comment'] = comment
