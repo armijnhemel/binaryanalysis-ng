@@ -40,7 +40,6 @@ BANG_VERSION = "0.0.1"
 def create_scan_environment_from_config(config):
     e = ScanEnvironment(
             unpack_directory = '',
-            temporary_directory = '',
             scan_queue = None,
             )
     return e
@@ -66,7 +65,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
     scan_environment.job_wait_time = job_wait_time
-    scan_environment.temporary_directory = temporary_directory.absolute()
+    scan_environment.configuration.temporary_directory = temporary_directory.absolute()
     scan_environment.unpack_directory = unpack_directory.absolute()
 
     if verbose:

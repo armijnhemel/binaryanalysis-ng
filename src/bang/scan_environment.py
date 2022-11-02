@@ -36,6 +36,19 @@ class EmptyAutomaton:
     def iter(self, *args, **kwargs):
         return []
 
+class BangConfig:
+    def __init__(self):
+        self._temporary_directory = pathlib.Path('')
+
+    @property
+    def temporary_directory(self):
+        return self._temporary_directory
+
+    @temporary_directory.setter
+    def temporary_directory(self, temp_dir: pathlib.Path):
+        self._temporary_directory = temp_dir
+
+
 class ParserCollection:
 
     def __init__(self):
@@ -117,8 +130,8 @@ class ParserCollection:
 @dataclass
 class ScanEnvironment:
     unpack_directory: pathlib.Path
-    temporary_directory: pathlib.Path
     scan_queue: Any = None
     job_wait_time: int = 10
     signature_chunk_size: int = 1024
     parsers: ParserCollection = ParserCollection()
+    configuration: BangConfig = BangConfig()
