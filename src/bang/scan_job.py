@@ -44,7 +44,7 @@ class ScanJob:
     @property
     def meta_directory(self):
         if self._meta_directory is None:
-            self._meta_directory = MetaDirectory.from_md_path(self.scan_environment.unpackdirectory, self._path)
+            self._meta_directory = MetaDirectory.from_md_path(self.scan_environment.unpack_directory, self._path)
         return self._meta_directory
 
 #####
@@ -555,7 +555,7 @@ def make_scan_pipeline():
 def process_jobs(pipeline, scan_environment):
     # TODO: code smell, should not be needed if unpackparsers behave
     current_dir = os.getcwd()
-    os.chdir(scan_environment.unpackdirectory)
+    os.chdir(scan_environment.unpack_directory)
 
     while True:
         # TODO: check if timeout long enough

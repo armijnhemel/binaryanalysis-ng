@@ -39,8 +39,8 @@ BANG_VERSION = "0.0.1"
 
 def create_scan_environment_from_config(config):
     e = ScanEnvironment(
-            unpackdirectory = '',
-            temporarydirectory = '',
+            unpack_directory = '',
+            temporary_directory = '',
             scan_queue = None,
             )
     return e
@@ -66,8 +66,8 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
     scan_environment.job_wait_time = job_wait_time
-    scan_environment.temporarydirectory = temporary_directory.absolute()
-    scan_environment.unpackdirectory = unpack_directory.absolute()
+    scan_environment.temporary_directory = temporary_directory.absolute()
+    scan_environment.unpack_directory = unpack_directory.absolute()
 
     if verbose:
         log.setLevel(logging.DEBUG)
@@ -96,7 +96,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     processes = [ multiprocessing.Process(target = process_jobs, args = (scan_pipeline, scan_environment,)) for i in range(jobs)]
 
     # first create a meta directory for the file
-    md = MetaDirectory(scan_environment.unpackdirectory, None, True)
+    md = MetaDirectory(scan_environment.unpack_directory, None, True)
     md.file_path = pathlib.Path(path).absolute()
     log.debug(f'cli:scan[{md.md_path}]: queued job [{time.time_ns()}]')
 

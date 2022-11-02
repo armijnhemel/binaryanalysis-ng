@@ -116,8 +116,8 @@ class ParserCollection:
 
 @dataclass
 class ScanEnvironment:
-    unpackdirectory: pathlib.Path
-    temporarydirectory: pathlib.Path
+    unpack_directory: pathlib.Path
+    temporary_directory: pathlib.Path
     scan_queue: Any = None
     job_wait_time: int = 10
     signature_chunk_size: int = 1024
