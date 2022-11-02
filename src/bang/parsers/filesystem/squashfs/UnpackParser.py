@@ -146,15 +146,12 @@ class SquashfsUnpackParser(UnpackParser):
                     squashfs_size += paddingbytes
 
         self.unpacked_size = squashfs_size
-        check_condition(False, "invalid or unsupported squashfs file system")
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-
         # create a temporary directory and remove it again
         # unsquashfs cannot unpack to an existing directory
         # and move contents after unpacking.
-        squashfs_unpack_directory = tempfile.mkdtemp(dir=self.scan_environment.temporarydirectory)
+        squashfs_unpack_directory = tempfile.mkdtemp(dir=self.configuration.temporary_directory)
         shutil.rmtree(squashfs_unpack_directory)
 
         success = False
@@ -172,29 +169,21 @@ class SquashfsUnpackParser(UnpackParser):
         # move the unpacked files
         # move contents of the unpacked file system
         for result in pathlib.Path(squashfs_unpack_directory).glob('**/*'):
-            relative_result = result.relative_to(squashfs_unpack_directory)
-            outfile_rel = self.rel_unpack_dir / relative_result
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
+            file_path = result.relative_to(squashfs_unpack_directory)
 
             if result.is_symlink():
-                self.local_copy2(result, outfile_full)
+                meta_directory.unpack_symlink(file_path, result.readlink())
             elif result.is_dir():
-                os.makedirs(outfile_full, exist_ok=True)
-                outfile_full.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+                meta_directory.unpack_directory(file_path)
             elif result.is_file():
-                self.local_copy2(result, outfile_full)
-                outfile_full.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+                with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
+                    self.local_copy2(result, outfile)
+                    yield unpacked_md
             else:
                 continue
 
-            # then add the file to the result set
-            fr = FileResult(self.fileresult, outfile_rel, set())
-            unpacked_files.append(fr)
-
         # clean up the temporary directory
         shutil.rmtree(squashfs_unpack_directory)
-        return unpacked_files
 
     # a wrapper around shutil.copy2 to copy symbolic links instead of
     # following them and copying the data.
