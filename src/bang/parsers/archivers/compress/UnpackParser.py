@@ -50,7 +50,6 @@ class CompressUnpackParser(UnpackParser):
         else:
             uncompress = 'uncompress'
 
-        bytes_read = 0
         self.infile.seek(2, os.SEEK_CUR)
 
         # the next byte contains the "bits per code" field
@@ -88,7 +87,7 @@ class CompressUnpackParser(UnpackParser):
             check_condition(p.returncode == 0 and standard_error == b'',
                             'invalid compress file')
         else:
-            self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
             os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.infile.size)
             os.fdopen(self.temporary_file[0]).close()
 
@@ -119,7 +118,7 @@ class CompressUnpackParser(UnpackParser):
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
             if self.havetmpfile:
                 p = subprocess.Popen(['uncompress', '-c', self.temporary_file[1]],
-                                     stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                                     stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
             else:
                 p = subprocess.Popen(['uncompress', '-c', self.infile.name],
                                      stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
@@ -127,7 +126,7 @@ class CompressUnpackParser(UnpackParser):
             (outputmsg, errormsg) = p.communicate()
 
             if self.havetmpfile:
-                os.unlink(temporary_file[1])
+                os.unlink(self.temporary_file[1])
             yield unpacked_md
 
     # make sure that self.unpacked_size is not overwritten
