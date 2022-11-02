@@ -78,7 +78,7 @@ def extract_file(checking_meta_directory, in_file, offset, file_size):
 #
 def check_for_padding(scan_environment, checking_meta_directory):
     try:
-        unpack_parser = PaddingParser(checking_meta_directory, 0)
+        unpack_parser = PaddingParser(checking_meta_directory, 0, scan_environment.configuration)
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
         unpack_parser.parse_from_offset()
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
@@ -98,7 +98,7 @@ def check_for_padding(scan_environment, checking_meta_directory):
 #
 def compute_hashes(scan_environment, checking_meta_directory):
     try:
-        unpack_parser = HashParser(checking_meta_directory, 0)
+        unpack_parser = HashParser(checking_meta_directory, 0, scan_environment.configuration)
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
 
         checking_meta_directory.unpack_parser = unpack_parser
@@ -129,7 +129,7 @@ def find_extension_parsers(scan_environment):
 def check_with_suggested_parsers(scan_environment, checking_meta_directory):
     for unpack_parser_cls in ( scan_environment.parsers.get(p) for p in checking_meta_directory.info.get('suggested_parsers',[]) ):
         try:
-            unpack_parser = unpack_parser_cls(checking_meta_directory, 0)
+            unpack_parser = unpack_parser_cls(checking_meta_directory, 0, scan_environment.configuration)
             log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
             unpack_parser.parse_from_offset()
             log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
@@ -174,7 +174,7 @@ def check_by_extension(scan_environment, checking_meta_directory):
         if signatures.matches_file_pattern(checking_meta_directory.file_path, ext):
             log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: {unpack_parser_cls} parses extension {ext} in {checking_meta_directory.file_path}')
             try:
-                unpack_parser = unpack_parser_cls(checking_meta_directory, 0)
+                unpack_parser = unpack_parser_cls(checking_meta_directory, 0, scan_environment.configuration)
                 log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
                 unpack_parser.parse_from_offset()
                 log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
@@ -268,7 +268,7 @@ def scan_signatures(scan_environment, meta_directory):
         for unpack_parser_cls in unpack_parser_classes:
             # try if the unpackparser works
             try:
-                unpack_parser = unpack_parser_cls(meta_directory, offset)
+                unpack_parser = unpack_parser_cls(meta_directory, offset, scan_environment.configuration)
                 log.debug(f'scan_signatures[{meta_directory.md_path}]: trying parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
                 unpack_parser.parse_from_offset()
                 log.debug(f'scan_signatures[{meta_directory.md_path}]: successful parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
@@ -324,7 +324,7 @@ def check_featureless(scan_environment, checking_meta_directory):
     for unpack_parser_cls in scan_environment.parsers.unpackparsers_for_featureless_files:
         log.debug(f'check_featureless[{checking_meta_directory.md_path}]: {unpack_parser_cls}')
         try:
-            unpack_parser = unpack_parser_cls(checking_meta_directory, 0)
+            unpack_parser = unpack_parser_cls(checking_meta_directory, 0, scan_environment.configuration)
             log.debug(f'check_featureless[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
             unpack_parser.parse_from_offset()
             log.debug(f'check_featureless[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')

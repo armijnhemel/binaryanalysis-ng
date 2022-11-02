@@ -84,11 +84,12 @@ class UnpackParser:
     signatures = []
     scan_if_featureless = False
 
-    def __init__(self, from_meta_directory, offset):
+    def __init__(self, from_meta_directory, offset, configuration):
         '''Creates an UnpackParser that will read from from_meta_directory's input file,
         starting at offset.'''
         self.offset = offset
         self.infile = OffsetInputFile(from_meta_directory, self.offset)
+        self.configuration = configuration
 
     def parse(self):
         """Override this method to implement parsing the file data. If there is
@@ -202,8 +203,8 @@ class PaddingParser(UnpackParser):
 
     valid_padding_chars = [b'\x00', b'\xff']
 
-    def __init__(self, from_meta_directory, offset):
-        super().__init__(from_meta_directory, offset)
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
         self.is_padding = False
 
     def parse(self):
@@ -272,8 +273,8 @@ class HashParser(UnpackParser):
     # TLSH maximum size
     tlsh_maximum = 31457280
 
-    def __init__(self, from_meta_directory, offset):
-        super().__init__(from_meta_directory, offset)
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
         self.from_md = from_meta_directory
 
     pretty_name = 'hashparser'

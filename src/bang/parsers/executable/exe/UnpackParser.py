@@ -51,9 +51,9 @@ class ExeUnpackParser(UnpackParser):
     ]
     pretty_name = 'exe'
 
-    def __init__(self, from_meta_directory, offset):
+    def __init__(self, from_meta_directory, offset, configuration):
         self.md = from_meta_directory
-        super().__init__(from_meta_directory, offset)
+        super().__init__(from_meta_directory, offset, configuration)
 
     def parse(self):
         # first try to recognize if a file is a PE.

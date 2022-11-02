@@ -39,7 +39,7 @@ class CbfsUnpackParser(UnpackParser):
     ]
     pretty_name = 'cbfs'
 
-    def __init__(self, from_meta_directory, offset):
+    def __init__(self, from_meta_directory, offset, configuration):
         self.md = from_meta_directory
         self.offset = offset
 
