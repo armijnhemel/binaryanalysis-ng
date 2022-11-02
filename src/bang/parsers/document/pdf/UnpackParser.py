@@ -167,7 +167,7 @@ class PdfUnpackParser(UnpackParser):
                     # it is ensured that there actually is an %%EOF at the
                     # end of the file.
                     if self.offset != 0 or self.infile.tell() != self.infile.size:
-                        temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+                        temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
                         os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.infile.tell())
                         os.fdopen(temporary_file[0]).close()
                         pdffile = open(temporary_file[1], 'rb')
