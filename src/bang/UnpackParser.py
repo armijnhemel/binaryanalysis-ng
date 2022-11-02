@@ -152,8 +152,8 @@ class UnpackParser:
 class ExtractedParser(UnpackParser):
 
     @classmethod
-    def with_size(cls, from_meta_directory, offset, size):
-        o = cls(from_meta_directory, offset)
+    def with_size(cls, from_meta_directory, offset, size, configuration):
+        o = cls(from_meta_directory, offset, configuration)
         o.unpacked_size = size
         return o
 

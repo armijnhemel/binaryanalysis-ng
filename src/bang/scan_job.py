@@ -144,7 +144,8 @@ def check_with_suggested_parsers(scan_environment, checking_meta_directory):
                 checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
                     checking_meta_directory,
                     [ (0,unpack_parser.parsed_size),
-                    (unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size) ]
+                    (unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size) ],
+                    scan_environment.configuration
                     )
                 yield checking_meta_directory
 
@@ -155,7 +156,7 @@ def check_with_suggested_parsers(scan_environment, checking_meta_directory):
 
                 # yield a synthesized file
                 extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
-                extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
+                extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size, scan_environment.configuration)
                 yield extracted_md
 
         except UnpackParserException as e:
@@ -189,7 +190,8 @@ def check_by_extension(scan_environment, checking_meta_directory):
                     checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
                         checking_meta_directory,
                         [ (0,unpack_parser.parsed_size),
-                        (unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size) ]
+                        (unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size) ],
+                        scan_environment.configuration
                         )
                     yield checking_meta_directory
 
@@ -200,7 +202,7 @@ def check_by_extension(scan_environment, checking_meta_directory):
 
                     # yield a synthesized file
                     extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
-                    extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
+                    extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size, scan_environment.configuration)
                     yield extracted_md
 
                     # stop after first successful extension parse
@@ -339,7 +341,8 @@ def check_featureless(scan_environment, checking_meta_directory):
                 checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
                     checking_meta_directory,
                     [ (0,unpack_parser.parsed_size),
-                    (unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size) ]
+                    (unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size) ],
+                    scan_environment.configuration
                     )
                 yield checking_meta_directory
 
@@ -350,7 +353,7 @@ def check_featureless(scan_environment, checking_meta_directory):
 
                 # yield a synthesized file
                 extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
-                extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
+                extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size, scan_environment.configuration)
                 yield extracted_md
 
                 # stop after first successful extension parse
