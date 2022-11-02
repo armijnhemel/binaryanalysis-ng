@@ -279,7 +279,7 @@ def scan_signatures(scan_environment, meta_directory):
                 if offset > file_scan_state.scanned_until:
                     # if it does, yield a synthesizing parser for the padding before the file
                     log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{offset}] yields SynthesizingParser, length {offset - file_scan_state.scanned_until}')
-                    yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, offset - file_scan_state.scanned_until)
+                    yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, offset - file_scan_state.scanned_until, scan_environment.configuration)
                 # yield the part that the unpackparser parsed
                 log.debug(f'scan_signatures[{meta_directory.md_path}]: [{offset}:{offset+unpack_parser.parsed_size}] yields {unpack_parser_cls}, length {unpack_parser.parsed_size}')
                 yield offset, unpack_parser
@@ -317,7 +317,7 @@ def check_by_signature(scan_environment, checking_meta_directory):
             parts.append((offset, unpack_parser.parsed_size))
         # yield ExtractingParser
         if parts != []:
-            checking_meta_directory.unpack_parser = ExtractingParser.with_parts(checking_meta_directory, parts)
+            checking_meta_directory.unpack_parser = ExtractingParser.with_parts(checking_meta_directory, parts, scan_environment.configuration)
             yield checking_meta_directory
 
 def check_featureless(scan_environment, checking_meta_directory):

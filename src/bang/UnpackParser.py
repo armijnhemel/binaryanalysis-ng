@@ -177,8 +177,8 @@ class ExtractedParser(UnpackParser):
 class SynthesizingParser(UnpackParser):
 
     @classmethod
-    def with_size(cls, from_meta_directory, offset, size):
-        o = cls(from_meta_directory, offset)
+    def with_size(cls, from_meta_directory, offset, size, configuration):
+        o = cls(from_meta_directory, offset, configuration)
         o.unpacked_size = size
         return o
 
@@ -236,9 +236,9 @@ class ExtractingParser(UnpackParser):
     MetaDirectory, assign this parser to it.
     '''
     @classmethod
-    def with_parts(cls, from_meta_directory, parts):
+    def with_parts(cls, from_meta_directory, parts, configuration):
         '''the sum of all lengths in parts is the calculated file size.'''
-        o = cls(from_meta_directory, 0)
+        o = cls(from_meta_directory, 0, configuration)
         o._parts = parts
         size = sum(p[1] for p in parts)
         o.unpacked_size = size
