@@ -52,10 +52,10 @@ class ZchunkUnpackParser(UnpackParser):
         # If not this is not the case, carve the file first.
         self.havetmpfile = False
         if not self.offset == 0:
-            self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
             self.havetmpfile = True
-            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.infile.tell())
-            os.fdopen(temporary_file[0]).close()
+            os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.infile.tell())
+            os.fdopen(self.temporary_file[0]).close()
 
         # test unpack to /dev/null to see if the data is valid
         if self.havetmpfile:
