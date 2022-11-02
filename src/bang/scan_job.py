@@ -291,7 +291,7 @@ def scan_signatures(scan_environment, meta_directory):
     # yield the trailing part
     if 0 < file_scan_state.scanned_until < meta_directory.size:
         log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{meta_directory.size}] yields SynthesizingParser, length {meta_directory.size - file_scan_state.scanned_until}')
-        yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, meta_directory.size - file_scan_state.scanned_until)
+        yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, meta_directory.size - file_scan_state.scanned_until, scan_environment.configuration)
 
 
 #####
