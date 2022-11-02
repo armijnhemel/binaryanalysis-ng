@@ -195,7 +195,7 @@ class SqliteUnpackParser(UnpackParser):
                     testcursor.close()
                     testconn.close()
         else:
-            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
             os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
             os.fdopen(temporary_file[0]).close()
 
