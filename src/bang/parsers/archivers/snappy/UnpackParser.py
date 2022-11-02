@@ -70,7 +70,7 @@ class SnappyUnpackParser(UnpackParser):
         self.havetmpfile = False
 
         if not (self.offset == 0 and self.infile.size == self.unpacked_size):
-            self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
             self.havetmpfile = True
             os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
             os.fdopen(self.temporary_file[0]).close()
