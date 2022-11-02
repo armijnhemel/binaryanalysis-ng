@@ -130,17 +130,17 @@ class CramfsUnpackParser(UnpackParser):
         # the name and then let fsck.cramfs create the directory.
 
         # first get a temporary name
-        self.cramfs_unpack_directory = tempfile.mkdtemp(dir=self.scan_environment.temporarydirectory)
+        self.cramfs_unpack_directory = tempfile.mkdtemp(dir=self.configuration.temporary_directory)
 
         # remove the directory. Possible race condition?
         shutil.rmtree(self.cramfs_unpack_directory)
 
-        if self.offset == 0 and self.data.header.len_cramfs == self.infile.filesize:
+        if self.offset == 0 and self.data.header.len_cramfs == self.infile.size:
             p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % self.cramfs_unpack_directory, self.infile.name],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
         else:
-            temporaryfile = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            temporaryfile = tempfile.mkstemp(dir=self.configuration.temporary_directory)
             os.sendfile(temporaryfile[0], self.infile.fileno(), self.offset, self.data.header.len_cramfs)
             os.fdopen(temporaryfile[0]).close()
 
@@ -162,32 +162,21 @@ class CramfsUnpackParser(UnpackParser):
         # move the unpacked files
         # move contents of the unpacked file system
         for result in pathlib.Path(self.cramfs_unpack_directory).glob('**/*'):
-            relative_result = result.relative_to(self.cramfs_unpack_directory)
-
-            file_path = pathlib.Path(relative_result)
-
-            outfile_rel = self.rel_unpack_dir / relative_result
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
+            file_path = result.relative_to(self.cramfs_unpack_directory)
 
             if result.is_symlink():
-                self.local_copy2(result, outfile_full)
+                meta_directory.unpack_symlink(file_path, result.readlink())
             elif result.is_dir():
-                os.makedirs(outfile_full, exist_ok=True)
-                outfile_full.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+                meta_directory.unpack_directory(file_path)
             elif result.is_file():
-                self.local_copy2(result, outfile_full)
-                outfile_full.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+                with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
+                    self.local_copy2(result, outfile)
+                    yield unpacked_md
             else:
                 continue
 
-            # then add the file to the result set
-            fr = FileResult(self.fileresult, outfile_rel, set())
-            unpacked_files.append(fr)
-
         # clean up the temporary directory
         shutil.rmtree(self.cramfs_unpack_directory)
-        return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
