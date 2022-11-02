@@ -65,7 +65,7 @@ class AndroidBackupUnpackParser(UnpackParser):
 
         # create a temporary file to write the results to
         # then create a zlib decompression object
-        self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+        self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
         decompressobj = zlib.decompressobj()
 
         self.unpacked_size = self.infile.tell()
@@ -99,24 +99,35 @@ class AndroidBackupUnpackParser(UnpackParser):
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-
         android_tar = tarfile.open(self.temporary_file[1], mode='r')
         members = android_tar.getmembers()
 
-        for entry in members:
-            out_labels = []
-            file_path = pathlib.Path(entry.name)
+        for tarinfo in members:
+            file_path = pathlib.Path(tarinfo.name)
 
-            if file_path.is_absolute():
-                file_path = pathlib.Path(entry.name).relative_to('/')
-                entry.name = file_path
-            android_tar.extract(entry.name, path=self.rel_unpack_dir)
+            if tarinfo.isfile() or tarinfo.issym() or tarinfo.isdir() or tarinfo.islnk():
+                try:
+                    if tarinfo.isfile(): # normal file
+                        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                            tar_reader = android_tar.extractfile(tarinfo)
+                            outfile.write(tar_reader.read())
+                            yield unpacked_md
+                    elif tarinfo.issym(): # symlink
+                        target = pathlib.Path(tarinfo.linkname)
+                        meta_directory.unpack_symlink(file_path, target)
+                    elif tarinfo.islnk(): # hard link
+                        target = pathlib.Path(tarinfo.linkname)
+                        meta_directory.unpack_hardlink(file_path, target)
+                    elif tarinfo.isdir(): # directory
+                        meta_directory.unpack_directory(pathlib.Path(tarinfo.name))
+                except ValueError:
+                    # embedded NUL bytes could cause the extractor to fail
+                    continue
+            else:
+                # block/device characters, sockets, etc. TODO
+                pass
 
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
         os.unlink(self.temporary_file[1])
-        return unpacked_files
             
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
