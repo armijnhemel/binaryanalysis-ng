@@ -143,7 +143,7 @@ class Ext2UnpackParser(UnpackParser):
             # won't write more data than 2147479552 so write bytes
             # out in chunks. Reference:
             # https://bugzilla.redhat.com/show_bug.cgi?id=612839
-            self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
             if self.unpacked_size > 2147479552:
                 bytesleft = self.unpacked_size
                 bytestowrite = min(bytesleft, 2147479552)
@@ -253,17 +253,17 @@ class Ext2UnpackParser(UnpackParser):
                         newext2dir = os.path.join(ext2dir, ext2name)
                         ext2_dirs_to_scan.append(newext2dir)
 
-                    fullext2name = os.path.join(ext2dir, ext2name)
+                    full_ext2_name = os.path.join(ext2dir, ext2name)
 
-                    self.files.append((fullext2name, inode, filemode))
+                    self.files.append((full_ext2_name, inode, filemode))
                     if stat.S_ISREG(filemode):
                         if inode not in self.inode_to_file:
-                            self.inode_to_file[inode] = fullext2name
+                            self.inode_to_file[inode] = full_ext2_name
                             # use e2cp to copy the file
                             if self.havetmpfile:
-                                p = subprocess.Popen(['e2cp', self.temporary_file[1] + ":" + fullext2name, os.devnull], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                p = subprocess.Popen(['e2cp', self.temporary_file[1] + ":" + full_ext2_name, os.devnull], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                             else:
-                                p = subprocess.Popen(['e2cp', str(self.infile.name) + ":" + fullext2name, os.devnull], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                p = subprocess.Popen(['e2cp', str(self.infile.name) + ":" + full_ext2_name, os.devnull], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                             (outputmsg, errormsg) = p.communicate()
                             if p.returncode != 0:
                                 failure = True
@@ -275,28 +275,13 @@ class Ext2UnpackParser(UnpackParser):
         check_condition(not failure, "sanity check with tune2fs, e2cp or e2ls failed")
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-
-        # Now read the contents of the file system with e2ls, starting
-        # with the root directory.
-        ext2_dirs_to_scan = collections.deque([''])
-
-        # store a mapping for inodes and files. This is needed to detect
-        # hard links, where files have the same inode.
         for f in self.files:
             ext2name, inode, filemode = f
-            # Check the different file types
 
             file_path = pathlib.Path(ext2name)
 
-            outfile_rel = self.rel_unpack_dir / ext2name
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-
             if stat.S_ISDIR(filemode):
-                os.makedirs(outfile_full, exist_ok=True)
-                fr = FileResult(self.fileresult, outfile_rel, set(['directory']))
-                unpacked_files.append(fr)
+                meta_directory.unpack_directory(file_path)
             elif stat.S_ISBLK(filemode):
                 # ignore block devices
                 continue
@@ -317,24 +302,19 @@ class Ext2UnpackParser(UnpackParser):
             elif stat.S_ISREG(filemode):
                 if self.inode_to_file[inode] == ext2name:
                     # use e2cp to copy the file
-                    if self.havetmpfile:
-                        p = subprocess.Popen(['e2cp', self.temporary_file[1] + ":" + ext2name, outfile_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    else:
-                        p = subprocess.Popen(['e2cp', str(meta_directory.file_path) + ":" + ext2name, outfile_full], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    (outputmsg, errormsg) = p.communicate()
-                    fr = FileResult(self.fileresult, outfile_rel, set())
+                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                        if self.havetmpfile:
+                            p = subprocess.Popen(['e2cp', self.temporary_file[1] + ":" + ext2name, '-'], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+                        else:
+                            p = subprocess.Popen(['e2cp', str(meta_directory.file_path) + ":" + ext2name, '-'], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+                        (outputmsg, errormsg) = p.communicate()
+                        yield unpacked_md
                 else:
                     # hardlink
-                    target_rel = self.rel_unpack_dir / self.inode_to_file[inode]
-                    target_full = self.scan_environment.unpack_path(target_rel)
-                    target_full.link_to(outfile_full)
-                    fr = FileResult(self.fileresult, outfile_rel, set(['hardlink']))
-                unpacked_files.append(fr)
+                    meta_directory.unpack_hardlink(file_path, pathlib.Path(self.inode_to_file[inode]))
 
         if self.havetmpfile:
             os.unlink(self.temporary_file[1])
-
-        return unpacked_files
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
