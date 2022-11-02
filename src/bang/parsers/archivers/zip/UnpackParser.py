@@ -551,7 +551,7 @@ class ZipUnpackParser(UnpackParser):
             self.carved = False
         else:
             # else carve the file from the larger ZIP first
-            self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
             os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
             os.fdopen(self.temporary_file[0]).close()
             self.carved = True
