@@ -220,6 +220,12 @@ class SqliteUnpackParser(UnpackParser):
                     testconn.close()
                 os.unlink(temporary_file[1])
 
+                # remove any other files, like write ahead logs (wal)
+                if os.path.exists(f"{temporary_file[1]}-wal"):
+                    os.unlink(f"{temporary_file[1]}-wal")
+                if os.path.exists(f"{temporary_file[1]}-shm"):
+                    os.unlink(f"{temporary_file[1]}-shm")
+
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
