@@ -50,15 +50,13 @@ class TarUnpackParser(UnpackParser):
         tar_filenames = set()
         for tarinfo in self.tarinfos:
             file_path = pathlib.Path(tarinfo.name)
-            if file_path.is_absolute():
-                tarinfo.name = file_path.relative_to('/')
 
             # TODO: rename files properly with minimum chance of clashes
             if tarinfo.name in tar_filenames:
                 pass
             if tarinfo.name == '':
                 pass
-            if '\x00' in tarinfo.name:
+            if '\x00' in str(tarinfo.name):
                 pass
             tar_filenames.add(tarinfo.name)
 
@@ -88,7 +86,6 @@ class TarUnpackParser(UnpackParser):
                 self.unpacked_size += 512
 
     def tar_unpack_regular(self, meta_directory, path, tarinfo):
-        # TODO: absolute paths
         with meta_directory.unpack_regular_file(path) as (unpacked_md, f):
             tar_reader = self.unpacktar.extractfile(tarinfo)
             f.write(tar_reader.read())
