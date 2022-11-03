@@ -145,8 +145,6 @@ class SevenzipUnpackParser(UnpackParser):
             else:
                 continue
 
-        if self.havetmpfile:
-            os.unlink(self.temporary_file[1])
         shutil.rmtree(self.unpack_directory)
 
     # a wrapper around shutil.copy2 to copy symbolic links instead of
