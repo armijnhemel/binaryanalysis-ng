@@ -42,7 +42,6 @@ import bz2
 import collections
 import hashlib
 import lzma
-import os
 import pathlib
 import xml.dom
 import zlib
