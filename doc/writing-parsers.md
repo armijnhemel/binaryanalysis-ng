@@ -105,7 +105,8 @@ explicitly walked. Some parsers where this happens are:
 
 Sometimes some data structures that are used later (by either calculating the
 size or unpacking) are created during parsing and shared to avoid reparsing
-in any of the other methods.
+in any of the other methods. Examples are all of the parsers that use `7z` for
+unpacking (`ChmUnpackParser`) but also `SquashfsUnpackParser`.
 
 ## `calculate_unpacked_size()`
 
@@ -147,7 +148,8 @@ be put back into the scanning queue.
 As everything has already been parsed ideally no errors should be thrown in
 this method. Instead, any errors should be caught in `parse()`. That might mean
 doing some double work (example: using external tools that do all kinds of
-validation while unpacking).
+validation while unpacking), although some of the data can also be reused
+(example: all of the parsers that use `7z`, such as `ChmUnpackParser`).
 
 ### Unpacking regular files
 
