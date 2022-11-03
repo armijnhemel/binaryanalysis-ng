@@ -100,9 +100,10 @@ class WimUnpackParser(UnpackParser):
 
         (outputmsg, errormsg) = p.communicate()
 
+        if self.havetmpfile:
+            os.unlink(self.temporary_file[1])
+
         if p.returncode != 0:
-            if self.havetmpfile:
-                os.unlink(self.temporary_file[1])
             shutil.rmtree(self.unpack_directory)
             raise UnpackParserException("7z failed unpacking WIM")
 
@@ -125,8 +126,6 @@ class WimUnpackParser(UnpackParser):
             else:
                 continue
 
-        if self.havetmpfile:
-            os.unlink(self.temporary_file[1])
         shutil.rmtree(self.unpack_directory)
 
     # a wrapper around shutil.copy2 to copy symbolic links instead of
