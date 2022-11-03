@@ -119,7 +119,7 @@ class SquashfsUnpackParser(UnpackParser):
         success = False
         if self.have_squashfs:
             p = subprocess.Popen(['unsquashfs', '-o', str(self.offset), '-lc', self.infile.name],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
             if p.returncode == 0 or b'because you\'re not superuser!' in errormsg:
                 success = True
@@ -127,7 +127,7 @@ class SquashfsUnpackParser(UnpackParser):
 
         if not success:
             p = subprocess.Popen(['sasquatch', '-o', str(self.offset), '-lc', '-p', '1', self.infile.name],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
 
             if p.returncode == 0 or b'because you\'re not superuser!' in errormsg:
