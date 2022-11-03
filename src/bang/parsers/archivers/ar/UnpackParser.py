@@ -24,9 +24,11 @@
 # https://en.wikipedia.org/wiki/Ar_%28Unix%29
 # https://sourceware.org/binutils/docs/binutils/ar.html
 
+import pathlib
 import shutil
 import stat
 import subprocess
+import tempfile
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
@@ -40,7 +42,6 @@ class ArUnpackParser(UnpackParser):
     pretty_name = 'ar'
 
     def parse(self):
-        print(self.infile.name)
         check_condition(shutil.which('ar') is not None,
                         "ar program not found")
         check_condition(self.offset == 0,
@@ -56,31 +57,47 @@ class ArUnpackParser(UnpackParser):
             if meta_directory.file_path.suffix.lower() in ['.deb', '.udeb']:
                 self.debian = True
 
+        # try an actual unpack
+        self.unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
+
+        p = subprocess.Popen(['ar', 'x', self.infile.name, '--output=%s' % self.unpack_directory],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outputmsg, errormsg) = p.communicate()
+
+        # TODO: look into cleanup if unpacking fails, is it necessary?
+        if p.returncode != 0:
+            shutil.rmtree(self.unpack_directory)
+            raise UnpackParserException("Cannot unpack ar")
+
     def calculate_unpacked_size(self):
         self.unpacked_size = self.infile.size
 
     def unpack(self, meta_directory):
-        unpacked_files = []
-        out_labels = []
-        unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
-
-        p = subprocess.Popen(['ar', 'x', self.infile.name, '--output=%s' % unpackdir_full],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (outputmsg, errormsg) = p.communicate()
-        # TODO: look into cleanup if unpacking fails, is it necessary?
-        check_condition(p.returncode == 0, "Not a valid ar file")
-
         # walk the results directory
-        for result in unpackdir_full.glob('**/*'):
+        for result in self.unpack_directory.glob('**/*'):
             # first change the permissions
             result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
-            # then add the file to the result set
-            file_path = result.relative_to(unpackdir_full)
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set())
-            unpacked_files.append(fr)
+            file_path = result.relative_to(self.unpack_directory)
 
-        return unpacked_files
+            if result.is_symlink():
+                meta_directory.unpack_symlink(file_path, result.readlink())
+            elif result.is_dir():
+                meta_directory.unpack_directory(file_path)
+            elif result.is_file():
+                with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
+                    self.local_copy2(result, outfile)
+                    yield unpacked_md
+            else:
+                continue
+
+        shutil.rmtree(self.unpack_directory)
+
+    # a wrapper around shutil.copy2 to copy symbolic links instead of
+    # following them and copying the data.
+    def local_copy2(self, src, dest):
+        '''Wrapper around shutil.copy2 for squashfs unpacking'''
+        return shutil.copy2(src, dest, follow_symlinks=False)
 
     @property
     def labels(self):
