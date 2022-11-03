@@ -22,6 +22,7 @@
 
 import binascii
 import os
+import pathlib
 import shutil
 import stat
 import subprocess
@@ -80,8 +81,8 @@ class SevenzipUnpackParser(UnpackParser):
         # file first, as 7z tries to be smart and look at
         # all data in a file
         self.havetmpfile = False
-        if not (self.offset == 0 and self.fileresult.filesize == self.unpacked_size):
-            self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+        if not (self.offset == 0 and self.infile.size == self.unpacked_size):
+            self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
             self.havetmpfile = True
             os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
             os.fdopen(self.temporary_file[0]).close()
@@ -103,20 +104,14 @@ class SevenzipUnpackParser(UnpackParser):
                     raise UnpackParserException("Cannot unpack 7z")
             else:
                 raise UnpackParserException("Cannot unpack 7z")
-
-    # make sure that self.unpacked_size is not overwritten
-    def calculate_unpacked_size(self):
-        pass
-
-    def unpack(self, meta_directory):
-        unpacked_files = []
-        if not self.encrypted:
-            unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
+        else:
+            # do an actual test unpack
+            self.unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
 
             if self.havetmpfile:
-                p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
-                p = subprocess.Popen(['7z', '-o%s' % unpackdir_full, '-y', 'x', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             (outputmsg, errormsg) = p.communicate()
 
@@ -124,19 +119,41 @@ class SevenzipUnpackParser(UnpackParser):
                 os.unlink(self.temporary_file[1])
 
             if p.returncode != 0:
-                return unpacked_files
+                shutil.rmtree(self.unpack_directory)
+                raise UnpackParserException("Cannot unpack 7z")
 
-            # walk the results directory
-            for result in unpackdir_full.glob('**/*'):
-                # first change the permissions
-                result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+    # make sure that self.unpacked_size is not overwritten
+    def calculate_unpacked_size(self):
+        pass
 
-                # then add the file to the result set
-                file_path = result.relative_to(unpackdir_full)
-                fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set())
-                unpacked_files.append(fr)
+    def unpack(self, meta_directory):
+        # walk the results directory
+        for result in self.unpack_directory.glob('**/*'):
+            # first change the permissions
+            result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
-        return unpacked_files
+            file_path = result.relative_to(self.unpack_directory)
+
+            if result.is_symlink():
+                meta_directory.unpack_symlink(file_path, result.readlink())
+            elif result.is_dir():
+                meta_directory.unpack_directory(file_path)
+            elif result.is_file():
+                with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
+                    self.local_copy2(result, outfile)
+                    yield unpacked_md
+            else:
+                continue
+
+        if self.havetmpfile:
+            os.unlink(self.temporary_file[1])
+        shutil.rmtree(self.unpack_directory)
+
+    # a wrapper around shutil.copy2 to copy symbolic links instead of
+    # following them and copying the data.
+    def local_copy2(self, src, dest):
+        '''Wrapper around shutil.copy2 for squashfs unpacking'''
+        return shutil.copy2(src, dest, follow_symlinks=False)
 
     @property
     def labels(self):
