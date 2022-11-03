@@ -519,19 +519,11 @@ def make_scan_pipeline():
 
     # TODO: if we want to record meta data for unscannable files,
     # make sure to add a pipe_with to open the meta_directory with open_file=False.
-    pipe_root = pipe_cond(
-        cond_scannable,
-        pipe_with(ctx_open_md_for_writing, pipe_scan),
-        pipe_fail
-    )
-
-    '''
     pipe_root = pipe_or(pipe_cond(
         cond_scannable,
         pipe_with(ctx_open_md_for_writing, pipe_scan),
         pipe_fail), pipe_with(ctx_open_md_for_writing, pipe_hashes)
     )
-    '''
     return pipe_root
 
 # Example: resume scan:
