@@ -130,7 +130,7 @@ class XarUnpackParser(UnpackParser):
                                             checksum_size = int(dd.data.strip())
                                         except ValueError as e:
                                             raise UnpackParserException(e.args)
-                    check_condition(self.end_of_header + checksum_offset + checksum_size <= self.fileresult.filesize,
+                    check_condition(self.end_of_header + checksum_offset + checksum_size <= self.infile.size,
                                     "checksum cannot be outside of file")
                     self.unpacked_size = max(self.unpacked_size, self.end_of_header + checksum_offset + checksum_size)
                 else:
@@ -223,7 +223,7 @@ class XarUnpackParser(UnpackParser):
                                         for dd in file_node.childNodes:
                                             if dd.nodeType == xml.dom.Node.TEXT_NODE:
                                                 archived_checksum = dd.data.strip()
-                            check_condition(self.end_of_header + data_offset + data_length <= self.fileresult.filesize,
+                            check_condition(self.end_of_header + data_offset + data_length <= self.infile.size,
                                 "file data cannot be outside of file")
                             self.unpacked_size = max(self.unpacked_size, self.end_of_header + data_offset + data_length)
                         elif ic.tagName == 'type':
@@ -355,22 +355,14 @@ class XarUnpackParser(UnpackParser):
 
         maxbytestoread = 10000000
         for node in self.nodes:
-            out_labels = []
             file_path = pathlib.Path(node['name'])
 
-            outfile_rel = self.rel_unpack_dir / file_path
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-
             if node['type'] == 'directory':
-                out_labels = ['directory']
-                os.makedirs(outfile_full, exist_ok=True)
+                meta_directory.unpack_directory(file_path)
             elif node['type'] == 'symlink':
-                out_labels = ['symlink']
-                outfile_full.symlink_to(node['target'])
+                meta_directory.unpack_symlink(file_path, node['target'])
             elif node['type'] == 'fifo':
-                out_labels = ['fifo']
-                os.mkfifo(outfile_full)
+                pass
             else:
                 if node['type'] != 'file':
                     continue
@@ -408,18 +400,9 @@ class XarUnpackParser(UnpackParser):
         for node in self.nodes:
             if node['type'] != 'hardlink':
                 continue
-            out_labels = ['hardlink']
             file_path = pathlib.Path(node['name'])
-            outfile_rel = self.rel_unpack_dir / file_path
-            outfile_full = self.scan_environment.unpack_path(outfile_rel)
-            os.makedirs(outfile_full.parent, exist_ok=True)
-
-            target_rel = self.rel_unpack_dir / self.file_id_to_path[node['link_type']]
-            target_full = self.scan_environment.unpack_path(target_rel)
-            target_full.link_to(outfile_full)
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set(out_labels))
-            unpacked_files.append(fr)
-        return unpacked_files
+            target = self.file_id_to_path[node['link_type']]
+            meta_directory.unpack_hardlink(file_path, target)
 
     labels = ['archive', 'xar']
     metadata = {}
