@@ -85,6 +85,14 @@ types:
         type: u4
       - id: len_body_uncompressed
         type: u4
+  data_descriptor64:
+    seq:
+      - id: crc32
+        type: u4
+      - id: len_body_compressed
+        type: u8
+      - id: len_body_uncompressed
+        type: u8
   digital_signature:
     seq:
       - id: len_signature
