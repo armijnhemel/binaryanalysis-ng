@@ -42,8 +42,6 @@ types:
   empty: {}
   pk_section:
     seq:
-      #- id: magic
-      #  contents: 'PK'
       - id: section_type
         type: u4
         enum: section_types
@@ -71,6 +69,19 @@ types:
             section_types::digital_signature: digital_signature
             section_types::zip64_end_of_central_dir: zip64_end_of_central_dir
             section_types::zip64_end_of_central_dir_locator: zip64_end_of_central_dir_locator
+  pk_section64:
+    seq:
+      - id: section_type
+        type: u4
+        enum: section_types
+        valid:
+          any-of:
+            - section_types::data_descriptor
+      - id: body
+        type:
+          switch-on: section_type
+          cases:
+            section_types::data_descriptor: data_descriptor64
   archive_extra_data:
     seq:
       - id: len_extra_field

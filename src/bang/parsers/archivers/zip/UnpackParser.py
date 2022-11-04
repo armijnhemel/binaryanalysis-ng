@@ -194,7 +194,18 @@ class ZipUnpackParser(UnpackParser):
                             # end of ZIP file reached, so break out of the loop
                             break
                         elif buf == DATA_DESCRIPTOR:
-                            pass
+                            # challenge: this could be both a 32 bit and 64 bit
+                            # data descriptor and it is not always easy to find
+                            # which one is used possibly only until after it has
+                            # been read.
+                            # A hint is the ZIP version: if it is 4.5 or higher
+                            # then it is very likely that it is the ZIP64
+                            if zip_version >= 45:
+                                self.infile.seek(start_of_entry)
+                                try:
+                                    file_header = kaitai_zip.Zip.PkSection64.from_io(self.infile)
+                                except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
+                                    raise UnpackParserException(e.args)
                     else:
                         # then check to see if this is possibly an Android
                         # signing block (v2 or v3):
@@ -309,6 +320,8 @@ class ZipUnpackParser(UnpackParser):
                 if not broken_zip_version:
                     check_condition(file_header.body.header.version <= MAX_VERSION,
                                     "invalid ZIP version %d" % file_header.body.header.version)
+
+                zip_version = file_header.body.header.version
 
                 if file_header.body.header.flags.file_encrypted:
                     self.encrypted = True
