@@ -409,7 +409,11 @@ class Iso9660UnpackParser(UnpackParser):
 
                     if not record.body.file_flags_directory:
                         # regular files, symlinks, etc.
-                        file_path = pathlib.Path(full_filename)
+                        # TODO: check if full_filename is *always* a pathlib object
+                        if ';' in str(full_filename.name):
+                            file_path = pathlib.Path(str(full_filename).rsplit(';'[0], 1)[0])
+                        else:
+                            file_path = full_filename
 
                         # create files/links but only if they are not
                         # placeholder files (for relocated directories)
