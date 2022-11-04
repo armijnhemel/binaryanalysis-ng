@@ -57,7 +57,7 @@ class Qcow2UnpackParser(UnpackParser):
 
         # run qemu-img to see if the whole file is the qcow2 file
         # Carving unfortunately doesn't seem to work well.
-        p = subprocess.Popen(['qemu-img', 'info', '--output=json', self.fileresult.filename],
+        p = subprocess.Popen(['qemu-img', 'info', '--output=json', self.infile.name],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         (standardout, standarderror) = p.communicate()
@@ -69,43 +69,37 @@ class Qcow2UnpackParser(UnpackParser):
             raise UnpackParserException("no valid JSON output from qemu-img")
 
         # convert the file to a temporary file
-        temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
-        os.fdopen(temporary_file[0]).close()
-        p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw',self.fileresult.filename, temporary_file[1]],
+        self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
+        os.fdopen(self.temporary_file[0]).close()
+        p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', self.infile.name, self.temporary_file[1]],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         (standardout, standarderror) = p.communicate()
-        os.unlink(temporary_file[1])
+
+        if p.returncode != 0:
+            os.unlink(self.temporary_file[1])
         check_condition(p.returncode == 0, "not a valid qcow2 file or cannot unpack")
-        self.unpacked_size = min(vmdkjson['actual-size'], self.fileresult.filesize)
+        self.unpacked_size = min(vmdkjson['actual-size'], self.infile.size)
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    def unpack(self):
+    def unpack(self, meta_directory):
         unpacked_files = []
 
         # determine the name of the output file
         if meta_directory.file_path.suffix.lower() in ['.qcow2', '.qcow', '.qcow2c', '.img']:
-            file_path = pathlib.Path(self.fileresult.filename.stem)
+            file_path = pathlib.Path(meta_directory.file_path.stem)
             if file_path in ['.', '..']:
                 file_path = pathlib.Path("unpacked_from_qcow2")
         else:
             file_path = pathlib.Path("unpacked_from_qcow2")
 
-        outfile_rel = self.rel_unpack_dir / file_path
-        outfile_full = self.scan_environment.unpack_path(outfile_rel)
-        os.makedirs(outfile_full.parent, exist_ok=True)
-
-        p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw',self.fileresult.filename, outfile_full],
-                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        (standardout, standarderror) = p.communicate()
-
-        fr = FileResult(self.fileresult, outfile_rel, set([]))
-        unpacked_files.append(fr)
-        return unpacked_files
+        with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
+            shutil.copy(self.temporary_file[1], outfile)
+            os.unlink(self.temporary_file[1])
+            yield unpacked_md
 
     labels = ['qemu', 'qcow2', 'filesystem']
     metadata = {}
