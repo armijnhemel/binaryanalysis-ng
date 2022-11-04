@@ -20,6 +20,8 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# Test files can be created with 'lz4c -l'
+
 import os
 import pathlib
 import shutil
