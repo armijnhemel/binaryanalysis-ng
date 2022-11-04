@@ -21,6 +21,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
+import pathlib
 import shutil
 import stat
 import subprocess
@@ -47,26 +48,23 @@ class CabUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-    def unpack(self, meta_directory):
-        unpacked_files = []
-        unpackdir_full = self.scan_environment.unpack_path(self.rel_unpack_dir)
-
-        # check if the file starts at offset 0. If not, carve the
-        # file first, as cabextract tries to be smart and unpack
+        # test unpack to see if there are any cabextract errors.
+        # First check if the file starts at offset 0. If not, carve
+        # the file, as cabextract tries to be smart and unpack
         # all cab data in a file, like concatenated cab files,
         # even if there is other data in between the individual
         # cab files
+        self.unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
+
         havetmpfile = False
         if not (self.offset == 0 and self.infile.size == self.data.preheader.len_cabinet):
-            temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
             havetmpfile = True
             os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.data.preheader.len_cabinet)
             os.fdopen(temporary_file[0]).close()
-
-        if havetmpfile:
-            p = subprocess.Popen(['cabextract', '-d', unpackdir_full, temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['cabextract', '-d', self.unpack_directory, temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            p = subprocess.Popen(['cabextract', '-d', unpackdir_full, meta_directory.file_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['cabextract', '-d', self.unpack_directory, self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         (outputmsg, errormsg) = p.communicate()
 
@@ -74,19 +72,35 @@ class CabUnpackParser(UnpackParser):
             os.unlink(temporary_file[1])
 
         if p.returncode != 0:
-            return unpacked_files
+            shutil.rmtree(self.unpack_directory)
+            raise UnpackParserException("Cannot unpack cab")
 
+    def unpack(self, meta_directory):
         # walk the results directory
-        for result in unpackdir_full.glob('**/*'):
+        for result in self.unpack_directory.glob('**/*'):
             # first change the permissions
             result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
-            # then add the file to the result set
-            file_path = result.relative_to(unpackdir_full)
-            fr = FileResult(self.fileresult, self.rel_unpack_dir / file_path, set())
-            unpacked_files.append(fr)
+            file_path = result.relative_to(self.unpack_directory)
 
-        return unpacked_files
+            if result.is_symlink():
+                meta_directory.unpack_symlink(file_path, result.readlink())
+            elif result.is_dir():
+                meta_directory.unpack_directory(file_path)
+            elif result.is_file():
+                with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
+                    self.local_copy2(result, outfile)
+                    yield unpacked_md
+            else:
+                continue
+
+        shutil.rmtree(self.unpack_directory)
+
+    # a wrapper around shutil.copy2 to copy symbolic links instead of
+    # following them and copying the data.
+    def local_copy2(self, src, dest):
+        '''Wrapper around shutil.copy2 for squashfs unpacking'''
+        return shutil.copy2(src, dest, follow_symlinks=False)
 
     labels = ['cab', 'archive']
     metadata = {}
