@@ -150,20 +150,14 @@ class UbifsUnpackParser(UnpackParser):
                             # TODO: let meta_directory create fifo
                             # No meta directory for fifo
                             pass
-                            #outfile_full = self.scan_environment.unpack_path(outfile_rel)
-                            #os.mkfifo(outfile_full)
-                            #fr = FileResult(self.fileresult, outfile_rel, set(['fifo']))
-                            #unpacked_files.append(fr)
+                            #os.mkfifo(outfile)
                         elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.socket:
                             # create socket
                             # TODO: let meta_directory create socket
                             # No meta directory for socket
                             pass
-                            #outfile_full = self.scan_environment.unpack_path(outfile_rel)
                             #ubi_socket = socket.socket(socket.AF_UNIX)
-                            #ubi_socket.bind(outfile_full)
-                            #fr = FileResult(self.fileresult, outfile_rel, set(['socket']))
-                            #unpacked_files.append(fr)
+                            #ubi_socket.bind(outfile)
                 elif type(process_node.node_header) == ubifs.Ubifs.DataHeader:
                     inode = process_node.node_header.key.inode_number
                     unpacked_md = unpacked_mds[inode]
