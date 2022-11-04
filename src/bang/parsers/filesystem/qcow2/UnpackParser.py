@@ -68,7 +68,7 @@ class Qcow2UnpackParser(UnpackParser):
         except:
             raise UnpackParserException("no valid JSON output from qemu-img")
 
-        # convert the file to a temporary file
+        # convert the file to a temporary file to rule out any unpacking errors
         self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
         os.fdopen(self.temporary_file[0]).close()
         p = subprocess.Popen(['qemu-img', 'convert', '-O', 'raw', self.infile.name, self.temporary_file[1]],
