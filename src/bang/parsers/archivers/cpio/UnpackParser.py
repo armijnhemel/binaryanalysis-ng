@@ -61,8 +61,6 @@ class CpioBaseUnpackParser(UnpackParser):
     def unpack_directory(self, meta_directory, path):
         # we unpack the directory, but do not yield a MetaDirectory for it
         meta_directory.unpack_directory(path)
-        # outfile_full = self.scan_environment.unpack_path(filename)
-        #os.makedirs(outfile_full, exist_ok=True)
         return []
 
     def unpack_regular(self, meta_directory, path, start, length):
