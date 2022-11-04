@@ -57,7 +57,7 @@ class Lz4legacyUnpackParser(UnpackParser):
         # streams can be concatenated and lz4c will concatenate result
         self.havetmpfile = False
         if not (self.offset == 0 and self.infile.size == self.unpacked_size):
-            self.temporary_file = tempfile.mkstemp(dir=self.scan_environment.temporarydirectory)
+            self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
             self.havetmpfile = True
             os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
             os.fdopen(self.temporary_file[0]).close()
@@ -71,7 +71,7 @@ class Lz4legacyUnpackParser(UnpackParser):
 
         if p.returncode != 0:
             if self.havetmpfile:
-                os.unlink(temporary_file[1])
+                os.unlink(self.temporary_file[1])
             raise UnpackParserException("Cannot decompress lz4 data")
 
     def calculate_unpacked_size(self):
@@ -99,7 +99,7 @@ class Lz4legacyUnpackParser(UnpackParser):
             (outputmsg, errormsg) = p.communicate()
 
             if self.havetmpfile:
-                os.unlink(temporary_file[1])
+                os.unlink(self.temporary_file[1])
             yield unpacked_md
 
     labels = ['compressed', 'lz4']
