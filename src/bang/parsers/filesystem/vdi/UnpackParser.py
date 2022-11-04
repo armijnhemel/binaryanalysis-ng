@@ -63,6 +63,8 @@ class VdiUnpackParser(UnpackParser):
                 raise UnpackParserException('no valid JSON output from qemu-img')
         self.unpacked_size = vdi_size
 
+        # TODO: test unpack here
+
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
