@@ -150,6 +150,8 @@ class Jffs2UnpackParser(UnpackParser):
                     break
 
                 len_inode = int.from_bytes(buf, byteorder=byteorder)
+                if len_inode == 0:
+                    break
                 if cur_offset + len_inode > self.infile.size:
                     break
 
