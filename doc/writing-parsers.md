@@ -38,7 +38,8 @@ There are various modules that are using `sendfile()`, for example:
 
 and also parsers that are using external tools, such as:
 
-1.
+1. `SevenzipUnpackParser`
+2. `RzipUnpackParser`
 
 ## `extensions` and `signatures`
 
@@ -220,9 +221,11 @@ Unpacking symbolic links is fairly straightforward. The meta directory object
 that is passed has a method `unpack_symlink()` that can be called. No meta
 directory needs to be yielded.
 
-An example parser with symbolic links is `ZimUnpackParser`.
+An example parser that processes symbolic links is `ZimUnpackParser`.
 
 ### Unpacking hard links
+
+An example parser that processes symbolic links is `Jffs2UnpackParser`.
 
 ## `labels` and `metadata`
 
