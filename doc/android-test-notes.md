@@ -206,6 +206,15 @@ Allwinner based, uses the `allwinner_img` file format.
 
 Spreadtrum based, uses `spreadtrum_pac`
 
+## Symphony_V94_HW1_V9_05012019_SPD.zip
+
+Spreadtrum based (Pike 2?), uses `spreadtrum_pac`, `dhtb`, Dex 037, Oat 131, Vdex 010
+
+## TCL_A996_08032012_CMD.zip
+
+Broadcom bcm21553 based (unsure, but likely). Uses `yaffs2`, `android_boot_img`
+version 0 and Dex 035.
+
 ## Titan_8_Plus_MT6572_20180126_4.4.2.zip
 
 Mediatek MT6572 based, uses `mtk_bootrom`, `android_mediatek_logo` amongst others.
