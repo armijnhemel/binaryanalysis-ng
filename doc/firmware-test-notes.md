@@ -47,6 +47,10 @@ ASUS RT-AC55UHP, uses `u-boot`, `lzma` compressed kernel, `ipk` files.
 
 Uses `dtb` FIT image, `squashfs`, `ipk` files.
 
+## FW_RT_AXE7800_300438834458.zip
+
+Uses `dtb` FIT image using offsets.
+
 ## FW_RX7500_1.0.04.141_prod.bin
 
 Uses `dtb` FIT image, `ubi`, `squashfs`
