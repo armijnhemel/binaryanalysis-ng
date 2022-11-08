@@ -25,16 +25,17 @@
 # This program provides a commandline interface to browsing the
 # results of a scan made by BANG.
 
-import os
-import sys
-import json
-import pickle
 import cmd
-import functools
-import shutil
-import math
 import collections
+import functools
+import json
+import math
+import os
+import pathlib
+import pickle
+import shutil
 import stat
+import sys
 
 
 # Inspired by the example at:
@@ -48,7 +49,7 @@ class BangShell(cmd.Cmd):
     prompt = '(bang) '
 
     # store the results locally
-    bangresults = None
+    bang_results = None
 
     # keep a list of all file names for quick look up
     filenames = []
@@ -57,17 +58,17 @@ class BangShell(cmd.Cmd):
     labels = []
 
     # keep a mapping of labels to file
-    labelstofile = {}
-    excludelabels = set()
-    statscounter = collections.Counter()
+    labels_to_file = {}
+    exclude_labels = set()
+    stats_counter = collections.Counter()
 
     def clear(self):
-        self.bangresults = None
+        self.bang_results = None
         self.filenames = []
         self.labels = []
-        self.labelstofile = {}
-        self.excludelabels = set()
-        self.statscounter = collections.Counter()
+        self.labels_to_file = {}
+        self.exclude_labels = set()
+        self.stats_counter = collections.Counter()
 
     # load the data
     def do_load(self, arg):
@@ -78,6 +79,7 @@ class BangShell(cmd.Cmd):
         if len(args) != 1 or len(args) == 0:
             print("** invalid number of arguments: please only provide one argument\n")
             return
+
         # then check if the path exists
         bangdirectory = os.path.join(os.getcwd(), arg)
         if not os.path.exists(bangdirectory):
@@ -86,9 +88,10 @@ class BangShell(cmd.Cmd):
         if not os.path.isdir(bangdirectory):
             print("** %s is not a directory" % arg)
             return
+
         # then check if a BANG pickle could be found
-        bangpicklename = os.path.join(bangdirectory, "bang.pickle")
-        if not os.path.exists(bangpicklename):
+        bang_pickle_name = os.path.join(bangdirectory, "bang.pickle")
+        if not os.path.exists(bang_pickle_name):
             print("** %s is not a valid BANG result directory\n" % arg)
             return
 
@@ -96,20 +99,19 @@ class BangShell(cmd.Cmd):
         self.clear()
 
         try:
-            bangpickle = open(bangpicklename, 'rb')
-            self.bangresults = pickle.load(bangpickle)
-            bangpickle.close()
+            with open(bang_pickle_name, 'rb') as bang_pickle:
+                self.bang_results = pickle.load(bang_pickle)
         except:
             print("** could not unpackle bang.pickle in %s\n" % arg)
             return
 
-        for i in self.bangresults['scantree']:
-            self.labels += self.bangresults['scantree'][i]['labels']
-            for label in self.bangresults['scantree'][i]['labels']:
-                if label not in self.labelstofile:
-                    self.labelstofile[label] = []
-                self.labelstofile[label].append(self.bangresults['scantree'][i]['filename'])
-            self.statscounter.update(self.bangresults['scantree'][i]['labels'])
+        for i in self.bang_results['scantree']:
+            self.labels += self.bang_results['scantree'][i]['labels']
+            for label in self.bang_results['scantree'][i]['labels']:
+                if label not in self.labels_to_file:
+                    self.labels_to_file[label] = []
+                self.labels_to_file[label].append(self.bang_results['scantree'][i]['filename'])
+            self.stats_counter.update(self.bang_results['scantree'][i]['labels'])
             self.filenames.append(i)
 
         # deduplicate the labels and sort them alphabetically
@@ -122,7 +124,7 @@ class BangShell(cmd.Cmd):
     # a method to ignore files with a specific label
     def do_exclude(self, arg):
         'Exclude files with a certain label from results'
-        if self.bangresults is None:
+        if self.bang_results is None:
             print("** first load BANG results using 'load'\n")
             return
         args = arg.strip().split()
@@ -130,45 +132,45 @@ class BangShell(cmd.Cmd):
             print("** invalid number of arguments: no label given\n")
             return
         if args[0] in self.labels:
-            self.excludelabels.add(args[0])
+            self.exclude_labels.add(args[0])
 
     # a method to stop ignoring files with a specific label
     def do_include(self, arg):
         'Include files with a certain label in results'
         pass
-        if self.bangresults is None:
+        if self.bang_results is None:
             print("** first load BANG results using 'load'\n")
             return
         args = arg.strip().split()
         if len(args) < 1:
             print("** invalid number of arguments: no label given\n")
             return
-        if args[0] in self.excludelabels:
-            self.excludelabels.remove(args[0])
+        if args[0] in self.exclude_labels:
+            self.exclude_labels.remove(args[0])
 
     def do_labels(self, arg):
         'Show labels'
-        if self.bangresults is None:
+        if self.bang_results is None:
             print("** first load BANG results using 'load'\n")
             return
 
-        self.formatentries(self.labels)
-        if self.excludelabels != set():
-            excludelabels = list(self.excludelabels)
+        self.format_entries(self.labels)
+        if self.exclude_labels != set():
+            exclude_labels = list(self.exclude_labels)
             print("Currently excluded:")
-            self.formatentries(excludelabels)
+            self.format_entries(exclude_labels)
 
     # implement something like ls for files
     def do_ls(self, arg):
         'Show files and directories from scan'
-        if self.bangresults is None:
+        if self.bang_results is None:
             print("** first load BANG results using 'load'\n")
             return
         args = list(filter(lambda x: x != '', map(lambda x: x.strip(), arg.strip().split(' ', 1))))
         if len(args) < 1:
             # no specific file was looked at, so
             # just display the list of all files
-            self.formatentries(self.filenames)
+            self.format_entries(self.filenames)
         else:
             lscmds = set()
 
@@ -193,19 +195,19 @@ class BangShell(cmd.Cmd):
                     # treat the rest as a filename
                     if args == []:
                         if 'l' in lscmds:
-                            self.formatentries(self.filenames)
+                            self.format_entries(self.filenames)
                         else:
-                            self.formatentries(self.filenames)
+                            self.format_entries(self.filenames)
                     else:
                         if args[0] in self.filenames:
                             if 'l' in lscmds:
-                                print(self.bangresults['scantree'][args[0]])
-                                self.formatentries(args)
+                                print(self.bang_results['scantree'][args[0]])
+                                self.format_entries(args)
                             else:
-                                self.formatentries(args)
+                                self.format_entries(args)
 
     def do_show(self, arg):
-        if self.bangresults is None:
+        if self.bang_results is None:
             print("** first load BANG results using 'load'\n")
             return
 
@@ -227,42 +229,43 @@ class BangShell(cmd.Cmd):
                 print("** no results for label '%s'\n" % label)
                 return
 
-            labelkeys = self.labelstofile[label]
-            labelkeys.sort()
-            self.formatentries(labelkeys)
+            label_keys = self.labels_to_file[label]
+            label_keys.sort()
+            self.format_entries(label_keys)
 
     def do_runtime_stats(self, arg):
         'Show run time statistics about the scan'
 
-        if self.bangresults is None:
+        if self.bang_results is None:
             print("** first load BANG results using 'load'\n")
             return
 
-        if 'session' in self.bangresults:
-            print("Scan started: %s" % self.bangresults['session']['start'].isoformat())
-            print("Scan finished: %s" % self.bangresults['session']['stop'].isoformat())
-            print("Scan duration: %f seconds" % self.bangresults['session']['duration'])
-            print("Scan run by: %s\n" % self.bangresults['session']['user'])
+        if 'session' in self.bang_results:
+            print("Scan started: %s" % self.bang_results['session']['start'].isoformat())
+            print("Scan finished: %s" % self.bang_results['session']['stop'].isoformat())
+            print("Scan duration: %f seconds" % self.bang_results['session']['duration'])
+            print("Scan run by: %s\n" % self.bang_results['session']['user'])
 
     def do_summary(self, arg):
         'Print a summary about the scan'
 
-        if self.bangresults is None:
+        if self.bang_results is None:
             print("** first load BANG results using 'load'\n")
             return
 
         print("Total entries: %d\n" % len(self.filenames))
-        for i in self.statscounter.most_common():
+        for i in self.stats_counter.most_common():
             print("%s: %d" % i)
 
     def do_exit(self, arg):
         'Exit bang shell'
         print('Going out with a BANG!')
         return True
+
     do_EOF = do_exit
 
     # format entries based on the terminal size, etc.
-    def formatentries(self, entries):
+    def format_entries(self, entries):
         # get the current terminal size first, then pretty print
         # the labels accordingly in left adjusted columns, much
         # like "ls" does: create columns that are max(labels) + 2
@@ -276,7 +279,7 @@ class BangShell(cmd.Cmd):
         else:
             entrycolumns = termsize.columns//(maxentrysize+2)
 
-        linesused = math.ceil(len(entries)/entrycolumns)
+        lines_used = math.ceil(len(entries)/entrycolumns)
 
         columnsleft = termsize.columns
 
@@ -285,7 +288,7 @@ class BangShell(cmd.Cmd):
         #
         # If more than one line is used then columns have to be
         # constructed, similar to what the "ls" command does.
-        if linesused == 1:
+        if lines_used == 1:
             print(functools.reduce(lambda x, y: x + "  " + y, entries), '\n')
         else:
             entrystr = ""
