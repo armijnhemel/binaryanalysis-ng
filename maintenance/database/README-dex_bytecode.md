@@ -14,7 +14,7 @@ Background material can be found here: <https://www.tdcommons.org/dpubs_series/2
 
 ## Loading the data
 
-For this script a directory with BANG result directories is needed.
+For this script a directory with BANG result directories ("meta directories") is needed.
 
 To import the data do the following:
 
