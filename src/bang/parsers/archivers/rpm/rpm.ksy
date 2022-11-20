@@ -1460,6 +1460,24 @@ enums:
     5102:
       id: source_license
       -orig-id: RPMTAG_SOURCELICENSE
+    5103:
+      id: pre_untrans
+      -orig-id: RPMTAG_PREUNTRANS
+    5104:
+      id: post_untrans
+      -orig-id: RPMTAG_POSTUNTRANS
+    5105:
+      id: pre_untrans_prog
+      -orig-id: RPMTAG_PREUNTRANSPROG
+    5106:
+      id: post_untrans_prog
+      -orig-id: RPMTAG_POSTUNTRANSPROG
+    5107:
+      id: pre_untrans_flags
+      -orig-id: RPMTAG_PREUNTRANSFLAGS
+    5108:
+      id: post_untrans_flags
+      -orig-id: RPMTAG_POSTUNTRANSFLAGS
   record_types:
     # from LSB
     0: not_implemented
