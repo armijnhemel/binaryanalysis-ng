@@ -1,15 +1,15 @@
 # Writing a parser
 
-To support a new format it is necessary to write a parser that needs to be able
-to do the following:
+To support parsing or unpacking a new format it is necessary to write code
+that needs to be able to do the following:
 
-1. parse
-2. calculate the size
-3. unpack
+1. parse the file
+2. calculate the size of the parsed data
+3. unpack the parsed data
 4. determine labels and metadata
 
-A new parser derives from the `UnpackParser` class. To implement functionality
-different methods need to be redefined.
+A new parser derives from the `UnpackParser` class. To implement the
+functionality mentioned above several methods need to be redefined.
 
 ## First: an important word about offsets
 
@@ -44,7 +44,7 @@ and also parsers that are using external tools, such as:
 ## `extensions` and `signatures`
 
 The two data structures `extensions` and `signatures` are defined that define
-which class of parsers are run. They are independent from each other.
+parser class is used. They are independent from each other.
 
 Normally parsers rely on signatures (AKA "magic") to find the start of where
 a file format starts, but not all files have a signature. For example, the
@@ -60,6 +60,14 @@ An example of a signature that does not start at `0` can be found in the
 `iso9660` parser. When scanning for signatures the offsets are automatically
 taken into account.
 
+Signature example:
+
+```
+signatures = [
+    (32769, b'CD001')
+]
+```
+
 When deciding if `extensions` or `signatures` should be used the rule of thumb
 is that if there is a signature, then `signatures` should be used and
 `extensions` should not be used. If there is no signature but there is a
@@ -71,6 +79,12 @@ The `pretty_name` string should be set to something that describes the file
 format, for example `jffs2` (for JFFS2 file systems) or `elf` (for ELF
 binaries). This is mostly used for identification, so it is highly recommended
 to give it a unique name.
+
+Example:
+
+```
+pretty_name = 'iso9660'
+```
 
 ## `__init__()`
 
