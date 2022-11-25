@@ -46,15 +46,14 @@ from kaitaistruct import ValidationFailedError
 from . import png
 
 # a list of known chunks
-KNOWN_CHUNKS = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM',
-                    'gAMA', 'hIST', 'iCCP', 'pHYs', 'sBIT', 'sPLT',
-                    'sRGB', 'tEXt', 'tIME', 'tRNS', 'zTXt', 'iTXt',
-                    'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl',
-                    'oFFs', 'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT',
-                    'prVW', 'mkBT', 'mkBS', 'mkTS', 'mkBF', 'orNT',
-                    'sCAL', 'sTER', 'meTa', 'grAb', 'alPh', 'huBs',
-                    'ptIc', 'snAp', 'viSt', 'pcLs', 'raNd', 'dSIG',
-                    'eXIf', 'eXif', 'skMf', 'skRf', 'atCh'])
+KNOWN_CHUNKS = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM', 'gAMA',
+                    'hIST', 'iCCP', 'pHYs', 'sBIT', 'sPLT', 'sRGB', 'tEXt',
+                    'tIME', 'tRNS', 'zTXt', 'iTXt', 'gIFg', 'gIFx', 'gIFt',
+                    'acTL', 'fcTL', 'fdAT', 'npTc', 'npLb', 'npOl', 'oFFs',
+                    'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT', 'prVW', 'mkBT',
+                    'mkBS', 'mkTS', 'mkBF', 'orNT', 'sCAL', 'sTER', 'meTa',
+                    'grAb', 'alPh', 'huBs', 'ptIc', 'snAp', 'viSt', 'pcLs',
+                    'raNd', 'dSIG', 'eXIf', 'eXif', 'skMf', 'skRf', 'atCh'])
 
 
 class PngUnpackParser(UnpackParser):
