@@ -151,7 +151,6 @@ def main(config_file, bang_result_directory):
         results = json.dumps(cve_json, indent=4)
         print(results)
 
-    os.chdir(old_cwd)
 
 if __name__ == "__main__":
     main()
