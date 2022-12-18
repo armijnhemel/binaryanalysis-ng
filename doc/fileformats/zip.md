@@ -129,6 +129,7 @@ Imagine that there are two ZIP files A and B. When these are concatenated (A,
 then B) and then unpacked using the standard method the central directory of
 B will be at the end, so only the entries of file B will be found. To unpack
 entries from A you need to find out where the central directory of A resides.
+This can only be done by parsing from the beginning of the file.
 
 # ZIP file unpacking in BANG
 
@@ -142,16 +143,16 @@ ZIP file unpacking in BANG works as follows (simplified):
 2. go to the start of a local file header (section 4.3.7)
 3. read and parse the data in a local file header
 4. skip the compressed data
-5. process all entries and store information about the entries, until a central
-   directory is found (section 4.3.12)
+5. process all entries and any optional extra data such as APK signing blocks,
+   until a central directory is found (section 4.3.12)
 6. process the central directory and verify if the contents in the central
    directory correspond to the entries found in step 5.
 7. verify if there is an end of central directory (section 4.3.16)
 8. carve the ZIP file (if necessary) and process using standard tools
-   (Python's built-in ZIP module)
+   (Python's `zipfile` module)
 
-This (simplified) workflow works well, but as it turns out there are quite a
-few situations that make this tricky.
+This (simplified) workflow works well, but as it turns out there are a few
+situations that make this tricky.
 
 ## Encryption
 
