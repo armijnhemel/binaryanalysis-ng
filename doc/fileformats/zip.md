@@ -128,7 +128,7 @@ where the ZIP file starts and ends, and then unpack all the data.
 Imagine that there are two ZIP files A and B. When these are concatenated (A,
 then B) and then unpacked using the standard method the central directory of
 B will be at the end, so only the entries of file B will be found. To unpack
-entries from A you need to find out where A ends.
+entries from A you need to find out where the central directory of A resides.
 
 # ZIP file unpacking in BANG
 
@@ -151,7 +151,7 @@ ZIP file unpacking in BANG works as follows (simplified):
    (Python's built-in ZIP module)
 
 This (simplified) workflow works well, but as it turns out there are quite a
-few exceptions that make it a lot trickier.
+few situations that make this tricky.
 
 ## Encryption
 
@@ -220,53 +220,58 @@ that will only store 16 bytes (compressed and uncompressed size).
 ## Directories unpacked as regular files
 
 Most, if not all, ZIP implementations rely on names of directories being stored
-with a `/` at the end of the entry name (even though the specification does not
-seem to mandate this). There are files that contain files where a directory
-name does not end in `/` and which make the standard utilities fail and where
-instead of a directory a zero byte file with the same name as the directory is
-created. Despite bug reports being filed this is still a problem. A bug report
-can be found at:
+with a `/` at the end of the entry name, even though the official ZIP
+specification does not mention that a `/` is mandatory for a directory. Both
+`unzip` and Python's `zipfile` module rely on having a `/` for directory names.
+
+There are some ZIP files that contain files where directory names do not end in
+`/` and where the standard utilities fail: instead of creating a directory a
+zero byte file with the same name as the directory is written. Despite bug
+reports being filed this is still a problem. A bug report can be found at:
 
 <http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442>
 
 Trying to unpack the file mentioned in this bug report leads to the following
-error (on Fedora 30):
+error with `unzip`:
 
-    $ unzip 1_06_03P.zip
-    Archive:  1_06_03P.zip
-     extracting: online_upgrade_img
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/bp28v_md5.
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/bp28_md5.
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/emergency_recovery.sh.
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/J120.bp28.
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/machine_type.
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/md5.
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/ouimg.bin.
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/ouimg.ver.
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/OU_Burner.
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/Software_Version.
-    checkdir error:  online_upgrade_img exists but is not directory
-                     unable to process online_upgrade_img/V10X.bp28v.
+```
+$ unzip 1_06_03P.zip
+Archive:  1_06_03P.zip
+ extracting: online_upgrade_img
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/bp28v_md5.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/bp28_md5.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/emergency_recovery.sh.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/J120.bp28.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/machine_type.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/md5.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/ouimg.bin.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/ouimg.ver.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/OU_Burner.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/Software_Version.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/V10X.bp28v.
+```
 
 In BANG this is solved by first looking at the "external file attributes"
 field from the central directory (section 4.3.12) and checking if the low
 order byte corresponds to the MS-DOS directory attribute byte (section 4.4.15)
-while also checking that the size is 0 and that Python's zipinfo module does
-not recognize the file as a directory. If this is the case, then the directory
-is not unpacked with Python's `zipinfo` module, but a directory with the name of
-the entry is created instead.
+while also checking that the size recorded for the file is 0 and that Python's
+`zipfile` module does not recognize the file as a directory. If this is the
+case, then the directory is not unpacked with Python's `zipfile` module, but a
+directory with the name of the entry is created instead.
 
-This might not be entirely fool proof, but it is a very rare edge case.
+This might not be entirely fool proof, but it seems to be such a very rare edge
+case that so far only one example has been found in the wild.
 
 ## Minimum ZIP versions
 
@@ -282,10 +287,11 @@ known invalid versions are silently ignored in BANG.
 
 ## Customized headers
 
-There are some vendors, such as the Chinese vendor Dahua, that use the ZIP
-format, but that slightly change one or more headers. In the case of Dahua the
-only change is that the first local file header is changed from `PK\x03\x04`
-to `DH\x03\x04`.
+There are some vendors, such as the Chinese IP camera vendor Dahua, that use
+the ZIP format, but that slightly change one or more headers. In the case of
+Dahua the only change is that the first local file header is changed from
+`PK\x03\x04` to `DH\x03\x04`. By changing it to `PK\x03\x04` it can be
+unpacked.
 
 ## Multiple entries with the same name
 
