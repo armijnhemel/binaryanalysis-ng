@@ -5,7 +5,7 @@ already been published in a blog post which you can find at:
 
 <http://web.archive.org/web/20180718185811/http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html>
 
-The official ZIP file specification can be found at:
+The official ZIP file specification (latest is 6.3.10) can be found at:
 
 <https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT>
 
