@@ -154,6 +154,144 @@ ZIP file unpacking in BANG works as follows (simplified):
 This (simplified) workflow works well, but as it turns out there are a few
 situations that make this tricky.
 
+# Parsing a ZIP file from the beginning of the file
+
+In this section the whole structure of a ZIP file is explained and exceptions
+that have been encountered are highlighted.
+
+Every ZIP file starts with a local header.
+
+## Local file header
+
+The static part of every local file header is 30 bytes and structured as
+follows (section 4.3.7):
+
+```
+local file header signature     4 bytes  (0x04034b50)
+version needed to extract       2 bytes
+general purpose bit flag        2 bytes
+compression method              2 bytes
+last mod file time              2 bytes
+last mod file date              2 bytes
+crc-32                          4 bytes
+compressed size                 4 bytes
+uncompressed size               4 bytes
+file name length                2 bytes
+extra field length              2 bytes
+
+file name (variable size)
+extra field (variable size)
+```
+
+Schematically it looks like this:
+
+```
++------+------+------+------+------+------+------+------+
+|  P   |   K  | 0x03 | 0x04 | version     | flag        |
++------+------+------+------+------+------+------+------+
+| compression | mod time    | mode date   | crc32       |
++------+------+------+------+------+------+------+------+
+| crc32 (ctd) | compressed size           | unc. size   |
++------+------+------+------+------+------+------+------+
+| unc. size   | name length | extra length|
++------+------+------+------+------+------+
+```
+
+### Local file header signature
+
+The first exception is that there are certain vendors that have changed the
+local file header signature. One example is the Chinese IP camera vendor Dahua.
+The first local file header is changed from `PK\x03\x04` to `DH\x03\x04`. By
+changing the first local file header signature back to `PK\x03\x04` allows
+the ZIP file to be unpacked.
+
+### Version needed to extract
+
+The ZIP file was not complete upon release: new features have been introduced
+in later versions of the ZIP format. Older versions of the program will not be
+able to process files with these new featuers, so the "version needed to
+extract" field can be used to flag which version is needed. This flag is
+repeated in various other headers ("central directory header", "zip64 end of
+central directory") as well.
+
+As an example, for ZIP64 files the minimum feature version that the extraction
+program needs to implement is `4.5`. If a ZIP64 file is written, then the
+program writing the ZIP file needs to set the version needed to extract to
+`4.5` or higher. The list of minimum feature versions that have been defined
+can be found in section 4.4.3.
+
+Storing a file in a ZIP archive with the `store` method (which only stores it
+without any compression) requires version `1.0` to be supported:
+
+In the local file header the version number is not split in "major/minor", but
+stored in a different way. To get back to the version in section 4.4.3 the
+value has to be divided by `10`.  For example, "version 4.6" will be stored as
+`0x2e` (`46`) in the file header.
+
+```
+$ zip -r test.zip -Z store /bin/ls
+  adding: bin/ls (stored 0%)
+$ file test.zip
+test.zip: Zip archive data, at least v1.0 to extract, compression method=store
+```
+
+Storing the contents with BZip2 compression (minimum version `4.6`) will record
+another minimum version:
+
+```
+$ zip -r test2.zip -Z bzip2 /bin/ls
+  adding: bin/ls (bzipped 55%)
+$ file test2.zip
+test2.zip: Zip archive data, at least v4.6 to extract, compression method=bzip2
+```
+
+The minimum version needed to extract is recorded *per file* and inside a ZIP
+file these can be different per files. A small example to illustrate:
+
+```
+$ mkdir test
+$ cp /bin/ls test
+$ zip -r test.zip test
+updating: test/ (stored 0%)
+updating: test/ls (deflated 55%)
+$ file test.zip
+test.zip: Zip archive data, at least v1.0 to extract, compression method=store
+```
+
+This file is storing a directory (minimum version `1.0`) but compressing a file
+with the `deflate` algorithm (minimum version `2.0`). The `file` command only
+looks at the first few bytes of the file, but when using `zipinfo -v` (as well
+as when inspecting the file itself) it can clearly be seen that the minimum
+version for the file compressed with `deflate` is in fact `2.0` (output edited
+for clarity):
+
+```
+Central directory entry #2:
+---------------------------
+
+  test/ls
+
+  offset of local header from start of archive:   63
+                                                  (000000000000003Fh) bytes
+  file system or operating system of origin:      Unix
+  version of encoding software:                   3.0
+  minimum file system compatibility required:     MS-DOS, OS/2 or NT FAT
+  minimum software version required to extract:   2.0
+```
+
+When parsing a file it could be that invalid versions are encountered. The
+latest published ZIP version is `6.3` which would be stored as `0x3f` in the
+local file header.
+
+There are a few files where the minimum version has a non-existent version
+number in the local file header, but not in the central directory. As an
+example in one file the value `0x314` was observed.
+
+As long as the value of the corresponding field in the central directory is
+valid it is advised to silently ignore the invalid versions (this is what BANG
+does), as the unpacking tools and libraries primarily use the data in the
+central directory.
+
 ## Encryption
 
 ZIP files can be encrypted. In case an encrypted entry is encountered then
@@ -273,26 +411,6 @@ directory with the name of the entry is created instead.
 
 This might not be entirely fool proof, but it seems to be such a very rare edge
 case that so far only one example has been found in the wild.
-
-## Minimum ZIP versions
-
-Some features in ZIP files were introduced in later versions of ZIP files. The
-versions are stored in the local file header (section 4.3.7) and other headers.
-The versions (section 4.4.3) can be computed by dividing the value from the
-local file header by 10. For example, "version 6.3" will be stored as "63" in
-the file header. The latest minimum version that has been defined is 6.3.
-
-There are a few files where the minimum version is something like `0x314` (778)
-or similar in the local file header, but not in the central directory. These
-known invalid versions are silently ignored in BANG.
-
-## Customized headers
-
-There are some vendors, such as the Chinese IP camera vendor Dahua, that use
-the ZIP format, but that slightly change one or more headers. In the case of
-Dahua the only change is that the first local file header is changed from
-`PK\x03\x04` to `DH\x03\x04`. By changing it to `PK\x03\x04` it can be
-unpacked.
 
 ## Multiple entries with the same name
 
