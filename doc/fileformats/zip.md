@@ -358,7 +358,37 @@ be that another ZIP file could be stored in the entry, so when encountering
 for example a local file header it might not be of the next entry but that
 of an embedded ZIP file.
 
-In BANG there are various sanity checks in place to detect this.
+The data descriptor itself is defined as follows (section 4.3.9):
+
+```
+crc-32                          4 bytes
+compressed size                 4 bytes
+uncompressed size               4 bytes
+```
+
+but section 4.3.9.1 says that if ZIP64 is used the size fields are 8 bytes
+instead:
+
+```
+For ZIP64(tm) format archives, the compressed and uncompressed sizes are
+8 bytes each.
+```
+
+meaning that it would look like this:
+
+```
+crc-32                          4 bytes
+compressed size                 8 bytes
+uncompressed size               8 bytes
+```
+
+meaning that some extra care should be taken in case of it is a 64 bit ZIP
+file. As there are usually hints that it is a 64 bits file (example: the
+minimum needed version) it should be clear which version should be used.
+
+Potentially there are four variants of the data descriptor: 32 bit and 64 bit,
+with and without signature. The 64 bit without signature variant has not been
+encountered so far.
 
 ## APK signing blocks
 
