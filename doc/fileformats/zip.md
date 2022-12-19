@@ -178,9 +178,6 @@ compressed size                 4 bytes
 uncompressed size               4 bytes
 file name length                2 bytes
 extra field length              2 bytes
-
-file name (variable size)
-extra field (variable size)
 ```
 
 Schematically it looks like this:
@@ -195,6 +192,13 @@ Schematically it looks like this:
 +------+------+------+------+------+------+------+------+
 | unc. size   | name length | extra length|
 +------+------+------+------+------+------+
+```
+
+The static part if followed by a variable part:
+
+```
+file name (variable size)
+extra field (variable size)
 ```
 
 ### Local file header signature
@@ -292,34 +296,71 @@ valid it is advised to silently ignore the invalid versions (this is what BANG
 does), as the unpacking tools and libraries primarily use the data in the
 central directory.
 
-## Encryption
+### General purpose bit flag
 
-ZIP files can be encrypted. In case an encrypted entry is encountered then
-no unpacking is attempted, but only structural checks are done to check
-whether or not a file is a complete ZIP file or carving needs to be done.
+The general purpose bit flag (section 4.4.4) has a few important bits, namely
+"encryption" (bit 0) and "data descriptor" (bit 3). This flag is repeated in
+the corresponding central directory header for the file (and is expected to be
+the same).
 
-## Data descriptors
+#### Encryption
 
-The ZIP specifications say that a file's data can be followed by a so called
-"data descriptor" (section 4.3.9) if the bit 3 in the "general purpose bit
-flag" (section 4.4.4) is set. If so then, according to the specification:
+Entries in ZIP files can be encrypted with a variety of methods. The standard
+password encryption is weak (and prone to a known plaintext attack). If an entry
+is encryted then the "encryption" bit in the general purpose bit flag is set.
+In case an encrypted entry is found and there is no password available then it
+still possible to do structural checks (extract file name, CRC32, and so on)
+and verify if the data is sound.
 
-    If this bit is set, the fields crc-32, compressed 
-    size and uncompressed size are set to zero in the 
-    local header.  The correct values are put in the 
-    data descriptor immediately following the compressed
-    data.
+Other encryption methods are stronger. Depending on the encryption method the
+encryption bit flag might or might not be set. For example: for AE-x it will
+be set (APPENDIX E), while for other encryption methods it might not. The flag
+should not be used as the sole indicator of encrypption.
 
-This means that the size of an entry is not always known in advance, but has
-to be determined. The data descriptor does not have a standard header, but there
-is a value that is often associated with it that can be scanned for (section
-4.3.9.3). This means that possibly all data in a file entry has to be scanned
-for either:
+#### Data descriptor
 
-* a common data descriptor header
-* a local file header (possibly meaning a new entry is starting)
+If bit 3 of the general purpose bit flag is set, then it means that certain
+fields in the local file header have not been filled in and can be found in a
+so called "data descriptor" (section 4.3.9) that directly follows the data:
+
+```
+If this bit is set, the fields crc-32, compressed
+size and uncompressed size are set to zero in the
+local header.  The correct values are put in the
+data descriptor immediately following the compressed
+data.
+```
+
+This means that first the data of the entry should be read (or skipped), before
+the size of the entry can be correctly determined (from the data descriptor).
+This sounds like an impossible task, but there are a few markers in the file
+that can help.
+
+First of all, although the data descriptor does not have a standard signature
+(and the data descriptor could consist of only the fields from section 4.3.9
+and nothing more) there often is a signature present (section 4.3.9.3).
+
+If there is no signature present, then the some other markers have to be used.
+If the entry is followed by another entry, then that next entry will start with
+a local file header signature. If it is the last entry it will be followed by
+either an archive header or central directory header or, in case of Android APK
+files, an APK signing block.
+
+By searching for:
+
+* data descriptor signature
+* a local file header
 * another known header (central directory, archive headers)
-* the presence of an APK signing block (see next section)
+* APK signing block
+
+and then processing the data descriptor it should be possible to correctly
+determine the size. Verifications of the size in the data descriptor to see
+if it is correct should be done to prevent bogus data. For example, it could
+be that another ZIP file could be stored in the entry, so when encountering
+for example a local file header it might not be of the next entry but that
+of an embedded ZIP file.
+
+In BANG there are various sanity checks in place to detect this.
 
 ## APK signing blocks
 
