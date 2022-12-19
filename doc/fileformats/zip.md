@@ -346,7 +346,7 @@ files, an APK signing block.
 
 By searching for:
 
-* data descriptor signature (`PK\x7\x8`)
+* data descriptor signature (`PK\x07\x08`)
 * a local file header
 * another known header (central directory, archive headers)
 * APK signing block
