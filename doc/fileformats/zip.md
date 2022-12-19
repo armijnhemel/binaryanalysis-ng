@@ -324,11 +324,9 @@ fields in the local file header have not been filled in and can be found in a
 so called "data descriptor" (section 4.3.9) that directly follows the data:
 
 ```
-If this bit is set, the fields crc-32, compressed
-size and uncompressed size are set to zero in the
-local header.  The correct values are put in the
-data descriptor immediately following the compressed
-data.
+If this bit is set, the fields crc-32, compressed size and uncompressed size
+are set to zero in the local header.  The correct values are put in the data
+descriptor immediately following the compressed data.
 ```
 
 This means that first the data of the entry should be read (or skipped), before
