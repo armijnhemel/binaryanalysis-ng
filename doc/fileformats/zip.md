@@ -346,7 +346,7 @@ files, an APK signing block.
 
 By searching for:
 
-* data descriptor signature
+* data descriptor signature (`PK0x70x8`)
 * a local file header
 * another known header (central directory, archive headers)
 * APK signing block
@@ -389,6 +389,9 @@ minimum needed version) it should be clear which version should be used.
 Potentially there are four variants of the data descriptor: 32 bit and 64 bit,
 with and without signature. The 64 bit without signature variant has not been
 encountered so far.
+
+Good test files to find a data descriptor (with signature) are many Android APK
+files from (fairly) recent devices.
 
 ## APK signing blocks
 
