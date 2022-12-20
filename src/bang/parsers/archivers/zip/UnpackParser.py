@@ -24,7 +24,7 @@
 ZIP specifications can be found at:
 
 https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
-(latest version: version 6.3.9)
+(latest version: version 6.3.10)
 
 This parser first verifies a file to see where the ZIP data
 starts and where it ends.
