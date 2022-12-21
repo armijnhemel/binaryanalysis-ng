@@ -183,15 +183,11 @@ extra field length              2 bytes
 Schematically it looks like this:
 
 ```
-+------+------+------+------+------+------+------+------+
-|  P   |   K  | 0x03 | 0x04 | version     | flag        |
-+------+------+------+------+------+------+------+------+
-| compression | mod time    | mode date   | crc32       |
-+------+------+------+------+------+------+------+------+
-| crc32 (ctd) | compressed size           | unc. size   |
-+------+------+------+------+------+------+------+------+
-| unc. size   | name length | extra length|
-+------+------+------+------+------+------+
++------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+
+|  P   |   K  | 0x03 | 0x04 | version     | flag        | compression | mod time    | mode date   | crc32       |
++------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+
+| crc32 (ctd) |     compressed size       |     uncompressed size     | name length | extra length|
++------+------+------+------+------+------+------+------+------+------+------+------+------+------+
 ```
 
 The static part if followed by a variable part:
@@ -347,7 +343,7 @@ files, an APK signing block.
 By searching for:
 
 * data descriptor signature (`PK\x07\x08`)
-* a local file header
+* a local file header (`PK\x03\x04`)
 * another known header (central directory, archive headers)
 * APK signing block
 
@@ -393,6 +389,19 @@ encountered so far.
 Good test files to find a data descriptor (with signature) are many Android APK
 files from (fairly) recent devices.
 
+### Compression method
+
+Files can be compressed using a variety of methods (section 4.4.5). While in
+practice most files are compressed using `deflate` (which is well supported)
+there are files that are compressed with different compression algorithms and
+which cannot always be unpacked with the standard tools BANG uses.
+
+The `zipfile` module in Python only supports `stored`, `deflate`, `bzip2` and
+`lzma` compression. One file that was encountered in the wild was compressed
+using the very ancient `shrunk` compression method, which cannot be unpacked.
+BANG will not process these files.
+
+
 ## APK signing blocks
 
 Android APK files are essentially ZIP files. To increase security Google added
@@ -432,8 +441,21 @@ that will only store 16 bytes (compressed and uncompressed size).
 
 Most, if not all, ZIP implementations rely on names of directories being stored
 with a `/` at the end of the entry name, even though the official ZIP
-specification does not mention that a `/` is mandatory for a directory. Both
-`unzip` and Python's `zipfile` module rely on having a `/` for directory names.
+specification does not mention that a `/` is mandatory for a directory. It
+seems that at some point this just became a convention. For example, the
+.NET API seems to rely on it:
+
+<https://github.com/PowerShell/Microsoft.PowerShell.Archive/blob/b783599348e726069f17b90bd490f4f856f661f6/src/ZipArchive.cs#L43>
+<https://github.com/dotnet/runtime/blob/96a0fb1cd6210fc4842f32f549870a1d82e95c6f/src/libraries/System.IO.Compression.ZipFile/src/System/IO/Compression/ZipFile.Create.cs#L394>
+
+as does `unzip` (comment from `zip30.tar.gz`, file `unix/unix.c`, line 163):
+
+```
+/* Add trailing / to the directory name */
+```
+
+Both `unzip` and Python's `zipfile` module rely on having a `/` for directory
+names.
 
 There are some ZIP files that contain files where directory names do not end in
 `/` and where the standard utilities fail: instead of creating a directory a
