@@ -401,6 +401,21 @@ The `zipfile` module in Python only supports `stored`, `deflate`, `bzip2` and
 using the very ancient `shrunk` compression method, which cannot be unpacked.
 BANG will not process these files.
 
+### Last modification time and last modification date
+
+The date and time fields are in MS-DOS format (section 4.4.6) but are best
+ignored. They should not be parsed or validated as sometimes there are invalid
+dates (for example: `1980-00-00`):
+
+<https://github.com/kaitai-io/kaitai_struct_formats/issues/562>
+
+In certain cases (like some forms of encryption) the date could also be zeroed
+out completely:
+
+```
+If encrypting the central directory and general purpose bit flag 13 is set
+indicating masking, the value stored in the Local Header will be zero.
+```
 
 ## APK signing blocks
 
