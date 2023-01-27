@@ -81,7 +81,7 @@ types:
           offset:
             value: (address_raw & ~_root.block_address_mask) + 4
           size:
-            value: 1 << address_raw & _root.block_address_mask
+            value: 1 << (address_raw & _root.block_address_mask)
       directory_entry:
         seq:
           - id: len_name
@@ -167,7 +167,7 @@ types:
         instances:
           block:
             io: _root._io
-            pos: _root.buddy_allocator_body.block_addresses[block_id].offset
+            pos: _root.buddy_allocator_body.block_addresses[block_id.as<u4>].offset
             type: block
             if: mode > 0
         types:
