@@ -36,7 +36,7 @@ $ cat root/pathname
 The file `root/info.pkl` is a Python pickle file containing data for the scan,
 such as which parser was used, labels and other metadata.
 
-The results of the scan for the roolt file can be shown by using the `show`
+The results of the scan for the root file can be shown by using the `show`
 subcommand.
 
 ```
