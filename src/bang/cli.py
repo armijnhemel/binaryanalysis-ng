@@ -21,6 +21,7 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import datetime
 import logging
 import multiprocessing
 import pathlib
@@ -62,6 +63,10 @@ def app():
 def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_time, path):
     '''Scans PATH and unpacks its files to UNPACK_DIRECTORY.
     '''
+
+    # record the starting time of the scan
+    start_time = datetime.datetime.utcnow()
+
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
     scan_environment.job_wait_time = job_wait_time
@@ -117,6 +122,8 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     for p in processes:
         p.terminate()
     log.debug(f'cli:scan: done.')
+
+    stop_time = datetime.datetime.utcnow()
 
 
 @app.command(short_help='Show bang scan results')
