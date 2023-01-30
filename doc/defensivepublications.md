@@ -157,3 +157,20 @@ has a (near) identical set of identifiers and is therefore likely to be made
 from the same source code software.
 
 <https://www.tdcommons.org/dpubs_series/5155/>
+
+## Using federated social networks for efficiently distributing CVE information
+
+This document describes an open method for distributing information related to
+CVEs using social networks (in particular the open standard ActivityPub), which
+would allow users to get updates for specific CVE reports or specific events,
+and also potentially capture feedback from users around these updates.
+
+The CVE reporting system is the main vehicle for openly distributing
+information related to security vulnerabilities in software or configurations
+of software. CVE reports are useful but it has proven to be difficult to easily
+inform users about updates to CVE reports. In response a whole industry has
+sprung up around CVE and aggregation and distribution of information related to
+CVEs to fill this gap. The platforms used for distributing the aggregated
+information are closed and require payment to access the information.
+
+<https://www.tdcommons.org/dpubs_series/5650/>
