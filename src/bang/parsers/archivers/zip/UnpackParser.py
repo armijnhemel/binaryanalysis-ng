@@ -712,6 +712,11 @@ class ZipUnpackParser(UnpackParser):
                 labels.append('android')
                 labels.append('compressed apex')
 
+            # https://dotlottie.io/structure/#dotlottie-structure
+            if z.filename == 'manifest.json':
+                if zip_name.suffix.lower() == '.lottie':
+                    labels.append('lottie')
+
             # https://en.wikipedia.org/wiki/Open_Packaging_Conventions
             if z.filename == '[Content_Types].xml':
                 labels.append("Open Packaging Conventions")
