@@ -687,6 +687,11 @@ class ZipUnpackParser(UnpackParser):
         if self.dahua:
             labels.append('dahua')
 
+        return labels
+
+    @property
+    def metadata(self):
+        labels = []
         zip_name = pathlib.Path(self.infile.name)
 
         is_opc = False
@@ -728,10 +733,7 @@ class ZipUnpackParser(UnpackParser):
                     if z.filename.endswith('.nuspec'):
                         labels.append('nuget')
                         break
-        return labels
 
-    @property
-    def metadata(self):
         if not self.carved:
             zfile = self.infile
         else:
@@ -745,4 +747,5 @@ class ZipUnpackParser(UnpackParser):
 
         metadata = {}
         metadata['comment'] = self.zip_comment
+        metadata['zip type'] = labels
         return metadata
