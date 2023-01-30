@@ -55,7 +55,7 @@ def main(config_file, bang_result_directory):
         if isinstance(config['general']['verbose'], bool):
             verbose = config['general']['verbose']
 
-    # run cve-bin-tool
+    # check for cve-bin-tool
     if shutil.which('cve-bin-tool') is None:
         print("cve-bin-tool not found in path, exiting", file=sys.stderr)
         sys.exit(1)
