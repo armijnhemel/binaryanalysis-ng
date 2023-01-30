@@ -78,7 +78,7 @@ $ find -type f | sort
 ./root/rel/test.ogg
 ```
 
-The big different for the `root` directory is that there is now an extra
+The big difference for the `root` directory is that there is now an extra
 directory called `rel` in which unpacked files are stored, in this case the
 file `test.ogg` (the unpacker for `gzip` has some built in logic for guessing
 the right file name). As in gzip compression files are compressed relatively
