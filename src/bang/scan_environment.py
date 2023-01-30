@@ -27,9 +27,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import ahocorasick
-from ByteCountReporter import *
-from PickleReporter import *
-from JsonReporter import *
 from .log import log
 
 class EmptyAutomaton:
