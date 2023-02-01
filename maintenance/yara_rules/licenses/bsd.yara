@@ -8,6 +8,7 @@ rule bsd: license
 
         $string1 = "opensource.org/licenses/bsd-license"
         $string2 = "creativecommons.org/licenses/BSD/"
+        $string3 = "BSD license"
 
     condition:
         any of ($string*)
