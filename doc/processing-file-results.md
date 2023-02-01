@@ -31,7 +31,7 @@ bang_pickle = bang_result_directory / 'info.pkl'
 # load the pickle
 bang_data = pickle.load(open(bang_pickle, 'rb'))
 
-# create a deck to store and retrieve files from
+# create a deque to store results in and retrieve results from
 file_deque = collections.deque()
 file_deque.append(bang_pickle)
 
