@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2022 - Armijn Hemel
+# Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -11,6 +11,7 @@ This script processes ELF files extracted/tagged by BANG
 and runs them in Qiling.
 '''
 
+import collections
 import os
 import pathlib
 import pickle
@@ -54,36 +55,23 @@ def main(config, result_directory):
             verbose = configuration['general']['verbose']
 
     # open the top level pickle
-    bang_pickle = result_directory / 'bang.pickle'
+    bang_pickle = result_directory / 'info.pkl'
     if not bang_pickle.exists():
         print("result pickle not found, exiting", file=sys.stderr)
         sys.exit(1)
 
-    if not (result_directory / 'unpack').exists():
-        print("unpack directory not found, exiting", file=sys.stderr)
-        sys.exit(1)
+    files = []
+    file_deque = collections.deque()
+    file_deque.append(bang_pickle)
 
-    bang_data = pickle.load(open(bang_pickle, 'rb'))
+    # walk the unpack tree recursively and grab all the APK files
+    while True:
+        try:
+            file_pickle = file_deque.popleft()
+        except:
+            break
 
-    # change working directory
-    old_cwd = os.getcwd()
-    os.chdir(result_directory / 'unpack')
-    for bang_file in bang_data['scantree']:
-        if 'elf' in bang_data['scantree'][bang_file]['labels']:
-            # load the pickle for the ELF file
-            sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
-
-            # open the result pickle
-            try:
-                results_data = pickle.load(open(result_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
-            except:
-                continue
-            if 'metadata' not in results_data:
-                # example: statically linked binaries currently
-                # have no associated metadata.
-                continue
-
-    os.chdir(old_cwd)
+    # TODO: emulate single binary
 
 if __name__ == "__main__":
     main()
