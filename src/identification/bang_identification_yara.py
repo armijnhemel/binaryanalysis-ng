@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021-2022 - Armijn Hemel
+# Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -11,6 +11,7 @@ This script processes ELF files extracted/tagged by BANG
 and runs YARA rules to identify what is inside
 '''
 
+import collections
 import os
 import pathlib
 import pickle
@@ -111,92 +112,114 @@ def main(config, result_directory):
     # load the YARA rules found in the directory
     rules = []
     for result in rules_directory.glob('**/*.yarac'):
-         try:
-             rules.append(yara.load(str(result)))
-         except yara.Error as e:
+        try:
+            rules.append(yara.load(str(result)))
+        except yara.Error as e:
             if yara_error_fatal:
                 print("Fatal YARA error:", e, file=sys.stderr)
                 sys.exit(1)
 
     # open the top level pickle
-    bang_pickle = result_directory / 'bang.pickle'
+    bang_pickle = result_directory / 'info.pkl'
     if not bang_pickle.exists():
         print("result pickle not found, exiting", file=sys.stderr)
         sys.exit(1)
 
-    if not (result_directory / 'unpack').exists():
-        print("unpack directory not found, exiting", file=sys.stderr)
-        sys.exit(1)
-
+    # load the pickle
     bang_data = pickle.load(open(bang_pickle, 'rb'))
 
-    # change working directory
-    old_cwd = os.getcwd()
-    os.chdir(result_directory / 'unpack')
-    for bang_file in bang_data['scantree']:
-        if 'elf' in bang_data['scantree'][bang_file]['labels']:
-            # load the pickle for the ELF file
-            sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
+    # create a deque to store results in and retrieve results from
+    file_deque = collections.deque()
+    file_deque.append(bang_pickle)
 
-            # open the result pickle
-            try:
-                results_data = pickle.load(open(result_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
-            except:
-                continue
-            if 'metadata' not in results_data:
-                # example: statically linked binaries currently
-                # have no associated metadata.
-                continue
+    # walk the unpack tree recursively and grab all the ELF files
+    while True:
+        try:
+            file_pickle = file_deque.popleft()
+        except:
+            break
 
-            strings = set()
-            functions = set()
-            variables = set()
-            if results_data['metadata']['strings'] != []:
-                for s in results_data['metadata']['strings']:
-                    if len(s) < yara_env['string_min_cutoff']:
-                        continue
-                    if len(s) > yara_env['string_max_cutoff']:
-                        continue
-                    # ignore whitespace-only strings
-                    if re.match(r'^\s+$', s) is None:
-                        strings.add(s)
-            if results_data['metadata']['symbols'] != []:
-                for s in results_data['metadata']['symbols']:
-                    if s['section_index'] == 0:
-                        continue
-                    if yara_env['ignore_weak_symbols']:
-                        if s['binding'] == 'weak':
-                            continue
-                    if len(s['name']) < yara_env['identifier_cutoff']:
-                        continue
-                    if '@@' in s['name']:
-                        identifier_name = s['name'].rsplit('@@', 1)[0]
-                    elif '@' in s['name']:
-                        identifier_name = s['name'].rsplit('@', 1)[0]
-                    else:
-                        identifier_name = s['name']
-                    if s['type'] == 'func':
-                        functions.add(identifier_name)
-                    elif s['type'] == 'object':
-                        variables.add(identifier_name)
+        try:
+            bang_data = pickle.load(open(file_pickle, 'rb'))
+        except:
+            continue
 
-            # concatenate the strings, functions and variables
-            yara_data = "\n".join(sorted(strings))
-            yara_data += "\n".join(sorted(functions))
-            yara_data += "\n".join(sorted(variables))
-            for r in rules:
-                matches = r.match(data=yara_data)
-                if matches == []:
-                    continue
-                for match in matches:
-                    print('Rule %s matched for %s' % (match.rule, bang_file))
-                    print('  number of strings matched: %d' % len(match.strings))
-                    if verbose:
-                        print('\n  Matched strings:\n')
-                        for s in match.strings:
-                            print(s[2].decode())
+        if 'labels' in bang_data:
+            if 'elf' in bang_data['labels']:
+                filename = file_pickle.parent / 'pathname'
+                if filename.exists():
+                    # now read the contents
+                    with open(filename, 'r') as pathname:
+                        elf_file = pathname.read()
 
-    os.chdir(old_cwd)
+                        strings = set()
+                        functions = set()
+                        variables = set()
+                        if bang_data['metadata']['strings'] != []:
+                            for s in bang_data['metadata']['strings']:
+                                if len(s) < yara_env['string_min_cutoff']:
+                                    continue
+                                if len(s) > yara_env['string_max_cutoff']:
+                                    continue
+                                # ignore whitespace-only strings
+                                if re.match(r'^\s+$', s) is None:
+                                    strings.add(s)
+                        if bang_data['metadata']['symbols'] != []:
+                            for s in bang_data['metadata']['symbols']:
+                                if s['section_index'] == 0:
+                                    continue
+                                if yara_env['ignore_weak_symbols']:
+                                    if s['binding'] == 'weak':
+                                        continue
+                                if len(s['name']) < yara_env['identifier_cutoff']:
+                                    continue
+                                if '@@' in s['name']:
+                                    identifier_name = s['name'].rsplit('@@', 1)[0]
+                                elif '@' in s['name']:
+                                    identifier_name = s['name'].rsplit('@', 1)[0]
+                                else:
+                                    identifier_name = s['name']
+                                if s['type'] == 'func':
+                                    functions.add(identifier_name)
+                                elif s['type'] == 'object':
+                                    variables.add(identifier_name)
+
+                        # concatenate the strings, functions and variables
+                        yara_data = "\n".join(sorted(strings))
+                        yara_data += "\n".join(sorted(functions))
+                        yara_data += "\n".join(sorted(variables))
+
+                        for r in rules:
+                            matches = r.match(data=yara_data)
+                            if matches == []:
+                                continue
+                            for match in matches:
+                                print('---')
+                                print(f'Rule {match.rule} matched for {elf_file}')
+                                print('  number of strings matched: %d' % len(match.strings))
+                                if verbose:
+                                    print('\n  Matched strings:\n')
+                                    for s in match.strings:
+                                        print(s[2].decode())
+                                    print()
+
+        # finally add the unpacked/extracted files to the queue
+        if 'unpacked_relative_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_relative_files']:
+                file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+        if 'unpacked_absolute_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_absolute_files']:
+                file_meta_directory = bang_data['unpacked_absolute_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+        if 'extracted_files' in bang_data:
+            for unpacked_file in bang_data['extracted_files']:
+                file_meta_directory = bang_data['extracted_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+
 
 if __name__ == "__main__":
     main()
