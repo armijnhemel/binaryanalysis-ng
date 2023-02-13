@@ -19,6 +19,7 @@ doc-ref:
   - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/soc/qcom/socinfo.c?h=v5.19
   - https://android.googlesource.com/kernel/msm/+/android-7.1.0_r0.2/drivers/soc/qcom/socinfo.c
   - https://github.com/brinlyau/P810D02_ZTE_T792_KitKat_3.4/blob/master/P810D02_ZTE_T792_KitKat_340_kernel/arch/arm/mach-msm/socinfo.c
+  - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/dt-bindings/arm/qcom,ids.h?id=34ec89e68db2682469a9a51d9ed4022ee3992389
 seq:
   - id: magic
     contents: "QCDT"
@@ -226,7 +227,9 @@ enums:
     251: msm8992
     252: apq8092
     253: apq8094
+    266: msm8956
     273: ipq4019
+    278: msm8976
     290: mdm9607
     291: apq8096
     292: msm8998
@@ -250,6 +253,7 @@ enums:
     326: sda658
     327: sda630
     338: sdm450
+    339: sm8150
     341: sda845
     345: sdm636
     346: sda636
@@ -257,13 +261,16 @@ enums:
     350: sda632
     351: sda450
     356: sm8250
+    362: sa8155
     394: sm6125
     402: ipq6018
     403: ipq6028
+    417: sm4250
     421: ipq6000
     422: ipq6010
     425: sc7180
     439: sm8350
+    444: sm6115
     449: sc8280xp
     453: ipq6005
     455: qrb5165
@@ -271,10 +278,20 @@ enums:
     459: sm7225
     460: sa8295p
     461: sa8540p
+    469: qcm4290
+    470: qcs4290
     480: sm8450_1
     482: sm8450_2
     487: sc7280
     495: sc7180p
+    507: sm6375
+    519: sm8550
+    539: qru1000
+    545: qdu1000
+    587: qdu1010
+    588: qru1032
+    589: qru1052
+    590: qru1062
   platform_ids:
     1: cdp
     2: ffa
