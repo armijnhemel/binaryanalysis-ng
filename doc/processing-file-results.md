@@ -26,7 +26,7 @@ adapted, see the original file for the full version):
 
 ```
 # open the top level pickle
-bang_pickle = bang_result_directory / 'info.pkl'
+bang_pickle = result_directory / 'info.pkl'
 
 # load the pickle
 bang_data = pickle.load(open(bang_pickle, 'rb'))
@@ -51,7 +51,7 @@ while True:
     if 'unpacked_relative_files' in bang_data:
         for unpacked_file in bang_data['unpacked_relative_files']:
             file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
-            file_pickle = bang_result_directory.parent / file_meta_directory / 'info.pkl'
+            file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
             file_deque.append(file_pickle)
     if 'unpacked_absolute_files' in bang_data:
         for unpacked_file in bang_data['unpacked_absolute_files']:
