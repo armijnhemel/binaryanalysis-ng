@@ -47,7 +47,7 @@ while True:
     except:
         continue
 
-    # add the unpacked/extracted files to the queue
+    # add the unpacked/extracted files to the deque
     if 'unpacked_relative_files' in bang_data:
         for unpacked_file in bang_data['unpacked_relative_files']:
             file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
