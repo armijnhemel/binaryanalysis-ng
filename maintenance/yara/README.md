@@ -20,7 +20,7 @@ created or processed.
 
 Generating rules from binaries seems to work really well for the vast
 majority of dynamically linked ELF binaries but not for for example
-Dalvik `.dex` files.
+statically linked ELF binaries or Dalvik `.dex` files.
 
 ### Dynamically linked ELF binaries
 
@@ -31,6 +31,32 @@ are of course exceptions, for example when there is a complete copy of
 third party software included in the package), so the separation between
 package and third party code tends to be clean. Information extracted from
 binaries in a package usually is from just that package.
+
+Extracting identifiers from the binary has advantages over extracting
+identifiers from the source code: in many packages not all source code files
+are used for building a specific program, so there might be too many
+identifiers in a fingerprint.
+
+For programs written in C++ there is also a difference between function names
+and variable names in source code and binary code: in binary code these are
+typically in so called "mangled form" and first need to be demangled when
+using fingerprints generated from source code. When using fingerprints
+extracted from binaries this step can be skipped.
+
+### Statically linked ELF binaries
+
+Statically linked ELF binaries not only includes the data from the program
+itself, but also code from dependencies that are used, for example the C
+library. Because in ELF static linking there are no symbols that are imported
+or exported (as all have been resolved) the only identifiers that can be used
+are strings, and function names and variable names cannot be used (as they are
+not present).
+
+Because all of the dependencies are included it means that not just the strings
+of the program, but also its dependencies are included. This makes strings
+extracted from a statically linked ELF binary not good for fingerprinting only
+the program. They are only useful if trying to match exactly the combination
+of program and dependencies that is used.
 
 ### Android Dex files
 
