@@ -104,11 +104,12 @@ class ZipUnpackParser(UnpackParser):
         local_files = []
         central_directory_files = []
 
-        # first do a short sanity check for the most common case
+        # first do a simple sanity check for the most common case
         # where the file is a single ZIP archive that can be parsed
-        # with the Kaitai Struct grammar. In that case many checks
-        # can be skipped as these have already been implemented in
-        # Kaitai Struct.
+        # with the Kaitai Struct grammar. This means that sizes in
+        # the local file headers are known and correct, and so on.
+        # This is the most basic ZIP file format without any of the
+        # countless exceptions.
         try:
             self.data = kaitai_zip.Zip.from_io(self.infile)
 
