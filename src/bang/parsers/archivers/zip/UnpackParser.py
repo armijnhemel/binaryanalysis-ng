@@ -137,9 +137,9 @@ class ZipUnpackParser(UnpackParser):
         except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
             kaitai_success = False
 
-        # in case the file cannot be successfully unpacked
-        # there is only the hard way left: parse from the start
-        # and keep track of everything manually.
+        # in case the file cannot be successfully unpacked with
+        # Kaitai Struct there is only the hard way left: parse from
+        # the start of the file and keep track of everything manually.
         if not kaitai_success:
             seen_end_of_central_directory = False
             in_local_entry = True
@@ -152,19 +152,20 @@ class ZipUnpackParser(UnpackParser):
             seen_first_header = False
 
             while True:
-                # first read the header
                 start_of_entry = self.infile.tell()
                 buf = self.infile.read(4)
                 check_condition(len(buf) == 4,
                                 "not enough data for ZIP entry header")
+
                 if buf != LOCAL_FILE_HEADER and buf != DAHUA_LOCAL_FILE_HEADER:
                     # process everything that is not a local file header, but
-                    # either a ZIP header or an Android signing signature.
-
-                    # check the different file headers
+                    # either a ZIP section header or an Android signing signature.
                     if buf in ALL_HEADERS:
-                        # parse a single local file header with Kaitai Struct
+                        # parse a single ZIP header with Kaitai Struct
+                        # first seek back to the start of the (possible) header
                         self.infile.seek(-4, os.SEEK_CUR)
+
+                        # parse the ZIP section header using Kaitai Struct
                         try:
                             file_header = kaitai_zip.Zip.PkSection.from_io(self.infile)
                         except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
@@ -292,7 +293,7 @@ class ZipUnpackParser(UnpackParser):
                             break
                     continue
 
-                # continue with the local file headers instead
+                # continue with the local file headers
                 if buf == LOCAL_FILE_HEADER and not in_local_entry:
                     # this should not happen in a valid ZIP file:
                     # local file headers should not be interleaved
