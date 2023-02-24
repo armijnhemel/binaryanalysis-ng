@@ -118,11 +118,13 @@ class ZipUnpackParser(UnpackParser):
                 if s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
                     self.dahua = True
                 if s.section_type == kaitai_zip.Zip.SectionTypes.local_file or s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
-                    local_files.append((s.body.header.file_name, s.body.header.crc32))
+                    #local_files.append((s.body.header.file_name, s.body.header.crc32))
+                    local_files.append(s.body.header.file_name)
                     if s.body.header.flags.file_encrypted:
                         self.encrypted = True
                 elif s.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
-                    central_directory_files.append((s.body.file_name, s.body.crc32))
+                    #central_directory_files.append((s.body.file_name, s.body.crc32))
+                    central_directory_files.append(s.body.file_name)
                 elif s.section_type == kaitai_zip.Zip.SectionTypes.end_of_central_dir:
                     self.zip_comment = s.body.comment
 
