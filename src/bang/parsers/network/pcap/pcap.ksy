@@ -243,6 +243,8 @@ enums:
     294: usb_2_0_full_speed
     295: usb_2_0_high_speed
     296: auerswald_log
+    297: zwave_tap
+    298: silabs_debug_channel
   endian:
     0xd4c3b2a1: little
     0x4d3cb2a1: little_nano
