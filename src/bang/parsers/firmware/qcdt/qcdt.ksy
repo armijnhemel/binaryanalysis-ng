@@ -19,7 +19,7 @@ doc-ref:
   - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/soc/qcom/socinfo.c?h=v5.19
   - https://android.googlesource.com/kernel/msm/+/android-7.1.0_r0.2/drivers/soc/qcom/socinfo.c
   - https://github.com/brinlyau/P810D02_ZTE_T792_KitKat_3.4/blob/master/P810D02_ZTE_T792_KitKat_340_kernel/arch/arm/mach-msm/socinfo.c
-  - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/dt-bindings/arm/qcom,ids.h?id=34ec89e68db2682469a9a51d9ed4022ee3992389
+  - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/dt-bindings/arm/qcom,ids.h?id=4ad66c3f4bcb83414181434a7d439cd80ac91a1a
 seq:
   - id: magic
     contents: "QCDT"
@@ -169,7 +169,7 @@ enums:
     157: apq8030ab
     158: msm8226
     159: msm8526
-    160: msm8930aa_4
+    160: apq8030aa
     161: msm8110
     162: msm8210
     163: msm8810
@@ -186,7 +186,7 @@ enums:
     175: msm9625_9
     178: apq8084
     179: msm8130
-    180: msm8930aa_5
+    180: msm8130aa
     181: msm8130ab
     182: msm8627aa
     183: msm8227aa
