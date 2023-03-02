@@ -36,25 +36,26 @@ types:
         type: u4
   info:
     meta:
-      bit-endian: be
+      bit-endian: le
     seq:
-      - id: kind_flag
-        type: b1
-      - id: unused2
-        type: b2
-      - id: kind
-        type: b4
-        enum: kind
+      - id: vlen
+        type: b16
       - id: unused1
         type: b8
-      - id: vlen
-        type: b15
+      - id: kind
+        type: b5
+        enum: kind
+      - id: unused2
+        type: b2
+      - id: kind_flag
+        type: b1
   type_section:
     seq:
       - id: btf_types
         type: btf_type
         repeat: eos
   btf_type:
+    -webide-representation: "{info.kind}"
     seq:
       - id: ofs_name
         type: u4
@@ -68,7 +69,13 @@ types:
           cases:
             kind::integer: btf_kind_int
             kind::array: btf_kind_array
-            kind::union: btf_kind_union
+            kind::union: btf_kind_union(info.vlen)
+            kind::enum: btf_kind_enum(info.vlen)
+            kind::enum64: btf_kind_enum64(info.vlen)
+            kind::function_proto: btf_kind_function_proto(info.vlen)
+            kind::variable: btf_kind_variable
+            kind::section: btf_kind_section(info.vlen)
+            kind::decl_tag: btf_kind_decl_tag
   btf_kind_array:
     seq:
       - id: btf_array
@@ -83,11 +90,60 @@ types:
             type: u4
           - id: num_elems
             type: u4
-          - id: elems
-            type:
-              switch-on: type
-              cases:
-                kind::union: btf_kind_union
+  btf_kind_decl_tag:
+    seq:
+      - id: component_idx
+        type: u4
+  btf_kind_enum:
+    params:
+      - id: num_elem
+        type: b15
+    seq:
+      - id: enums
+        type: btf_enum
+        repeat: expr
+        repeat-expr: num_elem
+    types:
+      btf_enum:
+        seq:
+          - id: ofs_name
+            type: u4
+          - id: val
+            type: s4
+  btf_kind_enum64:
+    params:
+      - id: num_elem
+        type: b15
+    seq:
+      - id: enums
+        type: btf_enum64
+        repeat: expr
+        repeat-expr: num_elem
+    types:
+      btf_enum64:
+        seq:
+          - id: ofs_name
+            type: u4
+          - id: val_lo32
+            type: u4
+          - id: val_hi32
+            type: u4
+  btf_kind_function_proto:
+    params:
+      - id: num_elem
+        type: b15
+    seq:
+      - id: function_protos
+        type: btf_function_proto
+        repeat: expr
+        repeat-expr: num_elem
+    types:
+      btf_function_proto:
+        seq:
+          - id: ofs_name
+            type: u4
+          - id: type
+            type: u4
   btf_kind_int:
     seq:
       - id: int_flags
@@ -105,12 +161,33 @@ types:
         1: signed
         2: char
         4: bool
+  btf_kind_section:
+    params:
+      - id: num_elem
+        type: b15
+    seq:
+      - id: sections
+        type: btf_section
+        repeat: expr
+        repeat-expr: num_elem
+    types:
+      btf_section:
+        seq:
+          - id: type
+            type: u4
+          - id: offset
+            type: u4
+          - id: size
+            type: u4
   btf_kind_union:
+    params:
+      - id: num_elem
+        type: b15
     seq:
       - id: members
         type: member
         repeat: expr
-        repeat-expr: 1
+        repeat-expr: num_elem
     types:
       member:
         seq:
@@ -121,6 +198,10 @@ types:
             enum: kind
           - id: member_offset
             type: u4
+  btf_kind_variable:
+    seq:
+      - id: linkage
+        type: u4
   string_section:
     seq:
       - id: strings
