@@ -206,7 +206,7 @@ class ElfUnpackParser(UnpackParser):
     def extract_metadata_and_labels(self, to_meta_directory):
         '''Extract metadata from the ELF file and set labels'''
         labels = ['elf']
-        metadata = {}
+        metadata = {'elf_type': []}
         string_cutoff_length = 4
 
         if self.data.bits == elf.Elf.Bits.b32:
@@ -329,7 +329,7 @@ class ElfUnpackParser(UnpackParser):
             section_ctr += 1
 
             if header.name in ['.modinfo', '__ksymtab_strings']:
-                labels.append('linuxkernelmodule')
+                metadata['elf_type'].append('linux_kernel_module')
                 try:
                     module_meta = header.body.split(b'\x00')
                     for m in module_meta:
@@ -344,12 +344,12 @@ class ElfUnpackParser(UnpackParser):
                 # OAT information has been stored in various sections
                 # test files:
                 # .oat_patches : fugu-lrx21m-factory-e012394c.zip
-                labels.append('oat')
-                labels.append('android')
+                metadata['elf_type'].append('oat')
+                metadata['elf_type'].append('android')
             elif header.name in ['.guile.procprops', '.guile.frame-maps',
                                  '.guile.arities.strtab', '.guile.arities',
                                  '.guile.docstrs.strtab', '.guile.docstrs']:
-                labels.append('guile')
+                metadata['elf_type'].append('guile')
 
             if header.type == elf.Elf.ShType.dynamic:
                 if header.name == '.dynamic':
@@ -413,11 +413,11 @@ class ElfUnpackParser(UnpackParser):
                         dynamic_symbols.append(symbol)
 
                         if symbol['name'] == 'oatdata':
-                            labels.append('oat')
-                            labels.append('android')
+                            metadata['elf_type'].append('oat')
+                            metadata['elf_type'].append('android')
 
                         if symbol['name'] in OCAML_NAMES:
-                            labels.append('ocaml')
+                            metadata['elf_type'].append('ocaml')
 
                         # security related information
                         if symbol['name'] == '__stack_chk_fail':
@@ -516,7 +516,7 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == '.VTGPrLc':
                     pass
                 elif header.name == '.rol4re_elf_aux':
-                    labels.append('l4')
+                    metadata['elf_type'].append('l4')
                 elif header.name == '.sbat':
                     # systemd, example linuxx64.elf.stub
                     pass
@@ -525,7 +525,7 @@ class ElfUnpackParser(UnpackParser):
                     pass
                 elif header.name == 'sw_isr_table':
                     # Zephyr
-                    labels.append('zephyr')
+                    metadata['elf_type'].append('zephyr')
 
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
@@ -543,7 +543,7 @@ class ElfUnpackParser(UnpackParser):
                     pass
             elif header.type == elf.Elf.ShType.note:
                 if header.name == '.note.go.buildid':
-                    labels.append('go')
+                    metadata['elf_type'].append('go')
 
                 # Although not common notes sections can be merged
                 # with eachother. Example: .notes in Linux kernel images
@@ -585,10 +585,10 @@ class ElfUnpackParser(UnpackParser):
                         pass
                     elif entry.name == b'stapsdt' and entry.type == 3:
                         # SystemTap probe descriptors
-                        labels.append('SystemTap')
+                        metadata['elf_type'].append('SystemTap')
                     elif entry.name == b'Linux':
                         # .note.Linux as seen in some Linux kernel modules
-                        labels.append('linux kernel')
+                        metadata['elf_type'].append('linux kernel')
                         if entry.type == 0x100:
                             # LINUX_ELFNOTE_BUILD_SALT
                             # see BUILD_SALT in init/Kconfig
@@ -608,23 +608,23 @@ class ElfUnpackParser(UnpackParser):
                         except:
                             pass
                     elif entry.name == b'FreeBSD':
-                        labels.append('freebsd')
+                        metadata['elf_type'].append('freebsd')
                     elif entry.name == b'OpenBSD':
-                        labels.append('openbsd')
+                        metadata['elf_type'].append('openbsd')
                     elif entry.name == b'NetBSD':
                         # https://www.netbsd.org/docs/kernel/elf-notes.html
-                        labels.append('netbsd')
+                        metadata['elf_type'].append('netbsd')
                     elif entry.name == b'Android' and entry.type == 1:
                         # https://android.googlesource.com/platform/ndk/+/master/parse_elfnote.py
-                        labels.append('android')
+                        metadata['elf_type'].append('android')
                         metadata['android ndk'] = int.from_bytes(entry.descriptor, byteorder='little')
                     elif entry.name == b'Xen':
                         # http://xenbits.xen.org/gitweb/?p=xen.git;a=blob;f=xen/include/public/elfnote.h;h=181cbc4ec71c4af298e40c3604daff7d3b48d52f;hb=HEAD
                         # .note.Xen in FreeBSD kernel
                         # .notes in Linux kernel)
-                        labels.append('xen')
+                        metadata['elf_type'].append('xen')
                     elif entry.name == b'NaCl':
-                        labels.append('Google Native Client')
+                        metadata['elf_type'].append('Google Native Client')
 
         metadata['dynamic_symbols'] = dynamic_symbols
         metadata['guile_symbols'] = guile_symbols
