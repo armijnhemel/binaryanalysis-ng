@@ -30,6 +30,7 @@ seq:
         '"131"': header_131
         '"137"': header_131
         '"138"': header_131
+        '"229"': header_229
 types:
   header_079:
     seq:
@@ -126,6 +127,53 @@ types:
         type: u4
       - id: ofs_image_file_location_oat_data
         -orig-id: image_file_location_oat_data_begin_
+        type: u4
+      - id: len_key_value_store
+        -orig-id: key_value_store_size_
+        type: u4
+      - id: key_value_store
+        type: key_value_store
+        size: len_key_value_store
+  header_229:
+    seq:
+      - id: adler32_checksum
+        type: u4
+      - id: instruction_set
+        type: u4
+      - id: instruction_set_features_bitmap
+        type: u4
+      - id: num_dex_file
+        -orig-id: dex_file_count_
+        type: u4
+      - id: ofs_oat_dex_files
+        -orig-id: oat_dex_files_offset_
+        type: u4
+      - id: ofs_bcp_bss_info
+        -orig-id: bcp_bss_info_offset_
+        type: u4
+      - id: ofs_executable
+        -orig-id: executable_offset_
+        type: u4
+      - id: ofs_jni_dlsym_lookup_trampoline
+        -orig-id: jni_dlsym_lookup_trampoline_offset_
+        type: u4
+      - id: ofs_jni_dlsym_lookup_critical_trampoline
+        -orig-id: jni_dlsym_lookup_critical_trampoline_offset_
+        type: u4
+      - id: ofs_quick_generic_jni_trampoline
+        -orig-id: quick_generic_jni_trampoline_offset_
+        type: u4
+      - id: ofs_quick_imt_conflict_trampoline
+        -orig-id: quick_imt_conflict_trampoline_offset_
+        type: u4
+      - id: ofs_quick_resolution_trampoline
+        -orig-id: quick_resolution_trampoline_offset_
+        type: u4
+      - id: ofs_quick_to_interpreter_bridge
+        -orig-id: quick_to_interpreter_bridge_offset_
+        type: u4
+      - id: ofs_nterp_trampoline
+        -orig-id: nterp_trampoline_offset_
         type: u4
       - id: len_key_value_store
         -orig-id: key_value_store_size_
