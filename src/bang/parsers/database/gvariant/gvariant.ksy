@@ -24,3 +24,10 @@ types:
       data:
         pos: start
         size: end - start
+        type: hash_header
+  hash_header:
+    seq:
+      - id: num_bloom_words
+        type: u4
+      - id: num_buckets
+        type: u4
