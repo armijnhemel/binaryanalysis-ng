@@ -182,17 +182,25 @@ class ElfUnpackParser(UnpackParser):
         pass
 
     def unpack(self, meta_directory):
-        # interesting data might reside in some of the ELF sections.
+        # there might be interesting data in some of the ELF sections
+        # so write these to separate files to make available for
+        # further analysis.
+        #
         # TODO: write *all* ELF sections?
+        #
         # There are some Android variants where the interesting data might
         # span multiple sections.
         for header in self.data.header.section_headers:
             if header.type == elf.Elf.ShType.progbits:
                 interesting = False
+
                 if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext']:
                     interesting = True
+
+                # GNOME/glib GVariant database
                 if header.name.startswith('.gresource'):
                     interesting = True
+
                 if interesting:
                     file_path = pathlib.Path(header.name)
                     with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
@@ -484,9 +492,6 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == '.gosymtab':
                     # Go symbol table
                     pass
-                elif header.name.startswith('.gresource.'):
-                    # GNOME/glib GVariant database
-                    pass
                 elif header.name == '.interp':
                     # store the location of the dynamic linker
                     metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
@@ -516,13 +521,15 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == '.VTGPrLc':
                     pass
                 elif header.name == '.rol4re_elf_aux':
+                    # L4 specific
                     metadata['elf_type'].append('l4')
                 elif header.name == '.sbat':
                     # systemd, example linuxx64.elf.stub
+                    # https://github.com/rhboot/shim/blob/main/SBAT.md
                     pass
                 elif header.name == '.sdmagic':
                     # systemd, example linuxx64.elf.stub
-                    pass
+                    metadata['systemd loader'] = header.body.decode()
                 elif header.name == 'sw_isr_table':
                     # Zephyr
                     metadata['elf_type'].append('zephyr')
