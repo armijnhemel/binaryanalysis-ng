@@ -409,13 +409,70 @@ dates (for example: `1980-00-00`):
 
 <https://github.com/kaitai-io/kaitai_struct_formats/issues/562>
 
-In certain cases (like some forms of encryption) the date could also be zeroed
-out completely:
+In certain cases (like when using some forms of encryption) the date could also
+be zeroed out completely:
 
 ```
 If encrypting the central directory and general purpose bit flag 13 is set
 indicating masking, the value stored in the Local Header will be zero.
 ```
+
+### CRC32
+
+The CRC32 field is a 4 byte field that is replicated in the central directory.
+The values of the CRC32 in the local file header and corresponding central
+directory entry should match. There are exceptions: in some cases the value
+of the CRC32 in the local header will be `0`:
+
+```
+If bit 3 of the general purpose flag is set, this
+field is set to zero in the local header and the correct
+value is put in the data descriptor and in the central
+directory.
+```
+
+This means that when using the CRC32 in the local file header for sanity
+checking (for example, by comparing it to the value in the corresponding
+central directory header) this should be taken into consideration and the
+CRC32 from the data descriptor should be used, if not set in the local file
+header as well.
+
+In certain encrypted files the CRC32 field is also zeroed:
+
+```
+When encrypting the central directory, if the
+local header is not in ZIP64 format and general purpose
+bit flag 13 is set indicating masking, the value stored
+in the Local Header will be zero.
+```
+
+### Compressed size and uncompressed size
+
+The compressed size and uncompressed size (size of the original file) are
+four byte fields. There a few situations where these fields do not contain
+the actual length.
+
+When a flag in the general purpose flag is set the real size will follow
+the data in a data descriptor:
+
+```
+If bit 3 of the general purpose bit flag is set,
+these fields are set to zero in the local header and the
+correct values are put in the data descriptor and
+in the central directory.
+```
+
+When ZIP64 is used it will be in an "extra field" in the local file header:
+
+```
+If an archive is in ZIP64 format
+and the value in this field is 0xFFFFFFFF, the size will be
+in the corresponding 8 byte ZIP64 extended information
+extra field.
+```
+
+Of course, the local file header should actually contain an "extra field".
+
 
 ## APK signing blocks
 
