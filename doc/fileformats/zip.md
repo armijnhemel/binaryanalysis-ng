@@ -473,6 +473,38 @@ extra field.
 
 Of course, the local file header should actually contain an "extra field".
 
+### File name length, extra field length, comment field length
+
+Section 4.4.10 - 4.4.12 document the file name length, extra field length and
+notes the following *optional* restriction:
+
+```
+The length of the file name, extra field, and comment
+fields respectively.  The combined length of any
+directory record and these three fields SHOULD NOT
+generally exceed 65,535 bytes.  If input came from standard
+input, the file name length is set to zero.
+```
+
+In practice this is not a check that should be implemented. In Python it is
+very easy to create a file where these files are each 65,535 bytes in length:
+
+```
+>>> import zipfile
+>>> z = zipfile.ZipInfo(40000*'a')
+>>> z.comment = 65535*b'b'
+>>> contents = 40000*b'c'
+>>> bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
+>>> bla.writestr(z, contents)
+>>> bla.close()
+```
+
+This will create a ZIP file with a very long file name and a very long comment
+that together exceed 65,535 bytes. Most of the ZIP tools will be able to
+process a file like this just fine although it is very likely that the file
+system will impose limits on the length of the file name.
+
+### Extra fields
 
 ## APK signing blocks
 
