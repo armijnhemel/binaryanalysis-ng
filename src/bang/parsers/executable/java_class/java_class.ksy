@@ -83,6 +83,8 @@ types:
             'tag_enum::method_type': method_type_cp_info
             'tag_enum::invoke_dynamic': invoke_dynamic_cp_info
             'tag_enum::dynamic': invoke_dynamic_cp_info
+            'tag_enum::module': class_cp_info
+            'tag_enum::package': class_cp_info
         if: not is_prev_two_entries
     instances:
       is_two_entries:
