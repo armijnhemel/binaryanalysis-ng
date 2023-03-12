@@ -53,6 +53,25 @@ seq:
     type: attribute_info
     repeat: expr
     repeat-expr: attributes_count
+instances:
+  is_public:
+    value: access_flags & 0x01 == 0x01
+  is_final:
+    value: access_flags & 0x10 == 0x10
+  is_super:
+    value: access_flags & 0x20 == 0x20
+  is_interface:
+    value: access_flags & 0x200 == 0x200
+  is_abstract:
+    value: access_flags & 0x400 == 0x400
+  is_synthetic:
+    value: access_flags & 0x1000 == 0x1000
+  is_annotation:
+    value: access_flags & 0x2000 == 0x2000
+  is_enum:
+    value: access_flags & 0x4000 == 0x4000
+  is_module:
+    value: access_flags & 0x8000 == 0x8000
 types:
   constant_pool_entry:
     doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se18/html/jvms-4.html#jvms-4.4'
