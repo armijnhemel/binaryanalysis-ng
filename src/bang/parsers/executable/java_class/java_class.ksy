@@ -7,7 +7,7 @@ meta:
     wikidata: Q2193155
   license: CC0-1.0
   endian: be
-doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.1'
+doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se19/html/jvms-4.html#jvms-4.1'
 seq:
   - id: magic
     contents: [0xca, 0xfe, 0xba, 0xbe]
