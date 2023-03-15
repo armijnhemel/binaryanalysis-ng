@@ -80,6 +80,16 @@ class JavaClassUnpackParser(UnpackParser):
         # * class name
         # * strings
         metadata = {}
+        metadata['flags'] = {}
+        metadata['flags']['public'] = self.data.is_public
+        metadata['flags']['final'] = self.data.is_final
+        metadata['flags']['super'] = self.data.is_super
+        metadata['flags']['interface'] = self.data.is_interface
+        metadata['flags']['abstract'] = self.data.is_abstract
+        metadata['flags']['synthetic'] = self.data.is_synthetic
+        metadata['flags']['annotation'] = self.data.is_annotation
+        metadata['flags']['enum'] = self.data.is_enum
+        metadata['flags']['module'] = self.data.is_module
 
         # walk the constant pool for information that isn't
         # available some other way.
