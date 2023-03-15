@@ -42,7 +42,8 @@ from . import odex
 # The names of the instructions are not very interesting here, but
 # the bytecode needs to be parsed to extract the right strings.
 #
-# Not every opcode is in every version.
+# Not every opcode is used in every version and some opcodes have
+# been changed in newer versions (example: Dex 038).
 
 DEX_035_OPCODES = {0x00: 1, 0x01: 1, 0x02: 2, 0x03: 3, 0x04: 1,
                    0x05: 2, 0x06: 3, 0x07: 1, 0x08: 2, 0x09: 3,
