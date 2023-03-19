@@ -3,9 +3,9 @@ meta:
   title: Portable Image Format
   file-extension: pif
   license: LGPL-2.1
-  ks-version: 0.10
+  ks-version: 0.9
   endian: le
-doc-ref: https://raw.githubusercontent.com/gfcwfzkm/PIF-Image-Format/main/Specification/PIF%20Format%20Specification.pdf
+doc-ref: https://github.com/gfcwfzkm/PIF-Image-Format/blob/cc256d5/Specification/PIF%20Format%20Specification.pdf
 seq:
   - id: header
     type: header
@@ -14,11 +14,11 @@ seq:
   - id: color_table
     size: information_header.len_color_table
   - id: data
-    size: header.len_file - header._sizeof - information_header._sizeof - information_header.len_color_table
+    size: header.len_image
 types:
   header:
     seq:
-      - id: signature
+      - id: magic
         contents: ["PIF", 0x00]
       - id: len_file
         type: u4
