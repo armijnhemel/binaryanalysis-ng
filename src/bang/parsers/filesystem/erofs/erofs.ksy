@@ -13,7 +13,7 @@ seq:
     type: header
     size: 128 + magic_header.ext_slots * 16 - magic_header._sizeof
   - id: inode
-    type: compact_inode
+    type: inode
 types:
   magic_header:
     seq:
@@ -91,11 +91,22 @@ types:
         value: feature_incompat_flags & 0x20 == 0x20
       dedupe:
         value: feature_incompat_flags & 0x20 == 0x20
-  compact_inode:
-    # 32-byte reduced form of an ondisk inode
+  inode:
     seq:
       - id: format
         type: u2
+      - id: data
+        type:
+          switch-on: extended
+          cases:
+            false: compact_inode
+            true: extended_inode
+    instances:
+      extended:
+        value: format & 0x01 == 0x01
+  compact_inode:
+    # 32-byte reduced form of an ondisk inode
+    seq:
       - id: num_xattr
         -orig-id: i_xattr_icount
         type: u2
@@ -115,19 +126,17 @@ types:
         type: u2
       - id: gid
         type: u2
-      - id: reserved2
+      - id: reserved_2
         type: u4
   extended_inode:
     # 64-byte complete form of an ondisk inode
     seq:
-      - id: format
-        type: u2
       - id: num_xattr
         -orig-id: i_xattr_icount
         type: u2
       - id: mode
         type: u2
-      - id: reserved1
+      - id: reserved_1
         type: u2
       - id: inode_size
         type: u8
@@ -145,7 +154,7 @@ types:
         type: u4
       - id: nlink
         type: u4
-      - id: reserved2
+      - id: reserved_2
         size: 16
   directory:
     seq:
