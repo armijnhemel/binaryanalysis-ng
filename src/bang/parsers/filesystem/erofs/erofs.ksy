@@ -29,6 +29,11 @@ types:
       - id: ext_slots
         type: u1
         doc: superblock size = 128 + sb_extslots * 16
+    instances:
+      checksum:
+        value: feature_compat_flags & 0x01 == 0x01
+      mtime:
+        value: feature_compat_flags & 0x02 == 0x02
   header:
     seq:
       - id: root_nid
@@ -57,10 +62,35 @@ types:
         size: 16
       - id: feature_incompat_flags
         type: u4
-      - id: some_union
+      - id: available_compr_algs_or_lz4_max_distance
         type: u2
-      - id: reserved
-        size: 42
+      - id: extra_devices
+        type: u2
+      - id: devt_slotoff
+        type: u2
+      - id: reserved_1
+        size: 6
+      - id: packed_nid
+        type: u8
+      - id: reserved_2
+        size: 24
+    instances:
+      lz4_zero_padding:
+        value: feature_incompat_flags & 0x01 == 0x01
+      compr_cfgs:
+        value: feature_incompat_flags & 0x02 == 0x02
+      big_pcluster:
+        value: feature_incompat_flags & 0x02 == 0x02
+      chunked_file:
+        value: feature_incompat_flags & 0x04 == 0x04
+      device_table:
+        value: feature_incompat_flags & 0x08 == 0x08
+      ztail_packing:
+        value: feature_incompat_flags & 0x10 == 0x10
+      fragments:
+        value: feature_incompat_flags & 0x20 == 0x20
+      dedupe:
+        value: feature_incompat_flags & 0x20 == 0x20
   compact_inode:
     # 32-byte reduced form of an ondisk inode
     seq:
@@ -75,7 +105,7 @@ types:
         type: u2
       - id: inode_size
         type: u4
-      - id: reserved1
+      - id: reserved_1
         type: u4
       - id: some_union
         type: u4
