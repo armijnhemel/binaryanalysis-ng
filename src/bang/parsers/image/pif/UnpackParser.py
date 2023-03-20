@@ -26,7 +26,7 @@ from kaitaistruct import ValidationFailedError
 from . import pif
 
 
-class GimpBrushUnpackParser(UnpackParser):
+class PifUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'PIF\x00')
