@@ -116,13 +116,15 @@ types:
       #  repeat: expr
       #  repeat-expr: inode.num_xattr
       - id: data
-        size: 91
+        size: len_inode
     instances:
       extended:
         value: format & 0x01 == 0x01
       inode_layout:
         value: format >> 1
         enum: layouts
+      len_inode:
+        value: 'extended ? inode.as<extended_inode>.len_inode : inode.as<compact_inode>.len_inode'
     enums:
       layouts:
         0: plain
