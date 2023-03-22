@@ -25,8 +25,7 @@ types:
   magic_header:
     seq:
       - id: magic
-        type: u4
-        #valid: 3774210530
+        contents: [0xe2, 0xe1, 0xf5, 0xe0]
       - id: crc32
         type: u4
       - id: feature_compat_flags
