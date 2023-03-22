@@ -249,11 +249,6 @@ enums:
     5: fifo
     6: socket
     7: symlink
-  format:
-    0: plain
-    1: compression_legacy
-    2: inline_data
-    3: compression
   compression:
     0: lz4
     1: lzma
