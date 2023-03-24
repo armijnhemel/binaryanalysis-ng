@@ -107,7 +107,7 @@ def main(config_file, result_directory):
 
     try:
         with open(path_name, 'r') as path_name_file:
-             root_name = pathlib.Path(path_name_file.read()).name
+            root_name = pathlib.Path(path_name_file.read()).name
     except:
         print("Could not process pathname file",
               file=sys.stderr)
