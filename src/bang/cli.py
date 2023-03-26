@@ -150,11 +150,20 @@ def show(all, metadir):
         pprint.pprint(md.info.get('metadata'))
         if all:
             for k,v in sorted(md.info.get('extracted_files', {}).items()):
-                print(f'{k}\t{v}')
+                child_md = md = MetaDirectory.from_md_path(metadir.parent, v)
+                with child_md.open(open_file=False, info_write=False):
+                    labels = ", ".join(child_md.info.get("labels", []))
+                    print(f'{k}\t{v}\t{labels}')
             for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
-                print(f'{k}\t{v}')
+                child_md = md = MetaDirectory.from_md_path(metadir.parent, v)
+                with child_md.open(open_file=False, info_write=False):
+                    labels = ", ".join(child_md.info.get("labels", []))
+                    print(f'{k}\t{v}\t{labels}')
             for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
-                print(f'{k}\t{v}')
+                child_md = md = MetaDirectory.from_md_path(metadir.parent, v)
+                with child_md.open(open_file=False, info_write=False):
+                    labels = ", ".join(child_md.info.get("labels", []))
+                    print(f'{k}\t{v}\t{labels}')
             for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
                 print(f'{k}\t{v}\t(symlink)')
             for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
@@ -169,11 +178,20 @@ def ls(metadir):
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     with md.open(open_file=False, info_write=False):
         for k,v in sorted(md.info.get('extracted_files', {}).items()):
-            print(f'{k}\t{v}')
+            child_md = md = MetaDirectory.from_md_path(metadir.parent, v)
+            with child_md.open(open_file=False, info_write=False):
+                labels = ", ".join(child_md.info.get("labels", []))
+                print(f'{k}\t{v}\t{labels}')
         for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
-            print(f'{k}\t{v}')
+            child_md = md = MetaDirectory.from_md_path(metadir.parent, v)
+            with child_md.open(open_file=False, info_write=False):
+                labels = ", ".join(child_md.info.get("labels", []))
+                print(f'{k}\t{v}\t{labels}')
         for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
-            print(f'{k}\t{v}')
+            child_md = md = MetaDirectory.from_md_path(metadir.parent, v)
+            with child_md.open(open_file=False, info_write=False):
+                labels = ", ".join(child_md.info.get("labels", []))
+                print(f'{k}\t{v}\t{labels}')
         for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
             print(f'{k}\t{v}\t(symlink)')
         for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
