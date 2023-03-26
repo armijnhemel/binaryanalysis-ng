@@ -185,3 +185,6 @@ enums:
     0x6e7348a8:
       id: csk6
       doc: "LISTENAI CSK60xx"
+    0x11de784a:
+      id: m0sense
+      doc: "M0SENSE BL702"
