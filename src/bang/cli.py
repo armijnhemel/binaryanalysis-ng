@@ -145,6 +145,7 @@ def show(all, metadir):
     with md.open(open_file=False, info_write=False):
         print(f'Parser: {md.info.get("unpack_parser")}')
         print(f'Labels: {", ".join(md.info.get("labels",[]))}')
+        print(f'Size: {md.size}')
         print(f'Metadata:')
         pprint.pprint(md.info.get('metadata'))
         if all:
