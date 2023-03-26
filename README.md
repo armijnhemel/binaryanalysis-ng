@@ -263,6 +263,7 @@ larger file, unless stated otherwise.
 161. Qualcomm QTI Chromatix (structural checks only)
 162. Mediatek logo.bin
 163. Android DTO
+164. Portable Image Format
 
 The following text formats can be recognized:
 
