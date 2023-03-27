@@ -64,6 +64,8 @@ class AndroidBootImgUnpacker(UnpackParser):
         # take padding into account
         if self.is_variant:
             self.unpacked_size = max(self.unpacked_size, self.data.header.dtb_pos + self.data.header.dt_size)
+            check_condition(self.unpacked_size <= self.infile.size,
+                            "data cannot be outside of file")
         else:
             if self.data.header_version < 3:
                 page_size = self.data.header.page_size

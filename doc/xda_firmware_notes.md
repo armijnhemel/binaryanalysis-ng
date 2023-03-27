@@ -13,6 +13,10 @@ Not all the chipsets are known. Most Mediatek based devices have `MTxxxx` in
 the firmware file name, typically 4 numbers (sometimes with `M` or another
 character added). None of the firmware files have been downloaded to verify.
 
+Many firmware files are not for (Android) smartphones. The firmware files are
+still useful to test with, as sometimes modifications have been made to
+standard file systems or files (example: FAT).
+
 # Alldocube
 
 | Model name | chipset | notes |
@@ -45,7 +49,7 @@ character added). None of the firmware files have been downloaded to verify.
 | M5XS T1006XS | MT6797 ||
 | M5XP T1006XP | MT6797 ||
 | M5X T1006X | MT6797 ||
-| iPlay 20 T1011S Spreadtrum? ||
+| iPlay 20 T1011S | Spreadtrum? ||
 | M5 T1006 | MT6797 ||
 | iPlay 10 Pro U1006H | MT8163 ||
 | iPlay 10 Pro U1006HE | MT8163 ||
@@ -87,3 +91,155 @@ on the firmware file format.
 | Bullet | ? | not a smart phone |
 | Big Daddy | ? | not a smart phone |
 | Aqua | ? | not a smart phone |
+
+# Benco
+
+| Model name | chipset | notes |
+|------------|---------|-------|
+| Y11 AH9110 | | |
+| Y10 LH9950 | | |
+
+# Chase
+
+Seemingly an older brand, no smart phones with Android available.
+
+| Model name | chipset | notes |
+|------------|---------|-------|
+| Sunny | MSTAR | not a smart phone |
+| Spark | ? | not a smart phone |
+| Pearl | ? | not a smart phone |
+| Chotu | ? | not a smart phone |
+| Chotu Plus | ? | not a smart phone |
+| C99 | ? | not a smart phone |
+| C666 | ? | not a smart phone |
+| C555 | ? | not a smart phone |
+| C333 | ? | not a smart phone |
+| C249 | ? | not a smart phone |
+| C245 | ? | not a smart phone |
+| C234 | ? | not a smart phone |
+| C18 | ? | not a smart phone |
+| C133 | ? | not a smart phone |
+| C123 | ? | not a smart phone |
+| C111 | ? | not a smart phone |
+| BigB | ? | not a smart phone |
+
+# Clout
+
+Some Android phones seem to be based on Spreadtrum chipsets. In some of the
+firmware file names the name of the chipset is embedded.
+
+| Model name | chipset | notes |
+|------------|---------|-------|
+| X417 Amaze | Spreadtrum? | |
+| X428 Astute | Spreadtrum SC9832 | |
+| X418 Zest | Spreadtrum? | |
+| X422 Exotic | Spreadtrum? | |
+| X421 Nova | Spreadtrum? | |
+| X425 Shavit | Spreadtrum? | |
+| B516 Quarts | ? | not a smartphone |
+| B338 Arrow | ? | not a smartphone |
+| B335 Derby | ? | not a smartphone |
+| B333 Urza | ? | not a smartphone |
+| B331 Urza | ? | not a smartphone |
+| B325 Spark | ? | not a smartphone |
+| B322 Unik | ? | not a smartphone |
+| B318 Pearl | ? | not a smartphone |
+| B311 Rocky | ? | not a smartphone |
+| B120 Glam | ? | not a smartphone |
+| A508 Clout | ? | not a smartphone |
+| A312 Smash | ? | not a smartphone |
+| A150 Luna | ? | not a smartphone |
+| A141 Fury | ? | not a smartphone |
+| A136 Icon | ? | not a smartphone |
+| A130 Flame | ? | not a smartphone |
+| A111 Neo | ? | not a smartphone |
+
+# E-Tachi
+
+| Model name | chipset | notes |
+|------------|---------|-------|
+| A8 | MT6580 | |
+| A8 Smart | MT6580 | |
+| A10 Smart | MT6580 | |
+| B1 | Spreadtrum SC6531E | not a smartphone |
+| B2 | Spreadtrum SC6531E | not a smartphone |
+| B3 | Spreadtrum SC6531E | not a smartphone |
+| B12 | Spreadtrum SC6531E | not a smartphone |
+| B12 Star | RDA | not a smartphone |
+| B52 | Spreadtrum SC6531 | not a smartphone |
+| B101 | Spreadtrum SC6531E | not a smartphone |
+| E4 | Spreadtrum SC6531E | not a smartphone |
+| E5 | Spreadtrum SC6531E | not a smartphone |
+| E5i | Spreadtrum SC6561E | not a smartphone |
+| E6 | Spreadtrum SC6531E | not a smartphone |
+| E7 | Spreadtrum SC6531E | not a smartphone |
+| E10 King | Spreadtrum SC6531E | not a smartphone |
+| E15 Music | Spreadtrum SC6531E | not a smartphone |
+| E19 | Spreadtrum SC6531E | not a smartphone |
+| E215 Classic | Spreadtrum SC6531 | not a smartphone |
+| E200 | Spreadtrum SC6531E | not a smartphone |
+| E200 Lite| Spreadtrum SC6531E | not a smartphone |
+| E5310 | Spreadtrum SC6531E | not a smartphone |
+| Music E1000 | Spreadtrum SC6531E | not a smartphone |
+
+# G-Fone
+
+| Model name | chipset | notes |
+|------------|---------|-------|
+| G587 | ? | not a smartphone |
+| G522 | ? | not a smartphone |
+| G469 | ? | not a smartphone |
+| G-Smart | MT6516 | not a smartphone |
+| G408 | ? | not a smartphone |
+| Aircel 301 | ? | not a smartphone |
+| Aircel 311 | ? | not a smartphone |
+| Aircel 404 | ? | not a smartphone |
+| Aircel 411 | ? | not a smartphone |
+| Aircel 422 | ? | not a smartphone |
+| Aircel 525 | ? | not a smartphone |
+| 777 | ? | not a smartphone |
+| 588 | ? | not a smartphone |
+| 587 | ? | not a smartphone |
+| 571 | ? | not a smartphone |
+| 568 | ? | not a smartphone |
+| 565 | ? | not a smartphone |
+| 555 | ? | not a smartphone |
+| 545 | ? | not a smartphone |
+| 468 | ? | not a smartphone |
+| 467 | ? | not a smartphone |
+| 466 | ? | not a smartphone |
+| 465 | ? | not a smartphone |
+| 458 | ? | not a smartphone |
+| 457 | ? | not a smartphone |
+| 456 | ? | not a smartphone |
+| 455 | ? | not a smartphone |
+| 451 | ? | not a smartphone |
+| 351 | ? | not a smartphone |
+| 351 Click | ? | not a smartphone |
+| 350 | ? | not a smartphone |
+| 347 | ? | not a smartphone |
+| 345 | ? | not a smartphone |
+
+# Goophone
+
+| Model name | chipset | notes |
+|------------|---------|-------|
+| Note 9 | MT6580 | |
+| S5 | MT6582 | |
+| X1 | MT6589 | |
+| X7 | MT6589 | |
+| Y5 | MT6575 | |
+| S4 Max | | |
+| One Max | MT6582 | |
+| N9700 | MT6582 | |
+| S4 Mega | MT6589 | |
+| N3 Plus | MT6592 | |
+| N2 Pro | MT6589 | |
+| M8 | MT6592 | |
+| M3 Plus | MT6582 | |
+| M3 | MT6582 | |
+| i9 | MT6589 | |
+| i5S Gold E09 | MT6572 | |
+| i5 | MT6577 | |
+| i6 | MT6582 | |
+| i6 Plus | MT6592 | |
