@@ -2,8 +2,8 @@
 
 Various stock firmware files for relatively unknown brands (mostly from China)
 can be found at various sites such as <https://xdafirmware.com/>. While these
-sites are not recommended to be used they can be good resources for weird
-file formats or for firmware variations.
+sites are not recommended to be used for downloading firmware for flashing
+they can be good resources for weird file formats or for firmware variations.
 
 Below is a list of models plus (if known), chipset. This is only as a list with
 personal notes so in case a firmware for a particular chipset needs to be
@@ -11,13 +11,17 @@ downloaded it can be quickly found.
 
 Not all the chipsets are known. Most Mediatek based devices have `MTxxxx` in
 the firmware file name, typically 4 numbers (sometimes with `M` or another
-character added). None of the firmware files have been downloaded to verify.
+character added). None of the firmware files have been downloaded to verify,
+also because the non-paid download option is often restricted by quota (which
+run out very quickly).
 
 Many firmware files are not for (Android) smartphones. The firmware files are
 still useful to test with, as sometimes modifications have been made to
 standard file systems or files (example: FAT).
 
-# Alldocube
+# XDA firmware
+
+## Alldocube
 
 | Model name | chipset | notes |
 |------------|---------|-------|
@@ -63,7 +67,7 @@ standard file systems or files (example: FAT).
 | M5S | MT6797 ||
 | C5 4G T901 | MT6737M ||
 
-# Anee
+## Anee
 
 Quite a few based on RDA chipsets (not all firmware files were checked), see
 <https://github.com/XaviDCR92/a9_free/blob/master/doc/notes.txt> for more info
@@ -92,14 +96,14 @@ on the firmware file format.
 | Big Daddy | ? | not a smart phone |
 | Aqua | ? | not a smart phone |
 
-# Benco
+## Benco
 
 | Model name | chipset | notes |
 |------------|---------|-------|
 | Y11 AH9110 | | |
 | Y10 LH9950 | | |
 
-# Chase
+## Chase
 
 Seemingly an older brand, no smart phones with Android available.
 
@@ -123,7 +127,7 @@ Seemingly an older brand, no smart phones with Android available.
 | C111 | ? | not a smart phone |
 | BigB | ? | not a smart phone |
 
-# Clout
+## Clout
 
 Some Android phones seem to be based on Spreadtrum chipsets. In some of the
 firmware file names the name of the chipset is embedded.
@@ -154,7 +158,7 @@ firmware file names the name of the chipset is embedded.
 | A130 Flame | ? | not a smartphone |
 | A111 Neo | ? | not a smartphone |
 
-# E-Tachi
+## E-Tachi
 
 | Model name | chipset | notes |
 |------------|---------|-------|
@@ -182,7 +186,7 @@ firmware file names the name of the chipset is embedded.
 | E5310 | Spreadtrum SC6531E | not a smartphone |
 | Music E1000 | Spreadtrum SC6531E | not a smartphone |
 
-# G-Fone
+## G-Fone
 
 | Model name | chipset | notes |
 |------------|---------|-------|
@@ -220,7 +224,7 @@ firmware file names the name of the chipset is embedded.
 | 347 | ? | not a smartphone |
 | 345 | ? | not a smartphone |
 
-# Goophone
+## Goophone
 
 | Model name | chipset | notes |
 |------------|---------|-------|
@@ -243,3 +247,41 @@ firmware file names the name of the chipset is embedded.
 | i5 | MT6577 | |
 | i6 | MT6582 | |
 | i6 Plus | MT6592 | |
+
+## Highscreen
+
+| Model name | chipset | notes |
+|------------|---------|-------|
+| Thunder | MT6735 | |
+| Spark 2 | Qualcomm | QPST |
+| Razar Pro | MT6737T | |
+| Razar | MT6737T | |
+| Pure Power | MT6580 | |
+| Easy S | MT6580 | |
+| Easy S Pro | MT6580 | |
+| Easy XL | MT6737T | |
+| Easy XL Pro | MT6737T | |
+| Expanse | MT6737T | |
+| Boost 3 | MT6753 | |
+| Boost 3 Pro SE | MT6753 | |
+| Boost 3 SE | MT6753 | |
+| Easy Power L | MT6737M | |
+| Easy Power | MT6737M | |
+| Fest | MT6737T | |
+| Fest Pro | MT6737T | |
+| Fest XL Pro | MT6737T | |
+| Fest XL | MT6737T | |
+| Pie C907 | MT6737M | |
+| Pie | MT6737M | |
+| Max 3 | MT6765 | |
+| Power 5 Max 2 | MT6763 | |
+| Power Five Max Lite | MT6763 | |
+| Pure F | MT6582 | |
+
+# <https://firmwarefile.com/>
+
+## Coolpad
+
+| Model name | chipset | notes |
+|------------|---------|-------|
+| 7295C-C00 | MT6582M | CPB firmware |
