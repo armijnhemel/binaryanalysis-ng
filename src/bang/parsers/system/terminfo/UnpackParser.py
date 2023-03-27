@@ -20,6 +20,8 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import re
+
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
@@ -43,10 +45,15 @@ class TerminfoUnpackParser(UnpackParser):
                 self.data = terminfo.Terminfo.from_io(self.infile)
             except (Exception, ValidationFailedError) as e:
                 raise UnpackParserException(e.args)
+
+        # sanity checks for the names
         check_condition(len(self.data.names_section.names) > 0,
                         "no name found")
         check_condition(self.data.names_section.names.isprintable(),
                         "invalid names section")
+        check_condition(re.match(r'[a-zA-Z0-9][a-zA-Z0-9.][^|]*', self.data.names_section.names) is not None,
+                        "invalid terminal name")
+
         for string_offset in self.data.strings_section.string_offset:
             if string_offset == 0xffff or string_offset == 0xfffe:
                 continue
