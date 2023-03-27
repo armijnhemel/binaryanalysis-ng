@@ -11,11 +11,10 @@ downloaded it can be quickly found.
 
 # Alldocube
 
-+------------+---------+
 | Model name | chipset |
-+------------+---------+
+|------------|---------|
 | iPlay 50 Pro T1030M | MT6789|
-+------------+---------+
+|------------|---------|
 
 ## iPlay 50 Pro T1030M
 
