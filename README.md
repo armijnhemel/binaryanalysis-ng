@@ -264,6 +264,7 @@ larger file, unless stated otherwise.
 162. Mediatek logo.bin
 163. Android DTO
 164. Portable Image Format
+165. ResPack.cfg (seen in CPB firmware format)
 
 The following text formats can be recognized:
 
