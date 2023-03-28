@@ -182,8 +182,8 @@ def build_unpack_link_tables(md, parent, pretty=False):
     table = rich.table.Table(title='Unpacked', row_styles=['dim', ''])
     table.add_column('Nr', justify='right')
     table.add_column('Name')
-    table.add_column('Meta directory')
     table.add_column('Labels')
+    table.add_column('Meta directory')
 
     link_table = rich.table.Table(title='Linked', row_styles=['dim', ''])
     link_table.add_column('Nr', justify='right')
@@ -206,7 +206,7 @@ def build_unpack_link_tables(md, parent, pretty=False):
 
         with child_md.open(open_file=False, info_write=False):
             labels = ", ".join(child_md.info.get("labels", []))
-            table.add_row(str(counter), str(pp_path), str(v), labels)
+            table.add_row(str(counter), str(pp_path), labels, str(v))
         counter += 1
 
     for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
@@ -220,7 +220,7 @@ def build_unpack_link_tables(md, parent, pretty=False):
 
         with child_md.open(open_file=False, info_write=False):
             labels = ", ".join(child_md.info.get("labels", []))
-            table.add_row(str(counter), str(pp_path), str(v), labels)
+            table.add_row(str(counter), str(pp_path), labels, str(v))
         counter += 1
 
     for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
@@ -234,7 +234,7 @@ def build_unpack_link_tables(md, parent, pretty=False):
 
         with child_md.open(open_file=False, info_write=False):
             labels = ", ".join(child_md.info.get("labels", []))
-            table.add_row(str(counter), str(pp_path), str(v), labels)
+            table.add_row(str(counter), str(pp_path), labels, str(v))
         counter += 1
 
     counter = 1
