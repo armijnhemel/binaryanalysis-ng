@@ -34,6 +34,7 @@ let
     pytest
     python-snappy
     pyyaml
+    rich
     telfhash
     tlsh
     xxhash

@@ -30,6 +30,9 @@ import sys
 import time
 
 import click
+import rich
+import rich.console
+import rich.table
 
 from .scan_environment import *
 from .scan_job import ScanJob, process_jobs, make_scan_pipeline
@@ -137,6 +140,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
 def show(all, metadir):
     '''Shows bang scan results stored in METADIR.
     '''
+
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     try:
         print(f'{md.md_path} ({md.file_path}):')
@@ -144,32 +148,67 @@ def show(all, metadir):
         print(f'directory {metadir} not found, exiting')
         sys.exit(1)
 
+    console = rich.console.Console()
+    table = rich.table.Table(title='Unpacked', row_styles=['dim', ''])
+    table.add_column('Counter', justify='right')
+    table.add_column('Name')
+    table.add_column('Meta directory')
+    table.add_column('Labels')
+
+    link_table = rich.table.Table(title='Linked', row_styles=['dim', ''])
+    link_table.add_column('Counter', justify='right')
+    link_table.add_column('Name')
+    link_table.add_column('Target')
+    link_table.add_column('Link type')
+
     with md.open(open_file=False, info_write=False):
         print(f'Parser: {md.info.get("unpack_parser")}')
         print(f'Labels: {", ".join(md.info.get("labels",[]))}')
         print(f'Size: {md.size}')
         print(f'Metadata:')
         pprint.pprint(md.info.get('metadata'))
+
+        counter = 1
         if all:
+            have_unpacked_results = False
+            have_unpacked_link_results = False
             for k,v in sorted(md.info.get('extracted_files', {}).items()):
+                have_unpacked_results = True
                 child_md = MetaDirectory.from_md_path(metadir.parent, v)
                 with child_md.open(open_file=False, info_write=False):
                     labels = ", ".join(child_md.info.get("labels", []))
-                    print(f'{k}\t{v}\t{labels}')
+                    table.add_row(str(counter), str(k), str(v), labels)
+                counter += 1
             for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
+                have_unpacked_results = True
                 child_md = MetaDirectory.from_md_path(metadir.parent, v)
                 with child_md.open(open_file=False, info_write=False):
                     labels = ", ".join(child_md.info.get("labels", []))
-                    print(f'{k}\t{v}\t{labels}')
+                    table.add_row(str(counter), str(k), str(v), labels)
+                counter += 1
             for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
+                have_unpacked_results = True
                 child_md = MetaDirectory.from_md_path(metadir.parent, v)
                 with child_md.open(open_file=False, info_write=False):
                     labels = ", ".join(child_md.info.get("labels", []))
-                    print(f'{k}\t{v}\t{labels}')
+                    table.add_row(str(counter), str(k), str(v), labels)
+                counter += 1
+
+            counter = 1
             for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
-                print(f'{k}\t{v}\t(symlink)')
+                have_unpacked_link_results = True
+                link_table.add_row(str(counter), str(k), str(v), 'symbolic link')
+                counter += 1
             for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
-                print(f'{k}\t{v}\t(hardlink)')
+                have_unpacked_link_results = True
+                link_table.add_row(str(counter), str(k), str(v), 'hardlink')
+                counter += 1
+
+    if all:
+        if have_unpacked_results:
+            console.print(table)
+        if have_unpacked_link_results:
+            console.print(link_table)
 
 
 @app.command(short_help='Lists extracted and unpacked files')
