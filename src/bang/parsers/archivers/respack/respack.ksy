@@ -1,18 +1,18 @@
 meta:
   id: respack
-  title: respack
+  title: ResPack
   license: CC0-1.0
   encoding: UTF-8
   endian: le
 doc: |
-  Resources file found in CPB firmware archives, mostly used on older CoolPad
+  Resource file found in CPB firmware archives, mostly used on older CoolPad
   phones and/or tablets. The only observed files are called "ResPack.cfg".
 seq:
   - id: header
     type: header
   - id: json
     size: header.len_json
-    type: strz
+    type: str
 types:
   header:
     seq:
