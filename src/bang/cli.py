@@ -187,8 +187,8 @@ def build_unpack_link_tables(md, parent, pretty=False):
 
     link_table = rich.table.Table(title='Linked', row_styles=['dim', ''])
     link_table.add_column('Nr', justify='right')
-    link_table.add_column('Name')
-    link_table.add_column('Target')
+    link_table.add_column('Link name')
+    link_table.add_column('Link target')
     link_table.add_column('Link type')
 
     have_unpack_results = False
@@ -256,7 +256,7 @@ def build_unpack_link_tables(md, parent, pretty=False):
         else:
             pp_path = k
 
-        link_table.add_row(str(counter), str(pp_path), str(v), 'symbolic link')
+        link_table.add_row(str(counter), str(pp_path), str(v), 'hardlink')
         counter += 1
     return table, link_table, have_unpack_results, have_link_results
 
