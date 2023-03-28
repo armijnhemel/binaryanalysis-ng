@@ -136,9 +136,9 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
 
 
 @app.command(short_help='Show bang scan results')
-@click.option('-a', '--all', is_flag=True, help='Show all information, including extracted/unpacked files')
+@click.option('-a', '--all', 'show_all', is_flag=True, help='Show all information, including extracted/unpacked files')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
-def show(all, metadir):
+def show(show_all, metadir):
     '''Shows bang scan results stored in METADIR.
     '''
 
@@ -166,10 +166,10 @@ def show(all, metadir):
             print(f'Metadata:')
             pprint.pprint(md.info.get('metadata'))
 
-        if all:
+        if show_all:
             table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent)
 
-    if all:
+    if show_all:
         if have_unpack_results:
             console.print(table)
         if have_link_results:
