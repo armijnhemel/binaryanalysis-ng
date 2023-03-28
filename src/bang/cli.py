@@ -30,6 +30,7 @@ import sys
 import time
 
 import click
+
 from .scan_environment import *
 from .scan_job import ScanJob, process_jobs, make_scan_pipeline
 from .meta_directory import MetaDirectory, MetaDirectoryException
@@ -142,6 +143,7 @@ def show(all, metadir):
     except MetaDirectoryException:
         print(f'directory {metadir} not found, exiting')
         sys.exit(1)
+
     with md.open(open_file=False, info_write=False):
         print(f'Parser: {md.info.get("unpack_parser")}')
         print(f'Labels: {", ".join(md.info.get("labels",[]))}')
@@ -150,17 +152,17 @@ def show(all, metadir):
         pprint.pprint(md.info.get('metadata'))
         if all:
             for k,v in sorted(md.info.get('extracted_files', {}).items()):
-                child_md = md = MetaDirectory.from_md_path(metadir.parent, v)
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
                 with child_md.open(open_file=False, info_write=False):
                     labels = ", ".join(child_md.info.get("labels", []))
                     print(f'{k}\t{v}\t{labels}')
             for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
-                child_md = md = MetaDirectory.from_md_path(metadir.parent, v)
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
                 with child_md.open(open_file=False, info_write=False):
                     labels = ", ".join(child_md.info.get("labels", []))
                     print(f'{k}\t{v}\t{labels}')
             for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
-                child_md = md = MetaDirectory.from_md_path(metadir.parent, v)
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
                 with child_md.open(open_file=False, info_write=False):
                     labels = ", ".join(child_md.info.get("labels", []))
                     print(f'{k}\t{v}\t{labels}')
