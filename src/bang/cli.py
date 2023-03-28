@@ -145,7 +145,7 @@ def show(show_all, metadir):
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     try:
         #print(f'{md.md_path} ({md.file_path}):')
-        m = f'{md.md_path}'
+        m = f'{md.file_path}'
     except MetaDirectoryException:
         print(f'directory {metadir} not found, exiting', file=sys.stderr)
         sys.exit(1)
@@ -233,7 +233,7 @@ def print_tree(metadir, pretty):
     '''
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     try:
-        m = f'{md.md_path}'
+        m = f'{md.file_path}'
     except MetaDirectoryException:
         print(f'directory {metadir} not found, exiting', file=sys.stderr)
         sys.exit(1)
