@@ -25,13 +25,13 @@ import datetime
 import logging
 import multiprocessing
 import pathlib
-import pprint
 import sys
 import time
 
 import click
 import rich
 import rich.console
+import rich.pretty
 import rich.table
 import rich.tree
 
@@ -165,7 +165,7 @@ def show(show_all, metadir):
         '''
         if md.info.get('metadata') != {}:
             print(f'Metadata:')
-            pprint.pprint(md.info.get('metadata'))
+            rich.pretty.pprint(md.info.get('metadata'))
         '''
 
         if show_all:
