@@ -289,14 +289,16 @@ def build_tree(md, parent, pretty=False, cut_leading_slash=False):
             link_pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
         else:
             link_pp_path = k
-        link_label = f'{link_pp_path} \u2192 {v}'
+        #link_label = f'{link_pp_path}  \u2192  {v}'
+        link_label = f'{link_pp_path}  \U0001f87a  {v}'
         subtrees.append((link_pp_path, link_label))
     for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
         if pretty:
             link_pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
         else:
             link_pp_path = k
-        link_label = f'{link_pp_path} \u2192 {v}'
+        #link_label = f'{link_pp_path}  \u2192  {v}'
+        link_label = f'{link_pp_path}  \U0001f87a  {v}'
         subtrees.append((link_pp_path, link_label))
 
     for subtree, t in sorted(subtrees):
