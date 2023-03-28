@@ -162,9 +162,11 @@ def show(show_all, metadir):
 
         console.print(meta_table)
 
+        '''
         if md.info.get('metadata') != {}:
             print(f'Metadata:')
             pprint.pprint(md.info.get('metadata'))
+        '''
 
         if show_all:
             table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent)
