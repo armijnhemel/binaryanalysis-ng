@@ -138,7 +138,8 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
 @app.command(short_help='Show bang scan results')
 @click.option('-a', '--all', 'show_all', is_flag=True, help='Show all information, including extracted/unpacked files')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
-def show(show_all, metadir):
+@click.option('--pretty', is_flag=True, help='pretty print')
+def show(show_all, metadir, pretty):
     '''Shows bang scan results stored in METADIR.
     '''
 
@@ -169,7 +170,7 @@ def show(show_all, metadir):
         '''
 
         if show_all:
-            table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent)
+            table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
 
     if show_all:
         if have_unpack_results:
@@ -177,7 +178,7 @@ def show(show_all, metadir):
         if have_link_results:
             console.print(link_table)
 
-def build_unpack_link_tables(md, parent):
+def build_unpack_link_tables(md, parent, pretty=False):
     table = rich.table.Table(title='Unpacked', row_styles=['dim', ''])
     table.add_column('Nr', justify='right')
     table.add_column('Name')
@@ -197,33 +198,65 @@ def build_unpack_link_tables(md, parent):
     for k,v in sorted(md.info.get('extracted_files', {}).items()):
         have_unpack_results = True
         child_md = MetaDirectory.from_md_path(parent, v)
+
+        if pretty:
+            pp_path = pathlib.Path('').joinpath(*list(k.parts[2:]))
+        else:
+            pp_path = k
+
         with child_md.open(open_file=False, info_write=False):
             labels = ", ".join(child_md.info.get("labels", []))
-            table.add_row(str(counter), str(k), str(v), labels)
+            table.add_row(str(counter), str(pp_path), str(v), labels)
         counter += 1
+
     for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
         have_unpack_results = True
         child_md = MetaDirectory.from_md_path(parent, v)
+
+        if pretty:
+            pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
+        else:
+            pp_path = k
+
         with child_md.open(open_file=False, info_write=False):
             labels = ", ".join(child_md.info.get("labels", []))
-            table.add_row(str(counter), str(k), str(v), labels)
+            table.add_row(str(counter), str(pp_path), str(v), labels)
         counter += 1
+
     for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
         have_unpack_results = True
         child_md = MetaDirectory.from_md_path(parent, v)
+
+        if pretty:
+            pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
+        else:
+            pp_path = k
+
         with child_md.open(open_file=False, info_write=False):
             labels = ", ".join(child_md.info.get("labels", []))
-            table.add_row(str(counter), str(k), str(v), labels)
+            table.add_row(str(counter), str(pp_path), str(v), labels)
         counter += 1
 
     counter = 1
     for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
         have_link_results = True
-        link_table.add_row(str(counter), str(k), str(v), 'symbolic link')
+
+        if pretty:
+            pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
+        else:
+            pp_path = k
+
+        link_table.add_row(str(counter), str(pp_path), str(v), 'symbolic link')
         counter += 1
     for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
         have_link_results = True
-        link_table.add_row(str(counter), str(k), str(v), 'hardlink')
+
+        if pretty:
+            pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
+        else:
+            pp_path = k
+
+        link_table.add_row(str(counter), str(pp_path), str(v), 'symbolic link')
         counter += 1
     return table, link_table, have_unpack_results, have_link_results
 
@@ -307,14 +340,15 @@ def build_tree(md, parent, pretty=False, cut_leading_slash=False):
 
 @app.command(short_help='Lists extracted and unpacked files')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
-def ls(metadir):
+@click.option('--pretty', is_flag=True, help='pretty print')
+def ls(metadir, pretty):
     '''Lists extracted and unpacked files stored in METADIR.
     '''
     console = rich.console.Console()
 
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     with md.open(open_file=False, info_write=False):
-        table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent)
+        table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
 
     if all:
         if have_unpack_results:
