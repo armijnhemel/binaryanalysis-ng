@@ -33,6 +33,7 @@ import click
 import rich
 import rich.console
 import rich.table
+import rich.tree
 
 from .scan_environment import *
 from .scan_job import ScanJob, process_jobs, make_scan_pipeline
@@ -223,6 +224,56 @@ def build_unpack_link_tables(md, parent):
         link_table.add_row(str(counter), str(k), str(v), 'hardlink')
         counter += 1
     return table, link_table, have_unpack_results, have_link_results
+
+@app.command(short_help='Pretty print bang scan results')
+@click.argument('metadir', type=click.Path(path_type=pathlib.Path))
+def pretty_tree(metadir):
+    '''Shows bang scan results stored in METADIR as a tree
+    '''
+    md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
+    try:
+        m = f'{md.md_path}'
+    except MetaDirectoryException:
+        print(f'directory {metadir} not found, exiting', file=sys.stderr)
+        sys.exit(1)
+
+    # recursively build subtrees
+    with md.open(open_file=False, info_write=False):
+        tree = build_tree(md, metadir.parent)
+
+    rich.print(tree)
+
+def build_tree(md, parent):
+    '''Build a subtree for pretty printing'''
+    tree = rich.tree.Tree(f'{md.file_path}')
+
+    for k,v in sorted(md.info.get('extracted_files', {}).items()):
+        child_md = MetaDirectory.from_md_path(parent, v)
+        with child_md.open(open_file=False, info_write=False):
+            #labels = ", ".join(child_md.info.get("labels", []))
+            subtree = build_tree(child_md, parent)
+            tree.add(subtree)
+
+    for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
+        child_md = MetaDirectory.from_md_path(parent, v)
+        with child_md.open(open_file=False, info_write=False):
+            #labels = ", ".join(child_md.info.get("labels", []))
+            subtree = build_tree(child_md, parent)
+            tree.add(subtree)
+
+    for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
+        child_md = MetaDirectory.from_md_path(parent, v)
+        with child_md.open(open_file=False, info_write=False):
+            #labels = ", ".join(child_md.info.get("labels", []))
+            subtree = build_tree(child_md, parent)
+            tree.add(subtree)
+
+    for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
+        tree.add(f'{k} \u2192 {v}')
+    for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
+        tree.add(f'{k} \u2192 {v}')
+
+    return tree
 
 @app.command(short_help='Lists extracted and unpacked files')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
