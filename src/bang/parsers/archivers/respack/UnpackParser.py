@@ -48,6 +48,8 @@ class ResPack(UnpackParser):
         except Exception as e:
             raise UnpackParserException(e.args)
 
+        check_condition(type(self.file_metadata) == dict, "invalid JSON result type")
+
         # offsets for files are relative to the end of the JSON data
         self.end_of_json_offset = self.infile.tell()
         self.unpacked_size = self.infile.tell()
