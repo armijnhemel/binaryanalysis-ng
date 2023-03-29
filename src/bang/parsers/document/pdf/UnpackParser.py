@@ -203,7 +203,7 @@ class PdfUnpackParser(UnpackParser):
                         self.contents = out.getvalue()
 
                         best_eof = end_of_eof
-                    except (pdfminer.psparser.PSEOF, pdfminer.pdfparser.PDFSyntaxError) as e:
+                    except (pdfminer.psparser.PSEOF, pdfminer.pdfparser.PDFSyntaxError, ValueError) as e:
                         # in case there is an error then this %%EOF is not
                         # a valid %%EOF for the file, so there is no need
                         # to continue parsing.
