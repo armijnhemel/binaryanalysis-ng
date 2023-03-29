@@ -154,13 +154,7 @@ def show(show_all, metadir, pretty):
     console = rich.console.Console()
 
     with md.open(open_file=False, info_write=False):
-        meta_table = rich.table.Table('', '', title='Parser data', show_lines=True, show_header=False)
-        meta_table.add_row('Meta directory', f'{md.md_path}')
-        meta_table.add_row('Original file', f'{md.file_path}')
-        meta_table.add_row('Parser', f'{md.info.get("unpack_parser")}')
-        meta_table.add_row('Labels', f'{", ".join(md.info.get("labels",[]))}')
-        meta_table.add_row('Size', f'{md.size}')
-
+        meta_table = build_meta_table(md)
         console.print(meta_table)
 
         '''
@@ -177,6 +171,15 @@ def show(show_all, metadir, pretty):
             console.print(table)
         if have_link_results:
             console.print(link_table)
+
+def build_meta_table(md):
+    meta_table = rich.table.Table('', '', title='Parser data', show_lines=True, show_header=False)
+    meta_table.add_row('Meta directory', f'{md.md_path}')
+    meta_table.add_row('Original file', f'{md.file_path}')
+    meta_table.add_row('Parser', f'{md.info.get("unpack_parser")}')
+    meta_table.add_row('Labels', f'{", ".join(md.info.get("labels",[]))}')
+    meta_table.add_row('Size', f'{md.size}')
+    return meta_table
 
 def build_unpack_link_tables(md, parent, pretty=False):
     table = rich.table.Table(title='Unpacked', row_styles=['dim', ''])
