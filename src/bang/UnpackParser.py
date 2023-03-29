@@ -139,7 +139,7 @@ class UnpackParser:
         to_meta_directory.info['unpack_parser'] = self.pretty_name
 
     def add_labels(self, to_meta_directory):
-        to_meta_directory.info.setdefault('labels',[]).extend(self.labels)
+        to_meta_directory.info.setdefault('labels',[]).extend(set(self.labels))
 
     def update_metadata(self, to_meta_directory):
         to_meta_directory.info.setdefault('metadata',{}).update(self.metadata)
