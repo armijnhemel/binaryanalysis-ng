@@ -258,9 +258,9 @@ def build_unpack_link_tables(md, parent, pretty=False):
             counter += 1
     return table, link_table, have_unpack_results, have_link_results
 
-@app.command(short_help='Pretty print bang scan results')
+@app.command(short_help='Pretty print full scan tree')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
-@click.option('--pretty', is_flag=True, help='pretty print')
+@click.option('--pretty', is_flag=True, help='pretty print path names (without metadirectory)')
 def print_tree(metadir, pretty):
     '''Shows bang scan results stored in METADIR as a tree
     '''
