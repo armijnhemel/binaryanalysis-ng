@@ -31,6 +31,7 @@ import time
 import click
 import rich
 import rich.console
+import rich.markdown
 import rich.pretty
 import rich.table
 import rich.tree
@@ -278,10 +279,10 @@ def print_tree(metadir, pretty):
 
     # recursively build subtrees
     with md.open(open_file=False, info_write=False):
-        pp, tree = build_tree(md, metadir.parent, pretty)
+        pp, tree, have_children = build_tree(md, metadir.parent, pretty=pretty)
         rich.print(tree)
 
-def build_tree(md, parent, pretty=False, cut_leading_slash=False):
+def build_tree(md, parent, labels='', pretty=False, cut_leading_slash=False):
     '''Build a subtree for pretty printing'''
 
     if pretty:
@@ -295,29 +296,33 @@ def build_tree(md, parent, pretty=False, cut_leading_slash=False):
     else:
         pp_path = md.file_path
 
-    tree = rich.tree.Tree(f'{pp_path}')
+    if labels == '':
+        tree = rich.tree.Tree(f'{pp_path}')
+    else:
+        #tree = rich.tree.Tree(f'{pp_path}     [bold]{labels}[/bold]')
+        tree = rich.tree.Tree(f'{pp_path}')
 
     subtrees = []
 
     for k,v in sorted(md.info.get('extracted_files', {}).items()):
         child_md = MetaDirectory.from_md_path(parent, v)
         with child_md.open(open_file=False, info_write=False):
-            #labels = ", ".join(child_md.info.get("labels", []))
-            subtree = build_tree(child_md, parent, pretty, cut_leading_slash=True)
+            labels = ", ".join(child_md.info.get("labels", []))
+            subtree = build_tree(child_md, parent, labels, pretty=pretty, cut_leading_slash=True)
             subtrees.append(subtree)
 
     for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
         child_md = MetaDirectory.from_md_path(parent, v)
         with child_md.open(open_file=False, info_write=False):
-            #labels = ", ".join(child_md.info.get("labels", []))
-            subtree = build_tree(child_md, parent, pretty, cut_leading_slash=False)
+            labels = ", ".join(child_md.info.get("labels", []))
+            subtree = build_tree(child_md, parent, labels, pretty=pretty, cut_leading_slash=False)
             subtrees.append(subtree)
 
     for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
         child_md = MetaDirectory.from_md_path(parent, v)
         with child_md.open(open_file=False, info_write=False):
-            #labels = ", ".join(child_md.info.get("labels", []))
-            subtree = build_tree(child_md, parent, pretty, cut_leading_slash=False)
+            labels = ", ".join(child_md.info.get("labels", []))
+            subtree = build_tree(child_md, parent, labels, pretty=pretty, cut_leading_slash=False)
             subtrees.append(subtree)
 
     for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
@@ -327,7 +332,7 @@ def build_tree(md, parent, pretty=False, cut_leading_slash=False):
             link_pp_path = k
         #link_label = f'{link_pp_path}  \u2192  {v}'
         link_label = f'{link_pp_path}  \U0001f87a  {v}'
-        subtrees.append((link_pp_path, link_label))
+        subtrees.append((link_pp_path, link_label, True))
     for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
         if pretty:
             link_pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
@@ -335,11 +340,15 @@ def build_tree(md, parent, pretty=False, cut_leading_slash=False):
             link_pp_path = k
         #link_label = f'{link_pp_path}  \u2192  {v}'
         link_label = f'{link_pp_path}  \U0001f87a  {v}'
-        subtrees.append((link_pp_path, link_label))
+        subtrees.append((link_pp_path, link_label, True))
 
-    for subtree, t in sorted(subtrees):
+    for subtree, t, have_children in sorted(subtrees):
         tree.add(t)
-    return (pp_path, tree)
+
+    have_children = False
+    if subtrees:
+        have_children = True
+    return (pp_path, tree, have_children)
 
 @app.command(short_help='Lists extracted and unpacked files')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
@@ -358,6 +367,51 @@ def ls(metadir, pretty):
             console.print(table)
         if have_link_results:
             console.print(link_table)
+
+@app.command(short_help='Report BANG results (extensive)')
+@click.argument('metadir', type=click.Path(path_type=pathlib.Path))
+@click.option('--pretty', is_flag=True, help='pretty print')
+def report(metadir, pretty):
+    console = rich.console.Console()
+
+    md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
+    try:
+        m = f'{md.file_path}'
+    except MetaDirectoryException:
+        print(f'directory {metadir} not found, exiting', file=sys.stderr)
+        sys.exit(1)
+
+    # header first
+    mark = rich.markdown.Markdown(f'# FILE {md.file_path}')
+    console.print(mark)
+
+    # then the meta information, plus any unpacked files
+    with md.open(open_file=False, info_write=False):
+        table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
+
+        meta_table = build_meta_table(md)
+        console.print(meta_table)
+
+        '''
+        if md.info.get('metadata') != {}:
+            print(f'Metadata:')
+            rich.pretty.pprint(md.info.get('metadata'))
+        '''
+
+        table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
+
+        if have_unpack_results:
+            console.print(table)
+        if have_link_results:
+            console.print(link_table)
+
+    # then the file tree
+    with md.open(open_file=False, info_write=False):
+        pp, tree, have_children = build_tree(md, metadir.parent, labels='', pretty=pretty)
+        if have_children:
+            mark = rich.markdown.Markdown('# Unpacking tree')
+            console.print(mark)
+            console.print(tree)
 
 
 if __name__=="__main__":
