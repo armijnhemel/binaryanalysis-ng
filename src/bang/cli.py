@@ -154,114 +154,108 @@ def show(show_all, metadir, pretty):
 
     console = rich.console.Console()
 
-    with md.open(open_file=False, info_write=False):
-        meta_table = build_meta_table(md)
-        console.print(meta_table)
-
-        '''
-        if md.info.get('metadata') != {}:
-            print(f'Metadata:')
-            rich.pretty.pprint(md.info.get('metadata'))
-        '''
-
-        if show_all:
-            table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
+    meta_table = build_meta_table(md)
+    console.print(meta_table)
 
     if show_all:
+        table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
         if have_unpack_results:
             console.print(table)
         if have_link_results:
             console.print(link_table)
 
 def build_meta_table(md):
-    meta_table = rich.table.Table('', '', title='Parser data', show_lines=True, show_header=False)
-    meta_table.add_row('Meta directory', f'{md.md_path}')
-    meta_table.add_row('Original file', f'{md.file_path}')
-    meta_table.add_row('Parser', f'{md.info.get("unpack_parser")}')
-    meta_table.add_row('Labels', f'{", ".join(md.info.get("labels",[]))}')
-    meta_table.add_row('Size', f'{md.size}')
+    '''Construct a parser meta information table given a meta directory'''
+    with md.open(open_file=False, info_write=False):
+        meta_table = rich.table.Table('', '', title='Parser data', show_lines=True, show_header=False)
+        meta_table.add_row('Meta directory', f'{md.md_path}')
+        meta_table.add_row('Original file', f'{md.file_path}')
+        meta_table.add_row('Parser', f'{md.info.get("unpack_parser")}')
+        meta_table.add_row('Labels', f'{", ".join(md.info.get("labels",[]))}')
+        meta_table.add_row('Size', f'{md.size}')
     return meta_table
 
 def build_unpack_link_tables(md, parent, pretty=False):
-    table = rich.table.Table(title='Unpacked', row_styles=['dim', ''])
-    table.add_column('Nr', justify='right')
-    table.add_column('Name')
-    table.add_column('Labels')
-    table.add_column('Meta directory')
+    with md.open(open_file=False, info_write=False):
+        table = rich.table.Table(title='Unpacked', row_styles=['dim', ''])
+        table.add_column('Nr', justify='right')
+        table.add_column('Name')
+        table.add_column('Labels')
+        table.add_column('Meta directory')
 
-    link_table = rich.table.Table(title='Linked', row_styles=['dim', ''])
-    link_table.add_column('Nr', justify='right')
-    link_table.add_column('Link name')
-    link_table.add_column('Link target')
-    link_table.add_column('Link type')
+        link_table = rich.table.Table(title='Linked', row_styles=['dim', ''])
+        link_table.add_column('Nr', justify='right')
+        link_table.add_column('Link name')
+        link_table.add_column('Link target')
+        link_table.add_column('Link type')
 
-    have_unpack_results = False
-    have_link_results = False
+        have_unpack_results = False
+        have_link_results = False
 
-    counter = 1
-    for k,v in sorted(md.info.get('extracted_files', {}).items()):
-        have_unpack_results = True
-        child_md = MetaDirectory.from_md_path(parent, v)
+        counter = 1
+        for k,v in sorted(md.info.get('extracted_files', {}).items()):
+            have_unpack_results = True
+            child_md = MetaDirectory.from_md_path(parent, v)
 
-        if pretty:
-            pp_path = pathlib.Path('').joinpath(*list(k.parts[2:]))
-        else:
-            pp_path = k
+            if pretty:
+                pp_path = pathlib.Path('').joinpath(*list(k.parts[2:]))
+            else:
+                pp_path = k
 
-        with child_md.open(open_file=False, info_write=False):
-            labels = ", ".join(child_md.info.get("labels", []))
-            table.add_row(str(counter), str(pp_path), labels, str(v))
-        counter += 1
+            with child_md.open(open_file=False, info_write=False):
+                labels = ", ".join(child_md.info.get("labels", []))
+                table.add_row(str(counter), str(pp_path), labels, str(v))
+            counter += 1
 
-    for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
-        have_unpack_results = True
-        child_md = MetaDirectory.from_md_path(parent, v)
+        for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
+            have_unpack_results = True
+            child_md = MetaDirectory.from_md_path(parent, v)
 
-        if pretty:
-            pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
-        else:
-            pp_path = k
+            if pretty:
+                pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
+            else:
+                pp_path = k
 
-        with child_md.open(open_file=False, info_write=False):
-            labels = ", ".join(child_md.info.get("labels", []))
-            table.add_row(str(counter), str(pp_path), labels, str(v))
-        counter += 1
+            with child_md.open(open_file=False, info_write=False):
+                labels = ", ".join(child_md.info.get("labels", []))
+                table.add_row(str(counter), str(pp_path), labels, str(v))
+            counter += 1
 
-    for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
-        have_unpack_results = True
-        child_md = MetaDirectory.from_md_path(parent, v)
+        for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
+            have_unpack_results = True
+            child_md = MetaDirectory.from_md_path(parent, v)
 
-        if pretty:
-            pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
-        else:
-            pp_path = k
+            if pretty:
+                pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
+            else:
+                pp_path = k
 
-        with child_md.open(open_file=False, info_write=False):
-            labels = ", ".join(child_md.info.get("labels", []))
-            table.add_row(str(counter), str(pp_path), labels, str(v))
-        counter += 1
+            with child_md.open(open_file=False, info_write=False):
+                labels = ", ".join(child_md.info.get("labels", []))
+                table.add_row(str(counter), str(pp_path), labels, str(v))
+            counter += 1
 
-    counter = 1
-    for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
-        have_link_results = True
+        counter = 1
+        for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
+            have_link_results = True
 
-        if pretty:
-            pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
-        else:
-            pp_path = k
+            if pretty:
+                pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
+            else:
+                pp_path = k
 
-        link_table.add_row(str(counter), str(pp_path), str(v), 'symbolic link')
-        counter += 1
-    for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
-        have_link_results = True
+            link_table.add_row(str(counter), str(pp_path), str(v), 'symbolic link')
+            counter += 1
+        for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
+            have_link_results = True
 
-        if pretty:
-            pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
-        else:
-            pp_path = k
+            if pretty:
+                pp_path = pathlib.Path('/').joinpath(*list(k.parts[2:]))
+            else:
+                pp_path = k
 
-        link_table.add_row(str(counter), str(pp_path), str(v), 'hardlink')
-        counter += 1
+            link_table.add_row(str(counter), str(pp_path), str(v), 'hardlink')
+            counter += 1
     return table, link_table, have_unpack_results, have_link_results
 
 @app.command(short_help='Pretty print bang scan results')
@@ -359,8 +353,7 @@ def ls(metadir, pretty):
     console = rich.console.Console()
 
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
-    with md.open(open_file=False, info_write=False):
-        table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
+    table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
 
     if all:
         if have_unpack_results:
@@ -382,36 +375,60 @@ def report(metadir, pretty):
         sys.exit(1)
 
     # header first
-    mark = rich.markdown.Markdown(f'# FILE {md.file_path}')
+    mark = rich.markdown.Markdown(f'# REPORT FOR {md.file_path}')
     console.print(mark)
 
-    # then the meta information, plus any unpacked files
+    # extract the information for the root file
     with md.open(open_file=False, info_write=False):
-        table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
 
-        meta_table = build_meta_table(md)
-        console.print(meta_table)
-
-        '''
-        if md.info.get('metadata') != {}:
-            print(f'Metadata:')
-            rich.pretty.pprint(md.info.get('metadata'))
-        '''
-
-        table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
-
-        if have_unpack_results:
-            console.print(table)
-        if have_link_results:
-            console.print(link_table)
-
-    # then the file tree
-    with md.open(open_file=False, info_write=False):
+        # print the tree (if any)
         pp, tree, have_children = build_tree(md, metadir.parent, labels='', pretty=pretty)
         if have_children:
-            mark = rich.markdown.Markdown('# Unpacking tree')
+            mark = rich.markdown.Markdown(f'## Unpacking tree for {md.file_path}')
             console.print(mark)
             console.print(tree)
+
+    mark = rich.markdown.Markdown('---')
+    console.print(mark)
+    mark = rich.markdown.Markdown(f'## Files found in {md.file_path}')
+    console.print(mark)
+    console.line()
+    report_for_file(md, metadir.parent, console, pretty)
+
+def report_for_file(md, parent, console, pretty=False):
+    # header first
+    mark = rich.markdown.Markdown(f'### FILE: {md.file_path}')
+    console.print(mark)
+
+    # print the parser meta information
+    meta_table = build_meta_table(md)
+    console.print(meta_table)
+
+    table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, parent, pretty)
+
+    # print individual tables
+    if have_unpack_results:
+        console.print(table)
+    if have_link_results:
+        console.print(link_table)
+
+    mark = rich.markdown.Markdown('---')
+    console.print(mark)
+    console.line()
+
+    # then recurse into all of the children and pretty print
+    with md.open(open_file=False, info_write=False):
+        for k,v in sorted(md.info.get('extracted_files', {}).items()):
+            child_md = MetaDirectory.from_md_path(parent, v)
+            report_for_file(child_md, parent, console, pretty)
+
+        for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
+            child_md = MetaDirectory.from_md_path(parent, v)
+            report_for_file(child_md, parent, console, pretty)
+
+        for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
+            child_md = MetaDirectory.from_md_path(parent, v)
+            report_for_file(child_md, parent, console, pretty)
 
 
 if __name__=="__main__":
