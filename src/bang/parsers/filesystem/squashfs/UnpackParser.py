@@ -174,8 +174,10 @@ class SquashfsUnpackParser(UnpackParser):
             if result.is_symlink():
                 meta_directory.unpack_symlink(file_path, result.readlink())
             elif result.is_dir():
+                result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
                 meta_directory.unpack_directory(file_path)
             elif result.is_file():
+                result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
                 with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
                     self.local_copy2(result, outfile)
                     yield unpacked_md
