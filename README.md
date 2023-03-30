@@ -261,7 +261,7 @@ larger file, unless stated otherwise.
 159. WebAssembly binaries
 160. Android super images
 161. Qualcomm QTI Chromatix (structural checks only)
-162. Mediatek logo.bin
+162. Mediatek images (including logo.bin)
 163. Android DTO
 164. Portable Image Format
 165. ResPack.cfg (seen in CPB firmware format)

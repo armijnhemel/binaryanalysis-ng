@@ -25,7 +25,7 @@ import pathlib
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import android_mediatek_logo
+from . import mtk_image
 
 
 class AndroidMediatekUnpackParser(UnpackParser):
@@ -33,34 +33,47 @@ class AndroidMediatekUnpackParser(UnpackParser):
     signatures = [
         (0, b'\x88\x16\x88\x58')
     ]
-    pretty_name = 'android_mediatek_logo'
+    pretty_name = 'mtk_image'
 
     def parse(self):
         try:
-            self.data = android_mediatek_logo.AndroidMediatekLogo.from_io(self.infile)
+            self.data = mtk_image.MtkImage.from_io(self.infile)
 
-            # force evaluation by kaitai struct
-            for img in self.data.payload.data:
-                pass
+            # force evaluation by kaitai struct for logo structures
+            if self.data.header.magic in ['logo', 'LOGO']:
+                for img in self.data.payload.data:
+                    pass
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
         unpacked_files = []
 
-        # write the raw data. These files are (apparently) in
-        # BGRA format which can be converted to regular images.
-        # Information necessary for the conversion (such as dimensions)
-        # have to be guessed and are not stored anywhere in the file.
-        img_counter = 1
-        for img in self.data.payload.data:
-            file_path = pathlib.Path(f'logo_{img_counter}')
+        if self.data.header.magic in ['logo', 'LOGO']:
+            # write the raw data. These files are (apparently) in
+            # BGRA format which can be converted to regular images.
+            # Information necessary for the conversion (such as dimensions)
+            # have to be guessed and are not stored anywhere in the file.
+            img_counter = 1
+            for img in self.data.payload.data:
+                file_path = pathlib.Path(f'logo_{img_counter}')
 
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    outfile.write(img.body)
+                    yield unpacked_md
+
+                img_counter += 1
+        else:
+            file_path = pathlib.Path(self.data.header.magic)
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                outfile.write(img.body)
+                outfile.write(self.data.payload)
                 yield unpacked_md
 
-            img_counter += 1
+    @property
+    def labels(self):
+        labels = ['archive', 'mediatek']
+        if self.data.header.magic in ['logo', 'LOGO']:
+            labels.append('mediatek logo')
+        return labels
 
-    labels = ['graphics', 'android', 'mediatek logo']
     metadata = {}
