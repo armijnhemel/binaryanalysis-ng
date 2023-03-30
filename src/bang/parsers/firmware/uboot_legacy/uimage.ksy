@@ -451,6 +451,9 @@ enums:
     41:
       id: sunxi_toc0
       doc: Allwinner TOC0 Boot Image
+    42:
+      id: fdt_legacy
+      doc: Binary Flat Device Tree Blob	in a Legacy Image
   magic_types:
     0x27051956:
       id: uimage
