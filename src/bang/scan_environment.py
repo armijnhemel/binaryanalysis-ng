@@ -113,7 +113,7 @@ class ParserCollection:
                     self._automaton.add_word(s[1], (s[0]+len(s[1])-1, unpackers))
                 else:
                     self._automaton.add_word(s[1], (s[0]+len(s[1])-1, [u]))
-                self.longest_signature_length = max(self.longest_signature_length, len(s))
+                self.longest_signature_length = max(self.longest_signature_length, len(s[1]))
 
         if len(self._automaton) > 0:
             self._automaton.make_automaton()
