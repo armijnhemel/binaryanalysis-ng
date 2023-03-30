@@ -64,7 +64,10 @@ class AndroidMediatekUnpackParser(UnpackParser):
 
                 img_counter += 1
         else:
-            file_path = pathlib.Path(self.data.header.magic)
+            if self.data.header.magic == '':
+                file_path = pathlib.Path("unpacked_from_mtk_image")
+            else:
+                file_path = pathlib.Path(self.data.header.magic)
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(self.data.payload)
                 yield unpacked_md
