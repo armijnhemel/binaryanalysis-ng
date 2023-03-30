@@ -265,6 +265,7 @@ larger file, unless stated otherwise.
 163. Android DTO
 164. Portable Image Format
 165. ResPack.cfg (seen in CPB firmware format)
+166. LOD (RDA/Coolsand phone firmware format)
 
 The following text formats can be recognized:
 
