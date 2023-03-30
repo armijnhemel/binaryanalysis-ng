@@ -38,11 +38,9 @@ class IhexUnpackParser(UnpackParser):
     pretty_name = 'ihex'
 
     def parse(self):
-        bytes_read = 0
-
         # open the file again, but then in text mode
         try:
-            ihex_file = open(self.infile.name, 'r')
+            ihex_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             ihex_file.close()
             raise UnpackParserException(e.args)
@@ -76,16 +74,14 @@ class IhexUnpackParser(UnpackParser):
         # That means that each line MUST has an uneven length.
         try:
             for hex_line in ihex_file:
-                line = hex_line.rstrip()
-                if not line.startswith(':'):
+                if not hex_line.startswith(':'):
                     # There could be comments
-                    if line.startswith('#'):
-                        if ihex_file.newlines is not None:
-                            unpacked += len(line) + len(ihex_file.newlines)
-                        else:
-                            unpacked += len(line)
+                    if hex_line.startswith('#'):
+                        unpacked += len(hex_line)
                         continue
                     break
+
+                line = hex_line.rstrip()
 
                 if len(line) < 11 or len(line) % 2 != 1:
                     break
@@ -116,7 +112,7 @@ class IhexUnpackParser(UnpackParser):
                         error_msg = 'invalid byte counts for record type 01'
                         break
                     end_of_ihex = True
-                    unpacked += len(line) + len(ihex_file.newlines)
+                    unpacked += len(hex_line)
                     break
                 elif record_type == 0:
                     try:
@@ -141,7 +137,7 @@ class IhexUnpackParser(UnpackParser):
                             error_msg = 'invalid byte counts for record type 05'
                             break
                     record_types.add(record_type)
-                unpacked += len(line) + len(ihex_file.newlines)
+                unpacked += len(hex_line)
         except Exception as e:
             raise UnpackParserException(e.args)
         finally:
