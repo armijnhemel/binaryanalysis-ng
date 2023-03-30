@@ -145,7 +145,6 @@ class SrecUnpackParser(UnpackParser):
             raise UnpackParserException("cannot decode")
 
         srec_file.close()
-        print(unpacked)
 
         if error_msg != '':
             raise UnpackParserException(error_msg)
