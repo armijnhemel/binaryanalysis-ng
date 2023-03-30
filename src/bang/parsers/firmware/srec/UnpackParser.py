@@ -38,11 +38,9 @@ class SrecUnpackParser(UnpackParser):
     pretty_name = 'srec'
 
     def parse(self):
-        bytes_read = 0
-
         try:
             # open the file again, but then in text mode
-            srec_file = open(self.infile.name, 'r')
+            srec_file = open(self.infile.name, 'r', newline='')
         except:
             raise UnpackParserException("Cannot decode file as text")
 
@@ -76,23 +74,21 @@ class SrecUnpackParser(UnpackParser):
 
         try:
             for srec_line in srec_file:
-                line = srec_line.rstrip()
-                if not line.startswith('S'):
+                if not srec_line.startswith('S'):
                     # There could be comments starting with ';',
                     # although this is discouraged.
-                    if line.startswith(';'):
-                        if srec_file.newlines is not None:
-                            unpacked += len(line) + len(srec_file.newlines)
-                        else:
-                            unpacked += len(line)
+                    if srec_line.startswith(';'):
+                        unpacked += len(srec_line)
                         continue
                     break
+
+                line = srec_line.rstrip()
 
                 if len(line) < 10 or len(line) % 2 != 0:
                     break
 
                 try:
-                    record_type = int(srec_line[1])
+                    record_type = int(line[1])
                 except:
                     error_msg = 'invalid SREC record type'
                     break
@@ -105,7 +101,7 @@ class SrecUnpackParser(UnpackParser):
 
                 if record_type in [7, 8, 9]:
                     end_of_srec = True
-                    unpacked += len(line) + len(srec_file.newlines)
+                    unpacked += len(srec_line)
                     break
 
                 # next two bytes are the byte count.
@@ -143,12 +139,13 @@ class SrecUnpackParser(UnpackParser):
                         bytes.fromhex(line[12:12+(num_bytes-5)*2])
                     except ValueError:
                         break
-                unpacked += len(line) + len(srec_file.newlines)
+                unpacked += len(srec_line)
         except UnicodeDecodeError as e:
             srec_file.close()
             raise UnpackParserException("cannot decode")
 
         srec_file.close()
+        print(unpacked)
 
         if error_msg != '':
             raise UnpackParserException(error_msg)
@@ -184,7 +181,7 @@ class SrecUnpackParser(UnpackParser):
                 if len(line) < 10 or len(line) % 2 != 0:
                     break
 
-                record_type = int(srec_line[1])
+                record_type = int(line[1])
 
                 if record_type == 4:
                     break
