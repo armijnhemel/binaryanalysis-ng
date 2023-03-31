@@ -364,7 +364,7 @@ enums:
       doc-ref: https://github.com/rpm-software-management/rpm/blob/911448f2/lib/rpmrc.c#L1466
 
   signature_tags:
-    # Tags from [lib/rpmtag.h](https://github.com/rpm-software-management/rpm/blob/911448f2/lib/rpmtag.h#L412).
+    # Tags from [lib/rpmtag.h](https://github.com/rpm-software-management/rpm/blob/afad3167/include/rpm/rpmtag.h).
     # the first three are shared with header_tags
     62:
       id: signatures
@@ -1478,6 +1478,9 @@ enums:
     5108:
       id: post_untrans_flags
       -orig-id: RPMTAG_POSTUNTRANSFLAGS
+    5109:
+      id: sys_users
+      -orig-id: RPMTAG_SYSUSERS
   record_types:
     # from LSB
     0: not_implemented
