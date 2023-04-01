@@ -14,7 +14,7 @@ seq:
     type: header
   - id: magic
     type: magic_type
-    repeat: unti
+    repeat: until
     repeat-until: _io.eof
 types:
   header:
