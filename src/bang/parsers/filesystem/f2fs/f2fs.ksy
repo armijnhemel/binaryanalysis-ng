@@ -8,11 +8,34 @@ doc-ref:
   - https://elinux.org/images/1/12/Elc2013_Hwang.pdf
   - https://docs.kernel.org/filesystems/f2fs.html
 seq:
-  - id: data
-    size: 1024
-  - id: superblock
-    type: superblock
+  - id: superblock_segment
+    type: superblock_segment
+    size: segment_size
+  - id: checkpoint
+    type: checkpoint
+    size: superblock_segment.superblock.num_segments_checkpoint * segment_size
+  - id: segment_info_table
+    size: superblock_segment.superblock.num_segments_sit * segment_size
+  - id: node_address_table
+    size: superblock_segment.superblock.num_segments_nat * segment_size
+  - id: segment_summary_area
+    size: superblock_segment.superblock.num_segments_ssa * segment_size
+  - id: main_area
+    size: superblock_segment.superblock.num_segments_main * segment_size
+instances:
+  segment_size:
+    value: 2097152
 types:
+  superblock_segment:
+    seq:
+      - id: data
+        size: 1024
+      - id: superblock
+        size: 4096
+        type: superblock
+      - id: superblock_backup
+        size: 4096
+        type: superblock
   version:
     seq:
       - id: major
@@ -127,6 +150,37 @@ types:
         size: 258
       - id: crc
         type: u4
+    instances:
+      encrypted:
+        value: features & 0x01 == 0x01
+      blockzoned:
+        value: features & 0x02 == 0x02
+      atomic_write:
+        value: features & 0x04 == 0x04
+      extra_attrs:
+        value: features & 0x08 == 0x08
+      prj_quota:
+        value: features & 0x10 == 0x10
+      inode_checksum:
+        value: features & 0x20 == 0x20
+      flexible_inline_xattr:
+        value: features & 0x40 == 0x40
+      quota_ino:
+        value: features & 0x80 == 0x80
+      inode_crtime:
+        value: features & 0x100 == 0x100
+      lost_found:
+        value: features & 0x200 == 0x200
+      verity:
+        value: features & 0x400 == 0x400
+      superblock_checksum:
+        value: features & 0x800 == 0x800
+      casefold:
+        value: features & 0x1000 == 0x1000
+      compression:
+        value: features & 0x2000 == 0x2000
+      readonly:
+        value: features & 0x4000 == 0x4000
   f2fs_device:
     seq:
       - id: path
@@ -134,3 +188,57 @@ types:
         type: strz
       - id: total_segments
         type: u4
+  checkpoint:
+    seq:
+      - id: version
+        type: u8
+      - id: num_user_blocks
+        type: u8
+      - id: num_valid_blocks
+        type: u8
+      - id: num_reserved_blocks
+        type: u4
+      - id: num_overprovision_blocks
+        type: u4
+      - id: num_free_segments
+        type: u4
+      - id: cur_node_segment_numbers
+        type: u4
+        repeat: expr
+        repeat-expr: 8
+      - id: cur_node_block_offsets
+        type: u2
+        repeat: expr
+        repeat-expr: 8
+      - id: cur_data_segment_numbers
+        type: u4
+        repeat: expr
+        repeat-expr: 8
+      - id: cur_data_block_offsets
+        type: u2
+        repeat: expr
+        repeat-expr: 8
+      - id: flags
+        type: u4
+      - id: num_pack_total_blocks
+        type: u4
+      - id: data_summary_block_number
+        type: u4
+      - id: num_valid_nodes
+        type: u4
+      - id: num_valid_inodes
+        type: u4
+      - id: next_free_node
+        type: u4
+      - id: sit_ver_bitmap_bytesize
+        type: u4
+        #valid: 64
+      - id: nat_ver_bitmap_bytesize
+        type: u4
+        #valid: 256
+      - id: ofs_checksum
+        type: u4
+      - id: elapsed_time
+        type: u8
+      - id: alloc_type
+        size: 16
