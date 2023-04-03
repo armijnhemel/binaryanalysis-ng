@@ -12,7 +12,7 @@ let
     elasticsearch
     icalendar
     kaitaistruct
-    meilisearch
+    #meilisearch
     packageurl-python
     parameterized
     pdfminer
