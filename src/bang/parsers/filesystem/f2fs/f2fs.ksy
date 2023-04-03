@@ -11,10 +11,10 @@ seq:
   - id: superblock_segment
     type: superblock_segment
     size: segment_size
-  - id: checkpoint
-    type: checkpoint
+  - id: checkpoint_segment
+    type: checkpoint_segment
     size: superblock_segment.superblock.num_segments_checkpoint * segment_size
-  - id: segment_info_table
+  - id: segment_info
     size: superblock_segment.superblock.num_segments_sit * segment_size
   - id: node_address_table
     size: superblock_segment.superblock.num_segments_nat * segment_size
@@ -26,10 +26,13 @@ instances:
   segment_size:
     value: 2097152
 types:
+  checkpoint_segment:
+    seq:
+      - id: checkpoint
+        size: 192
+        type: checkpoint
   superblock_segment:
     seq:
-      - id: data
-        size: 1024
       - id: superblock
         size: 4096
         type: superblock
@@ -44,6 +47,8 @@ types:
         type: u2
   superblock:
     seq:
+      - id: reserved
+        size: 1024
       - id: magic
         type: u4
       - id: version
@@ -146,11 +151,17 @@ types:
         size: 32
       - id: errors
         size: 16
-      - id: reserved
+      - id: reserved_2
         size: 258
       - id: crc
         type: u4
     instances:
+      blocksize:
+        value: 1 << log_blocksize
+      checkpoint_offset:
+        value: blocksize * checkpoint_block_address
+      sit_offset:
+        value: blocksize * sit_block_address
       encrypted:
         value: features & 0x01 == 0x01
       blockzoned:
@@ -242,3 +253,32 @@ types:
         type: u8
       - id: alloc_type
         size: 16
+    instances:
+      unmount:
+        value: flags & 0x01 == 0x01
+      orphan_present:
+        value: flags & 0x02 == 0x02
+      compact_summary:
+        value: flags & 0x04 == 0x04
+      error:
+        value: flags & 0x08 == 0x08
+      fsck:
+        value: flags & 0x10 == 0x10
+      fastboot:
+        value: flags & 0x20 == 0x20
+      crc_recovery:
+        value: flags & 0x40 == 0x40
+      nat_bits:
+        value: flags & 0x80 == 0x80
+      trimmed:
+        value: flags & 0x100 == 0x100
+      no_crc_recovery:
+        value: flags & 0x200 == 0x200
+      large_nat_bitmap:
+        value: flags & 0x400 == 0x400
+      quota_need_fsck:
+        value: flags & 0x800 == 0x800
+      disabled:
+        value: flags & 0x1000 == 0x1000
+      resizefs:
+        value: flags & 0x4000 == 0x4000
