@@ -104,7 +104,7 @@ class ElfUnpackParser(UnpackParser):
             phoff = self.data.header.program_header_offset
             self.unpacked_size = phoff
             for header in self.data.header.program_headers:
-                self.unpacked_size = max(self.unpacked_size, phoff + header.offset + header.filesz)
+                self.unpacked_size = max(self.unpacked_size, header.offset + header.filesz)
 
             # TODO: Qualcomm DSP6 (Hexagon) files, as found on many
             # Android devices.
