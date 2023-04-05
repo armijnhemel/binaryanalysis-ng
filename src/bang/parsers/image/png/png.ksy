@@ -54,6 +54,7 @@ seq:
     repeat-until: _.type == "IEND" or _io.eof
 types:
   chunk:
+    -webide-representation: "{type}"
     seq:
       - id: len
         type: u4
