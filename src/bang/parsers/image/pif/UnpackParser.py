@@ -36,13 +36,19 @@ class PifUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = pif.Pif.from_io(self.infile)
+
+            # read the instance to force evaluation
+            img = self.data.image_data
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.data.file_header.ofs_image_data + self.data.info_header.len_image_data
 
     labels = ['pif', 'graphics']
 
     @property
     def metadata(self):
-        return { 'width': self.data.information_header.width,
-                'height': self.data.information_header.height,
+        return { 'width': self.data.info_header.width,
+                'height': self.data.info_header.height,
             }
