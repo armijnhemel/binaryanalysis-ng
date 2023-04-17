@@ -26,7 +26,7 @@ except ImportError:
 
 import click
 
-@click.command(short_help='query Meilisearch with results from a BANG result directory')
+@click.command(short_help='query NSRL with results from a BANG result directory')
 @click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
 @click.option('--result-directory', '-r', required=True, help='path to BANG result directories', type=click.Path(exists=True))
 def main(config, result_directory):
