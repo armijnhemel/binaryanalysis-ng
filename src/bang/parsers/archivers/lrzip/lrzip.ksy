@@ -13,6 +13,7 @@ seq:
     type: rchunk
     repeat: until
     repeat-until: _.last_chunk
+    if: not header.is_encrypted
 types:
   header:
     seq:
@@ -92,6 +93,14 @@ types:
       - id: compressed_data_type
         type: u1
         enum: compression
+        valid:
+          any-of:
+            - compression::no_compression
+            - compression::bzip2
+            - compression::lzo
+            - compression::lzma
+            - compression::gzip
+            - compression::zpaq
       - id: len_compressed_data
         type:
           switch-on: byte_width
