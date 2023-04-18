@@ -194,7 +194,7 @@ class ElfUnpackParser(UnpackParser):
             if header.type == elf.Elf.ShType.progbits:
                 interesting = False
 
-                if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext']:
+                if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext', '.rom_info']:
                     interesting = True
 
                 # GNOME/glib GVariant database
