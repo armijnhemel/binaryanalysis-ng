@@ -1,7 +1,7 @@
 meta:
   id: mtk_secrom_info
   title: MediaTek Secure ROM info
-  license: GPL-2.0
+  license: CC0
   endian: le
   encoding: UTF-8
 doc-ref:
