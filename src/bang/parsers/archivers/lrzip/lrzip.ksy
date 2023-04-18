@@ -1,6 +1,6 @@
 meta:
   id: lrzip
-  title: lrzip
+  title: lrzip 0.6
   file-extension: lrz
   license: CC0-1.0
   endian: le
@@ -53,8 +53,10 @@ types:
     seq:
       - id: major
         type: u1
+        valid: 0
       - id: minor
         type: u1
+        valid: 6
   rchunk:
     seq:
       - id: byte_width
