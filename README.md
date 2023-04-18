@@ -266,6 +266,7 @@ larger file, unless stated otherwise.
 164. Portable Image Format
 165. ResPack.cfg (seen in CPB firmware format)
 166. LOD (RDA/Coolsand phone firmware format)
+167. MediaTek secure ROM(?) info
 
 The following text formats can be recognized:
 
