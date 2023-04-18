@@ -64,6 +64,7 @@ types:
         type: u1
         valid:
           min: 1
+          max: 4
       - id: eof_flag
         type: u1
       - id: len_uncompressed
