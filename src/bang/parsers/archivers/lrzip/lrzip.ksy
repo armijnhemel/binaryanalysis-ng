@@ -102,7 +102,7 @@ types:
             - compression::lzma
             - compression::gzip
             - compression::zpaq
-      - id: len_compressed_data
+      - id: len_data
         type:
           switch-on: byte_width
           cases:
@@ -130,7 +130,7 @@ types:
             4: u4
             8: u8
       - id: data
-        size: len_compressed_data
+        size: len_data
     instances:
       size:
         value: 1 + 3 * byte_width

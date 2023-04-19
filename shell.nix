@@ -50,6 +50,7 @@ pkgs.mkShell {
     e2tools
     innoextract
     kaitai-struct-compiler
+    lrzip
     lz4
     mailcap
     ncompress
