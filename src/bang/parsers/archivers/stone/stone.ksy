@@ -2,6 +2,7 @@ meta:
   id: stone
   title: SerpentOS Stone
   license: Zlib
+  encoding: UTF-8
   endian: be
 doc-ref: <https://github.com/serpent-os/libmoss/blob/841a6d67/source/moss/format/binary/archive_header.d>
 seq:
@@ -48,6 +49,34 @@ types:
         enum: compression
       - id: data
         size: len_data
+types:
+  record:
+    -webide-representation: "{record_tag}"
+    seq:
+      - id: len_record
+        type: u4
+      - id: record_tag
+        type: u2
+        enum: record_tags
+      - id: record_type
+        type: u1
+        enum: record_types
+      - id: reserved
+        size: 1
+      - id: record
+        size: len_record
+        type:
+          switch-on: record_type
+          cases:
+            record_types::int8: s1
+            record_types::uint8: u1
+            record_types::int16: s2
+            record_types::uint16: u2
+            record_types::int32: s4
+            record_types::uint32: u4
+            record_types::int64: s8
+            record_types::uint64: u8
+            record_types::string: strz
 enums:
   file_types:
     0: unknown
@@ -67,3 +96,38 @@ enums:
     4: index
     5: attributes
     6: dumb
+  record_tags:
+    0: unknown
+    1: name
+    2: architecture
+    3: version
+    4: summary
+    5: description
+    6: homepage
+    7: source_id
+    8: depends
+    9: provides
+    10: conflicts
+    11: release
+    12: license
+    13: build_release
+    14: package_uri
+    15: package_hash
+    16: package_size
+    17: build_depends
+    18: source_uri
+    19: source_path
+    20: source_ref
+  record_types:
+    0: unknown
+    1: int8
+    2: uint8
+    3: int16
+    4: uint16
+    5: int32
+    6: uint32
+    7: int64
+    8: uint64
+    9: string
+    10: dependency
+    11: provider
