@@ -50,7 +50,12 @@ types:
       - id: data
         size: len_data
 types:
-  record:
+  meta_records:
+    seq:
+      - id: records
+        type: meta_record
+        repeat: eos
+  meta_record:
     -webide-representation: "{record_tag}"
     seq:
       - id: len_record
