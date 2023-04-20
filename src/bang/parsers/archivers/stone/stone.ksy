@@ -121,6 +121,22 @@ types:
         5: block_device
         6: fifo
         7: socket
+  index_entries:
+    seq:
+      - id: entries
+        type: index_entry
+        repeat: eos
+  index_entry:
+    seq:
+      - id: ofs_start
+        type: u8
+      - id: ofs_end
+        type: u8
+      - id: hash_digest
+        size: 16
+    instances:
+      len_file:
+        value: ofs_end - ofs_start
 enums:
   file_types:
     0: unknown
