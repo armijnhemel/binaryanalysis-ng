@@ -81,6 +81,46 @@ types:
             record_types::int64: s8
             record_types::uint64: u8
             record_types::string: strz
+  layout_entries:
+    seq:
+      - id: entries
+        type: layout_entry
+        repeat: eos
+  layout_entry:
+    -webide-representation: "{file_type}"
+    seq:
+      - id: uid
+        type: u4
+      - id: gid
+        type: u4
+      - id: mode
+        type: u4
+      - id: tag
+        type: u4
+      - id: len_source
+        type: u2
+      - id: len_target
+        type: u2
+      - id: file_type
+        type: u1
+        enum: file_type
+      - id: padding
+        size: 11
+      - id: source
+        size: len_source
+      - id: target
+        size: len_target
+        type: strz
+    enums:
+      file_type:
+        0: unknown
+        1: regular
+        2: symlink
+        3: directory
+        4: character_device
+        5: block_device
+        6: fifo
+        7: socket
 enums:
   file_types:
     0: unknown
