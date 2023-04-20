@@ -49,7 +49,6 @@ types:
         enum: compression
       - id: data
         size: len_data
-types:
   meta_records:
     seq:
       - id: records
