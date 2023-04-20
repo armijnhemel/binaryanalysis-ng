@@ -183,6 +183,12 @@ types:
             type: u4
           - id: sysdep_string_reference
             type: u4
+        instances:
+          sysdep_string:
+            io: _root._io
+            pos: sysdep_string_reference
+            size: len_segment
+            type: str
       version:
         seq:
           - id: version_raw
