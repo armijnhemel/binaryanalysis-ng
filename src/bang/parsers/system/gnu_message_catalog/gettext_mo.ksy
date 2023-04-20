@@ -134,6 +134,21 @@ types:
         type: u4
       - id: ofs_hashtable_items
         type: u4
+      - id: num_sysdep_segments
+        type: u4
+        if: version.minor >= 1
+      - id: ofs_sysdep_segments
+        type: u4
+        if: version.minor >= 1
+      - id: num_sysdep_strings
+        type: u4
+        if: version.minor >= 1
+      - id: ofs_sysdep_original_text_table
+        type: u4
+        if: version.minor >= 1
+      - id: ofs_sysdep_translated_text_table
+        type: u4
+        if: version.minor >= 1
     instances:
       originals:
         io: _root._io
@@ -154,7 +169,20 @@ types:
         repeat: expr
         repeat-expr: num_hashtable_items
         if: ofs_hashtable_items != 0
+      sysdep_segments:
+        io: _root._io
+        pos: ofs_sysdep_segments
+        type: sysdep_segment
+        repeat: expr
+        repeat-expr: num_sysdep_segments
+        if: version.minor >= 1 and ofs_sysdep_segments != 0
     types:
+      sysdep_segment:
+        seq:
+          - id: len_segment
+            type: u4
+          - id: sysdep_string_reference
+            type: u4
       version:
         seq:
           - id: version_raw
