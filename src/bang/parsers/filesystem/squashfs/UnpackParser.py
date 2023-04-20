@@ -151,7 +151,7 @@ class SquashfsUnpackParser(UnpackParser):
         # create a temporary directory and remove it again
         # unsquashfs cannot unpack to an existing directory
         # and move contents after unpacking.
-        squashfs_unpack_directory = tempfile.mkdtemp(dir=self.configuration.temporary_directory)
+        squashfs_unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
         shutil.rmtree(squashfs_unpack_directory)
 
         success = False
@@ -165,6 +165,11 @@ class SquashfsUnpackParser(UnpackParser):
             p = subprocess.Popen(['sasquatch', '-o', str(self.offset), '-p', '1', '-d', squashfs_unpack_directory, self.infile.name],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
+
+        # force the permissions of the unpacking directory as
+        # sometimes a directory is created without write permission
+        # (so difficult to remove)
+        squashfs_unpack_directory.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
         # move the unpacked files
         # move contents of the unpacked file system
