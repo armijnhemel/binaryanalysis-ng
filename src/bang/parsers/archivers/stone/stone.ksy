@@ -47,6 +47,10 @@ types:
       - id: compression
         type: u1
         enum: compression
+        valid:
+          any-of:
+            - compression::no_compression
+            - compression::zstd
       - id: data
         size: len_data
   meta_records:
@@ -62,6 +66,28 @@ types:
       - id: record_tag
         type: u2
         enum: record_tags
+        valid:
+          any-of:
+            - record_tags::name
+            - record_tags::architecture
+            - record_tags::version
+            - record_tags::summary
+            - record_tags::description
+            - record_tags::homepage
+            - record_tags::source_id
+            - record_tags::depends
+            - record_tags::provides
+            - record_tags::conflicts
+            - record_tags::release
+            - record_tags::license
+            - record_tags::build_release
+            - record_tags::package_uri
+            - record_tags::package_hash
+            - record_tags::package_size
+            - record_tags::build_depends
+            - record_tags::source_uri
+            - record_tags::source_path
+            - record_tags::source_ref
       - id: record_type
         type: u1
         enum: record_types
@@ -104,6 +130,15 @@ types:
       - id: file_type
         type: u1
         enum: file_type
+        valid:
+          any-of:
+            - file_type::regular
+            - file_type::symlink
+            - file_type::directory
+            - file_type::character_device
+            - file_type::block_device
+            - file_type::fifo
+            - file_type::socket
       - id: padding
         size: 11
       - id: source
