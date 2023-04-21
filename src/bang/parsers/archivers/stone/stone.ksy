@@ -22,7 +22,7 @@ types:
         type: u2
       - id: integrity_check
         contents: [0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0, 5, 0, 0, 6, 0, 0, 7]
-      - id: file_type
+      - id: type
         type: u1
         enum: file_types
       - id: version
