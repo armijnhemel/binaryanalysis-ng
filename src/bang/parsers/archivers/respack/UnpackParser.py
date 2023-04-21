@@ -30,7 +30,7 @@ from kaitaistruct import ValidationFailedError
 from . import respack
 
 
-class ResPack(UnpackParser):
+class ResPackUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'RS')
