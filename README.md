@@ -268,6 +268,7 @@ larger file, unless stated otherwise.
 166. LOD (RDA/Coolsand phone firmware format)
 167. MediaTek secure ROM(?) info
 168. lrzip
+169. SerpentOS .stone package file
 
 The following text formats can be recognized:
 
