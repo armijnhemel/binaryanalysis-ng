@@ -104,6 +104,13 @@ class StoneUnpackParser(UnpackParser):
                 elif payload.type == stone.Stone.PayloadType.content:
                     self.content = unpacked_payload
 
+            if self.data.header.type == stone.Stone.FileTypes.repository:
+                if payload.type == stone.Stone.PayloadType.meta:
+                    try:
+                        self.meta = stone.Stone.MetaRecords.from_bytes(unpacked_payload)
+                    except (Exception, ValidationFailedError) as e:
+                        raise UnpackParserException(e.args)
+
         if self.data.header.type == stone.Stone.FileTypes.binary:
             # combine layout and index. Index contains the
             # offsets and sizes of the data, layout contains
@@ -155,4 +162,12 @@ class StoneUnpackParser(UnpackParser):
                 meta_directory.unpack_symlink(d['target'], d['source'])
 
     labels = ['stone']
-    metadata = {}
+
+    @property
+    def metadata(self):
+        metadata = {}
+        if self.data.header.type == stone.Stone.FileTypes.binary:
+            metadata['type'] = 'binary'
+        elif self.data.header.type == stone.Stone.FileTypes.repository:
+            metadata['type'] = 'repository'
+        return metadata
