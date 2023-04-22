@@ -269,6 +269,7 @@ larger file, unless stated otherwise.
 167. MediaTek secure ROM(?) info
 168. lrzip
 169. SerpentOS .stone package file
+170. systemd hwdb.bin
 
 The following text formats can be recognized:
 
