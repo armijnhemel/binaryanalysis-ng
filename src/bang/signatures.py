@@ -22,7 +22,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import math
 import os
 import pkgutil
 import importlib
