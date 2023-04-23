@@ -54,16 +54,6 @@ def get_unpackers():
             pathlib.Path(os.path.dirname(parsers.__file__)), pathlib.Path('.'))
     return list(unpackers)
 
-def get_unpackers_for_extensions():
-    d = {}
-    for u in get_unpackers():
-        for e in u.extensions:
-            d.setdefault(e,[])
-            d[e].append(u)
-    return d
-
-extension_to_unpackparser = get_unpackers_for_extensions()
-
 def get_unpackers_for_featureless_files():
     return [u for u in get_unpackers() if u.scan_if_featureless ]
 
