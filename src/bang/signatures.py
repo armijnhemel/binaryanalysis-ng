@@ -22,12 +22,13 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import os
-import pkgutil
 import importlib
 import inspect
-from . import parsers
+import os
 import pathlib
+import pkgutil
+
+from . import parsers
 from .UnpackParser import UnpackParser
 
 
