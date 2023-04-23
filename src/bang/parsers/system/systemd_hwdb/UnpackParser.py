@@ -28,7 +28,7 @@ from kaitaistruct import ValidationFailedError
 from . import systemd_hwdb
 
 
-class SystemdHwdb(UnpackParser):
+class SystemdHwdbUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'KSLPHHRH')
