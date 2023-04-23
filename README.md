@@ -270,6 +270,7 @@ larger file, unless stated otherwise.
 168. lrzip
 169. SerpentOS .stone package file
 170. systemd hwdb.bin
+171. Qt Translation files
 
 The following text formats can be recognized:
 
