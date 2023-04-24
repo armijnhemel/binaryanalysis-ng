@@ -458,6 +458,16 @@ class ElfUnpackParser(UnpackParser):
                     link_crc = int.from_bytes(header.body[-4:], byteorder=metadata['endian'])
                     metadata['gnu debuglink'] = link_name
                     metadata['gnu debuglink crc'] = link_crc
+                elif header.name == '.GCC.command.line':
+                    # GCC -frecord-gcc-switches option
+                    gcc_command_line_strings = []
+                    for s in header.body.split(b'\x00'):
+                        try:
+                            gcc_command_line_strings.append(s.decode())
+                        except:
+                            pass
+                    if gcc_command_line_strings != []:
+                        metadata['.GCC.command.line'] = gcc_command_line_strings
                 elif header.name in RODATA_SECTIONS:
                     for s in header.body.split(b'\x00'):
                         try:
