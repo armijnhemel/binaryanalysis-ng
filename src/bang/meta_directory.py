@@ -144,7 +144,11 @@ class MetaDirectory:
         If info_write is False, the info will only be read.
         '''
         self._info_write = self._info_write or info_write
-        open_file = open_file or (self._open_file is None)
+        #open_file = open_file or (self._open_file is None)
+        open_file = open_file
+        if self._open_file is not None:
+            open_file = False
+
         if open_file:
             self._open_file = self.abs_file_path.open('rb')
         if self._refcount == 0:
