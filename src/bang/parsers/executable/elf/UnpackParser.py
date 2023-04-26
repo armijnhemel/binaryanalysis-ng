@@ -331,6 +331,7 @@ class ElfUnpackParser(UnpackParser):
             section_ctr += 1
 
             if header.name in ['.modinfo', '__ksymtab_strings']:
+                # TODO: find example where this data is only in __ksymtab_strings
                 metadata['elf_type'].append('Linux kernel module')
                 try:
                     module_meta = header.body.split(b'\x00')
@@ -656,6 +657,7 @@ class ElfUnpackParser(UnpackParser):
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
         metadata['sections'] = sections
+        metadata['elf_type'] = sorted(set(metadata['elf_type']))
 
         if linux_kernel_module_info != {}:
             metadata['Linux kernel module'] = linux_kernel_module_info
