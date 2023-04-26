@@ -341,6 +341,7 @@ class PngUnpackParser(UnpackParser):
         metadata['width'] = self.data.ihdr.width
         metadata['height'] = self.data.ihdr.height
         metadata['depth'] = self.data.ihdr.bit_depth
+        metadata['color'] = self.data.ihdr.color_type.name
         metadata['text'] = pngtexts
         metadata['exif'] = exiftags
         metadata['xmp'] = xmptags
