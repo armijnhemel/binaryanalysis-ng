@@ -52,11 +52,12 @@ or exported (as all have been resolved) the only identifiers that can be used
 are strings, and function names and variable names cannot be used (as they are
 not present).
 
-Because all of the dependencies are included it means that not just the strings
-of the program, but also its dependencies are included. This makes strings
-extracted from a statically linked ELF binary not good for fingerprinting only
-the program. They are only useful if trying to match exactly the combination
-of program and dependencies that is used.
+Because all of the dependencies are included in the same binary it means that
+not just the strings of the program, but also its dependencies are extracted
+by BANG. This makes strings extracted from a statically linked ELF binary not
+suitable if the goal is to only fingerprint only the program. They are only
+useful if trying to match the combination of program and dependencies that is
+used.
 
 ### Android Dex files
 
@@ -73,17 +74,19 @@ such as Android Studio:
 
 which advertises obfuscation of class names and method names as a feature.
 
-This makes rules generated from binary `.dex` files not very well suited.
-It is much better to create rules from source code and focus on other
-identifiers, such as the strings embedded in `.dex` files.
+This makes rules generated from binary `.dex` files not very well suited as
+there will be a lot of junk. Results will be much better with rules created
+from source code with other identifiers than class names or method names,
+such as the strings embedded in `.dex` files.
 
 ## Source code processor
 
 The source code processor is split into two scripts:
-`bang_extract_identifiers.py` extracts identifiers from source code files and
-writes these identifiers, with associated metadata, to output files as JSON.
-The script `yara_from_source.py` takes these JSON output files and generates
-YARA rule files.
+
+1. `bang_extract_identifiers.py` - extracts identifiers from source code files and
+   writes these identifiers, with associated metadata, to output files as JSON.
+2. `yara_from_source.py` - takes JSON output files from step 1 and generates
+   YARA rule files.
 
 ### `bang_extract_identifiers.py`
 
@@ -199,11 +202,14 @@ arguments: a configuration file (in YAML format) and the directory with BANG
 scan results. An exanple configuration file `yara-config.yaml` is provided
 in this directory and should be adapted to your local settings.
 
-An example invocation could look like this:
+If a package was unpacked in the directory `~/tmp/debian`, then an example
+invocation could look like this:
 
 ```console
 $ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian
 ```
+
+This will generate a YARA file for each ELF file.
 
 There are some settings in the configuration that determine which identifiers
 will be written to the YARA files. These are described in the sample
