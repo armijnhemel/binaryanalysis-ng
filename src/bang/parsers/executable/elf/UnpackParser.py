@@ -345,7 +345,6 @@ class ElfUnpackParser(UnpackParser):
                         if meta.startswith('name='):
                             self.module_name = meta.split('=', maxsplit=1)[1]
                             linux_kernel_module_info['name'] = self.module_name
-                            #break
                         elif meta.startswith('license='):
                             self.module_name = meta.split('=', maxsplit=1)[1]
                             linux_kernel_module_info['license'] = self.module_name
@@ -355,6 +354,15 @@ class ElfUnpackParser(UnpackParser):
                         elif meta.startswith('description='):
                             self.module_name = meta.split('=', maxsplit=1)[1]
                             linux_kernel_module_info['description'] = self.module_name
+                        elif meta.startswith('vermagic='):
+                            self.module_name = meta.split('=', maxsplit=1)[1]
+                            linux_kernel_module_info['vermagic'] = self.module_name
+                        elif meta.startswith('depends='):
+                            self.module_name = meta.split('=', maxsplit=1)[1]
+                            if self.module_name != '':
+                                if not 'depends' in linux_kernel_module_info:
+                                    linux_kernel_module_info['depends'] = []
+                                linux_kernel_module_info['depends'].append(self.module_name)
                 except Exception as e:
                     pass
             elif header.name in ['.oat_patches', '.text.oat_patches', '.dex']:
