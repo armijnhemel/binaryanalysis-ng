@@ -660,13 +660,24 @@ class ElfUnpackParser(UnpackParser):
                     elif entry.name == b'NaCl':
                         metadata['elf_type'].append('Google Native Client')
 
-        metadata['dynamic_symbols'] = dynamic_symbols
-        metadata['guile_symbols'] = guile_symbols
-        metadata['needed'] = needed
+        if dynamic_symbols != []:
+            metadata['dynamic_symbols'] = dynamic_symbols
+
+        if guile_symbols != []:
+            metadata['guile_symbols'] = guile_symbols
+
+        if needed != []:
+            metadata['needed'] = needed
+
         metadata['notes'] = notes
         metadata['security'].sort()
-        metadata['strings'] = data_strings
-        metadata['symbols'] = symbols
+
+        if data_strings != []:
+            metadata['strings'] = data_strings
+
+        if symbols != []:
+             metadata['symbols'] = symbols
+
         metadata['sections'] = sections
         metadata['elf_type'] = sorted(set(metadata['elf_type']))
 
