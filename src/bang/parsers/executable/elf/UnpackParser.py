@@ -311,26 +311,27 @@ class ElfUnpackParser(UnpackParser):
         # process the various section headers
         is_dynamic_elf = False
         section_to_hash = {}
-        section_information = {}
+        sections = {}
         section_ctr = 0
         for header in self.data.header.section_headers:
-            section_information[header.name] = {}
-            section_information[header.name]['nr'] = section_ctr
-            section_information[header.name]['address'] = header.addr
+            sections[header.name] = {}
+            sections[header.name]['nr'] = section_ctr
+            sections[header.name]['address'] = header.addr
+            sections[header.name]['type'] = header.type.name
             if header.type != elf.Elf.ShType.nobits:
-                section_information[header.name]['size'] = header.len_body
-                section_information[header.name]['offset'] = header.ofs_body
+                sections[header.name]['size'] = header.len_body
+                sections[header.name]['offset'] = header.ofs_body
                 if header.body != b'':
-                    section_information[header.name]['hashes'] = {}
+                    sections[header.name]['hashes'] = {}
                     for h in HASH_ALGORITHMS:
                         section_hash = hashlib.new(h)
                         section_hash.update(header.raw_body)
-                        section_information[header.name]['hashes'][h] = section_hash.hexdigest()
+                        sections[header.name]['hashes'][h] = section_hash.hexdigest()
 
                     try:
                         tlsh_hash = tlsh.hash(header.raw_body)
                         if tlsh_hash != 'TNULL':
-                            section_information[header.name]['hashes']['tlsh'] = tlsh_hash
+                            sections[header.name]['hashes']['tlsh'] = tlsh_hash
                     except:
                         pass
 
@@ -654,7 +655,7 @@ class ElfUnpackParser(UnpackParser):
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
         metadata['telfhash'] = ''
-        metadata['section_information'] = section_information
+        metadata['sections'] = sections
 
         if linux_kernel_module_info != {}:
             metadata['linux_kernel_module'] = linux_kernel_module_info
