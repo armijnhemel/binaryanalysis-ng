@@ -173,6 +173,12 @@ def build_meta_table(md):
         meta_table.add_row('Parser', f'{md.info.get("unpack_parser")}')
         meta_table.add_row('Labels', f'{", ".join(md.info.get("labels",[]))}')
         meta_table.add_row('Size', f'{md.size}')
+        if md.info.get("metadata", []) != []:
+            metadata = md.info.get("metadata", [])
+            if 'hashes' in metadata:
+                for h in metadata['hashes']:
+                    meta_table.add_row(h, f'{metadata["hashes"][h]}')
+
     return meta_table
 
 def build_unpack_link_tables(md, parent, pretty=False):
