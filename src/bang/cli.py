@@ -158,6 +158,7 @@ def show(show_all, metadir, pretty):
     console.print(meta_table)
 
     if show_all:
+        # print any unpacked files
         table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
         if have_unpack_results:
             console.print(table)
