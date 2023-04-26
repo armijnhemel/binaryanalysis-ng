@@ -310,7 +310,10 @@ class ElfUnpackParser(UnpackParser):
             sections[header.name] = {}
             sections[header.name]['nr'] = section_ctr
             sections[header.name]['address'] = header.addr
-            sections[header.name]['type'] = header.type.name
+            if type(header.type) == int:
+                sections[header.name]['type'] = header.type
+            else:
+                sections[header.name]['type'] = header.type.name
             if header.type != elf.Elf.ShType.nobits:
                 sections[header.name]['size'] = header.len_body
                 sections[header.name]['offset'] = header.ofs_body
