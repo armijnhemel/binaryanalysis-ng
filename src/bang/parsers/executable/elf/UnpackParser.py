@@ -644,7 +644,6 @@ class ElfUnpackParser(UnpackParser):
         metadata['security'].sort()
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
-        metadata['telfhash'] = ''
         metadata['sections'] = sections
 
         if linux_kernel_module_info != {}:
