@@ -297,13 +297,6 @@ class ElfUnpackParser(UnpackParser):
         # non-stripped binaries)
         symbols = []
 
-        # store RPATH and RUNPATH. Both could be present in a binary
-        rpath = ''
-        runpath = ''
-
-        # shared object name (for libraries)
-        self.soname = ''
-
         # module name (for Linux kernel modules)
         self.module_name = ''
         linux_kernel_module_info = {}
@@ -366,11 +359,11 @@ class ElfUnpackParser(UnpackParser):
                         if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
                             needed.append(entry.value_str)
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
-                            rpath = entry.value_str
+                            metadata['rpath'] = entry.value_str
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
-                            runpath = entry.value_str
+                            metadata['runpath'] = entry.value_str
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
-                            self.soname = entry.value_str
+                            metadata['soname'] = entry.value_str
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags_1:
                             # check for position independent code
                             if entry.flag_1_values.pie:
@@ -648,10 +641,7 @@ class ElfUnpackParser(UnpackParser):
         metadata['guile_symbols'] = guile_symbols
         metadata['needed'] = needed
         metadata['notes'] = notes
-        metadata['rpath'] = rpath
-        metadata['runpath'] = runpath
         metadata['security'].sort()
-        metadata['soname'] = self.soname
         metadata['strings'] = data_strings
         metadata['symbols'] = symbols
         metadata['telfhash'] = ''
