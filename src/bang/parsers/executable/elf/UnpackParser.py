@@ -331,15 +331,26 @@ class ElfUnpackParser(UnpackParser):
             section_ctr += 1
 
             if header.name in ['.modinfo', '__ksymtab_strings']:
-                metadata['elf_type'].append('linux_kernel_module')
+                metadata['elf_type'].append('Linux kernel module')
                 try:
                     module_meta = header.body.split(b'\x00')
                     for m in module_meta:
                         meta = m.decode()
+                        if meta == '':
+                            continue
                         if meta.startswith('name='):
                             self.module_name = meta.split('=', maxsplit=1)[1]
                             linux_kernel_module_info['name'] = self.module_name
-                            break
+                            #break
+                        elif meta.startswith('license='):
+                            self.module_name = meta.split('=', maxsplit=1)[1]
+                            linux_kernel_module_info['license'] = self.module_name
+                        elif meta.startswith('author='):
+                            self.module_name = meta.split('=', maxsplit=1)[1]
+                            linux_kernel_module_info['author'] = self.module_name
+                        elif meta.startswith('description='):
+                            self.module_name = meta.split('=', maxsplit=1)[1]
+                            linux_kernel_module_info['description'] = self.module_name
                 except Exception as e:
                     pass
             elif header.name in ['.oat_patches', '.text.oat_patches', '.dex']:
@@ -647,7 +658,7 @@ class ElfUnpackParser(UnpackParser):
         metadata['sections'] = sections
 
         if linux_kernel_module_info != {}:
-            metadata['linux_kernel_module'] = linux_kernel_module_info
+            metadata['Linux kernel module'] = linux_kernel_module_info
 
         if metadata['type'] in ['executable', 'shared']:
             try:
