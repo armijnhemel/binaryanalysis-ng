@@ -9,7 +9,6 @@ let
     deepdiff
     defusedxml
     dockerfile-parse
-    elasticsearch
     icalendar
     kaitaistruct
     #meilisearch
