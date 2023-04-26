@@ -16,8 +16,8 @@ which can then be used to generate parsers for various languages.
 The easiest way to install the Kaitai Struct compiler if you are not using Nix
 is to download a released zip file, as explained by the web site
 <http://kaitai.io/#download> (select your prefered installation format, such as
-`.deb` or `.zip`). If you do this make sure to download version 0.9 or later as
-some of the grammars depend on features introduced in version 0.9.
+`.deb` or `.zip`). If you do this make sure to download version 0.10 or later as
+some of the grammars depend on features introduced in version 0.10.
 
 Alternatively, you can build the compiler from scratch. This requires Scala and
 the Scala build tool (`sbt`). Note that you may need a recent version of `sbt`

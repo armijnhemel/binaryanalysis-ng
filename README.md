@@ -21,7 +21,7 @@ The recommended way is to use [Nix](https://nixos.org/nix), run
 
 ### Other distributions without Nix
 
-Note: this list is incomplete. It is highly recommended to use Nix.
+Note: this list is vastly incomplete. It is highly recommended to use Nix.
 
 * a recent Linux distribution (Fedora 35 or higher, or equivalent)
 * Python 3.9.x or higher
@@ -50,7 +50,6 @@ Note: this list is incomplete. It is highly recommended to use Nix.
 * ncompress
 * util-linux (for 'fsck.cramfs')
 * lz4 (for 'lz4c')
-* elasticsearch (possibly named python3-elasticsearch)
 
 and many others (see `shell.nix`, `maintenance.nix` and `analysis.nix` for a
 full list).
