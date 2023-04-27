@@ -561,10 +561,10 @@ def process_jobs(pipeline, scan_environment):
                 #scanjob = scan_environment.scan_queue.get(timeout=86400)
                 scanjob = scan_environment.scan_queue.get(timeout=scan_environment.job_wait_time)
                 log.debug(f'process_jobs: {scanjob=}')
-                scan_environment.scan_semaphore.release()
                 scanjob.scan_environment = scan_environment
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
                 pipeline(scanjob.scan_environment, scanjob.meta_directory)
+                scan_environment.scan_semaphore.release()
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
             except queue.Empty as e:
                 log.debug(f'process_jobs: scan queue is empty')
