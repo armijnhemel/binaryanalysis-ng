@@ -85,6 +85,8 @@ class UbootLegacyUnpackParser(UnpackParser):
         # set the name of the image. If the name of the image is
         # an empty string hardcode a name based
         # on the image type of the U-Boot file.
+        #
+        # TODO: correctly process multi images
 
         if self.is_asus_device or self.data.header.name == '':
             imagename = self.data.header.image_type.name
