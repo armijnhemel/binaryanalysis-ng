@@ -30,7 +30,7 @@ try:
 except ImportError:
     from yaml import Loader
 
-@click.command(short_help='process BANG result files and output YARA')
+@click.command(short_help='process BANG result files and output apkid results')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
 @click.option('--result-directory', '-r', 'bang_result_directory', required=True, help='BANG result directory', type=click.Path(exists=True))
 def main(config_file, bang_result_directory):
