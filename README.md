@@ -270,6 +270,7 @@ larger file, unless stated otherwise.
 169. SerpentOS .stone package file
 170. systemd hwdb.bin
 171. Qt Translation files
+172. Reolink firmware
 
 The following text formats can be recognized:
 
