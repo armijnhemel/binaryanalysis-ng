@@ -22,7 +22,7 @@ instances:
     pos: header._sizeof
     type: section
   num_sections:
-    value: first_section.ofs_section / (64 + 76)
+    value: (first_section.ofs_section - 12) / (64 + 76)
 types:
   header:
     seq:
