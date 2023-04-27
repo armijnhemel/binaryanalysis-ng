@@ -63,6 +63,9 @@ class ChromePakUnpackParser(UnpackParser):
             file_path = pathlib.Path("resource-%d" % resources[i].id)
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(resources[i].body)
+
+                # pass some information to the unpacked files about
+                # the parent to avoid the base64 unpacker from running
                 with unpacked_md.open(open_file=False):
                     unpacked_md.info['parent'] = "chrome pak"
                 yield unpacked_md
