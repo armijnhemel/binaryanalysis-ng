@@ -44,6 +44,7 @@ class MetaDirectory:
     REL_UNPACK_DIR = 'rel'
     ABS_UNPACK_DIR = 'abs'
     ROOT_PATH = 'root'
+    PKL_NAME = 'info.pkl'
 
     def __init__(self, meta_root, name, is_root):
         '''Create a MetaDirectory in to meta_root. If name is
@@ -175,7 +176,7 @@ class MetaDirectory:
 
     def _read_info(self):
         '''Reads the file information stored in the MetaDirectory.'''
-        path = self.abs_md_path / 'info.pkl'
+        path = self.abs_md_path / self.PKL_NAME
         log.debug(f'[{self.md_path}]_read_info: reading from {path}')
         try:
             with path.open('rb') as f:
@@ -187,7 +188,7 @@ class MetaDirectory:
         '''Set the info property to data. Note: this will overwrite everything!
         '''
         log.debug(f'[{self.md_path}]_write_info: set info = {data}')
-        path = self.abs_md_path / 'info.pkl'
+        path = self.abs_md_path / self.PKL_NAME
         path.parent.mkdir(parents=True, exist_ok=True)
         log.debug(f'[{self.md_path}]_write_info: writing to {path}')
         with path.open('wb') as f:
