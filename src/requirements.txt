@@ -8,7 +8,6 @@ python-snappy
 Pillow
 lz4
 icalendar
-elasticsearch
 dockerfile-parse
 defusedxml
 mutf8
