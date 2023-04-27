@@ -741,11 +741,12 @@ class ZipUnpackParser(UnpackParser):
         else:
             zfile = self.temporary_file[1]
 
-        try:
-            # TODO: process apk results
-            apk = pyaxmlparser.APK(zfile)
-        except:
-            pass
+        if 'android' in self.labels:
+            try:
+                # TODO: process apk results
+                apk = pyaxmlparser.APK(zfile)
+            except:
+                pass
 
         metadata = {}
         metadata['comment'] = self.zip_comment
