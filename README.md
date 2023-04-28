@@ -272,6 +272,7 @@ larger file, unless stated otherwise.
 171. Qt Translation files
 172. Reolink firmware
 173. Xiaomi firmware
+174. HP BDL firmware
 
 The following text formats can be recognized:
 
