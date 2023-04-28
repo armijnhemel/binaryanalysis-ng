@@ -1577,6 +1577,7 @@ enums:
     0x6474e551: gnu_stack
     0x6474e552: gnu_relro
     0x6474e553: gnu_property
+    0x6474e554: gnu_sframe
   # https://docs.oracle.com/cd/E37838_01/html/E36783/man-s.html#OSLLGchapter6-73445
   # https://github.com/illumos/illumos-gate/blob/1d806c5f41/usr/src/boot/sys/sys/elf_common.h#L377-L462
   sh_type:
