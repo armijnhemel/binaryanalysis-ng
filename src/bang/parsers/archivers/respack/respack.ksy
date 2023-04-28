@@ -22,7 +22,13 @@ types:
         size: 8
       - id: len_json
         type: u4
-      - id: md5
+      - id: md5_bytes
         size: 32
-        type: str
+        #type: str
+        #encoding: ASCII
         doc: MD5 of data that follows the header
+        valid:
+          expr: '_.min >= 0x30 and _.max <= 0x66'
+    instances:
+      md5:
+        value: md5_bytes.to_s('ascii')
