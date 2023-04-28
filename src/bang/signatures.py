@@ -55,11 +55,6 @@ def get_unpackers():
             pathlib.Path(os.path.dirname(parsers.__file__)), pathlib.Path('.'))
     return list(unpackers)
 
-def get_unpackers_for_featureless_files():
-    return [u for u in get_unpackers() if u.scan_if_featureless ]
-
-unpackers_for_featureless_files = get_unpackers_for_featureless_files()
-
 def matches_file_pattern(filename, extension):
     '''checks whether a file ends in the string extension (case insensitive).'''
     return filename.name.lower().endswith(extension)
