@@ -100,7 +100,7 @@ class LzmaBaseUnpackParser(UnpackParser):
             else:
                 file_path = pathlib.Path("unpacked_from_xz")
         elif self.filetype == 'lzma':
-            if meta_directory.file_path.suffix.lower() == '.lzma':
+            if meta_directory.file_path.suffix.lower() in ['.lzma', '.lz']:
                 file_path = pathlib.Path(meta_directory.file_path.stem)
                 if file_path in ['.', '..']:
                     file_path = pathlib.Path("unpacked_from_lzma")
