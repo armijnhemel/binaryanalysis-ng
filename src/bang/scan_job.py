@@ -172,7 +172,7 @@ def check_with_suggested_parsers(scan_environment, checking_meta_directory):
 #
 def check_by_extension(scan_environment, checking_meta_directory):
     for ext, unpack_parser_cls in find_extension_parsers(scan_environment):
-        if signatures.matches_file_pattern(checking_meta_directory.file_path, ext):
+        if matches_file_pattern(checking_meta_directory.file_path, ext):
             log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: {unpack_parser_cls} parses extension {ext} in {checking_meta_directory.file_path}')
             try:
                 unpack_parser = unpack_parser_cls(checking_meta_directory, 0, scan_environment.configuration)
@@ -582,3 +582,7 @@ def process_jobs(pipeline, scan_environment):
 
     # TODO: this should not be needed if unpackparsers behave
     os.chdir(current_dir)
+
+def matches_file_pattern(filename, extension):
+    '''checks whether a file ends in the string extension (case insensitive).'''
+    return filename.name.lower().endswith(extension)

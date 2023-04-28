@@ -54,7 +54,3 @@ def get_unpackers():
     unpackers = _get_unpackers_recursive(
             pathlib.Path(os.path.dirname(parsers.__file__)), pathlib.Path('.'))
     return list(unpackers)
-
-def matches_file_pattern(filename, extension):
-    '''checks whether a file ends in the string extension (case insensitive).'''
-    return filename.name.lower().endswith(extension)
