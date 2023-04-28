@@ -271,6 +271,7 @@ larger file, unless stated otherwise.
 170. systemd hwdb.bin
 171. Qt Translation files
 172. Reolink firmware
+173. Xiaomi firmware
 
 The following text formats can be recognized:
 
