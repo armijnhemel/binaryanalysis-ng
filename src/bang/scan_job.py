@@ -418,6 +418,10 @@ def pipe_exec(checking_iterator):
                     log.debug(f'pipe_exec({checking_iterator})[{meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
                     job = ScanJob(unpacked_md.md_path)
                     scan_environment.scan_queue.put(job)
+
+                    # wake up all waiting threads
+                    # as there is new data in the queue
+                    scan_environment.barrier.reset()
                     log.debug(f'pipe_exec({checking_iterator})[{meta_directory.md_path}]: queued job [{time.time_ns()}]')
                 log.debug(f'pipe_exec({checking_iterator})[{meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
         return True
@@ -557,39 +561,20 @@ def process_jobs(pipeline, scan_environment):
         # TODO: check if timeout long enough
         log.debug(f'process_jobs: getting scanjob')
 
-        # grab a semaphore. There are only as many as there are threads.
-        s = scan_environment.scan_semaphore.acquire(blocking=False)
+        try:
+            # grab a job from the queue
+            scanjob = scan_environment.scan_queue.get(timeout=scan_environment.job_wait_time)
+            log.debug(f'process_jobs: {scanjob=}')
 
-        if s: # at least one scan job is running
-            try:
-                # grab a job from the queue
-                scanjob = scan_environment.scan_queue.get(timeout=scan_environment.job_wait_time)
-                log.debug(f'process_jobs: {scanjob=}')
+            scanjob.scan_environment = scan_environment
+            log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
 
-                scanjob.scan_environment = scan_environment
-                log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
+            # start the pipeline for the job
+            pipeline(scanjob.scan_environment, scanjob.meta_directory)
 
-                # start the pipeline for the job
-                pipeline(scanjob.scan_environment, scanjob.meta_directory)
-
-                # scan job is done, so release the semaphore
-                scan_environment.scan_semaphore.release()
-
-                # then wake up all waiting threads
-                scan_environment.barrier.reset()
-                log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
-            except queue.Empty as e:
-                # there is no job in the queue right now.
-                # Do *not* release the semaphore at this moment
-                log.debug(f'process_jobs: scan queue is empty')
-            except Exception as e:
-                log.error(f'process_jobs: caught exception {e}')
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                exc_trace = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                log.error(f'process_jobs:\n{"".join(exc_trace)}')
-                scan_environment.scan_semaphore.acquire(blocking=False)
-                break
-        else:
+            log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
+        except queue.Empty as e:
+            log.debug(f'process_jobs: scan queue is empty')
             try:
                 # all scanjobs are waiting
                 scan_environment.barrier.wait()
@@ -597,6 +582,12 @@ def process_jobs(pipeline, scan_environment):
                 break
             except threading.BrokenBarrierError as e:
                 continue
+        except Exception as e:
+            log.error(f'process_jobs: caught exception {e}')
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            exc_trace = traceback.format_exception(exc_type, exc_value, exc_traceback)
+            log.error(f'process_jobs:\n{"".join(exc_trace)}')
+            break
     log.debug(f'process_jobs: exiting')
 
     # TODO: this should not be needed if unpackparsers behave

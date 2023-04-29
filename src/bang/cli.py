@@ -93,11 +93,10 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     #log.debug(f'{unpack_parsers =}')
     scan_environment.parsers.build_automaton()
 
-    # set up the process manager and initialize the semaphore
+    # set up the process manager and initialize the barrier
     # with the value of the amount of jobs: this is the maximum
     # amount of jobs that will be able to run concurrently.
     process_manager = multiprocessing.Manager()
-    scan_environment.scan_semaphore = process_manager.Semaphore(jobs)
     scan_environment.barrier = process_manager.Barrier(jobs)
 
     # create a queue
