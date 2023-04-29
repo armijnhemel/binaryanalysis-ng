@@ -555,18 +555,28 @@ def process_jobs(pipeline, scan_environment):
     while True:
         # TODO: check if timeout long enough
         log.debug(f'process_jobs: getting scanjob')
+
+        # grab a semaphore. There are only as many as there are threads.
         s = scan_environment.scan_semaphore.acquire(blocking=False)
+
         if s: # at least one scan job is running
             try:
-                #scanjob = scan_environment.scan_queue.get(timeout=86400)
+                # grab a job from the queue
                 scanjob = scan_environment.scan_queue.get(timeout=scan_environment.job_wait_time)
                 log.debug(f'process_jobs: {scanjob=}')
+
                 scanjob.scan_environment = scan_environment
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
+
+                # start the pipeline for the job
                 pipeline(scanjob.scan_environment, scanjob.meta_directory)
+
+                # scan job is done, so release the semaphore
                 scan_environment.scan_semaphore.release()
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
             except queue.Empty as e:
+                # there is no job in the queue right now.
+                # Do *not* release the semaphore at this moment
                 log.debug(f'process_jobs: scan queue is empty')
             except Exception as e:
                 log.error(f'process_jobs: caught exception {e}')
