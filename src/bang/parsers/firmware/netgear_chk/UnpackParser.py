@@ -51,7 +51,7 @@ class NetgearChkUnpackParser(UnpackParser):
         if self.data.rootfs != b'':
             file_path = pathlib.Path('rootfs')
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                outfile.write(self.data.kernel)
+                outfile.write(self.data.rootfs)
                 yield unpacked_md
 
     labels = ['netgear', 'firmware']
