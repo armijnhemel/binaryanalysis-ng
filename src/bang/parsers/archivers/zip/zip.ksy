@@ -37,7 +37,7 @@ seq:
   - id: sections
     type: pk_section
     repeat: until
-    repeat-until: _.section_type == section_types::end_of_central_dir
+    repeat-until: _.section_type == section_types::end_of_central_dir or _.section_type == section_types::instar_end_of_central_dir
 types:
   empty: {}
   pk_section:
@@ -48,10 +48,13 @@ types:
         valid:
           any-of:
             - section_types::central_dir_entry
+            - section_types::instar_central_dir_entry
             - section_types::local_file
             - section_types::dahua_local_file
+            - section_types::instar_local_file
             - section_types::digital_signature
             - section_types::end_of_central_dir
+            - section_types::instar_end_of_central_dir
             - section_types::zip64_end_of_central_dir
             - section_types::zip64_end_of_central_dir_locator
             - section_types::archive_extra_data
@@ -61,9 +64,12 @@ types:
           switch-on: section_type
           cases:
             section_types::central_dir_entry: central_dir_entry
+            section_types::instar_central_dir_entry: central_dir_entry
             section_types::local_file: local_file
             section_types::dahua_local_file: local_file
+            section_types::instar_local_file: local_file
             section_types::end_of_central_dir: end_of_central_dir
+            section_types::instar_end_of_central_dir: end_of_central_dir
             section_types::data_descriptor: data_descriptor
             section_types::archive_extra_data: archive_extra_data
             section_types::digital_signature: digital_signature
@@ -571,10 +577,13 @@ enums:
     0xfd4a: sms_qdos
   section_types:
     0x02014b50: central_dir_entry
+    0x08014b50: instar_central_dir_entry
     0x04034b50: local_file
     0x04034844: dahua_local_file
+    0x07034b50: instar_local_file
     0x05054b50: digital_signature
     0x06054b50: end_of_central_dir
+    0x09054b50: instar_end_of_central_dir
     0x06064b50: zip64_end_of_central_dir
     0x07064b50: zip64_end_of_central_dir_locator
     0x08064b50: archive_extra_data

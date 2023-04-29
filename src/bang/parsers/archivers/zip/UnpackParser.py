@@ -63,25 +63,30 @@ MAX_VERSION = 90
 # all known ZIP headers
 ARCHIVE_EXTRA_DATA = b'PK\x06\x08'
 CENTRAL_DIRECTORY = b'PK\x01\x02'
+INSTAR_CENTRAL_DIRECTORY = b'PK\x01\x08'
 DATA_DESCRIPTOR = b'PK\x07\x08'
 DIGITAL_SIGNATURE = b'PK\x05\x05'
 END_OF_CENTRAL_DIRECTORY = b'PK\x05\x06'
+INSTAR_END_OF_CENTRAL_DIRECTORY = b'PK\x05\x09'
 LOCAL_FILE_HEADER = b'PK\x03\x04'
 ZIP64_END_OF_CENTRAL_DIRECTORY = b'PK\x06\x06'
 ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR = b'PK\x06\x07'
 DAHUA_LOCAL_FILE_HEADER = b'DH\x03\x04'
+INSTAR_LOCAL_FILE_HEADER = b'DH\x03\x07'
 
 ALL_HEADERS = [ARCHIVE_EXTRA_DATA, CENTRAL_DIRECTORY, DATA_DESCRIPTOR,
                DIGITAL_SIGNATURE, END_OF_CENTRAL_DIRECTORY,
                LOCAL_FILE_HEADER, ZIP64_END_OF_CENTRAL_DIRECTORY,
                ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR,
-               DAHUA_LOCAL_FILE_HEADER]
+               DAHUA_LOCAL_FILE_HEADER, INSTAR_LOCAL_FILE_HEADER,
+               INSTAR_CENTRAL_DIRECTORY, INSTAR_END_OF_CENTRAL_DIRECTORY]
 
 
 class ZipUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (0, b'PK\x03\04'),
+        #(0, b'PK\x03\07'),
         # http://web.archive.org/web/20190709133846/https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/page-2
         (0, b'DH\x03\04')
     ]
@@ -92,6 +97,7 @@ class ZipUnpackParser(UnpackParser):
         self.zip64 = False
 
         self.dahua = False
+        self.instar = False
 
         # store if there is an Android signing block:
         # https://source.android.com/security/apksigning/
@@ -118,6 +124,8 @@ class ZipUnpackParser(UnpackParser):
             for s in self.data.sections:
                 if s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
                     self.dahua = True
+                if s.section_type == kaitai_zip.Zip.SectionTypes.instar_local_file:
+                    self.instar = True
                 if s.section_type == kaitai_zip.Zip.SectionTypes.local_file or s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
                     local_files.append((s.body.header.file_name, s.body.header.crc32))
                     if s.body.header.flags.file_encrypted:
@@ -688,6 +696,8 @@ class ZipUnpackParser(UnpackParser):
             labels.append('android')
         if self.dahua:
             labels.append('dahua')
+        if self.instar:
+            labels.append('instar zip')
 
         return labels
 
