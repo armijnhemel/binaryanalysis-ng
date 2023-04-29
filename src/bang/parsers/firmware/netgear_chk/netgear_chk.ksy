@@ -5,8 +5,8 @@ meta:
   endian: be
   encoding: UTF-8
 doc-ref:
-  - https://github.com/Getnear/R7800/blob/master/tools/firmware-utils/src/mkchkimg.c
-  - https://github.com/onekey-sec/unblob/blob/main/unblob/handlers/archive/netgear/chk.py
+  - https://lxr.openwrt.org/source/firmware-utils/src/mkchkimg.c
+  - https://github.com/onekey-sec/unblob/blob/5d9fd6d8/unblob/handlers/archive/netgear/chk.py
 seq:
   - id: header
     type: header
@@ -26,8 +26,11 @@ types:
         size: len_header - len_header._sizeof - magic._sizeof
   rest_of_header:
     seq:
+      - id: region_code
+        type: u1
+        enum: region_codes
       - id: reserved
-        size: 8
+        size: 7
       - id: kernel_checksum
         type: u4
       - id: rootfs_checksum
@@ -43,3 +46,7 @@ types:
       - id: board_id
         size-eos: true
         type: str
+enums:
+  region_codes:
+    1: world_wide
+    2: north_america
