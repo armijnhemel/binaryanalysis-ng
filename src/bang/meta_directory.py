@@ -128,6 +128,11 @@ class MetaDirectory:
             self._size = self.abs_file_path.stat().st_size
         return self._size
 
+    @size.setter
+    def size(self, size):
+        '''the size of the file that the MetaDirectory refers to.'''
+        self._size = size
+
     @contextmanager
     def open(self, open_file=True, info_write=True):
         '''Context manager to "open" the MetaDirectory. Yields itself.
@@ -281,6 +286,7 @@ class MetaDirectory:
             # $ chmod 744
             unpacked_path.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IROTH)
             unpacked_file.close()
+            unpacked_md.size = unpacked_path.stat().st_size
 
         # update info
         if path.is_absolute():
