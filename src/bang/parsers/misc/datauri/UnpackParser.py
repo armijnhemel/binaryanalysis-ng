@@ -42,7 +42,7 @@ class DataUriUnpackParser(UnpackParser):
 
     def parse(self):
         bytes_read = 0
-        header = self.infile.peek(25)
+        header = self.infile.peek(25)[:25]
         if b'gif' in header:
             self.filetype = 'gif'
             self.infile.seek(22, os.SEEK_CUR)
