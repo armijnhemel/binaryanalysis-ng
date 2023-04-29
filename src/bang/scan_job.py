@@ -24,6 +24,7 @@ import os
 import queue
 import re
 import sys
+import threading
 import traceback
 import time
 from dataclasses import dataclass
@@ -573,6 +574,9 @@ def process_jobs(pipeline, scan_environment):
 
                 # scan job is done, so release the semaphore
                 scan_environment.scan_semaphore.release()
+
+                # then wake up all waiting threads
+                scan_environment.barrier.reset()
                 log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
             except queue.Empty as e:
                 # there is no job in the queue right now.
@@ -585,9 +589,14 @@ def process_jobs(pipeline, scan_environment):
                 log.error(f'process_jobs:\n{"".join(exc_trace)}')
                 scan_environment.scan_semaphore.acquire(blocking=False)
                 break
-        else: # all scanjobs are waiting
-            log.debug(f'process_jobs: all scanjobs are waiting')
-            break
+        else:
+            try:
+                # all scanjobs are waiting
+                scan_environment.barrier.wait()
+                log.debug(f'process_jobs: all scanjobs are waiting')
+                break
+            except threading.BrokenBarrierError as e:
+                continue
     log.debug(f'process_jobs: exiting')
 
     # TODO: this should not be needed if unpackparsers behave

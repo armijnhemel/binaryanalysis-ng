@@ -98,6 +98,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     # amount of jobs that will be able to run concurrently.
     process_manager = multiprocessing.Manager()
     scan_environment.scan_semaphore = process_manager.Semaphore(jobs)
+    scan_environment.barrier = process_manager.Barrier(jobs)
 
     # create a queue
     scan_queue = process_manager.Queue(maxsize=0)
