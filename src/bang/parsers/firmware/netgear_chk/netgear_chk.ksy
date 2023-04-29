@@ -48,5 +48,5 @@ types:
         type: str
 enums:
   region_codes:
-    1: world_wide
+    1: worldwide
     2: north_america
