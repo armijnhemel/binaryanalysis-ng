@@ -273,6 +273,7 @@ larger file, unless stated otherwise.
 172. Reolink firmware
 173. Xiaomi firmware
 174. HP BDL firmware
+175. Netgear .chk firmware files
 
 The following text formats can be recognized:
 
