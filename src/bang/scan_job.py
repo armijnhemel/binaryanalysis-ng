@@ -57,7 +57,7 @@ def is_scannable(path):
 
 #####
 #
-# Returns if a path is a scannable file, i.e. a regular file and empty.
+# Returns if a path is an empty file, i.e. a regular file and empty.
 #
 def is_empty(path):
     return path.is_file() and path.stat().st_size == 0
