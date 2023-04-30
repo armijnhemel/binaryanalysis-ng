@@ -27,7 +27,6 @@ The on disk format for GNU message catalog files is described here:
 https://www.gnu.org/software/gettext/manual/gettext.html#index-file-format_002c-_002emo
 '''
 
-import os
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
@@ -35,7 +34,6 @@ from . import gettext_mo
 
 
 class GnuMessageCatalogUnpackParser(UnpackParser):
-    #extensions = ['.mo', '.gmo']
     extensions = []
     signatures = [
         (0, b'\xde\x12\x04\x95'),
