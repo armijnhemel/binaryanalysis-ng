@@ -121,7 +121,8 @@ with relative paths are under `rel`. Files that are carved from a larger file
 are stored in a directory `extracted`.
 
 This structure makes it harder to navigate, but unpacked files will not clutter
-the directory structure.
+the directory structure. To navigate the results there are tools, see the file
+`showing-results.md` for more information.
 
 The file `unpacking-examples.md` explains the unpacking structure and the
 concept of meta directories in more detail.
