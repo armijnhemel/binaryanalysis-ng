@@ -29,7 +29,7 @@ from . import ico
 
 class IcoUnpackParser(UnpackParser):
     pretty_name = 'ico'
-    extensions = [ '.ico' ]
+    extensions = []
     signatures = [
         (0, b'\x00\x00\x01\x00')
     ]
