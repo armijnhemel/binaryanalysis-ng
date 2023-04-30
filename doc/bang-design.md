@@ -1,9 +1,9 @@
 # BANG design document
 
 Binary Analysis Next Generation (BANG) is a framework for unpacking files (like
-firmware) recursively and running checks on the unpacked files. Its intended
-use is to able to find out the provenance of the unpacked files and
-classify/label files, making them available for further analysis.
+firmware files) recursively and running analysis tools on the unpacked files.
+Its intended use is to able to find out the provenance of the unpacked files
+and classify/label files, making them available for further analysis.
 
 This file explains the design of the program and how to write new unpackers
 for certain file types.
@@ -17,25 +17,36 @@ reverse engineering and security meet.
 
 Experience creating earlier tools shows that the sometimes simplistic and
 naive approaches from other tools (assuming correct files instead of broken
-data, reliance on magic headers) is not realistic.
+data, reliance on magic headers, assuming a single file only contains one
+single file format) is not the best way to tackle the problem and more
+thorough checks are needed, also to detect edge cases.
+
+This is why BANG tries to do a lot more work and focus on correctness of
+data that is unpacked by parsing and verifying contents (and still then it
+gets it sometimes wrong).
 
 ## Framework
 
-The main part of the program is (currently) the scan queue and the result
-queue. This is where the paths of the files that need to be processed are
-stored. There are various threads (configurable) that pick tasks from the
-scan queue, analyze the file, write the result to the result queue, and move
-on to the next file, until no files are left to be processed.
+Conceptually BANG is divided into two parts:
 
-In case in a scan files are unpacked (from for example a ZIP file) then
-these files are added to the scan queue as well.
+1. an unpacking program that recursively unpacks files
+2. a set of analysis programs that are run on the unpacked files
 
-This works because unpacking a single file is completely independent and
-does not rely on unpacking other files (although in some cases the presence
-of other files might be needed).
+with an additional set of tools to create data sources that are used by
+the analysis programs.
 
-After all files have been unpacked results regarding unpacking are written
-to an output file and the files can be further analyzed by other scripts.
+The unpacking program consists of a scan queue from which threads pick tasks.
+A task contains a reference to a file. The file from the task is parsed by
+one or more parsers. Which parsers are run is based on known signatures
+("magic" headers which many file formats have) or known extensions if there
+isn't a known signature, but there is a known extension.
+
+If any files are unpacked during the scanning process, a new task is created
+for each of the unpacked files and the tasks are inserted into the queue to
+be scanned. This continues until there are no files left to scan.
+
+For each file that is scanned metadata is stored in a separate file. Metadata
+contains information such as names, hashes, unpacked files, and so on.
 
 ### Unpacking
 
