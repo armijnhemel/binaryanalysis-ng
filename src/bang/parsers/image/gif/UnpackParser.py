@@ -29,7 +29,7 @@ from kaitaistruct import ValidationFailedError
 from . import gif
 
 class GifUnpackParser(UnpackParser):
-    extensions = ['.gif']
+    extensions = []
     signatures = [
         (0, b'GIF87a'),  # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
         (0, b'GIF89a'),  # https://www.w3.org/Graphics/GIF/spec-gif89a.txt
