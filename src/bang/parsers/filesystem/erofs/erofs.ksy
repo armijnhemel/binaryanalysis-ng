@@ -228,7 +228,7 @@ types:
         type: u4
         repeat: expr
         repeat-expr: num_shared_count
-  directory:
+  directory_entry:
     seq:
       - id: node_id
         type: u8
