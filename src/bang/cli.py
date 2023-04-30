@@ -64,7 +64,7 @@ def app():
 @click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
 @click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True), default=pathlib.Path('/tmp'), help='Temporary directory')
 @click.option('-j', '--jobs', default=1, type=int, help='Number of jobs running simultaneously')
-@click.option('--job-wait-time', default=10, type=int, help='Time to wait for a new job')
+@click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
 @click.argument('path', type=click.Path(exists=True))
 def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_time, path):
     '''Scans PATH and unpacks its files to UNPACK_DIRECTORY.
