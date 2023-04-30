@@ -128,7 +128,7 @@ class ParserCollection:
 class ScanEnvironment:
     unpack_directory: pathlib.Path
     scan_queue: Any = None
-    job_wait_time: int = 5
+    job_wait_time: int = 2
     signature_chunk_size: int = 1024
     parsers: ParserCollection = ParserCollection()
     configuration: BangConfig = BangConfig()
