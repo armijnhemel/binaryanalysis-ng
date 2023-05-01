@@ -411,11 +411,17 @@ def pipe_exec(checking_iterator):
     def _check(scan_environment, meta_directory):
         for md in checking_iterator(scan_environment, meta_directory):
             log.debug(f'pipe_exec({checking_iterator})[{meta_directory.md_path}]: analyzing {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+
             with md.open(open_file=False):
+                # write metadata for the parser
                 md.write_info_with_unpack_parser()
                 log.debug(f'pipe_exec({checking_iterator})[{meta_directory.md_path}]: unpacking {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
+
+                # try to unpack files (if any)
                 for unpacked_md in md.unpack_with_unpack_parser():
                     log.debug(f'pipe_exec({checking_iterator})[{meta_directory.md_path}]: queue unpacked file {unpacked_md.md_path}')
+
+                    # create a new job for the unpacked file and queue it
                     job = ScanJob(unpacked_md.md_path)
                     scan_environment.scan_queue.put(job)
 
