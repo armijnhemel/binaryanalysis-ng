@@ -558,7 +558,6 @@ def process_jobs(pipeline, scan_environment):
     os.chdir(scan_environment.unpack_directory)
 
     while True:
-        # TODO: check if timeout long enough
         log.debug(f'process_jobs: getting scanjob')
 
         try:
@@ -576,11 +575,15 @@ def process_jobs(pipeline, scan_environment):
         except queue.Empty as e:
             log.debug(f'process_jobs: scan queue is empty')
             try:
-                # all scanjobs are waiting
+                # A thread will block here and wait until either *all*
+                # threads end up here (meaning the program is done)
+                # or wait for new data to arrive in the scanning queue.
                 scan_environment.barrier.wait()
                 log.debug(f'process_jobs: all scanjobs are waiting')
                 break
             except threading.BrokenBarrierError as e:
+                # all waiting threads are woken up again here
+                # because there is new data in the scanning queue
                 continue
         except Exception as e:
             log.error(f'process_jobs: caught exception {e}')
