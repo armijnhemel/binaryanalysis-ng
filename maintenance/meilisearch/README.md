@@ -3,6 +3,12 @@
 This directory contains scripts to populate a Meilisearch[1] database.
 Meilisearch is an open source search engine with (some) typo tolerance.
 
+Note: using Meilisearch in BANG is discouraged because it does not work
+as well as originally hoped and requires a lot of post-processing of results.
+The Nix installation scripts (`analysis.nix` and `maintenance.nix`) no longer
+install the Meilisearch packages by default. If you want to use it, make sure
+to adapt these files.
+
 Currently there are the following scripts:
 
 1. Debian package information - process Debian Packages files and store

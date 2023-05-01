@@ -6,13 +6,13 @@ let
   pkgs = import sources.nixpkgs { config.allowUnfree = true; overlays = []; };
 
   my-python = pkgs.python3.withPackages (p: with p; [
+    click
     deepdiff
     defusedxml
     dockerfile-parse
-    elasticsearch
     icalendar
     kaitaistruct
-    meilisearch
+    #meilisearch
     packageurl-python
     parameterized
     pdfminer
@@ -32,7 +32,7 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     apkid
     binutils
-    cve-bin-tool
+    #cve-bin-tool
     openjdk8
     openssl
     my-python

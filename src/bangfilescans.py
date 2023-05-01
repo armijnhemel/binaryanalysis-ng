@@ -38,8 +38,6 @@ import tinycss2
 import dockerfile_parse
 import icalendar
 
-from FileResult import *
-
 
 # For now it is assumed that only files that are completely text
 # files can be CSS files
