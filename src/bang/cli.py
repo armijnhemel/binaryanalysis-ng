@@ -173,7 +173,8 @@ def build_meta_table(md):
         meta_table.add_row('Original file', f'{md.file_path}')
         meta_table.add_row('Parser', f'{md.info.get("unpack_parser")}')
         meta_table.add_row('Labels', f'{", ".join(md.info.get("labels",[]))}')
-        meta_table.add_row('Size', f'{md.size}')
+        if md.info.get('size') is not None:
+            meta_table.add_row('Parsed size', f'{md.info.get("size")}')
         if md.info.get("metadata", []) != []:
             metadata = md.info.get("metadata", [])
             if 'hashes' in metadata:

@@ -132,11 +132,15 @@ class UnpackParser:
         Be aware that to_meta_directory.info may contain data already!
         '''
         self.record_parser(to_meta_directory)
+        self.record_size(to_meta_directory)
         self.add_labels(to_meta_directory)
         self.update_metadata(to_meta_directory)
 
     def record_parser(self, to_meta_directory):
         to_meta_directory.info['unpack_parser'] = self.pretty_name
+
+    def record_size(self, to_meta_directory):
+        to_meta_directory.info['size'] = self.parsed_size
 
     def add_labels(self, to_meta_directory):
         to_meta_directory.info.setdefault('labels',[]).extend(set(self.labels))
