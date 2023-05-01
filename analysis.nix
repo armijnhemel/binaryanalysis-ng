@@ -32,7 +32,7 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     apkid
     binutils
-    cve-bin-tool
+    #cve-bin-tool
     openjdk8
     openssl
     my-python

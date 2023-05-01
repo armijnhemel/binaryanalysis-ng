@@ -29,6 +29,8 @@ original scan data.
 
 ## cve\_finder
 
+DO NOT USE, WILL BE REPLACED
+
 The script, configuration and more information can be found in the directory
 `cve`.
 
