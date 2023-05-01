@@ -6,27 +6,15 @@ let
   pkgs = import sources.nixpkgs { config.allowUnfree = true; overlays = []; };
 
   my-python = pkgs.python3.withPackages (p: with p; [
-    click
-    cxxfilt
-    defusedxml
-    #meilisearch
-    packageurl-python
-    psycopg2
-    pytest
-    pyyaml
-    requests
-    telfhash
-    tlsh
-    woodblock
+    beautifulsoup4
+    scrapy
+    selenium
   ]);
     
 in
 pkgs.mkShell {
   buildInputs = with pkgs; [
-    cvehound
-    gettext
+    geckodriver
     my-python
-    universal-ctags
-    yara
   ];
 }
