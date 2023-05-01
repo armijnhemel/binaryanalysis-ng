@@ -275,6 +275,7 @@ larger file, unless stated otherwise.
 174. HP BDL firmware
 175. Netgear .chk firmware files
 176. Instar BNEG firmware files
+177. Huawei HWNP firmware files
 
 The following text formats can be recognized:
 
