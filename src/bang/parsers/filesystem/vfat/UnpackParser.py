@@ -81,6 +81,10 @@ class VfatUnpackParser(UnpackParser):
         check_condition(self.pos_data <= self.infile.size,
                 "data sector outside file")
 
+        for record in self.data.root_dir.records:
+            # TODO: check whether or not file names are correct
+            pass
+
     def calculate_unpacked_size(self):
         total_ls = max(self.data.boot_sector.bpb.total_ls_2,
                 self.data.boot_sector.bpb.total_ls_4)
