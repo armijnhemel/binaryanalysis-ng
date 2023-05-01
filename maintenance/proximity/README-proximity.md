@@ -1,3 +1,5 @@
+CURRENTLY BROKEN
+
 # Proximity matching
 
 Proximity matching is a way to quickly find a closest match of a TLSH hash in
