@@ -292,7 +292,7 @@ class HashParser(UnpackParser):
         # also compute TLSH hashes, but only for interesting
         # files and files that are big enough but not too big
         scan_tlsh = False
-        if 256 <= self.from_md._size <= self.tlsh_maximum:
+        if 256 <= self.from_md.size <= self.tlsh_maximum:
             scan_tlsh = True
 
         labels = self.from_md.info.get('labels', [])
