@@ -27,7 +27,10 @@ types:
         type: hash_header
   hash_header:
     seq:
-      - id: num_bloom_words
+      - id: n_bloom_words
         type: u4
-      - id: num_buckets
+      - id: n_buckets
         type: u4
+    instances:
+      num_bloom_words:
+        value: 'n_bloom_words & ((1 << 27) - 1)'
