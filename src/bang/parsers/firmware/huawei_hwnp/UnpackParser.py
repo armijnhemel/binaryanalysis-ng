@@ -58,13 +58,10 @@ class HuaweiFirmwareUnpackParser(UnpackParser):
             if item.len_data == 0:
                 continue
 
-            if item.name == '':
+            if item.section == '':
                 continue
 
-            if 'file:/' in item.name:
-                file_path = pathlib.Path(item.name.split(':/', maxsplit=1)[1])
-            else:
-                file_path = pathlib.Path(item.name)
+            file_path = pathlib.Path(item.section)
 
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(item.data)
