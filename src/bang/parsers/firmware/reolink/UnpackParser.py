@@ -26,6 +26,7 @@ from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import reolink
+from . import reolink_logo
 
 
 class ReolinkUnpackParser(UnpackParser):
@@ -67,4 +68,35 @@ class ReolinkUnpackParser(UnpackParser):
                 yield unpacked_md
 
     labels = ['reolink', 'firmware']
+    metadata = {}
+
+
+class ReolinkLogoUnpackParser(UnpackParser):
+    extensions = []
+    signatures = [
+        (0, b'GLOR')
+    ]
+    pretty_name = 'reolink_logo'
+
+    def parse(self):
+        self.unpacked_size = 0
+        try:
+            self.data = reolink_logo.ReolinkLogo.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
+            raise UnpackParserException(e.args)
+
+    def unpack(self, meta_directory):
+        file_path = pathlib.Path('1.jpeg')
+
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.jpeg_1)
+            yield unpacked_md
+
+        file_path = pathlib.Path('2.jpeg')
+
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.jpeg_2)
+            yield unpacked_md
+
+    labels = ['reolink_logo', 'resource']
     metadata = {}

@@ -277,6 +277,7 @@ larger file, unless stated otherwise.
 175. Netgear .chk firmware files
 176. Instar BNEG firmware files
 177. Huawei HWNP firmware files
+178. Reolink 'logo' file
 
 The following text formats can be recognized:
 
