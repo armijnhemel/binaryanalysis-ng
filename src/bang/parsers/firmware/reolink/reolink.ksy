@@ -5,7 +5,7 @@ meta:
   endian: le
   encoding: UTF-8
 doc-ref:
-  - https://github.com/vmallet/pakler/blob/main/pakler/__init__.py
+  - https://github.com/vmallet/pakler/blob/acbf084b/pakler/__init__.py
 seq:
   - id: header
     type:
