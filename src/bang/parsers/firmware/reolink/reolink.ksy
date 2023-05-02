@@ -103,10 +103,10 @@ types:
         type: strz
       - id: ofs_partition
         type: u4
-      - id: destination
+      - id: mtd
         size: 32
         type: strz
-      - id: unknown
+      - id: start_address
         size: 4
       - id: len_partition
         type: u4
