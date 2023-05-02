@@ -31,6 +31,7 @@ import pkgutil
 from . import parsers
 from . import reporters
 from .UnpackParser import UnpackParser
+from .Reporter import Reporter
 
 
 def _get_unpackers_recursive(unpackers_root, parent_module_path):
@@ -64,7 +65,7 @@ def _get_reporters_recursive(reporters_root, parent_module_path):
             try:
                 full_module_name = '.'.join(full_module_path.parts)
                 module_name = f'.{full_module_name}.Reporter'
-                module = importlib.import_module(module_name, package='bang.parsers')
+                module = importlib.import_module(module_name, package='bang.reporters')
                 for name, member in inspect.getmembers(module):
                     if inspect.isclass(member) and issubclass(member, Reporter) \
                         and member != Reporter:
@@ -72,7 +73,7 @@ def _get_reporters_recursive(reporters_root, parent_module_path):
                         yield member
             except ModuleNotFoundError as e:
                 pass
-            yield from _get_unpackers_recursive(reporters_root, full_module_path )
+            yield from _get_reporters_recursive(reporters_root, full_module_path )
 
 def get_reporters():
     reporters_list = _get_reporters_recursive(
