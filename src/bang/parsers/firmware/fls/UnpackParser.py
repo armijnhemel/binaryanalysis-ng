@@ -59,4 +59,8 @@ class FlsUnpackParser(UnpackParser):
                 yield unpacked_md
 
     labels = ['fls', 'firmware']
-    metadata = {}
+
+    @property
+    def metadata(self):
+        metadata = {'files': len(self.data.entries)}
+        return metadata
