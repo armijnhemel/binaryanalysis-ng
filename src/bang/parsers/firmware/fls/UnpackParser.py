@@ -36,8 +36,12 @@ class FlsUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = fls.Fls.from_io(self.infile)
+            for entry in self.data.entries:
+                if entry.len_data == 0:
+                    continue
+                check_condition(entry.ofs_data + entry.len_data <= self.data.header.len_file,
+                                "invalid offset or data length")
         except (Exception, ValidationFailedError) as e:
-            print(e)
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
