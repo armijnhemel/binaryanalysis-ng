@@ -440,6 +440,9 @@ class UbiUnpackParser(UnpackParser):
                 broken_image = False
                 for block in range(image_block_counter, len(self.image_to_erase_blocks[image_sequence])):
                     erase_block = self.image_to_erase_blocks[image_sequence][block]
+                    if block not in self.blocks:
+                        broken_image = True
+                        break
                     if erase_block not in self.blocks:
                         broken_image = True
                         break
