@@ -158,6 +158,17 @@ def show(show_all, metadir, pretty):
     console.print(meta_table)
 
     if show_all:
+        reporters = signatures.get_reporters()
+        labels = md.info.get("labels", [])
+        for r in reporters:
+            for l in labels:
+                if l in r.tags:
+                    reporter = r()
+                    title, report_results = reporter.create_report(md)
+                    #console.print(title)
+                    for res in report_results:
+                        console.print(res)
+
         # print any unpacked files
         table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
         if have_unpack_results:
