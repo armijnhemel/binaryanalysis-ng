@@ -44,13 +44,13 @@ class UbifsUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = ubifs.Ubifs.from_io(self.infile)
+
+            # store the highest inode number, forces evaluation
+            self.highest_inum = self.data.master_1.node_header.highest_inum
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
     def unpack(self, meta_directory):
-        # store the highest inode number
-        highest_inum = self.data.master_1.node_header.highest_inum
-
         # traverse the tree, starting with the root inode
         node_blocks = collections.deque()
         node_blocks.append(self.data.index_root)
