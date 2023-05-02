@@ -78,6 +78,8 @@ class PngUnpackParser(UnpackParser):
         check_condition(self.data.ihdr.interlace_method in [0, 1],
                 "invalid interlace method")
 
+        self.chunknames.add('IHDR')
+
         for i in self.data.chunks:
             # compute CRC32
             computed_crc = binascii.crc32(i.type.encode('utf-8'))
