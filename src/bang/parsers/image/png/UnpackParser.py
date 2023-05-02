@@ -348,6 +348,7 @@ class PngUnpackParser(UnpackParser):
         metadata['time'] = timetags
         metadata['meta'] = metatags
         metadata['png_type'] = png_type_labels
+        metadata['chunk_names'] = sorted(self.chunknames)
 
         unknownchunks = list(self.chunknames.difference(KNOWN_CHUNKS))
         metadata['unknownchunks'] = unknownchunks
