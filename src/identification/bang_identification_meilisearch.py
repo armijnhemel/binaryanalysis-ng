@@ -13,6 +13,7 @@ to determine which source code files the identifiers could
 have been from.
 '''
 
+import collections
 import os
 import pathlib
 import pickle
@@ -80,22 +81,6 @@ def main(config, result_directory):
     meili_env = {'verbose': verbose, 'string_min_cutoff': string_min_cutoff,
                  'string_max_cutoff': string_max_cutoff}
 
-    # open the top level pickle
-    bang_pickle = result_directory / 'bang.pickle'
-    if not bang_pickle.exists():
-        print("result pickle not found, exiting", file=sys.stderr)
-        sys.exit(1)
-
-    if not (result_directory / 'unpack').exists():
-        print("unpack directory not found, exiting", file=sys.stderr)
-        sys.exit(1)
-
-    try:
-        bang_data = pickle.load(open(bang_pickle, 'rb'))
-    except pickle.PickleError as e:
-        print("cannot unpickle", file=sys.stderr)
-        sys.exit(1)
-
     # some sanity checks for Meilisearch
     client = meilisearch.Client('http://127.0.0.1:7700')
     meili_index = client.index(meili_index)
@@ -106,46 +91,79 @@ def main(config, result_directory):
         print("Meilisearch not running, exiting...", file=sys.stderr)
         sys.exit(1)
 
-    # change working directory
-    old_cwd = os.getcwd()
-    os.chdir(result_directory / 'unpack')
-    for bang_file in bang_data['scantree']:
-        if 'elf' in bang_data['scantree'][bang_file]['labels']:
-            # load the pickle for the ELF file
-            sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
+    # open the top level pickle
+    bang_pickle = result_directory / 'info.pkl'
+    if not bang_pickle.exists():
+        print("result pickle not found, exiting", file=sys.stderr)
+        sys.exit(1)
 
-            # open the result pickle
-            try:
-                results_data = pickle.load(open(result_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
-            except:
-                continue
-            if 'metadata' not in results_data:
-                # example: statically linked binaries currently
-                # have no associated metadata.
-                continue
+    try:
+        bang_data = pickle.load(open(bang_pickle, 'rb'))
+    except:
+        print("Cannot unpickle BANG data", file=sys.stderr)
+        sys.exit(1)
 
-            strings = set()
-            functions = set()
-            variables = set()
-            if results_data['metadata']['strings'] != []:
-                for s in results_data['metadata']['strings']:
-                    if len(s) < meili_env['string_min_cutoff']:
-                        continue
-                    if len(s) > meili_env['string_max_cutoff']:
-                        continue
-                    # ignore whitespace-only strings
-                    if re.match(r'^\s+$', s) is None:
-                        strings.add(s)
+    # walk the BANG results
+    file_deque = collections.deque()
+    file_deque.append(bang_pickle)
 
-            # process the identifiers
-            for f in strings:
-                results = meili_index.search('"%s"' % f)
-                if results['hits'] != []:
-                    for r in results['hits']:
-                        print(bang_file, f, r['id'], r['language'], r['paths'])
-                    print()
+    # walk the unpack tree recursively and grab all the ELF file pickles
+    while True:
+        try:
+            file_pickle = file_deque.popleft()
+        except:
+            break
 
-    os.chdir(old_cwd)
+        try:
+            bang_data = pickle.load(open(file_pickle, 'rb'))
+        except:
+            continue
+
+        if 'labels' in bang_data:
+            if 'elf' in bang_data['labels']:
+                filename = file_pickle.parent / 'pathname'
+                if filename.exists():
+                    # now read the contents
+                    with open(filename, 'r') as pathname:
+                        elf_file = pathname.read()
+
+                        strings = set()
+                        functions = set()
+                        variables = set()
+                        if bang_data['metadata']['strings'] != []:
+                            for s in bang_data['metadata']['strings']:
+                                if len(s) < meili_env['string_min_cutoff']:
+                                    continue
+                                if len(s) > meili_env['string_max_cutoff']:
+                                    continue
+                                # ignore whitespace-only strings
+                                if re.match(r'^\s+$', s) is None:
+                                    strings.add(s)
+
+                        # process the identifiers
+                        for f in strings:
+                            results = meili_index.search('"%s"' % f)
+                            if results['hits'] != []:
+                                for r in results['hits']:
+                                    print(elf_file, f, r['id'], r['language'], r['paths'])
+                                print()
+
+        # finally add the unpacked/extracted files to the queue
+        if 'unpacked_relative_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_relative_files']:
+                file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+        if 'unpacked_absolute_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_absolute_files']:
+                file_meta_directory = bang_data['unpacked_absolute_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+        if 'extracted_files' in bang_data:
+            for unpacked_file in bang_data['extracted_files']:
+                file_meta_directory = bang_data['extracted_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
 
 if __name__ == "__main__":
     main()

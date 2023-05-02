@@ -14,12 +14,15 @@ Some intended uses:
 
 The recommended way is to use [Nix](https://nixos.org/nix), run
 `nix-shell` to load all the dependencies for the unpacker,
-`nix-shell maintenance.nix` for the maintenance scripts and
-`nix-shell analysis.nix` for the maintenance scripts.
+`nix-shell maintenance.nix` for the maintenance scripts,
+`nix-shell analysis.nix` for the analysis scripts and `nix-shell scraper.nix`
+for the firmware scraper.
 
 `nix` will make sure that everything is downloaded and installed to run BANG.
 
 ### Other distributions without Nix
+
+Note: this list is vastly incomplete. It is highly recommended to use Nix.
 
 * a recent Linux distribution (Fedora 35 or higher, or equivalent)
 * Python 3.9.x or higher
@@ -48,7 +51,6 @@ The recommended way is to use [Nix](https://nixos.org/nix), run
 * ncompress
 * util-linux (for 'fsck.cramfs')
 * lz4 (for 'lz4c')
-* elasticsearch (possibly named python3-elasticsearch)
 
 and many others (see `shell.nix`, `maintenance.nix` and `analysis.nix` for a
 full list).
@@ -86,7 +88,6 @@ make dockerbuild
 ```
 
 
-
 ## Supported file types
 
 The following files can be unpacked, or verified, including carving from a
@@ -102,8 +103,8 @@ larger file, unless stated otherwise.
 8. tar
 9. Apple Double encoded files
 10. ICC (colour profile)
-11. ZIP (store, deflate, bzip2, but lzma needs some more testing), also JAR and other ZIP-based formats
-12. APK (same as ZIP, but possibly with extra Android signing bytes)
+11. ZIP (store, deflate, bzip2, but lzma needs some more testing), also JAR, APK (possible with extra Android signing bytes) and other ZIP-based formats
+12. U-Boot image
 13. XAR (no compression, gzip, bzip2, XZ, LZMA)
 14. ISO9660 (including RockRidge and zisofs)
 15. lzip
@@ -158,7 +159,7 @@ larger file, unless stated otherwise.
 61. VirtualBox VDI (needs qemu-img, whole file only,
     Oracle flavour only)
 62. XML (whole file)
-63. Snappy (needs python-snappy)
+63. Snappy framing2 format (needs python-snappy)
 64. various certificates (PEM, private key, etc., needs openssl)
 65. lzop
 66. PNG/APNG (needs PIL)
@@ -186,9 +187,9 @@ larger file, unless stated otherwise.
 86. PPM files ('raw' PPM only)
 87. PGM files ('raw' PGM only)
 88. PBM files ('raw' PBM only)
-89. Android bootloader for Qualcomm Snapdragon
-90. Android bootloader image (also a Lttle Kernel based variant)
-91. Android bootloader for Huawei devices
+89. Android bootloader image for Qualcomm Snapdragon (MSM)
+90. Android bootloader image (also a Little Kernel based variant)
+91. Android bootloader image for Huawei devices
 92. FAT16 file systems (8.3 file names)
 93. Coreboot images
 94. Minix V1 file system (Linux variant)
@@ -217,7 +218,7 @@ larger file, unless stated otherwise.
 116. Windows shell link file (.lnk)
 117. PCF fonts (that actually follow the specification, little endian only)
 118. DS\_Store
-119. Qualcomm Snapdragon MSM bootloader files
+119. libminikin hyb text layout format
 120. Mozilla ARchive (.mar)
 121. OpenFst (subset, identification only)
 122. SELinux file context
@@ -254,10 +255,29 @@ larger file, unless stated otherwise.
 153. Sunplus BRN firmware
 154. xo65 object files
 155. DOS MZ, plus COFF for MS-DOS, DJGPP go32 DOS extender
-156. WinHelp
+156. WinHelp (older formats only)
 157. PEF (Preferred Executable Format)
 158. Nano app header (Android)
 159. WebAssembly binaries
+160. Android super images
+161. Qualcomm QTI Chromatix (structural checks only)
+162. Mediatek images (including logo.bin)
+163. Android DTO
+164. Portable Image Format
+165. ResPack.cfg (seen in CPB firmware format)
+166. LOD (RDA/Coolsand phone firmware format)
+167. MediaTek secure ROM(?) info
+168. lrzip
+169. SerpentOS .stone package file
+170. systemd hwdb.bin
+171. Qt Translation files
+172. Reolink firmware
+173. Xiaomi firmware
+174. HP BDL firmware
+175. Netgear .chk firmware files
+176. Instar BNEG firmware files
+177. Huawei HWNP firmware files
+178. Reolink 'logo' file
 
 The following text formats can be recognized:
 
