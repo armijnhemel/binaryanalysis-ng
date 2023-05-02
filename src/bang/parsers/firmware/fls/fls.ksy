@@ -1,6 +1,6 @@
 meta:
-  id: fullhan_fls
-  title: Fullhan FLS
+  id: fls
+  title: FLS
   license: CC0-1.0
   endian: le
   encoding: UTF-8

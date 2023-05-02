@@ -25,17 +25,17 @@ import pathlib
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import fullhan_fls
+from . import fls
 
 
-class FullhanFlsUnpackParser(UnpackParser):
+class FlsUnpackParser(UnpackParser):
     extensions = ['.fls']
     signatures = []
-    pretty_name = 'fullhan_fls'
+    pretty_name = 'fls'
 
     def parse(self):
         try:
-            self.data = fullhan_fls.FullhanFls.from_io(self.infile)
+            self.data = fls.Fls.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             print(e)
             raise UnpackParserException(e.args)
@@ -54,5 +54,5 @@ class FullhanFlsUnpackParser(UnpackParser):
                 outfile.write(entry.data)
                 yield unpacked_md
 
-    labels = ['fullhan_fls', 'firmware']
+    labels = ['fls', 'firmware']
     metadata = {}

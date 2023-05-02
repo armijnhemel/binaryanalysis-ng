@@ -278,7 +278,7 @@ larger file, unless stated otherwise.
 176. Instar BNEG firmware files
 177. Huawei HWNP firmware files
 178. Reolink 'logo' file
-179. Fullhan FLS firmware files
+179. FLS firmware files (IP cameras)
 
 The following text formats can be recognized:
 
