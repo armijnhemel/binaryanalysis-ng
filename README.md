@@ -279,6 +279,7 @@ larger file, unless stated otherwise.
 177. Huawei HWNP firmware files
 178. Reolink 'logo' file
 179. FLS firmware files (IP cameras)
+180. TP-Link TX6610v4 firmware
 
 The following text formats can be recognized:
 
