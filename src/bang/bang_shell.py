@@ -21,8 +21,12 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import click
 import pathlib
 import sys
+
+from typing import Any
+
 from .meta_directory import MetaDirectory, MetaDirectoryException
 
 import rich.table
@@ -41,24 +45,24 @@ from textual.widgets.tree import TreeNode
 #)
 
 class BangTree(Tree):
+    def __init__(self, metadir, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.metadir = metadir
+
     def compose(self) -> ComposeResult:
+        self.md = MetaDirectory.from_md_path(self.metadir.parent, self.metadir.name)
         tree: Tree[dict] = Tree("BANG results")
         tree.root.expand()
 
-        md_path = '/tmp/bang4/root'
-        metadir = pathlib.Path(md_path)
-        pretty = False
-
-        md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
         try:
-            m = f'{md.file_path}'
+            m = f'{self.md.file_path}'
         except MetaDirectoryException:
-            print(f'directory {metadir} not found, exiting', file=sys.stderr)
+            print(f'directory {self.metadir} not found, exiting', file=sys.stderr)
             sys.exit(1)
 
         ## recursively build subtrees
-        with md.open(open_file=False, info_write=False):
-            self.build_tree(md, metadir.parent, tree.root)
+        with self.md.open(open_file=False, info_write=False):
+            self.build_tree(self.md, self.metadir.parent, tree.root)
 
         yield tree
 
@@ -115,11 +119,11 @@ class BangTree(Tree):
 
         return meta_table
 
-    def on_node_tree_highlighted(self, event):
+    def on_node_tree_highlighted(self, event: Tree.NodeHighlighted[None]) -> None:
         pass
-    def on_node_tree_selected(self, event):
+    def on_node_tree_selected(self, event: Tree.NodeSelected[None]) -> None:
         pass
-    def on_tree_node_collapsed(self, event):
+    def on_tree_node_collapsed(self, event: Tree.NodeCollapsed[None]) -> None:
         pass
 
 class BangShell(App):
@@ -129,14 +133,25 @@ class BangShell(App):
 
     CSS_PATH = "bang_shell.css"
 
-    def compose(self) -> ComposeResult:
-        with Container(id='app-grid'):
-            yield BangTree("BANG results")
+    def __init__(self, result_directory, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.md = result_directory
 
-            yield Static('Yo')
+    def compose(self) -> ComposeResult:
+        bangtree = BangTree(self.md, "BANG results")
+
+        with Container(id='app-grid'):
+            yield bangtree
+
+            yield Static(str(self.md))
         yield Footer()
 
 
-if __name__ == "__main__":
-    app = BangShell()
+@click.command(short_help='Interactive BANG shell')
+@click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(path_type=pathlib.Path))
+def main(result_directory):
+    app = BangShell(result_directory)
     app.run()
+
+if __name__ == "__main__":
+    main()
