@@ -36,6 +36,7 @@ let
     pyyaml
     rich
     telfhash
+    textual
     tlsh
     xxhash
     zstandard
