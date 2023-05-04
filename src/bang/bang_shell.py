@@ -133,7 +133,11 @@ class BangShell(App):
             meta_table = rich.table.Table('', '', title='Parser data', show_lines=True, show_header=False)
             meta_table.add_row('Meta directory', f'{md.md_path}')
             meta_table.add_row('Original file', f'{md.file_path}')
-            meta_table.add_row('Parser', f'{md.info.get("unpack_parser")}')
+            parser = md.info.get("unpack_parser")
+            if parser is None:
+                meta_table.add_row('Parser', f'')
+            else:
+                meta_table.add_row('Parser', f'{parser}')
             meta_table.add_row('Labels', f'{", ".join(md.info.get("labels",[]))}')
             if md.info.get('size') is not None:
                 meta_table.add_row('Parsed size', f'{md.info.get("size")}')
