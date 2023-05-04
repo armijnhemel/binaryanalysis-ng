@@ -71,7 +71,7 @@ class BangShell(App):
             print(f'directory {self.metadir} not found, exiting', file=sys.stderr)
             sys.exit(1)
 
-        ## recursively build subtrees
+        # build the tree (recursively)
         with self.md.open(open_file=False, info_write=False):
             self.build_tree(self.md, self.metadir.parent, tree.root, is_root=True)
 
@@ -88,6 +88,7 @@ class BangShell(App):
         pass
 
     def on_tree_node_selected(self, event: Tree.NodeSelected[None]) -> None:
+        '''Display the reports of a node when it is selected'''
         table = self.build_meta_table(event.node.data)
         self.static_widget.update(Group(table, self.build_meta_report(event.node.data)))
 
@@ -127,6 +128,7 @@ class BangShell(App):
         else:
             this_node = parent_node.add_leaf(str(node_name), data=md)
 
+        # recurse into sub trees
         for i in sorted(files):
             k,v = i
             child_md = MetaDirectory.from_md_path(parent, v)
