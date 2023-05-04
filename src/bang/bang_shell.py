@@ -44,14 +44,22 @@ from textual.widgets.tree import TreeNode
     #handlers=[TextualHandler()],
 #)
 
-class BangTree(Tree):
-    def __init__(self, metadir, *args: Any, **kwargs: Any) -> None:
+
+class BangShell(App):
+    BINDINGS = [
+        Binding(key="q", action="quit", description="Quit"),
+    ]
+
+    CSS_PATH = "bang_shell.css"
+
+    def __init__(self, result_directory, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.metadir = metadir
+        self.metadir = result_directory
 
     def compose(self) -> ComposeResult:
         self.md = MetaDirectory.from_md_path(self.metadir.parent, self.metadir.name)
         tree: Tree[dict] = Tree("BANG results")
+        tree.show_root = False
         tree.root.expand()
 
         try:
@@ -62,12 +70,30 @@ class BangTree(Tree):
 
         ## recursively build subtrees
         with self.md.open(open_file=False, info_write=False):
-            self.build_tree(self.md, self.metadir.parent, tree.root)
+            self.build_tree(self.md, self.metadir.parent, tree.root, is_root=True)
 
-        yield tree
 
-    def build_tree(self, md, parent, parent_node):
-        node_name = pathlib.Path('/').joinpath(*list(md.file_path.parts[2:]))
+        self.static_widget = Static(self.build_meta_table(self.md))
+
+        with Container(id='app-grid'):
+
+            yield tree
+            yield self.static_widget
+        yield Footer()
+
+    def on_tree_tree_highlighted(self, event: Tree.NodeHighlighted[None]) -> None:
+        pass
+    def on_tree_node_selected(self, event: Tree.NodeSelected[None]) -> None:
+        self.static_widget.update(self.build_meta_table(event.node.data))
+    def on_tree_node_collapsed(self, event: Tree.NodeCollapsed[None]) -> None:
+        pass
+
+    def build_tree(self, md, parent, parent_node, is_root=False):
+        if is_root:
+            node_name = pathlib.Path(md.file_path.name)
+        else:
+            node_name = pathlib.Path('/').joinpath(*list(md.file_path.parts[2:]))
+        is_root = False
 
         have_subfiles = False
         files = []
@@ -118,34 +144,6 @@ class BangTree(Tree):
                         meta_table.add_row(h, f'{metadata["hashes"][h]}')
 
         return meta_table
-
-    def on_node_tree_highlighted(self, event: Tree.NodeHighlighted[None]) -> None:
-        pass
-    def on_node_tree_selected(self, event: Tree.NodeSelected[None]) -> None:
-        pass
-    def on_tree_node_collapsed(self, event: Tree.NodeCollapsed[None]) -> None:
-        pass
-
-class BangShell(App):
-    BINDINGS = [
-        Binding(key="q", action="quit", description="Quit"),
-    ]
-
-    CSS_PATH = "bang_shell.css"
-
-    def __init__(self, result_directory, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.md = result_directory
-
-    def compose(self) -> ComposeResult:
-        bangtree = BangTree(self.md, "BANG results")
-
-        with Container(id='app-grid'):
-            yield bangtree
-
-            yield Static(str(self.md))
-        yield Footer()
-
 
 @click.command(short_help='Interactive BANG shell')
 @click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(path_type=pathlib.Path))
