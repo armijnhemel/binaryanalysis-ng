@@ -28,7 +28,9 @@ import sys
 from typing import Any
 
 from .meta_directory import MetaDirectory, MetaDirectoryException
+from . import signatures
 
+from rich.console import Group, group
 import rich.table
 
 from textual.app import App, ComposeResult
@@ -55,6 +57,7 @@ class BangShell(App):
     def __init__(self, result_directory, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.metadir = result_directory
+        self.reporters = signatures.get_reporters()
 
     def compose(self) -> ComposeResult:
         self.md = MetaDirectory.from_md_path(self.metadir.parent, self.metadir.name)
@@ -83,8 +86,11 @@ class BangShell(App):
 
     def on_tree_tree_highlighted(self, event: Tree.NodeHighlighted[None]) -> None:
         pass
+
     def on_tree_node_selected(self, event: Tree.NodeSelected[None]) -> None:
-        self.static_widget.update(self.build_meta_table(event.node.data))
+        table = self.build_meta_table(event.node.data)
+        self.static_widget.update(Group(table, self.build_meta_report(event.node.data)))
+
     def on_tree_node_collapsed(self, event: Tree.NodeCollapsed[None]) -> None:
         pass
 
@@ -148,6 +154,17 @@ class BangShell(App):
                         meta_table.add_row(h, f'{metadata["hashes"][h]}')
 
         return meta_table
+
+    @group()
+    def build_meta_report(self, md):
+        labels = md.info.get("labels", [])
+        for r in self.reporters:
+            for l in labels:
+                if l in r.tags:
+                    reporter = r()
+                    title, report_results = reporter.create_report(md)
+                    for rep in report_results:
+                        yield(rep)
 
 @click.command(short_help='Interactive BANG shell')
 @click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(path_type=pathlib.Path))
