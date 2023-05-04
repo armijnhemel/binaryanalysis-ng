@@ -81,10 +81,12 @@ class ElfReporter(Reporter):
                     meta_table.add_row('Package version', f'{metadata["package note"]["version"]}')
                 if 'osCpe' in metadata['package note']:
                     meta_table.add_row('Package CPE', f'{metadata["package note"]["osCpe"]}')
-            if metadata['strings'] != []:
-                meta_table.add_row('Extracted strings', str(len(metadata['strings'])))
-            if metadata['symbols'] != []:
-                meta_table.add_row('Extracted symbols', str(len(metadata['symbols'])))
+            if 'strings' in metadata:
+                if metadata['strings'] != []:
+                    meta_table.add_row('Extracted strings', str(len(metadata['strings'])))
+            if 'symbols' in metadata:
+                if metadata['symbols'] != []:
+                    meta_table.add_row('Extracted symbols', str(len(metadata['symbols'])))
 
             if 'Linux kernel module' in metadata['elf_type']:
                 if 'Linux kernel module' in metadata:
