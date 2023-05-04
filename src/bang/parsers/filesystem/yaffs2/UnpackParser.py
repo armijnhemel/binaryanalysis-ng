@@ -650,6 +650,7 @@ class Yaffs2UnpackParser(UnpackParser):
                     # create the directory
                     meta_directory.unpack_directory(file_path)
                 elif chunk_object_type == YAFFS_OBJECT_TYPE_HARDLINK:
+                    linkname = self.object_id_to_name[equiv_id]
                     meta_directory.unpack_hardlink(file_path, linkname)
                 elif chunk_object_type == YAFFS_OBJECT_TYPE_SPECIAL:
                     # no permissions to create special files,
