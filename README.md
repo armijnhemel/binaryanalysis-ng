@@ -112,7 +112,7 @@ larger file, unless stated otherwise.
 17. TrueType fonts/sfnt-housed fonts
 18. OpenType fonts
 19. Vim swap files (whole file only)
-20. Android sparse data image (no Brotli compression, no bsdiff/imgdiff)
+20. Android sparse data image (regular and Brotli compression, no bsdiff/imgdiff)
 21. Android backup files
 22. ICO (MS Windows icons)
 23. Chrome PAK (version 4 & 5, only if offset starts at 0)
