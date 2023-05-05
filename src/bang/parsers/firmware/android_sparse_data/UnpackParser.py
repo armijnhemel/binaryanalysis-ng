@@ -39,6 +39,7 @@ import os
 import pathlib
 import sys
 import tempfile
+import time
 
 import brotli
 
@@ -48,9 +49,10 @@ from bang.UnpackParserException import UnpackParserException
 
 class AndroidSparseDataUnpackParser(UnpackParser):
     extensions = ['.new.dat', 'new.dat.br']
-    #extensions = ['.new.dat']
     signatures = []
     pretty_name = 'androidsparsedata'
+    MAX_WAITS = 10
+    SLEEP_TIME = 1
 
     def parse(self):
         self.is_brotli = False
@@ -65,6 +67,15 @@ class AndroidSparseDataUnpackParser(UnpackParser):
 
         if patchfile.exists():
             check_condition(patchfile.stat().st_size == 0, "patches not supported")
+
+        if transferfile.stat().st_size == 0:
+            ctr = 0
+            while True:
+                if transferfile.stat().st_size != 0:
+                    break
+                check_condition(ctr <= self.MAX_WAITS, "required file .transferlist empty (not yielded quickly enough?)")
+                time.sleep(self.SLEEP_TIME)
+                ctr += 1
 
         # open the transfer list in text mode, not in binary mode
         transferlist = open(transferfile, 'r')
