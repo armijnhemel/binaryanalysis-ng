@@ -280,6 +280,7 @@ larger file, unless stated otherwise.
 178. Reolink 'logo' file
 179. FLS firmware files (IP cameras)
 180. TP-Link TX6610v4 firmware
+181. Granite Devices firmware v300
 
 The following text formats can be recognized:
 
