@@ -39,7 +39,7 @@ import rich.tree
 from .scan_environment import *
 from .scan_job import ScanJob, process_jobs, make_scan_pipeline
 from .meta_directory import MetaDirectory, MetaDirectoryException
-from . import signatures
+from . import parser_utils
 from .log import log
 
 BANG_VERSION = "0.0.1"
@@ -88,7 +88,7 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     # set the unpack_parsers
     # TODO: use config to enable/disable parsers
     #log.debug(f' finding unpack_parsers ')
-    unpack_parsers = signatures.get_unpackers()
+    unpack_parsers = parser_utils.get_unpackers()
     scan_environment.parsers.unpackparsers = unpack_parsers
     #log.debug(f'{unpack_parsers =}')
     scan_environment.parsers.build_automaton()
@@ -158,7 +158,7 @@ def show(show_all, metadir, pretty):
     console.print(meta_table)
 
     if show_all:
-        reporters = signatures.get_reporters()
+        reporters = parser_utils.get_reporters()
         labels = md.info.get("labels", [])
         for r in reporters:
             for l in labels:
