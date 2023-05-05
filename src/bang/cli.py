@@ -59,7 +59,7 @@ def app():
 
 # bang scan <input file>
 @app.command(short_help='Scan a file')
-@click.option('-c', '--config')
+@click.option('-c', '--config', type=click.Path(path_type=pathlib.Path))
 @click.option('-v', '--verbose', is_flag=True, help='Enable debug logging')
 @click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
 @click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True), default=pathlib.Path('/tmp'), help='Temporary directory')
