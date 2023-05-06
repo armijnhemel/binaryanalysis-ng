@@ -34,7 +34,7 @@ from .UnpackParser import UnpackParser
 from .Reporter import Reporter
 
 
-def _get_unpackers_recursive(unpackers_root, parent_module_path, ignore_list=[]):
+def _get_unpackers_recursive(unpackers_root, parent_module_path):
     abs_module_path = unpackers_root / parent_module_path
     for m in pkgutil.iter_modules([str(abs_module_path)]):
         full_module_path = parent_module_path / m.name
@@ -47,16 +47,14 @@ def _get_unpackers_recursive(unpackers_root, parent_module_path, ignore_list=[])
                     if inspect.isclass(member) and issubclass(member, UnpackParser) \
                         and member != UnpackParser:
                         # unpackers.append(member)
-                        if member.pretty_name in ignore_list:
-                            continue
                         yield member
             except ModuleNotFoundError as e:
                 pass
-            yield from _get_unpackers_recursive(unpackers_root, full_module_path, ignore_list)
+            yield from _get_unpackers_recursive(unpackers_root, full_module_path )
 
-def get_unpackers(ignore_list=[]):
+def get_unpackers():
     unpackers = _get_unpackers_recursive(
-            pathlib.Path(os.path.dirname(parsers.__file__)), pathlib.Path('.'), ignore_list)
+            pathlib.Path(os.path.dirname(parsers.__file__)), pathlib.Path('.'))
     return list(unpackers)
 
 def _get_reporters_recursive(reporters_root, parent_module_path):
