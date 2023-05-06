@@ -81,6 +81,7 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_
     # record the starting time of the scan
     start_time = datetime.datetime.utcnow()
     ignore_parsers = []
+    config = None
 
     if config_file is not None:
         # read the configuration file. This is in YAML format
