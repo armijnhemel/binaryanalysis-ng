@@ -36,6 +36,14 @@ import rich.pretty
 import rich.table
 import rich.tree
 
+# import YAML module for the configuration
+from yaml import load
+from yaml import YAMLError
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
+
 from .scan_environment import *
 from .scan_job import ScanJob, process_jobs, make_scan_pipeline
 from .meta_directory import MetaDirectory, MetaDirectoryException
@@ -44,7 +52,7 @@ from .log import log
 
 BANG_VERSION = "0.0.1"
 
-def create_scan_environment_from_config(config):
+def create_scan_environment_from_config(config=None):
     e = ScanEnvironment(
             unpack_directory = '',
             scan_queue = None,
@@ -59,19 +67,31 @@ def app():
 
 # bang scan <input file>
 @app.command(short_help='Scan a file')
-@click.option('-c', '--config', type=click.Path(path_type=pathlib.Path))
+@click.option('-c', '--config', 'config_file', type=click.File('r'))
 @click.option('-v', '--verbose', is_flag=True, help='Enable debug logging')
 @click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
 @click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True), default=pathlib.Path('/tmp'), help='Temporary directory')
 @click.option('-j', '--jobs', default=1, type=int, help='Number of jobs running simultaneously')
 @click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
 @click.argument('path', type=click.Path(exists=True))
-def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_time, path):
+def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_wait_time, path):
     '''Scans PATH and unpacks its files to UNPACK_DIRECTORY.
     '''
 
     # record the starting time of the scan
     start_time = datetime.datetime.utcnow()
+    ignore_parsers = []
+
+    if config_file is not None:
+        # read the configuration file. This is in YAML format
+        try:
+            config = load(config_file, Loader=Loader)
+        except (YAMLError, PermissionError, UnicodeDecodeError):
+            print("Cannot open configuration file, exiting", file=sys.stderr)
+            sys.exit(1)
+        if 'parsers' in config:
+            if config['parsers'] is not None:
+                ignore_parsers = config['parsers'].get('ignore', [])
 
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
@@ -89,7 +109,12 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     # TODO: use config to enable/disable parsers
     #log.debug(f' finding unpack_parsers ')
     unpack_parsers = parser_utils.get_unpackers()
-    scan_environment.parsers.unpackparsers = unpack_parsers
+
+    if ignore_parsers != []:
+        scan_environment.parsers.unpackparsers = list(filter(lambda x: x.pretty_name not in ignore_parsers, unpack_parsers))
+    else:
+        scan_environment.parsers.unpackparsers = unpack_parsers
+
     #log.debug(f'{unpack_parsers =}')
     scan_environment.parsers.build_automaton()
 
