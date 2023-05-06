@@ -38,6 +38,8 @@
 import os
 import pathlib
 import sys
+import tempfile
+import time
 
 import brotli
 
@@ -46,25 +48,34 @@ from bang.UnpackParserException import UnpackParserException
 
 
 class AndroidSparseDataUnpackParser(UnpackParser):
-    #extensions = ['.new.dat', 'new.dat.br']
-    extensions = ['.new.dat']
+    extensions = ['.new.dat', 'new.dat.br']
     signatures = []
     pretty_name = 'androidsparsedata'
+    MAX_WAITS = 10
+    SLEEP_TIME = 1
 
     def parse(self):
         self.is_brotli = False
         if self.infile.name.endswith('.new.dat'):
             transferfile = pathlib.Path(self.infile.name[:-8] + ".transfer.list")
-            #patchfile = pathlib.Path(self.infile.name[:-8] + ".patch.dat")
+            patchfile = pathlib.Path(self.infile.name[:-8] + ".patch.dat")
         elif self.infile.name.endswith('.new.dat.br'):
             self.is_brotli = True
             transferfile = pathlib.Path(self.infile.name[:-11] + ".transfer.list")
-            #patchfile = pathlib.Path(self.infile.name[:-11] + ".patch.dat")
-        #check_condition(patchfile.exists(), "patch file not found")
+            patchfile = pathlib.Path(self.infile.name[:-11] + ".patch.dat")
         check_condition(transferfile.exists(), "transfer list not found")
 
-        # Brotli compression requires that the file is first decompressed
-        # before processing.
+        if patchfile.exists():
+            check_condition(patchfile.stat().st_size == 0, "patches not supported")
+
+        if transferfile.stat().st_size == 0:
+            ctr = 0
+            while True:
+                if transferfile.stat().st_size != 0:
+                    break
+                check_condition(ctr <= self.MAX_WAITS, "required file .transferlist empty (not yielded quickly enough?)")
+                time.sleep(self.SLEEP_TIME)
+                ctr += 1
 
         # open the transfer list in text mode, not in binary mode
         transferlist = open(transferfile, 'r')
@@ -147,6 +158,41 @@ class AndroidSparseDataUnpackParser(UnpackParser):
             # store the transfer commands
             self.transfercommands.append((transfercommand, blocks))
 
+        # Brotli compression requires that the file is first decompressed
+        # before processing.
+        if self.is_brotli:
+            chunksize = 1000000
+            checkbuffer = bytearray(900000)
+
+            decompressor = brotli.Decompressor()
+
+            self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
+
+            bytesread = self.infile.readinto(checkbuffer)
+            buf = memoryview(checkbuffer[:bytesread])
+            while bytesread != 0:
+                try:
+                    data = decompressor.process(buf)
+                    os.write(self.temporary_file[0], data)
+                    os.fsync(self.temporary_file[0])
+                except EOFError as e:
+                    break
+                except Exception as e:
+                    # no data could be successfully unpacked
+                    os.fdopen(self.temporary_file[0]).close()
+                    os.unlink(self.temporary_file[1])
+                    raise UnpackParserException(e.args)
+
+                if decompressor.is_finished():
+                    # there is no more compressed data
+                    break
+                bytesread = self.infile.readinto(checkbuffer)
+                buf = memoryview(checkbuffer[:bytesread])
+            if not decompressor.is_finished():
+                os.fdopen(self.temporary_file[0]).close()
+                os.unlink(self.temporary_file[1])
+                raise UnpackParserException("brotli data not complete")
+
     def calculate_unpacked_size(self):
         self.unpacked_size = self.infile.size
 
@@ -192,11 +238,18 @@ class AndroidSparseDataUnpackParser(UnpackParser):
                 if transfercommand == 'new':
                     for b in range(0, len(blocks), 2):
                         outfile.seek(blocks[b]*blocksize)
-                        os.sendfile(outfile.fileno(), self.infile.fileno(), infile_offset, (blocks[b+1] - blocks[b]) * blocksize)
+                        if self.is_brotli:
+                            os.sendfile(outfile.fileno(), self.temporary_file[0], infile_offset, (blocks[b+1] - blocks[b]) * blocksize)
+                        else:
+                            os.sendfile(outfile.fileno(), self.infile.fileno(), infile_offset, (blocks[b+1] - blocks[b]) * blocksize)
                         infile_offset += (blocks[b+1] - blocks[b]) * blocksize
                 else:
                     pass
             yield unpacked_md
+
+        if self.is_brotli:
+            os.fdopen(self.temporary_file[0]).close()
+            os.unlink(self.temporary_file[1])
 
     labels = ['android', 'android sparse data']
     metadata = {}

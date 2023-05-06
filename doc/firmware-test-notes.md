@@ -118,3 +118,7 @@ Lots of ANI files.
 ## 0803_20140919-GPS-1CARD-PROCAM.bin
 
 Contains `romfs_ambarella` and `ambarella`
+
+## 96b_aerocore2-hello_world.zip
+
+Zephyr firmware.

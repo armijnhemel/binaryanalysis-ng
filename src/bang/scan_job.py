@@ -32,7 +32,6 @@ from operator import itemgetter
 from .meta_directory import *
 from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, HashParser
 from .UnpackParserException import UnpackParserException
-from bang import signatures
 from .log import log
 
 
