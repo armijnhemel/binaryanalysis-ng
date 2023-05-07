@@ -28,7 +28,7 @@ import sys
 from typing import Any
 
 from .meta_directory import MetaDirectory, MetaDirectoryException
-from . import signatures
+from . import parser_utils
 
 from rich.console import Group, group
 import rich.table
@@ -57,7 +57,7 @@ class BangShell(App):
     def __init__(self, result_directory, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.metadir = result_directory
-        self.reporters = signatures.get_reporters()
+        self.reporters = parser_utils.get_reporters()
 
     def compose(self) -> ComposeResult:
         self.md = MetaDirectory.from_md_path(self.metadir.parent, self.metadir.name)
@@ -73,10 +73,11 @@ class BangShell(App):
 
         # build the tree (recursively)
         with self.md.open(open_file=False, info_write=False):
-            self.build_tree(self.md, self.metadir.parent, tree.root, is_root=True)
+            self.build_tree(self.md, self.metadir.parent, tree.root)
 
-
-        self.static_widget = Static(self.build_meta_table(self.md))
+        table = self.build_meta_table(self.md)
+        #self.static_widget = Static(self.build_meta_table(self.md))
+        self.static_widget = Static(Group(table, self.build_meta_report(self.md)))
 
         with Container(id='app-grid'):
 
@@ -89,18 +90,15 @@ class BangShell(App):
 
     def on_tree_node_selected(self, event: Tree.NodeSelected[None]) -> None:
         '''Display the reports of a node when it is selected'''
-        table = self.build_meta_table(event.node.data)
-        self.static_widget.update(Group(table, self.build_meta_report(event.node.data)))
+        if event.node.data is not None:
+            table = self.build_meta_table(event.node.data)
+            self.static_widget.update(Group(table, self.build_meta_report(event.node.data)))
 
     def on_tree_node_collapsed(self, event: Tree.NodeCollapsed[None]) -> None:
         pass
 
-    def build_tree(self, md, parent, parent_node, is_root=False):
-        if is_root:
-            node_name = pathlib.Path(md.file_path.name)
-        else:
-            node_name = pathlib.Path('/').joinpath(*list(md.file_path.parts[2:]))
-        is_root = False
+    def build_tree(self, md, parent, parent_node):
+        node_name = pathlib.Path(md.file_path.name)
 
         have_subfiles = False
         files = []
@@ -128,12 +126,38 @@ class BangShell(App):
         else:
             this_node = parent_node.add_leaf(str(node_name), data=md)
 
+        # first create trees for the individual sub directories
+        # which will then be used as parents.
+        path_to_node = {}
+        for i in sorted(files):
+            # k: path, v: metadir
+            k,v = i
+            parent_path = pathlib.Path(*list(k.parts[:2]))
+            path_name = k.relative_to(parent_path)
+            for p in reversed(path_name.parents):
+                if p.name == '':
+                    continue
+                if p in path_to_node:
+                    continue
+                if p.parent.name == '':
+                     path_node = this_node.add(p.name, expand=True)
+                else:
+                     path_node = path_to_node[p.parent].add(p.name, expand=True)
+                path_to_node[p] = path_node
+
+
         # recurse into sub trees
         for i in sorted(files):
             k,v = i
+            parent_path = pathlib.Path(*list(k.parts[:2]))
+            path_name = k.relative_to(parent_path)
+
             child_md = MetaDirectory.from_md_path(parent, v)
             with child_md.open(open_file=False, info_write=False):
-                self.build_tree(child_md, parent, this_node)
+                if path_name.parent.name == '':
+                    self.build_tree(child_md, parent, this_node)
+                else:
+                    self.build_tree(child_md, parent, path_to_node[path_name.parent])
 
     def build_meta_table(self, md):
         '''Construct a parser meta information table given a meta directory'''
