@@ -104,21 +104,23 @@ class BangShell(App):
         files = []
         for k,v in sorted(md.info.get('extracted_files', {}).items()):
             have_subfiles = True
-            files.append((k,v))
+            files.append((k,v, 'regular'))
 
         for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
             have_subfiles = True
-            files.append((k,v))
+            files.append((k,v, 'regular'))
 
         for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
             have_subfiles = True
-            files.append((k,v))
+            files.append((k,v, 'regular'))
 
         for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
             have_subfiles = True
+            files.append((k,v, 'symlink'))
 
         for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
             have_subfiles = True
+            files.append((k,v, 'hardlink'))
 
         if have_subfiles:
             this_node = parent_node.add(str(node_name), data=md, expand=True)
@@ -129,8 +131,8 @@ class BangShell(App):
         # which will then be used as parents.
         path_to_node = {}
         for i in sorted(files):
-            # k: path, v: metadir
-            k,v = i
+            # k: path, v: metadir, t: filetype
+            k, v, t = i
             parent_path = pathlib.Path(*list(k.parts[:2]))
             path_name = k.relative_to(parent_path)
             for p in reversed(path_name.parents):
@@ -143,57 +145,33 @@ class BangShell(App):
                 else:
                      path_node = path_to_node[p.parent].add(p.name, expand=True)
                 path_to_node[p] = path_node
-
-        # also create trees for the individual sub directories
-        # which will then be used as parents, but then for symlinks
-        # and hardlinks
-        for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
-            k,v = i
-            parent_path = pathlib.Path(*list(k.parts[:2]))
-            path_name = k.relative_to(parent_path)
-            for p in reversed(path_name.parents):
-                if p.name == '':
-                    continue
-                if p in path_to_node:
-                    continue
-                if p.parent.name == '':
-                     path_node = this_node.add(p.name, expand=True)
-                else:
-                     path_node = path_to_node[p.parent].add(p.name, expand=True)
-                path_to_node[p] = path_node
-
-        for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
-            k,v = i
-            parent_path = pathlib.Path(*list(k.parts[:2]))
-            path_name = k.relative_to(parent_path)
-            for p in reversed(path_name.parents):
-                if p.name == '':
-                    continue
-                if p in path_to_node:
-                    continue
-                if p.parent.name == '':
-                     path_node = this_node.add(p.name, expand=True)
-                else:
-                     path_node = path_to_node[p.parent].add(p.name, expand=True)
-                path_to_node[p] = path_node
-
-        for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
-            link_pp_path = k
-            #link_label = f'{link_pp_path}  \u2192  {v}'
-            link_label = f'{link_pp_path}  \U0001f87a  {v}'
 
         # recurse into sub trees
         for i in sorted(files):
-            k,v = i
+            k, v, t = i
             parent_path = pathlib.Path(*list(k.parts[:2]))
             path_name = k.relative_to(parent_path)
 
-            child_md = MetaDirectory.from_md_path(parent, v)
-            with child_md.open(open_file=False, info_write=False):
+            if t == 'regular':
+                child_md = MetaDirectory.from_md_path(parent, v)
+                with child_md.open(open_file=False, info_write=False):
+                    if path_name.parent.name == '':
+                        self.build_tree(child_md, parent, this_node)
+                    else:
+                        self.build_tree(child_md, parent, path_to_node[path_name.parent])
+            elif t == 'symlink' or t == 'hardlink':
                 if path_name.parent.name == '':
-                    self.build_tree(child_md, parent, this_node)
+                    self.build_tree_link(k.name, v, this_node, t)
                 else:
-                    self.build_tree(child_md, parent, path_to_node[path_name.parent])
+                    self.build_tree_link(k.name, v, path_to_node[path_name.parent], t)
+
+    def build_tree_link(self, name, link_name, parent_node, link_type):
+        #link_label = f'{name}  \u2192  {link_name}'
+        if link_type == 'symlink':
+            link_label = f'{name}  \U0001f87a  {link_name}'
+        else:
+            link_label = f'{name}  \U0001f87a  {link_name}   ({link_type})'
+        parent_node.add_leaf(link_label)
 
     def build_meta_table(self, md):
         '''Construct a parser meta information table given a meta directory'''
