@@ -93,6 +93,8 @@ class BangShell(App):
         if event.node.data is not None:
             table = self.build_meta_table(event.node.data)
             self.static_widget.update(Group(table, self.build_meta_report(event.node.data)))
+        else:
+            self.static_widget.update()
 
     def on_tree_node_collapsed(self, event: Tree.NodeCollapsed[None]) -> None:
         pass
