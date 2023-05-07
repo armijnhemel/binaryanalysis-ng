@@ -114,12 +114,11 @@ class BangShell(App):
             have_subfiles = True
             files.append((k,v))
 
-        # TODO: also add symbolic links and hardlinks
         for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
             have_subfiles = True
-            link_pp_path = k
-            #link_label = f'{link_pp_path}  \u2192  {v}'
-            link_label = f'{link_pp_path}  \U0001f87a  {v}'
+
+        for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
+            have_subfiles = True
 
         if have_subfiles:
             this_node = parent_node.add(str(node_name), data=md, expand=True)
@@ -145,6 +144,43 @@ class BangShell(App):
                      path_node = path_to_node[p.parent].add(p.name, expand=True)
                 path_to_node[p] = path_node
 
+        # also create trees for the individual sub directories
+        # which will then be used as parents, but then for symlinks
+        # and hardlinks
+        for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
+            k,v = i
+            parent_path = pathlib.Path(*list(k.parts[:2]))
+            path_name = k.relative_to(parent_path)
+            for p in reversed(path_name.parents):
+                if p.name == '':
+                    continue
+                if p in path_to_node:
+                    continue
+                if p.parent.name == '':
+                     path_node = this_node.add(p.name, expand=True)
+                else:
+                     path_node = path_to_node[p.parent].add(p.name, expand=True)
+                path_to_node[p] = path_node
+
+        for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
+            k,v = i
+            parent_path = pathlib.Path(*list(k.parts[:2]))
+            path_name = k.relative_to(parent_path)
+            for p in reversed(path_name.parents):
+                if p.name == '':
+                    continue
+                if p in path_to_node:
+                    continue
+                if p.parent.name == '':
+                     path_node = this_node.add(p.name, expand=True)
+                else:
+                     path_node = path_to_node[p.parent].add(p.name, expand=True)
+                path_to_node[p] = path_node
+
+        for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
+            link_pp_path = k
+            #link_label = f'{link_pp_path}  \u2192  {v}'
+            link_label = f'{link_pp_path}  \U0001f87a  {v}'
 
         # recurse into sub trees
         for i in sorted(files):
