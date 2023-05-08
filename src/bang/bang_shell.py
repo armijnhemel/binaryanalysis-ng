@@ -76,11 +76,9 @@ class BangShell(App):
             self.build_tree(self.md, self.metadir.parent, tree.root)
 
         table = self.build_meta_table(self.md)
-        #self.static_widget = Static(self.build_meta_table(self.md))
         self.static_widget = Static(Group(table, self.build_meta_report(self.md)))
 
         with Container(id='app-grid'):
-
             yield tree
             yield self.static_widget
         yield Footer()
