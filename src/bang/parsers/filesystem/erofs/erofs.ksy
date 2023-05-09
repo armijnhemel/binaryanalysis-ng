@@ -12,8 +12,10 @@ seq:
     type: superblock
 instances:
   root_inode:
-    pos: superblock.header.meta_block_address * superblock.magic_header.block_size + 32 * superblock.header.root_nid
+    pos: inode_offset_base + 32 * superblock.header.root_nid
     type: inode
+  inode_offset_base:
+    value: superblock.header.meta_block_address * superblock.magic_header.block_size
 types:
   superblock:
     seq:
@@ -244,7 +246,7 @@ types:
           name:
             pos: _parent.entries[index].ofs_name
             size: len_name
-            type: str
+            type: strz
   directory_entry:
     params:
       - id: index
@@ -260,14 +262,10 @@ types:
         enum: file_types
       - id: reserved
         type: u1
-    instances:
-      len_name:
-        #value: _parent.entries[index+1].ofs_name - ofs_name
-        value: 1
-      name:
-        pos: ofs_name
-        size: len_name
-        type: str
+      inode:
+        io: _root._io
+        pos: _root.inode_offset_base + 32 * node_id
+        type: inode
 enums:
   file_types:
     0: unknown
