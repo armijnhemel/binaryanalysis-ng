@@ -56,7 +56,7 @@ types:
       - id: build_time_nsec
         type: u4
         doc: inode v1 time derivation in nano scale
-      - id: blocks
+      - id: num_blocks
         type: u4
         doc: used for statfs
       - id: meta_block_address
@@ -85,6 +85,8 @@ types:
       - id: reserved_2
         size: 24
     instances:
+      len_file:
+        value: num_blocks * _parent.magic_header.block_size
       lz4_zero_padding:
         value: feature_incompat_flags & 0x01 == 0x01
       compr_cfgs:
@@ -106,17 +108,14 @@ types:
       - id: format
         type: u2
       - id: inode
-        type:
-          switch-on: extended
-          cases:
-            false: compact_inode
-            true: extended_inode
+        type: ondisk_inode(extended)
       #- id: xattrs
       #  type: xattr
       #  repeat: expr
       #  repeat-expr: inode.num_xattr
       - id: data
         size: len_inode
+        type: directory_entries
     instances:
       extended:
         value: format & 0x01 == 0x01
@@ -124,7 +123,7 @@ types:
         value: format >> 1
         enum: layouts
       len_inode:
-        value: 'extended ? inode.as<extended_inode>.len_inode : inode.as<compact_inode>.len_inode'
+        value: 'extended ? inode.inode_body.as<extended_inode>.len_inode : inode.inode_body.as<compact_inode>.len_inode'
     enums:
       layouts:
         0: plain
@@ -132,8 +131,10 @@ types:
         2: inline
         3: compression
         4: chunk_based
-  compact_inode:
-    # 32-byte reduced form of an ondisk inode
+  ondisk_inode:
+    params:
+      - id: is_extended
+        type: bool
     seq:
       - id: num_xattr
         -orig-id: i_xattr_icount
@@ -141,6 +142,30 @@ types:
         valid: 0
       - id: mode
         type: u2
+      - id: inode_body
+        type:
+          switch-on: is_extended
+          cases:
+            false: compact_inode
+            true: extended_inode
+    instances:
+      is_socket:
+        value: mode & 0o0170000 == 0o140000
+      is_link:
+        value: mode & 0o0170000 == 0o120000
+      is_regular:
+        value: mode & 0o0170000 == 0o100000
+      is_block_device:
+        value: mode & 0o0170000 == 0o60000
+      is_dir:
+        value: mode & 0o0170000 == 0o40000
+      is_character_device:
+        value: mode & 0o0170000 == 0o20000
+      is_fifo:
+        value: mode & 0o0170000 == 0o10000
+  compact_inode:
+    # 32-byte reduced form of an ondisk inode
+    seq:
       - id: nlink
         type: u2
       - id: len_inode
@@ -157,30 +182,9 @@ types:
         type: u2
       - id: reserved_2
         type: u4
-    instances:
-      is_socket:
-        value: mode & 0o0170000 == 0o140000
-      is_link:
-        value: mode & 0o0170000 == 0o120000
-      is_regular:
-        value: mode & 0o0170000 == 0o100000
-      is_block_device:
-        value: mode & 0o0170000 == 0o60000
-      is_dir:
-        value: mode & 0o0170000 == 0o40000
-      is_character_device:
-        value: mode & 0o0170000 == 0o20000
-      is_fifo:
-        value: mode & 0o0170000 == 0o10000
   extended_inode:
     # 64-byte complete form of an ondisk inode
     seq:
-      - id: num_xattr
-        -orig-id: i_xattr_icount
-        type: u2
-        valid: 0
-      - id: mode
-        type: u2
       - id: reserved_1
         type: u2
       - id: len_inode
@@ -201,21 +205,6 @@ types:
         type: u4
       - id: reserved_2
         size: 16
-    instances:
-      is_socket:
-        value: mode & 0o0170000 == 0o140000
-      is_link:
-        value: mode & 0o0170000 == 0o120000
-      is_regular:
-        value: mode & 0o0170000 == 0o100000
-      is_block_device:
-        value: mode & 0o0170000 == 0o60000
-      is_dir:
-        value: mode & 0o0170000 == 0o40000
-      is_character_device:
-        value: mode & 0o0170000 == 0o20000
-      is_fifo:
-        value: mode & 0o0170000 == 0o10000
   xattr_ibody_header:
     seq:
       - id: reserved_1
@@ -228,7 +217,38 @@ types:
         type: u4
         repeat: expr
         repeat-expr: num_shared_count
+  directory_entries:
+    seq:
+      - id: entries
+        type: directory_entry(_index)
+        repeat: expr
+        repeat-expr: num_entries
+    instances:
+      first_name_offset:
+        pos: 8
+        type: u2
+      num_entries:
+        value: first_name_offset / sizeof<directory_entry>
+      names:
+        type: name(_index)
+        repeat: expr
+        repeat-expr: num_entries
+    types:
+      name:
+        params:
+          - id: index
+            type: u4
+        instances:
+          len_name:
+            value: 'index == _parent.entries.size - 1 ? _parent._parent.len_inode - _parent.entries[index].ofs_name  : _parent.entries[index+1].ofs_name - _parent.entries[index].ofs_name'
+          name:
+            pos: _parent.entries[index].ofs_name
+            size: len_name
+            type: str
   directory_entry:
+    params:
+      - id: index
+        type: u4
     seq:
       - id: node_id
         type: u8
@@ -240,6 +260,14 @@ types:
         enum: file_types
       - id: reserved
         type: u1
+    instances:
+      len_name:
+        #value: _parent.entries[index+1].ofs_name - ofs_name
+        value: 1
+      name:
+        pos: ofs_name
+        size: len_name
+        type: str
 enums:
   file_types:
     0: unknown
