@@ -262,6 +262,7 @@ types:
         enum: file_types
       - id: reserved
         type: u1
+    instances:
       inode:
         io: _root._io
         pos: _root.inode_offset_base + 32 * node_id
