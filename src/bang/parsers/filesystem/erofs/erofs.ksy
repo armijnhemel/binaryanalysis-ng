@@ -12,9 +12,9 @@ seq:
     type: superblock
 instances:
   root_inode:
-    pos: inode_offset_base + 32 * superblock.header.root_nid
+    pos: ofs_metadata_area + 32 * superblock.header.root_nid
     type: inode
-  inode_offset_base:
+  ofs_metadata_area:
     value: superblock.header.meta_block_address * superblock.magic_header.block_size
 types:
   superblock:
@@ -115,9 +115,14 @@ types:
       #  type: xattr
       #  repeat: expr
       #  repeat-expr: inode.num_xattr
-      - id: data
+      - id: dir_entries
         size: len_inode
         type: directory_entries
+        if: inode.is_dir
+      - id: link_data
+        size: len_inode
+        type: strz
+        if: inode.is_link
     instances:
       extended:
         value: format & 0x01 == 0x01
@@ -219,6 +224,12 @@ types:
         type: u4
         repeat: expr
         repeat-expr: num_shared_count
+  chunk_info:
+    seq:
+      - id: format
+        type: u2
+      - id: reserved
+        size: 2
   directory_entries:
     seq:
       - id: entries
@@ -265,7 +276,7 @@ types:
     instances:
       inode:
         io: _root._io
-        pos: _root.inode_offset_base + 32 * node_id
+        pos: _root.ofs_metadata_area + 32 * node_id
         type: inode
 enums:
   file_types:
