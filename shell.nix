@@ -17,6 +17,7 @@ let
 
   my-python = pkgs.python3.withPackages (p: with p; [
     brotli
+    click
     deepdiff
     defusedxml
     kaitaistruct
