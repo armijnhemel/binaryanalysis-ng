@@ -4,7 +4,9 @@ meta:
   license: Apache-2.0
   encoding: UTF-8
   endian: le
-doc-ref: https://git.kernel.org/pub/scm/linux/kernel/git/xiang/erofs-utils.git
+doc-ref:
+  - https://git.kernel.org/pub/scm/linux/kernel/git/xiang/erofs-utils.git
+  - https://git.kernel.org/pub/scm/linux/kernel/git/xiang/erofs-utils.git/tree/include/erofs_fs.h
 seq:
   - id: data
     size: 1024
