@@ -419,6 +419,18 @@ types:
       - id: cluster_bits
         type: u1
     instances:
+      compacted_2b:
+        value: advise & 0x1 == 0x1
+      big_pcluster_1:
+        value: advise & 0x2 == 0x2
+      big_pcluster_2:
+        value: advise & 0x4 == 0x4
+      inline_pcluster:
+        value: advise & 0x8 == 0x8
+      interlaced_pcluster:
+        value: advise & 0x10 == 0x10
+      interlaced_fragment_pcluster:
+        value: advise & 0x20 == 0x20
       algorithm_type_head_1:
         value: algorithm_type & 0xf
         enum: compression
