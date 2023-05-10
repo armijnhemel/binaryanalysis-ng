@@ -333,6 +333,8 @@ types:
         type: str
       - id: value
         size: len_value
+      - id: padding
+        size: -(len_value + len_name) % 4
   chunk_info:
     seq:
       - id: format
