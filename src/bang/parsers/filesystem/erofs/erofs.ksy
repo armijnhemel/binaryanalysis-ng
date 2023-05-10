@@ -79,6 +79,7 @@ types:
         doc: 128-bit uuid for volume
       - id: volume_name
         size: 16
+        type: strz
       - id: feature_incompat_flags
         type: u4
       - id: compression_information
