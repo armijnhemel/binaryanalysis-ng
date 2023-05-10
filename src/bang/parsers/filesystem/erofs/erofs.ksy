@@ -12,10 +12,15 @@ seq:
     type: superblock
 instances:
   root_inode:
-    pos: ofs_metadata_area + 32 * superblock.header.root_nid
+    pos: ofs_metadata_area + (32 * superblock.header.root_nid)
     type: inode
   ofs_metadata_area:
     value: superblock.header.meta_block_address * superblock.magic_header.block_size
+  blocks:
+    pos: 0
+    size: superblock.magic_header.block_size
+    repeat: expr
+    repeat-expr: superblock.header.num_blocks
 types:
   superblock:
     seq:
@@ -74,8 +79,9 @@ types:
         size: 16
       - id: feature_incompat_flags
         type: u4
-      - id: available_compr_algs_or_lz4_max_distance
-        type: u2
+      - id: compression_information
+        size: 2
+        type: compression_information
       - id: extra_devices
         type: u2
       - id: devt_slotoff
@@ -105,24 +111,31 @@ types:
         value: feature_incompat_flags & 0x20 == 0x20
       dedupe:
         value: feature_incompat_flags & 0x20 == 0x20
+    types:
+      compression_information:
+        seq:
+          - id: raw
+            size: 2
+        instances:
+          available_compression_algorithms:
+            pos: 0
+            type: u2
+          lz4_max_distance:
+            pos: 0
+            type: u2
   inode:
     seq:
       - id: format
         type: u2
       - id: inode
         type: ondisk_inode(extended)
-      #- id: xattrs
-      #  type: xattr
-      #  repeat: expr
-      #  repeat-expr: inode.num_xattr
-      - id: dir_entries
-        size: len_inode
-        type: directory_entries
-        if: inode.is_dir
-      - id: link_data
-        size: len_inode
-        type: strz
-        if: inode.is_link
+      - id: xattrs
+        type: xattrs(inode.num_xattr)
+      - id: data
+        type:
+          switch-on: inode_layout
+          cases:
+            layouts::inline: inline
     instances:
       extended:
         value: format & 0x01 == 0x01
@@ -131,6 +144,17 @@ types:
         enum: layouts
       len_inode:
         value: 'extended ? inode.inode_body.as<extended_inode>.len_inode : inode.inode_body.as<compact_inode>.len_inode'
+    types:
+      inline:
+        seq:
+          - id: dir_entries
+            size: _parent.len_inode
+            type: directory_entries
+            if: _parent.inode.is_dir
+          - id: link_data
+            size: _parent.len_inode
+            type: strz
+            if: _parent.inode.is_link
     enums:
       layouts:
         0: plain
@@ -146,7 +170,7 @@ types:
       - id: num_xattr
         -orig-id: i_xattr_icount
         type: u2
-        valid: 0
+        #valid: 0
       - id: mode
         type: u2
       - id: inode_body
@@ -179,8 +203,9 @@ types:
         type: u4
       - id: reserved_1
         type: u4
-      - id: some_union
-        type: u4
+      - id: node_specific_union
+        size: 4
+        type: node_specific_union
       - id: ino
         type: u4
       - id: uid
@@ -196,8 +221,9 @@ types:
         type: u2
       - id: len_inode
         type: u8
-      - id: some_union
-        type: u4
+      - id: node_specific_union
+        size: 4
+        type: node_specific_union
       - id: ino
         type: u4
       - id: uid
@@ -212,6 +238,46 @@ types:
         type: u4
       - id: reserved_2
         size: 16
+  node_specific_union:
+    seq:
+      - id: raw
+        size: 4
+    instances:
+      compressed_blocks:
+        # file total compressed blocks for data mapping 1
+        pos: 0
+        type: u4
+      raw_block_address:
+        # for raw blocks, example: regular files under data mapping 2
+        pos: 0
+        type: u4
+      rdev:
+        # device files
+        pos: 0
+        type: u4
+      chunk_info:
+        pos: 0
+        type: chunk_info
+  xattrs:
+    params:
+      - id: num_xattr
+        type: u4
+    seq:
+      - id: header
+        type: xattr_ibody_header
+      - id: shared_xattrs
+        type: xattr_entry
+        repeat: expr
+        repeat-expr: header.num_shared_count
+      - id: inline_xattr
+        size: (num_xattr - 1) * 4
+        type: inline_xattrs
+    types:
+      inline_xattrs:
+        seq:
+          - id: entry
+            type: xattr_entry
+            repeat: eos
   xattr_ibody_header:
     seq:
       - id: reserved_1
@@ -220,10 +286,20 @@ types:
         type: u1
       - id: reserved_2
         size: 7
-      - id: shared_xattrs
-        type: u4
-        repeat: expr
-        repeat-expr: num_shared_count
+  xattr_entry:
+    seq:
+      - id: len_name
+        type: u1
+      - id: name_index
+        type: u1
+        enum: xattr_name_index
+      - id: len_value
+        type: u2
+      - id: name
+        size: len_name
+        type: str
+      - id: value
+        size: len_value
   chunk_info:
     seq:
       - id: format
@@ -253,7 +329,7 @@ types:
             type: u4
         instances:
           len_name:
-            value: 'index == _parent.entries.size - 1 ? _parent._parent.len_inode - _parent.entries[index].ofs_name  : _parent.entries[index+1].ofs_name - _parent.entries[index].ofs_name'
+            value: 'index == _parent.entries.size - 1 ? _parent._parent._parent.len_inode - _parent.entries[index].ofs_name  : _parent.entries[index+1].ofs_name - _parent.entries[index].ofs_name'
           name:
             pos: _parent.entries[index].ofs_name
             size: len_name
@@ -276,7 +352,7 @@ types:
     instances:
       inode:
         io: _root._io
-        pos: _root.ofs_metadata_area + 32 * node_id
+        pos: _root.ofs_metadata_area + (32 * node_id)
         type: inode
 enums:
   file_types:
@@ -291,3 +367,10 @@ enums:
   compression:
     0: lz4
     1: lzma
+  xattr_name_index:
+    1: user
+    2: posix_acl_access
+    3: posix_acl_default
+    4: trusted
+    5: lustre
+    6: security
