@@ -46,7 +46,7 @@ class ErofsUnpacker(UnpackParser):
 
             # walk the inodes
             inodes = collections.deque()
-            inodes.append(('', '/', erofs.Erofs.FileTypes.directory, self.data.root_inode))
+            inodes.append(('', '', erofs.Erofs.FileTypes.directory, self.data.root_inode))
             while True:
                 try:
                     name, parent, file_type, inode = inodes.popleft()
