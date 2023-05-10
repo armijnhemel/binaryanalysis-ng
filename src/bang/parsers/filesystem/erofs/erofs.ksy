@@ -16,6 +16,8 @@ instances:
     type: inode
   ofs_metadata_area:
     value: superblock.header.meta_block_address * superblock.magic_header.block_size
+  ofs_shared_xattr_area:
+    value: superblock.header.xattr_block_address * superblock.magic_header.block_size
   blocks:
     pos: 0
     size: superblock.magic_header.block_size
@@ -130,8 +132,8 @@ types:
       - id: inode
         type: ondisk_inode(extended)
       - id: xattrs
-        type: xattrs(inode.num_xattr)
-        if: inode.num_xattr != 0
+        type: xattrs(inode.num_inline_xattr)
+        if: inode.num_inline_xattr != 0
       - id: data
         type:
           switch-on: inode_layout
@@ -144,7 +146,7 @@ types:
         value: format >> 1
         enum: layouts
       len_inode:
-        value: 'extended ? inode.inode_body.as<extended_inode>.len_inode : inode.inode_body.as<compact_inode>.len_inode'
+        value: 'extended ? inode.body.as<extended_inode>.len_inode : inode.body.as<compact_inode>.len_inode'
     types:
       inline:
         seq:
@@ -156,10 +158,17 @@ types:
             size: _parent.len_inode
             type: strz
             if: _parent.inode.is_link
-        #instances:
-          #node_data:
-            #io: _root.io
-            #pos: 
+          - id: last_inline_data
+            size: _parent.len_inode % _root.superblock.magic_header.block_size
+            if: _parent.inode.is_regular
+        instances:
+          node_data:
+            io: _root._io
+            pos: raw_block_address * _root.superblock.magic_header.block_size
+            size: '(_parent.len_inode / _root.superblock.magic_header.block_size) * _root.superblock.magic_header.block_size'
+            if: _parent.inode.is_regular
+          raw_block_address:
+            value: '_parent.extended ? _parent.inode.body.as<extended_inode>.specific.raw_block_address : _parent.inode.body.as<compact_inode>.specific.raw_block_address'
     enums:
       layouts:
         0: plain
@@ -172,13 +181,13 @@ types:
       - id: is_extended
         type: bool
     seq:
-      - id: num_xattr
+      - id: num_inline_xattr
         -orig-id: i_xattr_icount
         type: u2
         #valid: 0
       - id: mode
         type: u2
-      - id: inode_body
+      - id: body
         type:
           switch-on: is_extended
           cases:
@@ -208,7 +217,7 @@ types:
         type: u4
       - id: reserved_1
         type: u4
-      - id: node_specific_union
+      - id: specific
         size: 4
         type: node_specific_union
       - id: ino
@@ -226,7 +235,7 @@ types:
         type: u2
       - id: len_inode
         type: u8
-      - id: node_specific_union
+      - id: specific
         size: 4
         type: node_specific_union
       - id: ino
@@ -265,19 +274,28 @@ types:
         type: chunk_info
   xattrs:
     params:
-      - id: num_xattr
+      - id: num_inline_xattr
         type: u4
     seq:
       - id: header
         type: xattr_ibody_header
-      - id: shared_xattrs
-        type: xattr_entry
+      - id: shared_xattrs_ids
+        type: shared_xattr_id
         repeat: expr
         repeat-expr: header.num_shared_count
       - id: inline_xattr
-        size: (num_xattr - 1) * 4
+        size: (num_inline_xattr - 1 - header.num_shared_count) * 4
         type: inline_xattrs
     types:
+      shared_xattr_id:
+        seq:
+          - id: xattr_id
+            type: u4
+        instances:
+          xattr:
+            io: _root._io
+            pos: _root.ofs_shared_xattr_area + (4 * xattr_id)
+            type: xattr_entry
       inline_xattrs:
         seq:
           - id: entry
