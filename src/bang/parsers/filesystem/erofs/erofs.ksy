@@ -139,7 +139,9 @@ types:
         type:
           switch-on: inode_layout
           cases:
+            #layouts::plain: plain
             layouts::inline: inline
+            #layouts::compression: compression
     instances:
       extended:
         value: format & 0x01 == 0x01
@@ -149,6 +151,19 @@ types:
       len_inode:
         value: 'extended ? inode.body.as<extended_inode>.len_inode : inode.body.as<compact_inode>.len_inode'
     types:
+      compression:
+        seq:
+          - id: map_header
+            type: map_header
+      #plain:
+      #  instances:
+      #    node_data:
+      #      io: _root._io
+      #      pos: raw_block_address * _root.superblock.magic_header.block_size
+      #      size: '(_parent.len_inode / _root.superblock.magic_header.block_size) * _root.superblock.magic_header.block_size'
+      #      if: _parent.inode.is_regular
+      #    raw_block_address:
+      #      value: '_parent.extended ? _parent.inode.body.as<extended_inode>.specific.raw_block_address : _parent.inode.body.as<compact_inode>.specific.raw_block_address'
       inline:
         # for the inline data: the metadata for every format except
         # regular files is kept inline. For regular files, if the
