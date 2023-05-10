@@ -386,6 +386,8 @@ types:
         io: _root._io
         pos: _root.ofs_metadata_area + (32 * node_id)
         type: inode
+      name:
+        value: _parent.names[index]
 enums:
   file_types:
     0: unknown
