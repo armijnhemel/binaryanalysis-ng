@@ -389,6 +389,43 @@ types:
         type: inode
       name:
         value: _parent.names[index]
+
+  map_header:
+    seq:
+      - id: offset_or_encoded_size
+        size: 4
+        type: map_header_union
+      - id: advise
+        type: u2
+      - id: algorithm_type
+        type: u1
+      - id: cluster_bits
+        type: u1
+    instances:
+      algorithm_type_head_1:
+        value: algorithm_type & 0xf
+        enum: compression
+      algorithm_type_head_2:
+        value: algorithm_type >> 4
+        enum: compression
+      whole_file_packed:
+        value: cluster_bits >> 7
+      logical_cluster_bits:
+        value: (cluster_bits & 0x7) + 12
+      logical_cluster_size:
+        value: 1 << logical_cluster_bits
+    types:
+      map_header_union:
+        seq:
+          - id: raw
+            size: 4
+        instances:
+          ofs_fragment:
+            pos: 0
+            type: u4
+          len_encoded_tailpacking_data:
+            pos: 2
+            type: u2
   lz4_configs:
     seq:
       - id: max_distance
