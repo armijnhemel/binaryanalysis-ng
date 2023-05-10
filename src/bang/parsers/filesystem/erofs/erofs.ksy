@@ -149,6 +149,12 @@ types:
         value: 'extended ? inode.body.as<extended_inode>.len_inode : inode.body.as<compact_inode>.len_inode'
     types:
       inline:
+        # for the inline data: the metadata for every format except
+        # regular files is kept inline. For regular files, if the
+        # data is larger than the block size as defined in the superblock
+        # it can be found at the address found in the node specific
+        # information found in the inode information, except for the
+        # last bit of data if it cannot fill a full block.
         seq:
           - id: dir_entries
             size: _parent.len_inode
@@ -270,9 +276,13 @@ types:
         pos: 0
         type: u4
       chunk_info:
+        # information specifif for the chunked data layout
         pos: 0
         type: chunk_info
   xattrs:
+    # the xattr space consists of a header, an array of ids for
+    # shared xattr, which are offsets to xattrs somewhere else in
+    # the file. The rest of the data is used for inline xattrs.
     params:
       - id: num_inline_xattr
         type: u4
