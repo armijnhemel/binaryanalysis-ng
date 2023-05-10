@@ -389,6 +389,22 @@ types:
         type: inode
       name:
         value: _parent.names[index]
+  lz4_configs:
+    seq:
+      - id: max_distance
+        type: u2
+      - id: max_pcluster_blocks
+        type: u2
+      - id: reserved
+        size: 10
+  lzma_configs:
+    seq:
+      - id: dict_size
+        type: u4
+      - id: format
+        type: u2
+      - id: reserved
+        size: 8
 enums:
   file_types:
     0: unknown
