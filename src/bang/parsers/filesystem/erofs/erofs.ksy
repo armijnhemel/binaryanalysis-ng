@@ -190,7 +190,6 @@ types:
       - id: num_inline_xattr
         -orig-id: i_xattr_icount
         type: u2
-        #valid: 0
       - id: mode
         type: u2
       - id: body
