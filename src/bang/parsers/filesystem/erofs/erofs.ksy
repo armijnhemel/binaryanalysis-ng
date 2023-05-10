@@ -397,6 +397,15 @@ types:
       - id: file_type
         type: u1
         enum: file_types
+        valid:
+          any-of:
+            - file_types::regular_file
+            - file_types::directory
+            - file_types::character_device
+            - file_types::block_device
+            - file_types::fifo
+            - file_types::socket
+            - file_types::symlink
       - id: reserved
         type: u1
     instances:
