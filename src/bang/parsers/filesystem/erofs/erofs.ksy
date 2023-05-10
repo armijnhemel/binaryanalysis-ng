@@ -131,6 +131,7 @@ types:
         type: ondisk_inode(extended)
       - id: xattrs
         type: xattrs(inode.num_xattr)
+        if: inode.num_xattr != 0
       - id: data
         type:
           switch-on: inode_layout
@@ -155,6 +156,10 @@ types:
             size: _parent.len_inode
             type: strz
             if: _parent.inode.is_link
+        #instances:
+          #node_data:
+            #io: _root.io
+            #pos: 
     enums:
       layouts:
         0: plain
