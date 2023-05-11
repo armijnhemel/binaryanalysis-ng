@@ -86,10 +86,19 @@ class ErofsUnpacker(UnpackParser):
     def unpack(self, meta_directory):
         inodes = collections.deque()
         inodes.append(('', '', erofs.Erofs.FileTypes.directory, self.data.root_inode))
+
+        # keep track of inodes to facilitate hard links
+        inodes_to_name = {}
         while True:
             try:
+                is_hardlink = False
                 name, parent, file_type, inode = inodes.popleft()
                 file_path = pathlib.Path(parent, name)
+
+                if inode.inode.body.ino in inodes_to_name:
+                    is_hardlink = True
+                else:
+                    inodes_to_name[inode.inode.body.ino] = file_path
 
                 if inode.inode.is_dir:
                     if file_path.name != '':
@@ -101,10 +110,14 @@ class ErofsUnpacker(UnpackParser):
                             continue
                         inodes.append((d.name.name, name, d.file_type, d.inode))
                 elif inode.inode.is_regular:
-                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                        outfile.write(inode.data.node_data)
-                        outfile.write(inode.data.last_inline_data)
-                        yield unpacked_md
+                    if is_hardlink:
+                        target = inodes_to_name[inode.inode.body.ino]
+                        meta_directory.unpack_hardlink(file_path, target)
+                    else:
+                        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                            outfile.write(inode.data.node_data)
+                            outfile.write(inode.data.last_inline_data)
+                            yield unpacked_md
                 elif inode.inode.is_link:
                     target = pathlib.Path(inode.data.link_data)
                     meta_directory.unpack_symlink(file_path, target)
