@@ -52,8 +52,8 @@ class ErofsUnpacker(UnpackParser):
                     name, parent, file_type, inode = inodes.popleft()
 
                     # only process "inline" inodes for now
-                    check_condition(inode.inode_layout == erofs.Erofs.Inode.Layouts.inline,
-                                    "only inline inodes supported for now")
+                    check_condition(inode.inode_layout in [erofs.Erofs.Inode.Layouts.inline, erofs.Erofs.Inode.Layouts.plain],
+                                    "only inline plain inodes supported for now")
 
                     if inode.inode.is_dir:
                         check_condition(file_type == erofs.Erofs.FileTypes.directory,
