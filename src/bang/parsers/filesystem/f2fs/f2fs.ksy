@@ -4,6 +4,11 @@ meta:
   license: LGPL-2.1
   encoding: UTF-8
   endian: le
+doc: |
+  Create a test file:
+
+  $ dd if=/dev/zero bs=64M of=test.f2fs count=1
+  $ mkfs.f2fs test.f2fs
 doc-ref:
   - https://elinux.org/images/1/12/Elc2013_Hwang.pdf
   - https://docs.kernel.org/filesystems/f2fs.html
@@ -75,6 +80,9 @@ types:
         type: u4
       - id: num_segments
         type: u4
+        valid:
+          # SB + 2 (CP + SIT + NAT) + SSA + MAIN
+          min: 9
       - id: num_segments_checkpoint
         type: u4
         doc: segments for checkpoint
