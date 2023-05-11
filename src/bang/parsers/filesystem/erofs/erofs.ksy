@@ -4,6 +4,12 @@ meta:
   license: Apache-2.0
   encoding: UTF-8
   endian: le
+doc: |
+  Enhanced Read Only File System (erofs) is a file system for use on flash
+  storage. It is used on Android, as well as for cloud services (particularly
+  Alibaba's cloud solution).
+
+  Test files can be easily created using mkfs.erofs from erofs-utils.
 doc-ref:
   - https://git.kernel.org/pub/scm/linux/kernel/git/xiang/erofs-utils.git
   - https://git.kernel.org/pub/scm/linux/kernel/git/xiang/erofs-utils.git/tree/include/erofs_fs.h
