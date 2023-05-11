@@ -279,6 +279,24 @@ types:
     instances:
       name_as_str:
         value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.value
+      is_public:
+        value: access_flags & 0x01 == 0x01
+      is_private:
+        value: access_flags & 0x02 == 0x02
+      is_protected:
+        value: access_flags & 0x04 == 0x04
+      is_static:
+        value: access_flags & 0x08 == 0x08
+      is_final:
+        value: access_flags & 0x10 == 0x10
+      is_volatile:
+        value: access_flags & 0x40 == 0x40
+      is_transient:
+        value: access_flags & 0x80 == 0x80
+      is_synthetic:
+        value: access_flags & 0x1000 == 0x1000
+      is_enum:
+        value: access_flags & 0x4000 == 0x4000
   attribute_info:
     doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7'
     seq:
@@ -410,3 +428,27 @@ types:
     instances:
       name_as_str:
         value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.value
+      is_public:
+        value: access_flags & 0x01 == 0x01
+      is_private:
+        value: access_flags & 0x02 == 0x02
+      is_protected:
+        value: access_flags & 0x04 == 0x04
+      is_static:
+        value: access_flags & 0x08 == 0x08
+      is_final:
+        value: access_flags & 0x10 == 0x10
+      is_synchronized:
+        value: access_flags & 0x20 == 0x20
+      is_bridge:
+        value: access_flags & 0x40 == 0x40
+      is_varargs:
+        value: access_flags & 0x80 == 0x80
+      is_native:
+        value: access_flags & 0x100 == 0x100
+      is_abstract:
+        value: access_flags & 0x400 == 0x400
+      is_strict:
+        value: access_flags & 0x800 == 0x800
+      is_synthetic:
+        value: access_flags & 0x1000 == 0x1000
