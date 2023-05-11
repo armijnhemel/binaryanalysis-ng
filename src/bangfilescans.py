@@ -17,7 +17,7 @@
 # License, version 3, along with BANG.  If not, see
 # <http://www.gnu.org/licenses/>
 #
-# Copyright 2018-2019 - Armijn Hemel
+# Copyright 2018-2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
@@ -37,8 +37,6 @@ import email.parser
 import tinycss2
 import dockerfile_parse
 import icalendar
-
-from FileResult import *
 
 
 # For now it is assumed that only files that are completely text

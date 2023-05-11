@@ -1,0 +1,6 @@
+---
+- sha256: 027bb1a0d7f778fde347be353b1920141bc4d4d2da6828ace084cb339787fd17
+  desc: tar file that unpacks a 60 GB sparse file
+  name: gnu-sparse-big.tar
+  size: 5120
+  ref: https://go.dev/src/archive/tar/testdata/

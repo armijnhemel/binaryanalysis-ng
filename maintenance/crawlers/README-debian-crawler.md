@@ -4,12 +4,12 @@ The Debian crawler can be used to download software as packaged by the
 Debian project or from Debian derivatives. There are two ways the crawler
 can be used:
 
-1. automatically downloading software based on the content available on the Debian mirror (and as described in the ls-lR.gz files)
-2. using a list extracted from the Packages.gz file for a single Debian distribution (CURRENTLY UNSUPPORTED)
+1. automatically downloading software based on the content available on the Debian mirror (and as described in the `ls-lR.gz` files)
+2. using a list extracted from the `Packages.gz` file for a single Debian distribution (CURRENTLY UNSUPPORTED)
 
 # Prerequisites
 
-The script requires Python 3 and the "requests" module (external module).
+The script requires Python 3 and the `requests` module (external module).
 
 # Configuration
 
@@ -26,36 +26,30 @@ that the information in the configuration file is accurate.
 
 # Automatically downloading
 
-To automatically download from a Debian mirror adapt the configuration file and
-run:
+To automatically download from one or more Debian mirrors adapt the
+configuration file (for example: `debian-config.yaml`) and run:
 
-    $ python3 debiancrawler.py -c crawler.config
+    $ python3 debiancrawler.py download --config=debian-config.yaml
 
-This will download the ls-lR.gz file from the Debian mirror, parse it and
+This will download the `ls-lR.gz` file from each Debian mirror, parse it and
 download all packages and architectures that are mentioned in the configuration
 file.
 
-# Using a list of packages
+# Downloading a single distribution
 
-CURRENTLY UNSUPPORTED
+To download just all binary packages from a single version of a distribution
+(for example: Ubuntu Hirsute) the script can be invoked in "single distribution
+download" mode. The repository that the files have to be downloaded for has
+to be defined in the configuration file. All the binary architectures (`all`
+is currently excluded) that need to be downloaded have to be defined in the
+configuration file as well.
 
-To download just a subset of packages from a distribution download the
-Packages.gz list, extract the packages you want to extract (optionally edit
-or filter the list) and supply it as a parameter to the script.
+The extra parameter is the distribution that needs to be downloaded. This
+can be any name that is in the `dists` directory of a Debian/Ubuntu mirror.
 
-Example to download the Packages.gz file:
+An example (for Ubuntu Hirsute):
 
-    $ wget -c http://ftp.nluug.nl/pub/os/Linux/distr/debian/dists/stable/main/binary-amd64/Packages.gz
-    $ zgrep ^Filename Packages.gz > /tmp/package-list.txt
-
-Starting 
-
-    $ python3 debiancrawler.py -p /tmp/packages-list.txt -c crawler.config
-
-Please note: because the Packages.gz file does not contain file sizes the extra
-check to see if a file has already been downloaded does not work and files will
-be redownloaded. To prevent this adapt the packages file to filter any
-previously downloaded packages.
+    $ python3 debiancrawler.py download-single-version --config=debian-config.yaml --repository=ubuntu --distribution=hirsute
 
 # Acknowledgement
 

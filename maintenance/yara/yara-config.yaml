@@ -1,0 +1,105 @@
+---
+database:
+    # PostgreSQL connection information
+    # The user as which to use to connect to the database
+    postgresql_user: bang
+
+    # The password to use to connect to the database
+    postgresql_password: bang
+
+    # The name of the database
+    postgresql_db: bang
+
+    # The host for the PostgreSQL server. No need to set this
+    # if you are using localhost as PostgreSQL will then use
+    # a local socket in the file system.
+    # postgresql_host: 127.0.0.1
+
+    # The port for the PostgreSQL server. No need to set this
+    # if you are using the default PostgreSQL setup. If you are
+    # running PostgreSQL on another port you need to
+    # change this
+    # postgresql_port: 5432
+general:
+    # directory for unpacking. By default this is /tmp or
+    # whatever the default set by the system is (for example:
+    # /run/user/$UID/ )
+    # tempdir: /tmp
+
+    # Threads to use. 0 = maximum (dependent on system)
+    # threads: 0
+    verbose: true
+
+    # Setting to indicate whether an error should be fatal
+    # default: true
+    error_fatal: true
+yara:
+    # directory to store generated YARA files
+    yara_directory: /home/armijn/yara
+
+    # use YARA's 'fullword' or not, default: true
+    #fullword: true
+
+    # SOURCE CODE ONLY: json dump directory (default: same as yara_directory)
+    json_directory: /home/armijn/yara/json
+
+    # yara operator can be "and" or "or", default "and"
+    operator: and
+
+    # minimal length of strings, recommended to not go below 5
+    # string_min_cutoff: 8
+
+    # maximal length of strings, recommended to not go above 200
+    # string_max_cutoff: 200
+
+    # minimal length of functions/variable names, recommended
+    # to not go below 2
+    # identifier_cutoff: 2
+
+    # BINARY ONLY: ignore weak ELF symbols. Recommended to set to 'true'
+    ignore_weak_symbols: true
+
+    # BINARY ONLY: ignore OCaml files
+    ignore_ocaml: true
+
+    # the maximum amount of identifiers that YARA will consider
+    max_identifiers: 10000
+
+    # Heuristics for matching identifiers
+    #
+    # percentage of strings, functions and variables that should
+    # be minimally matched from 0 - 100, default 10
+    strings_percentage: 10
+    functions_percentage: 10
+    variables_percentage: 10
+
+    # minimum amount of strings, functions and variables (if any)
+    # that need to be matched, default 1.
+    strings_matched: 1
+    functions_matched: 1
+    variables_matched: 1
+
+    # minimum amount of strings, functions and variables (if any)
+    # that should be present before using any of the heuristics.
+    # Otherwise "any of" will be used.
+    strings_minimum_present: 10
+    functions_minimum_present: 10
+    variables_minimum_present: 10
+
+    # minimum amount of strings, functions and variables that needs
+    # to have been extracted before generating rules
+    strings_extracted: 5
+    functions_extracted: 5
+    variables_extracted: 5
+
+    third_party: [
+        3rdparty,
+        3rd-party-lib,
+        3rdpart,
+        contrib,
+        external,
+        thirdparty,
+        third_party,
+        third-party,
+        third-party-tools,
+    ]

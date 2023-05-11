@@ -1,0 +1,29 @@
+---
+database:
+    # PostgreSQL connection information
+    # The user as which to use to connect to the database
+    postgresql_user: bang
+
+    # The password to use to connect to the database
+    postgresql_password: bang
+
+    # The name of the database
+    postgresql_db: bang
+
+    # The host for the PostgreSQL server. No need to set this
+    # if you are using localhost as PostgreSQL will then use
+    # a local socket in the file system.
+    # postgresql_host: 127.0.0.1
+
+    # The port for the PostgreSQL server. No need to set this
+    # if you are using the default PostgreSQL setup. If you are
+    # running PostgreSQL on another port you need to
+    # change this
+    # postgresql_port: 5432
+general:
+    # directory for unpacking. By default this is /tmp or
+    # whatever the default set by the system is (for example
+    # /run/user/$UID/
+    # tempdir: /tmp
+    # threads: 0
+    verbose: true

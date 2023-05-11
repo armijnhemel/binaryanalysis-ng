@@ -1,17 +1,32 @@
 # binaryanalysis-ng
 Binary Analysis Next Generation (BANG)
 
-BANG is a framework for unpacking files (like firmware) recursively and running
-checks on the unpacked files. Its intended use is to be able to find out the
-provenance of the unpacked files and classify/label files, making them available
-for further analysis.
+BANG is a framework for processing binary files (like firmware). It consists of
+an unpacker that recursively unpacks and classifies/labels files and separate
+analysis programs that work on the results of the unpacker.
+
+Some intended uses:
+
+* provenance detection ("what is inside this file")
+* security scans ("are there any known security risks associated with this file")
 
 ## Requirements
 
-* a recent Linux distribution (Fedora 33 or higher, or equivalent), or NixOS
-* Python 3.8.x or higher
-* for maintenance scripts: Python 3.9.x or higher (as some Python 3.9 specific features are used in the maintenance scripts)
-* pillow (possibly named python3-pillow), a drop in replacement for PIL ( http://python-pillow.github.io/ )
+The recommended way is to use [Nix](https://nixos.org/nix), run
+`nix-shell` to load all the dependencies for the unpacker,
+`nix-shell maintenance.nix` for the maintenance scripts,
+`nix-shell analysis.nix` for the analysis scripts and `nix-shell scraper.nix`
+for the firmware scraper.
+
+`nix` will make sure that everything is downloaded and installed to run BANG.
+
+### Other distributions without Nix
+
+Note: this list is vastly incomplete. It is highly recommended to use Nix.
+
+* a recent Linux distribution (Fedora 35 or higher, or equivalent)
+* Python 3.9.x or higher
+* pillow (possibly named python3-pillow), a drop in replacement for PIL ( <http://python-pillow.github.io/> )
 * GNU binutils (for 'ar')
 * squashfs-tools (for 'unsquashfs')
 * cabextract
@@ -27,7 +42,6 @@ for further analysis.
 * dockerfile-parse (possibly named python3-dockerfile-parse)
 * openssl
 * rzip
-* libxml2 (for 'xmllint')
 * mailcap (for mime.types)
 * lzop
 * OpenJDK (for 'unpack200')
@@ -37,14 +51,16 @@ for further analysis.
 * ncompress
 * util-linux (for 'fsck.cramfs')
 * lz4 (for 'lz4c')
-* elasticsearch (possibly named python3-elasticsearch)
 
-or if you are fortunate enough to be using [nix](https://nixos.org/nix), run
-`nix-shell` to load all the dependencies during development.
+and many others (see `shell.nix`, `maintenance.nix` and `analysis.nix` for a
+full list).
 
-Additionally install "sasquatch"
+You will also need to install the Kaitai Struct compiler. This is described in
+the file `doc/kaitai-struct.md`.
 
-https://github.com/devttys0/sasquatch
+Additionally install `sasquatch`:
+
+<https://github.com/devttys0/sasquatch>
 
 ## Supported hardware
 
@@ -52,10 +68,13 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 
 ## Verified unsupported distributions
 
-* Fedora 32 and earlier
+* Fedora 34 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
-## Docker container
+This doesn't mean that newer versions of Ubuntu are supported, they just
+haven't been tested.
+
+## Docker container (recently untested, assume broken)
 
 ```
 docker image build -t bang .
@@ -67,7 +86,6 @@ or from the `src` directory, type
 ```
 make dockerbuild
 ```
-
 
 
 ## Supported file types
@@ -85,8 +103,8 @@ larger file, unless stated otherwise.
 8. tar
 9. Apple Double encoded files
 10. ICC (colour profile)
-11. ZIP (store, deflate, bzip2, but lzma needs some more testing), also JAR and other ZIP-based formats
-12. APK (same as ZIP, but possibly with extra Android signing bytes)
+11. ZIP (store, deflate, bzip2, but lzma needs some more testing), also JAR, APK (possible with extra Android signing bytes) and other ZIP-based formats
+12. U-Boot image
 13. XAR (no compression, gzip, bzip2, XZ, LZMA)
 14. ISO9660 (including RockRidge and zisofs)
 15. lzip
@@ -94,161 +112,218 @@ larger file, unless stated otherwise.
 17. TrueType fonts/sfnt-housed fonts
 18. OpenType fonts
 19. Vim swap files (whole file only)
-20. Android sparse data image
+20. Android sparse data image (regular and Brotli compression, no bsdiff/imgdiff)
 21. Android backup files
 22. ICO (MS Windows icons)
 23. Chrome PAK (version 4 & 5, only if offset starts at 0)
 24. GNU message catalog
 25. RPM (gzip, XZ, bzip2, LZMA, zstd, not: delta RPM)
 26. AIFF/AIFF-C
-27. terminfo (little endian, including ncurses extension, does not
-    recognize some wide character versions)
+27. terminfo (little endian, regular and extended storage format, not
+    extended number format)
 28. AU (Sun/NeXT audio)
-29. JFFS2 (uncompressed, zlib, LZMA from OpenWrt)
+29. JFFS2 (uncompressed, zlib, rtime, lzo, LZMA from OpenWrt)
 30. CPIO (various flavours, little endian)
 31. Sun Raster files (standard type only)
 32. Intel Hex (text files only)
 33. Motorola SREC (text files only)
-34. MNG
+34. Quicktime
 35. Android sparse image files
 36. Java class file
 37. Android Dex/Odex (not OAT, just carving)
 38. ELF
 39. SWF (uncompressed, zlib, LZMA)
 40. Android resource files (table type, but possibly not all types, binary XML)
-41. Java/Android MANIFEST.MF files (whole file)
-42. Linux kernel configuration files (whole file)
-43. Dockerfile files (whole file)
-44. Python PKG-INFO files (whole file)
-45. base64/32/16 (whole file)
-46. SSH known hosts files (whole file)
-47. FLV (Macromedia Flash Video)
-48. Git index files
-49. Linux Software Map files (whole file)
-50. JSON (whole file)
-51. D-Link ROMFS
-52. Unix passwd files (whole file)
-53. Unix shadow files (whole file)
-54. bzip2
-55. GIF (needs PIL)
-56. JPEG (needs PIL)
-57. Microsoft Cabinet archives (needs cabextract)
-58. RZIP (requires rzip)
-59. 7z (requires external tools), single frame(?)
-60. Windows Compiled HTML Help (needs external tools, version 3
+41. base64/32/16 (whole file)
+42. FLV (Macromedia Flash Video)
+43. Git index files
+44. JSON (whole file)
+45. D-Link ROMFS
+46. bzip2
+47. GIF (needs PIL)
+48. JPEG (needs PIL)
+49. Microsoft Cabinet archives (needs cabextract)
+50. RZIP (requires rzip)
+51. 7z (requires external tools), single frame(?)
+52. Windows Compiled HTML Help (needs external tools, version 3
     only)
-61. Windows Imaging file format (needs external tools, single
+53. Windows Imaging file format (needs external tools, single
     image only)
-62. ext2/3/4 (missing: symbolic link support)
-63. zstd (needs zstd package)
-64. SGI image files (needs PIL)
-65. Apple Icon Image (needs PIL)
-66. LZ4 (requires LZ4 Python bindings), LZ4 legacy (requires 'lz4c')
-67. VMware VMDK (needs qemu-img, whole file only)
-68. QEMU qcow2 (needs qemu-img, whole file only)
-69. VirtualBox VDI (needs qemu-img, whole file only,
+54. ext2/3/4 (missing: symbolic link support)
+55. zstd (needs zstd package)
+56. SGI image files (needs PIL)
+57. Apple Icon Image (needs PIL)
+58. LZ4 (requires LZ4 Python bindings), LZ4 legacy (requires 'lz4c')
+59. VMware VMDK (needs qemu-img, whole file only)
+60. QEMU qcow2 (needs qemu-img, whole file only)
+61. VirtualBox VDI (needs qemu-img, whole file only,
     Oracle flavour only)
-70. XML (whole file)
-71. Snappy (needs python-snappy)
-72. various certificates (PEM, private key, etc., needs openssl)
-73. lzop
-74. CSS
-75. PNG/APNG (needs PIL)
-76. ar/deb (needs binutils)
-77. squashfs (needs squashfs-tools), only regular squashfs, vendor
+62. XML (whole file)
+63. Snappy framing2 format (needs python-snappy)
+64. various certificates (PEM, private key, etc., needs openssl)
+65. lzop
+66. PNG/APNG (needs PIL)
+67. ar/deb (needs binutils)
+68. squashfs (needs squashfs-tools), only regular squashfs, vendor
     specific exotic variants need sasquatch
-78. BMP (needs PIL)
-79. PDF (simple verification, no object streams, incremental updates
+69. BMP (needs PIL)
+70. PDF (simple verification, no object streams, incremental updates
     at end of the file)
-80. pack200 (needs unpack200)
-81. GIMP brush (needs PIL)
-82. ZIM (Wikipedia archive format)
-83. MIDI
-84. Android tzdata
-85. Java key store (version 2 only)
-86. XG3D (proprietary file format from 3D Studio Max, labeling only)
-87. ACDB (audio callibration database, proprietary file format from Qualcomm, labeling only)
-88. Microsoft DirectDraw Surface (structure checks and very limited sanity checking)
-89. Khronos KTX files (version 1)
-90. Android verified boot image
-91. SQLite 3
-92. Linux fstab files
-93. Linux flattened device tree
-94. Broadcom TRX
-95. Photoshop PSD (raw bytes and RLE encoding only)
-96. pkg-config files
-97. minidump files
-98. PPM files ('raw' PPM only)
-99. PGM files ('raw' PGM only)
-100. PBM files ('raw' PBM only)
-101. Android bootloader for Qualcomm Snapdragon
-102. Android bootloader image (also a Lttle Kernel based variant)
-103. Android bootloader for Huawei devices
-104. FAT16 file systems (8.3 file names)
-105. iCalendar (RFC 5545) files (whole file only)
-106. Coreboot images
-107. Minix V1 file system (Linux variant)
-108. Unix compress (needs 'uncompress'), only if end
+71. GIMP brush (needs PIL)
+72. ZIM (Wikipedia archive format)
+73. MIDI
+74. Android tzdata
+75. Java key store (version 2 only)
+76. XG3D (proprietary file format from 3D Studio Max, labeling only)
+77. ACDB (audio callibration database, proprietary file format from Qualcomm, labeling only)
+78. Microsoft DirectDraw Surface (structure checks and very limited sanity checking)
+79. Khronos KTX files (version 1)
+80. Android verified boot image
+81. SQLite 3
+82. Linux flattened device tree
+83. Broadcom TRX
+84. Photoshop PSD (raw bytes and RLE encoding only)
+85. minidump files
+86. PPM files ('raw' PPM only)
+87. PGM files ('raw' PGM only)
+88. PBM files ('raw' PBM only)
+89. Android bootloader image for Qualcomm Snapdragon (MSM)
+90. Android bootloader image (also a Little Kernel based variant)
+91. Android bootloader image for Huawei devices
+92. FAT16 file systems (8.3 file names)
+93. Coreboot images
+94. Minix V1 file system (Linux variant)
+95. Unix compress (needs 'uncompress'), only if end
      of the file is compress'd data
-109. Unix group files (whole file)
-110. TRANS.TBL files
-111. romfs
-112. cramfs (version 2 only)
-113. nb0 Android updates
-114. Quake PAK files
-115. Doom WAD files (IWAD only)
-116. Ambarella firmware files
-117. Ambarella romfs (used in Ambarella firmware files)
-118. bFLT
-119. Samba password files
-120. UBI (not UBIFS!), fastmap not supported
-121. GRUB2 font files
-122. BitTorrent files (subset)
-123. pcapng (carving, structural checks, little endian only)
-124. pcap (carving, structural checks)
-125. serialized Java (block data only, carving, structural checks)
-126. mapsforge map files (very basic structural checks)
-127. Parrot PLF files
-128. Windows INI files (text only)
-129. Subversion hash files (wcprops, all-wcprops, etc.)
-130. PFS file system
-131. YAFFS2 (including inband tags)
-132. Qualcomm QCDT files
-133. Chrome extensions (.crx)
-134. Windows shell link file (.lnk)
-135. PCF fonts (that actually follow the specification)
-136. DS_Store
-137. Qualcomm Snapdragon MSM bootloader files
-138. Mozilla ARchive (.mar)
-139. OpenFst (subset, identification only)
-140. SELinux file context
-141. Ogg
-142. Allwinner images
-143. DFU (Device Firmware Upgrade)
-144. Key Character Map binary files
-145. USB Flashing Format (UF2)
-146. Android VDEX (identification only)
-147. SEAMA firmware files
-148. LLVM IR wrapper format (identification only)
-149. OpenWrt LXL firmware header
-150. Mediatek BootROM (header only)
-151. Rockchip RKFW and RKAF
-152. systemd journal files
-153. Rockchip rkboot
+96. romfs
+97. cramfs (version 2 only)
+98. nb0 Android updates
+99. Quake PAK files
+100. Doom WAD files (IWAD only)
+101. Ambarella firmware files
+102. Ambarella romfs (used in Ambarella firmware files)
+103. bFLT
+104. UBI, fastmap not supported
+105. GRUB2 font files
+106. BitTorrent files (subset)
+107. pcapng (carving, structural checks, little endian only)
+108. pcap (carving, structural checks)
+109. serialized Java (block data only, carving, structural checks)
+110. mapsforge map files (very basic structural checks)
+111. Parrot PLF files
+112. PFS file system
+113. YAFFS2 (including inband tags)
+114. Qualcomm QCDT files
+115. Chrome extensions (.crx)
+116. Windows shell link file (.lnk)
+117. PCF fonts (that actually follow the specification, little endian only)
+118. DS\_Store
+119. libminikin hyb text layout format
+120. Mozilla ARchive (.mar)
+121. OpenFst (subset, identification only)
+122. SELinux file context
+123. Ogg
+124. Allwinner images
+125. DFU (Device Firmware Upgrade)
+126. Key Character Map binary files
+127. USB Flashing Format (UF2)
+128. Android VDEX (identification only)
+129. SEAMA firmware files
+130. LLVM IR wrapper format (identification only)
+131. OpenWrt LXL firmware header
+132. Mediatek BootROM (header only)
+133. Rockchip RKFW and RKAF
+134. systemd journal files
+135. Rockchip rkboot
+136. Python pickle
+137. glibc utmp/wtmp
+138. Android vendor boot
+139. Android FBPK
+140. Samsung Tzar
+141. Qualcomm aboot (version 3 only, no unified boot)
+142. Rockchip resource files
+143. Socionext Milbeaut firmware files
+144. zchunk
+145. ubifs
+146. Performance Co-Pilot metadata files
+147. data URI (png, gif, jpeg only)
+148. DHTB signed files
+149. Android AAPT2 container format
+150. Android update image (version 2 only, full OTA image only)
+151. Qt resource files (`.rcc`)
+152. glibc locale archive file detection
+153. Sunplus BRN firmware
+154. xo65 object files
+155. DOS MZ, plus COFF for MS-DOS, DJGPP go32 DOS extender
+156. WinHelp (older formats only)
+157. PEF (Preferred Executable Format)
+158. Nano app header (Android)
+159. WebAssembly binaries
+160. Android super images
+161. Qualcomm QTI Chromatix (structural checks only)
+162. Mediatek images (including logo.bin)
+163. Android DTO
+164. Portable Image Format
+165. ResPack.cfg (seen in CPB firmware format)
+166. LOD (RDA/Coolsand phone firmware format)
+167. MediaTek secure ROM(?) info
+168. lrzip
+169. SerpentOS .stone package file
+170. systemd hwdb.bin
+171. Qt Translation files
+172. Reolink firmware
+173. Xiaomi firmware
+174. HP BDL firmware
+175. Netgear .chk firmware files
+176. Instar BNEG firmware files
+177. Huawei HWNP firmware files
+178. Reolink 'logo' file
+179. FLS firmware files (IP cameras)
+180. TP-Link TX6610v4 firmware
+181. Granite Devices firmware v300
+182. erofs ('inline' data layout only)
+
+The following text formats can be recognized:
+
+(NOTE: currently broken)
+
+1. Linux kernel configuration files (whole file)
+2. Dockerfile files (whole file)
+3. Python PKG-INFO files (whole file)
+4. Unix group files (whole file)
+5. TRANS.TBL files
+6. CSS
+7. Linux fstab files
+8. Windows INI files (text only)
+9. Linux Software Map files (whole file)
+10. Unix passwd files (whole file)
+11. Unix shadow files (whole file)
+12. Samba password files
+13. SSH known hosts files (whole file)
+14. Subversion hash files (wcprops, all-wcprops, etc.)
+15. pkg-config files
+16. Java/Android MANIFEST.MF files (whole file)
+17. iCalendar (RFC 5545) files (whole file only)
 
 
 ## Invocation
 
+To unpack a file run:
+
     $ python3 bang-scanner -c bang.config -f /path/to/binary
+
+This will output a directory with inside a number of files and directories.
+The output directory can serve as input to the analysis scripts (and some
+knowledgebase scripts).
 
 ## License
 
 GNU Affero General Public License, version 3 (AGPL-3.0)
 
 The code for verifying and labeling Android Verified Boot images was heavily
-inspired by code from Android (avbtool) found at:
+inspired by code from Android (`avbtool`) found at:
 
-https://android.googlesource.com/platform/external/avb/+/master/avbtool
+<https://android.googlesource.com/platform/external/avb/+/master/avbtool>
 
 The original license for avbtool:
 
@@ -277,7 +352,7 @@ The original license for avbtool:
 
 The code for rtime decompression was copied from:
 
-https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py
+<https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py>
 
 The original license for jefferson:
 
@@ -307,12 +382,12 @@ The original license for jefferson:
 
 The recommended coding style is described in PEP 8:
 
-https://www.python.org/dev/peps/pep-0008/
+<https://www.python.org/dev/peps/pep-0008/>
 
 It is recommended to run PEP 8 verification tools, for example
 python3-flake8 (on Fedora).
 
-Another tool that is highly recommended is pylint.
+Another tool that is highly recommended is `pylint`.
 
 # Acknowledgement
 

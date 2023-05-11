@@ -16,7 +16,6 @@ Run manually, or from a cronjob.
 import sys
 import os
 import datetime
-import stat
 import hashlib
 import tempfile
 import multiprocessing
@@ -46,9 +45,8 @@ class ConfigError(Exception):
 
 class Config:
     '''Crawler configuration class'''
-    def __init__(self, config):
+    def __init__(self, configfile):
         # read the configuration file. This is in YAML format
-        configfile = open(config, 'r')
         config = load(configfile, Loader=Loader)
 
         # some sanity checks:
@@ -104,6 +102,38 @@ class Config:
             raise ConfigError("Base unpack directory %s: %s" % (self.storedirectory, e))
 
         self.repositories = config['config']['repositories']
+
+class Packages:
+    '''Packages.gz object'''
+    def __init__(self, packages_file, arch):
+        self.packages_file = packages_file
+        self.packages = []
+        self.arch = arch
+        self.parse()
+
+    def parse(self):
+        packages = gzip.open(self.packages_file)
+
+        cur_package = None
+        for i in packages:
+            line = i.decode().strip()
+            if line.startswith('Package'):
+                if cur_package is not None:
+                    self.packages.append(cur_package)
+                cur_package = {}
+            if cur_package is None:
+                continue
+            if line.startswith('Size'):
+                cur_package['size'] = int(line.split(':')[1].strip())
+            elif line.startswith('Filename'):
+                cur_package['filename'] = line.split(':')[1].strip()
+            elif line.startswith('Architecture'):
+                arch = line.split(':')[1].strip()
+                if self.arch != arch:
+                    cur_package = None
+        packages.close()
+        if cur_package is not None:
+            self.packages.append(cur_package)
 
 
 class Lslr:
@@ -274,40 +304,10 @@ def downloadfile(download_queue, fail_queue, debian_mirror):
         download_queue.task_done()
 
 
-@click.command()
-@click.option('--packagelist', required=True, help='file with packages')
-def download_from_packagelist(packagelist):
-    #parser.add_argument("-p", "--packagelist", action="store", dest="packagelist",
-    #                    help="file with packages", metavar="FILE")
-
-    '''
-    packagelist = []
-
-    # check if there is a file with packages to download. This overrides
-    # the option of downloading packages in the ls-lR.gz file
-    if args.packagelist is not None:
-        if not os.path.exists(args.packagelist):
-            parser.error("No configuration file provided, exiting")
-        if not stat.S_ISREG(os.stat(args.packagelist).st_mode):
-            parser.error("%s is not a regular file, exiting." % args.packagelist)
-        try:
-            packages = open(args.packagelist, 'r').readlines()
-            for pkg in packages:
-                if not pkg.startswith('Filename: '):
-                    continue
-                packagelist.append(pkg.strip().split(': ', 1)[1])
-        except:
-            pass
-    '''
-
-    pass
-
-
-def create_debian_directories(storedirectory, repository):
+def create_debian_directories(repo_directory, repository):
     # create directory for the repository (by name)
-    repo_directory = pathlib.Path(storedirectory, repository.name)
     if not repo_directory.exists():
-        repo_directory.mkdir()
+        repo_directory.mkdir(parents=True)
 
     # now create a directory structure inside the scandirectory:
     # binary/ -- this is where all the binary data will be stored
@@ -361,32 +361,13 @@ def create_debian_directories(storedirectory, repository):
             'log_directory': log_directory}
 
 
-@click.command()
-@click.option('--config', required=True, help='path to configuration file')
-@click.option('--force', help='run if metadata hasn\'t changed', is_flag=True)
-def main(config, force):
-    # the configuration file should exist ...
-    if not os.path.exists(config):
-        print("File %s does not exist, exiting." % config, file=sys.stderr)
-        sys.exit(1)
-
-    # ... and should be a real file
-    if not stat.S_ISREG(os.stat(config).st_mode):
-        print("%s is not a regular file, exiting." % config, file=sys.stderr)
-        sys.exit(1)
-
-    try:
-        crawler_config = Config(config)
-    except Exception as e:
-        print("Cannot open or process configuration file: %s. Exiting." % e, file=sys.stderr)
-        sys.exit(1)
-
+def create_repositories(config):
     repositories = []
 
     # create the repository configuration information based on
     # the configuration file and default values
-    for repo in crawler_config.repositories:
-        repo_entry = crawler_config.repositories[repo]
+    for repo in config.repositories:
+        repo_entry = config.repositories[repo]
 
         # check to see if the repository is disabled
         if 'enabled' in repo_entry:
@@ -447,9 +428,29 @@ def main(config, force):
                     repository.directories = repo_entry['directories']
         repositories.append(repository)
 
+    return repositories
+
+
+@click.group()
+def main():
+   pass
+
+@main.command(short_help='download Debian files')
+@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
+@click.option('--force', '-f', help='run if metadata hasn\'t changed', is_flag=True)
+def download(config, force):
+    try:
+        crawler_config = Config(config)
+    except Exception as e:
+        print("Cannot open or process configuration file: %s. Exiting." % e, file=sys.stderr)
+        sys.exit(1)
+
+    repositories = create_repositories(crawler_config)
+
     # download data for every repository that has been declared
     for repository in repositories:
-        debian_dirs = create_debian_directories(crawler_config.storedirectory, repository)
+        repo_directory = crawler_config.storedirectory / repository.name
+        debian_dirs = create_debian_directories(repo_directory, repository)
 
         # write logging output to a separate log file. This file can
         # get large, so it might be useful periodically truncate with
@@ -561,21 +562,108 @@ def main(config, force):
             print("Successfully downloaded: %d files" % downloaded_files)
             print("Failed to download: %d files" % len_failed)
 
-        '''
-        for pkg in packagelist:
-            curdir = pathlib.Path(pkg).parent
-            downloadpath = pathlib.Path(pkg).name
-            if downloadpath.endswith('.deb'):
-                if '-dev_' in downloadpath and not download_dev:
-                    continue
-                for arch in debian_architectures:
-                    if downloadpath.endswith('_%s.deb' % arch):
-                        download_queue.put((curdir, downloadpath, 0, binary_directory))
-                        deb_counter += 1
-                        break
-            download_queue.put((curdir, downloadpath, 0, binary_directory))
-        '''
 
+@main.command(short_help='download binaries from a single Debian repository')
+@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
+@click.option('--repository', '-r', required=True, help='repository to download from')
+@click.option('--distribution', '-d', required=True, help='specific distribution to download')
+@click.option('--force', '-f', help='run if metadata hasn\'t changed', is_flag=True)
+def download_single_version(config, force, repository, distribution):
+    try:
+        crawler_config = Config(config)
+    except Exception as e:
+        print("Cannot open or process configuration file: %s. Exiting." % e, file=sys.stderr)
+        sys.exit(1)
+
+    repositories = create_repositories(crawler_config)
+
+    for repo in repositories:
+        if repo.name != repository:
+            continue
+        # check if the distribution exists on the mirror
+        download_url = '%s/dists/%s' % (repo.mirror, distribution)
+
+        try:
+            req = requests.get(download_url)
+        except requests.exceptions.RequestException:
+            continue
+
+        if req.status_code != 200:
+            continue
+
+        repo_directory = crawler_config.storedirectory / repo.name / 'dists' / distribution
+
+        debian_dirs = create_debian_directories(repo_directory, repo)
+
+        processmanager = multiprocessing.Manager()
+
+        # create a queue for scanning files
+        download_queue = processmanager.JoinableQueue(maxsize=0)
+        fail_queue = processmanager.JoinableQueue(maxsize=0)
+
+        # grab the Packages files for the defined architectures per directory
+        for d in repo.directories:
+            for arch in repo.architectures:
+                download_url = '%s/dists/%s/%s/binary-%s/Packages.gz' % (repo.mirror, distribution, d, arch)
+
+                try:
+                    req = requests.get(download_url)
+                except requests.exceptions.RequestException:
+                    continue
+
+                if req.status_code != 200:
+                    continue
+
+                download_date = datetime.datetime.utcnow()
+                meta_directory = debian_dirs['meta_data_directory'] / d
+                if not meta_directory.exists():
+                    meta_directory.mkdir()
+
+                meta_outname = meta_directory / ("Packages.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
+
+                if meta_outname.exists():
+                    print("metadata file %s already exists. Skipping entry." % meta_outname,
+                          file=sys.stderr)
+
+                # now store the Packages.gz file for future reference
+                metadata = meta_outname.open(mode='wb')
+                metadata.write(req.content)
+                metadata.close()
+                packages = Packages(meta_outname, arch)
+                for p in packages.packages:
+                    curdir, filename = p['filename'].rsplit('/', maxsplit=1)
+                    download_queue.put((pathlib.Path(curdir), filename, p['size'], debian_dirs['binary_directory']))
+
+        processes = []
+
+        # create processes for unpacking archives
+        for i in range(0, crawler_config.threads):
+            process = multiprocessing.Process(target=downloadfile,
+                                              args=(download_queue, fail_queue, repo.mirror))
+            processes.append(process)
+
+        # start all the processes
+        for process in processes:
+            process.start()
+
+        download_queue.join()
+
+        failed_files = []
+
+        while True:
+            try:
+                failed_files.append(fail_queue.get_nowait())
+                fail_queue.task_done()
+            except queue.Empty:
+                # Queue is empty
+                break
+
+        # block here until the fail_queue is empty
+        fail_queue.join()
+
+        # Done processing, terminate processes
+        for process in processes:
+            process.terminate()
 
 if __name__ == "__main__":
     main()

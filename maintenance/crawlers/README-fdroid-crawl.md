@@ -5,7 +5,7 @@ F-Droid project.
 
 # Prerequisites
 
-The script requires Python 3 and the "requests" module (external module).
+The script requires Python 3 and the `requests` module (external module).
 
 # Configuration
 
@@ -16,8 +16,9 @@ file and adapt accordingly.
 It is possible to set the location of a mirror of F-Droid to download from
 as well as indicate whether source, binaries or both should be downloaded.
 
-Although the crawler performs various sanity checks it is advised to ensure
-that the information in the configuration file is accurate.
+Although the crawler performs various sanity checks it is advised to always
+check that the information in the configuration file as well as the downloaded
+data is correct.
 
 # Running the script
 
@@ -26,9 +27,8 @@ run:
 
     $ python3 fdroidcrawl.py -c crawler.config
 
-This will download the ls-lR.gz file from the Debian mirror, parse it and
-download all packages and architectures that are mentioned in the configuration
-file.
+This will download the F-Droid XML file from the F-Droid mirror, parse it and
+download all packages that are mentioned in the configuration file.
 
 # Acknowledgement
 
