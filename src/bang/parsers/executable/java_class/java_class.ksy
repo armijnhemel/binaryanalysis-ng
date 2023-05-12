@@ -307,15 +307,20 @@ types:
       - id: info
         size: attribute_length
         type:
-          switch-on: name_as_str
+          switch-on: name_as_str.to_s('ascii')
           cases:
-            '[0x43, 0x6f, 0x64, 0x65]': attr_body_code # 4.7.3
-            '[0x45, 0x78, 0x63, 0x65, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73]': attr_body_exceptions # 4.7.5
-            '[0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x46, 0x69, 0x6c, 0x65]': attr_body_source_file # 4.7.10
-            '[0x4c, 0x69, 0x6e, 0x65, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x54, 0x61, 0x62, 0x6c, 0x65]': attr_body_line_number_table # 4.7.12
+            '"Code"': attr_body_code # 4.7.3
+            #'"StackMapTable"': attr_body_stack_map_table # 4.7.4
+            '"Exceptions"': attr_body_exceptions # 4.7.5
+            '"Signature"': attr_body_signature # 4.7.9
+            '"SourceFile"': attr_body_source_file # 4.7.10
+            '"LineNumberTable"': attr_body_line_number_table # 4.7.12
+            '"LocalVariableTable"': attr_body_local_variable_table # 4.7.13
     instances:
       name_as_str:
         value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
+      name_as_str_str:
+        value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value.to_s('ascii')
     types:
       attr_body_code:
         doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3'
@@ -386,6 +391,14 @@ types:
                 value: _root.constant_pool[index - 1].cp_info.as<class_cp_info>
               name_as_str:
                 value: as_info.name_as_str
+      attr_body_signature:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.9'
+        seq:
+          - id: signature_index
+            type: u2
+        instances:
+          signature_as_str:
+            value: _root.constant_pool[signature_index - 1].cp_info.as<utf8_cp_info>.value
       attr_body_source_file:
         doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.10'
         seq:
@@ -410,6 +423,33 @@ types:
                 type: u2
               - id: line_number
                 type: u2
+      attr_body_local_variable_table:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.13'
+        seq:
+          - id: local_variable_table_length
+            type: u2
+          - id: local_variable_table
+            type: local_variable_table_entry
+            repeat: expr
+            repeat-expr: local_variable_table_length
+        types:
+          local_variable_table_entry:
+            seq:
+              - id: start_pc
+                type: u2
+              - id: length
+                type: u2
+              - id: name_index
+                type: u2
+              - id: descriptor_index
+                type: u2
+              - id: index
+                type: u2
+            instances:
+              name_as_str:
+                value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
+              descriptor_as_str:
+                value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
   method_info:
     doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.6'
     seq:
