@@ -310,7 +310,7 @@ The following text formats can be recognized:
 
 To unpack a file run:
 
-    $ python3 bang-scanner -c bang.config -f /path/to/binary
+    $ python3 -m bang.cli scan -u /path/to/unpack/directory /path/to/binary
 
 This will output a directory with inside a number of files and directories.
 The output directory can serve as input to the analysis scripts (and some
