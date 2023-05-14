@@ -520,30 +520,35 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == '.gopclntab':
                     # https://medium.com/walmartglobaltech/de-ofuscating-golang-functions-93f610f4fb76
                     pass
-                elif header.name == '.gosymtab':
-                    # Go symbol table
-                    pass
                 elif header.name == '.interp':
                     # store the location of the dynamic linker
                     metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
+
+                # Some Go related things
+                elif header.name == '.gosymtab':
+                    # Go symbol table
+                    pass
                 elif header.name == '.itablink':
                     # Go
                     pass
                 elif header.name == '.noptrdata':
                     # Go pointer free data
                     pass
+                elif header.name == '.typelink':
+                    # Go
+                    pass
+
+                # QML and Qt
                 elif header.name == '.qml_compile_hash':
                     pass
                 elif header.name == '.qtmetadata':
                     pass
                 elif header.name == '.qtversion':
                     pass
+
                 elif header.name == '.tm_clone_table':
                     # something related to transactional memory
                     # http://gcc.gnu.org/wiki/TransactionalMemory
-                    pass
-                elif header.name == '.typelink':
-                    # Go
                     pass
                 elif header.name == '.VTGData':
                     # VirtualBox tracepoint generated data
@@ -580,6 +585,9 @@ class ElfUnpackParser(UnpackParser):
                 for entry in header.body.entries:
                     pass
             elif header.type == elf.Elf.ShType.note:
+                # Note sections can contain hints as to what is contained
+                # in a binary or give information about the origin of the
+                # binary, or the programming language.
                 if header.name == '.note.go.buildid':
                     metadata['elf_type'].append('go')
 
