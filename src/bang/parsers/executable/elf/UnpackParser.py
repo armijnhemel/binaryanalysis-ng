@@ -682,7 +682,7 @@ class ElfUnpackParser(UnpackParser):
             metadata['needed'] = needed
 
         metadata['notes'] = notes
-        metadata['security'].sort()
+        metadata['security'] = sorted(set(metadata['security']))
 
         if data_strings != []:
             metadata['strings'] = data_strings
