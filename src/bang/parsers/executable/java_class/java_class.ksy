@@ -309,19 +309,33 @@ types:
         type:
           switch-on: name_as_str.to_s('ascii')
           cases:
+            '"ConstantValue"': attr_body_constant_value # 4.7.2
             '"Code"': attr_body_code # 4.7.3
             #'"StackMapTable"': attr_body_stack_map_table # 4.7.4
             '"Exceptions"': attr_body_exceptions # 4.7.5
+            '"InnerClasses"': attr_body_inner_classes # 4.7.6
+            '"EnclosingMethod"': attr_body_enclosing_method # 4.7.7
             '"Signature"': attr_body_signature # 4.7.9
             '"SourceFile"': attr_body_source_file # 4.7.10
+            '"SourceDebugExtension"': attr_body_source_debug_extension # 4.7.11
             '"LineNumberTable"': attr_body_line_number_table # 4.7.12
             '"LocalVariableTable"': attr_body_local_variable_table # 4.7.13
+            #'"Deprecated"': {} # 4.7.15
+            '"RuntimeVisibleAnnotations"': attr_body_runtime_visible_annotations # 4.7.16
     instances:
       name_as_str:
         value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
       name_as_str_str:
         value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value.to_s('ascii')
     types:
+      attr_body_constant_value:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.2'
+        seq:
+          - id: constant_value_index
+            type: u2
+        instances:
+          constant_value:
+            value: _root.constant_pool[constant_value_index - 1].cp_info.as<utf8_cp_info>.value
       attr_body_code:
         doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.3'
         seq:
@@ -391,6 +405,59 @@ types:
                 value: _root.constant_pool[index - 1].cp_info.as<class_cp_info>
               name_as_str:
                 value: as_info.name_as_str
+      attr_body_inner_classes:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.6'
+        seq:
+          - id: num_inner_classes
+            type: u2
+          - id: inner_classes
+            type: inner_class
+            repeat: expr
+            repeat-expr: num_inner_classes
+        types:
+          inner_class:
+            seq:
+              - id: inner_class_info_index
+                type: u2
+              - id: outer_class_info_index
+                type: u2
+              - id: inner_name_index
+                type: u2
+              - id: access_flags
+                type: u2
+            instances:
+              is_public:
+                value: access_flags & 0x01 == 0x01
+              is_private:
+                value: access_flags & 0x02 == 0x02
+              is_protected:
+                value: access_flags & 0x04 == 0x04
+              is_static:
+                value: access_flags & 0x08 == 0x08
+              is_final:
+                value: access_flags & 0x10 == 0x10
+              is_interface:
+                value: access_flags & 0x200 == 0x200
+              is_abstract:
+                value: access_flags & 0x400 == 0x400
+              is_synthetic:
+                value: access_flags & 0x1000 == 0x1000
+              is_annotation:
+                value: access_flags & 0x2000 == 0x2000
+              is_enum:
+                value: access_flags & 0x4000 == 0x4000
+      attr_body_enclosing_method:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.7'
+        seq:
+          - id: class_index
+            type: u2
+          - id: method_index
+            type: u2
+        instances:
+          class_as_str:
+            value: _root.constant_pool[class_index - 1].cp_info.as<utf8_cp_info>.value
+          method_as_str:
+            value: _root.constant_pool[method_index - 1].cp_info.as<utf8_cp_info>.value
       attr_body_signature:
         doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.9'
         seq:
@@ -407,6 +474,11 @@ types:
         instances:
           sourcefile_as_str:
             value: _root.constant_pool[sourcefile_index - 1].cp_info.as<utf8_cp_info>.value
+      attr_body_source_debug_extension:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.11'
+        seq:
+          - id: debug_extension
+            size-eos: true
       attr_body_line_number_table:
         doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.12'
         seq:
@@ -450,6 +522,97 @@ types:
                 value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
               descriptor_as_str:
                 value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
+      attr_body_runtime_visible_annotations:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.16'
+        seq:
+          - id: num_annotations
+            type: u2
+          - id: annotations
+            type: annotation
+            repeat: expr
+            repeat-expr: num_annotations
+        types:
+          annotation:
+            seq:
+              - id: type_index
+                type: u2
+              - id: num_element_value_pairs
+                type: u2
+              - id: element_value_pairs
+                type: element_value_pair
+                repeat: expr
+                repeat-expr: num_element_value_pairs
+            instances:
+              type_as_str:
+                value: _root.constant_pool[type_index - 1].cp_info.as<utf8_cp_info>.raw_value
+            types:
+              element_value_pair:
+                seq:
+                  - id: element_name_index
+                    type: u2
+                  - id: element_value
+                    type: element_value
+                instances:
+                  element_name_as_str:
+                    value: _root.constant_pool[element_name_index - 1].cp_info.as<utf8_cp_info>.raw_value
+                types:
+                  element_value:
+                    seq:
+                      - id: tag
+                        size: 1
+                        type: str
+                        encoding: ASCII
+                      - id: value
+                        type:
+                          switch-on: tag
+                          cases:
+                            '"B"': const_value_index
+                            '"C"': const_value_index
+                            '"D"': const_value_index
+                            '"F"': const_value_index
+                            '"I"': const_value_index
+                            '"J"': const_value_index
+                            '"S"': const_value_index
+                            '"Z"': const_value_index
+                            '"s"': const_value_index
+                            '"e"': enum_const_value
+                            '"c"': class_info_index
+                            '"@"': annotation
+                            '"["': array_type
+                    types:
+                      array_type:
+                        seq:
+                          - id: num_values
+                            type: u2
+                          - id: element_values
+                            type: element_value
+                            repeat: expr
+                            repeat-expr: num_values
+                      class_info_index:
+                        seq:
+                          - id: value_index
+                            type: u2
+                        instances:
+                          const_value:
+                            value: _root.constant_pool[value_index - 1].cp_info.as<utf8_cp_info>.raw_value
+                      const_value_index:
+                        seq:
+                          - id: value_index
+                            type: u2
+                        instances:
+                          const_value:
+                            value: _root.constant_pool[value_index - 1]
+                      enum_const_value:
+                        seq:
+                          - id: type_name_index
+                            type: u2
+                          - id: const_name_index
+                            type: u2
+                        instances:
+                          type_name:
+                            value: _root.constant_pool[type_name_index - 1].cp_info.as<utf8_cp_info>.raw_value
+                          const_name:
+                            value: _root.constant_pool[const_name_index - 1].cp_info.as<utf8_cp_info>.raw_value
   method_info:
     doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.6'
     seq:
