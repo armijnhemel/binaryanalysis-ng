@@ -194,6 +194,10 @@ class ElfUnpackParser(UnpackParser):
             if header.type == elf.Elf.ShType.progbits:
                 interesting = False
 
+                # * .gnu_debugdata: XZ compressed debugging information
+                # * .qtmimedatabase: compressed version of the freedesktop.org MIME database
+                # * .BTF and .BTF.ext: eBPF related files
+                # * .rom_info: Mediatek preloader(?)
                 if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext', '.rom_info']:
                     interesting = True
 
@@ -510,7 +514,7 @@ class ElfUnpackParser(UnpackParser):
                             pass
                     # some Qt binaries use the Qt resource system,
                     # containing images, text, etc.
-                    # Sometimes these end up in an ELF section.
+                    # Sometimes these end up in one of the .rodata ELF sections.
                     if b'qrc:/' in header.body:
                         pass
                 elif header.name == '.gopclntab':
