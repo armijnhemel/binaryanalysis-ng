@@ -315,6 +315,7 @@ types:
             '"Exceptions"': attr_body_exceptions # 4.7.5
             '"InnerClasses"': attr_body_inner_classes # 4.7.6
             '"EnclosingMethod"': attr_body_enclosing_method # 4.7.7
+            #'"Synthetic"': {} # 4.7.8
             '"Signature"': attr_body_signature # 4.7.9
             '"SourceFile"': attr_body_source_file # 4.7.10
             '"SourceDebugExtension"': attr_body_source_debug_extension # 4.7.11
@@ -322,6 +323,11 @@ types:
             '"LocalVariableTable"': attr_body_local_variable_table # 4.7.13
             #'"Deprecated"': {} # 4.7.15
             '"RuntimeVisibleAnnotations"': attr_body_runtime_visible_annotations # 4.7.16
+            '"ModulePackages"': attr_body_module_packages # 4.7.26
+            '"ModuleMainClass"': attr_body_module_main_class # 4.7.27
+            '"NestHost"': attr_body_nest_host # 4.7.28
+            '"NestMembers"': attr_body_nest_members # 4.7.29
+            '"PermittedSubclasses"': attr_body_permitted_subclasses # 4.7.31
     instances:
       name_as_str:
         value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
@@ -613,6 +619,69 @@ types:
                             value: _root.constant_pool[type_name_index - 1].cp_info.as<utf8_cp_info>.raw_value
                           const_name:
                             value: _root.constant_pool[const_name_index - 1].cp_info.as<utf8_cp_info>.raw_value
+      attr_body_module_packages:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.26'
+        seq:
+          - id: num_packages
+            type: u2
+          - id: packages
+            type: module_package
+            repeat: expr
+            repeat-expr: num_packages
+        types:
+          module_package:
+            seq:
+              - id: package_index
+                type: u2
+            instances:
+              module_package:
+                value: _root.constant_pool[package_index - 1].cp_info.as<class_cp_info>
+      attr_body_module_main_class:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.27'
+        seq:
+          - id: main_class_index
+            type: u2
+        instances:
+          main_class:
+            value: _root.constant_pool[main_class_index - 1].cp_info.as<class_cp_info>
+      attr_body_nest_host:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.28'
+        seq:
+          - id: host_class_index
+            type: u2
+        instances:
+          host_class:
+            value: _root.constant_pool[host_class_index - 1].cp_info.as<class_cp_info>
+      attr_body_nest_members:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.29'
+        seq:
+          - id: num_classes
+            type: u2
+          - id: classes
+            type: nested_class
+        types:
+          nested_class:
+            seq:
+              - id: class_index
+                type: u2
+            instances:
+              nested_class:
+                value: _root.constant_pool[class_index - 1].cp_info.as<class_cp_info>
+      attr_body_permitted_subclasses:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.31'
+        seq:
+          - id: num_classes
+            type: u2
+          - id: classes
+            type: subclass
+        types:
+          subclass:
+            seq:
+              - id: class_index
+                type: u2
+            instances:
+              subclass:
+                value: _root.constant_pool[class_index - 1].cp_info.as<class_cp_info>
   method_info:
     doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.6'
     seq:
