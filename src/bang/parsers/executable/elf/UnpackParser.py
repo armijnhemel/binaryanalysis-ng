@@ -261,7 +261,7 @@ class ElfUnpackParser(UnpackParser):
         metadata['abi_name'] = self.data.abi.name
         metadata['abi'] = self.data.abi.value
 
-        metadata['security'] = []
+        security_metadata = set()
 
         # record the section names so they are easily accessible
         if self.data.header.section_names is not None:
@@ -273,14 +273,14 @@ class ElfUnpackParser(UnpackParser):
 
         for header in self.data.header.program_headers:
             if header.type == elf.Elf.PhType.gnu_relro:
-                metadata['security'].append('relro')
+                security_metadata.add('relro')
                 seen_relro = True
             elif header.type == elf.Elf.PhType.gnu_stack:
                 # check to see if NX is set
                 if not header.flags_obj.execute:
-                    metadata['security'].append('nx')
+                    security_metadata.add('nx')
             elif header.type == elf.Elf.PhType.pax_flags:
-                metadata['security'].append('pax')
+                security_metadata.add('pax')
 
         # store the data normally extracted using for example 'strings'
         data_strings = []
@@ -394,20 +394,20 @@ class ElfUnpackParser(UnpackParser):
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags_1:
                             # check for position independent code
                             if entry.flag_1_values.pie:
-                                metadata['security'].append('pie')
+                                security_metadata.add('pie')
                             # check for bind_now
                             if entry.flag_1_values.now:
                                 if seen_relro:
-                                    metadata['security'].append('full relro')
+                                    security_metadata.add('full relro')
                                 else:
-                                    metadata['security'].append('partial relro')
+                                    security_metadata.add('partial relro')
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags:
                             # check for bind_now here as well
                             if entry.flag_values.bind_now:
                                 if seen_relro:
-                                    metadata['security'].append('full relro')
+                                    security_metadata.add('full relro')
                                 else:
-                                    metadata['security'].append('partial relro')
+                                    security_metadata.add('partial relro')
             elif header.type == elf.Elf.ShType.symtab:
                 if header.name == '.symtab':
                     for entry in header.body.entries:
@@ -450,12 +450,12 @@ class ElfUnpackParser(UnpackParser):
 
                         # security related information
                         if symbol['name'] == '__stack_chk_fail':
-                            metadata['security'].append('stack smashing protector')
+                            security_metadata.add('stack smashing protector')
                         if '_chk' in symbol['name']:
-                            if 'fortify' not in metadata['security']:
+                            if 'fortify' not in security_metadata:
                                 for fortify_name in FORTIFY_NAMES:
                                     if symbol['name'].endswith(fortify_name):
-                                        metadata['security'].append('fortify')
+                                        security_metadata.add('fortify')
                                         break
 
             elif header.type == elf.Elf.ShType.progbits:
@@ -682,7 +682,7 @@ class ElfUnpackParser(UnpackParser):
             metadata['needed'] = needed
 
         metadata['notes'] = notes
-        metadata['security'] = sorted(set(metadata['security']))
+        metadata['security'] = sorted(security_metadata)
 
         if data_strings != []:
             metadata['strings'] = data_strings
