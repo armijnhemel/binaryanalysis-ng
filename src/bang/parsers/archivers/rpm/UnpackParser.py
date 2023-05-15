@@ -42,6 +42,13 @@ class RpmUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = rpm.Rpm.from_io(self.infile)
+
+            # force read some of the header data as there might
+            # be strings that are not UTF-8:
+            # https://github.com/kaitai-io/kaitai_struct_formats/issues/672
+            for i in self.data.header.index_records:
+                i.body.values
+
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
