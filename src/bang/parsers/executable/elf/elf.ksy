@@ -753,12 +753,15 @@ types:
             type: u4
           - id: flags
             type: u2
-          - id: other
+          - id: object_file_version
             type: u2
           - id: ofs_name
             type: u4
           - id: ofs_next
             type: u4
+        instances:
+          hidden:
+            value: object_file_version & 0x10000 != 0
     instances:
       program_headers:
         pos: program_header_offset
