@@ -283,6 +283,7 @@ larger file, unless stated otherwise.
 181. Granite Devices firmware v300
 182. erofs ('inline' data layout only)
 183. bzip3
+184. PX4 autopilot firmware files
 
 The following text formats can be recognized:
 
