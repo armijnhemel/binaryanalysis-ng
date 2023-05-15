@@ -282,6 +282,7 @@ larger file, unless stated otherwise.
 180. TP-Link TX6610v4 firmware
 181. Granite Devices firmware v300
 182. erofs ('inline' data layout only)
+183. bzip3
 
 The following text formats can be recognized:
 
