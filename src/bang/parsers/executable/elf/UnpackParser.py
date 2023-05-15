@@ -194,6 +194,10 @@ class ElfUnpackParser(UnpackParser):
             if header.type == elf.Elf.ShType.progbits:
                 interesting = False
 
+                # * .gnu_debugdata: XZ compressed debugging information
+                # * .qtmimedatabase: compressed version of the freedesktop.org MIME database
+                # * .BTF and .BTF.ext: eBPF related files
+                # * .rom_info: Mediatek preloader(?)
                 if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext', '.rom_info']:
                     interesting = True
 
@@ -214,7 +218,7 @@ class ElfUnpackParser(UnpackParser):
     def extract_metadata_and_labels(self, to_meta_directory):
         '''Extract metadata from the ELF file and set labels'''
         labels = ['elf']
-        metadata = {'elf_type': []}
+        metadata = {}
         string_cutoff_length = 4
 
         if self.data.bits == elf.Elf.Bits.b32:
@@ -257,7 +261,7 @@ class ElfUnpackParser(UnpackParser):
         metadata['abi_name'] = self.data.abi.name
         metadata['abi'] = self.data.abi.value
 
-        metadata['security'] = []
+        security_metadata = set()
 
         # record the section names so they are easily accessible
         if self.data.header.section_names is not None:
@@ -269,14 +273,14 @@ class ElfUnpackParser(UnpackParser):
 
         for header in self.data.header.program_headers:
             if header.type == elf.Elf.PhType.gnu_relro:
-                metadata['security'].append('relro')
+                security_metadata.add('relro')
                 seen_relro = True
             elif header.type == elf.Elf.PhType.gnu_stack:
                 # check to see if NX is set
                 if not header.flags_obj.execute:
-                    metadata['security'].append('nx')
+                    security_metadata.add('nx')
             elif header.type == elf.Elf.PhType.pax_flags:
-                metadata['security'].append('pax')
+                security_metadata.add('pax')
 
         # store the data normally extracted using for example 'strings'
         data_strings = []
@@ -306,6 +310,7 @@ class ElfUnpackParser(UnpackParser):
         section_to_hash = {}
         sections = {}
         section_ctr = 0
+        elf_types = set()
         for header in self.data.header.section_headers:
             sections[header.name] = {}
             sections[header.name]['nr'] = section_ctr
@@ -335,7 +340,7 @@ class ElfUnpackParser(UnpackParser):
 
             if header.name in ['.modinfo', '__ksymtab_strings']:
                 # TODO: find example where this data is only in __ksymtab_strings
-                metadata['elf_type'].append('Linux kernel module')
+                elf_types.add('Linux kernel module')
                 try:
                     module_meta = header.body.split(b'\x00')
                     for m in module_meta:
@@ -369,12 +374,12 @@ class ElfUnpackParser(UnpackParser):
                 # OAT information has been stored in various sections
                 # test files:
                 # .oat_patches : fugu-lrx21m-factory-e012394c.zip
-                metadata['elf_type'].append('oat')
-                metadata['elf_type'].append('android')
+                elf_types.add('oat')
+                elf_types.add('android')
             elif header.name in ['.guile.procprops', '.guile.frame-maps',
                                  '.guile.arities.strtab', '.guile.arities',
                                  '.guile.docstrs.strtab', '.guile.docstrs']:
-                metadata['elf_type'].append('guile')
+                elf_types.add('guile')
 
             if header.type == elf.Elf.ShType.dynamic:
                 if header.name == '.dynamic':
@@ -390,20 +395,20 @@ class ElfUnpackParser(UnpackParser):
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags_1:
                             # check for position independent code
                             if entry.flag_1_values.pie:
-                                metadata['security'].append('pie')
+                                security_metadata.add('pie')
                             # check for bind_now
                             if entry.flag_1_values.now:
                                 if seen_relro:
-                                    metadata['security'].append('full relro')
+                                    security_metadata.add('full relro')
                                 else:
-                                    metadata['security'].append('partial relro')
+                                    security_metadata.add('partial relro')
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags:
                             # check for bind_now here as well
                             if entry.flag_values.bind_now:
                                 if seen_relro:
-                                    metadata['security'].append('full relro')
+                                    security_metadata.add('full relro')
                                 else:
-                                    metadata['security'].append('partial relro')
+                                    security_metadata.add('partial relro')
             elif header.type == elf.Elf.ShType.symtab:
                 if header.name == '.symtab':
                     for entry in header.body.entries:
@@ -438,20 +443,20 @@ class ElfUnpackParser(UnpackParser):
                         dynamic_symbols.append(symbol)
 
                         if symbol['name'] == 'oatdata':
-                            metadata['elf_type'].append('oat')
-                            metadata['elf_type'].append('android')
+                            elf_types.add('oat')
+                            elf_types.add('android')
 
                         if symbol['name'] in OCAML_NAMES:
-                            metadata['elf_type'].append('ocaml')
+                            elf_types.add('ocaml')
 
                         # security related information
                         if symbol['name'] == '__stack_chk_fail':
-                            metadata['security'].append('stack smashing protector')
+                            security_metadata.add('stack smashing protector')
                         if '_chk' in symbol['name']:
-                            if 'fortify' not in metadata['security']:
+                            if 'fortify' not in security_metadata:
                                 for fortify_name in FORTIFY_NAMES:
                                     if symbol['name'].endswith(fortify_name):
-                                        metadata['security'].append('fortify')
+                                        security_metadata.add('fortify')
                                         break
 
             elif header.type == elf.Elf.ShType.progbits:
@@ -510,36 +515,41 @@ class ElfUnpackParser(UnpackParser):
                             pass
                     # some Qt binaries use the Qt resource system,
                     # containing images, text, etc.
-                    # Sometimes these end up in an ELF section.
+                    # Sometimes these end up in one of the .rodata ELF sections.
                     if b'qrc:/' in header.body:
                         pass
                 elif header.name == '.gopclntab':
                     # https://medium.com/walmartglobaltech/de-ofuscating-golang-functions-93f610f4fb76
                     pass
-                elif header.name == '.gosymtab':
-                    # Go symbol table
-                    pass
                 elif header.name == '.interp':
                     # store the location of the dynamic linker
                     metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
+
+                # Some Go related things
+                elif header.name == '.gosymtab':
+                    # Go symbol table
+                    pass
                 elif header.name == '.itablink':
                     # Go
                     pass
                 elif header.name == '.noptrdata':
                     # Go pointer free data
                     pass
+                elif header.name == '.typelink':
+                    # Go
+                    pass
+
+                # QML and Qt
                 elif header.name == '.qml_compile_hash':
                     pass
                 elif header.name == '.qtmetadata':
                     pass
                 elif header.name == '.qtversion':
                     pass
+
                 elif header.name == '.tm_clone_table':
                     # something related to transactional memory
                     # http://gcc.gnu.org/wiki/TransactionalMemory
-                    pass
-                elif header.name == '.typelink':
-                    # Go
                     pass
                 elif header.name == '.VTGData':
                     # VirtualBox tracepoint generated data
@@ -549,7 +559,7 @@ class ElfUnpackParser(UnpackParser):
                     pass
                 elif header.name == '.rol4re_elf_aux':
                     # L4 specific
-                    metadata['elf_type'].append('l4')
+                    elf_types.add('l4')
                 elif header.name == '.sbat':
                     # systemd, example linuxx64.elf.stub
                     # https://github.com/rhboot/shim/blob/main/SBAT.md
@@ -559,7 +569,7 @@ class ElfUnpackParser(UnpackParser):
                     metadata['systemd loader'] = header.body.decode()
                 elif header.name == 'sw_isr_table':
                     # Zephyr
-                    metadata['elf_type'].append('zephyr')
+                    elf_types.add('zephyr')
 
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
@@ -576,8 +586,11 @@ class ElfUnpackParser(UnpackParser):
                 for entry in header.body.entries:
                     pass
             elif header.type == elf.Elf.ShType.note:
+                # Note sections can contain hints as to what is contained
+                # in a binary or give information about the origin of the
+                # binary, or the programming language.
                 if header.name == '.note.go.buildid':
-                    metadata['elf_type'].append('go')
+                    elf_types.add('go')
 
                 # Although not common notes sections can be merged
                 # with eachother. Example: .notes in Linux kernel images
@@ -619,10 +632,10 @@ class ElfUnpackParser(UnpackParser):
                         pass
                     elif entry.name == b'stapsdt' and entry.type == 3:
                         # SystemTap probe descriptors
-                        metadata['elf_type'].append('SystemTap')
+                        elf_types.add('SystemTap')
                     elif entry.name == b'Linux':
                         # .note.Linux as seen in some Linux kernel modules
-                        metadata['elf_type'].append('linux kernel')
+                        elf_types.add('linux kernel')
                         if entry.type == 0x100:
                             # LINUX_ELFNOTE_BUILD_SALT
                             # see BUILD_SALT in init/Kconfig
@@ -642,23 +655,23 @@ class ElfUnpackParser(UnpackParser):
                         except:
                             pass
                     elif entry.name == b'FreeBSD':
-                        metadata['elf_type'].append('freebsd')
+                        elf_types.add('freebsd')
                     elif entry.name == b'OpenBSD':
-                        metadata['elf_type'].append('openbsd')
+                        elf_types.add('openbsd')
                     elif entry.name == b'NetBSD':
                         # https://www.netbsd.org/docs/kernel/elf-notes.html
-                        metadata['elf_type'].append('netbsd')
+                        elf_types.add('netbsd')
                     elif entry.name == b'Android' and entry.type == 1:
                         # https://android.googlesource.com/platform/ndk/+/master/parse_elfnote.py
-                        metadata['elf_type'].append('android')
+                        elf_types.add('android')
                         metadata['android ndk'] = int.from_bytes(entry.descriptor, byteorder='little')
                     elif entry.name == b'Xen':
                         # http://xenbits.xen.org/gitweb/?p=xen.git;a=blob;f=xen/include/public/elfnote.h;h=181cbc4ec71c4af298e40c3604daff7d3b48d52f;hb=HEAD
                         # .note.Xen in FreeBSD kernel
                         # .notes in Linux kernel)
-                        metadata['elf_type'].append('xen')
+                        elf_types.add('xen')
                     elif entry.name == b'NaCl':
-                        metadata['elf_type'].append('Google Native Client')
+                        elf_types.add('Google Native Client')
 
         if dynamic_symbols != []:
             metadata['dynamic_symbols'] = dynamic_symbols
@@ -670,7 +683,7 @@ class ElfUnpackParser(UnpackParser):
             metadata['needed'] = needed
 
         metadata['notes'] = notes
-        metadata['security'].sort()
+        metadata['security'] = sorted(security_metadata)
 
         if data_strings != []:
             metadata['strings'] = data_strings
@@ -679,7 +692,7 @@ class ElfUnpackParser(UnpackParser):
              metadata['symbols'] = symbols
 
         metadata['sections'] = sections
-        metadata['elf_type'] = sorted(set(metadata['elf_type']))
+        metadata['elf_type'] = sorted(elf_types)
 
         if linux_kernel_module_info != {}:
             metadata['Linux kernel module'] = linux_kernel_module_info

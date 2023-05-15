@@ -47,6 +47,7 @@ in
 pkgs.mkShell {
   buildInputs = with pkgs; [
     binutils
+    bzip3
     cabextract
     e2fsprogs
     e2tools
