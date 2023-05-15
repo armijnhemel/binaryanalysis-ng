@@ -471,6 +471,7 @@ types:
                 'sh_type::rel': relocation_section(false)
                 'sh_type::rela': relocation_section(true)
                 'sh_type::gnu_versym': versym_section
+                'sh_type::gnu_verneed': verneed_section
             if: type != sh_type::nobits
           linked_section:
             value: _root.header.section_headers[linked_section_idx]
@@ -724,6 +725,40 @@ types:
             type: u2
             repeat: eos
             doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
+      verneed_section:
+        doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
+        seq:
+          - id: entries
+            type: version_needed_entry
+            repeat: eos
+      version_needed_entry:
+        seq:
+          - id: version
+            type: u2
+          - id: num_verneed_aux_entries
+            type: u2
+          - id: ofs_file_name_string
+            type: u4
+          - id: ofs_vernaux
+            type: u4
+          - id: ofs_next
+            type: u4
+          - id: auxiliary_entries
+            type: num_verneed_auxiliary_entry
+            repeat: expr
+            repeat-expr: num_verneed_aux_entries
+      num_verneed_auxiliary_entry:
+        seq:
+          - id: hash
+            type: u4
+          - id: flags
+            type: u2
+          - id: other
+            type: u2
+          - id: ofs_name
+            type: u4
+          - id: ofs_next
+            type: u4
     instances:
       program_headers:
         pos: program_header_offset
