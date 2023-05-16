@@ -308,7 +308,15 @@ The following text formats can be recognized:
 17. iCalendar (RFC 5545) files (whole file only)
 
 
-## Invocation
+## Getting started
+
+This section assumes that you are using Nix to install all dependencies.
+
+1. `git clone` this repository
+2. run `nix-shell` to install all the dependencies and start a complete environment
+3. `cd src`
+4. run `make` to build all the Kaitai Struct parsers. Please note: this might take
+   a while!
 
 To unpack a file run:
 
