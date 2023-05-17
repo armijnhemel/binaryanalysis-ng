@@ -24,8 +24,8 @@ for the firmware scraper.
 
 Note: this list is vastly incomplete. It is highly recommended to use Nix.
 
-* a recent Linux distribution (Fedora 35 or higher, or equivalent)
-* Python 3.9.x or higher
+* a recent Linux distribution (Fedora 36 or higher, or equivalent)
+* Python 3.10.x or higher
 * pillow (possibly named python3-pillow), a drop in replacement for PIL ( <http://python-pillow.github.io/> )
 * GNU binutils (for 'ar')
 * squashfs-tools (for 'unsquashfs')
@@ -68,7 +68,7 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 
 ## Verified unsupported distributions
 
-* Fedora 34 and earlier
+* Fedora 35 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
 This doesn't mean that newer versions of Ubuntu are supported, they just
@@ -282,6 +282,8 @@ larger file, unless stated otherwise.
 180. TP-Link TX6610v4 firmware
 181. Granite Devices firmware v300
 182. erofs ('inline' data layout only)
+183. bzip3
+184. PX4 autopilot firmware files
 
 The following text formats can be recognized:
 
@@ -306,11 +308,19 @@ The following text formats can be recognized:
 17. iCalendar (RFC 5545) files (whole file only)
 
 
-## Invocation
+## Getting started
+
+This section assumes that you are using Nix to install all dependencies.
+
+1. `git clone` this repository
+2. run `nix-shell` to install all the dependencies and start a complete environment
+3. `cd src`
+4. run `make` to build all the Kaitai Struct parsers. Please note: this might take
+   a while!
 
 To unpack a file run:
 
-    $ python3 bang-scanner -c bang.config -f /path/to/binary
+    $ python3 -m bang.cli scan -u /path/to/unpack/directory /path/to/binary
 
 This will output a directory with inside a number of files and directories.
 The output directory can serve as input to the analysis scripts (and some

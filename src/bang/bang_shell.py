@@ -35,7 +35,7 @@ import rich.table
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal
+from textual.containers import Container, Horizontal, VerticalScroll
 from textual.widgets import Footer, Static, Tree
 from textual.widgets.tree import TreeNode
 
@@ -80,7 +80,8 @@ class BangShell(App):
 
         with Container(id='app-grid'):
             yield tree
-            yield self.static_widget
+            with VerticalScroll(id='result-area'):
+                yield self.static_widget
         yield Footer()
 
     def on_tree_tree_highlighted(self, event: Tree.NodeHighlighted[None]) -> None:

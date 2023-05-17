@@ -30,7 +30,13 @@ from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import rpm
+from . import rpm_no_utf8
 
+ENCODINGS_TO_TRANSLATE = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
+                          'jisx0213', 'iso2022_jp', 'iso2022_jp_1',
+                          'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
+                          'iso2022_jp_ext', 'iso2022_kr', 'shift_jis',
+                          'shift_jis_2004', 'shift_jisx0213']
 
 class RpmUnpackParser(UnpackParser):
     extensions = []
@@ -42,11 +48,38 @@ class RpmUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = rpm.Rpm.from_io(self.infile)
+
+            # force read some of the header data as there might
+            # be strings that are not UTF-8:
+            # https://github.com/kaitai-io/kaitai_struct_formats/issues/672
+            for i in self.data.header.index_records:
+                i.body.values
+        except UnicodeDecodeError as e:
+            try:
+                self.infile.seek(0)
+                self.data = rpm_no_utf8.RpmNoUtf8.from_io(self.infile)
+                for i in self.data.header.index_records:
+                    if type(i.body) == self.data.RecordTypeStringArray:
+                        new_values = []
+                        for v in i.body.values:
+                            success = False
+                            for e in ENCODINGS_TO_TRANSLATE:
+                                try:
+                                    new_values.append(v.decode(e))
+                                    success = True
+                                    break
+                                except:
+                                    pass
+                            check_condition(success, "cannot decode value")
+                        # overwrite the old values with the new translated values
+                        i.body.values = new_values
+            except (Exception, ValidationFailedError) as e:
+                raise UnpackParserException(e.args)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-        check_condition(self.data.lead.type == rpm.Rpm.RpmTypes.binary or
-                        self.data.lead.type == rpm.Rpm.RpmTypes.source,
+        check_condition(self.data.lead.type == self.data.RpmTypes.binary or
+                        self.data.lead.type == self.data.RpmTypes.source,
                         "invalid RPM type")
 
         # The default compressor is either gzip or XZ (on Fedora). Other
@@ -58,11 +91,11 @@ class RpmUnpackParser(UnpackParser):
         self.compressor_seen = False
         self.payload_format = ''
         for i in self.data.header.index_records:
-            if i.header_tag == rpm.Rpm.HeaderTags.payload_compressor:
+            if i.header_tag == self.data.HeaderTags.payload_compressor:
                 check_condition(not self.compressor_seen, "duplicate compressor defined")
                 self.compressor_seen = True
                 self.compressor = i.body.values[0]
-            if i.header_tag == rpm.Rpm.HeaderTags.payload_format:
+            if i.header_tag == self.data.HeaderTags.payload_format:
                 check_condition(self.payload_format == '', "duplicate compressor defined")
                 self.payload_format = i.body.values[0]
 
@@ -137,7 +170,7 @@ class RpmUnpackParser(UnpackParser):
         metadata['version']['minor'] = self.data.lead.version.minor
 
         # store RPM type
-        if self.data.lead.type == rpm.Rpm.RpmTypes.binary:
+        if self.data.lead.type == self.data.RpmTypes.binary:
             metadata['type'] = 'binary'
         else:
             metadata['type'] = 'source'
