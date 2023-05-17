@@ -39,15 +39,12 @@ class Px4UnpackParser(UnpackParser):
     extensions = ['.px4']
     signatures = [
     ]
-    scan_if_featureless = True
     pretty_name = 'px4'
 
     def parse(self):
         try:
             self.data = json.load(self.infile)
-        except (json.JSONDecodeError) as e:
-            raise UnpackParserException(e.args)
-        except (UnicodeError) as e:
+        except (json.JSONDecodeError, UnicodeError) as e:
             raise UnpackParserException("cannot decode PX4 JSON")
 
         check_condition('image' in self.data, "firmware image data not found")
