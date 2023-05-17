@@ -729,9 +729,11 @@ types:
         doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
         seq:
           - id: entries
-            type: version_needed_entry
-            repeat: eos
+            type: version_needed_entry(0)
       version_needed_entry:
+        params:
+          - id: ofs_start
+            type: u4
         seq:
           - id: version
             type: u2
@@ -743,7 +745,13 @@ types:
             type: u4
           - id: ofs_next
             type: u4
-          - id: auxiliary_entries
+        instances:
+          next:
+            pos: ofs_start + ofs_next
+            type: version_needed_entry(ofs_next+ofs_start)
+            if: ofs_next != 0
+          auxiliary_entries:
+            pos: ofs_start + ofs_vernaux
             type: num_verneed_auxiliary_entry
             repeat: expr
             repeat-expr: num_verneed_aux_entries
