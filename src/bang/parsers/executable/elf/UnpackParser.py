@@ -62,6 +62,7 @@ RODATA_SECTIONS = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
 # sections with interesting data found in guile programs
 GUILE_STRTAB_SECTIONS = ['.guile.arities.strtab', '.guile.docstrs.strtab']
 
+# characters to be removed when extracting strings
 REMOVE_CHARACTERS = ['\a', '\b', '\v', '\f', '\x01', '\x02', '\x03', '\x04',
                      '\x05', '\x06', '\x0e', '\x0f', '\x10', '\x11', '\x12',
                      '\x13', '\x14', '\x15', '\x16', '\x17', '\x18', '\x19',
@@ -518,14 +519,14 @@ class ElfUnpackParser(UnpackParser):
                     # Sometimes these end up in one of the .rodata ELF sections.
                     if b'qrc:/' in header.body:
                         pass
-                elif header.name == '.gopclntab':
-                    # https://medium.com/walmartglobaltech/de-ofuscating-golang-functions-93f610f4fb76
-                    pass
                 elif header.name == '.interp':
                     # store the location of the dynamic linker
                     metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
 
                 # Some Go related things
+                elif header.name == '.gopclntab':
+                    # https://medium.com/walmartglobaltech/de-ofuscating-golang-functions-93f610f4fb76
+                    pass
                 elif header.name == '.gosymtab':
                     # Go symbol table
                     pass
