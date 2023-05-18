@@ -321,6 +321,7 @@ types:
             '"SourceDebugExtension"': attr_body_source_debug_extension # 4.7.11
             '"LineNumberTable"': attr_body_line_number_table # 4.7.12
             '"LocalVariableTable"': attr_body_local_variable_table # 4.7.13
+            '"LocalVariableTypeTable"': attr_body_local_variable_type_table # 4.7.14
             #'"Deprecated"': {} # 4.7.15
             '"RuntimeVisibleAnnotations"': attr_body_runtime_visible_annotations # 4.7.16
             '"ModulePackages"': attr_body_module_packages # 4.7.26
@@ -527,7 +528,34 @@ types:
               name_as_str:
                 value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
               descriptor_as_str:
+                value: _root.constant_pool[descriptor_index - 1].cp_info.as<utf8_cp_info>.raw_value
+      attr_body_local_variable_type_table:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.14'
+        seq:
+          - id: local_variable_type_table_length
+            type: u2
+          - id: local_variable_type_table
+            type: local_variable_type_table_entry
+            repeat: expr
+            repeat-expr: local_variable_type_table_length
+        types:
+          local_variable_type_table_entry:
+            seq:
+              - id: start_pc
+                type: u2
+              - id: length
+                type: u2
+              - id: name_index
+                type: u2
+              - id: signature_index
+                type: u2
+              - id: index
+                type: u2
+            instances:
+              name_as_str:
                 value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
+              signature_as_str:
+                value: _root.constant_pool[signature_index - 1].cp_info.as<utf8_cp_info>.raw_value
       attr_body_runtime_visible_annotations:
         doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.16'
         seq:
