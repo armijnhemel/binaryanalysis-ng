@@ -296,7 +296,7 @@ class ElfUnpackParser(UnpackParser):
                             # Qt MIME database
                             with unpacked_md.open(open_file=False):
                                 unpacked_md.info['propagated'] = {'parent': parent_name}
-                                unpacked_md.info['propagated']['name'] = 'qtmimedatabase'
+                                unpacked_md.info['propagated']['name'] = 'freedesktop.org.xml'
                                 unpacked_md.info['propagated']['type'] = 'Qt MIME database'
                         yield unpacked_md
 
