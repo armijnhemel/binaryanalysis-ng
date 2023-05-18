@@ -54,7 +54,7 @@ class ArUnpackParser(UnpackParser):
 
         self.debian = False
         if b'debian-binary' in standard_out:
-            if meta_directory.file_path.suffix.lower() in ['.deb', '.udeb']:
+            if pathlib.Path(self.infile.name).suffix.lower() in ['.deb', '.udeb']:
                 self.debian = True
 
         # try an actual unpack
