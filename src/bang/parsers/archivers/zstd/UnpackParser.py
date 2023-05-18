@@ -37,6 +37,10 @@ class ZstdUnpackParser(UnpackParser):
     ]
     pretty_name = 'zstd'
 
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
+        self.from_md = from_meta_directory
+
     def parse(self):
         # skip the magic
         self.infile.seek(4)
@@ -150,6 +154,11 @@ class ZstdUnpackParser(UnpackParser):
                 file_path = pathlib.Path("unpacked_from_zstd")
         else:
             file_path = pathlib.Path("unpacked_from_zstd")
+
+        # overwrite in case another name was given
+        propagated_info = self.from_md.info.get('propagated', {})
+        if 'name' in propagated_info:
+            file_path = pathlib.Path(propagated_info['name'])
 
         # search to the start of the file
         self.infile.seek(0)
