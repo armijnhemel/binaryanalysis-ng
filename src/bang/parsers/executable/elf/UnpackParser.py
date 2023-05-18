@@ -22,6 +22,7 @@
 
 import binascii
 import hashlib
+import io
 import json
 import pathlib
 
@@ -62,6 +63,7 @@ RODATA_SECTIONS = ['.rodata', '.rodata.str1.1', '.rodata.str1.4',
 # sections with interesting data found in guile programs
 GUILE_STRTAB_SECTIONS = ['.guile.arities.strtab', '.guile.docstrs.strtab']
 
+# characters to be removed when extracting strings
 REMOVE_CHARACTERS = ['\a', '\b', '\v', '\f', '\x01', '\x02', '\x03', '\x04',
                      '\x05', '\x06', '\x0e', '\x0f', '\x10', '\x11', '\x12',
                      '\x13', '\x14', '\x15', '\x16', '\x17', '\x18', '\x19',
@@ -113,6 +115,20 @@ class ElfUnpackParser(UnpackParser):
             shoff = self.data.header.section_header_offset
             self.unpacked_size = max(self.unpacked_size, shoff + self.data.header.qty_section_header
                                      * self.data.header.section_header_entry_size)
+
+            # first store the dynstr table as it is used for
+            # symbol versioning
+            self.dynstr = None
+            num_dynsym = 0
+            self.version_symbols = {}
+            for header in self.data.header.section_headers:
+                if header.type == elf.Elf.ShType.strtab:
+                    if header.name == '.dynstr':
+                        self.dynstr = io.BytesIO(header.raw_body)
+                elif header.type == elf.Elf.ShType.dynsym:
+                    if header.name == '.dynsym':
+                        num_dynsym = len(header.body.entries)
+
             for header in self.data.header.section_headers:
                 if header.type == elf.Elf.ShType.nobits:
                     continue
@@ -146,6 +162,7 @@ class ElfUnpackParser(UnpackParser):
                             elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
                                 name = entry.value_str
 
+                # Symbols
                 elif header.type == elf.Elf.ShType.symtab:
                     if header.name == '.symtab':
                         for entry in header.body.entries:
@@ -167,6 +184,59 @@ class ElfUnpackParser(UnpackParser):
                 elif header.type == elf.Elf.ShType.progbits:
                     if header.name in RODATA_SECTIONS:
                         body = header.body
+
+                # Symbol versioning
+                elif header.type == elf.Elf.ShType.gnu_versym:
+                    if header.name == '..gnu.version':
+                        check_condition(self.dynstr is not None, "no dynamic string section found")
+                        check_condition(num_dynsym == len(header.body.symbol_versions),
+                                        "mismatch between number of symbols and symbol versions")
+                elif header.type == elf.Elf.ShType.gnu_verneed:
+                    if header.name == '.gnu.version_r':
+                        check_condition(self.dynstr is not None, "no dynamic string section found")
+
+                        cur_entry = header.body.entry
+                        while True:
+                            self.dynstr.seek(cur_entry.ofs_file_name_string)
+                            try:
+                                name = self.dynstr.read().split(b'\x00')[0].decode()
+                                check_condition(name != '', "empty name")
+                            except UnicodeDecodeError as e:
+                                raise UnpackParserException(e.args)
+
+                            # verify the auxiliary entries
+                            for a in cur_entry.auxiliary_entries:
+                                self.dynstr.seek(a.ofs_name)
+                                try:
+                                    a_name = self.dynstr.read().split(b'\x00')[0].decode()
+                                    check_condition(name != '', "empty name")
+                                except UnicodeDecodeError as e:
+                                    raise UnpackParserException(e.args)
+
+                            # then jump to the next entry
+                            if cur_entry.next is not None:
+                                cur_entry = cur_entry.next
+                            else:
+                                break
+                elif header.type == elf.Elf.ShType.gnu_verdef:
+                    if header.name == '.gnu.version_d':
+                        check_condition(self.dynstr is not None, "no dynamic string section found")
+                        cur_entry = header.body.entry
+                        while True:
+                            # verify the auxiliary entries
+                            for a in cur_entry.auxiliary_entries:
+                                self.dynstr.seek(a.ofs_name)
+                                try:
+                                    a_name = self.dynstr.read().split(b'\x00')[0].decode()
+                                    check_condition(name != '', "empty name")
+                                except UnicodeDecodeError as e:
+                                    raise UnpackParserException(e.args)
+
+                            # then jump to the next entry
+                            if cur_entry.next is not None:
+                                cur_entry = cur_entry.next
+                            else:
+                                break
 
             # read the names, but don't proces them. This is just to force
             # evaluation, which normally happens lazily for instances in
@@ -518,14 +588,14 @@ class ElfUnpackParser(UnpackParser):
                     # Sometimes these end up in one of the .rodata ELF sections.
                     if b'qrc:/' in header.body:
                         pass
-                elif header.name == '.gopclntab':
-                    # https://medium.com/walmartglobaltech/de-ofuscating-golang-functions-93f610f4fb76
-                    pass
                 elif header.name == '.interp':
                     # store the location of the dynamic linker
                     metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
 
                 # Some Go related things
+                elif header.name == '.gopclntab':
+                    # https://medium.com/walmartglobaltech/de-ofuscating-golang-functions-93f610f4fb76
+                    pass
                 elif header.name == '.gosymtab':
                     # Go symbol table
                     pass
