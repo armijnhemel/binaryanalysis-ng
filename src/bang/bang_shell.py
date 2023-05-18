@@ -100,6 +100,7 @@ class BangShell(App):
 
     def build_tree(self, md, parent, parent_node):
         node_name = pathlib.Path(md.file_path.name)
+        labels = md.info.get("labels", [])
 
         have_subfiles = False
         files = []
@@ -123,10 +124,19 @@ class BangShell(App):
             have_subfiles = True
             files.append((k,v, 'hardlink'))
 
-        if have_subfiles:
-            this_node = parent_node.add(str(node_name), data=md, expand=True)
+        if 'elf' in labels:
+            pretty_node_name = f'{str(node_name)}  \U000024ba'
+        elif 'compressed' in labels:
+            pretty_node_name = f'{str(node_name)}  \U000024b8'
+        elif 'font' in labels:
+            pretty_node_name = f'{str(node_name)}  \U000024bb'
         else:
-            this_node = parent_node.add_leaf(str(node_name), data=md)
+            pretty_node_name = str(node_name)
+
+        if have_subfiles:
+            this_node = parent_node.add(pretty_node_name, data=md, expand=True)
+        else:
+            this_node = parent_node.add_leaf(pretty_node_name, data=md)
 
         # first create trees for the individual sub directories
         # which will then be used as parents.
