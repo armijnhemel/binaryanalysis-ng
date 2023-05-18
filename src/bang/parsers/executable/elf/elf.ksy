@@ -472,6 +472,7 @@ types:
                 'sh_type::rela': relocation_section(true)
                 'sh_type::gnu_versym': versym_section
                 'sh_type::gnu_verneed': verneed_section
+                'sh_type::gnu_verdef': verdef_section
             if: type != sh_type::nobits
           linked_section:
             value: _root.header.section_headers[linked_section_idx]
@@ -728,7 +729,7 @@ types:
       verneed_section:
         doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
         seq:
-          - id: entries
+          - id: entry
             type: version_needed_entry(0)
       version_needed_entry:
         params:
@@ -752,10 +753,10 @@ types:
             if: ofs_next != 0
           auxiliary_entries:
             pos: ofs_start + ofs_vernaux
-            type: num_verneed_auxiliary_entry
+            type: verneed_auxiliary_entry
             repeat: expr
             repeat-expr: num_verneed_aux_entries
-      num_verneed_auxiliary_entry:
+      verneed_auxiliary_entry:
         seq:
           - id: hash
             type: u4
@@ -770,6 +771,46 @@ types:
         instances:
           hidden:
             value: object_file_version & 0x10000 != 0
+      verdef_section:
+        doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
+        seq:
+          - id: entry
+            type: version_defined_entry(0)
+      version_defined_entry:
+        params:
+          - id: ofs_start
+            type: u4
+        seq:
+          - id: version
+            type: u2
+          - id: flags
+            type: u2
+          - id: index
+            type: u2
+          - id: num_verdef_aux_entries
+            type: u2
+          - id: vd_hash
+            type: u4
+          - id: ofs_verdaux
+            type: u4
+          - id: ofs_next
+            type: u4
+        instances:
+          next:
+            pos: ofs_start + ofs_next
+            type: version_defined_entry(ofs_next+ofs_start)
+            if: ofs_next != 0
+          auxiliary_entries:
+            pos: ofs_start + ofs_verdaux
+            type: verdef_auxiliary_entry
+            repeat: expr
+            repeat-expr: num_verdef_aux_entries
+      verdef_auxiliary_entry:
+        seq:
+          - id: ofs_name
+            type: u4
+          - id: ofs_next
+            type: u4
     instances:
       program_headers:
         pos: program_header_offset
