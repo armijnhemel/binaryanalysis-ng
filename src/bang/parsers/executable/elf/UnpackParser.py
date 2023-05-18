@@ -265,6 +265,7 @@ class ElfUnpackParser(UnpackParser):
                 interesting = False
 
                 # * .gnu_debugdata: XZ compressed debugging information
+                #
                 # * .qtmimedatabase: compressed version of the freedesktop.org MIME database
                 # * .BTF and .BTF.ext: eBPF related files
                 # * .rom_info: Mediatek preloader(?)
@@ -279,6 +280,17 @@ class ElfUnpackParser(UnpackParser):
                     file_path = pathlib.Path(header.name)
                     with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                         outfile.write(header.body)
+
+                        # for some files some extra information should be
+                        # passed to the downstream unpackers, for example
+                        # for MiniDebugInfo files:
+                        # https://sourceware.org/gdb/onlinedocs/gdb/MiniDebugInfo.html
+                        if header.name == '.gnu_debugdata':
+                            parent_name = pathlib.Path(self.infile.name)
+                            with unpacked_md.open(open_file=False):
+                                unpacked_md.info['propagated'] = {'parent': parent_name}
+                                unpacked_md.info['propagated']['name'] = f'{parent_name.name}.debug'
+                                unpacked_md.info['propagated']['type'] = 'MiniDebugInfo'
                         yield unpacked_md
 
     def write_info(self, to_meta_directory):
