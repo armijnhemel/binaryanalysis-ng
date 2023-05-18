@@ -333,7 +333,7 @@ GNU Affero General Public License, version 3 (AGPL-3.0)
 The code for verifying and labeling Android Verified Boot images was heavily
 inspired by code from Android (`avbtool`) found at:
 
-<https://android.googlesource.com/platform/external/avb/+/master/avbtool>
+<https://android.googlesource.com/platform/external/avb/+/refs/heads/master/avbtool.py>
 
 The original license for avbtool:
 
