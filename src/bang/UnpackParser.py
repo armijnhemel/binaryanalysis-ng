@@ -80,6 +80,7 @@ class UnpackParser:
     Override any methods if necessary.
     """
     extensions = []
+    priority = 0
 
     signatures = []
     scan_if_featureless = False
