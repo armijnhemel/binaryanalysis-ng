@@ -97,8 +97,12 @@ types:
         type: u2
       - id: devt_slotoff
         type: u2
-      - id: reserved_1
-        size: 6
+      - id: dir_block_bits
+        type: u1
+      - id: num_xattr_prefix
+        type: u1
+      - id: ofs_xattr_prefix
+        type: u4
       - id: packed_nid
         type: u8
       - id: reserved_2
