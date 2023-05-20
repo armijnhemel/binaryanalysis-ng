@@ -121,6 +121,7 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_
 
     #log.debug(f'{unpack_parsers =}')
     scan_environment.parsers.build_automaton()
+    scan_environment.signature_chunk_size = max(scan_environment.signature_chunk_size, scan_environment.parsers.max_chunk_size)
 
     # set up the process manager and initialize the barrier
     # with the value of the amount of jobs: this is the maximum
