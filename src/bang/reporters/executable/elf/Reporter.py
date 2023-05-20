@@ -80,7 +80,7 @@ class ElfReporter(Reporter):
                 if 'version' in metadata['package note']:
                     meta_table.add_row('Package version', f'{metadata["package note"]["version"]}')
                 if 'osCpe' in metadata['package note']:
-                    meta_table.add_row('Package CPE', f'{metadata["package note"]["osCpe"]}')
+                    meta_table.add_row('OS CPE', f'{metadata["package note"]["osCpe"]}')
             if 'strings' in metadata:
                 if metadata['strings'] != []:
                     meta_table.add_row('Extracted strings', str(len(metadata['strings'])))

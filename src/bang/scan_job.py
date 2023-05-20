@@ -233,6 +233,12 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
         open_file.seek(file_scan_state.chunk_start)
         s = open_file.read(chunk_size)
         #log.debug(f'find_signature_parsers: read [{file_scan_state.chunk_start}:+{len(s)}]')
+
+        # store the parsers found so far instead of yielding every found
+        # parser as the offset possibly needs to be corrected because
+        # the signature doesn't appear at the start of the file
+        # (examples: MBR, ISO9660).
+        found_parsers = {}
         for end_index, (end_difference, unpack_parser_cls) in scan_environment.parsers.automaton.iter(s):
             offset = file_scan_state.chunk_start + end_index - end_difference
             #log.debug(f'find_signature_parsers: got match at [{offset}:{file_scan_state.chunk_start+end_index}]')
@@ -243,7 +249,15 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
                 #log.debug(f'find_signature_parsers: match falls within overlap: {end_index=} < {chunk_overlap=}')
                 pass
             else:
-                yield offset, unpack_parser_cls
+                if offset not in found_parsers:
+                    found_parsers[offset] = []
+                found_parsers[offset] += unpack_parser_cls
+
+        # sort the parsers found based on offsets
+        for offset in sorted(found_parsers):
+            # sort the parsers found at each offset based on priority
+            yield offset, sorted(found_parsers[offset], key=lambda x: x.priority, reverse=True)
+
         if file_scan_state.chunk_start + len(s) >= file_size:
             # this was the last chunk
             file_scan_state.chunk_start += len(s)

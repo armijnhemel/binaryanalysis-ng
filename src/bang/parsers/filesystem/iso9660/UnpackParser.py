@@ -43,6 +43,7 @@ class Iso9660UnpackParser(UnpackParser):
         (32769, b'CD001')
     ]
     pretty_name = 'iso9660'
+    priority = 1000
 
     def parse(self):
         self.zisofs = False

@@ -26,7 +26,10 @@ import logging
 import multiprocessing
 import pathlib
 import sys
+import tarfile
 import time
+
+from collections import deque
 
 import click
 import rich
@@ -118,6 +121,7 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_
 
     #log.debug(f'{unpack_parsers =}')
     scan_environment.parsers.build_automaton()
+    scan_environment.signature_chunk_size = max(scan_environment.signature_chunk_size, scan_environment.parsers.max_chunk_size)
 
     # set up the process manager and initialize the barrier
     # with the value of the amount of jobs: this is the maximum
@@ -474,6 +478,86 @@ def report_for_file(md, parent, console, pretty=False):
         for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
             child_md = MetaDirectory.from_md_path(parent, v)
             report_for_file(child_md, parent, console, pretty)
+
+@app.command(short_help='Pack results in a gzip compressed tar archive')
+@click.argument('metadir', type=click.Path(path_type=pathlib.Path))
+@click.option('-o', '--output', type=click.Path(path_type=pathlib.Path), required=True, help='output archive')
+@click.option('--with-data', is_flag=True, help='include data in archive')
+def pack(metadir, with_data, output):
+    '''Stores results of upacked files stored underneath metadir
+    '''
+    # sanity check: is this a valid BANG unpacking directory?
+    root_pickle = metadir / 'info.pkl'
+    if not root_pickle.exists():
+        print("Not a valid BANG directory, info.pkl not found, exiting",
+              file=sys.stderr)
+        sys.exit(1)
+
+    # then try to open the tarfile in write mode
+    pack_file = tarfile.open(output, mode='w:gz')
+
+    # first grab all of the directories that need to be processed.
+    # This is done by traversing the unpacking tree for a few reasons:
+    #
+    # 1. it allows subtrees to be packed
+    # 2. unpacking trees might have been polluted by reusing the
+    #    same directory for unpacking
+    unpack_directories = [pathlib.Path(metadir.name)]
+    root_md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
+
+    metadirs = deque([root_md])
+
+    while True:
+        try:
+            md = metadirs.popleft()
+        except IndexError:
+            break
+
+        # recurse into all of the children
+        with md.open(open_file=False, info_write=False):
+            for k,v in sorted(md.info.get('extracted_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
+                unpack_directories.append(v)
+
+            for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
+                unpack_directories.append(v)
+
+            for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
+                unpack_directories.append(v)
+
+    for u in unpack_directories:
+        if with_data:
+            pack_file.add(metadir.parent / u, arcname=u, filter=clear_ids)
+        else:
+            pack_file.add(metadir.parent / u / 'info.pkl', arcname=u / 'info.pkl', filter=clear_ids)
+            pack_file.add(metadir.parent / u / 'pathname', arcname=u / 'pathname', filter=clear_ids)
+
+    if with_data and metadir.name == 'root':
+        try:
+            root_file_name = metadir / 'pathname'
+            with open(root_file_name, 'r') as r:
+                root_file = pathlib.Path(r.read())
+            if root_file.exists():
+                pack_file.add(root_file, arcname=root_file.name, filter=clear_ids)
+        except:
+            pass
+
+    pack_file.close()
+
+def clear_ids(tarinfo):
+    '''Rewrite the UID and GIDs to something neutral.
+       From Python's tarfile help page
+    '''
+    tarinfo.uid = 0
+    tarinfo.gid = 0
+    tarinfo.uname = "root"
+    tarinfo.gname = "root"
+    return tarinfo
 
 
 if __name__=="__main__":
