@@ -28,7 +28,6 @@ import threading
 import traceback
 import time
 from dataclasses import dataclass
-from operator import itemgetter
 from .meta_directory import *
 from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, HashParser
 from .UnpackParserException import UnpackParserException
