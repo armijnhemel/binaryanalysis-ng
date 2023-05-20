@@ -252,10 +252,12 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
                 if offset not in found_parsers:
                     found_parsers[offset] = []
                 found_parsers[offset] += unpack_parser_cls
-                #yield offset, unpack_parser_cls
 
+        # sort the parsers found based on offsets
         for offset in sorted(found_parsers):
+            # sort the parsers found at each offset based on priority
             yield offset, sorted(found_parsers[offset], key=lambda x: x.priority, reverse=True)
+
         if file_scan_state.chunk_start + len(s) >= file_size:
             # this was the last chunk
             file_scan_state.chunk_start += len(s)
