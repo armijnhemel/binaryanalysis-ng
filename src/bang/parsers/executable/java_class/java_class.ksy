@@ -328,6 +328,7 @@ types:
             '"ModuleMainClass"': attr_body_module_main_class # 4.7.27
             '"NestHost"': attr_body_nest_host # 4.7.28
             '"NestMembers"': attr_body_nest_members # 4.7.29
+            '"Record"': attr_body_record # 4.7.30
             '"PermittedSubclasses"': attr_body_permitted_subclasses # 4.7.31
     instances:
       name_as_str:
@@ -695,6 +696,31 @@ types:
             instances:
               nested_class:
                 value: _root.constant_pool[class_index - 1].cp_info.as<class_cp_info>
+      attr_body_record:
+        doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.30'
+        seq:
+          - id: num_components
+            type: u2
+          - id: components
+            type: record_component_info
+        types:
+          record_component_info:
+            seq:
+              - id: name_index
+                type: u2
+              - id: descriptor_index
+                type: u2
+              - id: num_attributes
+                type: u2
+              - id: attributes
+                type: attribute_info
+                repeat: expr
+                repeat-expr: num_attributes
+            instances:
+              name:
+                value: _root.constant_pool[name_index - 1].cp_info.as<utf8_cp_info>.raw_value
+              descriptor:
+                value: _root.constant_pool[descriptor_index - 1].cp_info.as<utf8_cp_info>.raw_value
       attr_body_permitted_subclasses:
         doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.31'
         seq:
