@@ -55,7 +55,6 @@ pkgs.mkShell {
     kaitai-struct-compiler
     lrzip
     lz4
-    mailcap
     ncompress
     openssl
     my-python
