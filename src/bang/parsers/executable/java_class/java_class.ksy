@@ -470,10 +470,11 @@ types:
           - id: method_index
             type: u2
         instances:
-          class_as_str:
-            value: _root.constant_pool[class_index - 1].cp_info.as<utf8_cp_info>.value
-          method_as_str:
-            value: _root.constant_pool[method_index - 1].cp_info.as<utf8_cp_info>.value
+          class_file:
+            value: _root.constant_pool[class_index - 1].cp_info.as<class_cp_info>
+          method_name_type:
+            value: _root.constant_pool[method_index - 1].cp_info.as<name_and_type_cp_info>
+            if: method_index != 0
       attr_body_signature:
         doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.9'
         seq:
