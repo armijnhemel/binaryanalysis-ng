@@ -6,7 +6,7 @@ meta:
   bit-endian: be
   encoding: UTF-8
 doc-ref:
-  - https://git.qemu.org/?p=qemu.git;a=blob;f=docs/interop/qcow2.txt;h=0463f761efbb8deadc3e9f429c20bf37dcb4c756;hb=HEAD
+  - https://gitlab.com/qemu-project/qemu/-/blob/5135fe71101db08cf65090963247f9b1b8138b73/docs/interop/qcow2.txt
 seq:
   - id: header_cluster
     type: header
