@@ -34,79 +34,8 @@ import configparser
 import email.parser
 
 # some external packages that are needed
-import tinycss2
 import dockerfile_parse
 import icalendar
-
-
-# For now it is assumed that only files that are completely text
-# files can be CSS files
-def unpack_css(fileresult, scanenvironment, offset, unpackdir):
-    '''Verify a CSS file.'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-
-    isopened = False
-
-    # open the file in text only mode
-    try:
-        checkfile = open(filename_full, 'r')
-        isopened = True
-    except:
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not a valid CSS file'}
-        return {'status': False, 'error': unpackingerror}
-
-    checkfile.seek(0)
-
-    # read the file: Python's text reader will fairly quickly
-    # detect the binary files, so not a lot of extra data will
-    # be read.
-    try:
-        cssbytes = checkfile.read()
-    except:
-        if isopened:
-            checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not a text file'}
-        return {'status': False, 'error': unpackingerror}
-    checkfile.close()
-
-    try:
-        cssres = tinycss2.parse_stylesheet(cssbytes)
-    except Exception:
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'could not parse CSS'}
-        return {'status': False, 'error': unpackingerror}
-
-    dataunpacked = False
-    for c in cssres:
-        if type(c) == tinycss2.ast.ParseError:
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'CSS parse error'}
-            return {'status': False, 'error': unpackingerror}
-        if type(c) == tinycss2.ast.WhitespaceToken:
-            pass
-        else:
-            dataunpacked = True
-
-    if not dataunpacked:
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'no CSS unpacked'}
-        return {'status': False, 'error': unpackingerror}
-
-    labels.append('css')
-
-    return {'status': True, 'length': filesize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_css.extensions = ['.css']
-unpack_css.pretty = 'css'
-unpack_css.scope = 'text'
 
 
 # parse Java/Android manifest files, assume text only for now
