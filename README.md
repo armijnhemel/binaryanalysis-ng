@@ -283,6 +283,7 @@ larger file, unless stated otherwise.
 182. erofs ('inline' data layout only)
 183. bzip3
 184. PX4 autopilot firmware files
+185. SSH known hosts files (whole file)
 
 The following text formats can be recognized:
 
@@ -300,11 +301,10 @@ The following text formats can be recognized:
 10. Unix passwd files (whole file)
 11. Unix shadow files (whole file)
 12. Samba password files
-13. SSH known hosts files (whole file)
-14. Subversion hash files (wcprops, all-wcprops, etc.)
-15. pkg-config files
-16. Java/Android MANIFEST.MF files (whole file)
-17. iCalendar (RFC 5545) files (whole file only)
+13. Subversion hash files (wcprops, all-wcprops, etc.)
+14. pkg-config files
+15. Java/Android MANIFEST.MF files (whole file)
+16. iCalendar (RFC 5545) files (whole file only)
 
 
 ## Getting started
