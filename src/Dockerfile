@@ -23,7 +23,6 @@ RUN dnf install -y binutils \
                    lz4 \
                    lzop \
                    lzo-devel \
-                   mailcap \
                    ncompress \
                    openssl \
                    p7zip \

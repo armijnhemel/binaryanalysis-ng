@@ -42,7 +42,6 @@ Note: this list is vastly incomplete. It is highly recommended to use Nix.
 * dockerfile-parse (possibly named python3-dockerfile-parse)
 * openssl
 * rzip
-* mailcap (for mime.types)
 * lzop
 * OpenJDK (for 'unpack200')
 * defusedxml (possibly named python3-defusedxml)

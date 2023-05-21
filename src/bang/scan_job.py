@@ -28,7 +28,6 @@ import threading
 import traceback
 import time
 from dataclasses import dataclass
-from operator import itemgetter
 from .meta_directory import *
 from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, HashParser
 from .UnpackParserException import UnpackParserException
@@ -221,8 +220,28 @@ class FileScanState:
 
 #####
 #
-# Iterator that yields all combinations of offsets and UnpackParsers for all signatures
-# found in open_file.
+# Iterator that yields all combinations of offsets and UnpackParsers for all
+# signatures found in open_file.
+#
+# Some caveats: not all signatures start at position 0 so offsets sometimes
+# need to be corrected, for example ISO9660, ext2 and others. This could lead
+# to a situation where the automaton finds a match, but there is another
+# signature a bit further in the file that needs to be corrected and the
+# corrected offset would be earlier than the found match. This is why matches
+# cannot be just yielded when found, but need to be sorted after applying any
+# offset corrections. For this the chunk size should minimally be the largest
+# correction + the length of the signature.
+#
+# Even though the above method will largely mitigate this issue there is a
+# chance that a few offsets will be reported even though after correction
+# earlier offsets will be found. The only way to prevent this is to set the
+# chunk size to the size of the largest file that will be scanned.
+#
+# Polyglot files (where one file could be different valid files depending on
+# how the file is read (random access, from the front, etc.) could lead to
+# the same offset reported for multiple parsers. To choose the right parser
+# the parsers are sorted by priority, with priorities being declared in the
+# UnpackParser.py file (default: 0 - no priority).
 #
 def find_signature_parsers(scan_environment, open_file, file_scan_state, file_size):
     # yield all matching signatures
@@ -233,6 +252,12 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
         open_file.seek(file_scan_state.chunk_start)
         s = open_file.read(chunk_size)
         #log.debug(f'find_signature_parsers: read [{file_scan_state.chunk_start}:+{len(s)}]')
+
+        # store the parsers found so far instead of yielding every found
+        # parser as the offset possibly needs to be corrected because
+        # the signature doesn't appear at the start of the file
+        # (examples: MBR, ISO9660).
+        found_parsers = {}
         for end_index, (end_difference, unpack_parser_cls) in scan_environment.parsers.automaton.iter(s):
             offset = file_scan_state.chunk_start + end_index - end_difference
             #log.debug(f'find_signature_parsers: got match at [{offset}:{file_scan_state.chunk_start+end_index}]')
@@ -243,13 +268,22 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
                 #log.debug(f'find_signature_parsers: match falls within overlap: {end_index=} < {chunk_overlap=}')
                 pass
             else:
-                yield offset, unpack_parser_cls
+                if offset not in found_parsers:
+                    found_parsers[offset] = []
+                found_parsers[offset] += unpack_parser_cls
+
+        # sort the parsers found based on offsets
+        for offset in sorted(found_parsers):
+            # sort the parsers found at each offset based on priority
+            yield offset, sorted(found_parsers[offset], key=lambda x: x.priority, reverse=True)
+
         if file_scan_state.chunk_start + len(s) >= file_size:
             # this was the last chunk
             file_scan_state.chunk_start += len(s)
         else:
             # set chunk_start to before the actual chunk to detect overlapping patterns in the next chunk
             file_scan_state.chunk_start += len(s) - chunk_overlap
+
         # unless the unpackparser advanced us
         file_scan_state.chunk_start = max(file_scan_state.chunk_start, file_scan_state.scanned_until)
 
