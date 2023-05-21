@@ -454,6 +454,14 @@ types:
                 value: access_flags & 0x2000 == 0x2000
               is_enum:
                 value: access_flags & 0x4000 == 0x4000
+              inner_class:
+                value: _root.constant_pool[inner_class_info_index - 1].cp_info.as<class_cp_info>
+              outer_class:
+                value: _root.constant_pool[outer_class_info_index - 1].cp_info.as<class_cp_info>
+                if: outer_class_info_index != 0
+              inner_class_name:
+                value: _root.constant_pool[inner_name_index - 1].cp_info.as<utf8_cp_info>.value
+                if: inner_name_index != 0
       attr_body_enclosing_method:
         doc-ref: 'https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.7.7'
         seq:
