@@ -289,13 +289,14 @@ larger file, unless stated otherwise.
 188. Unix shadow files (whole file)
 189. Samba password files
 190. Linux fstab files
-1911. Java/Android MANIFEST.MF files (whole file)
+191. Java/Android MANIFEST.MF files (whole file)
+192. Linux kernel configuration files (whole file)
 
 The following text formats can be recognized:
 
 (NOTE: currently broken)
 
-1. Linux kernel configuration files (whole file)
+1. pkg-config files
 2. Dockerfile files (whole file)
 3. Python PKG-INFO files (whole file)
 4. TRANS.TBL files
@@ -304,7 +305,6 @@ The following text formats can be recognized:
 7. iCalendar (RFC 5545) files (whole file only)
 8. Windows INI files (text only)
 9. Linux Software Map files (whole file)
-10. pkg-config files
 
 ## Getting started
 
