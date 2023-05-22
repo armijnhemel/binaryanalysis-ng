@@ -20,7 +20,7 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-# Kernel configuration files that are embedded in Linux kernel
+# Kernel configuration files are frequently embedded in Linux kernel images
 
 import re
 
