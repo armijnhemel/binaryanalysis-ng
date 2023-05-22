@@ -285,6 +285,7 @@ larger file, unless stated otherwise.
 184. PX4 autopilot firmware files
 185. SSH known hosts files (whole file)
 186. Unix passwd files (whole file)
+187. Unix group files (whole file)
 
 The following text formats can be recognized:
 
@@ -293,10 +294,10 @@ The following text formats can be recognized:
 1. Linux kernel configuration files (whole file)
 2. Dockerfile files (whole file)
 3. Python PKG-INFO files (whole file)
-4. Unix group files (whole file)
-5. TRANS.TBL files
-6. CSS
-7. Linux fstab files
+4. TRANS.TBL files
+5. CSS
+6. Linux fstab files
+7. iCalendar (RFC 5545) files (whole file only)
 8. Windows INI files (text only)
 9. Linux Software Map files (whole file)
 10. Unix shadow files (whole file)
@@ -304,8 +305,6 @@ The following text formats can be recognized:
 12. Subversion hash files (wcprops, all-wcprops, etc.)
 13. pkg-config files
 14. Java/Android MANIFEST.MF files (whole file)
-15. iCalendar (RFC 5545) files (whole file only)
-
 
 ## Getting started
 
