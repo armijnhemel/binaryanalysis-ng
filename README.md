@@ -283,6 +283,13 @@ larger file, unless stated otherwise.
 182. erofs ('inline' data layout only)
 183. bzip3
 184. PX4 autopilot firmware files
+185. SSH known hosts files (whole file)
+186. Unix passwd files (whole file)
+187. Unix group files (whole file)
+188. Unix shadow files (whole file)
+189. Samba password files
+190. Linux fstab files
+1911. Java/Android MANIFEST.MF files (whole file)
 
 The following text formats can be recognized:
 
@@ -291,21 +298,13 @@ The following text formats can be recognized:
 1. Linux kernel configuration files (whole file)
 2. Dockerfile files (whole file)
 3. Python PKG-INFO files (whole file)
-4. Unix group files (whole file)
-5. TRANS.TBL files
-6. CSS
-7. Linux fstab files
+4. TRANS.TBL files
+5. CSS
+6. Subversion hash files (wcprops, all-wcprops, etc.)
+7. iCalendar (RFC 5545) files (whole file only)
 8. Windows INI files (text only)
 9. Linux Software Map files (whole file)
-10. Unix passwd files (whole file)
-11. Unix shadow files (whole file)
-12. Samba password files
-13. SSH known hosts files (whole file)
-14. Subversion hash files (wcprops, all-wcprops, etc.)
-15. pkg-config files
-16. Java/Android MANIFEST.MF files (whole file)
-17. iCalendar (RFC 5545) files (whole file only)
-
+10. pkg-config files
 
 ## Getting started
 
