@@ -41,10 +41,10 @@ and also parsers that are using external tools, such as:
 1. `SevenzipUnpackParser`
 2. `RzipUnpackParser`
 
-## `extensions` and `signatures`
+## `extensions`, `signatures` and `priority`
 
 The two data structures `extensions` and `signatures` are defined that define
-parser class is used. They are independent from each other.
+which parser class is used. They are independent from each other.
 
 Normally parsers rely on signatures (AKA "magic") to find the start of where
 a file format starts, but not all files have a signature. For example, the
@@ -72,6 +72,20 @@ When deciding if `extensions` or `signatures` should be used the rule of thumb
 is that if there is a signature, then `signatures` should be used and
 `extensions` should not be used. If there is no signature but there is a
 reliable extension, then `extensions` should be used.
+
+`priority` is used to indicate an optional priority when scanning. There
+are situations when there are parser classes that match, but where one should
+be preferred over the other. An example is ISO9660, where the first block
+of the file system could contain anything, for example a bootblock with
+an EFI bootloader. In this case the ISO9660 parser should be run,
+otherwise it will be hard to extract the content (at least not until polyglot
+files are supported. By default all parsers have a `priority` of `0`. To make
+sure that a particular unpacker is used first the `priority` field can be set
+to a higher number, for example:
+
+```
+    priority = 1000
+```
 
 ## `pretty_name`
 

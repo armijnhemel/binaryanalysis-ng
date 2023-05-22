@@ -41,8 +41,9 @@ class MetaDirectoryException(Exception):
 
 
 class MetaDirectory:
-    REL_UNPACK_DIR = 'rel'
     ABS_UNPACK_DIR = 'abs'
+    BLOCK_UNPACK_DIR = 'block'
+    REL_UNPACK_DIR = 'rel'
     ROOT_PATH = 'root'
     PKL_NAME = 'info.pkl'
 

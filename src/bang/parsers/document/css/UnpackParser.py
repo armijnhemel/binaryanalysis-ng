@@ -20,29 +20,25 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import xml.dom
-import defusedxml.minidom
+import tinycss2
+
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
 
-# There are a few variants of XML. The first one is the "regular"
-# one, which is documented at:
-# https://www.w3.org/TR/2008/REC-xml-20081126/
-#
-# Android has a "binary XML", where the XML data has been translated
-# into a binary file. This is not supported by this parser.
-class XmlUnpackParser(UnpackParser):
-    extensions = ['.xml', '.xsd', '.ncx', '.opf', '.svg', '.rss']
+class CssUnpackParser(UnpackParser):
+    extensions = ['.css']
     signatures = [
     ]
-    pretty_name = 'xml'
+    pretty_name = 'css'
 
     def parse(self):
+        # tinycss2 cannot process files that should be carved
+        check_condition(False, "unsupported")
         try:
-            self.data = defusedxml.minidom.parse(self.infile)
+            self.data = tinycss2.parse_stylesheet_bytes(self.infile.read())
         except Exception as e:
             raise UnpackParserException(e.args)
 
-    labels = ['xml']
+    labels = ['css']
     metadata = {}

@@ -57,6 +57,7 @@ class ParserCollection:
         self._unpackparsers_for_signatures = {}
         self._unpackparsers_for_featureless_files = []
         self.longest_signature_length = 0
+        self.max_chunk_size = 0
 
     def add(self, unpackparser):
         self._unpackparsers[unpackparser.pretty_name] = unpackparser
@@ -114,6 +115,7 @@ class ParserCollection:
                 else:
                     self._automaton.add_word(s[1], (s[0]+len(s[1])-1, [u]))
                 self.longest_signature_length = max(self.longest_signature_length, len(s[1]))
+                self.max_chunk_size = max(self.max_chunk_size, s[0] + len(s[1]))
 
         if len(self._automaton) > 0:
             self._automaton.make_automaton()

@@ -31,6 +31,10 @@ from bang.UnpackParserException import UnpackParserException
 class LzmaBaseUnpackParser(UnpackParser):
     pretty_name = 'lzma_base'
 
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
+        self.from_md = from_meta_directory
+
     def parse(self):
         buf = self.infile.read(6)
         if buf == b'\xfd\x37\x7a\x58\x5a\x00':
@@ -99,6 +103,11 @@ class LzmaBaseUnpackParser(UnpackParser):
                 file_path = pathlib.Path(meta_directory.file_path.stem + ".tar")
             else:
                 file_path = pathlib.Path("unpacked_from_xz")
+
+            # overwrite in case another name was given
+            propagated_info = self.from_md.info.get('propagated', {})
+            if 'name' in propagated_info:
+                file_path = pathlib.Path(propagated_info['name'])
         elif self.filetype == 'lzma':
             if meta_directory.file_path.suffix.lower() in ['.lzma', '.lz']:
                 file_path = pathlib.Path(meta_directory.file_path.stem)
@@ -153,4 +162,3 @@ class XzUnpackParser(LzmaBaseUnpackParser):
         (0, b'\xfd\x37\x7a\x58\x5a\x00')
     ]
     pretty_name = 'xz'
-
