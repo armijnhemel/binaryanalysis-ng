@@ -286,6 +286,7 @@ larger file, unless stated otherwise.
 185. SSH known hosts files (whole file)
 186. Unix passwd files (whole file)
 187. Unix group files (whole file)
+188. Unix shadow files (whole file)
 
 The following text formats can be recognized:
 
@@ -300,11 +301,10 @@ The following text formats can be recognized:
 7. iCalendar (RFC 5545) files (whole file only)
 8. Windows INI files (text only)
 9. Linux Software Map files (whole file)
-10. Unix shadow files (whole file)
+10. Java/Android MANIFEST.MF files (whole file)
 11. Samba password files
 12. Subversion hash files (wcprops, all-wcprops, etc.)
 13. pkg-config files
-14. Java/Android MANIFEST.MF files (whole file)
 
 ## Getting started
 
