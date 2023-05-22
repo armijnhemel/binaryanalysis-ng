@@ -287,6 +287,7 @@ larger file, unless stated otherwise.
 186. Unix passwd files (whole file)
 187. Unix group files (whole file)
 188. Unix shadow files (whole file)
+189. Samba password files
 
 The following text formats can be recognized:
 
@@ -302,9 +303,8 @@ The following text formats can be recognized:
 8. Windows INI files (text only)
 9. Linux Software Map files (whole file)
 10. Java/Android MANIFEST.MF files (whole file)
-11. Samba password files
+11. pkg-config files
 12. Subversion hash files (wcprops, all-wcprops, etc.)
-13. pkg-config files
 
 ## Getting started
 
