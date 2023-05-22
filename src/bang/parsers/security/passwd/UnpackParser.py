@@ -42,7 +42,7 @@ class PasswdUnpackParser(UnpackParser):
             passwd_file.close()
             raise UnpackParserException(e.args)
 
-        self.passwd_entries = []
+        self.entries = []
 
         data_unpacked = False
         len_unpacked = 0
@@ -85,7 +85,7 @@ class PasswdUnpackParser(UnpackParser):
                     entry['directory'] = fields[8]
                     entry['shell'] = fields[9]
 
-                self.passwd_entries.append(entry)
+                self.entries.append(entry)
 
                 len_unpacked += len(passwd_line)
                 data_unpacked = True
@@ -105,5 +105,5 @@ class PasswdUnpackParser(UnpackParser):
 
     @property
     def metadata(self):
-        metadata = {'entries': self.passwd_entries}
+        metadata = {'entries': self.entries}
         return metadata

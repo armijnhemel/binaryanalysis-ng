@@ -41,7 +41,7 @@ class GroupUnpackParser(UnpackParser):
             group_file.close()
             raise UnpackParserException(e.args)
 
-        self.group_entries = []
+        self.entries = []
 
         data_unpacked = False
         len_unpacked = 0
@@ -69,7 +69,7 @@ class GroupUnpackParser(UnpackParser):
                 entry['gid'] = gid
                 entry['members'] = members
 
-                self.group_entries.append(entry)
+                self.entries.append(entry)
 
                 len_unpacked += len(group_line)
                 data_unpacked = True
@@ -89,5 +89,5 @@ class GroupUnpackParser(UnpackParser):
 
     @property
     def metadata(self):
-        metadata = {'entries': self.group_entries}
+        metadata = {'entries': self.entries}
         return metadata
