@@ -56,7 +56,7 @@ class FstabUnpackParser(UnpackParser):
                     len_unpacked += len(fstab_line)
                     continue
 
-                # split the line on :
+                # fields are separated by whitespace
                 fields = line.split()
 
                 check_condition(len(fields) >= 4, "too few entries")
